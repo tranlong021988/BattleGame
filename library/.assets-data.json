@@ -1,0 +1,132 @@
+{
+  "2521865e-1697-4168-b655-68ab954672f9": {
+    "url": "db://assets/scripts",
+    "value": {},
+    "versionCode": 1
+  },
+  "6985aa89-e74e-4806-a02a-6b8ce0ac9d87": {
+    "url": "db://assets/scripts/rvo",
+    "value": {},
+    "versionCode": 1
+  },
+  "220c203c-ef11-4ca0-8d3c-4607999a8a88": {
+    "url": "db://assets/scripts/rvo/RVO.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce": {
+    "url": "db://assets/scripts/Unit.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "362a6ce2-8e20-4944-8fed-7f2fa95db536": {
+    "url": "db://assets/scripts/EnemyFinder.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "1e335392-7464-462e-b0f4-f1a62cb2f2ab": {
+    "url": "db://assets/scripts/GameManager.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "45369d38-91a0-48b0-897e-f10becbec2b5": {
+    "url": "db://assets/materials",
+    "value": {},
+    "versionCode": 1
+  },
+  "83287fd9-fec5-4875-b152-b729e98a0ec9": {
+    "url": "db://assets/materials/Blue.mtl",
+    "value": {
+      "depends": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4"
+      ]
+    },
+    "versionCode": 1
+  },
+  "31c94d47-e409-42f3-b397-08be549e95e2": {
+    "url": "db://assets/materials/Red.mtl",
+    "value": {
+      "depends": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4"
+      ]
+    },
+    "versionCode": 1
+  },
+  "f194fcbd-6a0e-4300-a4a2-8fed5cb043d1": {
+    "url": "db://assets/prefabs",
+    "value": {},
+    "versionCode": 1
+  },
+  "509c71d7-875d-41a4-8772-e7bd7b6c63cf": {
+    "url": "db://assets/prefabs/BlueUnit.prefab",
+    "value": {
+      "depends": [
+        "83287fd9-fec5-4875-b152-b729e98a0ec9",
+        "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "1263d74c-8167-4928-91a6-4e2672411f47@801ec"
+      ],
+      "dependScripts": [
+        "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
+        "362a6ce2-8e20-4944-8fed-7f2fa95db536"
+      ]
+    },
+    "versionCode": 2
+  },
+  "e9fa7cb9-649b-4dac-a368-f9515b675d79": {
+    "url": "db://assets/prefabs/RedUnit.prefab",
+    "value": {
+      "depends": [
+        "31c94d47-e409-42f3-b397-08be549e95e2",
+        "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "1263d74c-8167-4928-91a6-4e2672411f47@801ec"
+      ],
+      "dependScripts": [
+        "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
+        "362a6ce2-8e20-4944-8fed-7f2fa95db536"
+      ]
+    },
+    "versionCode": 2
+  },
+  "1effe86e-a401-4769-9dbc-62218c68834d": {
+    "url": "db://assets/Test.scene",
+    "value": {
+      "depends": [
+        "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+        "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+        "620b6bf3-0369-4560-837f-2a2c00b73c26",
+        "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
+        "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "837662e8-92db-4dea-820d-eafbe218fe17",
+        "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
+        "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
+      ],
+      "dependScripts": [
+        "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
+        "360c09ec-bbac-4350-9ea8-2786553038bf",
+        "59ff3474-5851-466c-970e-d7dfe54867af",
+        "CC3eba29-7abb-723a-f7ab-ae275e2277e8"
+      ]
+    },
+    "versionCode": 2
+  },
+  "d5281281-6909-4679-941e-69ac9d6924ff": {
+    "url": "db://assets/scripts/Obstacle.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "360c09ec-bbac-4350-9ea8-2786553038bf": {
+    "url": "db://assets/scripts/ObstacleCircle.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "59ff3474-5851-466c-970e-d7dfe54867af": {
+    "url": "db://assets/scripts/ObstacleRect.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "c92714ee-b02f-44a4-ac0b-25e52948a19f": {
+    "url": "db://assets/scripts/UnitProps.ts",
+    "value": {},
+    "versionCode": 1
+  }
+}

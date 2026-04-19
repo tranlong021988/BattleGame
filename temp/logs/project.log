@@ -1,0 +1,29 @@
+4-19-2026 18:08:24 - warn: Request timeout, aborting...
+4-19-2026 18:08:24 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:08:27 - warn: Request timeout, aborting...
+4-19-2026 18:08:27 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:08:30 - warn: Request timeout, aborting...
+4-19-2026 18:08:36 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:08:37 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
+4-19-2026 18:08:38 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
+4-19-2026 18:08:38 - log: Request namespace: device-list
+4-19-2026 18:08:50 - warn: Request timeout, aborting...
+4-19-2026 18:08:50 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:08:51 - info: [PreviewInEditor] preview process is ready
+4-19-2026 18:09:09 - log: [Scene] meshopt wasm decoder initialized
+4-19-2026 18:09:09 - log: [Scene] [box2d]:box2d wasm lib loaded.
+4-19-2026 18:09:09 - log: [Scene] [bullet]:bullet wasm lib loaded.
+4-19-2026 18:09:09 - log: [Scene] [PHYSICS]: using builtin.
+4-19-2026 18:09:09 - log: [Scene] Cocos Creator v3.8.8
+4-19-2026 18:09:10 - log: [Scene] Using custom pipeline: Builtin
+4-19-2026 18:09:10 - log: [Scene] [PHYSICS]: switch from builtin to bullet.
+4-19-2026 18:09:10 - log: [Scene] [PHYSICS2D]: switch from builtin to box2d.
+4-19-2026 18:09:16 - log: [PreviewInEditor] meshopt wasm decoder initialized
+4-19-2026 18:09:16 - log: [PreviewInEditor] [bullet]:bullet wasm lib loaded.
+4-19-2026 18:09:16 - log: [PreviewInEditor] [box2d]:box2d wasm lib loaded.
+4-19-2026 18:09:16 - log: [PreviewInEditor] [PHYSICS]: using builtin.
+4-19-2026 18:09:16 - log: [PreviewInEditor] Cocos Creator v3.8.8
+4-19-2026 18:09:16 - log: [PreviewInEditor] Using custom pipeline: Builtin
+4-19-2026 18:09:16 - log: [PreviewInEditor] [PHYSICS]: switch from builtin to bullet.
+4-19-2026 18:09:16 - log: [PreviewInEditor] [PHYSICS2D]: switch from builtin to box2d.
+4-19-2026 18:09:40 - info: [PreviewInEditor] preview process is ready

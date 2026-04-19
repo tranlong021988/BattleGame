@@ -1,0 +1,20 @@
+{
+  "data": {
+    "path": {},
+    "uuid": {
+      "materials\\Green.mtl": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4"
+      ],
+      "materials\\Green-001.mtl": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4"
+      ],
+      "materials\\Red.mtl": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4"
+      ],
+      "materials\\Blue.mtl": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4"
+      ]
+    }
+  },
+  "version": "1.0.0"
+}
