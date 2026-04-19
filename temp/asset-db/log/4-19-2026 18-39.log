@@ -1,0 +1,360 @@
+4-19-2026 18:39:52-debug: asset-db:require-engine-code (967ms)
+4-19-2026 18:39:52-log: Cannot access game frame or container.
+4-19-2026 18:39:53-log: [box2d]:box2d wasm lib loaded.
+4-19-2026 18:39:53-log: meshopt wasm decoder initialized
+4-19-2026 18:39:53-log: [bullet]:bullet wasm lib loaded.
+4-19-2026 18:39:53-log: Cocos Creator v3.8.8
+4-19-2026 18:39:53-log: Using legacy pipeline
+4-19-2026 18:39:53-log: Forward render pipeline initialized.
+4-19-2026 18:39:53-debug: [Assets Memory track]: asset-db:worker-init: initEngine start:31.29MB, end 79.23MB, increase: 47.94MB
+4-19-2026 18:39:55-debug: [Assets Memory track]: asset-db:worker-init: initPlugin start:79.30MB, end 274.32MB, increase: 195.02MB
+4-19-2026 18:39:55-debug: run package(placeholder) handler(enable) success!
+4-19-2026 18:39:55-debug: run package(placeholder) handler(enable) start
+4-19-2026 18:39:55-debug: asset-db:worker-init: initPlugin (1947ms)
+4-19-2026 18:39:55-debug: [Assets Memory track]: asset-db:worker-init start:31.28MB, end 274.48MB, increase: 243.20MB
+4-19-2026 18:39:55-debug: Run asset db hook programming:beforePreStart success!
+4-19-2026 18:39:55-debug: Run asset db hook engine-extends:beforePreStart ...
+4-19-2026 18:39:55-debug: Run asset db hook engine-extends:beforePreStart success!
+4-19-2026 18:39:55-debug: Run asset db hook programming:beforePreStart ...
+4-19-2026 18:39:55-debug: asset-db:worker-init (3477ms)
+4-19-2026 18:39:55-debug: asset-db-hook-programming-beforePreStart (101ms)
+4-19-2026 18:39:55-debug: asset-db-hook-engine-extends-beforePreStart (100ms)
+4-19-2026 18:39:55-debug: Preimport db internal success
+4-19-2026 18:39:55-debug: Preimport db assets success
+4-19-2026 18:39:55-debug: Run asset db hook programming:afterPreStart ...
+4-19-2026 18:39:55-debug: starting packer-driver...
+4-19-2026 18:39:59-debug: initialize scripting environment...
+4-19-2026 18:39:59-debug: [[Executor]] prepare before lock
+4-19-2026 18:39:59-debug: Set detail map pack:///resolution-detail-map.json: {}
+4-19-2026 18:39:59-debug: [[Executor]] prepare after unlock
+4-19-2026 18:39:59-debug: Run asset db hook programming:afterPreStart success!
+4-19-2026 18:39:59-debug: Run asset db hook engine-extends:afterPreStart ...
+4-19-2026 18:39:59-debug: Run asset db hook engine-extends:afterPreStart success!
+4-19-2026 18:39:59-debug: Start up the 'internal' database...
+4-19-2026 18:39:59-debug: asset-db-hook-programming-afterPreStart (3953ms)
+4-19-2026 18:39:59-debug: asset-db:worker-effect-data-processing (388ms)
+4-19-2026 18:39:59-debug: asset-db-hook-engine-extends-afterPreStart (388ms)
+4-19-2026 18:39:59-debug: Run asset db hook engine-extends:afterStartDB ...
+4-19-2026 18:40:00-debug: recompile effect.bin success
+4-19-2026 18:40:00-debug: Start up the 'assets' database...
+4-19-2026 18:40:00-debug: Run asset db hook engine-extends:afterStartDB success!
+4-19-2026 18:40:00-debug: asset-db:worker-effect-data-processing (440ms)
+4-19-2026 18:40:00-debug: asset-db-hook-engine-extends-afterStartDB (441ms)
+4-19-2026 18:40:00-debug: Run asset db hook engine-extends:afterStartDB ...
+4-19-2026 18:40:00-debug: recompile effect.bin success
+4-19-2026 18:40:00-debug: Run asset db hook engine-extends:afterStartDB success!
+4-19-2026 18:40:00-debug: lazy register asset handler *
+4-19-2026 18:40:00-debug: lazy register asset handler text
+4-19-2026 18:40:00-debug: lazy register asset handler directory
+4-19-2026 18:40:00-debug: lazy register asset handler dragonbones
+4-19-2026 18:40:00-debug: lazy register asset handler spine-data
+4-19-2026 18:40:00-debug: lazy register asset handler dragonbones-atlas
+4-19-2026 18:40:00-debug: lazy register asset handler terrain
+4-19-2026 18:40:00-debug: lazy register asset handler javascript
+4-19-2026 18:40:00-debug: lazy register asset handler json
+4-19-2026 18:40:00-debug: lazy register asset handler typescript
+4-19-2026 18:40:00-debug: lazy register asset handler scene
+4-19-2026 18:40:00-debug: lazy register asset handler prefab
+4-19-2026 18:40:00-debug: lazy register asset handler tiled-map
+4-19-2026 18:40:00-debug: lazy register asset handler buffer
+4-19-2026 18:40:00-debug: lazy register asset handler sprite-frame
+4-19-2026 18:40:00-debug: lazy register asset handler sign-image
+4-19-2026 18:40:00-debug: lazy register asset handler image
+4-19-2026 18:40:00-debug: lazy register asset handler texture
+4-19-2026 18:40:00-debug: lazy register asset handler erp-texture-cube
+4-19-2026 18:40:00-debug: lazy register asset handler texture-cube
+4-19-2026 18:40:00-debug: lazy register asset handler texture-cube-face
+4-19-2026 18:40:00-debug: lazy register asset handler render-texture
+4-19-2026 18:40:00-debug: lazy register asset handler alpha-image
+4-19-2026 18:40:00-debug: lazy register asset handler rt-sprite-frame
+4-19-2026 18:40:00-debug: lazy register asset handler gltf-mesh
+4-19-2026 18:40:00-debug: lazy register asset handler gltf
+4-19-2026 18:40:00-debug: lazy register asset handler gltf-animation
+4-19-2026 18:40:00-debug: lazy register asset handler gltf-skeleton
+4-19-2026 18:40:00-debug: lazy register asset handler gltf-embeded-image
+4-19-2026 18:40:00-debug: lazy register asset handler gltf-material
+4-19-2026 18:40:00-debug: lazy register asset handler fbx
+4-19-2026 18:40:00-debug: lazy register asset handler material
+4-19-2026 18:40:00-debug: lazy register asset handler gltf-scene
+4-19-2026 18:40:00-debug: lazy register asset handler physics-material
+4-19-2026 18:40:00-debug: lazy register asset handler effect-header
+4-19-2026 18:40:00-debug: lazy register asset handler effect
+4-19-2026 18:40:00-debug: lazy register asset handler audio-clip
+4-19-2026 18:40:00-debug: lazy register asset handler animation-graph
+4-19-2026 18:40:00-debug: lazy register asset handler animation-graph-variant
+4-19-2026 18:40:00-debug: lazy register asset handler ttf-font
+4-19-2026 18:40:00-debug: lazy register asset handler animation-clip
+4-19-2026 18:40:00-debug: lazy register asset handler particle
+4-19-2026 18:40:00-debug: lazy register asset handler bitmap-font
+4-19-2026 18:40:00-debug: lazy register asset handler animation-mask
+4-19-2026 18:40:00-debug: lazy register asset handler sprite-atlas
+4-19-2026 18:40:00-debug: lazy register asset handler label-atlas
+4-19-2026 18:40:00-debug: lazy register asset handler render-pipeline
+4-19-2026 18:40:00-debug: lazy register asset handler render-flow
+4-19-2026 18:40:00-debug: lazy register asset handler render-stage
+4-19-2026 18:40:00-debug: lazy register asset handler auto-atlas
+4-19-2026 18:40:00-debug: lazy register asset handler instantiation-material
+4-19-2026 18:40:00-debug: lazy register asset handler instantiation-skeleton
+4-19-2026 18:40:00-debug: lazy register asset handler instantiation-animation
+4-19-2026 18:40:00-debug: lazy register asset handler video-clip
+4-19-2026 18:40:00-debug: lazy register asset handler instantiation-mesh
+4-19-2026 18:40:00-debug: asset-db:worker-effect-data-processing (399ms)
+4-19-2026 18:40:00-debug: asset-db-hook-engine-extends-afterStartDB (400ms)
+4-19-2026 18:40:00-debug: asset-db:start-database (5028ms)
+4-19-2026 18:40:00-debug: asset-db:ready (11020ms)
+4-19-2026 18:40:00-debug: init worker message success
+4-19-2026 18:40:00-debug: programming:execute-script (8ms)
+4-19-2026 18:40:00-debug: [Build Memory track]: builder:worker-init start:224.49MB, end 232.80MB, increase: 8.31MB
+4-19-2026 18:40:00-debug: builder:worker-init (356ms)
+4-19-2026 18:40:10-debug: refresh db internal success
+4-19-2026 18:40:10-debug: refresh db assets success
+4-19-2026 18:40:10-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:40:10-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:40:10-debug: asset-db:refresh-all-database (69ms)
+4-19-2026 18:40:10-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:40:10-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 18:40:12-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat...
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbxbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vat.pngbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vnrm.pngbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001-remap_info.jsonbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:12-debug: Status file F:\Github\BattleGame\temp\asset-db\assets\fbx.FBX-glTF-conv\0af791a7-f349-426a-913b-c12f66b363d5\status.json: Error: ENOENT: no such file or directory, open 'F:\Github\BattleGame\temp\asset-db\assets\fbx.FBX-glTF-conv\0af791a7-f349-426a-913b-c12f66b363d5\status.json'
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vnrm.png@6c48abackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:12-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vat.png@6c48abackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:13-debug: Frame rate: 60 [{asset(0af791a7-f349-426a-913b-c12f66b363d5)}]
+4-19-2026 18:40:13-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbx@fa2d4background: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:13-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbx@3253fbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:13-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbx@05a8fbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:40:13-debug: refresh asset F:\Github\BattleGame\assets success
+4-19-2026 18:43:24-debug: refresh db internal success
+4-19-2026 18:43:24-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:43:24-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:43:24-debug: refresh db assets success
+4-19-2026 18:43:24-debug: asset-db:refresh-all-database (75ms)
+4-19-2026 18:43:24-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:43:24-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 18:43:30-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat...
+4-19-2026 18:43:30-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001-remap_info.jsonbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vat.pngbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vnrm.pngbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbxbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cReImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vat.png@6c48abackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cReImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001_vnrm.png@6c48abackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: refresh db internal success
+4-19-2026 18:43:30-debug: Frame rate: 60 [{asset(0af791a7-f349-426a-913b-c12f66b363d5)}]
+4-19-2026 18:43:30-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbx@0eee4background: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cReImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbx@3253fbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-debug: %cReImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\Fighter.Body.low_Baked.001.fbx@05a8fbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:43:30-log: The asset database is locked, asset operations(bound autoRefreshAssetLazy) will delay response, please wait a moment.
+4-19-2026 18:43:30-debug: refresh asset F:\Github\BattleGame\assets success
+4-19-2026 18:43:30-debug: refresh db assets success
+4-19-2026 18:43:30-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:43:30-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:43:30-debug: asset-db:refresh-all-database (107ms)
+4-19-2026 18:43:30-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:43:30-debug: asset-db-hook-engine-extends-afterRefresh (2ms)
+4-19-2026 18:44:14-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\VATMat.mtl...
+4-19-2026 18:44:14-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\VATMat.mtlbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:44:14-debug: refresh asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat success
+4-19-2026 18:44:14-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:49:38-debug: refresh db internal success
+4-19-2026 18:49:38-debug: refresh db assets success
+4-19-2026 18:49:38-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:49:38-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:49:38-debug: asset-db:refresh-all-database (77ms)
+4-19-2026 18:49:38-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:49:38-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 18:50:20-debug: refresh db internal success
+4-19-2026 18:50:20-debug: refresh db assets success
+4-19-2026 18:50:20-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:50:20-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:50:20-debug: asset-db:refresh-all-database (61ms)
+4-19-2026 18:50:20-debug: asset-db:worker-effect-data-processing (3ms)
+4-19-2026 18:50:20-debug: asset-db-hook-engine-extends-afterRefresh (4ms)
+4-19-2026 18:53:01-debug: refresh db internal success
+4-19-2026 18:53:01-debug: refresh db assets success
+4-19-2026 18:53:01-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:53:01-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:53:01-debug: asset-db:refresh-all-database (64ms)
+4-19-2026 18:53:01-debug: asset-db:worker-effect-data-processing (3ms)
+4-19-2026 18:53:01-debug: asset-db-hook-engine-extends-afterRefresh (4ms)
+4-19-2026 18:53:05-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\VATMat.mtlbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:53:05-debug: asset-db:reimport-assete133d45c-0b60-422d-928a-12ea3f9561f1 (29ms)
+4-19-2026 18:53:06-debug: refresh db internal success
+4-19-2026 18:53:06-debug: refresh db assets success
+4-19-2026 18:53:06-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:53:06-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:53:06-debug: asset-db:refresh-all-database (125ms)
+4-19-2026 18:53:06-debug: asset-db:worker-effect-data-processing (45ms)
+4-19-2026 18:53:06-debug: asset-db-hook-engine-extends-afterRefresh (45ms)
+4-19-2026 18:53:26-debug: refresh db internal success
+4-19-2026 18:53:26-debug: refresh db assets success
+4-19-2026 18:53:26-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:53:26-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:53:26-debug: asset-db:refresh-all-database (78ms)
+4-19-2026 18:53:26-debug: asset-db:worker-effect-data-processing (3ms)
+4-19-2026 18:53:26-debug: asset-db-hook-engine-extends-afterRefresh (3ms)
+4-19-2026 18:53:48-warn: Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+4-19-2026 18:53:56-debug: refresh db internal success
+4-19-2026 18:53:56-debug: refresh db assets success
+4-19-2026 18:53:56-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:53:56-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:53:56-debug: asset-db:refresh-all-database (66ms)
+4-19-2026 18:53:56-debug: asset-db:worker-effect-data-processing (3ms)
+4-19-2026 18:53:56-debug: asset-db-hook-engine-extends-afterRefresh (3ms)
+4-19-2026 18:54:03-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-standard.effect...
+4-19-2026 18:54:03-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-standard.effectbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:54:04-debug: refresh asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat success
+4-19-2026 18:54:04-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:54:05-debug: recompile effect.bin success
+4-19-2026 18:54:18-debug: start move asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-standard.effect -> F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect...
+4-19-2026 18:54:18-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect...
+4-19-2026 18:54:18-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effectbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:54:19-debug: refresh asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat success
+4-19-2026 18:54:19-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat...
+4-19-2026 18:54:19-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:54:19-debug: refresh asset F:\Github\BattleGame\assets success
+4-19-2026 18:54:19-debug: move asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-standard.effect -> F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect success
+4-19-2026 18:54:19-debug: recompile effect.bin success
+4-19-2026 18:54:20-warn: Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+4-19-2026 18:54:37-debug: refresh db internal success
+4-19-2026 18:54:37-debug: refresh db assets success
+4-19-2026 18:54:37-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:54:37-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:54:37-debug: asset-db:refresh-all-database (74ms)
+4-19-2026 18:54:37-debug: asset-db:worker-effect-data-processing (6ms)
+4-19-2026 18:54:37-debug: asset-db-hook-engine-extends-afterRefresh (6ms)
+4-19-2026 18:54:40-debug: programming:execute-script (2ms)
+4-19-2026 18:54:42-debug: start remove asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect...
+4-19-2026 18:54:42-debug: refresh db internal success
+4-19-2026 18:54:42-debug: %cDestroy%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effectbackground: #ffb8b8; color: #000;color: #000;
+4-19-2026 18:54:42-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:54:42-debug: refresh db assets success
+4-19-2026 18:54:42-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:54:42-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:54:42-debug: asset-db:worker-effect-data-processing (2ms)
+4-19-2026 18:54:42-debug: asset-db-hook-engine-extends-afterRefresh (2ms)
+4-19-2026 18:54:42-debug: asset-db:refresh-all-database (67ms)
+4-19-2026 18:54:42-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect...
+4-19-2026 18:54:42-debug: refresh asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat success
+4-19-2026 18:54:42-debug: remove asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect success
+4-19-2026 18:55:01-warn: Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+4-19-2026 18:55:08-debug: refresh db internal success
+4-19-2026 18:55:08-debug: refresh db assets success
+4-19-2026 18:55:08-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:55:08-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:55:08-debug: asset-db:refresh-all-database (65ms)
+4-19-2026 18:55:08-debug: asset-db:worker-effect-data-processing (4ms)
+4-19-2026 18:55:08-debug: asset-db-hook-engine-extends-afterRefresh (4ms)
+4-19-2026 18:55:15-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-unlit.effectbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:55:15-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-unlit.effect...
+4-19-2026 18:55:15-debug: refresh asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat success
+4-19-2026 18:55:15-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:55:15-debug: recompile effect.bin success
+4-19-2026 18:55:26-debug: start move asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-unlit.effect -> F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect...
+4-19-2026 18:55:26-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect...
+4-19-2026 18:55:26-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effectbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:55:26-debug: refresh asset F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat success
+4-19-2026 18:55:26-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat...
+4-19-2026 18:55:26-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:55:26-debug: refresh asset F:\Github\BattleGame\assets success
+4-19-2026 18:55:26-debug: move asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\builtin-unlit.effect -> F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect success
+4-19-2026 18:55:26-debug: recompile effect.bin success
+4-19-2026 18:55:27-warn: Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+4-19-2026 18:56:52-debug: refresh db internal success
+4-19-2026 18:56:52-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:56:52-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:56:52-debug: refresh db assets success
+4-19-2026 18:56:52-debug: asset-db:refresh-all-database (78ms)
+4-19-2026 18:56:52-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:56:52-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 18:57:01-warn: Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+4-19-2026 18:57:05-debug: refresh db internal success
+4-19-2026 18:57:05-debug: refresh db assets success
+4-19-2026 18:57:05-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:57:05-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:57:05-debug: asset-db:refresh-all-database (77ms)
+4-19-2026 18:57:05-debug: asset-db-hook-engine-extends-afterRefresh (2ms)
+4-19-2026 18:57:05-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:57:45-debug: refresh db internal success
+4-19-2026 18:57:45-debug: refresh db assets success
+4-19-2026 18:57:45-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:57:45-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:57:45-debug: asset-db:refresh-all-database (65ms)
+4-19-2026 18:57:45-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 18:57:45-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 18:57:48-debug: start move asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect -> F:\Github\BattleGame\assets\scripts\vat-character.effect...
+4-19-2026 18:57:48-debug: start refresh asset from F:\Github\BattleGame\assets\scripts\vat-character.effect...
+4-19-2026 18:57:48-debug: %cImport%c: F:\Github\BattleGame\assets\scripts\vat-character.effectbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:57:48-debug: refresh asset F:\Github\BattleGame\assets\scripts success
+4-19-2026 18:57:48-debug: start refresh asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat...
+4-19-2026 18:57:48-debug: %cImport%c: F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vatbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:57:48-debug: refresh asset F:\Github\BattleGame\assets success
+4-19-2026 18:57:48-debug: move asset from F:\Github\BattleGame\assets\Fighter.Body.low_Baked.001_vat\vat-character.effect -> F:\Github\BattleGame\assets\scripts\vat-character.effect success
+4-19-2026 18:57:48-debug: %cImport%c: F:\Github\BattleGame\assets\scriptsbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:57:49-debug: recompile effect.bin success
+4-19-2026 18:58:12-debug: refresh db internal success
+4-19-2026 18:58:12-debug: %cImport%c: F:\Github\BattleGame\assets\scripts\vat-character.effectbackground: #aaff85; color: #000;color: #000;
+4-19-2026 18:58:12-error: ../scripts/vat-character.effect - syntax: Error EFX1001: CCEffect parser failed: YAMLException: unidentified alias "planar-shadow" (14:21) 11 |          12 |         vatTexture:     { value: white, editor: { p ... 13 |         vatParams:      { value: [30, 1, 0, 0], edi ... 14 |     - *planar-shadow--------------------------^ 15 |     - &deferred-forward 16 |       vert: unlit-vs:vert
+4-19-2026 18:58:12-debug: refresh db assets success
+4-19-2026 18:58:12-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:58:12-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:58:12-debug: asset-db:refresh-all-database (100ms)
+4-19-2026 18:58:12-debug: asset-db:worker-effect-data-processing (10ms)
+4-19-2026 18:58:12-debug: asset-db-hook-engine-extends-afterRefresh (10ms)
+4-19-2026 18:59:35-debug: refresh db internal success
+4-19-2026 18:59:35-debug: refresh db assets success
+4-19-2026 18:59:35-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 18:59:35-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 18:59:35-debug: asset-db:worker-effect-data-processing (3ms)
+4-19-2026 18:59:35-debug: asset-db:refresh-all-database (95ms)
+4-19-2026 18:59:35-debug: asset-db-hook-engine-extends-afterRefresh (3ms)
+4-19-2026 19:19:25-debug: refresh db internal success
+4-19-2026 19:19:25-debug: refresh db assets success
+4-19-2026 19:19:25-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 19:19:25-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 19:19:25-debug: asset-db:refresh-all-database (72ms)
+4-19-2026 19:19:25-debug: asset-db:worker-effect-data-processing (7ms)
+4-19-2026 19:19:25-debug: asset-db-hook-engine-extends-afterRefresh (7ms)
+4-19-2026 20:30:12-debug: refresh db internal success
+4-19-2026 20:30:12-debug: refresh db assets success
+4-19-2026 20:30:12-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 20:30:12-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 20:30:12-debug: asset-db:refresh-all-database (80ms)
+4-19-2026 20:30:12-debug: asset-db:worker-effect-data-processing (6ms)
+4-19-2026 20:30:12-debug: asset-db-hook-engine-extends-afterRefresh (6ms)
+4-19-2026 20:58:27-debug: refresh db internal success
+4-19-2026 20:58:27-debug: refresh db assets success
+4-19-2026 20:58:27-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 20:58:27-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 20:58:27-debug: asset-db:refresh-all-database (97ms)
+4-19-2026 20:58:27-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 20:58:27-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 21:17:35-debug: refresh db internal success
+4-19-2026 21:17:35-debug: refresh db assets success
+4-19-2026 21:17:35-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 21:17:35-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 21:17:35-debug: asset-db:refresh-all-database (92ms)
+4-19-2026 21:17:35-debug: asset-db:worker-effect-data-processing (2ms)
+4-19-2026 21:17:35-debug: asset-db-hook-engine-extends-afterRefresh (2ms)
+4-19-2026 21:39:19-debug: refresh db internal success
+4-19-2026 21:39:19-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 21:39:19-debug: refresh db assets success
+4-19-2026 21:39:19-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 21:39:19-debug: asset-db:refresh-all-database (77ms)
+4-19-2026 21:39:19-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 21:39:19-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+4-19-2026 21:39:43-debug: refresh db internal success
+4-19-2026 21:39:43-debug: refresh db assets success
+4-19-2026 21:39:43-debug: Run asset db hook engine-extends:afterRefresh success!
+4-19-2026 21:39:43-debug: Run asset db hook engine-extends:afterRefresh ...
+4-19-2026 21:39:43-debug: start refresh asset from F:\Github\BattleGame\assets\scene.scene...
+4-19-2026 21:39:43-debug: %cImport%c: F:\Github\BattleGame\assets\scene.scenebackground: #aaff85; color: #000;color: #000;
+4-19-2026 21:39:43-debug: asset-db:refresh-all-database (75ms)
+4-19-2026 21:39:43-debug: asset-db:worker-effect-data-processing (1ms)
+4-19-2026 21:39:43-debug: asset-db-hook-engine-extends-afterRefresh (2ms)
+4-19-2026 21:39:43-debug: refresh asset F:\Github\BattleGame\assets success
+4-19-2026 21:39:44-debug: %cImport%c: F:\Github\BattleGame\assets\scene.scenebackground: #aaff85; color: #000;color: #000;
+4-19-2026 21:39:44-debug: asset-db:reimport-assetb0077834-1d22-4e70-8b38-27145890c68f (31ms)

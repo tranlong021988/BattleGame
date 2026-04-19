@@ -128,5 +128,121 @@
     "url": "db://assets/scripts/UnitProps.ts",
     "value": {},
     "versionCode": 1
+  },
+  "0af791a7-f349-426a-913b-c12f66b363d5": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "818a54eb-d7fd-4485-ac1e-bec58a36cf60": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001_vat.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f7a5c9d2-b206-4d1c-b62f-17f6488c37d1": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001_vnrm.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "3b0487d6-79f4-4509-ac9e-54616452dc7f": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat",
+    "value": {},
+    "versionCode": 1
+  },
+  "063523c9-dacf-4e03-8fe6-ea20876cc71a": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001-remap_info.json",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f7a5c9d2-b206-4d1c-b62f-17f6488c37d1@6c48a": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001_vnrm.png@6c48a",
+    "value": {
+      "depends": [
+        "f7a5c9d2-b206-4d1c-b62f-17f6488c37d1"
+      ]
+    },
+    "versionCode": 1
+  },
+  "818a54eb-d7fd-4485-ac1e-bec58a36cf60@6c48a": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001_vat.png@6c48a",
+    "value": {
+      "depends": [
+        "818a54eb-d7fd-4485-ac1e-bec58a36cf60"
+      ]
+    },
+    "versionCode": 1
+  },
+  "0af791a7-f349-426a-913b-c12f66b363d5@fa2d4": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@fa2d4",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "0af791a7-f349-426a-913b-c12f66b363d5@3253f": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@3253f",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "0af791a7-f349-426a-913b-c12f66b363d5@05a8f": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@05a8f",
+    "value": {
+      "depends": [
+        "0af791a7-f349-426a-913b-c12f66b363d5@3253f",
+        "0af791a7-f349-426a-913b-c12f66b363d5@0eee4"
+      ]
+    },
+    "versionCode": 1
+  },
+  "0af791a7-f349-426a-913b-c12f66b363d5@0eee4": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@0eee4",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "e133d45c-0b60-422d-928a-12ea3f9561f1": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/VATMat.mtl",
+    "value": {
+      "depends": [
+        "08c6d756-c02f-48a2-9e8a-55ec59a8f83d"
+      ]
+    },
+    "versionCode": 1
+  },
+  "45fbb788-a17f-4b4c-b394-32d8b124fe21": {
+    "url": "db://assets/Fighter.Body.low_Baked.001_vat/vat-character.effect",
+    "value": {},
+    "versionCode": 1
+  },
+  "779facf6-0bcc-436e-97a7-2b9a902cf16a": {
+    "url": "db://assets/scripts/vat-character.effect",
+    "value": {},
+    "versionCode": 1
+  },
+  "b0077834-1d22-4e70-8b38-27145890c68f": {
+    "url": "db://assets/scene.scene",
+    "value": {
+      "depends": [
+        "0af791a7-f349-426a-913b-c12f66b363d5@05a8f",
+        "2173379c-a1e6-4698-9ffb-f40008ef3248",
+        "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
+        "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
+      ],
+      "dependScripts": [
+        "CC3eba29-7abb-723a-f7ab-ae275e2277e8"
+      ]
+    },
+    "versionCode": 2
   }
 }

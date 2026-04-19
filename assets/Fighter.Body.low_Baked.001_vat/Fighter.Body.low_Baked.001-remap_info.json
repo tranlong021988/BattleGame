@@ -1,0 +1,23 @@
+{
+    "os-remap": {
+        "Min": [
+            -0.1,
+            -0.1,
+            -0.1
+        ],
+        "Max": [
+            0.1,
+            0.1,
+            0.1
+        ],
+        "Frames": 101
+    },
+    "animations": {
+        "Origin": {
+            "startFrame": 1,
+            "endFrame": 100,
+            "framerate": 30,
+            "looping": true
+        }
+    }
+}

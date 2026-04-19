@@ -1,29 +1,101 @@
-4-19-2026 18:08:24 - warn: Request timeout, aborting...
-4-19-2026 18:08:24 - warn: Failed to connect to login server: socket hang up
-4-19-2026 18:08:27 - warn: Request timeout, aborting...
-4-19-2026 18:08:27 - warn: Failed to connect to login server: socket hang up
-4-19-2026 18:08:30 - warn: Request timeout, aborting...
-4-19-2026 18:08:36 - warn: Failed to connect to login server: socket hang up
-4-19-2026 18:08:37 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
-4-19-2026 18:08:38 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
-4-19-2026 18:08:38 - log: Request namespace: device-list
-4-19-2026 18:08:50 - warn: Request timeout, aborting...
-4-19-2026 18:08:50 - warn: Failed to connect to login server: socket hang up
-4-19-2026 18:08:51 - info: [PreviewInEditor] preview process is ready
-4-19-2026 18:09:09 - log: [Scene] meshopt wasm decoder initialized
-4-19-2026 18:09:09 - log: [Scene] [box2d]:box2d wasm lib loaded.
-4-19-2026 18:09:09 - log: [Scene] [bullet]:bullet wasm lib loaded.
-4-19-2026 18:09:09 - log: [Scene] [PHYSICS]: using builtin.
-4-19-2026 18:09:09 - log: [Scene] Cocos Creator v3.8.8
-4-19-2026 18:09:10 - log: [Scene] Using custom pipeline: Builtin
-4-19-2026 18:09:10 - log: [Scene] [PHYSICS]: switch from builtin to bullet.
-4-19-2026 18:09:10 - log: [Scene] [PHYSICS2D]: switch from builtin to box2d.
-4-19-2026 18:09:16 - log: [PreviewInEditor] meshopt wasm decoder initialized
-4-19-2026 18:09:16 - log: [PreviewInEditor] [bullet]:bullet wasm lib loaded.
-4-19-2026 18:09:16 - log: [PreviewInEditor] [box2d]:box2d wasm lib loaded.
-4-19-2026 18:09:16 - log: [PreviewInEditor] [PHYSICS]: using builtin.
-4-19-2026 18:09:16 - log: [PreviewInEditor] Cocos Creator v3.8.8
-4-19-2026 18:09:16 - log: [PreviewInEditor] Using custom pipeline: Builtin
-4-19-2026 18:09:16 - log: [PreviewInEditor] [PHYSICS]: switch from builtin to bullet.
-4-19-2026 18:09:16 - log: [PreviewInEditor] [PHYSICS2D]: switch from builtin to box2d.
-4-19-2026 18:09:40 - info: [PreviewInEditor] preview process is ready
+4-19-2026 18:39:40 - warn: Request timeout, aborting...
+4-19-2026 18:39:40 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:39:43 - warn: Request timeout, aborting...
+4-19-2026 18:39:43 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:39:46 - warn: Request timeout, aborting...
+4-19-2026 18:39:48 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:39:48 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
+4-19-2026 18:39:48 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
+4-19-2026 18:39:49 - log: Request namespace: device-list
+4-19-2026 18:39:56 - info: [PreviewInEditor] preview process is ready
+4-19-2026 18:39:56 - warn: Request timeout, aborting...
+4-19-2026 18:39:56 - warn: Failed to connect to login server: socket hang up
+4-19-2026 18:40:01 - log: [Scene] meshopt wasm decoder initialized
+4-19-2026 18:40:01 - log: [Scene] [bullet]:bullet wasm lib loaded.
+4-19-2026 18:40:01 - log: [Scene] [box2d]:box2d wasm lib loaded.
+4-19-2026 18:40:01 - log: [Scene] [PHYSICS]: using builtin.
+4-19-2026 18:40:01 - log: [Scene] Cocos Creator v3.8.8
+4-19-2026 18:40:01 - log: [Scene] Using custom pipeline: Builtin
+4-19-2026 18:40:01 - log: [Scene] [PHYSICS]: switch from builtin to bullet.
+4-19-2026 18:40:01 - log: [Scene] [PHYSICS2D]: switch from builtin to box2d.
+4-19-2026 18:53:48 - warn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the scriptWarn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at findVsCode (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3691)
+    at Object.openCode [as open] (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3427)
+    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\ipc.ccc:1:555)
+4-19-2026 18:54:20 - warn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the scriptWarn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at findVsCode (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3691)
+    at Object.openCode [as open] (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3427)
+    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\ipc.ccc:1:555)
+4-19-2026 18:55:01 - warn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the scriptWarn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at findVsCode (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3691)
+    at Object.openCode [as open] (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3427)
+    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\ipc.ccc:1:555)
+4-19-2026 18:55:27 - warn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the scriptWarn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at findVsCode (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3691)
+    at Object.openCode [as open] (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3427)
+    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\ipc.ccc:1:555)
+4-19-2026 18:57:01 - warn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the scriptWarn: [Assets] Please set the application in {preferences} -> {program} -> {scriptEditor} to better open the script
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at findVsCode (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3691)
+    at Object.openCode [as open] (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\utils.ccc:1:3427)
+    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\ipc.ccc:1:555)
+4-19-2026 18:58:12 - error: [Assets] ../scripts/vat-character.effect - syntax: Error EFX1001: CCEffect parser failed: YAMLException: unidentified alias "planar-shadow" (14:21)
+
+ 11 |         
+ 12 |         vatTexture:     { value: white, editor: { p ...
+ 13 |         vatParams:      { value: [30, 1, 0, 0], edi ...
+ 14 |     - *planar-shadow
+--------------------------^
+ 15 |     - &deferred-forward
+ 16 |       vert: unlit-vs:vertError: [Assets] ../scripts/vat-character.effect - syntax: Error EFX1001: CCEffect parser failed: YAMLException: unidentified alias "planar-shadow" (14:21)
+
+ 14 |     - *planar-shadow
+--------------------------^
+ 15 |     - &deferred-forward
+ 16 |       vert: unlit-vs:vert
+    at Logger._logHandler (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-worker\static\script.ccc:1:523)
+    at Logger.record (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-logger\lib\renderer.ccc:1:458)
+    at NewConsole.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-logger\lib\renderer.ccc:1:1414)
+    at console.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1536)
+    at import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\effect.ccc:1:7007)
+    at CustomImporter.import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\manager\asset-handler-manager.ccc:1:1249)
+4-19-2026 18:58:12 - error: [Window] Read effect json file in library failed.Error: [Window] Read effect json file in library failed.
+    at console.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\build\cjs\utils-hoist\instrument\console.js:38:14)
+    at Object.refresh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\assets\effect.js:309:21)
+    at Object.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\assets\effect.js:415:26)
+    at _o.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@editor\creator-ui-kit\dist\renderer.ccc:291:1702)
+    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:344:43
+    at Array.map (<anonymous>)
+    at Object.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:343:50)
+    at async Object.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:645:13)
+    at async _o.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@editor\creator-ui-kit\dist\renderer.ccc:291:1678)
+4-19-2026 21:39:38 - error: [Window] Read effect json file in library failed.Error: [Window] Read effect json file in library failed.
+    at console.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\build\cjs\utils-hoist\instrument\console.js:38:14)
+    at Object.refresh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\assets\effect.js:309:21)
+    at Object.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\assets\effect.js:415:26)
+    at _o.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@editor\creator-ui-kit\dist\renderer.ccc:291:1702)
+    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:344:43
+    at Array.map (<anonymous>)
+    at Object.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:343:50)
+    at async Object.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:645:13)
+    at async _o.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@editor\creator-ui-kit\dist\renderer.ccc:291:1678)
+4-19-2026 21:39:43 - error: [Window] Read effect json file in library failed.Error: [Window] Read effect json file in library failed.
+    at console.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\build\cjs\utils-hoist\instrument\console.js:38:14)
+    at Object.refresh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\assets\effect.js:309:21)
+    at Object.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\assets\effect.js:415:26)
+    at _o.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@editor\creator-ui-kit\dist\renderer.ccc:291:1702)
+    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:344:43
+    at Array.map (<anonymous>)
+    at Object.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:343:50)
+    at async Object.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\editor\inspector\contributions\asset.js:645:13)
+    at async _o.update (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@editor\creator-ui-kit\dist\renderer.ccc:291:1678)

@@ -5,7 +5,7 @@
       "time": 1776574463135.642
     },
     "scripts": {
-      "time": 1776596870076.2136,
+      "time": 1776599868332.83,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -119,6 +119,62 @@
     "scripts\\UnitProps.ts": {
       "time": 1776594896800.596,
       "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
+    },
+    "Fighter.Body.low_Baked.001_vat.meta": {
+      "time": 1776598812467.491
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json.meta": {
+      "time": 1776598812477.245
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx.meta": {
+      "time": 1776599010577.975
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png.meta": {
+      "time": 1776598812505.5776
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vnrm.png.meta": {
+      "time": 1776598812504.5623
+    },
+    "Fighter.Body.low_Baked.001_vat": {
+      "time": 1776599868332.83,
+      "uuid": "3b0487d6-79f4-4509-ac9e-54616452dc7f"
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json": {
+      "time": 1776598938008.9646,
+      "uuid": "063523c9-dacf-4e03-8fe6-ea20876cc71a"
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vnrm.png": {
+      "time": 1776598984108.58,
+      "uuid": "f7a5c9d2-b206-4d1c-b62f-17f6488c37d1"
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png": {
+      "time": 1776598961028.74,
+      "uuid": "818a54eb-d7fd-4485-ac1e-bec58a36cf60"
+    },
+    "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx": {
+      "time": 1776598984316.9934,
+      "uuid": "0af791a7-f349-426a-913b-c12f66b363d5"
+    },
+    "Fighter.Body.low_Baked.001_vat\\VATMat.mtl.meta": {
+      "time": 1776599054737.707
+    },
+    "Fighter.Body.low_Baked.001_vat\\VATMat.mtl": {
+      "time": 1776599585902.0012,
+      "uuid": "e133d45c-0b60-422d-928a-12ea3f9561f1"
+    },
+    "scripts\\vat-character.effect.meta": {
+      "time": 1776599892510.8142
+    },
+    "scripts\\vat-character.effect": {
+      "time": 1776599886376.4504,
+      "uuid": "779facf6-0bcc-436e-97a7-2b9a902cf16a"
+    },
+    "scene.scene.meta": {
+      "time": 1776609583280.711
+    },
+    "scene.scene": {
+      "time": 1776609584246.5808,
+      "uuid": "b0077834-1d22-4e70-8b38-27145890c68f"
     }
   },
   "missing": {}

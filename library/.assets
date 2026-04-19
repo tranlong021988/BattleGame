@@ -18,7 +18,15 @@
             "materials\\Blue.mtl",
             "materials\\Red.mtl",
             "prefabs\\BlueUnit.prefab",
-            "prefabs\\RedUnit.prefab"
+            "prefabs\\RedUnit.prefab",
+            "Fighter.Body.low_Baked.001_vat",
+            "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json",
+            "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx",
+            "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png",
+            "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vnrm.png",
+            "Fighter.Body.low_Baked.001_vat\\VATMat.mtl",
+            "scripts\\vat-character.effect",
+            "scene.scene"
         ]
     }
 }
