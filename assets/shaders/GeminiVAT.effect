@@ -1,0 +1,93 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: vat-vs:vert
+      frag: unlit-fs:frag
+      properties: &props
+        mainTexture:    { value: grey }
+        vatMap:         { value: grey }
+        vatMin:         { value: [-0.2, -0.1, -0.4, 0] }
+        vatMax:         { value: [0.2, 0.1, 0.5, 0] }
+        vatSize:        { value: [898, 132, 0, 0] }
+        currentFrame:   { value: 0 }
+}%
+
+CCProgram vat-vs %{
+  precision highp float;
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/decode-base>
+  #include <legacy/local-batch>
+  #include <legacy/fog-vs>
+
+  in vec2 a_texCoord1; 
+  out vec2 v_uv;
+  
+  uniform VATConstant {
+    vec4 vatMin;
+    vec4 vatMax;
+    vec4 vatSize; 
+    float currentFrame;
+  };
+
+  uniform sampler2D vatMap;
+
+  vec4 vert () {
+    vec4 position;
+    CCVertInput(position);
+
+    float texWidth = vatSize.x;
+    float texHeight = vatSize.y;
+
+    // 1. Tính toán tọa độ X (Vertex ID) - Giữ nguyên vì Frame 0 đã đúng
+    float vertexIdx = floor(a_texCoord1.x * (texWidth - 1.0) + 0.5);
+    float u = (vertexIdx + 0.5) / texWidth;
+
+    // 2. CHỐNG NÁT MESH KHI CHUYỂN FRAME:
+    // Lấy 2 frame kế cận để nội suy, giúp mesh mượt và không bị "nhảy" đỉnh
+    float frameFloat = mod(currentFrame, texHeight);
+    float f1 = floor(frameFloat);
+    float f2 = mod(f1 + 1.0, texHeight);
+    float lerpPart = frameFloat - f1;
+
+    // Tính UV cho 2 frame (Đảo ngược Y theo chuẩn Blender-to-Cocos)
+    float v1 = 1.0 - ((f1 + 0.5) / texHeight);
+    float v2 = 1.0 - ((f2 + 0.5) / texHeight);
+
+    // 3. Đọc dữ liệu từ 2 frame
+    vec4 data1 = texture(vatMap, vec2(u, v1));
+    vec4 data2 = texture(vatMap, vec2(u, v2));
+    
+    // Nội suy giữa 2 frame để chống vỡ mesh
+    vec4 vData = mix(data1, data2, lerpPart);
+    
+    // 4. GIẢI MÃ OBJECT SPACE (Dựa trên Min/Max của bạn)
+    vec3 offset = vatMin.xyz + vData.rgb * (vatMax.xyz - vatMin.xyz);
+
+    // 5. Khớp trục XZY (Object Space thường cần hoán đổi trục khi từ Blender sang)
+    // Nếu nhân vật bị méo, hãy thử đổi lại thành offset.xyz
+    position.xyz += offset.xzy;
+
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+    v_uv = a_texCoord;
+
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(v_uv);
+    #endif
+
+    CC_TRANSFER_FOG(matWorld * position);
+    return cc_matProj * (cc_matView * matWorld) * position;
+  }
+}%
+
+CCProgram unlit-fs %{
+  precision highp float;
+  #include <legacy/output-standard>
+  in vec2 v_uv;
+  uniform sampler2D mainTexture;
+  vec4 frag () {
+    return texture(mainTexture, v_uv);
+  }
+}%

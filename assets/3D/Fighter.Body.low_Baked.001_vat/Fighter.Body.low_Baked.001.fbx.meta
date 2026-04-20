@@ -1,0 +1,96 @@
+{
+  "ver": "2.3.14",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "30c135f7-50d5-40bb-9ef8-638f796dbd9e",
+  "files": [],
+  "subMetas": {
+    "fa2d4": {
+      "importer": "gltf-mesh",
+      "uuid": "30c135f7-50d5-40bb-9ef8-638f796dbd9e@fa2d4",
+      "displayName": "",
+      "id": "fa2d4",
+      "name": "Fighter.Body.low_Baked.001_mesh.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1786
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "3253f": {
+      "importer": "gltf-material",
+      "uuid": "30c135f7-50d5-40bb-9ef8-638f796dbd9e@3253f",
+      "displayName": "",
+      "id": "3253f",
+      "name": "Fighter.Final_Baked.001.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "05a8f": {
+      "importer": "gltf-scene",
+      "uuid": "30c135f7-50d5-40bb-9ef8-638f796dbd9e@05a8f",
+      "displayName": "",
+      "id": "05a8f",
+      "name": "Fighter.Body.low_Baked.001.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@fa2d4"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@3253f"
+      ],
+      "scenes": [
+        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@05a8f"
+      ]
+    }
+  }
+}

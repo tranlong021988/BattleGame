@@ -1,0 +1,118 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: unlit-vs:vert
+      frag: unlit-fs:frag
+      rasterizerState:
+        cullMode: none
+      properties:
+        mainTexture:
+          value: grey
+        vatTex:
+          value: white
+        vatParam:
+          # x = frameCount (132)
+          # y = vertexCount (test = 256 trước)
+          # z = speed
+          # w = offset
+          value: [132, 256, 30, 0]
+        tilingOffset:
+          value: [1, 1, 0, 0]
+        mainColor:
+          value: [1, 1, 1, 1]
+          linear: true
+}%
+
+CCProgram unlit-vs %{
+  precision highp float;
+
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/decode-base>
+  #include <legacy/local-batch>
+
+  uniform sampler2D vatTex;
+
+  uniform VATParam {
+    vec4 vatParam;
+  };
+
+  in vec2 a_texCoord1;
+
+  #if USE_TEXTURE
+    out vec2 v_uv;
+    uniform TexCoords {
+      vec4 tilingOffset;
+    };
+  #endif
+
+  vec4 vert () {
+
+    vec4 position;
+    CCVertInput(position);
+
+  float frameCount = 132.0;
+  float framesPerRow = 66.0;
+  float totalRows = 2.0;
+
+  float time = cc_time.x * vatParam.z;
+  float frame = floor(mod(time, frameCount));
+
+  // tách frame
+  float row = floor(frame / framesPerRow);
+  float col = mod(frame, framesPerRow);
+
+  // UV
+  float u = (col + 0.5) / framesPerRow;
+
+  // 🔥 dùng UV để map vertex trong mỗi frame
+  float v = (row + a_texCoord.y) / totalRows;
+
+  // sample
+  vec3 vatPos = texture(vatTex, vec2(u, v)).xyz;
+
+  // decode
+  vec3 minPos = vec3(-0.2, -0.1, -0.4);
+  vec3 maxPos = vec3( 0.2,  0.1,  0.5);
+
+  vatPos = mix(minPos, maxPos, vatPos);
+
+  position.xyz = vatPos;
+
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+
+    #if USE_TEXTURE
+      v_uv = a_texCoord * tilingOffset.xy + tilingOffset.zw;
+    #endif
+
+    return cc_matProj * (cc_matView * matWorld) * position;
+  }
+}%
+
+CCProgram unlit-fs %{
+  precision highp float;
+
+  #include <legacy/output-standard>
+
+  #if USE_TEXTURE
+    in vec2 v_uv;
+    uniform sampler2D mainTexture;
+  #endif
+
+  uniform Constant {
+    vec4 mainColor;
+  };
+
+  vec4 frag () {
+
+    vec4 o = mainColor;
+
+    #if USE_TEXTURE
+      o *= texture(mainTexture, v_uv);
+    #endif
+
+    return CCFragOutput(o);
+  }
+}%

@@ -1,0 +1,23 @@
+{
+    "os-remap": {
+        "Min": [
+            -0.2,
+            -0.1,
+            -0.4
+        ],
+        "Max": [
+            0.2,
+            0.1,
+            0.5
+        ],
+        "Frames": 132
+    },
+    "animations": {
+        "Victory": {
+            "startFrame": 1,
+            "endFrame": 132,
+            "framerate": 30,
+            "looping": true
+        }
+    }
+}

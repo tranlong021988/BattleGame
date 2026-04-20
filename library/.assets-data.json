@@ -96,6 +96,8 @@
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@05a8f",
+        "668cb142-609f-4953-9a90-aef1985c436f",
         "837662e8-92db-4dea-820d-eafbe218fe17",
         "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
@@ -244,5 +246,106 @@
       ]
     },
     "versionCode": 2
+  },
+  "198cb8fe-6af9-4a92-b370-f7b86df7e038": {
+    "url": "db://assets/shaders",
+    "value": {},
+    "versionCode": 1
+  },
+  "c4c05413-c96e-41fb-b980-91502673e773": {
+    "url": "db://assets/shaders/VAT-Animation.effect",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "668cb142-609f-4953-9a90-aef1985c436f": {
+    "url": "db://assets/materials/VATAnimMat.mtl",
+    "value": {
+      "depends": [
+        "907453e2-f1c4-4647-9d12-3724d92e9716",
+        "951249e0-9f16-456d-8b85-a6ca954da16b@6c48a",
+        "0b0b1af5-bc75-49b2-8010-354079ad3f5c@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e552118f-a9fd-416b-a202-9243ef0ce5b8": {
+    "url": "db://assets/3D",
+    "value": {},
+    "versionCode": 1
+  },
+  "30c135f7-50d5-40bb-9ef8-638f796dbd9e": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "0b0b1af5-bc75-49b2-8010-354079ad3f5c": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001_vat.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "83cb5c81-5256-437a-abd9-ddcaafdba392": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat",
+    "value": {},
+    "versionCode": 1
+  },
+  "3c6f3d3b-a9d9-4037-bc29-bd2167bc9a4d": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001-remap_info.json",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "0b0b1af5-bc75-49b2-8010-354079ad3f5c@6c48a": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001_vat.png@6c48a",
+    "value": {
+      "depends": [
+        "0b0b1af5-bc75-49b2-8010-354079ad3f5c"
+      ]
+    },
+    "versionCode": 1
+  },
+  "30c135f7-50d5-40bb-9ef8-638f796dbd9e@0eee4": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@0eee4",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "30c135f7-50d5-40bb-9ef8-638f796dbd9e@3253f": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@3253f",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "30c135f7-50d5-40bb-9ef8-638f796dbd9e@05a8f": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@05a8f",
+    "value": {
+      "depends": [
+        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@3253f",
+        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@fa2d4"
+      ]
+    },
+    "versionCode": 1
+  },
+  "30c135f7-50d5-40bb-9ef8-638f796dbd9e@fa2d4": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Fighter.Body.low_Baked.001.fbx@fa2d4",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "907453e2-f1c4-4647-9d12-3724d92e9716": {
+    "url": "db://assets/shaders/GeminiVAT.effect",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
   }
 }

@@ -8,5 +8,11 @@
     "texture": {
       "mipfilter": "none"
     }
+  },
+  "0b0b1af5-bc75-49b2-8010-354079ad3f5c@6c48a": {
+    "texture": {
+      "mipfilter": "none",
+      "wrapMode": "Clamp"
+    }
   }
 }
