@@ -40,33 +40,25 @@ CCProgram vat-vs %{
     float texWidth = vatSize.x;
     float texHeight = vatSize.y;
 
-    // 1. Tính toán tọa độ X (Vertex ID) - Giữ nguyên vì Frame 0 đã đúng
-    float vertexIdx = floor(a_texCoord1.x * (texWidth - 1.0) + 0.5);
-    float u = (vertexIdx + 0.5) / texWidth;
+    // 1. ÉP FRAME NGUYÊN (Chống nát mesh do nội suy sai)
+    float frameIdx = floor(mod(currentFrame + 0.005, texHeight));
 
-    // 2. CHỐNG NÁT MESH KHI CHUYỂN FRAME:
-    // Lấy 2 frame kế cận để nội suy, giúp mesh mượt và không bị "nhảy" đỉnh
-    float frameFloat = mod(currentFrame, texHeight);
-    float f1 = floor(frameFloat);
-    float f2 = mod(f1 + 1.0, texHeight);
-    float lerpPart = frameFloat - f1;
+    // 2. TÍNH UV TÂM PIXEL (Chống sai số float)
+    float vID = floor(a_texCoord1.x * (texWidth - 1.0) + 0.5);
+    vec2 vatUV;
+    vatUV.x = (vID + 0.5) / texWidth;
+    vatUV.y = (frameIdx + 0.5) / texHeight; 
 
-    // Tính UV cho 2 frame (Đảo ngược Y theo chuẩn Blender-to-Cocos)
-    float v1 = 1.0 - ((f1 + 0.5) / texHeight);
-    float v2 = 1.0 - ((f2 + 0.5) / texHeight);
-
-    // 3. Đọc dữ liệu từ 2 frame
-    vec4 data1 = texture(vatMap, vec2(u, v1));
-    vec4 data2 = texture(vatMap, vec2(u, v2));
+    // 3. ĐỌC DỮ LIỆU RAW
+    vec4 vData = texture(vatMap, vatUV);
     
-    // Nội suy giữa 2 frame để chống vỡ mesh
-    vec4 vData = mix(data1, data2, lerpPart);
-    
-    // 4. GIẢI MÃ OBJECT SPACE (Dựa trên Min/Max của bạn)
+    // 4. GIẢI MÃ OFFSET (Quan trọng: Kiểm soát tỷ lệ)
+    // P_offset = Min + (Color * (Max - Min))
     vec3 offset = vatMin.xyz + vData.rgb * (vatMax.xyz - vatMin.xyz);
 
-    // 5. Khớp trục XZY (Object Space thường cần hoán đổi trục khi từ Blender sang)
-    // Nếu nhân vật bị méo, hãy thử đổi lại thành offset.xyz
+    // 5. FIX BIẾN DẠNG "TO RA": 
+    // Thường do Blender dùng Unit là Meters còn Cocos dùng Unit khác, 
+    // hoặc do hoán đổi trục. Hãy thử .xzy (Blender Standard)
     position.xyz += offset.xzy;
 
     mat4 matWorld;
@@ -79,15 +71,5 @@ CCProgram vat-vs %{
 
     CC_TRANSFER_FOG(matWorld * position);
     return cc_matProj * (cc_matView * matWorld) * position;
-  }
-}%
-
-CCProgram unlit-fs %{
-  precision highp float;
-  #include <legacy/output-standard>
-  in vec2 v_uv;
-  uniform sampler2D mainTexture;
-  vec4 frag () {
-    return texture(mainTexture, v_uv);
   }
 }%

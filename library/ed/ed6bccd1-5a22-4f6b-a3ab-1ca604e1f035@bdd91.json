@@ -1,0 +1,95 @@
+{
+  "__type__": "cc.Mesh",
+  "_name": "",
+  "_objFlags": 0,
+  "__editorExtras__": {},
+  "_native": ".bin",
+  "_struct": {
+    "primitives": [
+      {
+        "primitiveMode": 7,
+        "jointMapIndex": 0,
+        "vertexBundelIndices": [
+          0
+        ],
+        "indexView": {
+          "offset": 31680,
+          "length": 3600,
+          "count": 1800,
+          "stride": 2
+        }
+      }
+    ],
+    "vertexBundles": [
+      {
+        "view": {
+          "offset": 0,
+          "length": 31680,
+          "count": 360,
+          "stride": 88
+        },
+        "attributes": [
+          {
+            "name": "a_position",
+            "format": 32,
+            "isNormalized": false
+          },
+          {
+            "name": "a_normal",
+            "format": 32,
+            "isNormalized": false
+          },
+          {
+            "name": "a_texCoord",
+            "format": 21,
+            "isNormalized": false
+          },
+          {
+            "name": "a_tangent",
+            "format": 44,
+            "isNormalized": false
+          },
+          {
+            "name": "a_joints",
+            "format": 42,
+            "isNormalized": false
+          },
+          {
+            "name": "a_weights",
+            "format": 44,
+            "isNormalized": false
+          },
+          {
+            "name": "a_color",
+            "format": 44,
+            "isNormalized": false
+          }
+        ]
+      }
+    ],
+    "minPosition": {
+      "x": -0.24319195747375488,
+      "y": -0.1829833686351776,
+      "z": -0.2774631679058075
+    },
+    "maxPosition": {
+      "x": 0.24319195747375488,
+      "y": 0.1436832696199417,
+      "z": 0.1917756348848343
+    },
+    "jointMaps": [
+      [
+        0,
+        1,
+        2,
+        44,
+        45,
+        48,
+        49
+      ]
+    ],
+    "compressed": true
+  },
+  "_hash": 723930742,
+  "_allowDataAccess": true
+}

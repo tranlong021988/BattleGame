@@ -78,9 +78,13 @@
       "depends": [
         "31c94d47-e409-42f3-b397-08be549e95e2",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
+        "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec"
       ],
       "dependScripts": [
+        "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
+        "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "362a6ce2-8e20-4944-8fed-7f2fa95db536"
       ]
@@ -96,8 +100,8 @@
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
-        "30c135f7-50d5-40bb-9ef8-638f796dbd9e@05a8f",
-        "668cb142-609f-4953-9a90-aef1985c436f",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
+        "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f",
         "837662e8-92db-4dea-820d-eafbe218fe17",
         "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
@@ -343,9 +347,183 @@
   },
   "907453e2-f1c4-4647-9d12-3724d92e9716": {
     "url": "db://assets/shaders/GeminiVAT.effect",
+    "value": {},
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035": {
+    "url": "db://assets/3D/Victory.fbx",
     "value": {
       "depends": []
     },
+    "versionCode": 3
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@30732": {
+    "url": "db://assets/3D/Victory.fbx@30732",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@62756": {
+    "url": "db://assets/3D/Victory.fbx@62756",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@41ac8": {
+    "url": "db://assets/3D/Victory.fbx@41ac8",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@c6e33": {
+    "url": "db://assets/3D/Victory.fbx@c6e33",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@ed341": {
+    "url": "db://assets/3D/Victory.fbx@ed341",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@17dd0": {
+    "url": "db://assets/3D/Victory.fbx@17dd0",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@97b51": {
+    "url": "db://assets/3D/Victory.fbx@97b51",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@fd4a2": {
+    "url": "db://assets/3D/Victory.fbx@fd4a2",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@bdd91": {
+    "url": "db://assets/3D/Victory.fbx@bdd91",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@cbc2b": {
+    "url": "db://assets/3D/Victory.fbx@cbc2b",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 3
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@f1394": {
+    "url": "db://assets/3D/Victory.fbx@f1394",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@75ee4": {
+    "url": "db://assets/3D/Victory.fbx@75ee4",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a72ab": {
+    "url": "db://assets/3D/Victory.fbx@a72ab",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@2224c": {
+    "url": "db://assets/3D/Victory.fbx@2224c",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@7d08b": {
+    "url": "db://assets/3D/Victory.fbx@7d08b",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@3253f": {
+    "url": "db://assets/3D/Victory.fbx@3253f",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a": {
+    "url": "db://assets/3D/Victory.fbx@a1a5a",
+    "value": {
+      "depends": [
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@3253f",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@41ac8",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@30732",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@c6e33",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@f1394",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@ed341",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@75ee4",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@17dd0",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a72ab",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@97b51",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@2224c",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@fd4a2",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@62756",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@bdd91",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@7d08b",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@cbc2b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f": {
+    "url": "db://assets/victorymat.mtl",
+    "value": {
+      "depends": [
+        "a3cd009f-0ab0-420d-9278-b9fdab939bbc",
+        "01e8d4f8-e754-4cd6-a096-8831a456fa02@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "01e8d4f8-e754-4cd6-a096-8831a456fa02": {
+    "url": "db://assets/3D/Fighter.Final_Bake1_PBR_Diffuse.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "01e8d4f8-e754-4cd6-a096-8831a456fa02@6c48a": {
+    "url": "db://assets/3D/Fighter.Final_Bake1_PBR_Diffuse.png@6c48a",
+    "value": {
+      "depends": [
+        "01e8d4f8-e754-4cd6-a096-8831a456fa02"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e4db8fe8-78ac-4231-a17c-a11ff1c17914": {
+    "url": "db://assets/scripts/RandomAnimcationOffset.ts",
+    "value": {},
     "versionCode": 1
   }
 }
