@@ -1095,8 +1095,7 @@
     "instance": {
       "__id__": 35
     },
-    "targetOverrides": null,
-    "nestedPrefabInstanceRoots": null
+    "targetOverrides": []
   },
   {
     "__type__": "cc.PrefabInstance",
@@ -2525,7 +2524,7 @@
     "asset": null,
     "fileId": "837662e8-92db-4dea-820d-eafbe218fe17",
     "instance": null,
-    "targetOverrides": null,
+    "targetOverrides": [],
     "nestedPrefabInstanceRoots": [
       {
         "__id__": 33

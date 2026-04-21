@@ -196,9 +196,9 @@
     },
     "1effe86e-a401-4769-9dbc-62218c68834d": {
       "position": {
-        "x": 0.17660025381305916,
-        "y": 4.393667353892929,
-        "z": -12.677030586093423
+        "x": 0.8570807080096373,
+        "y": 8.553458566568867,
+        "z": -4.113783737753136
       },
       "rotation": {
         "x": -0.22340110907891125,
@@ -214,8 +214,8 @@
       "contentRect": {
         "x": 0,
         "y": 0,
-        "width": 802,
-        "height": 412
+        "width": 790,
+        "height": 523
       },
       "scale": 1
     }
@@ -255,9 +255,9 @@
     "output_device": "__default_design__"
   },
   "game-view": {
-    "scaleValue": 37,
-    "sliderValue": 15,
-    "rotate": true
+    "scaleValue": 71,
+    "sliderValue": 34,
+    "rotate": false
   },
   "float-window": {
     "position": {

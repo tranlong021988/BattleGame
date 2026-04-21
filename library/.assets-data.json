@@ -61,11 +61,15 @@
     "url": "db://assets/prefabs/BlueUnit.prefab",
     "value": {
       "depends": [
-        "83287fd9-fec5-4875-b152-b729e98a0ec9",
+        "8e39c061-d956-43ce-ad16-db3efa6f7be1",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
+        "83287fd9-fec5-4875-b152-b729e98a0ec9",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec"
       ],
       "dependScripts": [
+        "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
+        "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "362a6ce2-8e20-4944-8fed-7f2fa95db536"
       ]
@@ -496,7 +500,7 @@
     "versionCode": 1
   },
   "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f": {
-    "url": "db://assets/victorymat.mtl",
+    "url": "db://assets/materials/RedMat.mtl",
     "value": {
       "depends": [
         "a3cd009f-0ab0-420d-9278-b9fdab939bbc",
@@ -524,6 +528,32 @@
   "e4db8fe8-78ac-4231-a17c-a11ff1c17914": {
     "url": "db://assets/scripts/RandomAnimcationOffset.ts",
     "value": {},
+    "versionCode": 1
+  },
+  "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b": {
+    "url": "db://assets/3D/Fighter.Final_Bake1_PBR_Diffuse2.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b@6c48a": {
+    "url": "db://assets/3D/Fighter.Final_Bake1_PBR_Diffuse2.png@6c48a",
+    "value": {
+      "depends": [
+        "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "8e39c061-d956-43ce-ad16-db3efa6f7be1": {
+    "url": "db://assets/materials/BlueMat.mtl",
+    "value": {
+      "depends": [
+        "a3cd009f-0ab0-420d-9278-b9fdab939bbc",
+        "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b@6c48a"
+      ]
+    },
     "versionCode": 1
   }
 }
