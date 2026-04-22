@@ -1,4 +1,4 @@
-import { _decorator, Component, Prefab, instantiate, Vec3 } from 'cc';
+import { _decorator, Component, Prefab, instantiate, Vec3, game } from 'cc';
 import { Unit } from './Unit';
 import { EnemyFinder } from './EnemyFinder';
 import { RVOSimulator } from './rvo/RVO';
@@ -30,7 +30,7 @@ export class GameManager extends Component {
     teamB: Unit[] = [];
 
     start() {
-
+        game.frameRate = 30;
         // obstacle
         for (let ob of this.circleObstacles) {
             const p = ob.node.worldPosition;

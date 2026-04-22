@@ -2,276 +2,276 @@
   "version": "1.0.1",
   "map": {
     "scripts.meta": {
-      "time": 1776667555102.3574
+      "time": 1776574463135.642
     },
     "scripts": {
-      "time": 1776746904095.657,
+      "time": 1776699240669.656,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
-      "time": 1776667555103.354
+      "time": 1776574468934.737
     },
     "scripts\\rvo": {
-      "time": 1776667555103.354,
+      "time": 1776596870082.1436,
       "uuid": "6985aa89-e74e-4806-a02a-6b8ce0ac9d87"
     },
     "scripts\\rvo\\RVO.ts.meta": {
-      "time": 1776667555103.354
+      "time": 1776574488800.7893
     },
     "scripts\\rvo\\RVO.ts": {
-      "time": 1776667555103.354,
+      "time": 1776591853549.1685,
       "uuid": "220c203c-ef11-4ca0-8d3c-4607999a8a88"
     },
     "scripts\\Unit.ts.meta": {
-      "time": 1776667555103.354
+      "time": 1776578026202.4324
     },
     "scripts\\Unit.ts": {
-      "time": 1776667555103.354,
+      "time": 1776594660880.505,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\EnemyFinder.ts.meta": {
-      "time": 1776667555102.3574
+      "time": 1776578058487.4988
     },
     "scripts\\EnemyFinder.ts": {
-      "time": 1776667555102.3574,
+      "time": 1776593601663.6516,
       "uuid": "362a6ce2-8e20-4944-8fed-7f2fa95db536"
     },
     "scripts\\GameManager.ts.meta": {
-      "time": 1776667555102.3574
+      "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1776667555102.3574,
+      "time": 1776881690286.8655,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
-      "time": 1776667555101.3608
+      "time": 1776578229398.7388
     },
     "materials": {
-      "time": 1776747084614.9016,
+      "time": 1776875107629.3472,
       "uuid": "45369d38-91a0-48b0-897e-f10becbec2b5"
     },
     "materials\\Red.mtl.meta": {
-      "time": 1776667555101.3608
+      "time": 1776578250634.9521
     },
     "materials\\Red.mtl": {
-      "time": 1776667555101.3608,
+      "time": 1776594333365.1682,
       "uuid": "31c94d47-e409-42f3-b397-08be549e95e2"
     },
     "materials\\Blue.mtl.meta": {
-      "time": 1776667555101.3608
+      "time": 1776578236967.3706
     },
     "materials\\Blue.mtl": {
-      "time": 1776667555101.3608,
+      "time": 1776594329032.218,
       "uuid": "83287fd9-fec5-4875-b152-b729e98a0ec9"
     },
     "prefabs.meta": {
-      "time": 1776667555101.3608
+      "time": 1776578315841.5676
     },
     "prefabs": {
-      "time": 1776746904095.657,
+      "time": 1776875107629.3472,
       "uuid": "f194fcbd-6a0e-4300-a4a2-8fed5cb043d1"
     },
     "prefabs\\BlueUnit.prefab.meta": {
-      "time": 1776667555102.3574
+      "time": 1776578320994.4348
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1776747176053.2622,
+      "time": 1776875107629.3472,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
-      "time": 1776667555102.3574
+      "time": 1776578323163.4592
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1776746904095.657,
+      "time": 1776699684700.6538,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
-      "time": 1776667555101.3608
+      "time": 1776578345590.7947
     },
     "Test.scene": {
-      "time": 1776753144513.735,
+      "time": 1776881616884.91,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
-      "time": 1776667555102.3574
+      "time": 1776580349696.1533
     },
     "scripts\\Obstacle.ts": {
-      "time": 1776667555102.3574,
+      "time": 1776582555772.4834,
       "uuid": "d5281281-6909-4679-941e-69ac9d6924ff"
     },
     "scripts\\ObstacleCircle.ts.meta": {
-      "time": 1776667555103.354
+      "time": 1776582989049.7292
     },
     "scripts\\ObstacleCircle.ts": {
-      "time": 1776667555102.3574,
+      "time": 1776587077066.0413,
       "uuid": "360c09ec-bbac-4350-9ea8-2786553038bf"
     },
     "scripts\\ObstacleRect.ts.meta": {
-      "time": 1776667555103.354
+      "time": 1776583026757.6013
     },
     "scripts\\ObstacleRect.ts": {
-      "time": 1776667555103.354,
+      "time": 1776587088104.5645,
       "uuid": "59ff3474-5851-466c-970e-d7dfe54867af"
     },
     "scripts\\UnitProps.ts.meta": {
-      "time": 1776667555103.354
+      "time": 1776594848700.45
     },
     "scripts\\UnitProps.ts": {
-      "time": 1776667555103.354,
+      "time": 1776594896800.596,
       "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
     },
     "Fighter.Body.low_Baked.001_vat.meta": {
-      "time": 1776667555094.3865
+      "time": 1776598812467.491
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json.meta": {
-      "time": 1776667555094.3865
+      "time": 1776598812477.245
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx.meta": {
-      "time": 1776667555095.3848
+      "time": 1776599010577.975
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png.meta": {
-      "time": 1776667555098.3748
+      "time": 1776598812505.5776
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vnrm.png.meta": {
-      "time": 1776667555100.3682
+      "time": 1776598812504.5623
     },
     "Fighter.Body.low_Baked.001_vat": {
-      "time": 1776667555101.3608,
+      "time": 1776599868332.83,
       "uuid": "3b0487d6-79f4-4509-ac9e-54616452dc7f"
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json": {
-      "time": 1776667555094.3865,
+      "time": 1776598938008.9646,
       "uuid": "063523c9-dacf-4e03-8fe6-ea20876cc71a"
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vnrm.png": {
-      "time": 1776667555100.3682,
+      "time": 1776598984108.58,
       "uuid": "f7a5c9d2-b206-4d1c-b62f-17f6488c37d1"
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png": {
-      "time": 1776667555098.3748,
+      "time": 1776598961028.74,
       "uuid": "818a54eb-d7fd-4485-ac1e-bec58a36cf60"
     },
     "Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx": {
-      "time": 1776667555095.3848,
+      "time": 1776598984316.9934,
       "uuid": "0af791a7-f349-426a-913b-c12f66b363d5"
     },
     "Fighter.Body.low_Baked.001_vat\\VATMat.mtl.meta": {
-      "time": 1776667555101.3608
+      "time": 1776599054737.707
     },
     "Fighter.Body.low_Baked.001_vat\\VATMat.mtl": {
-      "time": 1776667555101.3608,
+      "time": 1776599585902.0012,
       "uuid": "e133d45c-0b60-422d-928a-12ea3f9561f1"
     },
     "scene.scene.meta": {
-      "time": 1776667555102.3574
+      "time": 1776609583280.711
     },
     "scene.scene": {
-      "time": 1776667555102.3574,
+      "time": 1776609584246.5808,
       "uuid": "b0077834-1d22-4e70-8b38-27145890c68f"
     },
     "shaders.meta": {
-      "time": 1776672420358.705
+      "time": 1776691624018.838
     },
     "shaders": {
-      "time": 1776746904095.657,
+      "time": 1776692152077.1492,
       "uuid": "198cb8fe-6af9-4a92-b370-f7b86df7e038"
     },
     "shaders\\VAT-Animation.effect.meta": {
-      "time": 1776676919201.1257
+      "time": 1776691624019.9565
     },
     "shaders\\VAT-Animation.effect": {
-      "time": 1776677801207.7405,
+      "time": 1776691624019.9565,
       "uuid": "c4c05413-c96e-41fb-b980-91502673e773"
     },
     "materials\\VATAnimMat.mtl.meta": {
-      "time": 1776672638355.0403
+      "time": 1776691624017.4697
     },
     "materials\\VATAnimMat.mtl": {
-      "time": 1776746904095.657,
+      "time": 1776697391717.1865,
       "uuid": "668cb142-609f-4953-9a90-aef1985c436f"
     },
     "3D.meta": {
-      "time": 1776672815148.969
+      "time": 1776691623999.7615
     },
     "3D": {
-      "time": 1776747030006.719,
+      "time": 1776875107625.0337,
       "uuid": "e552118f-a9fd-416b-a202-9243ef0ce5b8"
     },
     "3D\\Fighter.Body.low_Baked.001_vat.meta": {
-      "time": 1776673016229.8438
+      "time": 1776691623999.7615
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json.meta": {
-      "time": 1776673016233.8306
+      "time": 1776691623999.7615
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx.meta": {
-      "time": 1776679091943.3545
+      "time": 1776691624003.0703
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png.meta": {
-      "time": 1776684900537.9697
+      "time": 1776691624014.8506
     },
     "3D\\Fighter.Body.low_Baked.001_vat": {
-      "time": 1776673016225.857,
+      "time": 1776691624014.8506,
       "uuid": "83cb5c81-5256-437a-abd9-ddcaafdba392"
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json": {
-      "time": 1776679056114.7725,
+      "time": 1776691623999.7615,
       "uuid": "3c6f3d3b-a9d9-4037-bc29-bd2167bc9a4d"
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png": {
-      "time": 1776679070817.865,
+      "time": 1776691624014.8506,
       "uuid": "0b0b1af5-bc75-49b2-8010-354079ad3f5c"
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx": {
-      "time": 1776679070932.478,
+      "time": 1776691624002.0737,
       "uuid": "30c135f7-50d5-40bb-9ef8-638f796dbd9e"
     },
     "shaders\\GeminiVAT.effect.meta": {
-      "time": 1776746904095.657
+      "time": 1776692153600.3235
     },
     "shaders\\GeminiVAT.effect": {
-      "time": 1776746904095.657,
+      "time": 1776692152075.8862,
       "uuid": "907453e2-f1c4-4647-9d12-3724d92e9716"
     },
     "3D\\Victory.fbx.meta": {
-      "time": 1776746904095.657
+      "time": 1776702919908.7847
     },
     "3D\\Victory.fbx": {
-      "time": 1776746904095.657,
+      "time": 1776697471177.5684,
       "uuid": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse.png.meta": {
-      "time": 1776746904095.657
+      "time": 1776698050148.5557
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse.png": {
-      "time": 1776746904095.657,
+      "time": 1770488225905.5708,
       "uuid": "01e8d4f8-e754-4cd6-a096-8831a456fa02"
     },
     "scripts\\RandomAnimcationOffset.ts.meta": {
-      "time": 1776746904095.657
+      "time": 1776699240681.8645
     },
     "scripts\\RandomAnimcationOffset.ts": {
-      "time": 1776746904095.657,
+      "time": 1776700224943.205,
       "uuid": "e4db8fe8-78ac-4231-a17c-a11ff1c17914"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png.meta": {
-      "time": 1776747030018.7195
+      "time": 1776875107625.0337
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png": {
-      "time": 1769966381196.655,
+      "time": 1776875107625.0337,
       "uuid": "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b"
     },
     "materials\\RedMat.mtl.meta": {
-      "time": 1776746904095.657
+      "time": 1776875107629.3472
     },
     "materials\\RedMat.mtl": {
-      "time": 1776746904095.657,
+      "time": 1776875107629.3472,
       "uuid": "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f"
     },
     "materials\\BlueMat.mtl.meta": {
-      "time": 1776747078939.5398
+      "time": 1776875107628.3293
     },
     "materials\\BlueMat.mtl": {
-      "time": 1776747123381.3252,
+      "time": 1776875107628.3293,
       "uuid": "8e39c061-d956-43ce-ad16-db3efa6f7be1"
     }
   },
