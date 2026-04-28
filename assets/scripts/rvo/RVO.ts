@@ -104,6 +104,7 @@ export class RVOSimulator {
 
             const neighbors = this.getNeighbors(a);
 
+            // ===== Agent avoidance =====
             for (let b of neighbors) {
 
                 const dx = a.pos.x - b.pos.x;
@@ -133,7 +134,7 @@ export class RVOSimulator {
                 }
             }
 
-            // Circle obstacle
+            // ===== Circle obstacle (soft) =====
             for (let ob of this.circleObs) {
 
                 const dx = a.pos.x - ob.x;
@@ -147,8 +148,8 @@ export class RVOSimulator {
                     const nx = dx / dist;
                     const nz = dz / dist;
 
-                    vx += nx * (minDist - dist) * 2;
-                    vz += nz * (minDist - dist) * 2;
+                    vx += nx * (minDist - dist) * 4;
+                    vz += nz * (minDist - dist) * 4;
 
                     const dot = vx * nx + vz * nz;
                     if (dot < 0) {
@@ -158,7 +159,7 @@ export class RVOSimulator {
                 }
             }
 
-            // Rect obstacle
+            // ===== Rect obstacle (soft) =====
             for (let ob of this.rectObs) {
 
                 const dx = a.pos.x - ob.x;
@@ -187,8 +188,8 @@ export class RVOSimulator {
                     const nx = nxL * ob.cos - nzL * ob.sin;
                     const nz = nxL * ob.sin + nzL * ob.cos;
 
-                    vx += nx * (a.radius - dist) * 2;
-                    vz += nz * (a.radius - dist) * 2;
+                    vx += nx * (a.radius - dist) * 4;
+                    vz += nz * (a.radius - dist) * 4;
 
                     const dot = vx * nx + vz * nz;
                     if (dot < 0) {
@@ -198,6 +199,7 @@ export class RVOSimulator {
                 }
             }
 
+            // ===== Clamp speed =====
             const speed = Math.sqrt(vx * vx + vz * vz);
             if (speed > a.maxSpeed) {
                 vx = (vx / speed) * a.maxSpeed;
@@ -208,7 +210,7 @@ export class RVOSimulator {
             a.vel.z = vz;
         }
 
-        // MOVE
+        // ===== MOVE =====
         for (let a of this.agents) {
             if (!a.locked) {
                 a.pos.x += a.vel.x * this.timeStep;
@@ -216,7 +218,7 @@ export class RVOSimulator {
             }
         }
 
-        // HARD SEPARATION
+        // ===== HARD SEPARATION (agent-agent) =====
         for (let a of this.agents) {
 
             const neighbors = this.getNeighbors(a);
@@ -248,6 +250,69 @@ export class RVOSimulator {
                         b.pos.x += nx * overlap;
                         b.pos.z += nz * overlap;
                     }
+                }
+            }
+        }
+
+        // ===== HARD SEPARATION (circle obstacle) =====
+        for (let a of this.agents) {
+
+            for (let ob of this.circleObs) {
+
+                const dx = a.pos.x - ob.x;
+                const dz = a.pos.z - ob.z;
+
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                const minDist = a.radius + ob.r;
+
+                if (dist < minDist && dist > 0.0001) {
+
+                    const nx = dx / dist;
+                    const nz = dz / dist;
+
+                    const push = (minDist - dist);
+
+                    a.pos.x += nx * push;
+                    a.pos.z += nz * push;
+                }
+            }
+        }
+
+        // ===== HARD SEPARATION (rect obstacle) 🔥 FIX CHÍNH =====
+        for (let a of this.agents) {
+
+            for (let ob of this.rectObs) {
+
+                const dx = a.pos.x - ob.x;
+                const dz = a.pos.z - ob.z;
+
+                const lx = dx * ob.cos + dz * ob.sin;
+                const lz = -dx * ob.sin + dz * ob.cos;
+
+                const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
+                const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
+
+                let ox = lx - px;
+                let oz = lz - pz;
+
+                const distSq = ox * ox + oz * oz;
+
+                if (distSq < 1e-6) continue;
+
+                if (distSq < a.radius * a.radius) {
+
+                    const dist = Math.sqrt(distSq);
+
+                    const nxL = ox / dist;
+                    const nzL = oz / dist;
+
+                    const nx = nxL * ob.cos - nzL * ob.sin;
+                    const nz = nxL * ob.sin + nzL * ob.cos;
+
+                    const push = (a.radius - dist);
+
+                    a.pos.x += nx * push;
+                    a.pos.z += nz * push;
                 }
             }
         }

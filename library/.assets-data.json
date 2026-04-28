@@ -99,6 +99,8 @@
     "url": "db://assets/Test.scene",
     "value": {
       "depends": [
+        "817257f8-8eda-4313-a407-8ae5d0e791b0",
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
         "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
         "e9fa7cb9-649b-4dac-a368-f9515b675d79",
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
@@ -552,6 +554,37 @@
       "depends": [
         "a3cd009f-0ab0-420d-9278-b9fdab939bbc",
         "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "06818ec2-cd25-4acf-86bd-aca421dce2fb": {
+    "url": "db://assets/textures",
+    "value": {},
+    "versionCode": 1
+  },
+  "8e74e91d-600c-4477-82f9-11cff643e16a": {
+    "url": "db://assets/textures/terrain-sand.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "8e74e91d-600c-4477-82f9-11cff643e16a@6c48a": {
+    "url": "db://assets/textures/terrain-sand.png@6c48a",
+    "value": {
+      "depends": [
+        "8e74e91d-600c-4477-82f9-11cff643e16a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "817257f8-8eda-4313-a407-8ae5d0e791b0": {
+    "url": "db://assets/materials/terrain-sand.mtl",
+    "value": {
+      "depends": [
+        "a3cd009f-0ab0-420d-9278-b9fdab939bbc",
+        "8e74e91d-600c-4477-82f9-11cff643e16a@6c48a"
       ]
     },
     "versionCode": 1

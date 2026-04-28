@@ -13,7 +13,7 @@ export class GameManager extends Component {
     @property(Prefab) prefabA!: Prefab;
     @property(Prefab) prefabB!: Prefab;
 
-    @property count = 100;
+    @property count = 10;
 
     @property updateInterval = 2;
     frame = 0;
@@ -30,7 +30,7 @@ export class GameManager extends Component {
     teamB: Unit[] = [];
 
     start() {
-        game.frameRate = 30;
+        //game.frameRate = 30;
         // obstacle
         for (let ob of this.circleObstacles) {
             const p = ob.node.worldPosition;
@@ -44,14 +44,14 @@ export class GameManager extends Component {
         }
 
         const spacing = 1.2;
-        const width = 30;
+        const width = 5;
 
         for (let i = 0; i < this.count; i++) {
 
             const row = Math.floor(i / width);
             const col = i % width;
 
-            const pos = new Vec3(-30 - row * spacing, 0, (col - width / 2) * spacing);
+            const pos = new Vec3(-20 - row * spacing, 0, (col - width / 2) * spacing);
 
             const node = instantiate(this.prefabA);
             this.node.addChild(node);
@@ -71,7 +71,7 @@ export class GameManager extends Component {
             const row = Math.floor(i / width);
             const col = i % width;
 
-            const pos = new Vec3(30 + row * spacing, 0, (col - width / 2) * spacing);
+            const pos = new Vec3(20 + row * spacing, 0, (col - width / 2) * spacing);
 
             const node = instantiate(this.prefabB);
             this.node.addChild(node);
