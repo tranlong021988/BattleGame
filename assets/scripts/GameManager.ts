@@ -1,9 +1,10 @@
-import { _decorator, Component, Prefab, instantiate, Vec3, game } from 'cc';
+import { _decorator, Component, Prefab, Vec3 } from 'cc';
 import { Unit } from './Unit';
 import { EnemyFinder } from './EnemyFinder';
 import { RVOSimulator } from './rvo/RVO';
 import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
+import { UnitSpawner } from './UnitSpawner';
 
 const { ccclass, property } = _decorator;
 
@@ -29,21 +30,35 @@ export class GameManager extends Component {
     teamA: Unit[] = [];
     teamB: Unit[] = [];
 
+    private spawner!: UnitSpawner;
+
     start() {
-        //game.frameRate = 30;
-        // obstacle
-        for (let ob of this.circleObstacles) {
+
+        // ===== Spawner =====
+        this.spawner = this.getComponent(UnitSpawner)!;
+        this.spawner.init(this.sim);
+
+        // ===== Obstacles =====
+        for (const ob of this.circleObstacles) {
             const p = ob.node.worldPosition;
             this.sim.addCircleObstacle(p.x, p.z, ob.radius);
         }
 
-        for (let ob of this.rectObstacles) {
+        for (const ob of this.rectObstacles) {
             const p = ob.node.worldPosition;
             const angle = ob.node.eulerAngles.y * Math.PI / 180;
-            this.sim.addRectObstacle(p.x, p.z, ob.halfWidth, ob.halfHeight, angle);
+
+            this.sim.addRectObstacle(
+                p.x,
+                p.z,
+                ob.halfWidth,
+                ob.halfHeight,
+                angle
+            );
         }
 
-        const spacing = 1.2;
+        // ===== Demo spawn =====
+        const spacing = 2.0;
         const width = 5;
 
         for (let i = 0; i < this.count; i++) {
@@ -51,19 +66,13 @@ export class GameManager extends Component {
             const row = Math.floor(i / width);
             const col = i % width;
 
-            const pos = new Vec3(-20 - row * spacing, 0, (col - width / 2) * spacing);
+            const pos = new Vec3(
+                -20 - row * spacing,
+                0,
+                (col - width / 2) * spacing
+            );
 
-            const node = instantiate(this.prefabA);
-            this.node.addChild(node);
-            node.setWorldPosition(pos);
-
-            const u = node.getComponent(Unit)!;
-            const f = node.getComponent(EnemyFinder)!;
-
-            u.init(this.sim);
-            f.setTeam(0);
-
-            this.teamA.push(u);
+            this.spawnTeamA(pos);
         }
 
         for (let i = 0; i < this.count; i++) {
@@ -71,31 +80,76 @@ export class GameManager extends Component {
             const row = Math.floor(i / width);
             const col = i % width;
 
-            const pos = new Vec3(20 + row * spacing, 0, (col - width / 2) * spacing);
+            const pos = new Vec3(
+                20 + row * spacing,
+                0,
+                (col - width / 2) * spacing
+            );
 
-            const node = instantiate(this.prefabB);
-            this.node.addChild(node);
-            node.setWorldPosition(pos);
-
-            const u = node.getComponent(Unit)!;
-            const f = node.getComponent(EnemyFinder)!;
-
-            u.init(this.sim);
-            f.setTeam(1);
-
-            this.teamB.push(u);
+            this.spawnTeamB(pos);
         }
-
-        EnemyFinder.teamA = this.teamA;
-        EnemyFinder.teamB = this.teamB;
     }
 
     update() {
         this.frame++;
-        if(this.frame%this.updateInterval!==0){
+
+        if (this.frame % this.updateInterval === 0) {
             this.sim.step();
-           // return;
         }
-        
+    }
+
+    // =====================================================
+    // Runtime API
+    // =====================================================
+
+    spawnTeamA(pos: Vec3): Unit {
+
+        const unit = this.spawner.spawnUnit(
+            this.prefabA,
+            pos,
+            0,
+            this.node
+        );
+
+        this.teamA.push(unit);
+        EnemyFinder.teamA = this.teamA;
+
+        return unit;
+    }
+
+    spawnTeamB(pos: Vec3): Unit {
+
+        const unit = this.spawner.spawnUnit(
+            this.prefabB,
+            pos,
+            1,
+            this.node
+        );
+
+        this.teamB.push(unit);
+        EnemyFinder.teamB = this.teamB;
+
+        return unit;
+    }
+
+    despawnUnit(unit: Unit) {
+
+        if (!unit) return;
+
+        const idxA = this.teamA.indexOf(unit);
+        if (idxA >= 0) {
+            this.teamA.splice(idxA, 1);
+            this.spawner.despawnUnit(unit, this.prefabA);
+            EnemyFinder.teamA = this.teamA;
+            return;
+        }
+
+        const idxB = this.teamB.indexOf(unit);
+        if (idxB >= 0) {
+            this.teamB.splice(idxB, 1);
+            this.spawner.despawnUnit(unit, this.prefabB);
+            EnemyFinder.teamB = this.teamB;
+            return;
+        }
     }
 }

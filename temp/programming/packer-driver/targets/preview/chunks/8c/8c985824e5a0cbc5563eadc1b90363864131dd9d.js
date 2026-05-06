@@ -54,7 +54,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           var bestDist = Infinity;
 
           for (var e of enemies) {
-            if (!e || !e.agent) continue;
+            if (!e || !e.node.activeInHierarchy) continue;
+            if (!e.agent) continue;
             if (e.onBusy) continue;
             var dx = e.agent.pos.x - this.unit.agent.pos.x;
             var dz = e.agent.pos.z - this.unit.agent.pos.z;

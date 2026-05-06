@@ -53,8 +53,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           let best = null;
           let bestDist = Infinity;
 
-          for (let e of enemies) {
-            if (!e || !e.agent) continue;
+          for (const e of enemies) {
+            if (!e || !e.node.activeInHierarchy) continue;
+            if (!e.agent) continue;
             if (e.onBusy) continue;
             const dx = e.agent.pos.x - this.unit.agent.pos.x;
             const dz = e.agent.pos.z - this.unit.agent.pos.z;

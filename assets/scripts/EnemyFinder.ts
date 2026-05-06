@@ -24,14 +24,17 @@ export class EnemyFinder extends Component {
 
         if (!this.unit || !this.unit.agent || this.unit.onBusy) return;
 
-        const enemies = this.team === 0 ? EnemyFinder.teamB : EnemyFinder.teamA;
+        const enemies = this.team === 0
+            ? EnemyFinder.teamB
+            : EnemyFinder.teamA;
 
         let best: Unit | null = null;
         let bestDist = Infinity;
 
-        for (let e of enemies) {
+        for (const e of enemies) {
 
-            if (!e || !e.agent) continue;
+            if (!e || !e.node.activeInHierarchy) continue;
+            if (!e.agent) continue;
             if (e.onBusy) continue;
 
             const dx = e.agent.pos.x - this.unit.agent.pos.x;

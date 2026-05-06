@@ -106,8 +106,6 @@
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
-        "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f",
         "837662e8-92db-4dea-820d-eafbe218fe17",
         "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
@@ -116,6 +114,7 @@
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
         "59ff3474-5851-466c-970e-d7dfe54867af",
+        "6fc5265c-f2e8-478d-b01e-2a02f5a37b15",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8"
       ]
     },
@@ -587,6 +586,11 @@
         "8e74e91d-600c-4477-82f9-11cff643e16a@6c48a"
       ]
     },
+    "versionCode": 1
+  },
+  "6fc5265c-f2e8-478d-b01e-2a02f5a37b15": {
+    "url": "db://assets/scripts/UnitSpawner.ts",
+    "value": {},
     "versionCode": 1
   }
 }

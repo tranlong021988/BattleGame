@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, instantiate, Vec3, Unit, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -29,6 +29,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("ObstacleRect", "./ObstacleRect", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfUnitSpawner(extras) {
+    _reporterNs.report("UnitSpawner", "./UnitSpawner", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -39,25 +43,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _decorator = _cc._decorator;
       Component = _cc.Component;
       Prefab = _cc.Prefab;
-      instantiate = _cc.instantiate;
       Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
-      Unit = _unresolved_2.Unit;
+      EnemyFinder = _unresolved_2.EnemyFinder;
     }, function (_unresolved_3) {
-      EnemyFinder = _unresolved_3.EnemyFinder;
+      RVOSimulator = _unresolved_3.RVOSimulator;
     }, function (_unresolved_4) {
-      RVOSimulator = _unresolved_4.RVOSimulator;
+      ObstacleCircle = _unresolved_4.ObstacleCircle;
     }, function (_unresolved_5) {
-      ObstacleCircle = _unresolved_5.ObstacleCircle;
+      ObstacleRect = _unresolved_5.ObstacleRect;
     }, function (_unresolved_6) {
-      ObstacleRect = _unresolved_6.ObstacleRect;
+      UnitSpawner = _unresolved_6.UnitSpawner;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Prefab', 'instantiate', 'Vec3']);
+      __checkObsolete__(['_decorator', 'Component', 'Prefab', 'Vec3']);
 
       ({
         ccclass,
@@ -95,73 +98,97 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), RVOSimulator) : RVOSimulator)();
           this.teamA = [];
           this.teamB = [];
+          this.spawner = void 0;
         }
 
         start() {
-          // obstacle
-          for (let ob of this.circleObstacles) {
+          // ===== Spawner =====
+          this.spawner = this.getComponent(_crd && UnitSpawner === void 0 ? (_reportPossibleCrUseOfUnitSpawner({
+            error: Error()
+          }), UnitSpawner) : UnitSpawner);
+          this.spawner.init(this.sim); // ===== Obstacles =====
+
+          for (const ob of this.circleObstacles) {
             const p = ob.node.worldPosition;
             this.sim.addCircleObstacle(p.x, p.z, ob.radius);
           }
 
-          for (let ob of this.rectObstacles) {
+          for (const ob of this.rectObstacles) {
             const p = ob.node.worldPosition;
             const angle = ob.node.eulerAngles.y * Math.PI / 180;
             this.sim.addRectObstacle(p.x, p.z, ob.halfWidth, ob.halfHeight, angle);
-          }
+          } // ===== Demo spawn =====
 
-          const spacing = 1.2;
-          const width = 30;
+
+          const spacing = 2.0;
+          const width = 5;
 
           for (let i = 0; i < this.count; i++) {
             const row = Math.floor(i / width);
             const col = i % width;
-            const pos = new Vec3(-30 - row * spacing, 0, (col - width / 2) * spacing);
-            const node = instantiate(this.prefabA);
-            this.node.addChild(node);
-            node.setWorldPosition(pos);
-            const u = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
-              error: Error()
-            }), Unit) : Unit);
-            const f = node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-              error: Error()
-            }), EnemyFinder) : EnemyFinder);
-            u.init(this.sim);
-            f.setTeam(0);
-            this.teamA.push(u);
+            const pos = new Vec3(-20 - row * spacing, 0, (col - width / 2) * spacing);
+            this.spawnTeamA(pos);
           }
 
           for (let i = 0; i < this.count; i++) {
             const row = Math.floor(i / width);
             const col = i % width;
-            const pos = new Vec3(30 + row * spacing, 0, (col - width / 2) * spacing);
-            const node = instantiate(this.prefabB);
-            this.node.addChild(node);
-            node.setWorldPosition(pos);
-            const u = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
-              error: Error()
-            }), Unit) : Unit);
-            const f = node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-              error: Error()
-            }), EnemyFinder) : EnemyFinder);
-            u.init(this.sim);
-            f.setTeam(1);
-            this.teamB.push(u);
+            const pos = new Vec3(20 + row * spacing, 0, (col - width / 2) * spacing);
+            this.spawnTeamB(pos);
           }
-
-          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
-          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
         }
 
         update() {
           this.frame++;
 
-          if (this.frame % this.updateInterval !== 0) {
-            this.sim.step(); // return;
+          if (this.frame % this.updateInterval === 0) {
+            this.sim.step();
+          }
+        } // =====================================================
+        // Runtime API
+        // =====================================================
+
+
+        spawnTeamA(pos) {
+          const unit = this.spawner.spawnUnit(this.prefabA, pos, 0, this.node);
+          this.teamA.push(unit);
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
+          return unit;
+        }
+
+        spawnTeamB(pos) {
+          const unit = this.spawner.spawnUnit(this.prefabB, pos, 1, this.node);
+          this.teamB.push(unit);
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
+          return unit;
+        }
+
+        despawnUnit(unit) {
+          if (!unit) return;
+          const idxA = this.teamA.indexOf(unit);
+
+          if (idxA >= 0) {
+            this.teamA.splice(idxA, 1);
+            this.spawner.despawnUnit(unit, this.prefabA);
+            (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+              error: Error()
+            }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
+            return;
+          }
+
+          const idxB = this.teamB.indexOf(unit);
+
+          if (idxB >= 0) {
+            this.teamB.splice(idxB, 1);
+            this.spawner.despawnUnit(unit, this.prefabB);
+            (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+              error: Error()
+            }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
+            return;
           }
         }
 
@@ -180,7 +207,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 100;
+          return 10;
         }
       }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
         configurable: true,

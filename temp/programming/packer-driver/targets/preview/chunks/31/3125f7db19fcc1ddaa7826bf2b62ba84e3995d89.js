@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -57,11 +57,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "rotationSpeed", _descriptor4, this);
 
-          // 🔥 anti jitter
+          // ===== anti jitter =====
           _initializerDefineProperty(this, "moveThreshold", _descriptor5, this);
 
+          // rotation threshold
           _initializerDefineProperty(this, "velThreshold", _descriptor6, this);
 
+          // rotation threshold
+          _initializerDefineProperty(this, "visualThreshold", _descriptor7, this);
+
+          // NEW: visual position threshold
           this.sim = void 0;
           this.agent = void 0;
           this.enemy = null;
@@ -92,9 +97,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         update() {
-          if (this.gm == null) this.gm = this.node.scene.getComponentInChildren(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager);
+          if (this.gm == null) {
+            this.gm = this.node.scene.getComponentInChildren(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager);
+          }
+
           if (!this.gm || !this.agent) return;
 
           if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
@@ -130,7 +138,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         sync() {
-          this.node.setWorldPosition(this.agent.pos.x, this.node.worldPosition.y, this.agent.pos.z); // ===== ROTATION (ANTI JITTER) =====
+          // ===== VISUAL POSITION THRESHOLD =====
+          var current = this.node.worldPosition;
+          var pdx = this.agent.pos.x - current.x;
+          var pdz = this.agent.pos.z - current.z;
+          var posDistSq = pdx * pdx + pdz * pdz;
+
+          if (posDistSq >= this.visualThreshold * this.visualThreshold) {
+            this.node.setWorldPosition(this.agent.pos.x, current.y, this.agent.pos.z);
+          } // ===== ROTATION (ANTI JITTER) =====
+
 
           var vx = this.agent.vel.x;
           var vz = this.agent.vel.z;
@@ -196,6 +213,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         writable: true,
         initializer: function initializer() {
           return 0.05;
+        }
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "visualThreshold", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.03;
         }
       })), _class2)) || _class));
 

@@ -13,9 +13,10 @@ export class Unit extends Component {
 
     @property rotationSpeed = 10;
 
-    // 🔥 anti jitter
-    @property moveThreshold = 0.2;
-    @property velThreshold = 0.05;
+    // ===== anti jitter =====
+    @property moveThreshold = 0.2;      // rotation threshold
+    @property velThreshold = 0.05;      // rotation threshold
+    @property visualThreshold = 0.03;   // NEW: visual position threshold
 
     sim!: RVOSimulator;
     agent!: RVOAgent;
@@ -26,7 +27,7 @@ export class Unit extends Component {
     updateOffset = 0;
 
     private lastStablePos = { x: 0, z: 0 };
-    private gm:GameManager;
+    private gm!: GameManager;
 
     init(sim: RVOSimulator) {
 
@@ -51,7 +52,11 @@ export class Unit extends Component {
     }
 
     update() {
-        if(this.gm==null) this.gm= this.node.scene.getComponentInChildren(GameManager);
+
+        if (this.gm == null) {
+            this.gm = this.node.scene.getComponentInChildren(GameManager)!;
+        }
+
         if (!this.gm || !this.agent) return;
 
         if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
@@ -97,11 +102,21 @@ export class Unit extends Component {
 
     private sync() {
 
-        this.node.setWorldPosition(
-            this.agent.pos.x,
-            this.node.worldPosition.y,
-            this.agent.pos.z
-        );
+        // ===== VISUAL POSITION THRESHOLD =====
+        const current = this.node.worldPosition;
+
+        const pdx = this.agent.pos.x - current.x;
+        const pdz = this.agent.pos.z - current.z;
+
+        const posDistSq = pdx * pdx + pdz * pdz;
+
+        if (posDistSq >= this.visualThreshold * this.visualThreshold) {
+            this.node.setWorldPosition(
+                this.agent.pos.x,
+                current.y,
+                this.agent.pos.z
+            );
+        }
 
         // ===== ROTATION (ANTI JITTER) =====
         const vx = this.agent.vel.x;
@@ -124,7 +139,11 @@ export class Unit extends Component {
         const targetAngle = Math.atan2(vx, vz) * 180 / Math.PI;
         const currentY = this.node.eulerAngles.y;
 
-        const newY = this.lerpAngle(currentY, targetAngle, this.rotationSpeed * 0.016);
+        const newY = this.lerpAngle(
+            currentY,
+            targetAngle,
+            this.rotationSpeed * 0.016
+        );
 
         this.node.setRotationFromEuler(0, newY, 0);
     }
