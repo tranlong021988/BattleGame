@@ -50,7 +50,7 @@
         "__id__": 30
       },
       {
-        "__id__": 59
+        "__id__": 57
       },
       {
         "__id__": 34
@@ -59,7 +59,7 @@
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 63
+      "__id__": 61
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -90,7 +90,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 64
+      "__id__": 62
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -1382,9 +1382,6 @@
       },
       {
         "__id__": 55
-      },
-      {
-        "__id__": 57
       }
     ],
     "removedComponents": []
@@ -1470,22 +1467,6 @@
     ]
   },
   {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 58
-    },
-    "propertyPath": [
-      "visualThreshold"
-    ],
-    "value": 0.2
-  },
-  {
-    "__type__": "cc.TargetInfo",
-    "localID": [
-      "d1wZzfSSBJ15fmlK97I3vZ"
-    ]
-  },
-  {
     "__type__": "cc.Node",
     "_name": "Cube-001",
     "_objFlags": 0,
@@ -1497,10 +1478,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 60
+        "__id__": 58
       },
       {
-        "__id__": 62
+        "__id__": 60
       }
     ],
     "_prefab": null,
@@ -1539,7 +1520,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 59
+      "__id__": 57
     },
     "_enabled": true,
     "__prefab": null,
@@ -1551,7 +1532,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 61
+      "__id__": 59
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
@@ -1594,7 +1575,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 59
+      "__id__": 57
     },
     "_enabled": true,
     "__prefab": null,
@@ -1621,28 +1602,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 65
+      "__id__": 63
     },
     "shadows": {
-      "__id__": 66
+      "__id__": 64
     },
     "_skybox": {
-      "__id__": 67
+      "__id__": 65
     },
     "fog": {
-      "__id__": 68
+      "__id__": 66
     },
     "octree": {
-      "__id__": 69
+      "__id__": 67
     },
     "skin": {
-      "__id__": 70
+      "__id__": 68
     },
     "lightProbeInfo": {
-      "__id__": 71
+      "__id__": 69
     },
     "postSettings": {
-      "__id__": 72
+      "__id__": 70
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false
