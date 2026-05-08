@@ -33,6 +33,11 @@ export class RVOSimulator {
 
     timeStep = 1 / 60;
 
+    stepCount = 0;
+
+    // 1 = ổn định hơn, 2 = nhẹ CPU hơn
+    hardSeparationInterval = 1;
+
     addAgent(x: number, z: number) {
         const a = new RVOAgent(x, z);
         this.agents.push(a);
@@ -60,6 +65,7 @@ export class RVOSimulator {
         this.grid.clear();
 
         for (let a of this.agents) {
+
             const gx = Math.floor(a.pos.x / this.cellSize);
             const gz = Math.floor(a.pos.z / this.cellSize);
 
@@ -67,12 +73,17 @@ export class RVOSimulator {
             a.gridZ = gz;
 
             const key = gx + "_" + gz;
-            if (!this.grid.has(key)) this.grid.set(key, []);
+
+            if (!this.grid.has(key)) {
+                this.grid.set(key, []);
+            }
+
             this.grid.get(key)!.push(a);
         }
     }
 
     getNeighbors(a: RVOAgent) {
+
         const result: RVOAgent[] = [];
 
         for (let x = -1; x <= 1; x++) {
@@ -80,17 +91,23 @@ export class RVOSimulator {
 
                 const key = (a.gridX + x) + "_" + (a.gridZ + z);
                 const cell = this.grid.get(key);
+
                 if (!cell) continue;
 
                 for (let other of cell) {
-                    if (other !== a) result.push(other);
+                    if (other !== a) {
+                        result.push(other);
+                    }
                 }
             }
         }
+
         return result;
     }
 
     step() {
+
+        this.stepCount++;
 
         this.buildGrid();
 
@@ -104,7 +121,6 @@ export class RVOSimulator {
 
             const neighbors = this.getNeighbors(a);
 
-            // ===== Agent avoidance =====
             for (let b of neighbors) {
 
                 const dx = a.pos.x - b.pos.x;
@@ -118,6 +134,7 @@ export class RVOSimulator {
                 if (distSq < minDist * minDist) {
 
                     const dist = Math.sqrt(distSq);
+
                     const nx = dx / dist;
                     const nz = dz / dist;
 
@@ -127,6 +144,7 @@ export class RVOSimulator {
                     vz += nz * push * 2;
 
                     const dot = vx * nx + vz * nz;
+
                     if (dot < 0) {
                         vx -= nx * dot;
                         vz -= nz * dot;
@@ -134,7 +152,7 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== Circle obstacle (soft) =====
+            // ===== Circle obstacle =====
             for (let ob of this.circleObs) {
 
                 const dx = a.pos.x - ob.x;
@@ -148,10 +166,11 @@ export class RVOSimulator {
                     const nx = dx / dist;
                     const nz = dz / dist;
 
-                    vx += nx * (minDist - dist) * 4;
-                    vz += nz * (minDist - dist) * 4;
+                    vx += nx * (minDist - dist) * 2;
+                    vz += nz * (minDist - dist) * 2;
 
                     const dot = vx * nx + vz * nz;
+
                     if (dot < 0) {
                         vx -= nx * dot;
                         vz -= nz * dot;
@@ -159,7 +178,7 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== Rect obstacle (soft) =====
+            // ===== Rect obstacle =====
             for (let ob of this.rectObs) {
 
                 const dx = a.pos.x - ob.x;
@@ -168,30 +187,28 @@ export class RVOSimulator {
                 const lx = dx * ob.cos + dz * ob.sin;
                 const lz = -dx * ob.sin + dz * ob.cos;
 
-                const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
-                const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
+                const ex = ob.hx + a.radius;
+                const ez = ob.hz + a.radius;
 
-                let ox = lx - px;
-                let oz = lz - pz;
+                if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
 
-                const distSq = ox * ox + oz * oz;
+                    const penX = ex - Math.abs(lx);
+                    const penZ = ez - Math.abs(lz);
 
-                if (distSq < 1e-6) continue;
+                    let nxL = 0;
+                    let nzL = 0;
 
-                if (distSq < a.radius * a.radius) {
-
-                    const dist = Math.sqrt(distSq);
-
-                    const nxL = ox / dist;
-                    const nzL = oz / dist;
+                    if (penX < penZ) {
+                        nxL = lx > 0 ? 1 : -1;
+                    } else {
+                        nzL = lz > 0 ? 1 : -1;
+                    }
 
                     const nx = nxL * ob.cos - nzL * ob.sin;
                     const nz = nxL * ob.sin + nzL * ob.cos;
 
-                    vx += nx * (a.radius - dist) * 4;
-                    vz += nz * (a.radius - dist) * 4;
-
                     const dot = vx * nx + vz * nz;
+
                     if (dot < 0) {
                         vx -= nx * dot;
                         vz -= nz * dot;
@@ -199,8 +216,8 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== Clamp speed =====
             const speed = Math.sqrt(vx * vx + vz * vz);
+
             if (speed > a.maxSpeed) {
                 vx = (vx / speed) * a.maxSpeed;
                 vz = (vz / speed) * a.maxSpeed;
@@ -212,74 +229,56 @@ export class RVOSimulator {
 
         // ===== MOVE =====
         for (let a of this.agents) {
+
             if (!a.locked) {
                 a.pos.x += a.vel.x * this.timeStep;
                 a.pos.z += a.vel.z * this.timeStep;
             }
         }
 
-        // ===== HARD SEPARATION (agent-agent) =====
-        for (let a of this.agents) {
+        // ===== HARD SEPARATION =====
+        if (this.stepCount % this.hardSeparationInterval === 0) {
 
-            const neighbors = this.getNeighbors(a);
+            for (let a of this.agents) {
 
-            for (let b of neighbors) {
+                const neighbors = this.getNeighbors(a);
 
-                const dx = b.pos.x - a.pos.x;
-                const dz = b.pos.z - a.pos.z;
+                for (let b of neighbors) {
 
-                const distSq = dx * dx + dz * dz;
-                const minDist = a.radius + b.radius;
+                    const dx = b.pos.x - a.pos.x;
+                    const dz = b.pos.z - a.pos.z;
 
-                if (distSq < 0.0001) continue;
+                    const distSq = dx * dx + dz * dz;
+                    const minDist = a.radius + b.radius;
 
-                if (distSq < minDist * minDist) {
+                    if (distSq < 0.0001) continue;
 
-                    const dist = Math.sqrt(distSq);
-                    const overlap = (minDist - dist) * 0.5;
+                    if (distSq < minDist * minDist) {
 
-                    const nx = dx / dist;
-                    const nz = dz / dist;
+                        const dist = Math.sqrt(distSq);
+                        const overlap = (minDist - dist) * 0.5;
 
-                    if (!a.locked) {
-                        a.pos.x -= nx * overlap;
-                        a.pos.z -= nz * overlap;
-                    }
+                        const nx = dx / dist;
+                        const nz = dz / dist;
 
-                    if (!b.locked) {
-                        b.pos.x += nx * overlap;
-                        b.pos.z += nz * overlap;
+                        if (!a.locked) {
+                            a.pos.x -= nx * overlap;
+                            a.pos.z -= nz * overlap;
+                        }
+
+                        if (!b.locked) {
+                            b.pos.x += nx * overlap;
+                            b.pos.z += nz * overlap;
+                        }
                     }
                 }
             }
         }
 
-        // ===== HARD SEPARATION (circle obstacle) =====
+        // ===== RECT COLLISION CORRECTION =====
         for (let a of this.agents) {
 
-            for (let ob of this.circleObs) {
-
-                const dx = a.pos.x - ob.x;
-                const dz = a.pos.z - ob.z;
-
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                const minDist = a.radius + ob.r;
-
-                if (dist < minDist && dist > 0.0001) {
-
-                    const nx = dx / dist;
-                    const nz = dz / dist;
-
-                    const push = (minDist - dist);
-
-                    a.pos.x += nx * push;
-                    a.pos.z += nz * push;
-                }
-            }
-        }
-
-        // ===== HARD SEPARATION (rect obstacle) 🔥 FIX CHÍNH =====
-        for (let a of this.agents) {
+            if (a.locked) continue;
 
             for (let ob of this.rectObs) {
 
@@ -289,30 +288,28 @@ export class RVOSimulator {
                 const lx = dx * ob.cos + dz * ob.sin;
                 const lz = -dx * ob.sin + dz * ob.cos;
 
-                const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
-                const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
+                const ex = ob.hx + a.radius;
+                const ez = ob.hz + a.radius;
 
-                let ox = lx - px;
-                let oz = lz - pz;
+                if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
 
-                const distSq = ox * ox + oz * oz;
+                    const penX = ex - Math.abs(lx);
+                    const penZ = ez - Math.abs(lz);
 
-                if (distSq < 1e-6) continue;
+                    let pushX = 0;
+                    let pushZ = 0;
 
-                if (distSq < a.radius * a.radius) {
+                    if (penX < penZ) {
+                        pushX = lx > 0 ? penX : -penX;
+                    } else {
+                        pushZ = lz > 0 ? penZ : -penZ;
+                    }
 
-                    const dist = Math.sqrt(distSq);
+                    const wx = pushX * ob.cos - pushZ * ob.sin;
+                    const wz = pushX * ob.sin + pushZ * ob.cos;
 
-                    const nxL = ox / dist;
-                    const nzL = oz / dist;
-
-                    const nx = nxL * ob.cos - nzL * ob.sin;
-                    const nz = nxL * ob.sin + nzL * ob.cos;
-
-                    const push = (a.radius - dist);
-
-                    a.pos.x += nx * push;
-                    a.pos.z += nz * push;
+                    a.pos.x += wx;
+                    a.pos.z += wz;
                 }
             }
         }

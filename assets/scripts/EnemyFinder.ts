@@ -1,7 +1,7 @@
 import { _decorator, Component } from 'cc';
 import { Unit } from './Unit';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
 
 @ccclass('EnemyFinder')
 export class EnemyFinder extends Component {
@@ -9,11 +9,18 @@ export class EnemyFinder extends Component {
     static teamA: Unit[] = [];
     static teamB: Unit[] = [];
 
+    @property
+    updateInterval = 4;
+
+    private updateOffset = 0;
+
     private team = 0;
     private unit!: Unit;
+    private frame = 0;
 
     start() {
         this.unit = this.getComponent(Unit)!;
+        this.updateOffset = Math.floor(Math.random() * 1000);
     }
 
     setTeam(team: number) {
@@ -21,6 +28,12 @@ export class EnemyFinder extends Component {
     }
 
     update() {
+
+        this.frame++;
+
+        if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {
+            return;
+        }
 
         if (!this.unit || !this.unit.agent || this.unit.onBusy) return;
 

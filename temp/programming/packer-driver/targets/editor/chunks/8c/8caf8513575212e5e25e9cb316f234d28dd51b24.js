@@ -50,6 +50,9 @@ System.register(["cc"], function (_export, _context) {
           this.grid = new Map();
           this.cellSize = 1.5;
           this.timeStep = 1 / 60;
+          this.stepCount = 0;
+          // 1 = ổn định hơn, 2 = nhẹ CPU hơn
+          this.hardSeparationInterval = 1;
         }
 
         addAgent(x, z) {
@@ -91,7 +94,11 @@ System.register(["cc"], function (_export, _context) {
             a.gridX = gx;
             a.gridZ = gz;
             const key = gx + "_" + gz;
-            if (!this.grid.has(key)) this.grid.set(key, []);
+
+            if (!this.grid.has(key)) {
+              this.grid.set(key, []);
+            }
+
             this.grid.get(key).push(a);
           }
         }
@@ -106,7 +113,9 @@ System.register(["cc"], function (_export, _context) {
               if (!cell) continue;
 
               for (let other of cell) {
-                if (other !== a) result.push(other);
+                if (other !== a) {
+                  result.push(other);
+                }
               }
             }
           }
@@ -115,13 +124,14 @@ System.register(["cc"], function (_export, _context) {
         }
 
         step() {
+          this.stepCount++;
           this.buildGrid(); // ===== VELOCITY =====
 
           for (let a of this.agents) {
             if (a.locked) continue;
             let vx = a.prefVel.x;
             let vz = a.prefVel.z;
-            const neighbors = this.getNeighbors(a); // ===== Agent avoidance =====
+            const neighbors = this.getNeighbors(a);
 
             for (let b of neighbors) {
               const dx = a.pos.x - b.pos.x;
@@ -144,7 +154,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Circle obstacle (soft) =====
+            } // ===== Circle obstacle =====
 
 
             for (let ob of this.circleObs) {
@@ -156,8 +166,8 @@ System.register(["cc"], function (_export, _context) {
               if (dist < minDist && dist > 0.0001) {
                 const nx = dx / dist;
                 const nz = dz / dist;
-                vx += nx * (minDist - dist) * 4;
-                vz += nz * (minDist - dist) * 4;
+                vx += nx * (minDist - dist) * 2;
+                vz += nz * (minDist - dist) * 2;
                 const dot = vx * nx + vz * nz;
 
                 if (dot < 0) {
@@ -165,7 +175,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Rect obstacle (soft) =====
+            } // ===== Rect obstacle =====
 
 
             for (let ob of this.rectObs) {
@@ -173,21 +183,23 @@ System.register(["cc"], function (_export, _context) {
               const dz = a.pos.z - ob.z;
               const lx = dx * ob.cos + dz * ob.sin;
               const lz = -dx * ob.sin + dz * ob.cos;
-              const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
-              const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
-              let ox = lx - px;
-              let oz = lz - pz;
-              const distSq = ox * ox + oz * oz;
-              if (distSq < 1e-6) continue;
+              const ex = ob.hx + a.radius;
+              const ez = ob.hz + a.radius;
 
-              if (distSq < a.radius * a.radius) {
-                const dist = Math.sqrt(distSq);
-                const nxL = ox / dist;
-                const nzL = oz / dist;
+              if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
+                const penX = ex - Math.abs(lx);
+                const penZ = ez - Math.abs(lz);
+                let nxL = 0;
+                let nzL = 0;
+
+                if (penX < penZ) {
+                  nxL = lx > 0 ? 1 : -1;
+                } else {
+                  nzL = lz > 0 ? 1 : -1;
+                }
+
                 const nx = nxL * ob.cos - nzL * ob.sin;
                 const nz = nxL * ob.sin + nzL * ob.cos;
-                vx += nx * (a.radius - dist) * 4;
-                vz += nz * (a.radius - dist) * 4;
                 const dot = vx * nx + vz * nz;
 
                 if (dot < 0) {
@@ -195,8 +207,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Clamp speed =====
-
+            }
 
             const speed = Math.sqrt(vx * vx + vz * vz);
 
@@ -215,79 +226,68 @@ System.register(["cc"], function (_export, _context) {
               a.pos.x += a.vel.x * this.timeStep;
               a.pos.z += a.vel.z * this.timeStep;
             }
-          } // ===== HARD SEPARATION (agent-agent) =====
+          } // ===== HARD SEPARATION =====
 
 
-          for (let a of this.agents) {
-            const neighbors = this.getNeighbors(a);
+          if (this.stepCount % this.hardSeparationInterval === 0) {
+            for (let a of this.agents) {
+              const neighbors = this.getNeighbors(a);
 
-            for (let b of neighbors) {
-              const dx = b.pos.x - a.pos.x;
-              const dz = b.pos.z - a.pos.z;
-              const distSq = dx * dx + dz * dz;
-              const minDist = a.radius + b.radius;
-              if (distSq < 0.0001) continue;
+              for (let b of neighbors) {
+                const dx = b.pos.x - a.pos.x;
+                const dz = b.pos.z - a.pos.z;
+                const distSq = dx * dx + dz * dz;
+                const minDist = a.radius + b.radius;
+                if (distSq < 0.0001) continue;
 
-              if (distSq < minDist * minDist) {
-                const dist = Math.sqrt(distSq);
-                const overlap = (minDist - dist) * 0.5;
-                const nx = dx / dist;
-                const nz = dz / dist;
+                if (distSq < minDist * minDist) {
+                  const dist = Math.sqrt(distSq);
+                  const overlap = (minDist - dist) * 0.5;
+                  const nx = dx / dist;
+                  const nz = dz / dist;
 
-                if (!a.locked) {
-                  a.pos.x -= nx * overlap;
-                  a.pos.z -= nz * overlap;
-                }
+                  if (!a.locked) {
+                    a.pos.x -= nx * overlap;
+                    a.pos.z -= nz * overlap;
+                  }
 
-                if (!b.locked) {
-                  b.pos.x += nx * overlap;
-                  b.pos.z += nz * overlap;
+                  if (!b.locked) {
+                    b.pos.x += nx * overlap;
+                    b.pos.z += nz * overlap;
+                  }
                 }
               }
             }
-          } // ===== HARD SEPARATION (circle obstacle) =====
+          } // ===== RECT COLLISION CORRECTION =====
 
 
           for (let a of this.agents) {
-            for (let ob of this.circleObs) {
-              const dx = a.pos.x - ob.x;
-              const dz = a.pos.z - ob.z;
-              const dist = Math.sqrt(dx * dx + dz * dz);
-              const minDist = a.radius + ob.r;
+            if (a.locked) continue;
 
-              if (dist < minDist && dist > 0.0001) {
-                const nx = dx / dist;
-                const nz = dz / dist;
-                const push = minDist - dist;
-                a.pos.x += nx * push;
-                a.pos.z += nz * push;
-              }
-            }
-          } // ===== HARD SEPARATION (rect obstacle) 🔥 FIX CHÍNH =====
-
-
-          for (let a of this.agents) {
             for (let ob of this.rectObs) {
               const dx = a.pos.x - ob.x;
               const dz = a.pos.z - ob.z;
               const lx = dx * ob.cos + dz * ob.sin;
               const lz = -dx * ob.sin + dz * ob.cos;
-              const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
-              const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
-              let ox = lx - px;
-              let oz = lz - pz;
-              const distSq = ox * ox + oz * oz;
-              if (distSq < 1e-6) continue;
+              const ex = ob.hx + a.radius;
+              const ez = ob.hz + a.radius;
 
-              if (distSq < a.radius * a.radius) {
-                const dist = Math.sqrt(distSq);
-                const nxL = ox / dist;
-                const nzL = oz / dist;
-                const nx = nxL * ob.cos - nzL * ob.sin;
-                const nz = nxL * ob.sin + nzL * ob.cos;
-                const push = a.radius - dist;
-                a.pos.x += nx * push;
-                a.pos.z += nz * push;
+              if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
+                const penX = ex - Math.abs(lx);
+                const penZ = ez - Math.abs(lz);
+                let pushX = 0;
+                let pushZ = 0;
+
+                if (penX < penZ) {
+                  pushX = lx > 0 ? penX : -penX;
+                } else {
+                  pushZ = lz > 0 ? penZ : -penZ;
+                }
+
+                const wx = pushX * ob.cos - pushZ * ob.sin;
+                const wz = pushX * ob.sin + pushZ * ob.cos;
+                a.pos.x += wx;
+                a.pos.z += wz;
               }
             }
           }

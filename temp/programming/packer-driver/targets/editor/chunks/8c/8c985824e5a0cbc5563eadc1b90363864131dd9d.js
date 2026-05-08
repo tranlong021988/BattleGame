@@ -1,7 +1,13 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, _dec, _class, _class2, _crd, ccclass, EnemyFinder;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, _dec, _class, _class2, _descriptor, _class3, _crd, ccclass, property, EnemyFinder;
+
+  function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
+
+  function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) { var desc = {}; Object.keys(descriptor).forEach(function (key) { desc[key] = descriptor[key]; }); desc.enumerable = !!desc.enumerable; desc.configurable = !!desc.configurable; if ('value' in desc || desc.initializer) { desc.writable = true; } desc = decorators.slice().reverse().reduce(function (desc, decorator) { return decorator(target, property, desc) || desc; }, desc); if (context && desc.initializer !== void 0) { desc.value = desc.initializer ? desc.initializer.call(context) : void 0; desc.initializer = undefined; } if (desc.initializer === void 0) { Object.defineProperty(target, property, desc); desc = null; } return desc; }
+
+  function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
@@ -27,20 +33,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsolete__(['_decorator', 'Component']);
 
       ({
-        ccclass
+        ccclass,
+        property
       } = _decorator);
 
-      _export("EnemyFinder", EnemyFinder = (_dec = ccclass('EnemyFinder'), _dec(_class = (_class2 = class EnemyFinder extends Component {
+      _export("EnemyFinder", EnemyFinder = (_dec = ccclass('EnemyFinder'), _dec(_class = (_class2 = (_class3 = class EnemyFinder extends Component {
         constructor(...args) {
           super(...args);
+
+          _initializerDefineProperty(this, "updateInterval", _descriptor, this);
+
+          this.updateOffset = 0;
           this.team = 0;
           this.unit = void 0;
+          this.frame = 0;
         }
 
         start() {
           this.unit = this.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
+          this.updateOffset = Math.floor(Math.random() * 1000);
         }
 
         setTeam(team) {
@@ -48,6 +61,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         update() {
+          this.frame++;
+
+          if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {
+            return;
+          }
+
           if (!this.unit || !this.unit.agent || this.unit.onBusy) return;
           const enemies = this.team === 0 ? EnemyFinder.teamB : EnemyFinder.teamA;
           let best = null;
@@ -72,7 +91,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-      }, _class2.teamA = [], _class2.teamB = [], _class2)) || _class));
+      }, _class3.teamA = [], _class3.teamB = [], _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 4;
+        }
+      })), _class2)) || _class));
 
       _cclegacy._RF.pop();
 

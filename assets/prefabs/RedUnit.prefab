@@ -776,6 +776,7 @@
     "__prefab": {
       "__id__": 52
     },
+    "updateInterval": 30,
     "_id": ""
   },
   {

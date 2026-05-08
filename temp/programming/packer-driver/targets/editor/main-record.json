@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 16336.2211,
+      "mTimestamp": 5853.6522,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 19136.556,
+      "mTimestamp": 3454883.6607,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1904,7 +1904,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1778122327843,
+      "mTimestamp": 1778237177200,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -3096,7 +3096,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/EnemyFinder.ts": {
       "mTimestamp": {
-        "mtime": 1778066830233.4253,
+        "mtime": 1778237980999.1892,
         "uuid": "362a6ce2-8e20-4944-8fed-7f2fa95db536"
       },
       "chunkId": "8c985824e5a0cbc5563eadc1b90363864131dd9d",
@@ -3504,7 +3504,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1778065329124.0881,
+        "mtime": 1778239422882.9934,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -3640,7 +3640,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts": {
       "mTimestamp": {
-        "mtime": 1778053338053.908,
+        "mtime": 1778240629612.359,
         "uuid": "220c203c-ef11-4ca0-8d3c-4607999a8a88"
       },
       "chunkId": "8caf8513575212e5e25e9cb316f234d28dd51b24",
