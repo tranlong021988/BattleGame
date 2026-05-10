@@ -1,0 +1,131 @@
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
+  "use strict";
+
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, instantiate, Unit, EnemyFinder, _dec, _class, _crd, ccclass, UnitSpawner;
+
+  function _reportPossibleCrUseOfUnit(extras) {
+    _reporterNs.report("Unit", "./Unit", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfEnemyFinder(extras) {
+    _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfRVOSimulator(extras) {
+    _reporterNs.report("RVOSimulator", "./rvo/RVO", _context.meta, extras);
+  }
+
+  return {
+    setters: [function (_unresolved_) {
+      _reporterNs = _unresolved_;
+    }, function (_cc) {
+      _cclegacy = _cc.cclegacy;
+      __checkObsolete__ = _cc.__checkObsolete__;
+      __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
+      _decorator = _cc._decorator;
+      Component = _cc.Component;
+      instantiate = _cc.instantiate;
+    }, function (_unresolved_2) {
+      Unit = _unresolved_2.Unit;
+    }, function (_unresolved_3) {
+      EnemyFinder = _unresolved_3.EnemyFinder;
+    }],
+    execute: function () {
+      _crd = true;
+
+      _cclegacy._RF.push({}, "6fc52Zc8uhHjbAeKgL1o3sV", "UnitSpawner", undefined);
+
+      __checkObsolete__(['_decorator', 'Component', 'Prefab', 'Node', 'instantiate', 'Vec3']);
+
+      ({
+        ccclass
+      } = _decorator);
+
+      _export("UnitSpawner", UnitSpawner = (_dec = ccclass('UnitSpawner'), _dec(_class = class UnitSpawner extends Component {
+        constructor(...args) {
+          super(...args);
+          this.sim = void 0;
+          // pool theo prefab
+          this.pools = new Map();
+        }
+
+        init(sim) {
+          this.sim = sim;
+        }
+
+        getPool(prefab) {
+          const key = prefab.uuid;
+          let pool = this.pools.get(key);
+
+          if (!pool) {
+            pool = [];
+            this.pools.set(key, pool);
+          }
+
+          return pool;
+        }
+
+        getNode(prefab) {
+          const pool = this.getPool(prefab);
+
+          if (pool.length > 0) {
+            const node = pool.pop();
+            node.active = true;
+            return node;
+          }
+
+          return instantiate(prefab);
+        }
+
+        spawnUnit(prefab, pos, team, parent) {
+          const node = this.getNode(prefab);
+          parent.addChild(node);
+          node.setWorldPosition(pos);
+          node.active = true;
+          const unit = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
+            error: Error()
+          }), Unit) : Unit);
+          const finder = node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder); // reset state
+
+          unit.enemy = null;
+          unit.onBusy = false;
+          node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
+          unit.init(this.sim);
+          finder.setTeam(team);
+          return unit;
+        }
+
+        despawnUnit(unit, prefab) {
+          if (!unit || !unit.agent) return;
+          const node = unit.node; // remove khỏi simulator
+
+          const idx = this.sim.agents.indexOf(unit.agent);
+
+          if (idx >= 0) {
+            this.sim.agents.splice(idx, 1);
+          } // reset state
+
+
+          unit.enemy = null;
+          unit.onBusy = false;
+          node.removeFromParent();
+          node.active = false;
+          const pool = this.getPool(prefab);
+          pool.push(node);
+        }
+
+        clearPool() {
+          this.pools.clear();
+        }
+
+      }) || _class));
+
+      _cclegacy._RF.pop();
+
+      _crd = false;
+    }
+  };
+});
+//# sourceMappingURL=90776ff9ba3e834872a61a5eee0b6bcc0c8f94b4.js.map

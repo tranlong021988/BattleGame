@@ -50,6 +50,20 @@ System.register(["cc"], function (_export, _context) {
           this.grid = new Map();
           this.cellSize = 1.5;
           this.timeStep = 1 / 60;
+          // ===== battlefield bounds =====
+          this.useBounds = false;
+          this.minX = -99999;
+          this.maxX = 99999;
+          this.minZ = -99999;
+          this.maxZ = 99999;
+        }
+
+        setBattlefield(minX, maxX, minZ, maxZ) {
+          this.useBounds = true;
+          this.minX = minX;
+          this.maxX = maxX;
+          this.minZ = minZ;
+          this.maxZ = maxZ;
         }
 
         addAgent(x, z) {
@@ -91,7 +105,11 @@ System.register(["cc"], function (_export, _context) {
             a.gridX = gx;
             a.gridZ = gz;
             var key = gx + "_" + gz;
-            if (!this.grid.has(key)) this.grid.set(key, []);
+
+            if (!this.grid.has(key)) {
+              this.grid.set(key, []);
+            }
+
             this.grid.get(key).push(a);
           }
         }
@@ -106,7 +124,9 @@ System.register(["cc"], function (_export, _context) {
               if (!cell) continue;
 
               for (var other of cell) {
-                if (other !== a) result.push(other);
+                if (other !== a) {
+                  result.push(other);
+                }
               }
             }
           }
@@ -121,7 +141,7 @@ System.register(["cc"], function (_export, _context) {
             if (a.locked) continue;
             var vx = a.prefVel.x;
             var vz = a.prefVel.z;
-            var neighbors = this.getNeighbors(a); // ===== Agent avoidance =====
+            var neighbors = this.getNeighbors(a);
 
             for (var b of neighbors) {
               var dx = a.pos.x - b.pos.x;
@@ -144,7 +164,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Circle obstacle (soft) =====
+            } // ===== circle obstacle =====
 
 
             for (var ob of this.circleObs) {
@@ -161,8 +181,8 @@ System.register(["cc"], function (_export, _context) {
 
                 var _nz = _dz / _dist;
 
-                vx += _nx * (_minDist - _dist) * 4;
-                vz += _nz * (_minDist - _dist) * 4;
+                vx += _nx * (_minDist - _dist) * 2;
+                vz += _nz * (_minDist - _dist) * 2;
 
                 var _dot = vx * _nx + vz * _nz;
 
@@ -171,7 +191,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= _nz * _dot;
                 }
               }
-            } // ===== Rect obstacle (soft) =====
+            } // ===== rect obstacle =====
 
 
             for (var _ob of this.rectObs) {
@@ -200,8 +220,8 @@ System.register(["cc"], function (_export, _context) {
 
                 var _nz2 = nxL * _ob.sin + nzL * _ob.cos;
 
-                vx += _nx2 * (a.radius - _dist2) * 4;
-                vz += _nz2 * (a.radius - _dist2) * 4;
+                vx += _nx2 * (a.radius - _dist2) * 2;
+                vz += _nz2 * (a.radius - _dist2) * 2;
 
                 var _dot2 = vx * _nx2 + vz * _nz2;
 
@@ -210,8 +230,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= _nz2 * _dot2;
                 }
               }
-            } // ===== Clamp speed =====
-
+            }
 
             var speed = Math.sqrt(vx * vx + vz * vz);
 
@@ -229,9 +248,16 @@ System.register(["cc"], function (_export, _context) {
             if (!_a.locked) {
               _a.pos.x += _a.vel.x * this.timeStep;
               _a.pos.z += _a.vel.z * this.timeStep;
-            }
-          } // ===== HARD SEPARATION (agent-agent) =====
+            } // ===== battlefield clamp =====
 
+
+            if (this.useBounds) {
+              _a.pos.x = Math.max(this.minX + _a.radius, Math.min(this.maxX - _a.radius, _a.pos.x));
+              _a.pos.z = Math.max(this.minZ + _a.radius, Math.min(this.maxZ - _a.radius, _a.pos.z));
+            }
+          }
+
+          this.buildGrid(); // ===== HARD SEPARATION =====
 
           for (var _a2 of this.agents) {
             var _neighbors = this.getNeighbors(_a2);
@@ -267,71 +293,13 @@ System.register(["cc"], function (_export, _context) {
                 }
               }
             }
-          } // ===== HARD SEPARATION (circle obstacle) =====
+          } // clamp again after separation
 
 
-          for (var _a3 of this.agents) {
-            for (var _ob2 of this.circleObs) {
-              var _dx4 = _a3.pos.x - _ob2.x;
-
-              var _dz4 = _a3.pos.z - _ob2.z;
-
-              var _dist4 = Math.sqrt(_dx4 * _dx4 + _dz4 * _dz4);
-
-              var _minDist3 = _a3.radius + _ob2.r;
-
-              if (_dist4 < _minDist3 && _dist4 > 0.0001) {
-                var _nx4 = _dx4 / _dist4;
-
-                var _nz4 = _dz4 / _dist4;
-
-                var _push = _minDist3 - _dist4;
-
-                _a3.pos.x += _nx4 * _push;
-                _a3.pos.z += _nz4 * _push;
-              }
-            }
-          } // ===== HARD SEPARATION (rect obstacle) 🔥 FIX CHÍNH =====
-
-
-          for (var _a4 of this.agents) {
-            for (var _ob3 of this.rectObs) {
-              var _dx5 = _a4.pos.x - _ob3.x;
-
-              var _dz5 = _a4.pos.z - _ob3.z;
-
-              var _lx = _dx5 * _ob3.cos + _dz5 * _ob3.sin;
-
-              var _lz = -_dx5 * _ob3.sin + _dz5 * _ob3.cos;
-
-              var _px = Math.max(-_ob3.hx, Math.min(_lx, _ob3.hx));
-
-              var _pz = Math.max(-_ob3.hz, Math.min(_lz, _ob3.hz));
-
-              var _ox = _lx - _px;
-
-              var _oz = _lz - _pz;
-
-              var _distSq3 = _ox * _ox + _oz * _oz;
-
-              if (_distSq3 < 1e-6) continue;
-
-              if (_distSq3 < _a4.radius * _a4.radius) {
-                var _dist5 = Math.sqrt(_distSq3);
-
-                var _nxL = _ox / _dist5;
-
-                var _nzL = _oz / _dist5;
-
-                var _nx5 = _nxL * _ob3.cos - _nzL * _ob3.sin;
-
-                var _nz5 = _nxL * _ob3.sin + _nzL * _ob3.cos;
-
-                var _push2 = _a4.radius - _dist5;
-
-                _a4.pos.x += _nx5 * _push2;
-                _a4.pos.z += _nz5 * _push2;
-              }
+          if (this.useBounds) {
+            for (var _a3 of this.agents) {
+              _a3.pos.x = Math.max(this.minX + _a3.radius, Math.min(this.maxX - _a3.radius, _a3.pos.x));
+              _a3.pos.z = Math.max(this.minZ + _a3.radius, Math.min(this.maxZ - _a3.radius, _a3.pos.z));
             }
           }
         }

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, instantiate, Vec3, Unit, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -29,6 +29,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("ObstacleRect", "./ObstacleRect", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfUnitSpawner(extras) {
+    _reporterNs.report("UnitSpawner", "./UnitSpawner", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -39,25 +43,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _decorator = _cc._decorator;
       Component = _cc.Component;
       Prefab = _cc.Prefab;
-      instantiate = _cc.instantiate;
       Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
-      Unit = _unresolved_2.Unit;
+      EnemyFinder = _unresolved_2.EnemyFinder;
     }, function (_unresolved_3) {
-      EnemyFinder = _unresolved_3.EnemyFinder;
+      RVOSimulator = _unresolved_3.RVOSimulator;
     }, function (_unresolved_4) {
-      RVOSimulator = _unresolved_4.RVOSimulator;
+      ObstacleCircle = _unresolved_4.ObstacleCircle;
     }, function (_unresolved_5) {
-      ObstacleCircle = _unresolved_5.ObstacleCircle;
+      ObstacleRect = _unresolved_5.ObstacleRect;
     }, function (_unresolved_6) {
-      ObstacleRect = _unresolved_6.ObstacleRect;
+      UnitSpawner = _unresolved_6.UnitSpawner;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Prefab', 'instantiate', 'Vec3', 'game']);
+      __checkObsolete__(['_decorator', 'Component', 'Prefab', 'Vec3']);
 
       ({
         ccclass,
@@ -80,26 +83,40 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "prefabB", _descriptor2, this);
 
-          _initializerDefineProperty(this, "count", _descriptor3, this);
+          _initializerDefineProperty(this, "battleMinX", _descriptor3, this);
 
-          _initializerDefineProperty(this, "updateInterval", _descriptor4, this);
+          _initializerDefineProperty(this, "battleMaxX", _descriptor4, this);
+
+          _initializerDefineProperty(this, "battleMinZ", _descriptor5, this);
+
+          _initializerDefineProperty(this, "battleMaxZ", _descriptor6, this);
+
+          _initializerDefineProperty(this, "count", _descriptor7, this);
+
+          _initializerDefineProperty(this, "updateInterval", _descriptor8, this);
 
           this.frame = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor5, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor9, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor6, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor10, this);
 
           this.sim = new (_crd && RVOSimulator === void 0 ? (_reportPossibleCrUseOfRVOSimulator({
             error: Error()
           }), RVOSimulator) : RVOSimulator)();
           this.teamA = [];
           this.teamB = [];
+          this.spawner = void 0;
         }
 
         start() {
-          //game.frameRate = 30;
-          // obstacle
+          this.sim.setBattlefield(this.battleMinX, this.battleMaxX, this.battleMinZ, this.battleMaxZ); // ===== Spawner =====
+
+          this.spawner = this.getComponent(_crd && UnitSpawner === void 0 ? (_reportPossibleCrUseOfUnitSpawner({
+            error: Error()
+          }), UnitSpawner) : UnitSpawner);
+          this.spawner.init(this.sim); // ===== Obstacles =====
+
           for (var ob of this.circleObstacles) {
             var p = ob.node.worldPosition;
             this.sim.addCircleObstacle(p.x, p.z, ob.radius);
@@ -109,27 +126,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var _p = _ob.node.worldPosition;
             var angle = _ob.node.eulerAngles.y * Math.PI / 180;
             this.sim.addRectObstacle(_p.x, _p.z, _ob.halfWidth, _ob.halfHeight, angle);
-          }
+          } // ===== Demo spawn =====
 
-          var spacing = 1.2;
-          var width = 5;
+
+          var spacing = 1.5;
+          var width = 12;
 
           for (var i = 0; i < this.count; i++) {
             var row = Math.floor(i / width);
             var col = i % width;
-            var pos = new Vec3(-20 - row * spacing, 0, (col - width / 2) * spacing);
-            var node = instantiate(this.prefabA);
-            this.node.addChild(node);
-            node.setWorldPosition(pos);
-            var u = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
-              error: Error()
-            }), Unit) : Unit);
-            var f = node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-              error: Error()
-            }), EnemyFinder) : EnemyFinder);
-            u.init(this.sim);
-            f.setTeam(0);
-            this.teamA.push(u);
+            var pos = new Vec3((col - width / 2) * spacing, 0, -20 - row * spacing);
+            this.spawnTeamA(pos);
           }
 
           for (var _i = 0; _i < this.count; _i++) {
@@ -137,42 +144,63 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             var _col = _i % width;
 
-            var _pos = new Vec3(20 + _row * spacing, 0, (_col - width / 2) * spacing);
+            var _pos = new Vec3((_col - width / 2) * spacing, 0, 20 + _row * spacing);
 
-            var _node = instantiate(this.prefabB);
-
-            this.node.addChild(_node);
-
-            _node.setWorldPosition(_pos);
-
-            var _u = _node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
-              error: Error()
-            }), Unit) : Unit);
-
-            var _f = _node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-              error: Error()
-            }), EnemyFinder) : EnemyFinder);
-
-            _u.init(this.sim);
-
-            _f.setTeam(1);
-
-            this.teamB.push(_u);
+            this.spawnTeamB(_pos);
           }
-
-          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
-          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
         }
 
         update() {
           this.frame++;
 
-          if (this.frame % this.updateInterval !== 0) {
-            this.sim.step(); // return;
+          if (this.frame % this.updateInterval === 0) {
+            this.sim.step();
+          }
+        } // =====================================================
+        // Runtime API
+        // =====================================================
+
+
+        spawnTeamA(pos) {
+          var unit = this.spawner.spawnUnit(this.prefabA, pos, 0, this.node);
+          this.teamA.push(unit);
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
+          return unit;
+        }
+
+        spawnTeamB(pos) {
+          var unit = this.spawner.spawnUnit(this.prefabB, pos, 1, this.node);
+          this.teamB.push(unit);
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
+          return unit;
+        }
+
+        despawnUnit(unit) {
+          if (!unit) return;
+          var idxA = this.teamA.indexOf(unit);
+
+          if (idxA >= 0) {
+            this.teamA.splice(idxA, 1);
+            this.spawner.despawnUnit(unit, this.prefabA);
+            (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+              error: Error()
+            }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
+            return;
+          }
+
+          var idxB = this.teamB.indexOf(unit);
+
+          if (idxB >= 0) {
+            this.teamB.splice(idxB, 1);
+            this.spawner.despawnUnit(unit, this.prefabB);
+            (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+              error: Error()
+            }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
+            return;
           }
         }
 
@@ -186,28 +214,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: null
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "count", [property], {
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "battleMinX", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return -28;
+        }
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxX", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 28;
+        }
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "battleMinZ", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return -18;
+        }
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxZ", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 18;
+        }
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "count", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec4], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec5], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -13,7 +13,10 @@ export class GameManager extends Component {
 
     @property(Prefab) prefabA!: Prefab;
     @property(Prefab) prefabB!: Prefab;
-
+    @property battleMinX = -28;
+    @property battleMaxX = 28;
+    @property battleMinZ = -18;
+    @property battleMaxZ = 18;
     @property count = 10;
 
     @property updateInterval = 2;
@@ -33,7 +36,12 @@ export class GameManager extends Component {
     private spawner!: UnitSpawner;
 
     start() {
-
+        this.sim.setBattlefield(
+            this.battleMinX,
+            this.battleMaxX,
+            this.battleMinZ,
+            this.battleMaxZ
+        );
         // ===== Spawner =====
         this.spawner = this.getComponent(UnitSpawner)!;
         this.spawner.init(this.sim);
@@ -58,18 +66,18 @@ export class GameManager extends Component {
         }
 
         // ===== Demo spawn =====
-        const spacing = 2.0;
-        const width = 5;
+        const spacing = 1.5;
+        const width = 12;
 
         for (let i = 0; i < this.count; i++) {
 
             const row = Math.floor(i / width);
             const col = i % width;
 
-            const pos = new Vec3(
-                -20 - row * spacing,
+           const pos = new Vec3(
+                (col - width / 2) * spacing,
                 0,
-                (col - width / 2) * spacing
+                -20 - row * spacing
             );
 
             this.spawnTeamA(pos);
@@ -81,9 +89,9 @@ export class GameManager extends Component {
             const col = i % width;
 
             const pos = new Vec3(
-                20 + row * spacing,
+                (col - width / 2) * spacing,
                 0,
-                (col - width / 2) * spacing
+                20 + row * spacing
             );
 
             this.spawnTeamB(pos);

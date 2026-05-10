@@ -115,9 +115,9 @@
       "dependScripts": [
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
-        "59ff3474-5851-466c-970e-d7dfe54867af",
         "6fc5265c-f2e8-478d-b01e-2a02f5a37b15",
-        "CC3eba29-7abb-723a-f7ab-ae275e2277e8"
+        "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
+        "59ff3474-5851-466c-970e-d7dfe54867af"
       ]
     },
     "versionCode": 2
@@ -484,19 +484,7 @@
       "depends": [
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@3253f",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@41ac8",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@30732",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@c6e33",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@f1394",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@ed341",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@75ee4",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@17dd0",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a72ab",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@97b51",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@2224c",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@fd4a2",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@62756",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@bdd91",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@7d08b",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@438fe",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@cbc2b"
       ]
     },
@@ -593,6 +581,34 @@
   "6fc5265c-f2e8-478d-b01e-2a02f5a37b15": {
     "url": "db://assets/scripts/UnitSpawner.ts",
     "value": {},
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@438fe": {
+    "url": "db://assets/3D/Victory.fbx@438fe",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@45f73": {
+    "url": "db://assets/3D/Victory.fbx@45f73",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@d4254": {
+    "url": "db://assets/3D/Victory.fbx@d4254",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@9c26f": {
+    "url": "db://assets/3D/Victory.fbx@9c26f",
+    "value": {
+      "depends": []
+    },
     "versionCode": 1
   }
 }

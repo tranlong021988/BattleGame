@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Tween, Vec3, GameManager, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -30,6 +30,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+      Tween = _cc.Tween;
+      Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
     }],
@@ -38,7 +40,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
       _cclegacy._RF.push({}, "6e964qkrR5F2YvWvH5N+eXO", "Unit", undefined);
 
-      __checkObsolete__(['_decorator', 'Component']);
+      __checkObsolete__(['_decorator', 'Component', 'Tween', 'Vec3']);
 
       ({
         ccclass,
@@ -57,14 +59,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "rotationSpeed", _descriptor4, this);
 
-          // 🔥 anti jitter
+          // ===== anti jitter =====
           _initializerDefineProperty(this, "moveThreshold", _descriptor5, this);
 
           _initializerDefineProperty(this, "velThreshold", _descriptor6, this);
 
+          _initializerDefineProperty(this, "visualThreshold", _descriptor7, this);
+
           this.sim = void 0;
           this.agent = void 0;
-          this.enemy = null;
+
+          _initializerDefineProperty(this, "enemy", _descriptor8, this);
+
           this.onBusy = false;
           this.updateOffset = 0;
           this.lastStablePos = {
@@ -72,9 +78,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             z: 0
           };
           this.gm = void 0;
+          this.tween = void 0;
         }
 
         init(sim) {
+          if (!this.tween) {
+            this.tween = new Tween();
+          }
+
+          ;
           this.sim = sim;
           const p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
@@ -92,12 +104,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         update() {
-          if (this.gm == null) this.gm = this.node.scene.getComponentInChildren(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager);
-          if (!this.gm || !this.agent) return;
+          if (this.gm == null) {
+            this.gm = this.node.scene.getComponentInChildren(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager);
+          }
+
+          if (!this.gm || !this.agent) return; // ===== CHEAP EARLY OUT =====
+
+          const vx = this.agent.vel.x;
+          const vz = this.agent.vel.z;
+          const speedSq = vx * vx + vz * vz;
 
           if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
+            // nếu gần như đứng yên thì bỏ luôn sync
+            if (speedSq < this.velThreshold * this.velThreshold) {
+              return;
+            }
+
             this.sync();
             return;
           }
@@ -106,31 +130,72 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
-            this.sync();
             return;
           }
 
           if (this.enemy && this.enemy.agent) {
             const dx = this.enemy.agent.pos.x - this.agent.pos.x;
             const dz = this.enemy.agent.pos.z - this.agent.pos.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
+            const distSq = dx * dx + dz * dz;
+            const attackRangeSq = this.attackRange * this.attackRange;
 
-            if (dist <= this.attackRange) {
-              this.onBusy = true;
-              this.enemy.onBusy = true;
+            if (distSq <= attackRangeSq) {
+              if (!this.onBusy) {
+                this.onBusy = true;
+                this.lookAtEnemy();
+                console.log("engage");
+              }
+
+              if (this.enemy.enemy != this) {
+                this.enemy.enemy = this;
+              }
+
               this.agent.locked = true;
-              this.enemy.agent.locked = true;
+              this.sim.setPrefVelocity(this.agent, 0, 0);
+              this.agent.vel.x = 0;
+              this.agent.vel.z = 0;
               return;
             }
 
-            this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
+            const dist = Math.sqrt(distSq);
+
+            if (dist > 0.0001) {
+              this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
+            }
           }
 
           this.sync();
         }
 
+        lookAtEnemy() {
+          if (!this.enemy || !this.enemy.node.activeInHierarchy) return;
+          const dx = this.enemy.node.worldPosition.x - this.node.worldPosition.x;
+          const dz = this.enemy.node.worldPosition.z - this.node.worldPosition.z;
+          let targetY = Math.atan2(dx, dz) * 180 / Math.PI;
+          const currentY = this.node.eulerAngles.y;
+          let diff = (targetY - currentY) % 360;
+          if (diff > 180) diff -= 360;
+          if (diff < -180) diff += 360; // ===== already looking =====
+
+          if (Math.abs(diff) < 3) {
+            return;
+          }
+
+          targetY = currentY + diff;
+          this.tween.target(this.node).stop().to(0.12, {
+            eulerAngles: new Vec3(0, targetY, 0)
+          }).start();
+        }
+
         sync() {
-          this.node.setWorldPosition(this.agent.pos.x, this.node.worldPosition.y, this.agent.pos.z); // ===== ROTATION (ANTI JITTER) =====
+          const current = this.node.worldPosition;
+          const pdx = this.agent.pos.x - current.x;
+          const pdz = this.agent.pos.z - current.z;
+          const posDistSq = pdx * pdx + pdz * pdz;
+
+          if (posDistSq >= this.visualThreshold * this.visualThreshold) {
+            this.node.setWorldPosition(this.agent.pos.x, current.y, this.agent.pos.z);
+          }
 
           const vx = this.agent.vel.x;
           const vz = this.agent.vel.z;
@@ -196,6 +261,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         writable: true,
         initializer: function () {
           return 0.05;
+        }
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "visualThreshold", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.03;
+        }
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enemy", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
         }
       })), _class2)) || _class));
 

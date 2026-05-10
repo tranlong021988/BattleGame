@@ -19,7 +19,14 @@ export class RVOAgent {
 }
 
 type CircleObstacle = { x: number; z: number; r: number };
-type RectObstacle = { x: number; z: number; hx: number; hz: number; cos: number; sin: number };
+type RectObstacle = {
+    x: number;
+    z: number;
+    hx: number;
+    hz: number;
+    cos: number;
+    sin: number;
+};
 
 export class RVOSimulator {
 
@@ -33,10 +40,20 @@ export class RVOSimulator {
 
     timeStep = 1 / 60;
 
-    stepCount = 0;
+    // ===== battlefield bounds =====
+    useBounds = false;
+    minX = -99999;
+    maxX = 99999;
+    minZ = -99999;
+    maxZ = 99999;
 
-    // 1 = ổn định hơn, 2 = nhẹ CPU hơn
-    hardSeparationInterval = 1;
+    setBattlefield(minX: number, maxX: number, minZ: number, maxZ: number) {
+        this.useBounds = true;
+        this.minX = minX;
+        this.maxX = maxX;
+        this.minZ = minZ;
+        this.maxZ = maxZ;
+    }
 
     addAgent(x: number, z: number) {
         const a = new RVOAgent(x, z);
@@ -55,13 +72,17 @@ export class RVOSimulator {
 
     addRectObstacle(x: number, z: number, hx: number, hz: number, angle: number) {
         this.rectObs.push({
-            x, z, hx, hz,
+            x,
+            z,
+            hx,
+            hz,
             cos: Math.cos(angle),
             sin: Math.sin(angle)
         });
     }
 
     private buildGrid() {
+
         this.grid.clear();
 
         for (let a of this.agents) {
@@ -107,8 +128,6 @@ export class RVOSimulator {
 
     step() {
 
-        this.stepCount++;
-
         this.buildGrid();
 
         // ===== VELOCITY =====
@@ -152,7 +171,7 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== Circle obstacle =====
+            // ===== circle obstacle =====
             for (let ob of this.circleObs) {
 
                 const dx = a.pos.x - ob.x;
@@ -178,7 +197,7 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== Rect obstacle =====
+            // ===== rect obstacle =====
             for (let ob of this.rectObs) {
 
                 const dx = a.pos.x - ob.x;
@@ -187,25 +206,28 @@ export class RVOSimulator {
                 const lx = dx * ob.cos + dz * ob.sin;
                 const lz = -dx * ob.sin + dz * ob.cos;
 
-                const ex = ob.hx + a.radius;
-                const ez = ob.hz + a.radius;
+                const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
+                const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
 
-                if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
+                const ox = lx - px;
+                const oz = lz - pz;
 
-                    const penX = ex - Math.abs(lx);
-                    const penZ = ez - Math.abs(lz);
+                const distSq = ox * ox + oz * oz;
 
-                    let nxL = 0;
-                    let nzL = 0;
+                if (distSq < 1e-6) continue;
 
-                    if (penX < penZ) {
-                        nxL = lx > 0 ? 1 : -1;
-                    } else {
-                        nzL = lz > 0 ? 1 : -1;
-                    }
+                if (distSq < a.radius * a.radius) {
+
+                    const dist = Math.sqrt(distSq);
+
+                    const nxL = ox / dist;
+                    const nzL = oz / dist;
 
                     const nx = nxL * ob.cos - nzL * ob.sin;
                     const nz = nxL * ob.sin + nzL * ob.cos;
+
+                    vx += nx * (a.radius - dist) * 2;
+                    vz += nz * (a.radius - dist) * 2;
 
                     const dot = vx * nx + vz * nz;
 
@@ -234,83 +256,57 @@ export class RVOSimulator {
                 a.pos.x += a.vel.x * this.timeStep;
                 a.pos.z += a.vel.z * this.timeStep;
             }
+
+            // ===== battlefield clamp =====
+            if (this.useBounds) {
+                a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
+                a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
+            }
         }
 
+        this.buildGrid();
+
         // ===== HARD SEPARATION =====
-        if (this.stepCount % this.hardSeparationInterval === 0) {
+        for (let a of this.agents) {
 
-            for (let a of this.agents) {
+            const neighbors = this.getNeighbors(a);
 
-                const neighbors = this.getNeighbors(a);
+            for (let b of neighbors) {
 
-                for (let b of neighbors) {
+                const dx = b.pos.x - a.pos.x;
+                const dz = b.pos.z - a.pos.z;
 
-                    const dx = b.pos.x - a.pos.x;
-                    const dz = b.pos.z - a.pos.z;
+                const distSq = dx * dx + dz * dz;
+                const minDist = a.radius + b.radius;
 
-                    const distSq = dx * dx + dz * dz;
-                    const minDist = a.radius + b.radius;
+                if (distSq < 0.0001) continue;
 
-                    if (distSq < 0.0001) continue;
+                if (distSq < minDist * minDist) {
 
-                    if (distSq < minDist * minDist) {
+                    const dist = Math.sqrt(distSq);
+                    const overlap = (minDist - dist) * 0.5;
 
-                        const dist = Math.sqrt(distSq);
-                        const overlap = (minDist - dist) * 0.5;
+                    const nx = dx / dist;
+                    const nz = dz / dist;
 
-                        const nx = dx / dist;
-                        const nz = dz / dist;
+                    if (!a.locked) {
+                        a.pos.x -= nx * overlap;
+                        a.pos.z -= nz * overlap;
+                    }
 
-                        if (!a.locked) {
-                            a.pos.x -= nx * overlap;
-                            a.pos.z -= nz * overlap;
-                        }
-
-                        if (!b.locked) {
-                            b.pos.x += nx * overlap;
-                            b.pos.z += nz * overlap;
-                        }
+                    if (!b.locked) {
+                        b.pos.x += nx * overlap;
+                        b.pos.z += nz * overlap;
                     }
                 }
             }
         }
 
-        // ===== RECT COLLISION CORRECTION =====
-        for (let a of this.agents) {
-
-            if (a.locked) continue;
-
-            for (let ob of this.rectObs) {
-
-                const dx = a.pos.x - ob.x;
-                const dz = a.pos.z - ob.z;
-
-                const lx = dx * ob.cos + dz * ob.sin;
-                const lz = -dx * ob.sin + dz * ob.cos;
-
-                const ex = ob.hx + a.radius;
-                const ez = ob.hz + a.radius;
-
-                if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
-
-                    const penX = ex - Math.abs(lx);
-                    const penZ = ez - Math.abs(lz);
-
-                    let pushX = 0;
-                    let pushZ = 0;
-
-                    if (penX < penZ) {
-                        pushX = lx > 0 ? penX : -penX;
-                    } else {
-                        pushZ = lz > 0 ? penZ : -penZ;
-                    }
-
-                    const wx = pushX * ob.cos - pushZ * ob.sin;
-                    const wz = pushX * ob.sin + pushZ * ob.cos;
-
-                    a.pos.x += wx;
-                    a.pos.z += wz;
-                }
+        // clamp again after separation
+        if (this.useBounds) {
+            for (let a of this.agents) {
+                a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
+                a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
             }
         }
     }

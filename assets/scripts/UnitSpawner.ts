@@ -63,7 +63,7 @@ export class UnitSpawner extends Component {
         // reset state
         unit.enemy = null;
         unit.onBusy = false;
-
+        node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
         unit.init(this.sim);
         finder.setTeam(team);
 

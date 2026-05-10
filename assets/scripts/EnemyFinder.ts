@@ -10,7 +10,11 @@ export class EnemyFinder extends Component {
     static teamB: Unit[] = [];
 
     @property
-    updateInterval = 4;
+    updateInterval = 30;
+
+    // nếu target hiện tại còn trong khoảng này thì giữ luôn, khỏi scan lại
+    @property
+    retainTargetDistance = 6;
 
     private updateOffset = 0;
 
@@ -35,7 +39,27 @@ export class EnemyFinder extends Component {
             return;
         }
 
-        if (!this.unit || !this.unit.agent || this.unit.onBusy) return;
+        if (!this.unit || !this.unit.agent || this.unit.onBusy) {
+            return;
+        }
+
+        // ===== KEEP CURRENT TARGET IF STILL GOOD =====
+        const current = this.unit.enemy;
+
+        if (
+            current &&
+            current.node.activeInHierarchy &&
+            current.agent &&
+            !current.onBusy
+        ) {
+            const dx = current.agent.pos.x - this.unit.agent.pos.x;
+            const dz = current.agent.pos.z - this.unit.agent.pos.z;
+
+            const keepDist = this.retainTargetDistance;
+            if (dx * dx + dz * dz < keepDist * keepDist) {
+                return;
+            }
+        }
 
         const enemies = this.team === 0
             ? EnemyFinder.teamB
@@ -44,7 +68,9 @@ export class EnemyFinder extends Component {
         let best: Unit | null = null;
         let bestDist = Infinity;
 
-        for (const e of enemies) {
+        for (let i = 0; i < enemies.length; i++) {
+
+            const e = enemies[i];
 
             if (!e || !e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
@@ -61,7 +87,7 @@ export class EnemyFinder extends Component {
             }
         }
 
-        if (best) {
+        if (best && best !== this.unit.enemy) {
             this.unit.setEnemy(best);
         }
     }

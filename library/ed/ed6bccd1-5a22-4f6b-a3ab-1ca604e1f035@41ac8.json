@@ -13,10 +13,30 @@
           0
         ],
         "indexView": {
-          "offset": 105864,
-          "length": 10716,
-          "count": 5358,
-          "stride": 2
+          "offset": 639584,
+          "length": 40368,
+          "count": 10092,
+          "stride": 4
+        },
+        "cluster": {
+          "clusterView": {
+            "offset": 682560,
+            "length": 2608,
+            "count": 116,
+            "stride": 16
+          },
+          "vertexView": {
+            "offset": 724288,
+            "length": 41728,
+            "count": 7268,
+            "stride": 4
+          },
+          "triangleView": {
+            "offset": 966832,
+            "length": 242544,
+            "count": 10092,
+            "stride": 12
+          }
         }
       }
     ],
@@ -24,8 +44,8 @@
       {
         "view": {
           "offset": 0,
-          "length": 105864,
-          "count": 1203,
+          "length": 639584,
+          "count": 7268,
           "stride": 88
         },
         "attributes": [
@@ -69,13 +89,13 @@
     ],
     "minPosition": {
       "x": -0.9594229459762573,
-      "y": -0.20389890670776367,
-      "z": -1.7795103788375854
+      "y": -2.0032472610473633,
+      "z": -0.2087133526802063
     },
     "maxPosition": {
       "x": 0.9594229459762573,
-      "y": 0.18994984030723572,
-      "z": 0.009948323480784893
+      "y": 0.012186309322714806,
+      "z": 0.20389890670776367
     },
     "jointMaps": [
       [
@@ -131,8 +151,33 @@
         50
       ]
     ],
+    "morph": {
+      "subMeshMorphs": [
+        {
+          "attributes": [
+            "a_position"
+          ],
+          "targets": [
+            {
+              "displacements": [
+                {
+                  "offset": 659768,
+                  "length": 87216,
+                  "stride": 4,
+                  "count": 21804
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "targetNames": [
+        "Weight"
+      ]
+    },
+    "cluster": true,
     "compressed": true
   },
-  "_hash": 3074265260,
+  "_hash": 466810176,
   "_allowDataAccess": true
 }

@@ -1,7 +1,13 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, _dec, _class, _class2, _crd, ccclass, EnemyFinder;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, _dec, _class, _class2, _descriptor, _descriptor2, _class3, _crd, ccclass, property, EnemyFinder;
+
+  function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
+
+  function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) { var desc = {}; Object.keys(descriptor).forEach(function (key) { desc[key] = descriptor[key]; }); desc.enumerable = !!desc.enumerable; desc.configurable = !!desc.configurable; if ('value' in desc || desc.initializer) { desc.writable = true; } desc = decorators.slice().reverse().reduce(function (desc, decorator) { return decorator(target, property, desc) || desc; }, desc); if (context && desc.initializer !== void 0) { desc.value = desc.initializer ? desc.initializer.call(context) : void 0; desc.initializer = undefined; } if (desc.initializer === void 0) { Object.defineProperty(target, property, desc); desc = null; } return desc; }
+
+  function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
@@ -27,20 +33,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsolete__(['_decorator', 'Component']);
 
       ({
-        ccclass
+        ccclass,
+        property
       } = _decorator);
 
-      _export("EnemyFinder", EnemyFinder = (_dec = ccclass('EnemyFinder'), _dec(_class = (_class2 = class EnemyFinder extends Component {
+      _export("EnemyFinder", EnemyFinder = (_dec = ccclass('EnemyFinder'), _dec(_class = (_class2 = (_class3 = class EnemyFinder extends Component {
         constructor() {
           super(...arguments);
+
+          _initializerDefineProperty(this, "updateInterval", _descriptor, this);
+
+          // nếu target hiện tại còn trong khoảng này thì giữ luôn, khỏi scan lại
+          _initializerDefineProperty(this, "retainTargetDistance", _descriptor2, this);
+
+          this.updateOffset = 0;
           this.team = 0;
           this.unit = void 0;
+          this.frame = 0;
         }
 
         start() {
           this.unit = this.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
+          this.updateOffset = Math.floor(Math.random() * 1000);
         }
 
         setTeam(team) {
@@ -48,17 +64,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         update() {
-          if (!this.unit || !this.unit.agent || this.unit.onBusy) return;
+          this.frame++;
+
+          if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {
+            return;
+          }
+
+          if (!this.unit || !this.unit.agent || this.unit.onBusy) {
+            return;
+          } // ===== KEEP CURRENT TARGET IF STILL GOOD =====
+
+
+          var current = this.unit.enemy;
+
+          if (current && current.node.activeInHierarchy && current.agent && !current.onBusy) {
+            var dx = current.agent.pos.x - this.unit.agent.pos.x;
+            var dz = current.agent.pos.z - this.unit.agent.pos.z;
+            var keepDist = this.retainTargetDistance;
+
+            if (dx * dx + dz * dz < keepDist * keepDist) {
+              return;
+            }
+          }
+
           var enemies = this.team === 0 ? EnemyFinder.teamB : EnemyFinder.teamA;
           var best = null;
           var bestDist = Infinity;
 
-          for (var e of enemies) {
-            if (!e || !e.agent) continue;
+          for (var i = 0; i < enemies.length; i++) {
+            var e = enemies[i];
+            if (!e || !e.node.activeInHierarchy) continue;
+            if (!e.agent) continue;
             if (e.onBusy) continue;
-            var dx = e.agent.pos.x - this.unit.agent.pos.x;
-            var dz = e.agent.pos.z - this.unit.agent.pos.z;
-            var d = dx * dx + dz * dz;
+
+            var _dx = e.agent.pos.x - this.unit.agent.pos.x;
+
+            var _dz = e.agent.pos.z - this.unit.agent.pos.z;
+
+            var d = _dx * _dx + _dz * _dz;
 
             if (d < bestDist) {
               bestDist = d;
@@ -66,12 +109,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }
           }
 
-          if (best) {
+          if (best && best !== this.unit.enemy) {
             this.unit.setEnemy(best);
           }
         }
 
-      }, _class2.teamA = [], _class2.teamB = [], _class2)) || _class));
+      }, _class3.teamA = [], _class3.teamB = [], _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 30;
+        }
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "retainTargetDistance", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 6;
+        }
+      })), _class2)) || _class));
 
       _cclegacy._RF.pop();
 
