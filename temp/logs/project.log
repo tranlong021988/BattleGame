@@ -21303,3 +21303,8 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
+5-11-2026 18:31:47 - warn: Object has been destroyedTypeError: Object has been destroyed
+    at WebContents._.send (node:electron/js2c/browser_init:2:74130)
+    at WindowSender.immediately (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-base-ipc\dist\sender.ccc:1:2082)
+    at Immediate._onImmediate (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-base-ipc\dist\sender.ccc:1:2008)
+    at processImmediate (node:internal/timers:478:21)
