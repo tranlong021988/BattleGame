@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Tween, GameManager, EnemyFinder, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -21,6 +21,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
     _reporterNs.report("GameManager", "./GameManager", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfEnemyFinder(extras) {
+    _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -30,15 +34,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+      Tween = _cc.Tween;
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
+    }, function (_unresolved_3) {
+      EnemyFinder = _unresolved_3.EnemyFinder;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "6e964qkrR5F2YvWvH5N+eXO", "Unit", undefined);
 
-      __checkObsolete__(['_decorator', 'Component']);
+      __checkObsolete__(['_decorator', 'Component', 'Tween']);
 
       ({
         ccclass,
@@ -57,19 +64,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "rotationSpeed", _descriptor4, this);
 
-          // ===== anti jitter =====
           _initializerDefineProperty(this, "moveThreshold", _descriptor5, this);
 
-          // rotation threshold
           _initializerDefineProperty(this, "velThreshold", _descriptor6, this);
 
-          // rotation threshold
           _initializerDefineProperty(this, "visualThreshold", _descriptor7, this);
 
-          // NEW: visual position threshold
           this.sim = void 0;
           this.agent = void 0;
-          this.enemy = null;
+
+          _initializerDefineProperty(this, "enemy", _descriptor8, this);
+
           this.onBusy = false;
           this.updateOffset = 0;
           this.lastStablePos = {
@@ -77,9 +82,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             z: 0
           };
           this.gm = void 0;
+          this.tween = void 0;
         }
 
         init(sim) {
+          if (!this.tween) {
+            this.tween = new Tween();
+          }
+
           this.sim = sim;
           const p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
@@ -91,9 +101,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         setEnemy(e) {
+          // Đang engage rồi thì EnemyFinder không được đổi target nữa
+          if (this.onBusy) {
+            return;
+          }
+
           this.enemy = e;
-          this.onBusy = false;
-          this.agent.locked = false;
+
+          if (this.enemy && this.enemy.agent) {
+            this.lookAtEnemyInstant();
+          }
         }
 
         update() {
@@ -103,42 +120,121 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }), GameManager) : GameManager);
           }
 
-          if (!this.gm || !this.agent) return;
-
-          if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
-            this.sync();
-            return;
-          }
+          if (!this.gm || !this.agent) return; // ==========================================================
+          // 0. ENGAGED
+          // ==========================================================
 
           if (this.onBusy) {
+            if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+              this.onBusy = false;
+              this.agent.locked = false;
+              this.enemy = null;
+            } else {
+              this.lookAtEnemyInstant();
+              this.sim.setPrefVelocity(this.agent, 0, 0);
+              this.agent.vel.x = 0;
+              this.agent.vel.z = 0;
+              return;
+            }
+          }
+
+          const vx = this.agent.vel.x;
+          const vz = this.agent.vel.z;
+          const speedSq = vx * vx + vz * vz;
+
+          if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
+            if (speedSq < this.velThreshold * this.velThreshold) {
+              return;
+            }
+
+            this.sync();
+            return;
+          } // clear invalid target
+
+
+          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+            this.enemy = null;
+          } // ==========================================================
+          // 1. ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE
+          // ==========================================================
+
+
+          const attackRangeSq = this.attackRange * this.attackRange;
+          const enemies = this.getEnemyList();
+          let nearestInRange = null;
+          let nearestDistSq = Infinity;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!e || e === this) continue;
+            if (!e.node.activeInHierarchy) continue;
+            if (!e.agent) continue;
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d <= attackRangeSq && d < nearestDistSq) {
+              nearestDistSq = d;
+              nearestInRange = e;
+            }
+          }
+
+          if (nearestInRange) {
+            this.enemy = nearestInRange;
+            this.onBusy = true;
+            this.agent.locked = true;
+            this.lookAtEnemyInstant();
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
-            this.sync();
             return;
-          }
+          } // ==========================================================
+          // 2. CHASE CURRENT TARGET
+          // ==========================================================
+
 
           if (this.enemy && this.enemy.agent) {
             const dx = this.enemy.agent.pos.x - this.agent.pos.x;
             const dz = this.enemy.agent.pos.z - this.agent.pos.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
+            const distSq = dx * dx + dz * dz;
+            const dist = Math.sqrt(distSq);
 
-            if (dist <= this.attackRange) {
-              this.onBusy = true;
-              this.enemy.onBusy = true;
-              this.agent.locked = true;
-              this.enemy.agent.locked = true;
-              return;
+            if (dist > 0.0001) {
+              this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
             }
-
-            this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
           }
 
           this.sync();
         }
 
+        getEnemyList() {
+          const finder = this.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder);
+          return finder['team'] === 0 ? (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamB : (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamA;
+        }
+
+        lookAtEnemyInstant() {
+          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+            return;
+          }
+
+          const dx = this.enemy.agent.pos.x - this.agent.pos.x;
+          const dz = this.enemy.agent.pos.z - this.agent.pos.z;
+
+          if (dx * dx + dz * dz < 0.0001) {
+            return;
+          }
+
+          const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
+          this.node.setRotationFromEuler(0, targetY, 0);
+        }
+
         sync() {
-          // ===== VISUAL POSITION THRESHOLD =====
           const current = this.node.worldPosition;
           const pdx = this.agent.pos.x - current.x;
           const pdz = this.agent.pos.z - current.z;
@@ -146,8 +242,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (posDistSq >= this.visualThreshold * this.visualThreshold) {
             this.node.setWorldPosition(this.agent.pos.x, current.y, this.agent.pos.z);
-          } // ===== ROTATION (ANTI JITTER) =====
-
+          }
 
           const vx = this.agent.vel.x;
           const vz = this.agent.vel.z;
@@ -220,6 +315,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         writable: true,
         initializer: function () {
           return 0.03;
+        }
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enemy", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
         }
       })), _class2)) || _class));
 

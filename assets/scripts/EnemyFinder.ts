@@ -12,12 +12,7 @@ export class EnemyFinder extends Component {
     @property
     updateInterval = 30;
 
-    // nếu target hiện tại còn trong khoảng này thì giữ luôn, khỏi scan lại
-    @property
-    retainTargetDistance = 6;
-
     private updateOffset = 0;
-
     private team = 0;
     private unit!: Unit;
     private frame = 0;
@@ -43,22 +38,13 @@ export class EnemyFinder extends Component {
             return;
         }
 
-        // ===== KEEP CURRENT TARGET IF STILL GOOD =====
-        const current = this.unit.enemy;
-
+        // Nếu đã có target chase hợp lệ thì giữ nguyên, không đổi liên tục
         if (
-            current &&
-            current.node.activeInHierarchy &&
-            current.agent &&
-            !current.onBusy
+            this.unit.enemy &&
+            this.unit.enemy.node.activeInHierarchy &&
+            this.unit.enemy.agent
         ) {
-            const dx = current.agent.pos.x - this.unit.agent.pos.x;
-            const dz = current.agent.pos.z - this.unit.agent.pos.z;
-
-            const keepDist = this.retainTargetDistance;
-            if (dx * dx + dz * dz < keepDist * keepDist) {
-                return;
-            }
+            return;
         }
 
         const enemies = this.team === 0
@@ -74,7 +60,6 @@ export class EnemyFinder extends Component {
 
             if (!e || !e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
-            if (e.onBusy) continue;
 
             const dx = e.agent.pos.x - this.unit.agent.pos.x;
             const dz = e.agent.pos.z - this.unit.agent.pos.z;
@@ -87,7 +72,7 @@ export class EnemyFinder extends Component {
             }
         }
 
-        if (best && best !== this.unit.enemy) {
+        if (best) {
             this.unit.setEnemy(best);
         }
     }

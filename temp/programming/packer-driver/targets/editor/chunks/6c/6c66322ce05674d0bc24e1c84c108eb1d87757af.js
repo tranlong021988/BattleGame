@@ -91,6 +91,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           unit.enemy = null;
           unit.onBusy = false;
+          node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
           unit.init(this.sim);
           finder.setTeam(team);
           return unit;

@@ -33,6 +33,9 @@ System.register(["cc"], function (_export, _context) {
           };
           this.maxSpeed = 2;
           this.radius = 0.5;
+          // ===== neighbor tuning =====
+          this.neighborDist = 2.4;
+          this.maxNeighbors = 8;
           this.locked = false;
           this.gridX = 0;
           this.gridZ = 0;
@@ -48,11 +51,22 @@ System.register(["cc"], function (_export, _context) {
           this.circleObs = [];
           this.rectObs = [];
           this.grid = new Map();
-          this.cellSize = 1.5;
+          this.cellSize = 2.2;
           this.timeStep = 1 / 60;
-          this.stepCount = 0;
-          // 1 = ổn định hơn, 2 = nhẹ CPU hơn
-          this.hardSeparationInterval = 1;
+          // ===== battlefield bounds =====
+          this.useBounds = false;
+          this.minX = -99999;
+          this.maxX = 99999;
+          this.minZ = -99999;
+          this.maxZ = 99999;
+        }
+
+        setBattlefield(minX, maxX, minZ, maxZ) {
+          this.useBounds = true;
+          this.minX = minX;
+          this.maxX = maxX;
+          this.minZ = minZ;
+          this.maxZ = maxZ;
         }
 
         addAgent(x, z) {
@@ -105,6 +119,7 @@ System.register(["cc"], function (_export, _context) {
 
         getNeighbors(a) {
           const result = [];
+          const maxDistSq = a.neighborDist * a.neighborDist;
 
           for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
@@ -113,18 +128,31 @@ System.register(["cc"], function (_export, _context) {
               if (!cell) continue;
 
               for (let other of cell) {
-                if (other !== a) {
-                  result.push(other);
-                }
+                if (other === a) continue;
+                const dx = other.pos.x - a.pos.x;
+                const dz = other.pos.z - a.pos.z;
+                const distSq = dx * dx + dz * dz;
+                if (distSq > maxDistSq) continue;
+                result.push({
+                  agent: other,
+                  distSq
+                });
               }
             }
           }
 
-          return result;
+          result.sort((a, b) => a.distSq - b.distSq);
+          const out = [];
+          const count = Math.min(a.maxNeighbors, result.length);
+
+          for (let i = 0; i < count; i++) {
+            out.push(result[i].agent);
+          }
+
+          return out;
         }
 
         step() {
-          this.stepCount++;
           this.buildGrid(); // ===== VELOCITY =====
 
           for (let a of this.agents) {
@@ -154,7 +182,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Circle obstacle =====
+            } // ===== circle obstacle =====
 
 
             for (let ob of this.circleObs) {
@@ -175,7 +203,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Rect obstacle =====
+            } // ===== rect obstacle =====
 
 
             for (let ob of this.rectObs) {
@@ -183,23 +211,21 @@ System.register(["cc"], function (_export, _context) {
               const dz = a.pos.z - ob.z;
               const lx = dx * ob.cos + dz * ob.sin;
               const lz = -dx * ob.sin + dz * ob.cos;
-              const ex = ob.hx + a.radius;
-              const ez = ob.hz + a.radius;
+              const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
+              const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
+              const ox = lx - px;
+              const oz = lz - pz;
+              const distSq = ox * ox + oz * oz;
+              if (distSq < 1e-6) continue;
 
-              if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
-                const penX = ex - Math.abs(lx);
-                const penZ = ez - Math.abs(lz);
-                let nxL = 0;
-                let nzL = 0;
-
-                if (penX < penZ) {
-                  nxL = lx > 0 ? 1 : -1;
-                } else {
-                  nzL = lz > 0 ? 1 : -1;
-                }
-
+              if (distSq < a.radius * a.radius) {
+                const dist = Math.sqrt(distSq);
+                const nxL = ox / dist;
+                const nzL = oz / dist;
                 const nx = nxL * ob.cos - nzL * ob.sin;
                 const nz = nxL * ob.sin + nzL * ob.cos;
+                vx += nx * (a.radius - dist) * 2;
+                vz += nz * (a.radius - dist) * 2;
                 const dot = vx * nx + vz * nz;
 
                 if (dot < 0) {
@@ -226,69 +252,49 @@ System.register(["cc"], function (_export, _context) {
               a.pos.x += a.vel.x * this.timeStep;
               a.pos.z += a.vel.z * this.timeStep;
             }
-          } // ===== HARD SEPARATION =====
 
+            if (this.useBounds) {
+              a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
+              a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
+            }
+          }
 
-          if (this.stepCount % this.hardSeparationInterval === 0) {
-            for (let a of this.agents) {
-              const neighbors = this.getNeighbors(a);
+          this.buildGrid(); // ===== HARD SEPARATION =====
 
-              for (let b of neighbors) {
-                const dx = b.pos.x - a.pos.x;
-                const dz = b.pos.z - a.pos.z;
-                const distSq = dx * dx + dz * dz;
-                const minDist = a.radius + b.radius;
-                if (distSq < 0.0001) continue;
+          for (let a of this.agents) {
+            const neighbors = this.getNeighbors(a);
 
-                if (distSq < minDist * minDist) {
-                  const dist = Math.sqrt(distSq);
-                  const overlap = (minDist - dist) * 0.5;
-                  const nx = dx / dist;
-                  const nz = dz / dist;
+            for (let b of neighbors) {
+              const dx = b.pos.x - a.pos.x;
+              const dz = b.pos.z - a.pos.z;
+              const distSq = dx * dx + dz * dz;
+              const minDist = a.radius + b.radius;
+              if (distSq < 0.0001) continue;
 
-                  if (!a.locked) {
-                    a.pos.x -= nx * overlap;
-                    a.pos.z -= nz * overlap;
-                  }
+              if (distSq < minDist * minDist) {
+                const dist = Math.sqrt(distSq);
+                const overlap = (minDist - dist) * 0.5;
+                const nx = dx / dist;
+                const nz = dz / dist;
 
-                  if (!b.locked) {
-                    b.pos.x += nx * overlap;
-                    b.pos.z += nz * overlap;
-                  }
+                if (!a.locked) {
+                  a.pos.x -= nx * overlap;
+                  a.pos.z -= nz * overlap;
+                }
+
+                if (!b.locked) {
+                  b.pos.x += nx * overlap;
+                  b.pos.z += nz * overlap;
                 }
               }
             }
-          } // ===== RECT COLLISION CORRECTION =====
+          } // ===== clamp again =====
 
 
-          for (let a of this.agents) {
-            if (a.locked) continue;
-
-            for (let ob of this.rectObs) {
-              const dx = a.pos.x - ob.x;
-              const dz = a.pos.z - ob.z;
-              const lx = dx * ob.cos + dz * ob.sin;
-              const lz = -dx * ob.sin + dz * ob.cos;
-              const ex = ob.hx + a.radius;
-              const ez = ob.hz + a.radius;
-
-              if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
-                const penX = ex - Math.abs(lx);
-                const penZ = ez - Math.abs(lz);
-                let pushX = 0;
-                let pushZ = 0;
-
-                if (penX < penZ) {
-                  pushX = lx > 0 ? penX : -penX;
-                } else {
-                  pushZ = lz > 0 ? penZ : -penZ;
-                }
-
-                const wx = pushX * ob.cos - pushZ * ob.sin;
-                const wz = pushX * ob.sin + pushZ * ob.cos;
-                a.pos.x += wx;
-                a.pos.z += wz;
-              }
+          if (this.useBounds) {
+            for (let a of this.agents) {
+              a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
+              a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
             }
           }
         }

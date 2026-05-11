@@ -33,6 +33,9 @@ System.register(["cc"], function (_export, _context) {
           };
           this.maxSpeed = 2;
           this.radius = 0.5;
+          // ===== neighbor tuning =====
+          this.neighborDist = 2.4;
+          this.maxNeighbors = 8;
           this.locked = false;
           this.gridX = 0;
           this.gridZ = 0;
@@ -48,11 +51,22 @@ System.register(["cc"], function (_export, _context) {
           this.circleObs = [];
           this.rectObs = [];
           this.grid = new Map();
-          this.cellSize = 1.5;
+          this.cellSize = 2.2;
           this.timeStep = 1 / 60;
-          this.stepCount = 0;
-          // 1 = ổn định hơn, 2 = nhẹ CPU hơn
-          this.hardSeparationInterval = 1;
+          // ===== battlefield bounds =====
+          this.useBounds = false;
+          this.minX = -99999;
+          this.maxX = 99999;
+          this.minZ = -99999;
+          this.maxZ = 99999;
+        }
+
+        setBattlefield(minX, maxX, minZ, maxZ) {
+          this.useBounds = true;
+          this.minX = minX;
+          this.maxX = maxX;
+          this.minZ = minZ;
+          this.maxZ = maxZ;
         }
 
         addAgent(x, z) {
@@ -105,6 +119,7 @@ System.register(["cc"], function (_export, _context) {
 
         getNeighbors(a) {
           var result = [];
+          var maxDistSq = a.neighborDist * a.neighborDist;
 
           for (var x = -1; x <= 1; x++) {
             for (var z = -1; z <= 1; z++) {
@@ -113,18 +128,31 @@ System.register(["cc"], function (_export, _context) {
               if (!cell) continue;
 
               for (var other of cell) {
-                if (other !== a) {
-                  result.push(other);
-                }
+                if (other === a) continue;
+                var dx = other.pos.x - a.pos.x;
+                var dz = other.pos.z - a.pos.z;
+                var distSq = dx * dx + dz * dz;
+                if (distSq > maxDistSq) continue;
+                result.push({
+                  agent: other,
+                  distSq
+                });
               }
             }
           }
 
-          return result;
+          result.sort((a, b) => a.distSq - b.distSq);
+          var out = [];
+          var count = Math.min(a.maxNeighbors, result.length);
+
+          for (var i = 0; i < count; i++) {
+            out.push(result[i].agent);
+          }
+
+          return out;
         }
 
         step() {
-          this.stepCount++;
           this.buildGrid(); // ===== VELOCITY =====
 
           for (var a of this.agents) {
@@ -154,7 +182,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= nz * dot;
                 }
               }
-            } // ===== Circle obstacle =====
+            } // ===== circle obstacle =====
 
 
             for (var ob of this.circleObs) {
@@ -181,7 +209,7 @@ System.register(["cc"], function (_export, _context) {
                   vz -= _nz * _dot;
                 }
               }
-            } // ===== Rect obstacle =====
+            } // ===== rect obstacle =====
 
 
             for (var _ob of this.rectObs) {
@@ -191,24 +219,27 @@ System.register(["cc"], function (_export, _context) {
 
               var lx = _dx2 * _ob.cos + _dz2 * _ob.sin;
               var lz = -_dx2 * _ob.sin + _dz2 * _ob.cos;
-              var ex = _ob.hx + a.radius;
-              var ez = _ob.hz + a.radius;
+              var px = Math.max(-_ob.hx, Math.min(lx, _ob.hx));
+              var pz = Math.max(-_ob.hz, Math.min(lz, _ob.hz));
+              var ox = lx - px;
+              var oz = lz - pz;
 
-              if (Math.abs(lx) < ex && Math.abs(lz) < ez) {
-                var penX = ex - Math.abs(lx);
-                var penZ = ez - Math.abs(lz);
-                var nxL = 0;
-                var nzL = 0;
+              var _distSq = ox * ox + oz * oz;
 
-                if (penX < penZ) {
-                  nxL = lx > 0 ? 1 : -1;
-                } else {
-                  nzL = lz > 0 ? 1 : -1;
-                }
+              if (_distSq < 1e-6) continue;
+
+              if (_distSq < a.radius * a.radius) {
+                var _dist2 = Math.sqrt(_distSq);
+
+                var nxL = ox / _dist2;
+                var nzL = oz / _dist2;
 
                 var _nx2 = nxL * _ob.cos - nzL * _ob.sin;
 
                 var _nz2 = nxL * _ob.sin + nzL * _ob.cos;
+
+                vx += _nx2 * (a.radius - _dist2) * 2;
+                vz += _nz2 * (a.radius - _dist2) * 2;
 
                 var _dot2 = vx * _nx2 + vz * _nz2;
 
@@ -236,83 +267,56 @@ System.register(["cc"], function (_export, _context) {
               _a.pos.x += _a.vel.x * this.timeStep;
               _a.pos.z += _a.vel.z * this.timeStep;
             }
-          } // ===== HARD SEPARATION =====
 
+            if (this.useBounds) {
+              _a.pos.x = Math.max(this.minX + _a.radius, Math.min(this.maxX - _a.radius, _a.pos.x));
+              _a.pos.z = Math.max(this.minZ + _a.radius, Math.min(this.maxZ - _a.radius, _a.pos.z));
+            }
+          }
 
-          if (this.stepCount % this.hardSeparationInterval === 0) {
-            for (var _a2 of this.agents) {
-              var _neighbors = this.getNeighbors(_a2);
+          this.buildGrid(); // ===== HARD SEPARATION =====
 
-              for (var _b of _neighbors) {
-                var _dx3 = _b.pos.x - _a2.pos.x;
+          for (var _a2 of this.agents) {
+            var _neighbors = this.getNeighbors(_a2);
 
-                var _dz3 = _b.pos.z - _a2.pos.z;
+            for (var _b of _neighbors) {
+              var _dx3 = _b.pos.x - _a2.pos.x;
 
-                var _distSq = _dx3 * _dx3 + _dz3 * _dz3;
+              var _dz3 = _b.pos.z - _a2.pos.z;
 
-                var _minDist2 = _a2.radius + _b.radius;
+              var _distSq2 = _dx3 * _dx3 + _dz3 * _dz3;
 
-                if (_distSq < 0.0001) continue;
+              var _minDist2 = _a2.radius + _b.radius;
 
-                if (_distSq < _minDist2 * _minDist2) {
-                  var _dist2 = Math.sqrt(_distSq);
+              if (_distSq2 < 0.0001) continue;
 
-                  var overlap = (_minDist2 - _dist2) * 0.5;
+              if (_distSq2 < _minDist2 * _minDist2) {
+                var _dist3 = Math.sqrt(_distSq2);
 
-                  var _nx3 = _dx3 / _dist2;
+                var overlap = (_minDist2 - _dist3) * 0.5;
 
-                  var _nz3 = _dz3 / _dist2;
+                var _nx3 = _dx3 / _dist3;
 
-                  if (!_a2.locked) {
-                    _a2.pos.x -= _nx3 * overlap;
-                    _a2.pos.z -= _nz3 * overlap;
-                  }
+                var _nz3 = _dz3 / _dist3;
 
-                  if (!_b.locked) {
-                    _b.pos.x += _nx3 * overlap;
-                    _b.pos.z += _nz3 * overlap;
-                  }
+                if (!_a2.locked) {
+                  _a2.pos.x -= _nx3 * overlap;
+                  _a2.pos.z -= _nz3 * overlap;
+                }
+
+                if (!_b.locked) {
+                  _b.pos.x += _nx3 * overlap;
+                  _b.pos.z += _nz3 * overlap;
                 }
               }
             }
-          } // ===== RECT COLLISION CORRECTION =====
+          } // ===== clamp again =====
 
 
-          for (var _a3 of this.agents) {
-            if (_a3.locked) continue;
-
-            for (var _ob2 of this.rectObs) {
-              var _dx4 = _a3.pos.x - _ob2.x;
-
-              var _dz4 = _a3.pos.z - _ob2.z;
-
-              var _lx = _dx4 * _ob2.cos + _dz4 * _ob2.sin;
-
-              var _lz = -_dx4 * _ob2.sin + _dz4 * _ob2.cos;
-
-              var _ex = _ob2.hx + _a3.radius;
-
-              var _ez = _ob2.hz + _a3.radius;
-
-              if (Math.abs(_lx) < _ex && Math.abs(_lz) < _ez) {
-                var _penX = _ex - Math.abs(_lx);
-
-                var _penZ = _ez - Math.abs(_lz);
-
-                var pushX = 0;
-                var pushZ = 0;
-
-                if (_penX < _penZ) {
-                  pushX = _lx > 0 ? _penX : -_penX;
-                } else {
-                  pushZ = _lz > 0 ? _penZ : -_penZ;
-                }
-
-                var wx = pushX * _ob2.cos - pushZ * _ob2.sin;
-                var wz = pushX * _ob2.sin + pushZ * _ob2.cos;
-                _a3.pos.x += wx;
-                _a3.pos.z += wz;
-              }
+          if (this.useBounds) {
+            for (var _a3 of this.agents) {
+              _a3.pos.x = Math.max(this.minX + _a3.radius, Math.min(this.maxX - _a3.radius, _a3.pos.x));
+              _a3.pos.z = Math.max(this.minZ + _a3.radius, Math.min(this.maxZ - _a3.radius, _a3.pos.z));
             }
           }
         }

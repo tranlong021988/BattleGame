@@ -28,20 +28,20 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 31
+        "__id__": 32
       },
       {
-        "__id__": 34
+        "__id__": 35
       },
       {
-        "__id__": 36
+        "__id__": 37
       },
       {
-        "__id__": 38
+        "__id__": 39
       }
     ],
     "_prefab": {
-      "__id__": 40
+      "__id__": 41
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -270,6 +270,9 @@
       },
       {
         "__id__": 30
+      },
+      {
+        "__id__": 31
       }
     ],
     "removedComponents": []
@@ -492,6 +495,16 @@
     "value": false
   },
   {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 22
+    },
+    "propertyPath": [
+      "_enableMorph"
+    ],
+    "value": false
+  },
+  {
     "__type__": "cc.MeshRenderer",
     "_name": "Capsule<ModelComponent>",
     "_objFlags": 0,
@@ -501,7 +514,7 @@
     },
     "_enabled": false,
     "__prefab": {
-      "__id__": 32
+      "__id__": 33
     },
     "_materials": [
       {
@@ -511,7 +524,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 33
+      "__id__": 34
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -562,15 +575,15 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 35
+      "__id__": 36
     },
     "moveSpeed": 7,
-    "radius": 0.8,
-    "attackRange": 1.6,
+    "radius": 0.5,
+    "attackRange": 1,
     "rotationSpeed": 20,
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
-    "visualThreshold": 0.1,
+    "visualThreshold": 0.05,
     "enemy": null,
     "_id": ""
   },
@@ -588,10 +601,9 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 37
+      "__id__": 38
     },
     "updateInterval": 30,
-    "retainTargetDistance": 6,
     "_id": ""
   },
   {
@@ -608,7 +620,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 39
+      "__id__": 40
     },
     "health": 3,
     "damage": 1,

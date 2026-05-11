@@ -1,19 +1,19 @@
-import { _decorator, Component, Tween, Vec3 } from 'cc';
+import { _decorator, Component, Tween } from 'cc';
 import { RVOSimulator, RVOAgent } from './rvo/RVO';
 import { GameManager } from './GameManager';
+import { EnemyFinder } from './EnemyFinder';
 
 const { ccclass, property } = _decorator;
 
 @ccclass('Unit')
 export class Unit extends Component {
-    
+
     @property moveSpeed = 2;
     @property radius = 0.5;
     @property attackRange = 1;
 
     @property rotationSpeed = 10;
 
-    // ===== anti jitter =====
     @property moveThreshold = 0.2;
     @property velThreshold = 0.05;
     @property visualThreshold = 0.03;
@@ -28,10 +28,14 @@ export class Unit extends Component {
 
     private lastStablePos = { x: 0, z: 0 };
     private gm!: GameManager;
-    private tween:Tween;
+    private tween!: Tween;
 
     init(sim: RVOSimulator) {
-        if(!this.tween){this.tween = new Tween()};
+
+        if (!this.tween) {
+            this.tween = new Tween();
+        }
+
         this.sim = sim;
 
         const p = this.node.worldPosition;
@@ -44,13 +48,20 @@ export class Unit extends Component {
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
-        
     }
 
     setEnemy(e: Unit | null) {
+
+        // Đang engage rồi thì EnemyFinder không được đổi target nữa
+        if (this.onBusy) {
+            return;
+        }
+
         this.enemy = e;
-        this.onBusy = false;
-        this.agent.locked = false;
+
+        if (this.enemy && this.enemy.agent) {
+            this.lookAtEnemyInstant();
+        }
     }
 
     update() {
@@ -61,14 +72,32 @@ export class Unit extends Component {
 
         if (!this.gm || !this.agent) return;
 
-        // ===== CHEAP EARLY OUT =====
+        // ==========================================================
+        // 0. ENGAGED
+        // ==========================================================
+        if (this.onBusy) {
+
+            if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+                this.onBusy = false;
+                this.agent.locked = false;
+                this.enemy = null;
+            } else {
+                this.lookAtEnemyInstant();
+
+                this.sim.setPrefVelocity(this.agent, 0, 0);
+                this.agent.vel.x = 0;
+                this.agent.vel.z = 0;
+
+                return;
+            }
+        }
+
         const vx = this.agent.vel.x;
         const vz = this.agent.vel.z;
         const speedSq = vx * vx + vz * vz;
 
         if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
 
-            // nếu gần như đứng yên thì bỏ luôn sync
             if (speedSq < this.velThreshold * this.velThreshold) {
                 return;
             }
@@ -77,7 +106,45 @@ export class Unit extends Component {
             return;
         }
 
-        if (this.onBusy) {
+        // clear invalid target
+        if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+            this.enemy = null;
+        }
+
+        // ==========================================================
+        // 1. ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE
+        // ==========================================================
+        const attackRangeSq = this.attackRange * this.attackRange;
+        const enemies = this.getEnemyList();
+
+        let nearestInRange: Unit | null = null;
+        let nearestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+
+            const e = enemies[i];
+
+            if (!e || e === this) continue;
+            if (!e.node.activeInHierarchy) continue;
+            if (!e.agent) continue;
+
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d <= attackRangeSq && d < nearestDistSq) {
+                nearestDistSq = d;
+                nearestInRange = e;
+            }
+        }
+
+        if (nearestInRange) {
+
+            this.enemy = nearestInRange;
+            this.onBusy = true;
+            this.agent.locked = true;
+
+            this.lookAtEnemyInstant();
 
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
@@ -86,32 +153,15 @@ export class Unit extends Component {
             return;
         }
 
+        // ==========================================================
+        // 2. CHASE CURRENT TARGET
+        // ==========================================================
         if (this.enemy && this.enemy.agent) {
 
             const dx = this.enemy.agent.pos.x - this.agent.pos.x;
             const dz = this.enemy.agent.pos.z - this.agent.pos.z;
 
             const distSq = dx * dx + dz * dz;
-            const attackRangeSq = this.attackRange * this.attackRange;
-
-            if (distSq <= attackRangeSq) {
-                 if (!this.onBusy) {
-                    this.onBusy = true;
-                    this.lookAtEnemy();
-                    console.log("engage");
-                }
-                if(this.enemy.enemy!=this){
-                    this.enemy.enemy = this;
-                }
-                this.agent.locked = true;
-
-                this.sim.setPrefVelocity(this.agent, 0, 0);
-                this.agent.vel.x = 0;
-                this.agent.vel.z = 0;
-
-                return;
-            }
-
             const dist = Math.sqrt(distSq);
 
             if (dist > 0.0001) {
@@ -121,40 +171,36 @@ export class Unit extends Component {
                     (dz / dist) * this.agent.maxSpeed
                 );
             }
-            
         }
 
         this.sync();
     }
-   private lookAtEnemy() {
 
-        if (!this.enemy || !this.enemy.node.activeInHierarchy) return;
+    private getEnemyList() {
+        const finder = this.getComponent(EnemyFinder)!;
 
-        const dx = this.enemy.node.worldPosition.x - this.node.worldPosition.x;
-        const dz = this.enemy.node.worldPosition.z - this.node.worldPosition.z;
+        return finder['team'] === 0
+            ? EnemyFinder.teamB
+            : EnemyFinder.teamA;
+    }
 
-        let targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-        const currentY = this.node.eulerAngles.y;
+    private lookAtEnemyInstant() {
 
-        let diff = (targetY - currentY) % 360;
-
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-
-        // ===== already looking =====
-        if (Math.abs(diff) < 3) {
+        if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
             return;
         }
 
-        targetY = currentY + diff;
+        const dx = this.enemy.agent.pos.x - this.agent.pos.x;
+        const dz = this.enemy.agent.pos.z - this.agent.pos.z;
 
-        this.tween.target(this.node)
-            .stop()
-            .to(0.12, {
-                eulerAngles: new Vec3(0, targetY, 0)
-            })
-            .start();
+        if (dx * dx + dz * dz < 0.0001) {
+            return;
+        }
+
+        const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
+        this.node.setRotationFromEuler(0, targetY, 0);
     }
+
     private sync() {
 
         const current = this.node.worldPosition;

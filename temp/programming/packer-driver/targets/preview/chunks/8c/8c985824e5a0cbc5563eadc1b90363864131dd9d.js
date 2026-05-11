@@ -67,15 +67,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
-          if (!this.unit || !this.unit.agent || this.unit.onBusy) return;
+          if (!this.unit || !this.unit.agent || this.unit.onBusy) {
+            return;
+          } // Nếu đã có target chase hợp lệ thì giữ nguyên, không đổi liên tục
+
+
+          if (this.unit.enemy && this.unit.enemy.node.activeInHierarchy && this.unit.enemy.agent) {
+            return;
+          }
+
           var enemies = this.team === 0 ? EnemyFinder.teamB : EnemyFinder.teamA;
           var best = null;
           var bestDist = Infinity;
 
-          for (var e of enemies) {
+          for (var i = 0; i < enemies.length; i++) {
+            var e = enemies[i];
             if (!e || !e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
-            if (e.onBusy) continue;
             var dx = e.agent.pos.x - this.unit.agent.pos.x;
             var dz = e.agent.pos.z - this.unit.agent.pos.z;
             var d = dx * dx + dz * dz;
@@ -96,7 +104,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 4;
+          return 30;
         }
       })), _class2)) || _class));
 

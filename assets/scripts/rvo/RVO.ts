@@ -7,6 +7,10 @@ export class RVOAgent {
     maxSpeed = 2;
     radius = 0.5;
 
+    // ===== neighbor tuning =====
+    neighborDist = 2.4;
+    maxNeighbors = 8;
+
     locked = false;
 
     gridX = 0;
@@ -19,6 +23,7 @@ export class RVOAgent {
 }
 
 type CircleObstacle = { x: number; z: number; r: number };
+
 type RectObstacle = {
     x: number;
     z: number;
@@ -36,8 +41,8 @@ export class RVOSimulator {
     rectObs: RectObstacle[] = [];
 
     grid: Map<string, RVOAgent[]> = new Map();
-    cellSize = 1.5;
 
+    cellSize = 2.2;
     timeStep = 1 / 60;
 
     // ===== battlefield bounds =====
@@ -105,7 +110,8 @@ export class RVOSimulator {
 
     getNeighbors(a: RVOAgent) {
 
-        const result: RVOAgent[] = [];
+        const result: { agent: RVOAgent; distSq: number }[] = [];
+        const maxDistSq = a.neighborDist * a.neighborDist;
 
         for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
@@ -116,14 +122,33 @@ export class RVOSimulator {
                 if (!cell) continue;
 
                 for (let other of cell) {
-                    if (other !== a) {
-                        result.push(other);
-                    }
+
+                    if (other === a) continue;
+
+                    const dx = other.pos.x - a.pos.x;
+                    const dz = other.pos.z - a.pos.z;
+                    const distSq = dx * dx + dz * dz;
+
+                    if (distSq > maxDistSq) continue;
+
+                    result.push({
+                        agent: other,
+                        distSq
+                    });
                 }
             }
         }
 
-        return result;
+        result.sort((a, b) => a.distSq - b.distSq);
+
+        const out: RVOAgent[] = [];
+        const count = Math.min(a.maxNeighbors, result.length);
+
+        for (let i = 0; i < count; i++) {
+            out.push(result[i].agent);
+        }
+
+        return out;
     }
 
     step() {
@@ -257,7 +282,6 @@ export class RVOSimulator {
                 a.pos.z += a.vel.z * this.timeStep;
             }
 
-            // ===== battlefield clamp =====
             if (this.useBounds) {
                 a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
                 a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
@@ -302,7 +326,7 @@ export class RVOSimulator {
             }
         }
 
-        // clamp again after separation
+        // ===== clamp again =====
         if (this.useBounds) {
             for (let a of this.agents) {
                 a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
