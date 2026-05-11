@@ -211,39 +211,6 @@
         "chunks\\planar-shadow-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-planar-shadow\\fs.chunk"
       ],
-      "effects\\builtin-unlit.effect": [
-        "chunks\\unlit-vs.chunk",
-        "chunks\\legacy\\input.chunk",
-        "chunks\\legacy\\decode.chunk",
-        "chunks\\legacy\\decode-base.chunk",
-        "chunks\\common\\common-define.chunk",
-        "chunks\\common\\data\\unpack.chunk",
-        "chunks\\legacy\\morph.chunk",
-        "chunks\\builtin\\functionalities\\morph-animation.chunk",
-        "chunks\\builtin\\uniforms\\cc-morph.chunk",
-        "chunks\\legacy\\skinning.chunk",
-        "chunks\\builtin\\uniforms\\cc-skinning.chunk",
-        "chunks\\builtin\\functionalities\\skinning-animation-lbs.chunk",
-        "chunks\\builtin\\uniforms\\cc-global.chunk",
-        "chunks\\legacy\\local-batch.chunk",
-        "chunks\\builtin\\uniforms\\cc-local-batched.chunk",
-        "chunks\\builtin\\uniforms\\cc-local.chunk",
-        "chunks\\builtin\\functionalities\\world-transform.chunk",
-        "chunks\\legacy\\fog-vs.chunk",
-        "chunks\\legacy\\fog-base.chunk",
-        "chunks\\builtin\\functionalities\\fog.chunk",
-        "chunks\\common\\effect\\fog.chunk",
-        "chunks\\unlit-fs.chunk",
-        "chunks\\legacy\\output-standard.chunk",
-        "chunks\\common\\color\\aces.chunk",
-        "chunks\\common\\color\\gamma.chunk",
-        "chunks\\legacy\\fog-fs.chunk",
-        "chunks\\planar-shadow-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-shadow.chunk",
-        "chunks\\common\\lighting\\functions.chunk",
-        "chunks\\planar-shadow-fs.chunk",
-        "chunks\\legacy\\output.chunk"
-      ],
       "effects\\builtin-terrain.effect": [
         "chunks\\terrain-vs.chunk",
         "chunks\\builtin\\uniforms\\cc-local.chunk",
@@ -330,10 +297,10 @@
         "chunks\\reflect-map-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk"
       ],
-      "default_file_content\\effect\\default.effect": [
-        "chunks\\legacy\\main-functions\\general-vs.chunk",
-        "chunks\\legacy\\input-standard.chunk",
-        "chunks\\legacy\\decode-standard.chunk",
+      "effects\\builtin-unlit.effect": [
+        "chunks\\unlit-vs.chunk",
+        "chunks\\legacy\\input.chunk",
+        "chunks\\legacy\\decode.chunk",
         "chunks\\legacy\\decode-base.chunk",
         "chunks\\common\\common-define.chunk",
         "chunks\\common\\data\\unpack.chunk",
@@ -352,20 +319,16 @@
         "chunks\\legacy\\fog-base.chunk",
         "chunks\\builtin\\functionalities\\fog.chunk",
         "chunks\\common\\effect\\fog.chunk",
-        "chunks\\legacy\\shadow-map-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-shadow.chunk",
-        "chunks\\legacy\\shadow-map-base.chunk",
-        "chunks\\builtin\\functionalities\\shadow-map.chunk",
-        "chunks\\builtin\\uniforms\\cc-csm.chunk",
-        "chunks\\common\\math\\coordinates.chunk",
-        "chunks\\builtin\\uniforms\\cc-shadow-map.chunk",
-        "chunks\\common\\data\\packing.chunk",
-        "chunks\\common\\shadow\\native-pcf.chunk",
         "chunks\\unlit-fs.chunk",
-        "chunks\\legacy\\output.chunk",
+        "chunks\\legacy\\output-standard.chunk",
+        "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk",
         "chunks\\legacy\\fog-fs.chunk",
-        "chunks\\general-vs.chunk"
+        "chunks\\planar-shadow-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-shadow.chunk",
+        "chunks\\common\\lighting\\functions.chunk",
+        "chunks\\planar-shadow-fs.chunk",
+        "chunks\\legacy\\output.chunk"
       ],
       "default_file_content\\effect\\effect-surface.effect": [
         "chunks\\standard-vs.chunk",
@@ -450,7 +413,44 @@
         "chunks\\shadow-caster-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-shadowmap\\fs.chunk"
       ],
-      "effects\\advanced\\eye.effect": [
+      "default_file_content\\effect\\default.effect": [
+        "chunks\\legacy\\main-functions\\general-vs.chunk",
+        "chunks\\legacy\\input-standard.chunk",
+        "chunks\\legacy\\decode-standard.chunk",
+        "chunks\\legacy\\decode-base.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\common\\data\\unpack.chunk",
+        "chunks\\legacy\\morph.chunk",
+        "chunks\\builtin\\functionalities\\morph-animation.chunk",
+        "chunks\\builtin\\uniforms\\cc-morph.chunk",
+        "chunks\\legacy\\skinning.chunk",
+        "chunks\\builtin\\uniforms\\cc-skinning.chunk",
+        "chunks\\builtin\\functionalities\\skinning-animation-lbs.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\legacy\\local-batch.chunk",
+        "chunks\\builtin\\uniforms\\cc-local-batched.chunk",
+        "chunks\\builtin\\uniforms\\cc-local.chunk",
+        "chunks\\builtin\\functionalities\\world-transform.chunk",
+        "chunks\\legacy\\fog-vs.chunk",
+        "chunks\\legacy\\fog-base.chunk",
+        "chunks\\builtin\\functionalities\\fog.chunk",
+        "chunks\\common\\effect\\fog.chunk",
+        "chunks\\legacy\\shadow-map-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-shadow.chunk",
+        "chunks\\legacy\\shadow-map-base.chunk",
+        "chunks\\builtin\\functionalities\\shadow-map.chunk",
+        "chunks\\builtin\\uniforms\\cc-csm.chunk",
+        "chunks\\common\\math\\coordinates.chunk",
+        "chunks\\builtin\\uniforms\\cc-shadow-map.chunk",
+        "chunks\\common\\data\\packing.chunk",
+        "chunks\\common\\shadow\\native-pcf.chunk",
+        "chunks\\unlit-fs.chunk",
+        "chunks\\legacy\\output.chunk",
+        "chunks\\common\\color\\gamma.chunk",
+        "chunks\\legacy\\fog-fs.chunk",
+        "chunks\\general-vs.chunk"
+      ],
+      "effects\\advanced\\fabric.effect": [
         "chunks\\standard-vs.chunk",
         "chunks\\macro-remapping.chunk",
         "chunks\\surfaces\\effect-macros\\common-macros.chunk",
@@ -506,11 +506,7 @@
         "chunks\\builtin\\uniforms\\cc-light-map.chunk",
         "chunks\\common\\lighting\\light-map.chunk",
         "chunks\\surface-fragment.chunk",
-        "chunks\\common\\texture\\texture-misc.chunk",
-        "chunks\\common\\lighting\\functions.chunk",
-        "effects\\advanced\\eye.chunk",
-        "chunks\\common\\graph-expression\\base.chunk",
-        "chunks\\surfaces\\data-structures\\standard.chunk",
+        "effects\\advanced\\common-functions.chunk",
         "chunks\\lighting-models\\includes\\standard.chunk",
         "chunks\\lighting-models\\includes\\common.chunk",
         "chunks\\lighting-models\\data-structures\\lighting-intermediate-data.chunk",
@@ -521,8 +517,10 @@
         "chunks\\common\\lighting\\brdf.chunk",
         "chunks\\common\\lighting\\bxdf.chunk",
         "chunks\\common\\lighting\\attenuation.chunk",
+        "chunks\\common\\lighting\\functions.chunk",
         "chunks\\lighting-models\\model-functions\\standard-common.chunk",
         "chunks\\surfaces\\includes\\standard-fs.chunk",
+        "chunks\\surfaces\\data-structures\\standard.chunk",
         "chunks\\surfaces\\default-functions\\standard-fs.chunk",
         "chunks\\surfaces\\module-functions\\standard-fs.chunk",
         "chunks\\lighting-models\\lighting-flow\\common-flow.chunk",
@@ -536,7 +534,12 @@
         "chunks\\shadow-caster-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-shadowmap\\fs.chunk",
         "chunks\\reflect-map-fs.chunk",
-        "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk"
+        "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk",
+        "chunks\\planar-shadow-vs.chunk",
+        "chunks\\surfaces\\effect-macros\\render-planar-shadow.chunk",
+        "chunks\\shading-entries\\main-functions\\render-planar-shadow\\vs.chunk",
+        "chunks\\planar-shadow-fs.chunk",
+        "chunks\\shading-entries\\main-functions\\render-planar-shadow\\fs.chunk"
       ],
       "effects\\advanced\\car-paint.effect": [
         "chunks\\standard-vs.chunk",
@@ -629,7 +632,7 @@
         "chunks\\planar-shadow-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-planar-shadow\\fs.chunk"
       ],
-      "effects\\advanced\\fabric.effect": [
+      "effects\\advanced\\eye.effect": [
         "chunks\\standard-vs.chunk",
         "chunks\\macro-remapping.chunk",
         "chunks\\surfaces\\effect-macros\\common-macros.chunk",
@@ -685,7 +688,11 @@
         "chunks\\builtin\\uniforms\\cc-light-map.chunk",
         "chunks\\common\\lighting\\light-map.chunk",
         "chunks\\surface-fragment.chunk",
-        "effects\\advanced\\common-functions.chunk",
+        "chunks\\common\\texture\\texture-misc.chunk",
+        "chunks\\common\\lighting\\functions.chunk",
+        "effects\\advanced\\eye.chunk",
+        "chunks\\common\\graph-expression\\base.chunk",
+        "chunks\\surfaces\\data-structures\\standard.chunk",
         "chunks\\lighting-models\\includes\\standard.chunk",
         "chunks\\lighting-models\\includes\\common.chunk",
         "chunks\\lighting-models\\data-structures\\lighting-intermediate-data.chunk",
@@ -696,10 +703,8 @@
         "chunks\\common\\lighting\\brdf.chunk",
         "chunks\\common\\lighting\\bxdf.chunk",
         "chunks\\common\\lighting\\attenuation.chunk",
-        "chunks\\common\\lighting\\functions.chunk",
         "chunks\\lighting-models\\model-functions\\standard-common.chunk",
         "chunks\\surfaces\\includes\\standard-fs.chunk",
-        "chunks\\surfaces\\data-structures\\standard.chunk",
         "chunks\\surfaces\\default-functions\\standard-fs.chunk",
         "chunks\\surfaces\\module-functions\\standard-fs.chunk",
         "chunks\\lighting-models\\lighting-flow\\common-flow.chunk",
@@ -713,12 +718,7 @@
         "chunks\\shadow-caster-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-shadowmap\\fs.chunk",
         "chunks\\reflect-map-fs.chunk",
-        "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk",
-        "chunks\\planar-shadow-vs.chunk",
-        "chunks\\surfaces\\effect-macros\\render-planar-shadow.chunk",
-        "chunks\\shading-entries\\main-functions\\render-planar-shadow\\vs.chunk",
-        "chunks\\planar-shadow-fs.chunk",
-        "chunks\\shading-entries\\main-functions\\render-planar-shadow\\fs.chunk"
+        "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk"
       ],
       "effects\\advanced\\glass.effect": [
         "chunks\\standard-vs.chunk",
@@ -897,7 +897,7 @@
         "chunks\\reflect-map-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk"
       ],
-      "effects\\advanced\\leaf.effect": [
+      "effects\\advanced\\skin.effect": [
         "chunks\\standard-vs.chunk",
         "chunks\\macro-remapping.chunk",
         "chunks\\surfaces\\effect-macros\\common-macros.chunk",
@@ -953,9 +953,10 @@
         "chunks\\builtin\\uniforms\\cc-light-map.chunk",
         "chunks\\common\\lighting\\light-map.chunk",
         "chunks\\surface-fragment.chunk",
-        "chunks\\common\\effect\\special-effects.chunk",
-        "chunks\\surfaces\\data-structures\\standard.chunk",
         "effects\\advanced\\common-functions.chunk",
+        "chunks\\surfaces\\default-functions\\skin.chunk",
+        "chunks\\surfaces\\data-structures\\standard.chunk",
+        "chunks\\lighting-models\\default-functions\\skin.chunk",
         "chunks\\lighting-models\\includes\\standard.chunk",
         "chunks\\lighting-models\\includes\\common.chunk",
         "chunks\\lighting-models\\data-structures\\lighting-intermediate-data.chunk",
@@ -1067,7 +1068,7 @@
         "chunks\\shadow-caster-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-shadowmap\\fs.chunk"
       ],
-      "effects\\advanced\\skin.effect": [
+      "effects\\advanced\\leaf.effect": [
         "chunks\\standard-vs.chunk",
         "chunks\\macro-remapping.chunk",
         "chunks\\surfaces\\effect-macros\\common-macros.chunk",
@@ -1123,10 +1124,9 @@
         "chunks\\builtin\\uniforms\\cc-light-map.chunk",
         "chunks\\common\\lighting\\light-map.chunk",
         "chunks\\surface-fragment.chunk",
-        "effects\\advanced\\common-functions.chunk",
-        "chunks\\surfaces\\default-functions\\skin.chunk",
+        "chunks\\common\\effect\\special-effects.chunk",
         "chunks\\surfaces\\data-structures\\standard.chunk",
-        "chunks\\lighting-models\\default-functions\\skin.chunk",
+        "effects\\advanced\\common-functions.chunk",
         "chunks\\lighting-models\\includes\\standard.chunk",
         "chunks\\lighting-models\\includes\\common.chunk",
         "chunks\\lighting-models\\data-structures\\lighting-intermediate-data.chunk",
@@ -1396,6 +1396,55 @@
         "chunks\\legacy\\output.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
+      "effects\\legacy\\terrain.effect": [
+        "chunks\\terrain-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\builtin\\uniforms\\cc-local.chunk",
+        "chunks\\legacy\\fog-vs.chunk",
+        "chunks\\legacy\\fog-base.chunk",
+        "chunks\\builtin\\functionalities\\fog.chunk",
+        "chunks\\common\\effect\\fog.chunk",
+        "chunks\\legacy\\shadow-map-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-shadow.chunk",
+        "chunks\\legacy\\shadow-map-base.chunk",
+        "chunks\\builtin\\functionalities\\shadow-map.chunk",
+        "chunks\\builtin\\uniforms\\cc-csm.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\common\\math\\coordinates.chunk",
+        "chunks\\builtin\\uniforms\\cc-shadow-map.chunk",
+        "chunks\\common\\data\\packing.chunk",
+        "chunks\\common\\shadow\\native-pcf.chunk",
+        "chunks\\terrain-fs.chunk",
+        "chunks\\legacy\\standard-surface-entry.chunk",
+        "chunks\\legacy\\shading-standard-base.chunk",
+        "chunks\\common\\color\\gamma.chunk",
+        "chunks\\common\\data\\unpack.chunk",
+        "chunks\\common\\texture\\texture-lod.chunk",
+        "chunks\\builtin\\uniforms\\cc-environment.chunk",
+        "chunks\\common\\math\\number.chunk",
+        "chunks\\common\\lighting\\functions.chunk",
+        "chunks\\builtin\\uniforms\\cc-diffusemap.chunk",
+        "chunks\\builtin\\uniforms\\cc-reflection-probe.chunk",
+        "chunks\\builtin\\functionalities\\probe.chunk",
+        "chunks\\legacy\\sh-fs.chunk",
+        "chunks\\builtin\\uniforms\\cc-sh.chunk",
+        "chunks\\builtin\\functionalities\\sh.chunk",
+        "chunks\\legacy\\output-standard.chunk",
+        "chunks\\common\\color\\aces.chunk",
+        "chunks\\legacy\\fog-fs.chunk",
+        "chunks\\legacy\\shadow-map-fs.chunk",
+        "chunks\\legacy\\shading-standard-additive.chunk",
+        "chunks\\legacy\\lighting.chunk",
+        "chunks\\builtin\\uniforms\\cc-forward-light.chunk",
+        "chunks\\common\\lighting\\attenuation.chunk",
+        "chunks\\legacy\\shading-cluster-additive.chunk",
+        "chunks\\common\\math\\octahedron-transform.chunk",
+        "chunks\\legacy\\lightingmap-fs.chunk",
+        "chunks\\builtin\\uniforms\\cc-light-map.chunk",
+        "chunks\\common\\lighting\\light-map.chunk",
+        "chunks\\shadow-caster-vs.chunk",
+        "chunks\\shadow-caster-fs.chunk"
+      ],
       "effects\\legacy\\standard.effect": [
         "chunks\\standard-vs.chunk",
         "chunks\\legacy\\input-standard.chunk",
@@ -1465,55 +1514,6 @@
         "chunks\\planar-shadow-fs.chunk",
         "chunks\\legacy\\output.chunk"
       ],
-      "effects\\legacy\\terrain.effect": [
-        "chunks\\terrain-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-global.chunk",
-        "chunks\\builtin\\uniforms\\cc-local.chunk",
-        "chunks\\legacy\\fog-vs.chunk",
-        "chunks\\legacy\\fog-base.chunk",
-        "chunks\\builtin\\functionalities\\fog.chunk",
-        "chunks\\common\\effect\\fog.chunk",
-        "chunks\\legacy\\shadow-map-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-shadow.chunk",
-        "chunks\\legacy\\shadow-map-base.chunk",
-        "chunks\\builtin\\functionalities\\shadow-map.chunk",
-        "chunks\\builtin\\uniforms\\cc-csm.chunk",
-        "chunks\\common\\common-define.chunk",
-        "chunks\\common\\math\\coordinates.chunk",
-        "chunks\\builtin\\uniforms\\cc-shadow-map.chunk",
-        "chunks\\common\\data\\packing.chunk",
-        "chunks\\common\\shadow\\native-pcf.chunk",
-        "chunks\\terrain-fs.chunk",
-        "chunks\\legacy\\standard-surface-entry.chunk",
-        "chunks\\legacy\\shading-standard-base.chunk",
-        "chunks\\common\\color\\gamma.chunk",
-        "chunks\\common\\data\\unpack.chunk",
-        "chunks\\common\\texture\\texture-lod.chunk",
-        "chunks\\builtin\\uniforms\\cc-environment.chunk",
-        "chunks\\common\\math\\number.chunk",
-        "chunks\\common\\lighting\\functions.chunk",
-        "chunks\\builtin\\uniforms\\cc-diffusemap.chunk",
-        "chunks\\builtin\\uniforms\\cc-reflection-probe.chunk",
-        "chunks\\builtin\\functionalities\\probe.chunk",
-        "chunks\\legacy\\sh-fs.chunk",
-        "chunks\\builtin\\uniforms\\cc-sh.chunk",
-        "chunks\\builtin\\functionalities\\sh.chunk",
-        "chunks\\legacy\\output-standard.chunk",
-        "chunks\\common\\color\\aces.chunk",
-        "chunks\\legacy\\fog-fs.chunk",
-        "chunks\\legacy\\shadow-map-fs.chunk",
-        "chunks\\legacy\\shading-standard-additive.chunk",
-        "chunks\\legacy\\lighting.chunk",
-        "chunks\\builtin\\uniforms\\cc-forward-light.chunk",
-        "chunks\\common\\lighting\\attenuation.chunk",
-        "chunks\\legacy\\shading-cluster-additive.chunk",
-        "chunks\\common\\math\\octahedron-transform.chunk",
-        "chunks\\legacy\\lightingmap-fs.chunk",
-        "chunks\\builtin\\uniforms\\cc-light-map.chunk",
-        "chunks\\common\\lighting\\light-map.chunk",
-        "chunks\\shadow-caster-vs.chunk",
-        "chunks\\shadow-caster-fs.chunk"
-      ],
       "effects\\legacy\\toon.effect": [
         "chunks\\legacy\\main-functions\\outline-vs.chunk",
         "chunks\\legacy\\input-standard.chunk",
@@ -1562,24 +1562,24 @@
         "chunks\\common\\lighting\\functions.chunk",
         "chunks\\planar-shadow-fs.chunk"
       ],
-      "effects\\particles\\builtin-billboard.effect": [
-        "chunks\\vert.chunk",
-        "chunks\\builtin\\internal\\particle-common.chunk",
-        "chunks\\builtin\\uniforms\\cc-global.chunk",
-        "chunks\\builtin\\uniforms\\cc-local.chunk",
-        "chunks\\common\\math\\transform.chunk",
-        "chunks\\tinted-fs.chunk",
-        "chunks\\legacy\\output.chunk",
-        "chunks\\common\\color\\gamma.chunk",
-        "chunks\\builtin\\internal\\embedded-alpha.chunk",
-        "chunks\\no-tint-fs.chunk"
-      ],
       "effects\\particles\\builtin-particle-gpu.effect": [
         "chunks\\builtin\\internal\\particle-vs-gpu.chunk",
         "chunks\\common\\math\\transform.chunk",
         "chunks\\builtin\\internal\\particle-common.chunk",
         "chunks\\builtin\\uniforms\\cc-global.chunk",
         "chunks\\builtin\\uniforms\\cc-local.chunk",
+        "chunks\\tinted-fs.chunk",
+        "chunks\\legacy\\output.chunk",
+        "chunks\\common\\color\\gamma.chunk",
+        "chunks\\builtin\\internal\\embedded-alpha.chunk",
+        "chunks\\no-tint-fs.chunk"
+      ],
+      "effects\\particles\\builtin-billboard.effect": [
+        "chunks\\vert.chunk",
+        "chunks\\builtin\\internal\\particle-common.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\builtin\\uniforms\\cc-local.chunk",
+        "chunks\\common\\math\\transform.chunk",
         "chunks\\tinted-fs.chunk",
         "chunks\\legacy\\output.chunk",
         "chunks\\common\\color\\gamma.chunk",
@@ -1625,14 +1625,6 @@
         "chunks\\cluster-main.chunk",
         "chunks\\common\\math\\coordinates.chunk"
       ],
-      "effects\\pipeline\\copy-pass.effect": [
-        "chunks\\copy-pass-vs.chunk",
-        "chunks\\legacy\\decode-standard.chunk",
-        "chunks\\legacy\\decode-base.chunk",
-        "chunks\\common\\common-define.chunk",
-        "chunks\\ubo.chunk",
-        "chunks\\copy-pass-fs.chunk"
-      ],
       "effects\\pipeline\\cluster-culling.effect": [
         "chunks\\cluster-main.chunk"
       ],
@@ -1676,6 +1668,14 @@
         "chunks\\builtin\\functionalities\\fog.chunk",
         "chunks\\common\\effect\\fog.chunk",
         "chunks\\common\\math\\octahedron-transform.chunk"
+      ],
+      "effects\\pipeline\\copy-pass.effect": [
+        "chunks\\copy-pass-vs.chunk",
+        "chunks\\legacy\\decode-standard.chunk",
+        "chunks\\legacy\\decode-base.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\ubo.chunk",
+        "chunks\\copy-pass-fs.chunk"
       ],
       "effects\\pipeline\\float-output-process.effect": [
         "chunks\\tonemap-vs.chunk",
@@ -1747,6 +1747,16 @@
         "chunks\\legacy\\output-standard.chunk",
         "chunks\\common\\math\\coordinates.chunk"
       ],
+      "effects\\pipeline\\smaa.effect": [
+        "chunks\\smaa-edge-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\smaa-edge-fs.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\common\\color\\gamma.chunk",
+        "chunks\\common\\color\\aces.chunk",
+        "chunks\\smaa-blend-vs.chunk",
+        "chunks\\smaa-blend-fs.chunk"
+      ],
       "effects\\pipeline\\ssss-blur.effect": [
         "chunks\\blur-vs.chunk",
         "effects\\pipeline\\post-process\\chunks\\vs.chunk",
@@ -1763,16 +1773,6 @@
         "chunks\\common\\math\\coordinates.chunk",
         "chunks\\ssssBlurY-fs.chunk"
       ],
-      "effects\\pipeline\\smaa.effect": [
-        "chunks\\smaa-edge-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-global.chunk",
-        "chunks\\smaa-edge-fs.chunk",
-        "chunks\\common\\common-define.chunk",
-        "chunks\\common\\color\\gamma.chunk",
-        "chunks\\common\\color\\aces.chunk",
-        "chunks\\smaa-blend-vs.chunk",
-        "chunks\\smaa-blend-fs.chunk"
-      ],
       "effects\\pipeline\\tonemap.effect": [
         "chunks\\tonemap-vs.chunk",
         "chunks\\common\\common-define.chunk",
@@ -1780,13 +1780,6 @@
         "chunks\\tonemap-fs.chunk",
         "chunks\\common\\color\\gamma.chunk",
         "chunks\\common\\color\\aces.chunk"
-      ],
-      "effects\\util\\profiler.effect": [
-        "chunks\\profiler-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-global.chunk",
-        "chunks\\profiler-fs.chunk",
-        "chunks\\legacy\\output.chunk",
-        "chunks\\common\\color\\gamma.chunk"
       ],
       "effects\\util\\batched-unlit.effect": [
         "chunks\\unlit-vs.chunk",
@@ -1807,6 +1800,13 @@
         "chunks\\builtin\\uniforms\\cc-local.chunk",
         "chunks\\builtin\\functionalities\\world-transform.chunk",
         "chunks\\unlit-fs.chunk",
+        "chunks\\legacy\\output.chunk",
+        "chunks\\common\\color\\gamma.chunk"
+      ],
+      "effects\\util\\profiler.effect": [
+        "chunks\\profiler-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\profiler-fs.chunk",
         "chunks\\legacy\\output.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
@@ -1857,16 +1857,16 @@
         "chunks\\sprite-vs.chunk",
         "chunks\\sprite-fs.chunk"
       ],
-      "effects\\internal\\editor\\grid-2d.effect": [
+      "effects\\internal\\editor\\grid-stroke.effect": [
         "chunks\\grid-vs.chunk",
-        "chunks\\builtin\\uniforms\\cc-local.chunk",
         "chunks\\builtin\\uniforms\\cc-global.chunk",
         "chunks\\grid-fs.chunk",
         "chunks\\legacy\\output.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
-      "effects\\internal\\editor\\grid-stroke.effect": [
+      "effects\\internal\\editor\\grid-2d.effect": [
         "chunks\\grid-vs.chunk",
+        "chunks\\builtin\\uniforms\\cc-local.chunk",
         "chunks\\builtin\\uniforms\\cc-global.chunk",
         "chunks\\grid-fs.chunk",
         "chunks\\legacy\\output.chunk",
@@ -1902,7 +1902,7 @@
         "chunks\\legacy\\output.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
-      "effects\\internal\\editor\\terrain-circle-brush.effect": [
+      "effects\\internal\\editor\\terrain-image-brush.effect": [
         "chunks\\terrain-brush-vs.chunk",
         "chunks\\builtin\\uniforms\\cc-global.chunk",
         "chunks\\builtin\\uniforms\\cc-local.chunk",
@@ -1910,7 +1910,7 @@
         "chunks\\legacy\\output.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
-      "effects\\internal\\editor\\terrain-image-brush.effect": [
+      "effects\\internal\\editor\\terrain-circle-brush.effect": [
         "chunks\\terrain-brush-vs.chunk",
         "chunks\\builtin\\uniforms\\cc-global.chunk",
         "chunks\\builtin\\uniforms\\cc-local.chunk",
@@ -2075,15 +2075,6 @@
         "chunks\\post-process\\fxaa-hq.chunk",
         "chunks\\common\\texture\\texture-lod.chunk"
       ],
-      "effects\\pipeline\\post-process\\post-final.effect": [
-        "chunks\\vs.chunk",
-        "effects\\pipeline\\post-process\\chunks\\vs.chunk",
-        "chunks\\legacy\\decode-standard.chunk",
-        "chunks\\legacy\\decode-base.chunk",
-        "chunks\\common\\common-define.chunk",
-        "chunks\\builtin\\uniforms\\cc-global.chunk",
-        "chunks\\fs.chunk"
-      ],
       "effects\\pipeline\\post-process\\fxaa-hq1.effect": [
         "chunks\\fxaa-vs.chunk",
         "effects\\pipeline\\post-process\\chunks\\vs1.chunk",
@@ -2111,6 +2102,15 @@
         "chunks\\blurx-fs.chunk",
         "chunks\\blury-fs.chunk",
         "chunks\\combine-fs.chunk"
+      ],
+      "effects\\pipeline\\post-process\\post-final.effect": [
+        "chunks\\vs.chunk",
+        "effects\\pipeline\\post-process\\chunks\\vs.chunk",
+        "chunks\\legacy\\decode-standard.chunk",
+        "chunks\\legacy\\decode-base.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\fs.chunk"
       ],
       "effects\\pipeline\\post-process\\taa.effect": [
         "chunks\\vs.chunk",
@@ -2659,23 +2659,23 @@
         "chunks\\reflect-map-fs.chunk",
         "chunks\\shading-entries\\main-functions\\render-to-reflectmap\\fs.chunk"
       ],
-      "default_fonts\\builtin-bitmap\\OpenSans-Italic.fnt": [
-        "default_fonts\\builtin-bitmap\\OpenSans-Italic_0.png"
+      "default_ui\\atom_new.plist": [
+        "default_ui\\atom.png"
       ],
       "default_fonts\\builtin-bitmap\\OpenSans-BoldItalic.fnt": [
         "default_fonts\\builtin-bitmap\\OpenSans-BoldItalic_0.png"
       ],
+      "default_fonts\\builtin-bitmap\\OpenSans-Italic.fnt": [
+        "default_fonts\\builtin-bitmap\\OpenSans-Italic_0.png"
+      ],
       "default_fonts\\builtin-bitmap\\OpenSans-Bold.fnt": [
         "default_fonts\\builtin-bitmap\\OpenSans-Bold_0.png"
       ],
-      "default_ui\\atom_new.plist": [
-        "default_ui\\atom.png"
+      "default_fonts\\builtin-bitmap\\OpenSans-Regular.fnt": [
+        "default_fonts\\builtin-bitmap\\OpenSans-Regular_0.png"
       ],
       "default_ui\\atom.plist": [
         "default_ui\\atom.png"
-      ],
-      "default_fonts\\builtin-bitmap\\OpenSans-Regular.fnt": [
-        "default_fonts\\builtin-bitmap\\OpenSans-Regular_0.png"
       ]
     },
     "uuid": {

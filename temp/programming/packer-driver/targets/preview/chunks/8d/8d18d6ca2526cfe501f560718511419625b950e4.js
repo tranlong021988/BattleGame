@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, _dec, _class, _class2, _descriptor, _descriptor2, _class3, _crd, ccclass, property, EnemyFinder;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, _dec, _class, _class2, _descriptor, _class3, _crd, ccclass, property, EnemyFinder;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -43,9 +43,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "updateInterval", _descriptor, this);
 
-          // nếu target hiện tại còn trong khoảng này thì giữ luôn, khỏi scan lại
-          _initializerDefineProperty(this, "retainTargetDistance", _descriptor2, this);
-
           this.updateOffset = 0;
           this.team = 0;
           this.unit = void 0;
@@ -72,19 +69,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (!this.unit || !this.unit.agent || this.unit.onBusy) {
             return;
-          } // ===== KEEP CURRENT TARGET IF STILL GOOD =====
+          } // Nếu đã có target chase hợp lệ thì giữ nguyên, không đổi liên tục
 
 
-          var current = this.unit.enemy;
-
-          if (current && current.node.activeInHierarchy && current.agent && !current.onBusy) {
-            var dx = current.agent.pos.x - this.unit.agent.pos.x;
-            var dz = current.agent.pos.z - this.unit.agent.pos.z;
-            var keepDist = this.retainTargetDistance;
-
-            if (dx * dx + dz * dz < keepDist * keepDist) {
-              return;
-            }
+          if (this.unit.enemy && this.unit.enemy.node.activeInHierarchy && this.unit.enemy.agent) {
+            return;
           }
 
           var enemies = this.team === 0 ? EnemyFinder.teamB : EnemyFinder.teamA;
@@ -95,13 +84,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             var e = enemies[i];
             if (!e || !e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
-            if (e.onBusy) continue;
-
-            var _dx = e.agent.pos.x - this.unit.agent.pos.x;
-
-            var _dz = e.agent.pos.z - this.unit.agent.pos.z;
-
-            var d = _dx * _dx + _dz * _dz;
+            var dx = e.agent.pos.x - this.unit.agent.pos.x;
+            var dz = e.agent.pos.z - this.unit.agent.pos.z;
+            var d = dx * dx + dz * dz;
 
             if (d < bestDist) {
               bestDist = d;
@@ -109,7 +94,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }
           }
 
-          if (best && best !== this.unit.enemy) {
+          if (best) {
             this.unit.setEnemy(best);
           }
         }
@@ -120,13 +105,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         writable: true,
         initializer: function initializer() {
           return 30;
-        }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "retainTargetDistance", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 6;
         }
       })), _class2)) || _class));
 

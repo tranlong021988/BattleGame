@@ -45,6 +45,10 @@ export class RVOSimulator {
     cellSize = 2.2;
     timeStep = 1 / 60;
 
+    // Số vòng chống xuyên vật cản.
+    // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
+    obstacleSolveIterations = 3;
+
     // ===== battlefield bounds =====
     useBounds = false;
     minX = -99999;
@@ -86,12 +90,14 @@ export class RVOSimulator {
         });
     }
 
-    private buildGrid() {
+    private clamp(v: number, min: number, max: number) {
+        return Math.max(min, Math.min(max, v));
+    }
 
+    private buildGrid() {
         this.grid.clear();
 
         for (let a of this.agents) {
-
             const gx = Math.floor(a.pos.x / this.cellSize);
             const gz = Math.floor(a.pos.z / this.cellSize);
 
@@ -109,20 +115,17 @@ export class RVOSimulator {
     }
 
     getNeighbors(a: RVOAgent) {
-
         const result: { agent: RVOAgent; distSq: number }[] = [];
         const maxDistSq = a.neighborDist * a.neighborDist;
 
         for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
-
                 const key = (a.gridX + x) + "_" + (a.gridZ + z);
                 const cell = this.grid.get(key);
 
                 if (!cell) continue;
 
                 for (let other of cell) {
-
                     if (other === a) continue;
 
                     const dx = other.pos.x - a.pos.x;
@@ -151,13 +154,139 @@ export class RVOSimulator {
         return out;
     }
 
-    step() {
+    // =========================================================
+    // HARD COLLISION: CIRCLE OBSTACLE
+    // =========================================================
+    private pushAgentOutOfCircle(a: RVOAgent, ob: CircleObstacle) {
+        const dx = a.pos.x - ob.x;
+        const dz = a.pos.z - ob.z;
 
+        const distSq = dx * dx + dz * dz;
+        const minDist = a.radius + ob.r;
+
+        if (distSq >= minDist * minDist) return;
+
+        // Nếu nằm đúng tâm obstacle thì đẩy đại sang +X
+        if (distSq < 1e-8) {
+            a.pos.x = ob.x + minDist + 0.001;
+            a.pos.z = ob.z;
+            return;
+        }
+
+        const dist = Math.sqrt(distSq);
+        const nx = dx / dist;
+        const nz = dz / dist;
+
+        const push = minDist - dist + 0.001;
+
+        a.pos.x += nx * push;
+        a.pos.z += nz * push;
+    }
+
+    // =========================================================
+    // HARD COLLISION: RECT OBSTACLE
+    // Hỗ trợ cả trường hợp agent ở ngoài rect lẫn đã lọt vào trong rect.
+    // =========================================================
+    private pushAgentOutOfRect(a: RVOAgent, ob: RectObstacle) {
+        const dx = a.pos.x - ob.x;
+        const dz = a.pos.z - ob.z;
+
+        // World -> local rect space
+        const lx = dx * ob.cos + dz * ob.sin;
+        const lz = -dx * ob.sin + dz * ob.cos;
+
+        const px = this.clamp(lx, -ob.hx, ob.hx);
+        const pz = this.clamp(lz, -ob.hz, ob.hz);
+
+        const ox = lx - px;
+        const oz = lz - pz;
+
+        const distSq = ox * ox + oz * oz;
+
+        let nxL = 0;
+        let nzL = 0;
+        let push = 0;
+
+        // Case 1: agent center ở ngoài rect
+        if (distSq > 1e-8) {
+            const dist = Math.sqrt(distSq);
+
+            if (dist >= a.radius) return;
+
+            nxL = ox / dist;
+            nzL = oz / dist;
+            push = a.radius - dist + 0.001;
+        }
+        // Case 2: agent center đã nằm bên trong rect
+        else {
+            const dLeft = lx + ob.hx;
+            const dRight = ob.hx - lx;
+            const dBottom = lz + ob.hz;
+            const dTop = ob.hz - lz;
+
+            let minD = dLeft;
+            nxL = -1;
+            nzL = 0;
+
+            if (dRight < minD) {
+                minD = dRight;
+                nxL = 1;
+                nzL = 0;
+            }
+
+            if (dBottom < minD) {
+                minD = dBottom;
+                nxL = 0;
+                nzL = -1;
+            }
+
+            if (dTop < minD) {
+                minD = dTop;
+                nxL = 0;
+                nzL = 1;
+            }
+
+            // Đẩy từ vị trí hiện tại ra khỏi cạnh gần nhất + bán kính agent
+            push = minD + a.radius + 0.001;
+        }
+
+        // Local normal -> world normal
+        const nx = nxL * ob.cos - nzL * ob.sin;
+        const nz = nxL * ob.sin + nzL * ob.cos;
+
+        a.pos.x += nx * push;
+        a.pos.z += nz * push;
+    }
+
+    private pushAgentOutOfObstacles(a: RVOAgent) {
+        for (let ob of this.circleObs) {
+            this.pushAgentOutOfCircle(a, ob);
+        }
+
+        for (let ob of this.rectObs) {
+            this.pushAgentOutOfRect(a, ob);
+        }
+    }
+
+    private clampToBattlefield(a: RVOAgent) {
+        if (!this.useBounds) return;
+
+        a.pos.x = Math.max(
+            this.minX + a.radius,
+            Math.min(this.maxX - a.radius, a.pos.x)
+        );
+
+        a.pos.z = Math.max(
+            this.minZ + a.radius,
+            Math.min(this.maxZ - a.radius, a.pos.z)
+        );
+    }
+
+    step() {
         this.buildGrid();
 
         // ===== VELOCITY =====
         for (let a of this.agents) {
-
             if (a.locked) continue;
 
             let vx = a.prefVel.x;
@@ -165,8 +294,8 @@ export class RVOSimulator {
 
             const neighbors = this.getNeighbors(a);
 
+            // ===== agent-agent avoidance =====
             for (let b of neighbors) {
-
                 const dx = a.pos.x - b.pos.x;
                 const dz = a.pos.z - b.pos.z;
 
@@ -176,13 +305,12 @@ export class RVOSimulator {
                 if (distSq < 0.0001) continue;
 
                 if (distSq < minDist * minDist) {
-
                     const dist = Math.sqrt(distSq);
 
                     const nx = dx / dist;
                     const nz = dz / dist;
 
-                    const push = (minDist - dist);
+                    const push = minDist - dist;
 
                     vx += nx * push * 2;
                     vz += nz * push * 2;
@@ -196,9 +324,8 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== circle obstacle =====
+            // ===== circle obstacle velocity avoidance =====
             for (let ob of this.circleObs) {
-
                 const dx = a.pos.x - ob.x;
                 const dz = a.pos.z - ob.z;
 
@@ -206,7 +333,6 @@ export class RVOSimulator {
                 const minDist = a.radius + ob.r;
 
                 if (dist < minDist && dist > 0.0001) {
-
                     const nx = dx / dist;
                     const nz = dz / dist;
 
@@ -222,37 +348,78 @@ export class RVOSimulator {
                 }
             }
 
-            // ===== rect obstacle =====
+            // ===== rect obstacle velocity avoidance =====
             for (let ob of this.rectObs) {
-
                 const dx = a.pos.x - ob.x;
                 const dz = a.pos.z - ob.z;
 
                 const lx = dx * ob.cos + dz * ob.sin;
                 const lz = -dx * ob.sin + dz * ob.cos;
 
-                const px = Math.max(-ob.hx, Math.min(lx, ob.hx));
-                const pz = Math.max(-ob.hz, Math.min(lz, ob.hz));
+                const px = this.clamp(lx, -ob.hx, ob.hx);
+                const pz = this.clamp(lz, -ob.hz, ob.hz);
 
                 const ox = lx - px;
                 const oz = lz - pz;
 
                 const distSq = ox * ox + oz * oz;
 
-                if (distSq < 1e-6) continue;
+                // Agent center ở ngoài rect
+                if (distSq > 1e-8) {
+                    if (distSq < a.radius * a.radius) {
+                        const dist = Math.sqrt(distSq);
 
-                if (distSq < a.radius * a.radius) {
+                        const nxL = ox / dist;
+                        const nzL = oz / dist;
 
-                    const dist = Math.sqrt(distSq);
+                        const nx = nxL * ob.cos - nzL * ob.sin;
+                        const nz = nxL * ob.sin + nzL * ob.cos;
 
-                    const nxL = ox / dist;
-                    const nzL = oz / dist;
+                        vx += nx * (a.radius - dist) * 2;
+                        vz += nz * (a.radius - dist) * 2;
+
+                        const dot = vx * nx + vz * nz;
+
+                        if (dot < 0) {
+                            vx -= nx * dot;
+                            vz -= nz * dot;
+                        }
+                    }
+                }
+                // Agent center đã ở trong rect
+                else {
+                    const dLeft = lx + ob.hx;
+                    const dRight = ob.hx - lx;
+                    const dBottom = lz + ob.hz;
+                    const dTop = ob.hz - lz;
+
+                    let nxL = -1;
+                    let nzL = 0;
+                    let minD = dLeft;
+
+                    if (dRight < minD) {
+                        minD = dRight;
+                        nxL = 1;
+                        nzL = 0;
+                    }
+
+                    if (dBottom < minD) {
+                        minD = dBottom;
+                        nxL = 0;
+                        nzL = -1;
+                    }
+
+                    if (dTop < minD) {
+                        minD = dTop;
+                        nxL = 0;
+                        nzL = 1;
+                    }
 
                     const nx = nxL * ob.cos - nzL * ob.sin;
                     const nz = nxL * ob.sin + nzL * ob.cos;
 
-                    vx += nx * (a.radius - dist) * 2;
-                    vz += nz * (a.radius - dist) * 2;
+                    vx += nx * (a.radius + minD) * 2;
+                    vz += nz * (a.radius + minD) * 2;
 
                     const dot = vx * nx + vz * nz;
 
@@ -276,27 +443,26 @@ export class RVOSimulator {
 
         // ===== MOVE =====
         for (let a of this.agents) {
-
             if (!a.locked) {
                 a.pos.x += a.vel.x * this.timeStep;
                 a.pos.z += a.vel.z * this.timeStep;
+
+                // Chống xuyên obstacle sau khi di chuyển.
+                for (let i = 0; i < this.obstacleSolveIterations; i++) {
+                    this.pushAgentOutOfObstacles(a);
+                }
             }
 
-            if (this.useBounds) {
-                a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
-                a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
-            }
+            this.clampToBattlefield(a);
         }
 
         this.buildGrid();
 
-        // ===== HARD SEPARATION =====
+        // ===== HARD SEPARATION: AGENT-AGENT =====
         for (let a of this.agents) {
-
-            const neighbors = this.getNeighbors(a);
+            const neighbors = this.getNeighbors(a); 
 
             for (let b of neighbors) {
-
                 const dx = b.pos.x - a.pos.x;
                 const dz = b.pos.z - a.pos.z;
 
@@ -306,7 +472,6 @@ export class RVOSimulator {
                 if (distSq < 0.0001) continue;
 
                 if (distSq < minDist * minDist) {
-
                     const dist = Math.sqrt(distSq);
                     const overlap = (minDist - dist) * 0.5;
 
@@ -326,12 +491,19 @@ export class RVOSimulator {
             }
         }
 
-        // ===== clamp again =====
-        if (this.useBounds) {
-            for (let a of this.agents) {
-                a.pos.x = Math.max(this.minX + a.radius, Math.min(this.maxX - a.radius, a.pos.x));
-                a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
+        // ===== HARD SEPARATION: OBSTACLE AGAIN =====
+        // Sau agent-agent separation, agent có thể bị đẩy lấn vào obstacle,
+        // nên cần solve obstacle thêm lần nữa.
+        for (let a of this.agents) {
+            if (a.locked) continue;
+
+            for (let i = 0; i < this.obstacleSolveIterations; i++) {
+                this.pushAgentOutOfObstacles(a);
             }
+
+            this.clampToBattlefield(a);
         }
+
+        this.buildGrid();
     }
 }

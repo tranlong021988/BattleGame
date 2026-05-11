@@ -565,12 +565,12 @@
       "__id__": 35
     },
     "moveSpeed": 7,
-    "radius": 0.5,
-    "attackRange": 1,
+    "radius": 0.8,
+    "attackRange": 1.6,
     "rotationSpeed": 20,
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
-    "visualThreshold": 0.05,
+    "visualThreshold": 0.03,
     "enemy": null,
     "_id": ""
   },
