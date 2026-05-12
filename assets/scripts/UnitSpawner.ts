@@ -86,7 +86,7 @@ export class UnitSpawner extends Component {
         unit.enemy = null;
         unit.onBusy = false;
 
-        node.removeFromParent();
+        //node.removeFromParent();
         node.active = false;
 
         const pool = this.getPool(prefab);

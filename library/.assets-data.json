@@ -72,7 +72,8 @@
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "362a6ce2-8e20-4944-8fed-7f2fa95db536",
-        "c92714ee-b02f-44a4-ac0b-25e52948a19f"
+        "c92714ee-b02f-44a4-ac0b-25e52948a19f",
+        "447a22c2-f685-4b14-bc2d-8d4b81383823"
       ]
     },
     "versionCode": 2
@@ -92,7 +93,8 @@
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "362a6ce2-8e20-4944-8fed-7f2fa95db536",
-        "c92714ee-b02f-44a4-ac0b-25e52948a19f"
+        "c92714ee-b02f-44a4-ac0b-25e52948a19f",
+        "447a22c2-f685-4b14-bc2d-8d4b81383823"
       ]
     },
     "versionCode": 2
@@ -609,6 +611,11 @@
     "value": {
       "depends": []
     },
+    "versionCode": 1
+  },
+  "447a22c2-f685-4b14-bc2d-8d4b81383823": {
+    "url": "db://assets/scripts/UnitBehavior.ts",
+    "value": {},
     "versionCode": 1
   }
 }

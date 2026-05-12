@@ -38,10 +38,13 @@
       },
       {
         "__id__": 39
+      },
+      {
+        "__id__": 41
       }
     ],
     "_prefab": {
-      "__id__": 41
+      "__id__": 43
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -579,7 +582,7 @@
     },
     "moveSpeed": 7,
     "radius": 0.8,
-    "attackRange": 1.6,
+    "attackRange": 1.65,
     "rotationSpeed": 20,
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
@@ -622,13 +625,34 @@
     "__prefab": {
       "__id__": 40
     },
-    "health": 3,
+    "health": 100,
     "damage": 1,
     "_id": ""
   },
   {
     "__type__": "cc.CompPrefabInfo",
     "fileId": "4643VSUaZAT7+DbZou+7yK"
+  },
+  {
+    "__type__": "447a2LC9oVLFLwtjUuBODgj",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 42
+    },
+    "gameManager": null,
+    "props": null,
+    "enemyProps": null,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "b6FGL+psRAFogAK8W4S2/3"
   },
   {
     "__type__": "cc.PrefabInfo",

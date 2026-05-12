@@ -5,6 +5,7 @@ import { RVOSimulator } from './rvo/RVO';
 import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
 import { UnitSpawner } from './UnitSpawner';
+import { UnitBehavior } from './UnitBehavior';
 
 const { ccclass, property } = _decorator;
 
@@ -120,6 +121,7 @@ export class GameManager extends Component {
         );
 
         this.teamA.push(unit);
+        unit.getComponent(UnitBehavior).gameManager = this;
         EnemyFinder.teamA = this.teamA;
 
         return unit;
@@ -135,6 +137,7 @@ export class GameManager extends Component {
         );
 
         this.teamB.push(unit);
+        unit.getComponent(UnitBehavior).gameManager = this;
         EnemyFinder.teamB = this.teamB;
 
         return unit;

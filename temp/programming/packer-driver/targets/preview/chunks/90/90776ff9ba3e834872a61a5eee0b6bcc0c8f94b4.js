@@ -109,8 +109,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
 
           unit.enemy = null;
-          unit.onBusy = false;
-          node.removeFromParent();
+          unit.onBusy = false; //node.removeFromParent();
+
           node.active = false;
           var pool = this.getPool(prefab);
           pool.push(node);
