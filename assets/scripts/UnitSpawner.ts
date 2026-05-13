@@ -2,6 +2,8 @@ import { _decorator, Component, Prefab, Node, instantiate, Vec3 } from 'cc';
 import { Unit } from './Unit';
 import { EnemyFinder } from './EnemyFinder';
 import { RVOSimulator } from './rvo/RVO';
+import { UnitProps } from './UnitProps';
+import { UnitBehavior } from './UnitBehavior';
 
 const { ccclass } = _decorator;
 
@@ -10,7 +12,6 @@ export class UnitSpawner extends Component {
 
     private sim!: RVOSimulator;
 
-    // pool theo prefab
     private pools: Map<string, Node[]> = new Map();
 
     init(sim: RVOSimulator) {
@@ -18,7 +19,6 @@ export class UnitSpawner extends Component {
     }
 
     private getPool(prefab: Prefab): Node[] {
-
         const key = prefab.uuid;
 
         let pool = this.pools.get(key);
@@ -32,7 +32,6 @@ export class UnitSpawner extends Component {
     }
 
     private getNode(prefab: Prefab): Node {
-
         const pool = this.getPool(prefab);
 
         if (pool.length > 0) {
@@ -50,47 +49,63 @@ export class UnitSpawner extends Component {
         team: number,
         parent: Node
     ): Unit {
-
         const node = this.getNode(prefab);
 
-        parent.addChild(node);
+        if (node.parent !== parent) {
+            parent.addChild(node);
+        }
+
         node.setWorldPosition(pos);
+        node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
         node.active = true;
 
         const unit = node.getComponent(Unit)!;
         const finder = node.getComponent(EnemyFinder)!;
+        const props = node.getComponent(UnitProps)!;
+        const behavior = node.getComponent(UnitBehavior);
 
-        // reset state
+        props.resetForSpawn();
+
         unit.enemy = null;
         unit.onBusy = false;
-        node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
         unit.init(this.sim);
-        finder.setTeam(team);
+
+        finder.resetForSpawn(team);
+
+        if (behavior) {
+            behavior.resetForSpawn();
+        }
 
         return unit;
     }
 
     despawnUnit(unit: Unit, prefab: Prefab) {
-
-        if (!unit || !unit.agent) return;
+        if (!unit) return;
 
         const node = unit.node;
 
-        // remove khỏi simulator
-        const idx = this.sim.agents.indexOf(unit.agent);
-        if (idx >= 0) {
-            this.sim.agents.splice(idx, 1);
+        const behavior = node.getComponent(UnitBehavior);
+        if (behavior) {
+            behavior.resetForDespawn();
         }
 
-        // reset state
-        unit.enemy = null;
-        unit.onBusy = false;
+        if (unit.agent) {
+            const idx = this.sim.agents.indexOf(unit.agent);
 
-        //node.removeFromParent();
+            if (idx >= 0) {
+                this.sim.agents.splice(idx, 1);
+            }
+        }
+
+        unit.resetForDespawn();
+
         node.active = false;
 
         const pool = this.getPool(prefab);
-        pool.push(node);
+
+        if (pool.indexOf(node) < 0) {
+            pool.push(node);
+        }
     }
 
     clearPool() {

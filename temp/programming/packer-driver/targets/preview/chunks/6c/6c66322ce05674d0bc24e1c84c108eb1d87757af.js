@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, instantiate, Unit, EnemyFinder, _dec, _class, _crd, ccclass, UnitSpawner;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, instantiate, Unit, EnemyFinder, UnitProps, UnitBehavior, _dec, _class, _crd, ccclass, UnitSpawner;
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
@@ -13,6 +13,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
   function _reportPossibleCrUseOfRVOSimulator(extras) {
     _reporterNs.report("RVOSimulator", "./rvo/RVO", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfUnitProps(extras) {
+    _reporterNs.report("UnitProps", "./UnitProps", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfUnitBehavior(extras) {
+    _reporterNs.report("UnitBehavior", "./UnitBehavior", _context.meta, extras);
   }
 
   return {
@@ -29,6 +37,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       Unit = _unresolved_2.Unit;
     }, function (_unresolved_3) {
       EnemyFinder = _unresolved_3.EnemyFinder;
+    }, function (_unresolved_4) {
+      UnitProps = _unresolved_4.UnitProps;
+    }, function (_unresolved_5) {
+      UnitBehavior = _unresolved_5.UnitBehavior;
     }],
     execute: function () {
       _crd = true;
@@ -45,7 +57,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         constructor() {
           super(...arguments);
           this.sim = void 0;
-          // pool theo prefab
           this.pools = new Map();
         }
 
@@ -79,41 +90,65 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         spawnUnit(prefab, pos, team, parent) {
           var node = this.getNode(prefab);
-          parent.addChild(node);
+
+          if (node.parent !== parent) {
+            parent.addChild(node);
+          }
+
           node.setWorldPosition(pos);
+          node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
           node.active = true;
           var unit = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
           var finder = node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
             error: Error()
-          }), EnemyFinder) : EnemyFinder); // reset state
-
+          }), EnemyFinder) : EnemyFinder);
+          var props = node.getComponent(_crd && UnitProps === void 0 ? (_reportPossibleCrUseOfUnitProps({
+            error: Error()
+          }), UnitProps) : UnitProps);
+          var behavior = node.getComponent(_crd && UnitBehavior === void 0 ? (_reportPossibleCrUseOfUnitBehavior({
+            error: Error()
+          }), UnitBehavior) : UnitBehavior);
+          props.resetForSpawn();
           unit.enemy = null;
           unit.onBusy = false;
-          node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
           unit.init(this.sim);
-          finder.setTeam(team);
+          finder.resetForSpawn(team);
+
+          if (behavior) {
+            behavior.resetForSpawn();
+          }
+
           return unit;
         }
 
         despawnUnit(unit, prefab) {
-          if (!unit || !unit.agent) return;
-          var node = unit.node; // remove khỏi simulator
+          if (!unit) return;
+          var node = unit.node;
+          var behavior = node.getComponent(_crd && UnitBehavior === void 0 ? (_reportPossibleCrUseOfUnitBehavior({
+            error: Error()
+          }), UnitBehavior) : UnitBehavior);
 
-          var idx = this.sim.agents.indexOf(unit.agent);
+          if (behavior) {
+            behavior.resetForDespawn();
+          }
 
-          if (idx >= 0) {
-            this.sim.agents.splice(idx, 1);
-          } // reset state
+          if (unit.agent) {
+            var idx = this.sim.agents.indexOf(unit.agent);
 
+            if (idx >= 0) {
+              this.sim.agents.splice(idx, 1);
+            }
+          }
 
-          unit.enemy = null;
-          unit.onBusy = false;
-          node.removeFromParent();
+          unit.resetForDespawn();
           node.active = false;
           var pool = this.getPool(prefab);
-          pool.push(node);
+
+          if (pool.indexOf(node) < 0) {
+            pool.push(node);
+          }
         }
 
         clearPool() {

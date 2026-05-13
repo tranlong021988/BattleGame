@@ -1,7 +1,7 @@
-import { _decorator, Component, Tween } from 'cc';
+import { _decorator, Component } from 'cc';
 import { RVOSimulator, RVOAgent } from './rvo/RVO';
-import { GameManager } from './GameManager';
 import { EnemyFinder } from './EnemyFinder';
+import { UnitProps } from './UnitProps';
 
 const { ccclass, property } = _decorator;
 
@@ -18,31 +18,35 @@ export class Unit extends Component {
     @property velThreshold = 0.05;
     @property visualThreshold = 0.03;
 
-    sim!: RVOSimulator;
-    agent!: RVOAgent;
+    sim: RVOSimulator | null = null;
+    agent: RVOAgent | null = null;
 
-    @property enemy: Unit | null = null;
+    enemy: Unit | null = null;
     onBusy = false;
-
     updateOffset = 0;
 
+    props!: UnitProps;
+    finder!: EnemyFinder;
+
     private lastStablePos = { x: 0, z: 0 };
-    private gm!: GameManager;
-    private tween!: Tween;
+
+    onLoad() {
+        this.props = this.getComponent(UnitProps)!;
+        this.finder = this.getComponent(EnemyFinder)!;
+    }
 
     init(sim: RVOSimulator) {
-
-        if (!this.tween) {
-            this.tween = new Tween();
-        }
-
         this.sim = sim;
 
         const p = this.node.worldPosition;
-        this.agent = sim.addAgent(p.x, p.z);
 
+        this.agent = sim.addAgent(p.x, p.z);
         this.agent.maxSpeed = this.moveSpeed;
         this.agent.radius = this.radius;
+        this.agent.locked = false;
+
+        this.enemy = null;
+        this.onBusy = false;
 
         this.updateOffset = Math.floor(Math.random() * 1000);
 
@@ -50,12 +54,24 @@ export class Unit extends Component {
         this.lastStablePos.z = p.z;
     }
 
-    setEnemy(e: Unit | null) {
+    resetForDespawn() {
+        this.enemy = null;
+        this.onBusy = false;
 
-        // Đang engage rồi thì EnemyFinder không được đổi target nữa
-        if (this.onBusy) {
-            return;
+        if (this.agent) {
+            this.agent.locked = false;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
         }
+
+        this.agent = null;
+        this.sim = null;
+    }
+
+    setEnemy(e: Unit | null) {
+        if (this.onBusy) return;
 
         this.enemy = e;
 
@@ -64,23 +80,32 @@ export class Unit extends Component {
         }
     }
 
-    update() {
+    clearEnemy() {
+        this.enemy = null;
+        this.onBusy = false;
 
-        if (this.gm == null) {
-            this.gm = this.node.scene.getComponentInChildren(GameManager)!;
+        if (this.agent) {
+            this.agent.locked = false;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
         }
+    }
 
-        if (!this.gm || !this.agent) return;
+    update() {
+        if (!this.sim || !this.agent) return;
 
-        // ==========================================================
-        // 0. ENGAGED
-        // ==========================================================
+        // ===== ENGAGED =====
         if (this.onBusy) {
-
-            if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
-                this.onBusy = false;
-                this.agent.locked = false;
-                this.enemy = null;
+            if (
+                !this.enemy ||
+                !this.enemy.node.activeInHierarchy ||
+                !this.enemy.agent ||
+                !this.enemy.props ||
+                this.enemy.props.isDead()
+            ) {
+                this.clearEnemy();
             } else {
                 this.lookAtEnemyInstant();
 
@@ -92,28 +117,18 @@ export class Unit extends Component {
             }
         }
 
-        const vx = this.agent.vel.x;
-        const vz = this.agent.vel.z;
-        const speedSq = vx * vx + vz * vz;
-
-        if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
-
-            if (speedSq < this.velThreshold * this.velThreshold) {
-                return;
-            }
-
-            this.sync();
-            return;
-        }
-
-        // clear invalid target
-        if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+        // Clear invalid target
+        if (
+            !this.enemy ||
+            !this.enemy.node.activeInHierarchy ||
+            !this.enemy.agent ||
+            !this.enemy.props ||
+            this.enemy.props.isDead()
+        ) {
             this.enemy = null;
         }
 
-        // ==========================================================
-        // 1. ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE
-        // ==========================================================
+        // ===== ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE =====
         const attackRangeSq = this.attackRange * this.attackRange;
         const enemies = this.getEnemyList();
 
@@ -121,12 +136,12 @@ export class Unit extends Component {
         let nearestDistSq = Infinity;
 
         for (let i = 0; i < enemies.length; i++) {
-
             const e = enemies[i];
 
             if (!e || e === this) continue;
             if (!e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
+            if (!e.props || e.props.isDead()) continue;
 
             const dx = e.agent.pos.x - this.agent.pos.x;
             const dz = e.agent.pos.z - this.agent.pos.z;
@@ -139,7 +154,6 @@ export class Unit extends Component {
         }
 
         if (nearestInRange) {
-
             this.enemy = nearestInRange;
             this.onBusy = true;
             this.agent.locked = true;
@@ -153,11 +167,8 @@ export class Unit extends Component {
             return;
         }
 
-        // ==========================================================
-        // 2. CHASE CURRENT TARGET
-        // ==========================================================
+        // ===== CHASE CURRENT TARGET =====
         if (this.enemy && this.enemy.agent) {
-
             const dx = this.enemy.agent.pos.x - this.agent.pos.x;
             const dz = this.enemy.agent.pos.z - this.agent.pos.z;
 
@@ -171,24 +182,22 @@ export class Unit extends Component {
                     (dz / dist) * this.agent.maxSpeed
                 );
             }
+        } else {
+            this.sim.setPrefVelocity(this.agent, 0, 0);
         }
 
         this.sync();
     }
 
     private getEnemyList() {
-        const finder = this.getComponent(EnemyFinder)!;
-
-        return finder['team'] === 0
+        return this.finder.getTeam() === 0
             ? EnemyFinder.teamB
             : EnemyFinder.teamA;
     }
 
     private lookAtEnemyInstant() {
-
-        if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
-            return;
-        }
+        if (!this.agent) return;
+        if (!this.enemy || !this.enemy.agent) return;
 
         const dx = this.enemy.agent.pos.x - this.agent.pos.x;
         const dz = this.enemy.agent.pos.z - this.agent.pos.z;
@@ -202,6 +211,7 @@ export class Unit extends Component {
     }
 
     private sync() {
+        if (!this.agent) return;
 
         const current = this.node.worldPosition;
 
@@ -248,7 +258,6 @@ export class Unit extends Component {
     }
 
     private lerpAngle(a: number, b: number, t: number) {
-
         let diff = (b - a) % 360;
 
         if (diff > 180) diff -= 360;

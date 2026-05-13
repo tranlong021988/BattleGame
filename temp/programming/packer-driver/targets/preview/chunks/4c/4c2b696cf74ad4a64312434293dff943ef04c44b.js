@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -33,6 +33,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("UnitSpawner", "./UnitSpawner", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfUnitBehavior(extras) {
+    _reporterNs.report("UnitBehavior", "./UnitBehavior", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -54,6 +58,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       ObstacleRect = _unresolved_5.ObstacleRect;
     }, function (_unresolved_6) {
       UnitSpawner = _unresolved_6.UnitSpawner;
+    }, function (_unresolved_7) {
+      UnitBehavior = _unresolved_7.UnitBehavior;
     }],
     execute: function () {
       _crd = true;
@@ -97,9 +103,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.frame = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor9, this);
+          // ===== Auto spawn wave test =====
+          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor9, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor10, this);
+          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor10, this);
+
+          _initializerDefineProperty(this, "minNumUnit", _descriptor11, this);
+
+          _initializerDefineProperty(this, "maxNumUnit", _descriptor12, this);
+
+          _initializerDefineProperty(this, "teamASpawnZ", _descriptor13, this);
+
+          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor14, this);
+
+          _initializerDefineProperty(this, "spawnAreaWidth", _descriptor15, this);
+
+          this.spawnWaveTimer = 0;
+
+          _initializerDefineProperty(this, "circleObstacles", _descriptor16, this);
+
+          _initializerDefineProperty(this, "rectObstacles", _descriptor17, this);
 
           this.sim = new (_crd && RVOSimulator === void 0 ? (_reportPossibleCrUseOfRVOSimulator({
             error: Error()
@@ -110,12 +133,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         start() {
-          this.sim.setBattlefield(this.battleMinX, this.battleMaxX, this.battleMinZ, this.battleMaxZ); // ===== Spawner =====
-
+          this.teamA.length = 0;
+          this.teamB.length = 0;
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
+          this.sim.setBattlefield(this.battleMinX, this.battleMaxX, this.battleMinZ, this.battleMaxZ);
           this.spawner = this.getComponent(_crd && UnitSpawner === void 0 ? (_reportPossibleCrUseOfUnitSpawner({
             error: Error()
           }), UnitSpawner) : UnitSpawner);
-          this.spawner.init(this.sim); // ===== Obstacles =====
+          this.spawner.init(this.sim);
 
           for (var ob of this.circleObstacles) {
             var p = ob.node.worldPosition;
@@ -126,9 +156,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var _p = _ob.node.worldPosition;
             var angle = _ob.node.eulerAngles.y * Math.PI / 180;
             this.sim.addRectObstacle(_p.x, _p.z, _ob.halfWidth, _ob.halfHeight, angle);
-          } // ===== Demo spawn =====
+          } // Spawn test ban đầu, giữ nguyên logic cũ
+          //this.spawnTest1();
+
+        }
+
+        update(deltaTime) {
+          this.frame++;
+
+          if (this.frame % this.updateInterval === 0) {
+            this.sim.step();
+          }
+
+          if (this.enableAutoSpawn) {
+            this.updateAutoSpawn(deltaTime);
+          }
+        } // =====================================================
+        // Test spawn ban đầu
+        // =====================================================
 
 
+        spawnTest1() {
           var spacing = 1.5;
           var width = 12;
 
@@ -148,14 +196,57 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             this.spawnTeamB(_pos);
           }
+        } // =====================================================
+        // Auto spawn wave
+        // =====================================================
+
+
+        updateAutoSpawn(deltaTime) {
+          this.spawnWaveTimer += deltaTime;
+
+          if (this.spawnWaveTimer < this.spawnWaveInterval) {
+            return;
+          }
+
+          this.spawnWaveTimer = 0;
+          this.spawnRandomWaveBothTeams();
         }
 
-        update() {
-          this.frame++;
+        spawnRandomWaveBothTeams() {
+          var countA = this.randomInt(this.minNumUnit, this.maxNumUnit);
+          var countB = this.randomInt(this.minNumUnit, this.maxNumUnit);
+          this.spawnRandomUnitsForTeam(0, countA);
+          this.spawnRandomUnitsForTeam(1, countB);
+        }
 
-          if (this.frame % this.updateInterval === 0) {
-            this.sim.step();
+        spawnRandomUnitsForTeam(team, count) {
+          for (var i = 0; i < count; i++) {
+            var x = this.randomRange(-this.spawnAreaWidth * 0.5, this.spawnAreaWidth * 0.5);
+            var zJitter = this.randomRange(-1.5, 1.5);
+
+            if (team === 0) {
+              this.spawnTeamA(new Vec3(x, 0, this.teamASpawnZ + zJitter));
+            } else {
+              this.spawnTeamB(new Vec3(x, 0, this.teamBSpawnZ + zJitter));
+            }
           }
+        }
+
+        randomInt(min, max) {
+          min = Math.floor(min);
+          max = Math.floor(max);
+
+          if (max < min) {
+            var t = min;
+            min = max;
+            max = t;
+          }
+
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        randomRange(min, max) {
+          return Math.random() * (max - min) + min;
         } // =====================================================
         // Runtime API
         // =====================================================
@@ -163,7 +254,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         spawnTeamA(pos) {
           var unit = this.spawner.spawnUnit(this.prefabA, pos, 0, this.node);
-          this.teamA.push(unit);
+
+          if (this.teamA.indexOf(unit) < 0) {
+            this.teamA.push(unit);
+          }
+
+          var behavior = unit.getComponent(_crd && UnitBehavior === void 0 ? (_reportPossibleCrUseOfUnitBehavior({
+            error: Error()
+          }), UnitBehavior) : UnitBehavior);
+
+          if (behavior) {
+            behavior.gameManager = this;
+          }
+
           (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
             error: Error()
           }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
@@ -172,7 +275,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         spawnTeamB(pos) {
           var unit = this.spawner.spawnUnit(this.prefabB, pos, 1, this.node);
-          this.teamB.push(unit);
+
+          if (this.teamB.indexOf(unit) < 0) {
+            this.teamB.push(unit);
+          }
+
+          var behavior = unit.getComponent(_crd && UnitBehavior === void 0 ? (_reportPossibleCrUseOfUnitBehavior({
+            error: Error()
+          }), UnitBehavior) : UnitBehavior);
+
+          if (behavior) {
+            behavior.gameManager = this;
+          }
+
           (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
             error: Error()
           }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
@@ -185,10 +300,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (idxA >= 0) {
             this.teamA.splice(idxA, 1);
-            this.spawner.despawnUnit(unit, this.prefabA);
             (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
               error: Error()
             }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
+            this.spawner.despawnUnit(unit, this.prefabA);
             return;
           }
 
@@ -196,10 +311,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (idxB >= 0) {
             this.teamB.splice(idxB, 1);
-            this.spawner.despawnUnit(unit, this.prefabB);
             (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
               error: Error()
             }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
+            this.spawner.despawnUnit(unit, this.prefabB);
             return;
           }
         }
@@ -256,14 +371,63 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec4], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "enableAutoSpawn", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "spawnWaveInterval", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 3;
+        }
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "minNumUnit", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1;
+        }
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "maxNumUnit", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 5;
+        }
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "teamASpawnZ", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return -20;
+        }
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "teamBSpawnZ", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 20;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "spawnAreaWidth", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 18;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec5], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,

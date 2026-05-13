@@ -12,13 +12,19 @@ export class EnemyFinder extends Component {
     @property
     updateInterval = 30;
 
-    private updateOffset = 0;
-    private team = 0;
     private unit!: Unit;
-    private frame = 0;
 
-    start() {
+    private team = 0;
+    private frame = 0;
+    private updateOffset = 0;
+
+    onLoad() {
         this.unit = this.getComponent(Unit)!;
+    }
+
+    resetForSpawn(team: number) {
+        this.team = team;
+        this.frame = 0;
         this.updateOffset = Math.floor(Math.random() * 1000);
     }
 
@@ -26,7 +32,14 @@ export class EnemyFinder extends Component {
         this.team = team;
     }
 
+    getTeam() {
+        return this.team;
+    }
+
     update() {
+        if (!this.node.activeInHierarchy) return;
+        if (!this.unit.agent) return;
+        if (this.unit.onBusy) return;
 
         this.frame++;
 
@@ -34,15 +47,12 @@ export class EnemyFinder extends Component {
             return;
         }
 
-        if (!this.unit || !this.unit.agent || this.unit.onBusy) {
-            return;
-        }
-
-        // Nếu đã có target chase hợp lệ thì giữ nguyên, không đổi liên tục
         if (
             this.unit.enemy &&
             this.unit.enemy.node.activeInHierarchy &&
-            this.unit.enemy.agent
+            this.unit.enemy.agent &&
+            this.unit.enemy.props &&
+            !this.unit.enemy.props.isDead()
         ) {
             return;
         }
@@ -55,11 +65,12 @@ export class EnemyFinder extends Component {
         let bestDist = Infinity;
 
         for (let i = 0; i < enemies.length; i++) {
-
             const e = enemies[i];
 
-            if (!e || !e.node.activeInHierarchy) continue;
+            if (!e || e === this.unit) continue;
+            if (!e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
+            if (!e.props || e.props.isDead()) continue;
 
             const dx = e.agent.pos.x - this.unit.agent.pos.x;
             const dz = e.agent.pos.z - this.unit.agent.pos.z;

@@ -1,46 +1,87 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, Component } from 'cc';
 import { GameManager } from './GameManager';
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
+
 const { ccclass, property } = _decorator;
 
 @ccclass('UnitBehavior')
 export class UnitBehavior extends Component {
-    @property(GameManager)
-    public gameManager:GameManager = null!;
-    @property(UnitProps)
-    public props:UnitProps = null!;
-    @property(UnitProps)
-    public enemyProps:UnitProps = null;
-    private unit:Unit;
-    private strikeInterval = 0;
 
-    start() {
-        this.unit = this.getComponent(Unit);
-        this.props = this.getComponent(UnitProps);
+    @property(GameManager)
+    public gameManager: GameManager = null!;
+
+    @property
+    public attackInterval: number = 0.5;
+
+    private unit!: Unit;
+    private props!: UnitProps;
+
+    private attackTimer = 0;
+    private deadHandled = false;
+
+    onLoad() {
+        this.unit = this.getComponent(Unit)!;
+        this.props = this.getComponent(UnitProps)!;
+    }
+
+    resetForSpawn() {
+        this.attackTimer = 0;
+        this.deadHandled = false;
+    }
+
+    resetForDespawn() {
+        this.attackTimer = 0;
+        this.deadHandled = true;
     }
 
     update(deltaTime: number) {
-        
-        if(this.unit.onBusy){
-            this.strikeInterval++;
-            if(this.strikeInterval>10){
-                this.strikeInterval = 0;
-                 if(this.enemyProps==null){     
-                    this.enemyProps = this.unit.enemy.getComponent(UnitProps);
-                }
-                this.enemyProps.health-=10;      
-            }
-        }else{
-            this.strikeInterval = 0;
-            if(this.enemyProps!=null){this.enemyProps=null;}
+        if (!this.node.activeInHierarchy) return;
+
+        // ===== DEAD =====
+        if (this.props.isDead()) {
+            this.handleDeath();
+            return;
         }
-        if(this.props.health<=0){
-            this.strikeInterval = 0;
-            this.enemyProps = null;
+
+        // ===== NOT ATTACKING =====
+        if (!this.unit.onBusy) {
+            this.attackTimer = 0;
+            return;
+        }
+
+        const enemy = this.unit.enemy;
+
+        if (!enemy || !enemy.node.activeInHierarchy || !enemy.props) {
+            this.unit.clearEnemy();
+            this.attackTimer = 0;
+            return;
+        }
+
+        if (enemy.props.isDead()) {
+            this.unit.clearEnemy();
+            this.attackTimer = 0;
+            return;
+        }
+
+        this.attackTimer += deltaTime;
+
+        if (this.attackTimer >= this.attackInterval) {
+            this.attackTimer = 0;
+            enemy.props.takeDamage(this.props.damage);
+        }
+    }
+
+    private handleDeath() {
+        if (this.deadHandled) return;
+
+        this.deadHandled = true;
+        this.attackTimer = 0;
+
+        this.unit.clearEnemy();
+
+        if (this.gameManager) {
             this.gameManager.despawnUnit(this.unit);
         }
     }
 }
-
-

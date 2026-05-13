@@ -574,7 +574,6 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
-    "enemy": null,
     "_id": ""
   },
   {
@@ -612,8 +611,9 @@
     "__prefab": {
       "__id__": 39
     },
-    "health": 100,
-    "damage": 1,
+    "maxHealth": 30,
+    "health": 30,
+    "damage": 5,
     "_id": ""
   },
   {
@@ -633,8 +633,7 @@
       "__id__": 41
     },
     "gameManager": null,
-    "props": null,
-    "enemyProps": null,
+    "attackInterval": 0.5,
     "_id": ""
   },
   {

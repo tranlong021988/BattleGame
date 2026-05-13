@@ -496,8 +496,15 @@
     "battleMaxX": 6.5,
     "battleMinZ": -50,
     "battleMaxZ": 50,
-    "count": 50,
+    "count": 5,
     "updateInterval": 2,
+    "enableAutoSpawn": true,
+    "spawnWaveInterval": 5,
+    "minNumUnit": 1,
+    "maxNumUnit": 12,
+    "teamASpawnZ": -30,
+    "teamBSpawnZ": 30,
+    "spawnAreaWidth": 12,
     "circleObstacles": [
       {
         "__id__": 13
@@ -549,7 +556,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -2.029,
+      "x": -1.045,
       "y": 0,
       "z": 5.857
     },
@@ -665,7 +672,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 2.68,
+      "x": 3.664,
       "y": 0,
       "z": -2.875
     },
@@ -781,7 +788,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -1.45,
+      "x": -0.466,
       "y": 0,
       "z": -9.346
     },
@@ -897,7 +904,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -3.462,
+      "x": -2.478,
       "y": 0,
       "z": 15.973
     },
