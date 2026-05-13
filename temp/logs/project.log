@@ -7943,3 +7943,8 @@ export class Foo {            //  ↓
     at IpcRenderer.emit (node:events:519:28)
     at Object.onMessage (node:electron/js2c/renderer_init:2:8837)
 5-13-2026 23:50:46 - info: [PreviewInEditor] preview process is ready
+5-14-2026 00:03:12 - warn: Object has been destroyedTypeError: Object has been destroyed
+    at WebContents._.send (node:electron/js2c/browser_init:2:74130)
+    at WindowSender.immediately (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-base-ipc\dist\sender.ccc:1:2082)
+    at Immediate._onImmediate (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-base-ipc\dist\sender.ccc:1:2008)
+    at processImmediate (node:internal/timers:478:21)
