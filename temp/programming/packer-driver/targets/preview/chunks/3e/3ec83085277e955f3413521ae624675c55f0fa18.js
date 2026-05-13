@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, _dec, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, UnitProps;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _crd, ccclass, property, UnitProps;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -22,7 +22,7 @@ System.register(["cc"], function (_export, _context) {
 
       _cclegacy._RF.push({}, "c9271TusC9EpKwLJeUpSKGf", "UnitProps", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Node']);
+      __checkObsolete__(['_decorator', 'Component']);
 
       ({
         ccclass,
@@ -33,21 +33,45 @@ System.register(["cc"], function (_export, _context) {
         constructor() {
           super(...arguments);
 
-          _initializerDefineProperty(this, "health", _descriptor, this);
+          _initializerDefineProperty(this, "maxHealth", _descriptor, this);
 
-          _initializerDefineProperty(this, "damage", _descriptor2, this);
+          _initializerDefineProperty(this, "health", _descriptor2, this);
+
+          _initializerDefineProperty(this, "damage", _descriptor3, this);
         }
 
-        start() {}
+        resetForSpawn() {
+          this.health = this.maxHealth;
+        }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "health", [property], {
+        isDead() {
+          return this.health <= 0;
+        }
+
+        takeDamage(amount) {
+          if (this.isDead()) return;
+          this.health -= amount;
+
+          if (this.health < 0) {
+            this.health = 0;
+          }
+        }
+
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "maxHealth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 3;
+          return 30;
         }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "health", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 30;
+        }
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

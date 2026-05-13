@@ -43,16 +43,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "updateInterval", _descriptor, this);
 
-          this.updateOffset = 0;
-          this.team = 0;
           this.unit = void 0;
+          this.team = 0;
           this.frame = 0;
+          this.updateOffset = 0;
         }
 
-        start() {
+        onLoad() {
           this.unit = this.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
+        }
+
+        resetForSpawn(team) {
+          this.team = team;
+          this.frame = 0;
           this.updateOffset = Math.floor(Math.random() * 1000);
         }
 
@@ -60,19 +65,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.team = team;
         }
 
+        getTeam() {
+          return this.team;
+        }
+
         update() {
+          if (!this.node.activeInHierarchy) return;
+          if (!this.unit.agent) return;
+          if (this.unit.onBusy) return;
           this.frame++;
 
           if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {
             return;
           }
 
-          if (!this.unit || !this.unit.agent || this.unit.onBusy) {
-            return;
-          } // Nếu đã có target chase hợp lệ thì giữ nguyên, không đổi liên tục
-
-
-          if (this.unit.enemy && this.unit.enemy.node.activeInHierarchy && this.unit.enemy.agent) {
+          if (this.unit.enemy && this.unit.enemy.node.activeInHierarchy && this.unit.enemy.agent && this.unit.enemy.props && !this.unit.enemy.props.isDead()) {
             return;
           }
 
@@ -82,8 +89,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
-            if (!e || !e.node.activeInHierarchy) continue;
+            if (!e || e === this.unit) continue;
+            if (!e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
+            if (!e.props || e.props.isDead()) continue;
             var dx = e.agent.pos.x - this.unit.agent.pos.x;
             var dz = e.agent.pos.z - this.unit.agent.pos.z;
             var d = dx * dx + dz * dz;

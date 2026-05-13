@@ -500,7 +500,7 @@
     "updateInterval": 2,
     "enableAutoSpawn": true,
     "spawnWaveInterval": 5,
-    "minNumUnit": 1,
+    "minNumUnit": 2,
     "maxNumUnit": 12,
     "teamASpawnZ": -30,
     "teamBSpawnZ": 30,
@@ -556,7 +556,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -1.045,
+      "x": 8.033,
       "y": 0,
       "z": 5.857
     },
@@ -672,9 +672,9 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 3.664,
+      "x": 9.707,
       "y": 0,
-      "z": -2.875
+      "z": -6.134
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -788,9 +788,9 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -0.466,
+      "x": -12.284,
       "y": 0,
-      "z": -9.346
+      "z": -3.399
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -904,7 +904,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -2.478,
+      "x": -12.379,
       "y": 0,
       "z": 15.973
     },

@@ -582,7 +582,7 @@
     },
     "moveSpeed": 7,
     "radius": 0.8,
-    "attackRange": 1.65,
+    "attackRange": 1.7,
     "rotationSpeed": 20,
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
@@ -626,7 +626,7 @@
     },
     "maxHealth": 30,
     "health": 30,
-    "damage": 5,
+    "damage": 10,
     "_id": ""
   },
   {

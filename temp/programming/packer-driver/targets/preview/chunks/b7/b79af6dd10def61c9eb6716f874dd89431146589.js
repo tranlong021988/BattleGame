@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Tween, GameManager, EnemyFinder, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, EnemyFinder, UnitProps, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -17,12 +17,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
     _reporterNs.report("RVOAgent", "./rvo/RVO", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfGameManager(extras) {
-    _reporterNs.report("GameManager", "./GameManager", _context.meta, extras);
-  }
-
   function _reportPossibleCrUseOfEnemyFinder(extras) {
     _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfUnitProps(extras) {
+    _reporterNs.report("UnitProps", "./UnitProps", _context.meta, extras);
   }
 
   return {
@@ -34,18 +34,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
-      Tween = _cc.Tween;
     }, function (_unresolved_2) {
-      GameManager = _unresolved_2.GameManager;
+      EnemyFinder = _unresolved_2.EnemyFinder;
     }, function (_unresolved_3) {
-      EnemyFinder = _unresolved_3.EnemyFinder;
+      UnitProps = _unresolved_3.UnitProps;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "6e964qkrR5F2YvWvH5N+eXO", "Unit", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Tween']);
+      __checkObsolete__(['_decorator', 'Component']);
 
       ({
         ccclass,
@@ -70,42 +69,60 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "visualThreshold", _descriptor7, this);
 
-          this.sim = void 0;
-          this.agent = void 0;
-
-          _initializerDefineProperty(this, "enemy", _descriptor8, this);
-
+          this.sim = null;
+          this.agent = null;
+          this.enemy = null;
           this.onBusy = false;
           this.updateOffset = 0;
+          this.props = void 0;
+          this.finder = void 0;
           this.lastStablePos = {
             x: 0,
             z: 0
           };
-          this.gm = void 0;
-          this.tween = void 0;
+        }
+
+        onLoad() {
+          this.props = this.getComponent(_crd && UnitProps === void 0 ? (_reportPossibleCrUseOfUnitProps({
+            error: Error()
+          }), UnitProps) : UnitProps);
+          this.finder = this.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder);
         }
 
         init(sim) {
-          if (!this.tween) {
-            this.tween = new Tween();
-          }
-
           this.sim = sim;
           var p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
           this.agent.maxSpeed = this.moveSpeed;
           this.agent.radius = this.radius;
+          this.agent.locked = false;
+          this.enemy = null;
+          this.onBusy = false;
           this.updateOffset = Math.floor(Math.random() * 1000);
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
         }
 
-        setEnemy(e) {
-          // Đang engage rồi thì EnemyFinder không được đổi target nữa
-          if (this.onBusy) {
-            return;
+        resetForDespawn() {
+          this.enemy = null;
+          this.onBusy = false;
+
+          if (this.agent) {
+            this.agent.locked = false;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
           }
 
+          this.agent = null;
+          this.sim = null;
+        }
+
+        setEnemy(e) {
+          if (this.onBusy) return;
           this.enemy = e;
 
           if (this.enemy && this.enemy.agent) {
@@ -113,22 +130,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        update() {
-          if (this.gm == null) {
-            this.gm = this.node.scene.getComponentInChildren(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-              error: Error()
-            }), GameManager) : GameManager);
-          }
+        clearEnemy() {
+          this.enemy = null;
+          this.onBusy = false;
 
-          if (!this.gm || !this.agent) return; // ==========================================================
-          // 0. ENGAGED
-          // ==========================================================
+          if (this.agent) {
+            this.agent.locked = false;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+          }
+        }
+
+        update() {
+          if (!this.sim || !this.agent) return; // ===== ENGAGED =====
 
           if (this.onBusy) {
-            if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
-              this.onBusy = false;
-              this.agent.locked = false;
-              this.enemy = null;
+            if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
+              this.clearEnemy();
             } else {
               this.lookAtEnemyInstant();
               this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -136,27 +156,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.agent.vel.z = 0;
               return;
             }
-          }
-
-          var vx = this.agent.vel.x;
-          var vz = this.agent.vel.z;
-          var speedSq = vx * vx + vz * vz;
-
-          if ((this.gm.frame + this.updateOffset) % this.gm.updateInterval !== 0) {
-            if (speedSq < this.velThreshold * this.velThreshold) {
-              return;
-            }
-
-            this.sync();
-            return;
-          } // clear invalid target
+          } // Clear invalid target
 
 
-          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
+          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
             this.enemy = null;
-          } // ==========================================================
-          // 1. ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE
-          // ==========================================================
+          } // ===== ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE =====
 
 
           var attackRangeSq = this.attackRange * this.attackRange;
@@ -169,6 +174,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!e || e === this) continue;
             if (!e.node.activeInHierarchy) continue;
             if (!e.agent) continue;
+            if (!e.props || e.props.isDead()) continue;
             var dx = e.agent.pos.x - this.agent.pos.x;
             var dz = e.agent.pos.z - this.agent.pos.z;
             var d = dx * dx + dz * dz;
@@ -188,9 +194,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             return;
-          } // ==========================================================
-          // 2. CHASE CURRENT TARGET
-          // ==========================================================
+          } // ===== CHASE CURRENT TARGET =====
 
 
           if (this.enemy && this.enemy.agent) {
@@ -204,16 +208,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (dist > 0.0001) {
               this.sim.setPrefVelocity(this.agent, _dx / dist * this.agent.maxSpeed, _dz / dist * this.agent.maxSpeed);
             }
+          } else {
+            this.sim.setPrefVelocity(this.agent, 0, 0);
           }
 
           this.sync();
         }
 
         getEnemyList() {
-          var finder = this.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder);
-          return finder['team'] === 0 ? (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+          return this.finder.getTeam() === 0 ? (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
             error: Error()
           }), EnemyFinder) : EnemyFinder).teamB : (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
             error: Error()
@@ -221,10 +224,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         lookAtEnemyInstant() {
-          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent) {
-            return;
-          }
-
+          if (!this.agent) return;
+          if (!this.enemy || !this.enemy.agent) return;
           var dx = this.enemy.agent.pos.x - this.agent.pos.x;
           var dz = this.enemy.agent.pos.z - this.agent.pos.z;
 
@@ -237,6 +238,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         sync() {
+          if (!this.agent) return;
           var current = this.node.worldPosition;
           var pdx = this.agent.pos.x - current.x;
           var pdz = this.agent.pos.z - current.z;
@@ -317,13 +319,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         writable: true,
         initializer: function initializer() {
           return 0.03;
-        }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enemy", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return null;
         }
       })), _class2)) || _class));
 
