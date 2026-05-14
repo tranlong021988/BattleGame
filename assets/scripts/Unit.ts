@@ -1,4 +1,4 @@
-import { _decorator, Component } from 'cc';
+import { _decorator, Component, Vec3 } from 'cc';
 import { RVOSimulator, RVOAgent } from './rvo/RVO';
 import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
@@ -18,6 +18,12 @@ export class Unit extends Component {
     @property velThreshold = 0.05;
     @property visualThreshold = 0.03;
 
+    @property
+    onForward = true;
+
+    @property(Vec3)
+    forwardDir = new Vec3(0, 0, 1);
+
     sim: RVOSimulator | null = null;
     agent: RVOAgent | null = null;
 
@@ -35,7 +41,7 @@ export class Unit extends Component {
         this.finder = this.getComponent(EnemyFinder)!;
     }
 
-    init(sim: RVOSimulator) {
+    init(sim: RVOSimulator, forwardX: number, forwardZ: number) {
         this.sim = sim;
 
         const p = this.node.worldPosition;
@@ -48,15 +54,34 @@ export class Unit extends Component {
         this.enemy = null;
         this.onBusy = false;
 
+        this.onForward = true;
+        this.setForwardDir(forwardX, forwardZ);
+
         this.updateOffset = Math.floor(Math.random() * 1000);
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
     }
 
+    private setForwardDir(x: number, z: number) {
+        const len = Math.sqrt(x * x + z * z);
+
+        if (len < 0.0001) {
+            this.forwardDir.x = 0;
+            this.forwardDir.y = 0;
+            this.forwardDir.z = 1;
+            return;
+        }
+
+        this.forwardDir.x = x / len;
+        this.forwardDir.y = 0;
+        this.forwardDir.z = z / len;
+    }
+
     resetForDespawn() {
         this.enemy = null;
         this.onBusy = false;
+        this.onForward = true;
 
         if (this.agent) {
             this.agent.locked = false;
@@ -72,6 +97,7 @@ export class Unit extends Component {
 
     setEnemy(e: Unit | null) {
         if (this.onBusy) return;
+        if (this.onForward) return;
 
         this.enemy = e;
 
@@ -117,43 +143,13 @@ export class Unit extends Component {
             }
         }
 
-        // Clear invalid target
-        if (
-            !this.enemy ||
-            !this.enemy.node.activeInHierarchy ||
-            !this.enemy.agent ||
-            !this.enemy.props ||
-            this.enemy.props.isDead()
-        ) {
-            this.enemy = null;
-        }
+        this.clearInvalidEnemy();
 
-        // ===== ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE =====
-        const attackRangeSq = this.attackRange * this.attackRange;
-        const enemies = this.getEnemyList();
-
-        let nearestInRange: Unit | null = null;
-        let nearestDistSq = Infinity;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-
-            if (!e || e === this) continue;
-            if (!e.node.activeInHierarchy) continue;
-            if (!e.agent) continue;
-            if (!e.props || e.props.isDead()) continue;
-
-            const dx = e.agent.pos.x - this.agent.pos.x;
-            const dz = e.agent.pos.z - this.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d <= attackRangeSq && d < nearestDistSq) {
-                nearestDistSq = d;
-                nearestInRange = e;
-            }
-        }
+        // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward
+        const nearestInRange = this.findNearestEnemyInAttackRange();
 
         if (nearestInRange) {
+            this.onForward = false;
             this.enemy = nearestInRange;
             this.onBusy = true;
             this.agent.locked = true;
@@ -167,13 +163,32 @@ export class Unit extends Component {
             return;
         }
 
-        // ===== CHASE CURRENT TARGET =====
+        // ===== FORWARD PHASE =====
+        if (this.onForward) {
+            this.updateForwardPhase();
+
+            if (this.onForward) {
+                this.sim.setPrefVelocity(
+                    this.agent,
+                    this.forwardDir.x * this.agent.maxSpeed,
+                    this.forwardDir.z * this.agent.maxSpeed
+                );
+
+                this.sync();
+                return;
+            }
+        }
+
+        // ===== CHASE PHASE =====
+        if (!this.enemy) {
+            this.enemy = this.findNearestEnemy();
+        }
+
         if (this.enemy && this.enemy.agent) {
             const dx = this.enemy.agent.pos.x - this.agent.pos.x;
             const dz = this.enemy.agent.pos.z - this.agent.pos.z;
 
-            const distSq = dx * dx + dz * dz;
-            const dist = Math.sqrt(distSq);
+            const dist = Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
                 this.sim.setPrefVelocity(
@@ -187,6 +202,118 @@ export class Unit extends Component {
         }
 
         this.sync();
+    }
+
+    private updateForwardPhase() {
+        if (!this.agent) return;
+
+        const nearestEnemy = this.findNearestEnemy();
+
+        if (!nearestEnemy || !nearestEnemy.agent) {
+            return;
+        }
+
+        const myZ = this.agent.pos.z;
+        const enemyZ = nearestEnemy.agent.pos.z;
+
+        if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
+            if (this.forwardDir.z > 0 && myZ >= enemyZ) {
+                this.onForward = false;
+                return;
+            }
+
+            if (this.forwardDir.z < 0 && myZ <= enemyZ) {
+                this.onForward = false;
+                return;
+            }
+        } else {
+            const myX = this.agent.pos.x;
+            const enemyX = nearestEnemy.agent.pos.x;
+
+            if (this.forwardDir.x > 0 && myX >= enemyX) {
+                this.onForward = false;
+                return;
+            }
+
+            if (this.forwardDir.x < 0 && myX <= enemyX) {
+                this.onForward = false;
+                return;
+            }
+        }
+    }
+
+    private clearInvalidEnemy() {
+        if (
+            !this.enemy ||
+            !this.enemy.node.activeInHierarchy ||
+            !this.enemy.agent ||
+            !this.enemy.props ||
+            this.enemy.props.isDead()
+        ) {
+            this.enemy = null;
+        }
+    }
+
+    private findNearestEnemyInAttackRange(): Unit | null {
+        if (!this.agent) return null;
+
+        const attackRangeSq = this.attackRange * this.attackRange;
+        const enemies = this.getEnemyList();
+
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+
+            if (!this.isValidEnemy(e)) continue;
+
+            const dx = e.agent!.pos.x - this.agent.pos.x;
+            const dz = e.agent!.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d <= attackRangeSq && d < bestDistSq) {
+                bestDistSq = d;
+                best = e;
+            }
+        }
+
+        return best;
+    }
+
+    private findNearestEnemy(): Unit | null {
+        if (!this.agent) return null;
+
+        const enemies = this.getEnemyList();
+
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+
+            if (!this.isValidEnemy(e)) continue;
+
+            const dx = e.agent!.pos.x - this.agent.pos.x;
+            const dz = e.agent!.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d < bestDistSq) {
+                bestDistSq = d;
+                best = e;
+            }
+        }
+
+        return best;
+    }
+
+    private isValidEnemy(e: Unit | null): boolean {
+        if (!e || e === this) return false;
+        if (!e.node.activeInHierarchy) return false;
+        if (!e.agent) return false;
+        if (!e.props || e.props.isDead()) return false;
+
+        return true;
     }
 
     private getEnemyList() {

@@ -103,7 +103,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 3
@@ -253,8 +253,8 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 22.642,
-      "y": 24.576,
+      "x": 25,
+      "y": 25,
       "z": 0
     },
     "_lrot": {
@@ -500,7 +500,7 @@
     "updateInterval": 2,
     "enableAutoSpawn": true,
     "spawnWaveInterval": 5,
-    "minNumUnit": 2,
+    "minNumUnit": 11,
     "maxNumUnit": 12,
     "teamASpawnZ": -30,
     "teamBSpawnZ": 30,
@@ -556,9 +556,9 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 8.033,
+      "x": 2.807,
       "y": 0,
-      "z": 5.857
+      "z": 3.832
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -672,9 +672,9 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 9.707,
+      "x": 3.838,
       "y": 0,
-      "z": -6.134
+      "z": -6.06
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -788,9 +788,9 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -12.284,
+      "x": 0,
       "y": 0,
-      "z": -3.399
+      "z": 0
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -904,9 +904,9 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -12.379,
+      "x": -0.83,
       "y": 0,
-      "z": 15.973
+      "z": 11.311
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -1132,7 +1132,7 @@
     "instance": {
       "__id__": 40
     },
-    "targetOverrides": []
+    "targetOverrides": null
   },
   {
     "__type__": "cc.PrefabInstance",

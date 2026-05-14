@@ -574,6 +574,13 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
+    "onForward": true,
+    "forwardDir": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
     "_id": ""
   },
   {
@@ -611,8 +618,8 @@
     "__prefab": {
       "__id__": 39
     },
-    "maxHealth": 30,
-    "health": 30,
+    "maxHealth": 20,
+    "health": 10,
     "damage": 10,
     "_id": ""
   },
@@ -633,7 +640,7 @@
       "__id__": 41
     },
     "gameManager": null,
-    "attackInterval": 0.5,
+    "attackInterval": 0.4,
     "_id": ""
   },
   {
@@ -649,7 +656,7 @@
       "__id__": 0
     },
     "fileId": "d8mT9ldedJ6KOXr6hDv0TP",
-    "targetOverrides": [],
+    "targetOverrides": null,
     "nestedPrefabInstanceRoots": [
       {
         "__id__": 7
