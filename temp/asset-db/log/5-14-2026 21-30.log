@@ -2952,3 +2952,19 @@
 5-14-2026 23:47:18-debug: asset-db:refresh-all-database (80ms)
 5-14-2026 23:47:18-debug: asset-db:worker-effect-data-processing (2ms)
 5-14-2026 23:47:18-debug: asset-db-hook-engine-extends-afterRefresh (3ms)
+5-15-2026 00:18:16-debug: refresh db internal success
+5-15-2026 00:18:16-debug: refresh db assets success
+5-15-2026 00:18:16-debug: Run asset db hook engine-extends:afterRefresh ...
+5-15-2026 00:18:16-debug: Run asset db hook engine-extends:afterRefresh success!
+5-15-2026 00:18:16-debug: asset-db:refresh-all-database (79ms)
+5-15-2026 00:18:16-debug: asset-db-hook-engine-extends-afterRefresh (1ms)
+5-15-2026 00:18:16-debug: asset-db:worker-effect-data-processing (1ms)
+5-15-2026 00:19:08-debug: refresh db internal success
+5-15-2026 00:19:08-debug: refresh db assets success
+5-15-2026 00:19:08-debug: Run asset db hook engine-extends:afterRefresh success!
+5-15-2026 00:19:08-debug: Run asset db hook engine-extends:afterRefresh ...
+5-15-2026 00:19:08-debug: asset-db:worker-effect-data-processing (2ms)
+5-15-2026 00:19:08-debug: asset-db:refresh-all-database (75ms)
+5-15-2026 00:19:08-debug: asset-db-hook-engine-extends-afterRefresh (2ms)
+5-15-2026 00:19:09-debug: %cImport%c: F:\Github\BattleGame\assets\Test.scenebackground: #aaff85; color: #000;color: #000;
+5-15-2026 00:19:09-debug: asset-db:reimport-asset1effe86e-a401-4769-9dbc-62218c68834d (25ms)

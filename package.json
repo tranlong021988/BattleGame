@@ -3,5 +3,11 @@
   "uuid": "748a5039-e144-4991-820e-606c73eac0b5",
   "creator": {
     "version": "3.8.8"
-  }
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  },
+"scripts": {
+  "deploy": "echo. > build/web-mobile/.nojekyll && gh-pages -d build/web-mobile"
+}
 }
