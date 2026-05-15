@@ -1,0 +1,152 @@
+{
+  "ver": "2.3.14",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "af06a989-9772-4057-854e-c2d2b188786b",
+  "files": [],
+  "subMetas": {
+    "30732": {
+      "importer": "gltf-skeleton",
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b@30732",
+      "displayName": "",
+      "id": "30732",
+      "name": "UnnamedSkeleton-0.skeleton",
+      "userData": {
+        "gltfIndex": 0,
+        "jointsLength": 28
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "80c75": {
+      "importer": "gltf-mesh",
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b@80c75",
+      "displayName": "",
+      "id": "80c75",
+      "name": "Mesh.001.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1420
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e2349": {
+      "importer": "gltf-mesh",
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b@e2349",
+      "displayName": "",
+      "id": "e2349",
+      "name": "Mesh.mesh",
+      "userData": {
+        "gltfIndex": 1,
+        "triangleCount": 280
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f1394": {
+      "importer": "gltf-skeleton",
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b@f1394",
+      "displayName": "",
+      "id": "f1394",
+      "name": "UnnamedSkeleton-1.skeleton",
+      "userData": {
+        "gltfIndex": 1,
+        "jointsLength": 28
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "0a7bd": {
+      "importer": "gltf-material",
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b@0a7bd",
+      "displayName": "",
+      "id": "0a7bd",
+      "name": "guard_Mat.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "8d15b": {
+      "importer": "gltf-scene",
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b@8d15b",
+      "displayName": "",
+      "id": "8d15b",
+      "name": "1989_guard.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "af06a989-9772-4057-854e-c2d2b188786b@80c75",
+        "af06a989-9772-4057-854e-c2d2b188786b@e2349"
+      ],
+      "skeletons": [
+        "af06a989-9772-4057-854e-c2d2b188786b@30732",
+        "af06a989-9772-4057-854e-c2d2b188786b@f1394"
+      ],
+      "textures": [],
+      "materials": [
+        "af06a989-9772-4057-854e-c2d2b188786b@0a7bd"
+      ],
+      "scenes": [
+        "af06a989-9772-4057-854e-c2d2b188786b@8d15b"
+      ]
+    }
+  }
+}

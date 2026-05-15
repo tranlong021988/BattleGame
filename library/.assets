@@ -44,7 +44,11 @@
             "textures\\terrain-sand.png",
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json",
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx",
-            "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png"
+            "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png",
+            "3D\\1989_dog.fbx",
+            "3D\\1989_guard.fbx",
+            "3D\\Fighter.Body.low_Baked.001_vat\\Untitled.fbx",
+            "3D\\Fighter.Body.low_Baked.001_vat\\1989_dog.fbx"
         ]
     }
 }

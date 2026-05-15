@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1778816350265.003,
+      "time": 1778845356551.5925,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -194,7 +194,7 @@
       "time": 1776672815148.969
     },
     "3D": {
-      "time": 1778469325681.198,
+      "time": 1778839141461.2524,
       "uuid": "e552118f-a9fd-416b-a202-9243ef0ce5b8"
     },
     "3D\\Fighter.Body.low_Baked.001_vat.meta": {
@@ -210,7 +210,7 @@
       "time": 1776684900537.9697
     },
     "3D\\Fighter.Body.low_Baked.001_vat": {
-      "time": 1776673016225.857,
+      "time": 1778845336054.8381,
       "uuid": "83cb5c81-5256-437a-abd9-ddcaafdba392"
     },
     "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json": {
@@ -301,6 +301,34 @@
     "scripts\\UnitBehavior.ts": {
       "time": 1778669228815.1306,
       "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
+    },
+    "3D\\1989_dog.fbx.meta": {
+      "time": 1778839068181.354
+    },
+    "3D\\1989_dog.fbx": {
+      "time": 1778745676000,
+      "uuid": "c7bd6f05-bb49-4e2d-91db-77188beff306"
+    },
+    "3D\\1989_guard.fbx.meta": {
+      "time": 1778839141580.993
+    },
+    "3D\\1989_guard.fbx": {
+      "time": 1778833817524.5972,
+      "uuid": "af06a989-9772-4057-854e-c2d2b188786b"
+    },
+    "3D\\Fighter.Body.low_Baked.001_vat\\Untitled.fbx.meta": {
+      "time": 1778844418864.839
+    },
+    "3D\\Fighter.Body.low_Baked.001_vat\\Untitled.fbx": {
+      "time": 1778844771480.984,
+      "uuid": "e41c6f3f-4bb4-456b-b66f-427092454b28"
+    },
+    "3D\\Fighter.Body.low_Baked.001_vat\\1989_dog.fbx.meta": {
+      "time": 1778845336132.435
+    },
+    "3D\\Fighter.Body.low_Baked.001_vat\\1989_dog.fbx": {
+      "time": 1778845267804.3174,
+      "uuid": "faea61d1-ef10-40e9-b8ff-413cf64506a8"
     }
   },
   "missing": {}

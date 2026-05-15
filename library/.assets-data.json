@@ -110,6 +110,7 @@
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+        "faea61d1-ef10-40e9-b8ff-413cf64506a8@41bb1",
         "837662e8-92db-4dea-820d-eafbe218fe17",
         "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
@@ -616,6 +617,288 @@
   "447a22c2-f685-4b14-bc2d-8d4b81383823": {
     "url": "db://assets/scripts/UnitBehavior.ts",
     "value": {},
+    "versionCode": 1
+  },
+  "c7bd6f05-bb49-4e2d-91db-77188beff306": {
+    "url": "db://assets/3D/1989_dog.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "c7bd6f05-bb49-4e2d-91db-77188beff306@57365": {
+    "url": "db://assets/3D/1989_dog.fbx@57365",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "c7bd6f05-bb49-4e2d-91db-77188beff306@32b7c": {
+    "url": "db://assets/3D/1989_dog.fbx@32b7c",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "c7bd6f05-bb49-4e2d-91db-77188beff306@438fe": {
+    "url": "db://assets/3D/1989_dog.fbx@438fe",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "c7bd6f05-bb49-4e2d-91db-77188beff306@41bb1": {
+    "url": "db://assets/3D/1989_dog.fbx@41bb1",
+    "value": {
+      "depends": [
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@57365",
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@32b7c",
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@438fe"
+      ]
+    },
+    "versionCode": 1
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b": {
+    "url": "db://assets/3D/1989_guard.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b@30732": {
+    "url": "db://assets/3D/1989_guard.fbx@30732",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b@80c75": {
+    "url": "db://assets/3D/1989_guard.fbx@80c75",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b@e2349": {
+    "url": "db://assets/3D/1989_guard.fbx@e2349",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b@f1394": {
+    "url": "db://assets/3D/1989_guard.fbx@f1394",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b@0a7bd": {
+    "url": "db://assets/3D/1989_guard.fbx@0a7bd",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "af06a989-9772-4057-854e-c2d2b188786b@8d15b": {
+    "url": "db://assets/3D/1989_guard.fbx@8d15b",
+    "value": {
+      "depends": [
+        "af06a989-9772-4057-854e-c2d2b188786b@0a7bd",
+        "af06a989-9772-4057-854e-c2d2b188786b@80c75",
+        "af06a989-9772-4057-854e-c2d2b188786b@30732",
+        "af06a989-9772-4057-854e-c2d2b188786b@e2349",
+        "af06a989-9772-4057-854e-c2d2b188786b@f1394"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ad8e63f4-2934-4103-a239-beeda405bc27": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "ad8e63f4-2934-4103-a239-beeda405bc27@e2349": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@e2349",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ad8e63f4-2934-4103-a239-beeda405bc27@438fe": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@438fe",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ad8e63f4-2934-4103-a239-beeda405bc27@471dc": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@471dc",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ad8e63f4-2934-4103-a239-beeda405bc27@41bb1": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@41bb1",
+    "value": {
+      "depends": [
+        "ad8e63f4-2934-4103-a239-beeda405bc27@471dc",
+        "ad8e63f4-2934-4103-a239-beeda405bc27@e2349",
+        "ad8e63f4-2934-4103-a239-beeda405bc27@438fe"
+      ]
+    },
+    "versionCode": 1
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e@30732": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx@30732",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e@57365": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx@57365",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e@98220": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx@98220",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e@809fc": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx@809fc",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e@f1394": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx@f1394",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f4f805de-4316-4d55-bb38-76dab4111e0e@8d15b": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_guard.fbx@8d15b",
+    "value": {
+      "depends": [
+        "f4f805de-4316-4d55-bb38-76dab4111e0e@57365",
+        "f4f805de-4316-4d55-bb38-76dab4111e0e@809fc",
+        "f4f805de-4316-4d55-bb38-76dab4111e0e@30732",
+        "f4f805de-4316-4d55-bb38-76dab4111e0e@98220",
+        "f4f805de-4316-4d55-bb38-76dab4111e0e@f1394"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28@0c841": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx@0c841",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28@438fe": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx@438fe",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28@466bd": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx@466bd",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28@6fbb7": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx@6fbb7",
+    "value": {
+      "depends": [
+        "e41c6f3f-4bb4-456b-b66f-427092454b28@0d236",
+        "e41c6f3f-4bb4-456b-b66f-427092454b28@c4192",
+        "e41c6f3f-4bb4-456b-b66f-427092454b28@438fe"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28@c4192": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx@c4192",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "e41c6f3f-4bb4-456b-b66f-427092454b28@0d236": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/Untitled.fbx@0d236",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "faea61d1-ef10-40e9-b8ff-413cf64506a8": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "faea61d1-ef10-40e9-b8ff-413cf64506a8@e2349": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@e2349",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "faea61d1-ef10-40e9-b8ff-413cf64506a8@438fe": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@438fe",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "faea61d1-ef10-40e9-b8ff-413cf64506a8@471dc": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@471dc",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "faea61d1-ef10-40e9-b8ff-413cf64506a8@41bb1": {
+    "url": "db://assets/3D/Fighter.Body.low_Baked.001_vat/1989_dog.fbx@41bb1",
+    "value": {
+      "depends": [
+        "faea61d1-ef10-40e9-b8ff-413cf64506a8@471dc",
+        "faea61d1-ef10-40e9-b8ff-413cf64506a8@e2349",
+        "faea61d1-ef10-40e9-b8ff-413cf64506a8@438fe"
+      ]
+    },
     "versionCode": 1
   }
 }

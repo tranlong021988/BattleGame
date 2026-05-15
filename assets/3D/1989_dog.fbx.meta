@@ -1,0 +1,115 @@
+{
+  "ver": "2.3.14",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "c7bd6f05-bb49-4e2d-91db-77188beff306",
+  "files": [],
+  "subMetas": {
+    "57365": {
+      "importer": "gltf-material",
+      "uuid": "c7bd6f05-bb49-4e2d-91db-77188beff306@57365",
+      "displayName": "",
+      "id": "57365",
+      "name": "enemy01_mtl.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "32b7c": {
+      "importer": "gltf-mesh",
+      "uuid": "c7bd6f05-bb49-4e2d-91db-77188beff306@32b7c",
+      "displayName": "",
+      "id": "32b7c",
+      "name": "dog_geo.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1078
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "438fe": {
+      "importer": "gltf-skeleton",
+      "uuid": "c7bd6f05-bb49-4e2d-91db-77188beff306@438fe",
+      "displayName": "",
+      "id": "438fe",
+      "name": "UnnamedSkeleton.skeleton",
+      "userData": {
+        "gltfIndex": 0,
+        "jointsLength": 27
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "41bb1": {
+      "importer": "gltf-scene",
+      "uuid": "c7bd6f05-bb49-4e2d-91db-77188beff306@41bb1",
+      "displayName": "",
+      "id": "41bb1",
+      "name": "1989_dog.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@32b7c"
+      ],
+      "skeletons": [
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@438fe"
+      ],
+      "textures": [],
+      "materials": [
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@57365"
+      ],
+      "scenes": [
+        "c7bd6f05-bb49-4e2d-91db-77188beff306@41bb1"
+      ]
+    }
+  }
+}
