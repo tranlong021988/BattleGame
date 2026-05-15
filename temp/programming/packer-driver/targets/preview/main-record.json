@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 16329.2946,
+      "mTimestamp": 1700614.0846,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -159,7 +159,7 @@
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/intersection-2d",
+          "value": "cce:/internal/x/cc-fu/light-probe",
           "resolved": "__unresolved_11",
           "loc": {
             "start": {
@@ -168,12 +168,12 @@
             },
             "end": {
               "line": 12,
-              "column": 53
+              "column": 49
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/light-probe",
+          "value": "cce:/internal/x/cc-fu/mask",
           "resolved": "__unresolved_12",
           "loc": {
             "start": {
@@ -182,12 +182,12 @@
             },
             "end": {
               "line": 13,
-              "column": 49
+              "column": 42
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/mask",
+          "value": "cce:/internal/x/cc-fu/particle",
           "resolved": "__unresolved_13",
           "loc": {
             "start": {
@@ -196,12 +196,12 @@
             },
             "end": {
               "line": 14,
-              "column": 42
+              "column": 46
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/particle",
+          "value": "cce:/internal/x/cc-fu/particle-2d",
           "resolved": "__unresolved_14",
           "loc": {
             "start": {
@@ -210,12 +210,12 @@
             },
             "end": {
               "line": 15,
-              "column": 46
+              "column": 49
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/particle-2d",
+          "value": "cce:/internal/x/cc-fu/primitive",
           "resolved": "__unresolved_15",
           "loc": {
             "start": {
@@ -224,12 +224,12 @@
             },
             "end": {
               "line": 16,
-              "column": 49
+              "column": 47
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/primitive",
+          "value": "cce:/internal/x/cc-fu/profiler",
           "resolved": "__unresolved_16",
           "loc": {
             "start": {
@@ -238,12 +238,12 @@
             },
             "end": {
               "line": 17,
-              "column": 47
+              "column": 46
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/profiler",
+          "value": "cce:/internal/x/cc-fu/rich-text",
           "resolved": "__unresolved_17",
           "loc": {
             "start": {
@@ -252,12 +252,12 @@
             },
             "end": {
               "line": 18,
-              "column": 46
+              "column": 47
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/rich-text",
+          "value": "cce:/internal/x/cc-fu/skeletal-animation",
           "resolved": "__unresolved_18",
           "loc": {
             "start": {
@@ -266,12 +266,12 @@
             },
             "end": {
               "line": 19,
-              "column": 47
+              "column": 56
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/skeletal-animation",
+          "value": "cce:/internal/x/cc-fu/tween",
           "resolved": "__unresolved_19",
           "loc": {
             "start": {
@@ -280,12 +280,12 @@
             },
             "end": {
               "line": 20,
-              "column": 56
+              "column": 43
             }
           }
         },
         {
-          "value": "cce:/internal/x/cc-fu/tiled-map",
+          "value": "cce:/internal/x/cc-fu/ui",
           "resolved": "__unresolved_20",
           "loc": {
             "start": {
@@ -294,77 +294,7 @@
             },
             "end": {
               "line": 21,
-              "column": 47
-            }
-          }
-        },
-        {
-          "value": "cce:/internal/x/cc-fu/tween",
-          "resolved": "__unresolved_21",
-          "loc": {
-            "start": {
-              "line": 22,
-              "column": 14
-            },
-            "end": {
-              "line": 22,
-              "column": 43
-            }
-          }
-        },
-        {
-          "value": "cce:/internal/x/cc-fu/ui",
-          "resolved": "__unresolved_22",
-          "loc": {
-            "start": {
-              "line": 23,
-              "column": 14
-            },
-            "end": {
-              "line": 23,
               "column": 40
-            }
-          }
-        },
-        {
-          "value": "cce:/internal/x/cc-fu/ui-skew",
-          "resolved": "__unresolved_23",
-          "loc": {
-            "start": {
-              "line": 24,
-              "column": 14
-            },
-            "end": {
-              "line": 24,
-              "column": 45
-            }
-          }
-        },
-        {
-          "value": "cce:/internal/x/cc-fu/video",
-          "resolved": "__unresolved_24",
-          "loc": {
-            "start": {
-              "line": 25,
-              "column": 14
-            },
-            "end": {
-              "line": 25,
-              "column": 43
-            }
-          }
-        },
-        {
-          "value": "cce:/internal/x/cc-fu/webview",
-          "resolved": "__unresolved_25",
-          "loc": {
-            "start": {
-              "line": 26,
-              "column": 14
-            },
-            "end": {
-              "line": 26,
-              "column": 45
             }
           }
         }
@@ -451,13 +381,6 @@
         {
           "resolved": {
             "type": "external",
-            "specifierOrURL": "cce:/internal/x/cc-fu/intersection-2d"
-          },
-          "messages": []
-        },
-        {
-          "resolved": {
-            "type": "external",
             "specifierOrURL": "cce:/internal/x/cc-fu/light-probe"
           },
           "messages": []
@@ -514,13 +437,6 @@
         {
           "resolved": {
             "type": "external",
-            "specifierOrURL": "cce:/internal/x/cc-fu/tiled-map"
-          },
-          "messages": []
-        },
-        {
-          "resolved": {
-            "type": "external",
             "specifierOrURL": "cce:/internal/x/cc-fu/tween"
           },
           "messages": []
@@ -529,27 +445,6 @@
           "resolved": {
             "type": "external",
             "specifierOrURL": "cce:/internal/x/cc-fu/ui"
-          },
-          "messages": []
-        },
-        {
-          "resolved": {
-            "type": "external",
-            "specifierOrURL": "cce:/internal/x/cc-fu/ui-skew"
-          },
-          "messages": []
-        },
-        {
-          "resolved": {
-            "type": "external",
-            "specifierOrURL": "cce:/internal/x/cc-fu/video"
-          },
-          "messages": []
-        },
-        {
-          "resolved": {
-            "type": "external",
-            "specifierOrURL": "cce:/internal/x/cc-fu/webview"
           },
           "messages": []
         }
