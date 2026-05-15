@@ -72,7 +72,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         update() {
           if (!this.node.activeInHierarchy) return;
           if (!this.unit.agent) return;
-          if (this.unit.onBusy) return;
+          if (this.unit.onBusy) return; // Khi còn forward phase thì không auto target.
+
+          if (this.unit.onForward) return;
           this.frame++;
 
           if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {

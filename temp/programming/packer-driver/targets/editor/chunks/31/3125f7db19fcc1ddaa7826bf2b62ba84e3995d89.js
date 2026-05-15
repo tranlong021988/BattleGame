@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, EnemyFinder, UnitProps, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -34,6 +34,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+      Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
       EnemyFinder = _unresolved_2.EnemyFinder;
     }, function (_unresolved_3) {
@@ -44,14 +45,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
       _cclegacy._RF.push({}, "6e964qkrR5F2YvWvH5N+eXO", "Unit", undefined);
 
-      __checkObsolete__(['_decorator', 'Component']);
+      __checkObsolete__(['_decorator', 'Component', 'Vec3']);
 
       ({
         ccclass,
         property
       } = _decorator);
 
-      _export("Unit", Unit = (_dec = ccclass('Unit'), _dec(_class = (_class2 = class Unit extends Component {
+      _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Vec3), _dec(_class = (_class2 = class Unit extends Component {
         constructor(...args) {
           super(...args);
 
@@ -68,6 +69,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           _initializerDefineProperty(this, "velThreshold", _descriptor6, this);
 
           _initializerDefineProperty(this, "visualThreshold", _descriptor7, this);
+
+          _initializerDefineProperty(this, "onForward", _descriptor8, this);
+
+          _initializerDefineProperty(this, "forwardDir", _descriptor9, this);
 
           this.sim = null;
           this.agent = null;
@@ -91,7 +96,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), EnemyFinder) : EnemyFinder);
         }
 
-        init(sim) {
+        init(sim, forwardX, forwardZ) {
           this.sim = sim;
           const p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
@@ -100,14 +105,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent.locked = false;
           this.enemy = null;
           this.onBusy = false;
+          this.onForward = true;
+          this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
         }
 
+        setForwardDir(x, z) {
+          const len = Math.sqrt(x * x + z * z);
+
+          if (len < 0.0001) {
+            this.forwardDir.x = 0;
+            this.forwardDir.y = 0;
+            this.forwardDir.z = 1;
+            return;
+          }
+
+          this.forwardDir.x = x / len;
+          this.forwardDir.y = 0;
+          this.forwardDir.z = z / len;
+        }
+
         resetForDespawn() {
           this.enemy = null;
           this.onBusy = false;
+          this.onForward = true;
 
           if (this.agent) {
             this.agent.locked = false;
@@ -123,6 +146,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         setEnemy(e) {
           if (this.onBusy) return;
+          if (this.onForward) return;
           this.enemy = e;
 
           if (this.enemy && this.enemy.agent) {
@@ -156,36 +180,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.agent.vel.z = 0;
               return;
             }
-          } // Clear invalid target
-
-
-          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
-            this.enemy = null;
-          } // ===== ENGAGE NEAREST ENEMY INSIDE ATTACK RANGE =====
-
-
-          const attackRangeSq = this.attackRange * this.attackRange;
-          const enemies = this.getEnemyList();
-          let nearestInRange = null;
-          let nearestDistSq = Infinity;
-
-          for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-            if (!e || e === this) continue;
-            if (!e.node.activeInHierarchy) continue;
-            if (!e.agent) continue;
-            if (!e.props || e.props.isDead()) continue;
-            const dx = e.agent.pos.x - this.agent.pos.x;
-            const dz = e.agent.pos.z - this.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d <= attackRangeSq && d < nearestDistSq) {
-              nearestDistSq = d;
-              nearestInRange = e;
-            }
           }
 
+          this.clearInvalidEnemy(); // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward
+
+          const nearestInRange = this.findNearestEnemyInAttackRange();
+
           if (nearestInRange) {
+            this.onForward = false;
             this.enemy = nearestInRange;
             this.onBusy = true;
             this.agent.locked = true;
@@ -194,14 +196,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             return;
-          } // ===== CHASE CURRENT TARGET =====
+          } // ===== FORWARD PHASE =====
 
+
+          if (this.onForward) {
+            this.updateForwardPhase();
+
+            if (this.onForward) {
+              this.sim.setPrefVelocity(this.agent, this.forwardDir.x * this.agent.maxSpeed, this.forwardDir.z * this.agent.maxSpeed);
+              this.sync();
+              return;
+            }
+          } // ===== CHASE PHASE =====
+
+
+          if (!this.enemy) {
+            this.enemy = this.findNearestEnemy();
+          }
 
           if (this.enemy && this.enemy.agent) {
             const dx = this.enemy.agent.pos.x - this.agent.pos.x;
             const dz = this.enemy.agent.pos.z - this.agent.pos.z;
-            const distSq = dx * dx + dz * dz;
-            const dist = Math.sqrt(distSq);
+            const dist = Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
               this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
@@ -211,6 +227,102 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.sync();
+        }
+
+        updateForwardPhase() {
+          if (!this.agent) return;
+          const nearestEnemy = this.findNearestEnemy();
+
+          if (!nearestEnemy || !nearestEnemy.agent) {
+            return;
+          }
+
+          const myZ = this.agent.pos.z;
+          const enemyZ = nearestEnemy.agent.pos.z;
+
+          if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
+            if (this.forwardDir.z > 0 && myZ >= enemyZ) {
+              this.onForward = false;
+              return;
+            }
+
+            if (this.forwardDir.z < 0 && myZ <= enemyZ) {
+              this.onForward = false;
+              return;
+            }
+          } else {
+            const myX = this.agent.pos.x;
+            const enemyX = nearestEnemy.agent.pos.x;
+
+            if (this.forwardDir.x > 0 && myX >= enemyX) {
+              this.onForward = false;
+              return;
+            }
+
+            if (this.forwardDir.x < 0 && myX <= enemyX) {
+              this.onForward = false;
+              return;
+            }
+          }
+        }
+
+        clearInvalidEnemy() {
+          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
+            this.enemy = null;
+          }
+        }
+
+        findNearestEnemyInAttackRange() {
+          if (!this.agent) return null;
+          const attackRangeSq = this.attackRange * this.attackRange;
+          const enemies = this.getEnemyList();
+          let best = null;
+          let bestDistSq = Infinity;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!this.isValidEnemy(e)) continue;
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d <= attackRangeSq && d < bestDistSq) {
+              bestDistSq = d;
+              best = e;
+            }
+          }
+
+          return best;
+        }
+
+        findNearestEnemy() {
+          if (!this.agent) return null;
+          const enemies = this.getEnemyList();
+          let best = null;
+          let bestDistSq = Infinity;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!this.isValidEnemy(e)) continue;
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              best = e;
+            }
+          }
+
+          return best;
+        }
+
+        isValidEnemy(e) {
+          if (!e || e === this) return false;
+          if (!e.node.activeInHierarchy) return false;
+          if (!e.agent) return false;
+          if (!e.props || e.props.isDead()) return false;
+          return true;
         }
 
         getEnemyList() {
@@ -317,6 +429,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         writable: true,
         initializer: function () {
           return 0.03;
+        }
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return new Vec3(0, 0, 1);
         }
       })), _class2)) || _class));
 

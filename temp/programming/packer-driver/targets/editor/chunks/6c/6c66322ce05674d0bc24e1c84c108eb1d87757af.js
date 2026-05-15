@@ -111,9 +111,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), UnitBehavior) : UnitBehavior);
           props.resetForSpawn();
+          const forwardX = 0;
+          const forwardZ = team === 0 ? 1 : -1;
           unit.enemy = null;
           unit.onBusy = false;
-          unit.init(this.sim);
+          unit.init(this.sim, forwardX, forwardZ);
           finder.resetForSpawn(team);
 
           if (behavior) {
