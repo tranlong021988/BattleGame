@@ -529,3 +529,10 @@
 5-18-2026 23:30:18-debug: [Build Memory track]: Sort some build options to settings.json start:236.29MB, end 236.42MB, increase: 131.22KB
 5-19-2026 00:26:55-debug: %cImport%c: F:\Github\BattleGame\assets\Test.scenebackground: #aaff85; color: #000;color: #000;
 5-19-2026 00:26:55-debug: asset-db:reimport-asset1effe86e-a401-4769-9dbc-62218c68834d (23ms)
+5-19-2026 00:29:25-debug: refresh db internal success
+5-19-2026 00:29:25-debug: refresh db assets success
+5-19-2026 00:29:25-debug: Run asset db hook engine-extends:afterRefresh success!
+5-19-2026 00:29:25-debug: Run asset db hook engine-extends:afterRefresh ...
+5-19-2026 00:29:25-debug: asset-db:refresh-all-database (77ms)
+5-19-2026 00:29:25-debug: asset-db:worker-effect-data-processing (7ms)
+5-19-2026 00:29:25-debug: asset-db-hook-engine-extends-afterRefresh (7ms)
