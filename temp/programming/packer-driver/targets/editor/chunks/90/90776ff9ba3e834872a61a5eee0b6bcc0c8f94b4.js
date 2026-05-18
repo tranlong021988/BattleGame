@@ -115,7 +115,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const forwardZ = team === 0 ? 1 : -1;
           unit.enemy = null;
           unit.onBusy = false;
-          unit.init(this.sim, forwardX, forwardZ);
+          unit.init(this.sim, team, forwardX, forwardZ);
           finder.resetForSpawn(team);
 
           if (behavior) {

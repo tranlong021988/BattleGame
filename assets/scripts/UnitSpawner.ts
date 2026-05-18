@@ -71,7 +71,7 @@ export class UnitSpawner extends Component {
 
         unit.enemy = null;
         unit.onBusy = false;
-        unit.init(this.sim, forwardX, forwardZ);
+        unit.init(this.sim, team, forwardX, forwardZ);
 
         finder.resetForSpawn(team);
 

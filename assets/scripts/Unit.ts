@@ -24,6 +24,8 @@ export class Unit extends Component {
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
 
+    team = 0;
+
     sim: RVOSimulator | null = null;
     agent: RVOAgent | null = null;
 
@@ -41,7 +43,8 @@ export class Unit extends Component {
         this.finder = this.getComponent(EnemyFinder)!;
     }
 
-    init(sim: RVOSimulator, forwardX: number, forwardZ: number) {
+    init(sim: RVOSimulator, team: number, forwardX: number, forwardZ: number) {
+        this.team = team;
         this.sim = sim;
 
         const p = this.node.worldPosition;
@@ -145,7 +148,7 @@ export class Unit extends Component {
 
         this.clearInvalidEnemy();
 
-        // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward
+        // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward.
         const nearestInRange = this.findNearestEnemyInAttackRange();
 
         if (nearestInRange) {
@@ -213,10 +216,10 @@ export class Unit extends Component {
             return;
         }
 
-        const myZ = this.agent.pos.z;
-        const enemyZ = nearestEnemy.agent.pos.z;
-
         if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
+            const myZ = this.agent.pos.z;
+            const enemyZ = nearestEnemy.agent.pos.z;
+
             if (this.forwardDir.z > 0 && myZ >= enemyZ) {
                 this.onForward = false;
                 return;

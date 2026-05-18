@@ -26,7 +26,7 @@
       "time": 1776578026202.4324
     },
     "scripts\\Unit.ts": {
-      "time": 1778772944229.9211,
+      "time": 1779119798100.459,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\EnemyFinder.ts.meta": {
@@ -40,7 +40,7 @@
       "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1778682787875.9585,
+      "time": 1779120903051.4487,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -89,7 +89,7 @@
       "time": 1776578345590.7947
     },
     "Test.scene": {
-      "time": 1779044167849.9062,
+      "time": 1779125215957.9773,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -292,7 +292,7 @@
       "time": 1778254438936.0981
     },
     "scripts\\UnitSpawner.ts": {
-      "time": 1778772993237.207,
+      "time": 1779120103959.0574,
       "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
     },
     "scripts\\UnitBehavior.ts.meta": {

@@ -74,6 +74,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "forwardDir", _descriptor9, this);
 
+          this.team = 0;
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -96,7 +97,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), EnemyFinder) : EnemyFinder);
         }
 
-        init(sim, forwardX, forwardZ) {
+        init(sim, team, forwardX, forwardZ) {
+          this.team = team;
           this.sim = sim;
           const p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
@@ -182,7 +184,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             }
           }
 
-          this.clearInvalidEnemy(); // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward
+          this.clearInvalidEnemy(); // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward.
 
           const nearestInRange = this.findNearestEnemyInAttackRange();
 
@@ -237,10 +239,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          const myZ = this.agent.pos.z;
-          const enemyZ = nearestEnemy.agent.pos.z;
-
           if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
+            const myZ = this.agent.pos.z;
+            const enemyZ = nearestEnemy.agent.pos.z;
+
             if (this.forwardDir.z > 0 && myZ >= enemyZ) {
               this.onForward = false;
               return;
