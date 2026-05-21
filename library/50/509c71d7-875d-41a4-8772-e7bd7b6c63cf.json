@@ -581,7 +581,7 @@
       "__id__": 36
     },
     "moveSpeed": 7,
-    "radius": 0.8,
+    "radius": 0.7,
     "attackRange": 1.7,
     "rotationSpeed": 20,
     "moveThreshold": 0.2,
@@ -631,9 +631,9 @@
     "__prefab": {
       "__id__": 40
     },
-    "maxHealth": 20,
-    "health": 10,
-    "damage": 10,
+    "maxHealth": 5,
+    "health": 5,
+    "damage": 1,
     "_id": ""
   },
   {

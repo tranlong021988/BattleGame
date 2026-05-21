@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, EnemyFinder, RVOSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _class4, _class5, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _crd, ccclass, property, UnitPrefabEntry, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -74,77 +74,100 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         property
       } = _decorator);
 
-      _export("GameManager", GameManager = (_dec = ccclass('GameManager'), _dec2 = property(Prefab), _dec3 = property(Prefab), _dec4 = property(Label), _dec5 = property(Label), _dec6 = property(Label), _dec7 = property(Label), _dec8 = property({
+      _export("UnitPrefabEntry", UnitPrefabEntry = (_dec = ccclass('UnitPrefabEntry'), _dec2 = property(Prefab), _dec(_class = (_class2 = class UnitPrefabEntry {
+        constructor() {
+          _initializerDefineProperty(this, "name", _descriptor, this);
+
+          _initializerDefineProperty(this, "prefab", _descriptor2, this);
+
+          _initializerDefineProperty(this, "unitCount", _descriptor3, this);
+        }
+
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "name", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return '';
+        }
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "prefab", [_dec2], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "unitCount", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1;
+        }
+      })), _class2)) || _class));
+
+      _export("GameManager", GameManager = (_dec3 = ccclass('GameManager'), _dec4 = property({
+        type: [UnitPrefabEntry]
+      }), _dec5 = property({
+        type: [UnitPrefabEntry]
+      }), _dec6 = property(Label), _dec7 = property(Label), _dec8 = property(Label), _dec9 = property(Label), _dec10 = property({
         type: [_crd && ObstacleCircle === void 0 ? (_reportPossibleCrUseOfObstacleCircle({
           error: Error()
         }), ObstacleCircle) : ObstacleCircle]
-      }), _dec9 = property({
+      }), _dec11 = property({
         type: [_crd && ObstacleRect === void 0 ? (_reportPossibleCrUseOfObstacleRect({
           error: Error()
         }), ObstacleRect) : ObstacleRect]
-      }), _dec(_class = (_class2 = class GameManager extends Component {
+      }), _dec3(_class4 = (_class5 = class GameManager extends Component {
         constructor() {
           super(...arguments);
 
-          _initializerDefineProperty(this, "prefabA", _descriptor, this);
+          _initializerDefineProperty(this, "teamAPrefabs", _descriptor4, this);
 
-          _initializerDefineProperty(this, "prefabB", _descriptor2, this);
+          _initializerDefineProperty(this, "teamBPrefabs", _descriptor5, this);
 
-          _initializerDefineProperty(this, "battleMinX", _descriptor3, this);
+          _initializerDefineProperty(this, "battleMinX", _descriptor6, this);
 
-          _initializerDefineProperty(this, "battleMaxX", _descriptor4, this);
+          _initializerDefineProperty(this, "battleMaxX", _descriptor7, this);
 
-          _initializerDefineProperty(this, "battleMinZ", _descriptor5, this);
+          _initializerDefineProperty(this, "battleMinZ", _descriptor8, this);
 
-          _initializerDefineProperty(this, "battleMaxZ", _descriptor6, this);
+          _initializerDefineProperty(this, "battleMaxZ", _descriptor9, this);
 
-          _initializerDefineProperty(this, "count", _descriptor7, this);
-
-          _initializerDefineProperty(this, "updateInterval", _descriptor8, this);
+          _initializerDefineProperty(this, "updateInterval", _descriptor10, this);
 
           this.frame = 0;
 
-          // =====================================================
-          // UI Labels
-          // =====================================================
-          _initializerDefineProperty(this, "teamAAliveLabel", _descriptor9, this);
+          _initializerDefineProperty(this, "teamAAliveLabel", _descriptor11, this);
 
-          _initializerDefineProperty(this, "teamADeathLabel", _descriptor10, this);
+          _initializerDefineProperty(this, "teamADeathLabel", _descriptor12, this);
 
-          _initializerDefineProperty(this, "teamBAliveLabel", _descriptor11, this);
+          _initializerDefineProperty(this, "teamBAliveLabel", _descriptor13, this);
 
-          _initializerDefineProperty(this, "teamBDeathLabel", _descriptor12, this);
+          _initializerDefineProperty(this, "teamBDeathLabel", _descriptor14, this);
 
-          // =====================================================
-          // Battle stats
-          // index 0 = Team A
-          // index 1 = Team B
-          // =====================================================
           this.aliveCount = [0, 0];
           this.deathCount = [0, 0];
 
-          // =====================================================
-          // Auto spawn wave test
-          // =====================================================
-          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor13, this);
+          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor15, this);
 
-          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor14, this);
+          _initializerDefineProperty(this, "spawnImmediatelyOnStart", _descriptor16, this);
 
-          _initializerDefineProperty(this, "minNumUnit", _descriptor15, this);
+          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor17, this);
 
-          _initializerDefineProperty(this, "maxNumUnit", _descriptor16, this);
+          _initializerDefineProperty(this, "teamASpawnZ", _descriptor18, this);
 
-          _initializerDefineProperty(this, "teamASpawnZ", _descriptor17, this);
+          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor19, this);
 
-          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor18, this);
+          _initializerDefineProperty(this, "spawnAreaWidth", _descriptor20, this);
 
-          _initializerDefineProperty(this, "spawnAreaWidth", _descriptor19, this);
+          _initializerDefineProperty(this, "spawnZJitter", _descriptor21, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor20, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor22, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor21, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor23, this);
 
           this.sim = new (_crd && RVOSimulator === void 0 ? (_reportPossibleCrUseOfRVOSimulator({
             error: Error()
@@ -152,6 +175,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamA = [];
           this.teamB = [];
           this.spawner = void 0;
+          this.teamAPrefabMap = new Map();
+          this.teamBPrefabMap = new Map();
         }
 
         start() {
@@ -162,6 +187,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.deathCount[0] = 0;
           this.deathCount[1] = 0;
           this.spawnWaveTimer = 0;
+          this.buildPrefabMaps();
           (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
             error: Error()
           }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
@@ -185,7 +211,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.sim.addRectObstacle(_p.x, _p.z, _ob.halfWidth, _ob.halfHeight, angle);
           }
 
-          this.spawnTest1();
+          if (this.spawnImmediatelyOnStart) {
+            this.spawnAutoWave();
+          }
+
           this.refreshBattleStatsUI();
         }
 
@@ -199,10 +228,38 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
           }
-        } // =====================================================
-        // UI
-        // =====================================================
+        }
 
+        buildPrefabMaps() {
+          this.teamAPrefabMap.clear();
+          this.teamBPrefabMap.clear();
+
+          for (var entry of this.teamAPrefabs) {
+            if (!entry) continue;
+            if (!entry.name) continue;
+            if (!entry.prefab) continue;
+            this.teamAPrefabMap.set(entry.name, entry.prefab);
+          }
+
+          for (var _entry of this.teamBPrefabs) {
+            if (!_entry) continue;
+            if (!_entry.name) continue;
+            if (!_entry.prefab) continue;
+            this.teamBPrefabMap.set(_entry.name, _entry.prefab);
+          }
+        }
+
+        getTeamPrefab(team, unitName) {
+          var map = team === 0 ? this.teamAPrefabMap : this.teamBPrefabMap;
+          var prefab = map.get(unitName);
+
+          if (!prefab) {
+            console.warn("[GameManager] Missing prefab. team=" + team + ", unitName=" + unitName);
+            return null;
+          }
+
+          return prefab;
+        }
 
         refreshBattleStatsUI() {
           if (this.teamAAliveLabel) {
@@ -221,32 +278,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.teamBDeathLabel.string = "B Death: " + this.deathCount[1];
           }
         } // =====================================================
-        // Initial test spawn
-        // =====================================================
-
-
-        spawnTest1() {
-          var spacing = 1.5;
-          var width = 12;
-
-          for (var i = 0; i < this.count; i++) {
-            var row = Math.floor(i / width);
-            var col = i % width;
-            var pos = new Vec3((col - width / 2) * spacing, 0, -20 - row * spacing);
-            this.spawnTeamA(pos);
-          }
-
-          for (var _i = 0; _i < this.count; _i++) {
-            var _row = Math.floor(_i / width);
-
-            var _col = _i % width;
-
-            var _pos = new Vec3((_col - width / 2) * spacing, 0, 20 + _row * spacing);
-
-            this.spawnTeamB(_pos);
-          }
-        } // =====================================================
         // Auto spawn wave
+        // Mỗi wave spawn theo unitCount của từng entry.
         // =====================================================
 
 
@@ -258,25 +291,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.spawnWaveTimer = 0;
-          this.spawnRandomWaveBothTeams();
+          this.spawnAutoWave();
         }
 
-        spawnRandomWaveBothTeams() {
-          var countA = this.randomInt(this.minNumUnit, this.maxNumUnit);
-          var countB = this.randomInt(this.minNumUnit, this.maxNumUnit);
-          this.spawnRandomUnitsForTeam(0, countA);
-          this.spawnRandomUnitsForTeam(1, countB);
+        spawnAutoWave() {
+          this.spawnWaveForTeam(0, this.teamAPrefabs, this.teamASpawnZ);
+          this.spawnWaveForTeam(1, this.teamBPrefabs, this.teamBSpawnZ);
         }
 
-        spawnRandomUnitsForTeam(team, count) {
-          for (var i = 0; i < count; i++) {
-            var x = this.randomRange(-this.spawnAreaWidth * 0.5, this.spawnAreaWidth * 0.5);
-            var zJitter = this.randomRange(-1.5, 1.5);
+        spawnWaveForTeam(team, entries, spawnZ) {
+          for (var entry of entries) {
+            if (!entry) continue;
+            if (!entry.name) continue;
+            if (!entry.prefab) continue;
+            var count = Math.max(0, Math.floor(entry.unitCount));
 
-            if (team === 0) {
-              this.spawnTeamA(new Vec3(x, 0, this.teamASpawnZ + zJitter));
-            } else {
-              this.spawnTeamB(new Vec3(x, 0, this.teamBSpawnZ + zJitter));
+            for (var i = 0; i < count; i++) {
+              var x = this.randomRange(-this.spawnAreaWidth * 0.5, this.spawnAreaWidth * 0.5);
+              var z = spawnZ + this.randomRange(-this.spawnZJitter, this.spawnZJitter);
+              var pos = new Vec3(x, 0, z);
+
+              if (team === 0) {
+                this.spawnTeamA(entry.name, pos);
+              } else {
+                this.spawnTeamB(entry.name, pos);
+              }
             }
           }
         } // =====================================================
@@ -284,8 +323,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         // =====================================================
 
 
-        spawnTeamA(pos) {
-          var unit = this.spawner.spawnUnit(this.prefabA, pos, 0, this.node);
+        spawnTeamA(unitName, pos) {
+          var prefab = this.getTeamPrefab(0, unitName);
+          if (!prefab) return null;
+          var unit = this.spawner.spawnUnit(prefab, unitName, pos, 0, this.node);
 
           if (this.teamA.indexOf(unit) < 0) {
             this.teamA.push(unit);
@@ -307,8 +348,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return unit;
         }
 
-        spawnTeamB(pos) {
-          var unit = this.spawner.spawnUnit(this.prefabB, pos, 1, this.node);
+        spawnTeamB(unitName, pos) {
+          var prefab = this.getTeamPrefab(1, unitName);
+          if (!prefab) return null;
+          var unit = this.spawner.spawnUnit(prefab, unitName, pos, 1, this.node);
 
           if (this.teamB.indexOf(unit) < 0) {
             this.teamB.push(unit);
@@ -333,6 +376,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         despawnUnit(unit) {
           if (!unit) return;
           var team = unit.team;
+          var unitName = unit.unitTypeName;
+          var prefab = this.getTeamPrefab(team, unitName);
+
+          if (!prefab) {
+            console.warn("[GameManager] Cannot despawn. Missing prefab. team=" + team + ", unitName=" + unitName);
+            return;
+          }
 
           if (team === 0) {
             var idx = this.teamA.indexOf(unit);
@@ -349,7 +399,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
                 error: Error()
               }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
-              this.spawner.despawnUnit(unit, this.prefabA);
+              this.spawner.despawnUnit(unit, prefab);
               this.refreshBattleStatsUI();
             }
 
@@ -371,7 +421,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
                 error: Error()
               }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
-              this.spawner.despawnUnit(unit, this.prefabB);
+              this.spawner.despawnUnit(unit, prefab);
               this.refreshBattleStatsUI();
             }
 
@@ -379,167 +429,151 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        randomInt(min, max) {
-          min = Math.floor(min);
-          max = Math.floor(max);
-
-          if (max < min) {
-            var t = min;
-            min = max;
-            max = t;
-          }
-
-          return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-
         randomRange(min, max) {
           return Math.random() * (max - min) + min;
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "prefabA", [_dec2], {
+      }, (_descriptor4 = _applyDecoratedDescriptor(_class5.prototype, "teamAPrefabs", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
-        initializer: null
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "prefabB", [_dec3], {
+        initializer: function initializer() {
+          return [];
+        }
+      }), _descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "teamBPrefabs", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
-        initializer: null
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "battleMinX", [property], {
+        initializer: function initializer() {
+          return [];
+        }
+      }), _descriptor6 = _applyDecoratedDescriptor(_class5.prototype, "battleMinX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -28;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxX", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "battleMaxX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 28;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "battleMinZ", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "battleMinZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -18;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxZ", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "battleMaxZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 18;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "count", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 10;
-        }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "teamAAliveLabel", [_dec4], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "teamAAliveLabel", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "teamADeathLabel", [_dec5], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "teamADeathLabel", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "teamBAliveLabel", [_dec6], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "teamBAliveLabel", [_dec8], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "teamBDeathLabel", [_dec7], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "teamBDeathLabel", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "enableAutoSpawn", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "enableAutoSpawn", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "spawnWaveInterval", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "spawnImmediatelyOnStart", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "spawnWaveInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "minNumUnit", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1;
-        }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "maxNumUnit", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 5;
-        }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "teamASpawnZ", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "teamASpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -20;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "teamBSpawnZ", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "teamBSpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "spawnAreaWidth", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "spawnAreaWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 18;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec8], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "spawnZJitter", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1.5;
+        }
+      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "circleObstacles", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec9], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "rectObstacles", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      })), _class2)) || _class));
+      })), _class5)) || _class4));
 
       _cclegacy._RF.pop();
 

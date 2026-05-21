@@ -75,6 +75,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           _initializerDefineProperty(this, "forwardDir", _descriptor9, this);
 
           this.team = 0;
+          this.unitTypeName = '';
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -97,8 +98,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), EnemyFinder) : EnemyFinder);
         }
 
-        init(sim, team, forwardX, forwardZ) {
+        init(sim, team, unitTypeName, forwardX, forwardZ) {
           this.team = team;
+          this.unitTypeName = unitTypeName;
           this.sim = sim;
           const p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
@@ -170,7 +172,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update() {
-          if (!this.sim || !this.agent) return; // ===== ENGAGED =====
+          if (!this.sim || !this.agent) return;
 
           if (this.onBusy) {
             if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
@@ -184,8 +186,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             }
           }
 
-          this.clearInvalidEnemy(); // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward.
-
+          this.clearInvalidEnemy();
           const nearestInRange = this.findNearestEnemyInAttackRange();
 
           if (nearestInRange) {
@@ -198,8 +199,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             return;
-          } // ===== FORWARD PHASE =====
-
+          }
 
           if (this.onForward) {
             this.updateForwardPhase();
@@ -209,8 +209,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.sync();
               return;
             }
-          } // ===== CHASE PHASE =====
-
+          }
 
           if (!this.enemy) {
             this.enemy = this.findNearestEnemy();
