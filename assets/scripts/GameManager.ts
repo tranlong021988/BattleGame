@@ -20,6 +20,18 @@ export class UnitPrefabEntry {
 
     @property
     unitCount: number = 1;
+
+    @property
+    prewarmCount: number = 0;
+
+    @property
+    maxSpeed: number = 2;
+
+    @property
+    health: number = 30;
+
+    @property
+    damage: number = 1;
 }
 
 @ccclass('GameManager')
@@ -61,6 +73,9 @@ export class GameManager extends Component {
     spawnImmediatelyOnStart = true;
 
     @property
+    prewarmOnStart = true;
+
+    @property
     spawnWaveInterval = 3;
 
     @property
@@ -70,10 +85,19 @@ export class GameManager extends Component {
     teamBSpawnZ = 20;
 
     @property
-    spawnAreaWidth = 18;
+    maxUnitPerRow = 8;
 
     @property
-    spawnZJitter = 1.5;
+    spaceBetweenUnit = 1.5;
+
+    @property
+    spaceBetweenRow = 1.5;
+
+    @property
+    spaceBetweenUnitTypes = 2.5;
+
+    @property
+    formationZNoise = 0.25;
 
     private spawnWaveTimer = 0;
 
@@ -90,8 +114,8 @@ export class GameManager extends Component {
 
     private spawner!: UnitSpawner;
 
-    private teamAPrefabMap: Map<string, Prefab> = new Map();
-    private teamBPrefabMap: Map<string, Prefab> = new Map();
+    private teamAPrefabMap: Map<string, UnitPrefabEntry> = new Map();
+    private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
 
     start() {
         this.teamA.length = 0;
@@ -119,6 +143,10 @@ export class GameManager extends Component {
 
         this.spawner = this.getComponent(UnitSpawner)!;
         this.spawner.init(this.sim);
+
+        if (this.prewarmOnStart) {
+            this.prewarmAllUnits();
+        }
 
         for (const ob of this.circleObstacles) {
             const p = ob.node.worldPosition;
@@ -162,37 +190,45 @@ export class GameManager extends Component {
         this.teamBPrefabMap.clear();
 
         for (const entry of this.teamAPrefabs) {
-            if (!entry) continue;
-            if (!entry.name) continue;
-            if (!entry.prefab) continue;
-
-            this.teamAPrefabMap.set(entry.name, entry.prefab);
+            if (!this.isValidEntry(entry)) continue;
+            this.teamAPrefabMap.set(entry.name, entry);
         }
 
         for (const entry of this.teamBPrefabs) {
-            if (!entry) continue;
-            if (!entry.name) continue;
-            if (!entry.prefab) continue;
-
-            this.teamBPrefabMap.set(entry.name, entry.prefab);
+            if (!this.isValidEntry(entry)) continue;
+            this.teamBPrefabMap.set(entry.name, entry);
         }
     }
 
-    private getTeamPrefab(team: number, unitName: string): Prefab | null {
-        const map = team === 0
-            ? this.teamAPrefabMap
-            : this.teamBPrefabMap;
+    private prewarmAllUnits() {
+        for (const entry of this.teamAPrefabs) {
+            if (!this.isValidEntry(entry)) continue;
+            this.spawner.prewarm(entry.prefab!, entry.prewarmCount, this.node);
+        }
 
-        const prefab = map.get(unitName);
+        for (const entry of this.teamBPrefabs) {
+            if (!this.isValidEntry(entry)) continue;
+            this.spawner.prewarm(entry.prefab!, entry.prewarmCount, this.node);
+        }
+    }
 
-        if (!prefab) {
-            console.warn(
-                `[GameManager] Missing prefab. team=${team}, unitName=${unitName}`
-            );
+    private isValidEntry(entry: UnitPrefabEntry | null): boolean {
+        if (!entry) return false;
+        if (!entry.name) return false;
+        if (!entry.prefab) return false;
+        return true;
+    }
+
+    private getTeamEntry(team: number, unitName: string): UnitPrefabEntry | null {
+        const map = team === 0 ? this.teamAPrefabMap : this.teamBPrefabMap;
+        const entry = map.get(unitName);
+
+        if (!entry || !entry.prefab) {
+            console.warn(`[GameManager] Missing unit entry. team=${team}, unitName=${unitName}`);
             return null;
         }
 
-        return prefab;
+        return entry;
     }
 
     private refreshBattleStatsUI() {
@@ -213,11 +249,6 @@ export class GameManager extends Component {
         }
     }
 
-    // =====================================================
-    // Auto spawn wave
-    // Mỗi wave spawn theo unitCount của từng entry.
-    // =====================================================
-
     private updateAutoSpawn(deltaTime: number) {
         this.spawnWaveTimer += deltaTime;
 
@@ -230,31 +261,70 @@ export class GameManager extends Component {
     }
 
     spawnAutoWave() {
-        this.spawnWaveForTeam(0, this.teamAPrefabs, this.teamASpawnZ);
-        this.spawnWaveForTeam(1, this.teamBPrefabs, this.teamBSpawnZ);
+        this.spawnFormationForTeam(
+            0,
+            this.teamAPrefabs,
+            this.teamASpawnZ
+        );
+
+        this.spawnFormationForTeam(
+            1,
+            this.teamBPrefabs,
+            this.teamBSpawnZ
+        );
     }
 
-    private spawnWaveForTeam(
+    private spawnFormationForTeam(
         team: number,
         entries: UnitPrefabEntry[],
-        spawnZ: number
+        baseZ: number
     ) {
+        let currentRowOffset = 0;
+
         for (const entry of entries) {
-            if (!entry) continue;
-            if (!entry.name) continue;
-            if (!entry.prefab) continue;
+            if (!this.isValidEntry(entry)) continue;
 
             const count = Math.max(0, Math.floor(entry.unitCount));
+            if (count <= 0) continue;
 
-            for (let i = 0; i < count; i++) {
-                const x = this.randomRange(
-                    -this.spawnAreaWidth * 0.5,
-                    this.spawnAreaWidth * 0.5
-                );
+            const rowsUsedDistance = this.spawnEntryFormation(
+                team,
+                entry,
+                baseZ,
+                currentRowOffset
+            );
 
-                const z = spawnZ + this.randomRange(
-                    -this.spawnZJitter,
-                    this.spawnZJitter
+            currentRowOffset += rowsUsedDistance + this.spaceBetweenUnitTypes;
+        }
+    }
+
+    private spawnEntryFormation(
+        team: number,
+        entry: UnitPrefabEntry,
+        baseZ: number,
+        startRowOffset: number
+    ): number {
+        const count = Math.max(0, Math.floor(entry.unitCount));
+        const maxPerRow = Math.max(1, Math.floor(this.maxUnitPerRow));
+
+        let spawned = 0;
+        let row = 0;
+
+        while (spawned < count) {
+            const remaining = count - spawned;
+            const rowCount = Math.min(maxPerRow, remaining);
+
+            for (let col = 0; col < rowCount; col++) {
+                const x = (col - (rowCount - 1) * 0.5) * this.spaceBetweenUnit;
+                const rowZOffset = startRowOffset + row * this.spaceBetweenRow;
+
+                const baseUnitZ = team === 0
+                    ? baseZ - rowZOffset
+                    : baseZ + rowZOffset;
+
+                const z = baseUnitZ + this.randomRange(
+                    -this.formationZNoise,
+                    this.formationZNoise
                 );
 
                 const pos = new Vec3(x, 0, z);
@@ -264,25 +334,29 @@ export class GameManager extends Component {
                 } else {
                     this.spawnTeamB(entry.name, pos);
                 }
+
+                spawned++;
             }
+
+            row++;
         }
+
+        return row * this.spaceBetweenRow;
     }
 
-    // =====================================================
-    // Runtime API
-    // =====================================================
-
     spawnTeamA(unitName: string, pos: Vec3): Unit | null {
-        const prefab = this.getTeamPrefab(0, unitName);
-
-        if (!prefab) return null;
+        const entry = this.getTeamEntry(0, unitName);
+        if (!entry || !entry.prefab) return null;
 
         const unit = this.spawner.spawnUnit(
-            prefab,
-            unitName,
+            entry.prefab,
+            entry.name,
             pos,
             0,
-            this.node
+            this.node,
+            entry.maxSpeed,
+            entry.health,
+            entry.damage
         );
 
         if (this.teamA.indexOf(unit) < 0) {
@@ -304,16 +378,18 @@ export class GameManager extends Component {
     }
 
     spawnTeamB(unitName: string, pos: Vec3): Unit | null {
-        const prefab = this.getTeamPrefab(1, unitName);
-
-        if (!prefab) return null;
+        const entry = this.getTeamEntry(1, unitName);
+        if (!entry || !entry.prefab) return null;
 
         const unit = this.spawner.spawnUnit(
-            prefab,
-            unitName,
+            entry.prefab,
+            entry.name,
             pos,
             1,
-            this.node
+            this.node,
+            entry.maxSpeed,
+            entry.health,
+            entry.damage
         );
 
         if (this.teamB.indexOf(unit) < 0) {
@@ -340,12 +416,10 @@ export class GameManager extends Component {
         const team = unit.team;
         const unitName = unit.unitTypeName;
 
-        const prefab = this.getTeamPrefab(team, unitName);
+        const entry = this.getTeamEntry(team, unitName);
 
-        if (!prefab) {
-            console.warn(
-                `[GameManager] Cannot despawn. Missing prefab. team=${team}, unitName=${unitName}`
-            );
+        if (!entry || !entry.prefab) {
+            console.warn(`[GameManager] Cannot despawn. Missing prefab. team=${team}, unitName=${unitName}`);
             return;
         }
 
@@ -364,7 +438,7 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamA = this.teamA;
 
-                this.spawner.despawnUnit(unit, prefab);
+                this.spawner.despawnUnit(unit, entry.prefab);
                 this.refreshBattleStatsUI();
             }
 
@@ -386,7 +460,7 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamB = this.teamB;
 
-                this.spawner.despawnUnit(unit, prefab);
+                this.spawner.despawnUnit(unit, entry.prefab);
                 this.refreshBattleStatsUI();
             }
 

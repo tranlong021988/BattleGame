@@ -64,6 +64,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.sim = sim;
         }
 
+        prewarm(prefab, count, parent) {
+          var pool = this.getPool(prefab);
+          var safeCount = Math.max(0, Math.floor(count));
+
+          for (var i = 0; i < safeCount; i++) {
+            var node = instantiate(prefab);
+            parent.addChild(node);
+            node.active = false;
+            pool.push(node);
+          }
+        }
+
+        getPoolCount(prefab) {
+          return this.getPool(prefab).length;
+        }
+
         getPool(prefab) {
           var key = prefab.uuid;
           var pool = this.pools.get(key);
@@ -88,7 +104,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, pos, team, parent) {
+        spawnUnit(prefab, unitTypeName, pos, team, parent, maxSpeed, health, damage) {
           var node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -110,6 +126,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var behavior = node.getComponent(_crd && UnitBehavior === void 0 ? (_reportPossibleCrUseOfUnitBehavior({
             error: Error()
           }), UnitBehavior) : UnitBehavior);
+          unit.moveSpeed = maxSpeed;
+          props.maxHealth = health;
+          props.damage = damage;
           props.resetForSpawn();
           var forwardX = 0;
           var forwardZ = team === 0 ? 1 : -1;

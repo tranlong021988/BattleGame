@@ -5,7 +5,7 @@
       "time": 1776574463135.642
     },
     "scripts": {
-      "time": 1778682787878.959,
+      "time": 1779472194579.8374,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -40,7 +40,7 @@
       "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1779385402464.0894,
+      "time": 1779534032575.927,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -89,7 +89,7 @@
       "time": 1776578345590.7947
     },
     "Test.scene": {
-      "time": 1779386414809.9834,
+      "time": 1779561154001.1934,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -117,7 +117,7 @@
       "time": 1776594848700.45
     },
     "scripts\\UnitProps.ts": {
-      "time": 1778682787878.959,
+      "time": 1779471283246.5251,
       "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
     },
     "Fighter.Body.low_Baked.001_vat.meta": {
@@ -292,14 +292,14 @@
       "time": 1778254438936.0981
     },
     "scripts\\UnitSpawner.ts": {
-      "time": 1779374137822.6702,
+      "time": 1779534005812.621,
       "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
     },
     "scripts\\UnitBehavior.ts.meta": {
       "time": 1778599427046.7278
     },
     "scripts\\UnitBehavior.ts": {
-      "time": 1778682787877.9612,
+      "time": 1779532444047.232,
       "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
     },
     "3D\\1989_dog.fbx.meta": {
@@ -329,6 +329,13 @@
     "3D\\Fighter.Body.low_Baked.001_vat\\1989_dog.fbx": {
       "time": 1778857949765.099,
       "uuid": "faea61d1-ef10-40e9-b8ff-413cf64506a8"
+    },
+    "scripts\\TopDownCameraDrag.ts.meta": {
+      "time": 1779472194581.8315
+    },
+    "scripts\\TopDownCameraDrag.ts": {
+      "time": 1779472199462.6265,
+      "uuid": "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30"
     }
   },
   "missing": {}

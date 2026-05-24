@@ -26,7 +26,8 @@ export class UnitBehavior extends Component {
     }
 
     resetForSpawn() {
-        this.attackTimer = 0;
+        // Random attack phase để tránh phe update trước luôn thắng.
+        this.attackTimer = Math.random() * this.attackInterval;
         this.deadHandled = false;
     }
 
@@ -38,15 +39,12 @@ export class UnitBehavior extends Component {
     update(deltaTime: number) {
         if (!this.node.activeInHierarchy) return;
 
-        // ===== DEAD =====
         if (this.props.isDead()) {
             this.handleDeath();
             return;
         }
 
-        // ===== NOT ATTACKING =====
         if (!this.unit.onBusy) {
-            this.attackTimer = 0;
             return;
         }
 

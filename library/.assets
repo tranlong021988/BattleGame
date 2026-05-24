@@ -16,6 +16,7 @@
             "scripts\\ObstacleCircle.ts",
             "scripts\\ObstacleRect.ts",
             "scripts\\RandomAnimcationOffset.ts",
+            "scripts\\TopDownCameraDrag.ts",
             "scripts\\Unit.ts",
             "scripts\\UnitBehavior.ts",
             "scripts\\UnitProps.ts",

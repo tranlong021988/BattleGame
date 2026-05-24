@@ -18,6 +18,24 @@ export class UnitSpawner extends Component {
         this.sim = sim;
     }
 
+    prewarm(prefab: Prefab, count: number, parent: Node) {
+        const pool = this.getPool(prefab);
+        const safeCount = Math.max(0, Math.floor(count));
+
+        for (let i = 0; i < safeCount; i++) {
+            const node = instantiate(prefab);
+
+            parent.addChild(node);
+            node.active = false;
+
+            pool.push(node);
+        }
+    }
+
+    getPoolCount(prefab: Prefab): number {
+        return this.getPool(prefab).length;
+    }
+
     private getPool(prefab: Prefab): Node[] {
         const key = prefab.uuid;
 
@@ -48,7 +66,10 @@ export class UnitSpawner extends Component {
         unitTypeName: string,
         pos: Vec3,
         team: number,
-        parent: Node
+        parent: Node,
+        maxSpeed: number,
+        health: number,
+        damage: number
     ): Unit {
         const node = this.getNode(prefab);
 
@@ -65,6 +86,10 @@ export class UnitSpawner extends Component {
         const props = node.getComponent(UnitProps)!;
         const behavior = node.getComponent(UnitBehavior);
 
+        unit.moveSpeed = maxSpeed;
+
+        props.maxHealth = health;
+        props.damage = damage;
         props.resetForSpawn();
 
         const forwardX = 0;

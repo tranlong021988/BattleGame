@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 15954.5603,
+      "mTimestamp": 23923.1969,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 13111637.4166,
+      "mTimestamp": 32467.6416,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1169,7 +1169,7 @@
           }
         },
         {
-          "value": "file:///F:/Github/BattleGame/assets/scripts/Unit.ts",
+          "value": "file:///F:/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts",
           "resolved": "__unresolved_12",
           "loc": {
             "start": {
@@ -1178,63 +1178,77 @@
             },
             "end": {
               "line": 5,
-              "column": 1499
+              "column": 1512
+            }
+          }
+        },
+        {
+          "value": "file:///F:/Github/BattleGame/assets/scripts/Unit.ts",
+          "resolved": "__unresolved_13",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 1528
+            },
+            "end": {
+              "line": 5,
+              "column": 1581
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/UnitBehavior.ts",
-          "resolved": "__unresolved_13",
+          "resolved": "__unresolved_14",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1515
+              "column": 1597
             },
             "end": {
               "line": 5,
-              "column": 1576
+              "column": 1658
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/UnitProps.ts",
-          "resolved": "__unresolved_14",
+          "resolved": "__unresolved_15",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1592
+              "column": 1674
             },
             "end": {
               "line": 5,
-              "column": 1650
+              "column": 1732
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/UnitSpawner.ts",
-          "resolved": "__unresolved_15",
+          "resolved": "__unresolved_16",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1666
+              "column": 1748
             },
             "end": {
               "line": 5,
-              "column": 1726
+              "column": 1808
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/rvo/RVO.ts",
-          "resolved": "__unresolved_16",
+          "resolved": "__unresolved_17",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1742
+              "column": 1824
             },
             "end": {
               "line": 5,
-              "column": 1798
+              "column": 1880
             }
           }
         }
@@ -1322,6 +1336,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///F:/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts"
           },
           "messages": []
         },
@@ -1925,7 +1946,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1779372292507,
+      "mTimestamp": 1779598999675,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -2635,7 +2656,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1779385402464.0894,
+        "mtime": 1779534032575.927,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "2a3d48594ca107bb253a09fa8016eb25bbe98eb1",
@@ -3085,7 +3106,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/UnitProps.ts": {
       "mTimestamp": {
-        "mtime": 1778682787878.959,
+        "mtime": 1779471283246.5251,
         "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
       },
       "chunkId": "3ec83085277e955f3413521ae624675c55f0fa18",
@@ -4018,7 +4039,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/UnitSpawner.ts": {
       "mTimestamp": {
-        "mtime": 1779374137822.6702,
+        "mtime": 1779534005812.621,
         "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
       },
       "chunkId": "90776ff9ba3e834872a61a5eee0b6bcc0c8f94b4",
@@ -4165,7 +4186,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/UnitBehavior.ts": {
       "mTimestamp": {
-        "mtime": 1778682787877.9612,
+        "mtime": 1779532444047.232,
         "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
       },
       "chunkId": "188da626dc7963ce445b4ca496e30fc683d92647",
@@ -4410,6 +4431,58 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///F:/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts": {
+      "mTimestamp": {
+        "mtime": 1779472199462.6265,
+        "uuid": "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30"
+      },
+      "chunkId": "2939eda2b77583051771b5bbf05b284581c34539",
+      "imports": [
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc",
+          "loc": {
+            "start": {
+              "line": 1,
+              "column": 82
+            },
+            "end": {
+              "line": 1,
+              "column": 86
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
           },
           "messages": []
         }

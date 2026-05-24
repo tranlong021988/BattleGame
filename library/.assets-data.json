@@ -115,6 +115,7 @@
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
       ],
       "dependScripts": [
+        "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
         "6fc5265c-f2e8-478d-b01e-2a02f5a37b15",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
@@ -898,6 +899,11 @@
         "faea61d1-ef10-40e9-b8ff-413cf64506a8@438fe"
       ]
     },
+    "versionCode": 1
+  },
+  "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30": {
+    "url": "db://assets/scripts/TopDownCameraDrag.ts",
+    "value": {},
     "versionCode": 1
   }
 }
