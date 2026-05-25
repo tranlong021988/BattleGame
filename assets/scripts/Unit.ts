@@ -16,7 +16,13 @@ export class Unit extends Component {
 
     @property moveThreshold = 0.2;
     @property velThreshold = 0.05;
-    @property visualThreshold = 0.03;
+
+    // Deadzone rất nhỏ để bỏ qua rung vi mô.
+    @property visualThreshold = 0.01;
+
+    // Càng lớn càng bám sát agent nhanh hơn.
+    // Gợi ý: 12 - 20.
+    @property visualSmooth = 16;
 
     @property
     onForward = true;
@@ -38,6 +44,7 @@ export class Unit extends Component {
     finder!: EnemyFinder;
 
     private lastStablePos = { x: 0, z: 0 };
+    private tempPos = new Vec3();
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
@@ -130,9 +137,10 @@ export class Unit extends Component {
         }
     }
 
-    update() {
+    update(deltaTime: number) {
         if (!this.sim || !this.agent) return;
 
+        // ===== ENGAGED =====
         if (this.onBusy) {
             if (
                 !this.enemy ||
@@ -149,12 +157,14 @@ export class Unit extends Component {
                 this.agent.vel.x = 0;
                 this.agent.vel.z = 0;
 
+                this.sync(deltaTime);
                 return;
             }
         }
 
         this.clearInvalidEnemy();
 
+        // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward.
         const nearestInRange = this.findNearestEnemyInAttackRange();
 
         if (nearestInRange) {
@@ -169,9 +179,11 @@ export class Unit extends Component {
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
 
+            this.sync(deltaTime);
             return;
         }
 
+        // ===== FORWARD PHASE =====
         if (this.onForward) {
             this.updateForwardPhase();
 
@@ -182,11 +194,12 @@ export class Unit extends Component {
                     this.forwardDir.z * this.agent.maxSpeed
                 );
 
-                this.sync();
+                this.sync(deltaTime);
                 return;
             }
         }
 
+        // ===== CHASE PHASE =====
         if (!this.enemy) {
             this.enemy = this.findNearestEnemy();
         }
@@ -208,7 +221,7 @@ export class Unit extends Component {
             this.sim.setPrefVelocity(this.agent, 0, 0);
         }
 
-        this.sync();
+        this.sync(deltaTime);
     }
 
     private updateForwardPhase() {
@@ -344,22 +357,27 @@ export class Unit extends Component {
         this.node.setRotationFromEuler(0, targetY, 0);
     }
 
-    private sync() {
+    private sync(deltaTime: number) {
         if (!this.agent) return;
 
         const current = this.node.worldPosition;
 
-        const pdx = this.agent.pos.x - current.x;
-        const pdz = this.agent.pos.z - current.z;
+        const targetX = this.agent.pos.x;
+        const targetZ = this.agent.pos.z;
 
-        const posDistSq = pdx * pdx + pdz * pdz;
+        const dx = targetX - current.x;
+        const dz = targetZ - current.z;
 
-        if (posDistSq >= this.visualThreshold * this.visualThreshold) {
-            this.node.setWorldPosition(
-                this.agent.pos.x,
-                current.y,
-                this.agent.pos.z
-            );
+        const distSq = dx * dx + dz * dz;
+
+        if (distSq >= this.visualThreshold * this.visualThreshold) {
+            const t = 1 - Math.exp(-this.visualSmooth * deltaTime);
+
+            const newX = current.x + dx * t;
+            const newZ = current.z + dz * t;
+
+            this.tempPos.set(newX, current.y, newZ);
+            this.node.setWorldPosition(this.tempPos);
         }
 
         const vx = this.agent.vel.x;
@@ -369,12 +387,12 @@ export class Unit extends Component {
 
         if (speedSq < this.velThreshold * this.velThreshold) return;
 
-        const dx = this.agent.pos.x - this.lastStablePos.x;
-        const dz = this.agent.pos.z - this.lastStablePos.z;
+        const moveDx = this.agent.pos.x - this.lastStablePos.x;
+        const moveDz = this.agent.pos.z - this.lastStablePos.z;
 
-        const distSq = dx * dx + dz * dz;
+        const moveDistSq = moveDx * moveDx + moveDz * moveDz;
 
-        if (distSq < this.moveThreshold * this.moveThreshold) return;
+        if (moveDistSq < this.moveThreshold * this.moveThreshold) return;
 
         this.lastStablePos.x = this.agent.pos.x;
         this.lastStablePos.z = this.agent.pos.z;
@@ -385,7 +403,7 @@ export class Unit extends Component {
         const newY = this.lerpAngle(
             currentY,
             targetAngle,
-            this.rotationSpeed * 0.016
+            this.rotationSpeed * deltaTime
         );
 
         this.node.setRotationFromEuler(0, newY, 0);

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -68,12 +68,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "velThreshold", _descriptor6, this);
 
+          // Deadzone rất nhỏ để bỏ qua rung vi mô.
           _initializerDefineProperty(this, "visualThreshold", _descriptor7, this);
 
-          _initializerDefineProperty(this, "onForward", _descriptor8, this);
+          // Càng lớn càng bám sát agent nhanh hơn.
+          // Gợi ý: 12 - 20.
+          _initializerDefineProperty(this, "visualSmooth", _descriptor8, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor9, this);
+          _initializerDefineProperty(this, "onForward", _descriptor9, this);
 
+          _initializerDefineProperty(this, "forwardDir", _descriptor10, this);
+
+          this.team = 0;
+          this.unitTypeName = '';
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -85,6 +92,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.tempPos = new Vec3();
         }
 
         onLoad() {
@@ -96,7 +104,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), EnemyFinder) : EnemyFinder);
         }
 
-        init(sim, forwardX, forwardZ) {
+        init(sim, team, unitTypeName, forwardX, forwardZ) {
+          this.team = team;
+          this.unitTypeName = unitTypeName;
           this.sim = sim;
           const p = this.node.worldPosition;
           this.agent = sim.addAgent(p.x, p.z);
@@ -167,7 +177,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        update() {
+        update(deltaTime) {
           if (!this.sim || !this.agent) return; // ===== ENGAGED =====
 
           if (this.onBusy) {
@@ -178,11 +188,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.sim.setPrefVelocity(this.agent, 0, 0);
               this.agent.vel.x = 0;
               this.agent.vel.z = 0;
+              this.sync(deltaTime);
               return;
             }
           }
 
-          this.clearInvalidEnemy(); // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward
+          this.clearInvalidEnemy(); // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward.
 
           const nearestInRange = this.findNearestEnemyInAttackRange();
 
@@ -195,6 +206,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
+            this.sync(deltaTime);
             return;
           } // ===== FORWARD PHASE =====
 
@@ -204,7 +216,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
             if (this.onForward) {
               this.sim.setPrefVelocity(this.agent, this.forwardDir.x * this.agent.maxSpeed, this.forwardDir.z * this.agent.maxSpeed);
-              this.sync();
+              this.sync(deltaTime);
               return;
             }
           } // ===== CHASE PHASE =====
@@ -226,7 +238,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.sim.setPrefVelocity(this.agent, 0, 0);
           }
 
-          this.sync();
+          this.sync(deltaTime);
         }
 
         updateForwardPhase() {
@@ -237,10 +249,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          const myZ = this.agent.pos.z;
-          const enemyZ = nearestEnemy.agent.pos.z;
-
           if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
+            const myZ = this.agent.pos.z;
+            const enemyZ = nearestEnemy.agent.pos.z;
+
             if (this.forwardDir.z > 0 && myZ >= enemyZ) {
               this.onForward = false;
               return;
@@ -347,30 +359,36 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.node.setRotationFromEuler(0, targetY, 0);
         }
 
-        sync() {
+        sync(deltaTime) {
           if (!this.agent) return;
           const current = this.node.worldPosition;
-          const pdx = this.agent.pos.x - current.x;
-          const pdz = this.agent.pos.z - current.z;
-          const posDistSq = pdx * pdx + pdz * pdz;
+          const targetX = this.agent.pos.x;
+          const targetZ = this.agent.pos.z;
+          const dx = targetX - current.x;
+          const dz = targetZ - current.z;
+          const distSq = dx * dx + dz * dz;
 
-          if (posDistSq >= this.visualThreshold * this.visualThreshold) {
-            this.node.setWorldPosition(this.agent.pos.x, current.y, this.agent.pos.z);
+          if (distSq >= this.visualThreshold * this.visualThreshold) {
+            const t = 1 - Math.exp(-this.visualSmooth * deltaTime);
+            const newX = current.x + dx * t;
+            const newZ = current.z + dz * t;
+            this.tempPos.set(newX, current.y, newZ);
+            this.node.setWorldPosition(this.tempPos);
           }
 
           const vx = this.agent.vel.x;
           const vz = this.agent.vel.z;
           const speedSq = vx * vx + vz * vz;
           if (speedSq < this.velThreshold * this.velThreshold) return;
-          const dx = this.agent.pos.x - this.lastStablePos.x;
-          const dz = this.agent.pos.z - this.lastStablePos.z;
-          const distSq = dx * dx + dz * dz;
-          if (distSq < this.moveThreshold * this.moveThreshold) return;
+          const moveDx = this.agent.pos.x - this.lastStablePos.x;
+          const moveDz = this.agent.pos.z - this.lastStablePos.z;
+          const moveDistSq = moveDx * moveDx + moveDz * moveDz;
+          if (moveDistSq < this.moveThreshold * this.moveThreshold) return;
           this.lastStablePos.x = this.agent.pos.x;
           this.lastStablePos.z = this.agent.pos.z;
           const targetAngle = Math.atan2(vx, vz) * 180 / Math.PI;
           const currentY = this.node.eulerAngles.y;
-          const newY = this.lerpAngle(currentY, targetAngle, this.rotationSpeed * 0.016);
+          const newY = this.lerpAngle(currentY, targetAngle, this.rotationSpeed * deltaTime);
           this.node.setRotationFromEuler(0, newY, 0);
         }
 
@@ -428,16 +446,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 0.03;
+          return 0.01;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "visualSmooth", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 16;
+        }
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
         configurable: true,
         enumerable: true,
         writable: true,

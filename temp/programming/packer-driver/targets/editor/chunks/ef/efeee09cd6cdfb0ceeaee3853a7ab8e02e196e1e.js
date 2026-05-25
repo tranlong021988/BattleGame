@@ -75,7 +75,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         resetForSpawn() {
-          this.attackTimer = 0;
+          // Random attack phase để tránh phe update trước luôn thắng.
+          this.attackTimer = Math.random() * this.attackInterval;
           this.deadHandled = false;
         }
 
@@ -85,16 +86,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         update(deltaTime) {
-          if (!this.node.activeInHierarchy) return; // ===== DEAD =====
+          if (!this.node.activeInHierarchy) return;
 
           if (this.props.isDead()) {
             this.handleDeath();
             return;
-          } // ===== NOT ATTACKING =====
-
+          }
 
           if (!this.unit.onBusy) {
-            this.attackTimer = 0;
             return;
           }
 

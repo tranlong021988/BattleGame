@@ -574,6 +574,7 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
+    "visualSmooth": 25,
     "onForward": true,
     "forwardDir": {
       "__type__": "cc.Vec3",

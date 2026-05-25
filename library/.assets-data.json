@@ -903,5 +903,15 @@
     "url": "db://assets/scripts/TopDownCameraDrag.ts",
     "value": {},
     "versionCode": 1
+  },
+  "1b136f6e-cf95-4d85-aae2-042c11b71efb": {
+    "url": "db://assets/prefabs/BlueUnit2.prefab",
+    "value": {},
+    "versionCode": 2
+  },
+  "b7587246-7543-4c29-a7a1-8e0c9de5d937": {
+    "url": "db://assets/prefabs/RedUnit2.prefab",
+    "value": {},
+    "versionCode": 2
   }
 }
