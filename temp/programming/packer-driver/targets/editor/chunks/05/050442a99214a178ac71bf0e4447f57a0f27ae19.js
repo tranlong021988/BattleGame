@@ -65,7 +65,6 @@ System.register(["cc"], function (_export, _context) {
           this.pending = false;
           this.nextAgentId = 1;
           this.agentMap = new Map();
-          // Reuse obstacle buffers
           this.circleData = new Float32Array(0);
           this.rectData = new Float32Array(0);
           this.obstacleDirty = true;
@@ -162,9 +161,7 @@ System.register(["cc"], function (_export, _context) {
             const ii = i * 2;
             ints[ii + 0] = a.maxNeighbors;
             ints[ii + 1] = a.locked ? 1 : 0;
-          } // Vì Transferable sẽ detach buffer, cần slice obstacle buffer khi gửi.
-          // Obstacle thường rất ít và static nên cost này nhỏ.
-
+          }
 
           const circleData = this.circleData.slice();
           const rectData = this.rectData.slice();
@@ -550,71 +547,6 @@ function applyVelocityAvoidance(agents, circles, rects) {
             }
         }
 
-        for (let j = 0; j < circles.length; j++) {
-            const ob = circles[j];
-
-            const dx = a.x - ob.x;
-            const dz = a.z - ob.z;
-
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            const minDist = a.radius + ob.r;
-
-            if (dist < minDist && dist > 0.0001) {
-                const nx = dx / dist;
-                const nz = dz / dist;
-
-                vx += nx * (minDist - dist) * 2;
-                vz += nz * (minDist - dist) * 2;
-
-                const dot = vx * nx + vz * nz;
-
-                if (dot < 0) {
-                    vx -= nx * dot;
-                    vz -= nz * dot;
-                }
-            }
-        }
-
-        for (let j = 0; j < rects.length; j++) {
-            const ob = rects[j];
-
-            const dx = a.x - ob.x;
-            const dz = a.z - ob.z;
-
-            const lx = dx * ob.cos + dz * ob.sin;
-            const lz = -dx * ob.sin + dz * ob.cos;
-
-            const px = clamp(lx, -ob.hx, ob.hx);
-            const pz = clamp(lz, -ob.hz, ob.hz);
-
-            const ox = lx - px;
-            const oz = lz - pz;
-
-            const distSq = ox * ox + oz * oz;
-
-            if (distSq > 1e-8) {
-                if (distSq < a.radius * a.radius) {
-                    const dist = Math.sqrt(distSq);
-
-                    const nxL = ox / dist;
-                    const nzL = oz / dist;
-
-                    const nx = nxL * ob.cos - nzL * ob.sin;
-                    const nz = nxL * ob.sin + nzL * ob.cos;
-
-                    vx += nx * (a.radius - dist) * 2;
-                    vz += nz * (a.radius - dist) * 2;
-
-                    const dot = vx * nx + vz * nz;
-
-                    if (dot < 0) {
-                        vx -= nx * dot;
-                        vz -= nz * dot;
-                    }
-                }
-            }
-        }
-
         const speed = Math.sqrt(vx * vx + vz * vz);
 
         if (speed > a.maxSpeed) {
@@ -664,23 +596,31 @@ function hardSeparateAgents(agents) {
             const minDist = a.radius + b.radius;
 
             if (distSq < 0.0001) continue;
+            if (distSq >= minDist * minDist) continue;
 
-            if (distSq < minDist * minDist) {
-                const dist = Math.sqrt(distSq);
-                const overlap = (minDist - dist) * 0.5;
+            const dist = Math.sqrt(distSq);
+            const overlap = minDist - dist;
 
-                const nx = dx / dist;
-                const nz = dz / dist;
+            const nx = dx / dist;
+            const nz = dz / dist;
 
-                if (!a.locked) {
-                    a.x -= nx * overlap;
-                    a.z -= nz * overlap;
-                }
+            const aMovable = !a.locked;
+            const bMovable = !b.locked;
 
-                if (!b.locked) {
-                    b.x += nx * overlap;
-                    b.z += nz * overlap;
-                }
+            if (aMovable && bMovable) {
+                const half = overlap * 0.5;
+
+                a.x -= nx * half;
+                a.z -= nz * half;
+
+                b.x += nx * half;
+                b.z += nz * half;
+            } else if (aMovable && !bMovable) {
+                a.x -= nx * overlap;
+                a.z -= nz * overlap;
+            } else if (!aMovable && bMovable) {
+                b.x += nx * overlap;
+                b.z += nz * overlap;
             }
         }
     }

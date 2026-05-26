@@ -24,11 +24,16 @@ export class Unit extends Component {
     @property
     onForward = true;
 
+    @property
+    isSteady = false;
+
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
 
     team = 0;
     unitTypeName = '';
+
+    isHero = false;
 
     sim: any = null;
     agent: any = null;
@@ -64,18 +69,34 @@ export class Unit extends Component {
         this.agent = sim.addAgent(p.x, p.z);
         this.agent.maxSpeed = this.moveSpeed;
         this.agent.radius = this.radius;
-        this.agent.locked = false;
 
         this.enemy = null;
         this.onBusy = false;
 
-        this.onForward = true;
+        this.onForward = !this.isSteady;
         this.setForwardDir(forwardX, forwardZ);
 
         this.updateOffset = Math.floor(Math.random() * 1000);
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
+
+        this.applySteadyState();
+    }
+
+    private applySteadyState() {
+        if (!this.agent) return;
+
+        if (this.isSteady) {
+            this.agent.locked = true;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+            this.onForward = false;
+        } else {
+            this.agent.locked = false;
+        }
     }
 
     private setForwardDir(x: number, z: number) {
@@ -122,18 +143,26 @@ export class Unit extends Component {
         this.onBusy = false;
 
         if (this.agent) {
-            this.agent.locked = false;
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
+
+            this.agent.locked = this.isSteady;
         }
     }
 
     update(deltaTime: number) {
         if (!this.sim || !this.agent) return;
 
-        // ===== ENGAGED =====
+        if (this.isSteady) {
+            this.agent.locked = true;
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.onForward = false;
+        }
+
         if (this.onBusy) {
             if (
                 !this.enemy ||
@@ -175,7 +204,14 @@ export class Unit extends Component {
             return;
         }
 
-        // ===== FORWARD PHASE =====
+        if (this.isSteady) {
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
+            return;
+        }
+
         if (this.onForward) {
             this.updateForwardPhase();
 
@@ -191,7 +227,6 @@ export class Unit extends Component {
             }
         }
 
-        // ===== CHASE PHASE =====
         if (!this.enemy) {
             this.enemy = this.findNearestEnemy();
         }

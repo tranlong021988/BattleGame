@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 15823789.2277,
+      "mTimestamp": 31033732.3839,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -2739,7 +2739,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1779778890215,
+        "mtime": 1779794029926.402,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -2878,6 +2878,20 @@
               "column": 45
             }
           }
+        },
+        {
+          "value": "./UnitProps",
+          "resolved": "__unresolved_9",
+          "loc": {
+            "start": {
+              "line": 10,
+              "column": 26
+            },
+            "end": {
+              "line": 10,
+              "column": 39
+            }
+          }
         }
       ],
       "type": "esm",
@@ -2963,6 +2977,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts"
           },
           "messages": []
         }
@@ -3126,7 +3147,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1779778847212.6316,
+        "mtime": 1779794672450.8762,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -4059,7 +4080,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts": {
       "mTimestamp": {
-        "mtime": 1779779451327.8218,
+        "mtime": 1779794658605.9846,
         "uuid": "fb8a1849-3759-4dfb-ac42-f957ce6a64ab"
       },
       "chunkId": "050442a99214a178ac71bf0e4447f57a0f27ae19",

@@ -7,6 +7,7 @@ import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
 import { UnitSpawner } from './UnitSpawner';
 import { UnitBehavior } from './UnitBehavior';
+import { UnitProps } from './UnitProps';
 
 const { ccclass, property } = _decorator;
 
@@ -46,6 +47,12 @@ export class GameManager extends Component {
 
     @property({ type: [UnitPrefabEntry] })
     teamBPrefabs: UnitPrefabEntry[] = [];
+
+    @property(Unit)
+    teamAHero: Unit | null = null;
+
+    @property(Unit)
+    teamBHero: Unit | null = null;
 
     @property battleMinX = -28;
     @property battleMaxX = 28;
@@ -134,7 +141,6 @@ export class GameManager extends Component {
         this.spawnWaveTimer = 0;
 
         this.createSimulator();
-
         this.buildPrefabMaps();
 
         EnemyFinder.teamA = this.teamA;
@@ -172,6 +178,9 @@ export class GameManager extends Component {
             );
         }
 
+        this.registerSceneHero(this.teamAHero, 0, 'hero_a');
+        this.registerSceneHero(this.teamBHero, 1, 'hero_b');
+
         if (this.spawnImmediatelyOnStart) {
             this.spawnAutoWave();
         }
@@ -206,6 +215,56 @@ export class GameManager extends Component {
 
         if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
+        }
+    }
+
+    private registerSceneHero(hero: Unit | null, team: number, typeName: string) {
+        if (!hero) return;
+        if (!hero.node.activeInHierarchy) return;
+
+        hero.isHero = true;
+
+        const props = hero.getComponent(UnitProps);
+        if (props) {
+            props.resetForSpawn();
+        }
+
+        const behavior = hero.getComponent(UnitBehavior);
+        if (behavior) {
+            behavior.gameManager = this;
+            behavior.resetForSpawn();
+        }
+
+        const finder = hero.getComponent(EnemyFinder);
+        if (finder) {
+            finder.resetForSpawn(team);
+        }
+
+        const forwardX = 0;
+        const forwardZ = team === 0 ? 1 : -1;
+
+        hero.init(
+            this.sim,
+            team,
+            typeName,
+            forwardX,
+            forwardZ
+        );
+
+        if (team === 0) {
+            if (this.teamA.indexOf(hero) < 0) {
+                this.teamA.push(hero);
+                this.aliveCount[0]++;
+            }
+
+            EnemyFinder.teamA = this.teamA;
+        } else {
+            if (this.teamB.indexOf(hero) < 0) {
+                this.teamB.push(hero);
+                this.aliveCount[1]++;
+            }
+
+            EnemyFinder.teamB = this.teamB;
         }
     }
 
@@ -453,6 +512,11 @@ export class GameManager extends Component {
     despawnUnit(unit: Unit) {
         if (!unit) return;
 
+        if (unit.isHero) {
+            this.handleHeroDeath(unit);
+            return;
+        }
+
         const team = unit.team;
         const unitName = unit.unitTypeName;
 
@@ -480,7 +544,7 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamA = this.teamA;
 
-                this.despawnThroughSpawner(unit, entry.prefab);
+                this.spawner.despawnUnit(unit, entry.prefab);
                 this.refreshBattleStatsUI();
             }
 
@@ -502,7 +566,7 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamB = this.teamB;
 
-                this.despawnThroughSpawner(unit, entry.prefab);
+                this.spawner.despawnUnit(unit, entry.prefab);
                 this.refreshBattleStatsUI();
             }
 
@@ -510,8 +574,64 @@ export class GameManager extends Component {
         }
     }
 
-    private despawnThroughSpawner(unit: Unit, prefab: Prefab) {
-        this.spawner.despawnUnit(unit, prefab);
+    private handleHeroDeath(unit: Unit) {
+        const team = unit.team;
+
+        if (team === 0) {
+            const idx = this.teamA.indexOf(unit);
+
+            if (idx >= 0) {
+                this.teamA.splice(idx, 1);
+            }
+
+            this.aliveCount[0]--;
+            this.deathCount[0]++;
+
+            if (this.aliveCount[0] < 0) {
+                this.aliveCount[0] = 0;
+            }
+
+            EnemyFinder.teamA = this.teamA;
+        } else {
+            const idx = this.teamB.indexOf(unit);
+
+            if (idx >= 0) {
+                this.teamB.splice(idx, 1);
+            }
+
+            this.aliveCount[1]--;
+            this.deathCount[1]++;
+
+            if (this.aliveCount[1] < 0) {
+                this.aliveCount[1] = 0;
+            }
+
+            EnemyFinder.teamB = this.teamB;
+        }
+
+        this.removeAgentFromSimulator(unit);
+
+        unit.resetForDespawn();
+        unit.node.active = false;
+
+        this.refreshBattleStatsUI();
+    }
+
+    private removeAgentFromSimulator(unit: Unit) {
+        if (!this.sim || !unit.agent) return;
+
+        if (typeof this.sim.removeAgent === 'function') {
+            this.sim.removeAgent(unit.agent);
+            return;
+        }
+
+        if (this.sim.agents && Array.isArray(this.sim.agents)) {
+            const idx = this.sim.agents.indexOf(unit.agent);
+
+            if (idx >= 0) {
+                this.sim.agents.splice(idx, 1);
+            }
+        }
     }
 
     private randomRange(min: number, max: number) {

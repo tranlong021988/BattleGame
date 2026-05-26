@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -64,10 +64,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "onForward", _descriptor8, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor9, this);
+          _initializerDefineProperty(this, "isSteady", _descriptor9, this);
+
+          _initializerDefineProperty(this, "forwardDir", _descriptor10, this);
 
           this.team = 0;
           this.unitTypeName = '';
+          this.isHero = false;
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -99,14 +102,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent = sim.addAgent(p.x, p.z);
           this.agent.maxSpeed = this.moveSpeed;
           this.agent.radius = this.radius;
-          this.agent.locked = false;
           this.enemy = null;
           this.onBusy = false;
-          this.onForward = true;
+          this.onForward = !this.isSteady;
           this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.applySteadyState();
+        }
+
+        applySteadyState() {
+          if (!this.agent) return;
+
+          if (this.isSteady) {
+            this.agent.locked = true;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+            this.onForward = false;
+          } else {
+            this.agent.locked = false;
+          }
         }
 
         setForwardDir(x, z) {
@@ -152,16 +170,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onBusy = false;
 
           if (this.agent) {
-            this.agent.locked = false;
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
+            this.agent.locked = this.isSteady;
           }
         }
 
         update(deltaTime) {
-          if (!this.sim || !this.agent) return; // ===== ENGAGED =====
+          if (!this.sim || !this.agent) return;
+
+          if (this.isSteady) {
+            this.agent.locked = true;
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.onForward = false;
+          }
 
           if (this.onBusy) {
             if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
@@ -190,8 +216,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.agent.vel.z = 0;
             this.sync(deltaTime, false);
             return;
-          } // ===== FORWARD PHASE =====
+          }
 
+          if (this.isSteady) {
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
+            return;
+          }
 
           if (this.onForward) {
             this.updateForwardPhase();
@@ -201,8 +234,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.sync(deltaTime, true);
               return;
             }
-          } // ===== CHASE PHASE =====
-
+          }
 
           if (!this.enemy) {
             this.enemy = this.findNearestEnemy();
@@ -442,7 +474,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function () {
           return true;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return false;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
         configurable: true,
         enumerable: true,
         writable: true,
