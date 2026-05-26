@@ -1100,6 +1100,7 @@
     "spaceBetweenUnit": 1.8,
     "spaceBetweenRow": 2,
     "formationZNoise": 1,
+    "centerGapWidth": 2.5,
     "circleObstacles": [
       {
         "__id__": 32
@@ -1137,7 +1138,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
-    "unitCount": 5,
+    "unitCount": 6,
     "prewarmCount": 20,
     "maxSpeed": 10,
     "health": 5,
@@ -1163,7 +1164,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
-    "unitCount": 5,
+    "unitCount": 6,
     "prewarmCount": 20,
     "maxSpeed": 10,
     "health": 5,

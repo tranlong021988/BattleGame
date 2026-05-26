@@ -1,5 +1,6 @@
 import { _decorator, Component, Prefab, Vec3, Label } from 'cc';
 import { Unit } from './Unit';
+import { UnitProps } from './UnitProps';
 import { EnemyFinder } from './EnemyFinder';
 import { RVOSimulator } from './rvo/RVO';
 import { RVOWorkerSimulator } from './rvo/RVOWorkerSimulator';
@@ -7,7 +8,6 @@ import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
 import { UnitSpawner } from './UnitSpawner';
 import { UnitBehavior } from './UnitBehavior';
-import { UnitProps } from './UnitProps';
 
 const { ccclass, property } = _decorator;
 
@@ -109,6 +109,12 @@ export class GameManager extends Component {
 
     @property
     formationZNoise = 0.25;
+
+    // Khoảng trống giữa đội hình theo trục X.
+    // Dùng để chừa chỗ cho tướng đứng ở giữa.
+    // Set 0 nếu không muốn chừa.
+    @property
+    centerGapWidth = 3;
 
     private spawnWaveTimer = 0;
 
@@ -412,10 +418,13 @@ export class GameManager extends Component {
             const remaining = count - spawned;
             const rowCount = Math.min(maxPerRow, remaining);
 
+            const rowXPositions = this.buildCenteredRowXPositions(
+                rowCount,
+                row
+            );
+
             for (let col = 0; col < rowCount; col++) {
-                const x =
-                    (col - (rowCount - 1) * 0.5) *
-                    this.spaceBetweenUnit;
+                const x = rowXPositions[col];
 
                 const rowZOffset = row * this.spaceBetweenRow;
 
@@ -441,6 +450,63 @@ export class GameManager extends Component {
 
             row++;
         }
+    }
+
+    private buildCenteredRowXPositions(rowCount: number, rowIndex: number): number[] {
+        const result: number[] = [];
+
+        if (rowCount <= 0) {
+            return result;
+        }
+
+        const gap = Math.max(0, this.centerGapWidth);
+
+        if (gap <= 0) {
+            for (let col = 0; col < rowCount; col++) {
+                const x =
+                    (col - (rowCount - 1) * 0.5) *
+                    this.spaceBetweenUnit;
+
+                result.push(x);
+            }
+
+            return result;
+        }
+
+        const gapHalf = gap * 0.5;
+
+        let pairIndex = 0;
+        const startRightSide = rowIndex % 2 === 1;
+
+        while (result.length < rowCount) {
+            const leftX =
+                -gapHalf -
+                pairIndex * this.spaceBetweenUnit;
+
+            const rightX =
+                gapHalf +
+                pairIndex * this.spaceBetweenUnit;
+
+            if (startRightSide) {
+                result.push(rightX);
+
+                if (result.length < rowCount) {
+                    result.push(leftX);
+                }
+            } else {
+                result.push(leftX);
+
+                if (result.length < rowCount) {
+                    result.push(rightX);
+                }
+            }
+
+            pairIndex++;
+        }
+
+        result.sort((a, b) => a - b);
+
+        return result;
     }
 
     spawnTeamA(unitName: string, pos: Vec3): Unit | null {

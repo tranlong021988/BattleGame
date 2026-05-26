@@ -1,197 +1,187 @@
-export class RVOWorkerAgent {
+System.register(["cc"], function (_export, _context) {
+  "use strict";
 
-    id = 0;
+  var _cclegacy, RVOWorkerAgent, RVOWorkerSimulator, _crd;
 
-    pos = { x: 0, z: 0 };
-    vel = { x: 0, z: 0 };
-    prefVel = { x: 0, z: 0 };
+  _export({
+    RVOWorkerAgent: void 0,
+    RVOWorkerSimulator: void 0
+  });
 
-    maxSpeed = 2;
-    radius = 0.5;
+  return {
+    setters: [function (_cc) {
+      _cclegacy = _cc.cclegacy;
+    }],
+    execute: function () {
+      _crd = true;
 
-    neighborDist = 2.4;
-    maxNeighbors = 8;
+      _cclegacy._RF.push({}, "fb8a1hJN1lN+6xC+VfOamSr", "RVOWorkerSimulator", undefined);
 
-    locked = false;
+      _export("RVOWorkerAgent", RVOWorkerAgent = class RVOWorkerAgent {
+        constructor(id, x, z) {
+          this.id = 0;
+          this.pos = {
+            x: 0,
+            z: 0
+          };
+          this.vel = {
+            x: 0,
+            z: 0
+          };
+          this.prefVel = {
+            x: 0,
+            z: 0
+          };
+          this.maxSpeed = 2;
+          this.radius = 0.5;
+          this.neighborDist = 2.4;
+          this.maxNeighbors = 8;
+          this.locked = false;
+          this.team = -1;
+          this.onForward = 0;
+          this.forwardX = 0;
+          this.forwardZ = 1;
+          this.enableAllyOvertake = 0;
+          this.overtakeLookAhead = 2.2;
+          this.overtakeSideRange = 1.2;
+          this.overtakeSideStrength = 0.75;
+          this.overtakeSpeedDiff = 0.15;
+          this.overtakeSeed = 1;
+          this.id = id;
+          this.pos.x = x;
+          this.pos.z = z;
+        }
 
-    team = -1;
-    onForward = 0;
+      });
 
-    forwardX = 0;
-    forwardZ = 1;
+      _export("RVOWorkerSimulator", RVOWorkerSimulator = class RVOWorkerSimulator {
+        static isSupported() {
+          return typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && typeof URL !== 'undefined' && !!URL.createObjectURL;
+        }
 
-    enableAllyOvertake = 0;
-    overtakeLookAhead = 2.2;
-    overtakeSideRange = 1.2;
-    overtakeSideStrength = 0.75;
-    overtakeSpeedDiff = 0.15;
-    overtakeSeed = 1;
+        constructor() {
+          this.agents = [];
+          this.circleObs = [];
+          this.rectObs = [];
+          this.cellSize = 2.2;
+          this.timeStep = 1 / 60;
+          this.useBounds = false;
+          this.minX = -99999;
+          this.maxX = 99999;
+          this.minZ = -99999;
+          this.maxZ = 99999;
+          this.worker = null;
+          this.workerReady = false;
+          this.pending = false;
+          this.nextAgentId = 1;
+          this.agentMap = new Map();
+          this.circleData = new Float32Array(0);
+          this.rectData = new Float32Array(0);
+          this.obstacleDirty = true;
+          this.createWorker();
+        }
 
-    constructor(id: number, x: number, z: number) {
-        this.id = id;
-        this.pos.x = x;
-        this.pos.z = z;
-    }
-}
-
-type CircleObstacle = { x: number; z: number; r: number };
-
-type RectObstacle = {
-    x: number;
-    z: number;
-    hx: number;
-    hz: number;
-    cos: number;
-    sin: number;
-};
-
-export class RVOWorkerSimulator {
-
-    agents: RVOWorkerAgent[] = [];
-
-    circleObs: CircleObstacle[] = [];
-    rectObs: RectObstacle[] = [];
-
-    cellSize = 2.2;
-    timeStep = 1 / 60;
-
-    useBounds = false;
-    minX = -99999;
-    maxX = 99999;
-    minZ = -99999;
-    maxZ = 99999;
-
-    private worker: Worker | null = null;
-    private workerReady = false;
-    private pending = false;
-
-    private nextAgentId = 1;
-    private agentMap: Map<number, RVOWorkerAgent> = new Map();
-
-    private circleData = new Float32Array(0);
-    private rectData = new Float32Array(0);
-    private obstacleDirty = true;
-
-    static isSupported() {
-        return typeof Worker !== 'undefined' &&
-            typeof Blob !== 'undefined' &&
-            typeof URL !== 'undefined' &&
-            !!URL.createObjectURL;
-    }
-
-    constructor() {
-        this.createWorker();
-    }
-
-    destroy() {
-        if (this.worker) {
+        destroy() {
+          if (this.worker) {
             this.worker.terminate();
             this.worker = null;
+          }
+
+          this.workerReady = false;
+          this.pending = false;
+          this.agentMap.clear();
+          this.agents.length = 0;
         }
 
-        this.workerReady = false;
-        this.pending = false;
-        this.agentMap.clear();
-        this.agents.length = 0;
-    }
+        setBattlefield(minX, maxX, minZ, maxZ) {
+          this.useBounds = true;
+          this.minX = minX;
+          this.maxX = maxX;
+          this.minZ = minZ;
+          this.maxZ = maxZ;
+        }
 
-    setBattlefield(minX: number, maxX: number, minZ: number, maxZ: number) {
-        this.useBounds = true;
-        this.minX = minX;
-        this.maxX = maxX;
-        this.minZ = minZ;
-        this.maxZ = maxZ;
-    }
+        addAgent(x, z) {
+          const a = new RVOWorkerAgent(this.nextAgentId++, x, z);
+          this.agents.push(a);
+          this.agentMap.set(a.id, a);
+          return a;
+        }
 
-    addAgent(x: number, z: number) {
-        const a = new RVOWorkerAgent(this.nextAgentId++, x, z);
+        removeAgent(a) {
+          const idx = this.agents.indexOf(a);
 
-        this.agents.push(a);
-        this.agentMap.set(a.id, a);
-
-        return a;
-    }
-
-    removeAgent(a: RVOWorkerAgent) {
-        const idx = this.agents.indexOf(a);
-
-        if (idx >= 0) {
+          if (idx >= 0) {
             this.agents.splice(idx, 1);
+          }
+
+          this.agentMap.delete(a.id);
         }
 
-        this.agentMap.delete(a.id);
-    }
+        setPrefVelocity(a, vx, vz) {
+          a.prefVel.x = vx;
+          a.prefVel.z = vz;
+        }
 
-    setPrefVelocity(a: RVOWorkerAgent, vx: number, vz: number) {
-        a.prefVel.x = vx;
-        a.prefVel.z = vz;
-    }
+        addCircleObstacle(x, z, r) {
+          this.circleObs.push({
+            x,
+            z,
+            r
+          });
+          this.obstacleDirty = true;
+        }
 
-    addCircleObstacle(x: number, z: number, r: number) {
-        this.circleObs.push({ x, z, r });
-        this.obstacleDirty = true;
-    }
-
-    addRectObstacle(x: number, z: number, hx: number, hz: number, angle: number) {
-        this.rectObs.push({
+        addRectObstacle(x, z, hx, hz, angle) {
+          this.rectObs.push({
             x,
             z,
             hx,
             hz,
             cos: Math.cos(angle),
             sin: Math.sin(angle)
-        });
+          });
+          this.obstacleDirty = true;
+        }
 
-        this.obstacleDirty = true;
-    }
+        step() {
+          if (!this.worker || !this.workerReady) return;
+          if (this.pending) return;
+          if (this.agents.length <= 0) return;
+          this.pending = true;
+          this.rebuildObstacleBuffersIfNeeded();
+          const count = this.agents.length;
+          const ids = new Int32Array(count); // 18 floats / agent
+          // 0 pos.x
+          // 1 pos.z
+          // 2 vel.x
+          // 3 vel.z
+          // 4 prefVel.x
+          // 5 prefVel.z
+          // 6 maxSpeed
+          // 7 radius
+          // 8 neighborDist
+          // 9 forwardX
+          // 10 forwardZ
+          // 11 overtakeLookAhead
+          // 12 overtakeSideRange
+          // 13 overtakeSideStrength
+          // 14 overtakeSpeedDiff
+          // 15 overtakeSeed
+          // 16 team
+          // 17 onForward
 
-    step() {
-        if (!this.worker || !this.workerReady) return;
-        if (this.pending) return;
-        if (this.agents.length <= 0) return;
+          const floats = new Float32Array(count * 18); // 3 ints / agent
+          // 0 maxNeighbors
+          // 1 locked
+          // 2 enableAllyOvertake
 
-        this.pending = true;
+          const ints = new Int32Array(count * 3);
 
-        this.rebuildObstacleBuffersIfNeeded();
-
-        const count = this.agents.length;
-
-        const ids = new Int32Array(count);
-
-        // 18 floats / agent
-        // 0 pos.x
-        // 1 pos.z
-        // 2 vel.x
-        // 3 vel.z
-        // 4 prefVel.x
-        // 5 prefVel.z
-        // 6 maxSpeed
-        // 7 radius
-        // 8 neighborDist
-        // 9 forwardX
-        // 10 forwardZ
-        // 11 overtakeLookAhead
-        // 12 overtakeSideRange
-        // 13 overtakeSideStrength
-        // 14 overtakeSpeedDiff
-        // 15 overtakeSeed
-        // 16 team
-        // 17 onForward
-        const floats = new Float32Array(count * 18);
-
-        // 3 ints / agent
-        // 0 maxNeighbors
-        // 1 locked
-        // 2 enableAllyOvertake
-        const ints = new Int32Array(count * 3);
-
-        for (let i = 0; i < count; i++) {
+          for (let i = 0; i < count; i++) {
             const a = this.agents[i];
-
             ids[i] = a.id;
-
             const fi = i * 18;
-
             floats[fi + 0] = a.pos.x;
             floats[fi + 1] = a.pos.z;
             floats[fi + 2] = a.vel.x;
@@ -210,131 +200,109 @@ export class RVOWorkerSimulator {
             floats[fi + 15] = a.overtakeSeed;
             floats[fi + 16] = a.team;
             floats[fi + 17] = a.onForward;
-
             const ii = i * 3;
-
             ints[ii + 0] = a.maxNeighbors;
             ints[ii + 1] = a.locked ? 1 : 0;
             ints[ii + 2] = a.enableAllyOvertake ? 1 : 0;
-        }
+          }
 
-        const circleData = this.circleData.slice();
-        const rectData = this.rectData.slice();
-
-        this.worker.postMessage({
+          const circleData = this.circleData.slice();
+          const rectData = this.rectData.slice();
+          this.worker.postMessage({
             type: 'step',
             ids,
             floats,
             ints,
             count,
-
             cellSize: this.cellSize,
             timeStep: this.timeStep,
-
             useBounds: this.useBounds ? 1 : 0,
             minX: this.minX,
             maxX: this.maxX,
             minZ: this.minZ,
             maxZ: this.maxZ,
-
             circleData,
             rectData
-        }, [
-            ids.buffer,
-            floats.buffer,
-            ints.buffer,
-            circleData.buffer,
-            rectData.buffer
-        ]);
-    }
+          }, [ids.buffer, floats.buffer, ints.buffer, circleData.buffer, rectData.buffer]);
+        }
 
-    private rebuildObstacleBuffersIfNeeded() {
-        if (!this.obstacleDirty) return;
+        rebuildObstacleBuffersIfNeeded() {
+          if (!this.obstacleDirty) return;
+          this.circleData = new Float32Array(this.circleObs.length * 3);
 
-        this.circleData = new Float32Array(this.circleObs.length * 3);
-
-        for (let i = 0; i < this.circleObs.length; i++) {
+          for (let i = 0; i < this.circleObs.length; i++) {
             const ob = this.circleObs[i];
             const k = i * 3;
-
             this.circleData[k + 0] = ob.x;
             this.circleData[k + 1] = ob.z;
             this.circleData[k + 2] = ob.r;
-        }
+          }
 
-        this.rectData = new Float32Array(this.rectObs.length * 6);
+          this.rectData = new Float32Array(this.rectObs.length * 6);
 
-        for (let i = 0; i < this.rectObs.length; i++) {
+          for (let i = 0; i < this.rectObs.length; i++) {
             const ob = this.rectObs[i];
             const k = i * 6;
-
             this.rectData[k + 0] = ob.x;
             this.rectData[k + 1] = ob.z;
             this.rectData[k + 2] = ob.hx;
             this.rectData[k + 3] = ob.hz;
             this.rectData[k + 4] = ob.cos;
             this.rectData[k + 5] = ob.sin;
+          }
+
+          this.obstacleDirty = false;
         }
 
-        this.obstacleDirty = false;
-    }
-
-    private createWorker() {
-        if (!RVOWorkerSimulator.isSupported()) {
+        createWorker() {
+          if (!RVOWorkerSimulator.isSupported()) {
             console.warn('[RVOWorkerSimulator] Worker is not supported.');
             return;
-        }
+          }
 
-        const blob = new Blob([RVOWorkerSimulator.workerSource()], {
+          const blob = new Blob([RVOWorkerSimulator.workerSource()], {
             type: 'application/javascript'
-        });
+          });
+          const url = URL.createObjectURL(blob);
+          this.worker = new Worker(url);
+          URL.revokeObjectURL(url);
 
-        const url = URL.createObjectURL(blob);
-
-        this.worker = new Worker(url);
-
-        URL.revokeObjectURL(url);
-
-        this.worker.onmessage = (event: MessageEvent) => {
+          this.worker.onmessage = event => {
             const data = event.data;
-
             if (!data) return;
 
             if (data.type === 'ready') {
-                this.workerReady = true;
-                return;
+              this.workerReady = true;
+              return;
             }
 
             if (data.type === 'result') {
-                this.pending = false;
-                this.applyWorkerResult(data.ids, data.result);
+              this.pending = false;
+              this.applyWorkerResult(data.ids, data.result);
             }
-        };
+          };
 
-        this.worker.onerror = (err) => {
+          this.worker.onerror = err => {
             console.error('[RVOWorkerSimulator] Worker error:', err);
             this.pending = false;
-        };
-    }
+          };
+        }
 
-    private applyWorkerResult(ids: Int32Array, result: Float32Array) {
-        for (let i = 0; i < ids.length; i++) {
+        applyWorkerResult(ids, result) {
+          for (let i = 0; i < ids.length; i++) {
             const id = ids[i];
             const a = this.agentMap.get(id);
-
             if (!a) continue;
-
             const k = i * 4;
-
             a.pos.x = result[k + 0];
             a.pos.z = result[k + 1];
             a.vel.x = result[k + 2];
             a.vel.z = result[k + 3];
+          }
         }
-    }
 
-    private static workerSource() {
-        return `
+        static workerSource() {
+          return `
 const grid = new Map();
 
 function clamp(v, min, max) {
@@ -869,5 +837,14 @@ self.onmessage = function(event) {
 
 self.postMessage({ type: 'ready' });
 `;
+        }
+
+      });
+
+      _cclegacy._RF.pop();
+
+      _crd = false;
     }
-}
+  };
+});
+//# sourceMappingURL=e21aeeb81eed07a28ae26841a08bfd8fc9a2101d.js.map

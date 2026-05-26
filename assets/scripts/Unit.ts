@@ -30,6 +30,26 @@ export class Unit extends Component {
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
 
+    // =====================================================
+    // Worker Ally Overtake Settings
+    // Các thông số này sẽ được truyền xuống RVO Worker.
+    // =====================================================
+
+    @property
+    enableAllyOvertake = true;
+
+    @property
+    overtakeLookAhead = 2.2;
+
+    @property
+    overtakeSideRange = 1.2;
+
+    @property
+    overtakeSideStrength = 0.75;
+
+    @property
+    overtakeSpeedDiff = 0.15;
+
     team = 0;
     unitTypeName = '';
 
@@ -81,7 +101,26 @@ export class Unit extends Component {
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
 
+        this.applyRuntimeAgentData();
         this.applySteadyState();
+    }
+
+    private applyRuntimeAgentData() {
+        if (!this.agent) return;
+
+        this.agent.team = this.team;
+        this.agent.onForward = this.onForward ? 1 : 0;
+
+        this.agent.forwardX = this.forwardDir.x;
+        this.agent.forwardZ = this.forwardDir.z;
+
+        this.agent.enableAllyOvertake = this.enableAllyOvertake ? 1 : 0;
+        this.agent.overtakeLookAhead = this.overtakeLookAhead;
+        this.agent.overtakeSideRange = this.overtakeSideRange;
+        this.agent.overtakeSideStrength = this.overtakeSideStrength;
+        this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
+
+        this.agent.overtakeSeed = this.updateOffset % 2 === 0 ? 1 : -1;
     }
 
     private applySteadyState() {
@@ -94,6 +133,7 @@ export class Unit extends Component {
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
             this.onForward = false;
+            this.agent.onForward = 0;
         } else {
             this.agent.locked = false;
         }
@@ -125,6 +165,7 @@ export class Unit extends Component {
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
+            this.agent.onForward = 0;
         }
 
         this.agent = null;
@@ -155,12 +196,24 @@ export class Unit extends Component {
     update(deltaTime: number) {
         if (!this.sim || !this.agent) return;
 
+        this.agent.team = this.team;
+        this.agent.onForward = this.onForward ? 1 : 0;
+        this.agent.forwardX = this.forwardDir.x;
+        this.agent.forwardZ = this.forwardDir.z;
+
+        this.agent.enableAllyOvertake = this.enableAllyOvertake ? 1 : 0;
+        this.agent.overtakeLookAhead = this.overtakeLookAhead;
+        this.agent.overtakeSideRange = this.overtakeSideRange;
+        this.agent.overtakeSideStrength = this.overtakeSideStrength;
+        this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
+
         if (this.isSteady) {
             this.agent.locked = true;
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             this.onForward = false;
+            this.agent.onForward = 0;
         }
 
         if (this.onBusy) {
@@ -190,6 +243,8 @@ export class Unit extends Component {
 
         if (nearestInRange) {
             this.onForward = false;
+            this.agent.onForward = 0;
+
             this.enemy = nearestInRange;
             this.onBusy = true;
             this.agent.locked = true;
@@ -216,6 +271,8 @@ export class Unit extends Component {
             this.updateForwardPhase();
 
             if (this.onForward) {
+                this.agent.onForward = 1;
+
                 this.sim.setPrefVelocity(
                     this.agent,
                     this.forwardDir.x * this.agent.maxSpeed,
@@ -226,6 +283,8 @@ export class Unit extends Component {
                 return;
             }
         }
+
+        this.agent.onForward = 0;
 
         if (!this.enemy) {
             this.enemy = this.findNearestEnemy();

@@ -225,10 +225,14 @@
                 "attackRange",
                 "rotationSpeed",
                 "visualThreshold",
+                "overtakeLookAhead",
+                "overtakeSideRange",
+                "overtakeSideStrength",
+                "overtakeSpeedDiff",
                 "node",
                 "__prefab"
             ],
-            -2,
+            -6,
             1,
             4
         ],
@@ -437,7 +441,11 @@
             4,
             5,
             6,
-            6
+            7,
+            8,
+            9,
+            10,
+            10
         ],
         [
             18,
@@ -501,6 +509,10 @@
                     1.7,
                     20,
                     0.03,
+                    2,
+                    1,
+                    0.6,
+                    0.1,
                     -4,
                     [
                         0,

@@ -574,14 +574,19 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
-    "visualSmooth": 25,
     "onForward": true,
+    "isSteady": false,
     "forwardDir": {
       "__type__": "cc.Vec3",
       "x": 0,
       "y": 0,
       "z": 1
     },
+    "enableAllyOvertake": true,
+    "overtakeLookAhead": 2,
+    "overtakeSideRange": 1,
+    "overtakeSideStrength": 0.6,
+    "overtakeSpeedDiff": 0.1,
     "_id": ""
   },
   {

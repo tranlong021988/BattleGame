@@ -1,21 +1,13 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
   function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) { var desc = {}; Object.keys(descriptor).forEach(function (key) { desc[key] = descriptor[key]; }); desc.enumerable = !!desc.enumerable; desc.configurable = !!desc.configurable; if ('value' in desc || desc.initializer) { desc.writable = true; } desc = decorators.slice().reverse().reduce(function (desc, decorator) { return decorator(target, property, desc) || desc; }, desc); if (context && desc.initializer !== void 0) { desc.value = desc.initializer ? desc.initializer.call(context) : void 0; desc.initializer = undefined; } if (desc.initializer === void 0) { Object.defineProperty(target, property, desc); desc = null; } return desc; }
 
   function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
-
-  function _reportPossibleCrUseOfRVOSimulator(extras) {
-    _reporterNs.report("RVOSimulator", "./rvo/RVO", _context.meta, extras);
-  }
-
-  function _reportPossibleCrUseOfRVOAgent(extras) {
-    _reporterNs.report("RVOAgent", "./rvo/RVO", _context.meta, extras);
-  }
 
   function _reportPossibleCrUseOfEnemyFinder(extras) {
     _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
@@ -52,7 +44,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         property
       } = _decorator);
 
-      _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Vec3), _dec(_class = (_class2 = class Unit extends Component {
+      _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Vec3), _dec(_class = (_class2 = (_class3 = class Unit extends Component {
         constructor() {
           super(...arguments);
 
@@ -72,10 +64,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "onForward", _descriptor8, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor9, this);
+          _initializerDefineProperty(this, "isSteady", _descriptor9, this);
+
+          _initializerDefineProperty(this, "forwardDir", _descriptor10, this);
+
+          // =====================================================
+          // Worker Ally Overtake Settings
+          // Các thông số này sẽ được truyền xuống RVO Worker.
+          // =====================================================
+          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor11, this);
+
+          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor12, this);
+
+          _initializerDefineProperty(this, "overtakeSideRange", _descriptor13, this);
+
+          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor14, this);
+
+          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor15, this);
 
           this.team = 0;
           this.unitTypeName = '';
+          this.isHero = false;
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -87,6 +96,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.tempPos = new Vec3();
         }
 
         onLoad() {
@@ -106,14 +116,45 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent = sim.addAgent(p.x, p.z);
           this.agent.maxSpeed = this.moveSpeed;
           this.agent.radius = this.radius;
-          this.agent.locked = false;
           this.enemy = null;
           this.onBusy = false;
-          this.onForward = true;
+          this.onForward = !this.isSteady;
           this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.applyRuntimeAgentData();
+          this.applySteadyState();
+        }
+
+        applyRuntimeAgentData() {
+          if (!this.agent) return;
+          this.agent.team = this.team;
+          this.agent.onForward = this.onForward ? 1 : 0;
+          this.agent.forwardX = this.forwardDir.x;
+          this.agent.forwardZ = this.forwardDir.z;
+          this.agent.enableAllyOvertake = this.enableAllyOvertake ? 1 : 0;
+          this.agent.overtakeLookAhead = this.overtakeLookAhead;
+          this.agent.overtakeSideRange = this.overtakeSideRange;
+          this.agent.overtakeSideStrength = this.overtakeSideStrength;
+          this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
+          this.agent.overtakeSeed = this.updateOffset % 2 === 0 ? 1 : -1;
+        }
+
+        applySteadyState() {
+          if (!this.agent) return;
+
+          if (this.isSteady) {
+            this.agent.locked = true;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+            this.onForward = false;
+            this.agent.onForward = 0;
+          } else {
+            this.agent.locked = false;
+          }
         }
 
         setForwardDir(x, z) {
@@ -142,6 +183,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
+            this.agent.onForward = 0;
           }
 
           this.agent = null;
@@ -152,10 +194,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (this.onBusy) return;
           if (this.onForward) return;
           this.enemy = e;
-
-          if (this.enemy && this.enemy.agent) {
-            this.lookAtEnemyInstant();
-          }
         }
 
         clearEnemy() {
@@ -163,25 +201,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onBusy = false;
 
           if (this.agent) {
-            this.agent.locked = false;
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
+            this.agent.locked = this.isSteady;
           }
         }
 
-        update() {
+        update(deltaTime) {
           if (!this.sim || !this.agent) return;
+          this.agent.team = this.team;
+          this.agent.onForward = this.onForward ? 1 : 0;
+          this.agent.forwardX = this.forwardDir.x;
+          this.agent.forwardZ = this.forwardDir.z;
+          this.agent.enableAllyOvertake = this.enableAllyOvertake ? 1 : 0;
+          this.agent.overtakeLookAhead = this.overtakeLookAhead;
+          this.agent.overtakeSideRange = this.overtakeSideRange;
+          this.agent.overtakeSideStrength = this.overtakeSideStrength;
+          this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
+
+          if (this.isSteady) {
+            this.agent.locked = true;
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.onForward = false;
+            this.agent.onForward = 0;
+          }
 
           if (this.onBusy) {
             if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
               this.clearEnemy();
             } else {
-              this.lookAtEnemyInstant();
+              this.lookAtEnemySmooth(deltaTime);
               this.sim.setPrefVelocity(this.agent, 0, 0);
               this.agent.vel.x = 0;
               this.agent.vel.z = 0;
+              this.sync(deltaTime, false);
               return;
             }
           }
@@ -191,13 +248,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (nearestInRange) {
             this.onForward = false;
+            this.agent.onForward = 0;
             this.enemy = nearestInRange;
             this.onBusy = true;
             this.agent.locked = true;
-            this.lookAtEnemyInstant();
+            this.lookAtEnemySmooth(deltaTime);
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
+            return;
+          }
+
+          if (this.isSteady) {
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
             return;
           }
 
@@ -205,11 +272,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.updateForwardPhase();
 
             if (this.onForward) {
+              this.agent.onForward = 1;
               this.sim.setPrefVelocity(this.agent, this.forwardDir.x * this.agent.maxSpeed, this.forwardDir.z * this.agent.maxSpeed);
-              this.sync();
+              this.sync(deltaTime, true);
               return;
             }
           }
+
+          this.agent.onForward = 0;
 
           if (!this.enemy) {
             this.enemy = this.findNearestEnemy();
@@ -223,11 +293,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (dist > 0.0001) {
               this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
             }
+
+            this.lookAtEnemySmooth(deltaTime);
+            this.sync(deltaTime, false);
           } else {
             this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.sync(deltaTime, true);
           }
-
-          this.sync();
         }
 
         updateForwardPhase() {
@@ -334,7 +406,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), EnemyFinder) : EnemyFinder).teamA;
         }
 
-        lookAtEnemyInstant() {
+        lookAtEnemySmooth(deltaTime) {
           if (!this.agent) return;
           if (!this.enemy || !this.enemy.agent) return;
           var dx = this.enemy.agent.pos.x - this.agent.pos.x;
@@ -345,33 +417,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           var targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-          this.node.setRotationFromEuler(0, targetY, 0);
+          var currentY = this.node.eulerAngles.y;
+          var newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
+          this.node.setRotationFromEuler(0, newY, 0);
         }
 
-        sync() {
+        sync(deltaTime, rotateByVelocity) {
           if (!this.agent) return;
           var current = this.node.worldPosition;
-          var pdx = this.agent.pos.x - current.x;
-          var pdz = this.agent.pos.z - current.z;
-          var posDistSq = pdx * pdx + pdz * pdz;
+          var targetX = this.agent.pos.x;
+          var targetZ = this.agent.pos.z;
+          var dx = targetX - current.x;
+          var dz = targetZ - current.z;
+          var distSq = dx * dx + dz * dz;
 
-          if (posDistSq >= this.visualThreshold * this.visualThreshold) {
-            this.node.setWorldPosition(this.agent.pos.x, current.y, this.agent.pos.z);
+          if (distSq >= this.visualThreshold * this.visualThreshold) {
+            var t = Unit.visualLerpT;
+            var newX = current.x + dx * t;
+            var newZ = current.z + dz * t;
+            this.tempPos.set(newX, current.y, newZ);
+            this.node.setWorldPosition(this.tempPos);
           }
 
+          if (!rotateByVelocity) return;
           var vx = this.agent.vel.x;
           var vz = this.agent.vel.z;
           var speedSq = vx * vx + vz * vz;
           if (speedSq < this.velThreshold * this.velThreshold) return;
-          var dx = this.agent.pos.x - this.lastStablePos.x;
-          var dz = this.agent.pos.z - this.lastStablePos.z;
-          var distSq = dx * dx + dz * dz;
-          if (distSq < this.moveThreshold * this.moveThreshold) return;
+          var moveDx = this.agent.pos.x - this.lastStablePos.x;
+          var moveDz = this.agent.pos.z - this.lastStablePos.z;
+          var moveDistSq = moveDx * moveDx + moveDz * moveDz;
+          if (moveDistSq < this.moveThreshold * this.moveThreshold) return;
           this.lastStablePos.x = this.agent.pos.x;
           this.lastStablePos.z = this.agent.pos.z;
           var targetAngle = Math.atan2(vx, vz) * 180 / Math.PI;
           var currentY = this.node.eulerAngles.y;
-          var newY = this.lerpAngle(currentY, targetAngle, this.rotationSpeed * 0.016);
+          var newY = this.lerpAngle(currentY, targetAngle, this.rotationSpeed * deltaTime);
           this.node.setRotationFromEuler(0, newY, 0);
         }
 
@@ -382,7 +463,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return a + diff * t;
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "moveSpeed", [property], {
+      }, _class3.visualLerpT = 1, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "moveSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -429,7 +510,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 0.03;
+          return 0.01;
         }
       }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
         configurable: true,
@@ -438,12 +519,54 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new Vec3(0, 0, 1);
+        }
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 2.2;
+        }
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1.2;
+        }
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.75;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.15;
         }
       })), _class2)) || _class));
 
