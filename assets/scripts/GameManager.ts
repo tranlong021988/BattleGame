@@ -2,6 +2,7 @@ import { _decorator, Component, Prefab, Vec3, Label } from 'cc';
 import { Unit } from './Unit';
 import { EnemyFinder } from './EnemyFinder';
 import { RVOSimulator } from './rvo/RVO';
+import { RVOWorkerSimulator } from './rvo/RVOWorkerSimulator';
 import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
 import { UnitSpawner } from './UnitSpawner';
@@ -18,11 +19,9 @@ export class UnitPrefabEntry {
     @property(Prefab)
     prefab: Prefab | null = null;
 
-    // Số unit sẽ spawn nếu wave random trúng loại này
     @property
     unitCount: number = 1;
 
-    // Số node buffer sẵn trong pool cho riêng prefab này
     @property
     prewarmCount: number = 0;
 
@@ -39,6 +38,9 @@ export class UnitPrefabEntry {
 @ccclass('GameManager')
 export class GameManager extends Component {
 
+    @property
+    useWorkerRVO = true;
+
     @property({ type: [UnitPrefabEntry] })
     teamAPrefabs: UnitPrefabEntry[] = [];
 
@@ -52,6 +54,9 @@ export class GameManager extends Component {
 
     @property updateInterval = 2;
     frame = 0;
+
+    @property
+    visualSmooth = 16;
 
     @property(Label)
     teamAAliveLabel: Label | null = null;
@@ -106,7 +111,7 @@ export class GameManager extends Component {
     @property({ type: [ObstacleRect] })
     rectObstacles: ObstacleRect[] = [];
 
-    sim = new RVOSimulator();
+    sim: any = null;
 
     teamA: Unit[] = [];
     teamB: Unit[] = [];
@@ -127,6 +132,8 @@ export class GameManager extends Component {
         this.deathCount[1] = 0;
 
         this.spawnWaveTimer = 0;
+
+        this.createSimulator();
 
         this.buildPrefabMaps();
 
@@ -172,8 +179,26 @@ export class GameManager extends Component {
         this.refreshBattleStatsUI();
     }
 
+    onDestroy() {
+        if (this.sim && this.sim.destroy) {
+            this.sim.destroy();
+        }
+    }
+
+    private createSimulator() {
+        if (this.useWorkerRVO && RVOWorkerSimulator.isSupported()) {
+            this.sim = new RVOWorkerSimulator();
+            console.log('[GameManager] Using Worker RVO backend');
+        } else {
+            this.sim = new RVOSimulator();
+            console.log('[GameManager] Using Main Thread RVO backend');
+        }
+    }
+
     update(deltaTime: number) {
         this.frame++;
+
+        Unit.visualLerpT = 1 - Math.exp(-this.visualSmooth * deltaTime);
 
         if (this.frame % this.updateInterval === 0) {
             this.sim.step();
@@ -202,6 +227,7 @@ export class GameManager extends Component {
     private prewarmAllUnits() {
         for (const entry of this.teamAPrefabs) {
             if (!this.isValidEntry(entry)) continue;
+
             this.spawner.prewarm(
                 entry.prefab!,
                 entry.prewarmCount,
@@ -211,6 +237,7 @@ export class GameManager extends Component {
 
         for (const entry of this.teamBPrefabs) {
             if (!this.isValidEntry(entry)) continue;
+
             this.spawner.prewarm(
                 entry.prefab!,
                 entry.prewarmCount,
@@ -289,12 +316,6 @@ export class GameManager extends Component {
         this.spawnWaveTimer = 0;
         this.spawnAutoWave();
     }
-
-    // =====================================================
-    // Auto wave:
-    // Mỗi phe random đúng 1 loại unit từ mảng prefab.
-    // Sau đó spawn nguyên wave bằng loại unit đó.
-    // =====================================================
 
     spawnAutoWave() {
         const entryA = this.getRandomEntry(this.teamAPrefabs);
@@ -459,7 +480,7 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamA = this.teamA;
 
-                this.spawner.despawnUnit(unit, entry.prefab);
+                this.despawnThroughSpawner(unit, entry.prefab);
                 this.refreshBattleStatsUI();
             }
 
@@ -481,12 +502,16 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamB = this.teamB;
 
-                this.spawner.despawnUnit(unit, entry.prefab);
+                this.despawnThroughSpawner(unit, entry.prefab);
                 this.refreshBattleStatsUI();
             }
 
             return;
         }
+    }
+
+    private despawnThroughSpawner(unit: Unit, prefab: Prefab) {
+        this.spawner.despawnUnit(unit, prefab);
     }
 
     private randomRange(min: number, max: number) {

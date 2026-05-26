@@ -1051,6 +1051,7 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "useWorkerRVO": true,
     "teamAPrefabs": [
       {
         "__id__": 28
@@ -1072,6 +1073,7 @@
     "battleMinZ": -50,
     "battleMaxZ": 50,
     "updateInterval": 2,
+    "visualSmooth": 16,
     "teamAAliveLabel": null,
     "teamADeathLabel": {
       "__id__": 14
@@ -1083,7 +1085,7 @@
     "enableAutoSpawn": true,
     "spawnImmediatelyOnStart": true,
     "prewarmOnStart": true,
-    "spawnWaveInterval": 5,
+    "spawnWaveInterval": 3,
     "teamASpawnZ": -30,
     "teamBSpawnZ": 30,
     "maxUnitPerRow": 8,

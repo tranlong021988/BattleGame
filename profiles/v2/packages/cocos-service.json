@@ -9,6 +9,14 @@
       "web-mobile": {
         "configID": "b9c7b2",
         "services": []
+      },
+      "windows": {
+        "configID": "b9c7b2",
+        "services": []
+      },
+      "android": {
+        "configID": "b9c7b2",
+        "services": []
       }
     },
     "taskOptionsMap": {
@@ -21,6 +29,7 @@
   },
   "builder-options": {
     "configID": "b9c7b2",
-    "services": []
+    "services": [],
+    "__version__": "3.0.9"
   }
 }

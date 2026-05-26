@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 16238.4264,
+      "mTimestamp": 6447.8914,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 28272012.5604,
+      "mTimestamp": 15823789.2277,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -705,6 +705,20 @@
               "column": 69
             }
           }
+        },
+        {
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts",
+          "resolved": "__unresolved_18",
+          "loc": {
+            "start": {
+              "line": 22,
+              "column": 7
+            },
+            "end": {
+              "line": 22,
+              "column": 84
+            }
+          }
         }
       ],
       "type": "esm",
@@ -832,6 +846,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts"
           },
           "messages": []
         }
@@ -1400,7 +1421,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1779682759718,
+      "mTimestamp": 1779763644838,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -2718,7 +2739,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1779706163972.8982,
+        "mtime": 1779778890215,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -2747,8 +2768,22 @@
           }
         },
         {
-          "value": "./EnemyFinder",
+          "value": "./Unit",
           "resolved": "__unresolved_1",
+          "loc": {
+            "start": {
+              "line": 2,
+              "column": 21
+            },
+            "end": {
+              "line": 2,
+              "column": 29
+            }
+          }
+        },
+        {
+          "value": "./EnemyFinder",
+          "resolved": "__unresolved_2",
           "loc": {
             "start": {
               "line": 3,
@@ -2762,7 +2797,7 @@
         },
         {
           "value": "./rvo/RVO",
-          "resolved": "__unresolved_2",
+          "resolved": "__unresolved_3",
           "loc": {
             "start": {
               "line": 4,
@@ -2775,57 +2810,71 @@
           }
         },
         {
-          "value": "./ObstacleCircle",
-          "resolved": "__unresolved_3",
+          "value": "./rvo/RVOWorkerSimulator",
+          "resolved": "__unresolved_4",
           "loc": {
             "start": {
               "line": 5,
-              "column": 31
+              "column": 35
             },
             "end": {
               "line": 5,
+              "column": 61
+            }
+          }
+        },
+        {
+          "value": "./ObstacleCircle",
+          "resolved": "__unresolved_5",
+          "loc": {
+            "start": {
+              "line": 6,
+              "column": 31
+            },
+            "end": {
+              "line": 6,
               "column": 49
             }
           }
         },
         {
           "value": "./ObstacleRect",
-          "resolved": "__unresolved_4",
+          "resolved": "__unresolved_6",
           "loc": {
             "start": {
-              "line": 6,
+              "line": 7,
               "column": 29
             },
             "end": {
-              "line": 6,
+              "line": 7,
               "column": 45
             }
           }
         },
         {
           "value": "./UnitSpawner",
-          "resolved": "__unresolved_5",
+          "resolved": "__unresolved_7",
           "loc": {
             "start": {
-              "line": 7,
+              "line": 8,
               "column": 28
             },
             "end": {
-              "line": 7,
+              "line": 8,
               "column": 43
             }
           }
         },
         {
           "value": "./UnitBehavior",
-          "resolved": "__unresolved_6",
+          "resolved": "__unresolved_8",
           "loc": {
             "start": {
-              "line": 8,
+              "line": 9,
               "column": 29
             },
             "end": {
-              "line": 8,
+              "line": 9,
               "column": 45
             }
           }
@@ -2864,6 +2913,13 @@
         {
           "resolved": {
             "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/EnemyFinder.ts"
           },
           "messages": []
@@ -2872,6 +2928,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts"
           },
           "messages": []
         },
@@ -3063,7 +3126,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1779711028756.9016,
+        "mtime": 1779778847212.6316,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -3096,11 +3159,11 @@
           "resolved": "__unresolved_1",
           "loc": {
             "start": {
-              "line": 3,
+              "line": 2,
               "column": 28
             },
             "end": {
-              "line": 3,
+              "line": 2,
               "column": 43
             }
           }
@@ -3110,11 +3173,11 @@
           "resolved": "__unresolved_2",
           "loc": {
             "start": {
-              "line": 4,
+              "line": 3,
               "column": 26
             },
             "end": {
-              "line": 4,
+              "line": 3,
               "column": 39
             }
           }
@@ -3346,7 +3409,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts": {
       "mTimestamp": {
-        "mtime": 1779682722395.2314,
+        "mtime": 1779779447822.8582,
         "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
       },
       "chunkId": "6c66322ce05674d0bc24e1c84c108eb1d87757af",
@@ -3407,11 +3470,11 @@
           "resolved": "__unresolved_3",
           "loc": {
             "start": {
-              "line": 5,
+              "line": 4,
               "column": 26
             },
             "end": {
-              "line": 5,
+              "line": 4,
               "column": 39
             }
           }
@@ -3421,11 +3484,11 @@
           "resolved": "__unresolved_4",
           "loc": {
             "start": {
-              "line": 6,
+              "line": 5,
               "column": 29
             },
             "end": {
-              "line": 6,
+              "line": 5,
               "column": 45
             }
           }
@@ -3985,6 +4048,28 @@
           },
           "messages": []
         },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts": {
+      "mTimestamp": {
+        "mtime": 1779779451327.8218,
+        "uuid": "fb8a1849-3759-4dfb-ac42-f957ce6a64ab"
+      },
+      "chunkId": "050442a99214a178ac71bf0e4447f57a0f27ae19",
+      "imports": [
+        {
+          "value": "cc"
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
         {
           "resolved": {
             "type": "module",

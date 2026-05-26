@@ -1,5 +1,4 @@
 import { _decorator, Component, Vec3 } from 'cc';
-import { RVOSimulator, RVOAgent } from './rvo/RVO';
 import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
 
@@ -7,6 +6,8 @@ const { ccclass, property } = _decorator;
 
 @ccclass('Unit')
 export class Unit extends Component {
+
+    static visualLerpT = 1;
 
     @property moveSpeed = 2;
     @property radius = 0.5;
@@ -17,12 +18,8 @@ export class Unit extends Component {
     @property moveThreshold = 0.2;
     @property velThreshold = 0.05;
 
-    // Deadzone rất nhỏ để bỏ qua rung vi mô.
-    @property visualThreshold = 0.01;
-
-    // Càng lớn càng bám sát agent nhanh hơn.
-    // Gợi ý: 12 - 20.
-    @property visualSmooth = 16;
+    @property
+    visualThreshold = 0.01;
 
     @property
     onForward = true;
@@ -33,8 +30,8 @@ export class Unit extends Component {
     team = 0;
     unitTypeName = '';
 
-    sim: RVOSimulator | null = null;
-    agent: RVOAgent | null = null;
+    sim: any = null;
+    agent: any = null;
 
     enemy: Unit | null = null;
     onBusy = false;
@@ -52,7 +49,7 @@ export class Unit extends Component {
     }
 
     init(
-        sim: RVOSimulator,
+        sim: any,
         team: number,
         unitTypeName: string,
         forwardX: number,
@@ -118,10 +115,6 @@ export class Unit extends Component {
         if (this.onForward) return;
 
         this.enemy = e;
-
-        if (this.enemy && this.enemy.agent) {
-            this.lookAtEnemyInstant();
-        }
     }
 
     clearEnemy() {
@@ -151,20 +144,19 @@ export class Unit extends Component {
             ) {
                 this.clearEnemy();
             } else {
-                this.lookAtEnemyInstant();
+                this.lookAtEnemySmooth(deltaTime);
 
                 this.sim.setPrefVelocity(this.agent, 0, 0);
                 this.agent.vel.x = 0;
                 this.agent.vel.z = 0;
 
-                this.sync(deltaTime);
+                this.sync(deltaTime, false);
                 return;
             }
         }
 
         this.clearInvalidEnemy();
 
-        // Ưu tiên đánh nếu đã có enemy trong range, kể cả đang onForward.
         const nearestInRange = this.findNearestEnemyInAttackRange();
 
         if (nearestInRange) {
@@ -173,13 +165,13 @@ export class Unit extends Component {
             this.onBusy = true;
             this.agent.locked = true;
 
-            this.lookAtEnemyInstant();
+            this.lookAtEnemySmooth(deltaTime);
 
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
 
-            this.sync(deltaTime);
+            this.sync(deltaTime, false);
             return;
         }
 
@@ -194,7 +186,7 @@ export class Unit extends Component {
                     this.forwardDir.z * this.agent.maxSpeed
                 );
 
-                this.sync(deltaTime);
+                this.sync(deltaTime, true);
                 return;
             }
         }
@@ -217,11 +209,13 @@ export class Unit extends Component {
                     (dz / dist) * this.agent.maxSpeed
                 );
             }
+
+            this.lookAtEnemySmooth(deltaTime);
+            this.sync(deltaTime, false);
         } else {
             this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.sync(deltaTime, true);
         }
-
-        this.sync(deltaTime);
     }
 
     private updateForwardPhase() {
@@ -342,7 +336,7 @@ export class Unit extends Component {
             : EnemyFinder.teamA;
     }
 
-    private lookAtEnemyInstant() {
+    private lookAtEnemySmooth(deltaTime: number) {
         if (!this.agent) return;
         if (!this.enemy || !this.enemy.agent) return;
 
@@ -354,10 +348,18 @@ export class Unit extends Component {
         }
 
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-        this.node.setRotationFromEuler(0, targetY, 0);
+        const currentY = this.node.eulerAngles.y;
+
+        const newY = this.lerpAngle(
+            currentY,
+            targetY,
+            this.rotationSpeed * deltaTime
+        );
+
+        this.node.setRotationFromEuler(0, newY, 0);
     }
 
-    private sync(deltaTime: number) {
+    private sync(deltaTime: number, rotateByVelocity: boolean) {
         if (!this.agent) return;
 
         const current = this.node.worldPosition;
@@ -371,7 +373,7 @@ export class Unit extends Component {
         const distSq = dx * dx + dz * dz;
 
         if (distSq >= this.visualThreshold * this.visualThreshold) {
-            const t = 1 - Math.exp(-this.visualSmooth * deltaTime);
+            const t = Unit.visualLerpT;
 
             const newX = current.x + dx * t;
             const newZ = current.z + dz * t;
@@ -379,6 +381,8 @@ export class Unit extends Component {
             this.tempPos.set(newX, current.y, newZ);
             this.node.setWorldPosition(this.tempPos);
         }
+
+        if (!rotateByVelocity) return;
 
         const vx = this.agent.vel.x;
         const vz = this.agent.vel.z;

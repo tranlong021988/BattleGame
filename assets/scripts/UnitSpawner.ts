@@ -1,7 +1,6 @@
 import { _decorator, Component, Prefab, Node, instantiate, Vec3 } from 'cc';
 import { Unit } from './Unit';
 import { EnemyFinder } from './EnemyFinder';
-import { RVOSimulator } from './rvo/RVO';
 import { UnitProps } from './UnitProps';
 import { UnitBehavior } from './UnitBehavior';
 
@@ -10,11 +9,11 @@ const { ccclass } = _decorator;
 @ccclass('UnitSpawner')
 export class UnitSpawner extends Component {
 
-    private sim!: RVOSimulator;
+    private sim: any = null;
 
     private pools: Map<string, Node[]> = new Map();
 
-    init(sim: RVOSimulator) {
+    init(sim: any) {
         this.sim = sim;
     }
 
@@ -114,17 +113,12 @@ export class UnitSpawner extends Component {
         const node = unit.node;
 
         const behavior = node.getComponent(UnitBehavior);
+
         if (behavior) {
             behavior.resetForDespawn();
         }
 
-        if (unit.agent) {
-            const idx = this.sim.agents.indexOf(unit.agent);
-
-            if (idx >= 0) {
-                this.sim.agents.splice(idx, 1);
-            }
-        }
+        this.removeAgentFromSimulator(unit);
 
         unit.resetForDespawn();
 
@@ -134,6 +128,25 @@ export class UnitSpawner extends Component {
 
         if (pool.indexOf(node) < 0) {
             pool.push(node);
+        }
+    }
+
+    private removeAgentFromSimulator(unit: Unit) {
+        if (!this.sim || !unit.agent) return;
+
+        // Worker backend / chuẩn backend mới
+        if (typeof this.sim.removeAgent === 'function') {
+            this.sim.removeAgent(unit.agent);
+            return;
+        }
+
+        // Fallback cho RVO main-thread cũ
+        if (this.sim.agents && Array.isArray(this.sim.agents)) {
+            const idx = this.sim.agents.indexOf(unit.agent);
+
+            if (idx >= 0) {
+                this.sim.agents.splice(idx, 1);
+            }
         }
     }
 

@@ -913,5 +913,10 @@
     "url": "db://assets/prefabs/RedUnit2.prefab",
     "value": {},
     "versionCode": 2
+  },
+  "fb8a1849-3759-4dfb-ac42-f957ce6a64ab": {
+    "url": "db://assets/scripts/rvo/RVOWorkerSimulator.ts",
+    "value": {},
+    "versionCode": 1
   }
 }

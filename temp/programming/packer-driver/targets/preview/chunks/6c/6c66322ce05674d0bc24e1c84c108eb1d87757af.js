@@ -11,10 +11,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfRVOSimulator(extras) {
-    _reporterNs.report("RVOSimulator", "./rvo/RVO", _context.meta, extras);
-  }
-
   function _reportPossibleCrUseOfUnitProps(extras) {
     _reporterNs.report("UnitProps", "./UnitProps", _context.meta, extras);
   }
@@ -56,7 +52,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _export("UnitSpawner", UnitSpawner = (_dec = ccclass('UnitSpawner'), _dec(_class = class UnitSpawner extends Component {
         constructor() {
           super(...arguments);
-          this.sim = void 0;
+          this.sim = null;
           this.pools = new Map();
         }
 
@@ -155,20 +151,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             behavior.resetForDespawn();
           }
 
-          if (unit.agent) {
-            var idx = this.sim.agents.indexOf(unit.agent);
-
-            if (idx >= 0) {
-              this.sim.agents.splice(idx, 1);
-            }
-          }
-
+          this.removeAgentFromSimulator(unit);
           unit.resetForDespawn();
           node.active = false;
           var pool = this.getPool(prefab);
 
           if (pool.indexOf(node) < 0) {
             pool.push(node);
+          }
+        }
+
+        removeAgentFromSimulator(unit) {
+          if (!this.sim || !unit.agent) return; // Worker backend / chuẩn backend mới
+
+          if (typeof this.sim.removeAgent === 'function') {
+            this.sim.removeAgent(unit.agent);
+            return;
+          } // Fallback cho RVO main-thread cũ
+
+
+          if (this.sim.agents && Array.isArray(this.sim.agents)) {
+            var idx = this.sim.agents.indexOf(unit.agent);
+
+            if (idx >= 0) {
+              this.sim.agents.splice(idx, 1);
+            }
           }
         }
 
