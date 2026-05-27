@@ -1,6 +1,7 @@
 import { _decorator, Component, Vec3 } from 'cc';
 import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
+import { GameManager } from './GameManager';
 
 const { ccclass, property } = _decorator;
 
@@ -12,6 +13,15 @@ export class Unit extends Component {
     @property moveSpeed = 2;
     @property radius = 0.5;
     @property attackRange = 1;
+
+    @property
+    targetSearchRange = 60;
+
+    @property
+    attackCheckIntervalFrames = 2;
+
+    @property
+    targetSearchIntervalFrames = 6;
 
     @property rotationSpeed = 10;
 
@@ -30,11 +40,6 @@ export class Unit extends Component {
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
 
-    // =====================================================
-    // Worker Ally Overtake Settings
-    // Các thông số này sẽ được truyền xuống RVO Worker.
-    // =====================================================
-
     @property
     enableAllyOvertake = true;
 
@@ -52,7 +57,6 @@ export class Unit extends Component {
 
     team = 0;
     unitTypeName = '';
-
     isHero = false;
 
     sim: any = null;
@@ -67,6 +71,10 @@ export class Unit extends Component {
 
     private lastStablePos = { x: 0, z: 0 };
     private tempPos = new Vec3();
+
+    private frameCounter = 0;
+    private cachedNearestInRange: Unit | null = null;
+    private cachedNearestEnemy: Unit | null = null;
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
@@ -97,12 +105,57 @@ export class Unit extends Component {
         this.setForwardDir(forwardX, forwardZ);
 
         this.updateOffset = Math.floor(Math.random() * 1000);
+        this.frameCounter = this.updateOffset;
+
+        this.cachedNearestInRange = null;
+        this.cachedNearestEnemy = null;
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
 
         this.applyRuntimeAgentData();
         this.applySteadyState();
+    }
+
+    public setSteady(value: boolean, useForwardPhase: boolean = true) {
+        this.isSteady = value;
+
+        if (!this.agent) return;
+
+        this.cachedNearestInRange = null;
+        this.cachedNearestEnemy = null;
+
+        if (value) {
+            this.enemy = null;
+            this.onBusy = false;
+            this.onForward = false;
+
+            this.agent.locked = true;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+            this.agent.onForward = 0;
+
+            if (this.sim) {
+                this.sim.setPrefVelocity(this.agent, 0, 0);
+            }
+
+            return;
+        }
+
+        this.enemy = null;
+        this.onBusy = false;
+        this.onForward = useForwardPhase;
+
+        this.agent.locked = false;
+        this.agent.vel.x = 0;
+        this.agent.vel.z = 0;
+        this.agent.prefVel.x = 0;
+        this.agent.prefVel.z = 0;
+        this.agent.onForward = useForwardPhase ? 1 : 0;
+
+        this.applyRuntimeAgentData();
     }
 
     private applyRuntimeAgentData() {
@@ -159,6 +212,9 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = true;
 
+        this.cachedNearestInRange = null;
+        this.cachedNearestEnemy = null;
+
         if (this.agent) {
             this.agent.locked = false;
             this.agent.vel.x = 0;
@@ -183,6 +239,9 @@ export class Unit extends Component {
         this.enemy = null;
         this.onBusy = false;
 
+        this.cachedNearestInRange = null;
+        this.cachedNearestEnemy = null;
+
         if (this.agent) {
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
@@ -196,16 +255,9 @@ export class Unit extends Component {
     update(deltaTime: number) {
         if (!this.sim || !this.agent) return;
 
-        this.agent.team = this.team;
-        this.agent.onForward = this.onForward ? 1 : 0;
-        this.agent.forwardX = this.forwardDir.x;
-        this.agent.forwardZ = this.forwardDir.z;
+        this.frameCounter++;
 
-        this.agent.enableAllyOvertake = this.enableAllyOvertake ? 1 : 0;
-        this.agent.overtakeLookAhead = this.overtakeLookAhead;
-        this.agent.overtakeSideRange = this.overtakeSideRange;
-        this.agent.overtakeSideStrength = this.overtakeSideStrength;
-        this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
+        this.applyRuntimeAgentData();
 
         if (this.isSteady) {
             this.agent.locked = true;
@@ -239,7 +291,7 @@ export class Unit extends Component {
 
         this.clearInvalidEnemy();
 
-        const nearestInRange = this.findNearestEnemyInAttackRange();
+        const nearestInRange = this.getNearestEnemyInAttackRangeThrottled();
 
         if (nearestInRange) {
             this.onForward = false;
@@ -248,6 +300,9 @@ export class Unit extends Component {
             this.enemy = nearestInRange;
             this.onBusy = true;
             this.agent.locked = true;
+
+            this.cachedNearestEnemy = null;
+            this.cachedNearestInRange = null;
 
             this.lookAtEnemySmooth(deltaTime);
 
@@ -286,8 +341,8 @@ export class Unit extends Component {
 
         this.agent.onForward = 0;
 
-        if (!this.enemy) {
-            this.enemy = this.findNearestEnemy();
+        if (!this.isValidEnemy(this.enemy)) {
+            this.enemy = this.getNearestEnemyThrottled();
         }
 
         if (this.enemy && this.enemy.agent) {
@@ -312,10 +367,40 @@ export class Unit extends Component {
         }
     }
 
+    private shouldRunAttackCheck(): boolean {
+        const interval = Math.max(1, Math.floor(this.attackCheckIntervalFrames));
+        return this.frameCounter % interval === 0;
+    }
+
+    private shouldRunTargetSearch(): boolean {
+        const interval = Math.max(1, Math.floor(this.targetSearchIntervalFrames));
+        return this.frameCounter % interval === 0;
+    }
+
+    private getNearestEnemyInAttackRangeThrottled(): Unit | null {
+        if (this.shouldRunAttackCheck()) {
+            this.cachedNearestInRange = this.findNearestEnemyInAttackRange();
+        } else if (!this.isValidEnemy(this.cachedNearestInRange)) {
+            this.cachedNearestInRange = null;
+        }
+
+        return this.cachedNearestInRange;
+    }
+
+    private getNearestEnemyThrottled(): Unit | null {
+        if (this.shouldRunTargetSearch()) {
+            this.cachedNearestEnemy = this.findNearestEnemy();
+        } else if (!this.isValidEnemy(this.cachedNearestEnemy)) {
+            this.cachedNearestEnemy = null;
+        }
+
+        return this.cachedNearestEnemy;
+    }
+
     private updateForwardPhase() {
         if (!this.agent) return;
 
-        const nearestEnemy = this.findNearestEnemy();
+        const nearestEnemy = this.getNearestEnemyThrottled();
 
         if (!nearestEnemy || !nearestEnemy.agent) {
             return;
@@ -365,6 +450,44 @@ export class Unit extends Component {
     private findNearestEnemyInAttackRange(): Unit | null {
         if (!this.agent) return null;
 
+        const gm = GameManager.instance;
+
+        if (gm && gm.spatialGrid) {
+            const result = gm.spatialGrid.findNearestEnemyInRange(
+                this.team,
+                this.agent.pos.x,
+                this.agent.pos.z,
+                this.attackRange
+            );
+
+            if (result) return result;
+        }
+
+        return this.findNearestEnemyInAttackRangeFallback();
+    }
+
+    private findNearestEnemy(): Unit | null {
+        if (!this.agent) return null;
+
+        const gm = GameManager.instance;
+
+        if (gm && gm.spatialGrid) {
+            const result = gm.spatialGrid.findNearestEnemy(
+                this.team,
+                this.agent.pos.x,
+                this.agent.pos.z,
+                this.targetSearchRange
+            );
+
+            if (result) return result;
+        }
+
+        return this.findNearestEnemyFallback();
+    }
+
+    private findNearestEnemyInAttackRangeFallback(): Unit | null {
+        if (!this.agent) return null;
+
         const attackRangeSq = this.attackRange * this.attackRange;
         const enemies = this.getEnemyList();
 
@@ -389,7 +512,7 @@ export class Unit extends Component {
         return best;
     }
 
-    private findNearestEnemy(): Unit | null {
+    private findNearestEnemyFallback(): Unit | null {
         if (!this.agent) return null;
 
         const enemies = this.getEnemyList();

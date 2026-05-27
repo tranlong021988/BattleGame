@@ -807,16 +807,16 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 25.000000000000004,
-      "y": 25.000000000000004,
+      "x": 20,
+      "y": 30,
       "z": 0
     },
     "_lrot": {
       "__type__": "cc.Quat",
-      "x": -0.2705980500730986,
-      "y": 0.6532814824381881,
-      "z": 0.27059805007309845,
-      "w": 0.6532814824381884
+      "x": -0.3535533905932738,
+      "y": 0.6123724356957945,
+      "z": 0.3535533905932736,
+      "w": 0.6123724356957947
     },
     "_lscale": {
       "__type__": "cc.Vec3",
@@ -828,7 +828,7 @@
     "_layer": 1073741824,
     "_euler": {
       "__type__": "cc.Vec3",
-      "x": -45.00000000000001,
+      "x": -60,
       "y": 89.99999999999997,
       "z": -3.1805546814635168e-15
     },
@@ -844,9 +844,9 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "_projection": 0,
+    "_projection": 1,
     "_priority": 0,
-    "_fov": 60,
+    "_fov": 45,
     "_fovAxis": 0,
     "_orthoHeight": 13,
     "_near": 1,
@@ -1082,6 +1082,8 @@
     "battleMaxZ": 50,
     "updateInterval": 2,
     "visualSmooth": 16,
+    "spatialGridCellSize": 4,
+    "spatialGridUpdateInterval": 3,
     "teamAAliveLabel": null,
     "teamADeathLabel": {
       "__id__": 14
@@ -1125,7 +1127,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
     "health": 5,
@@ -1151,7 +1153,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 30,
     "maxSpeed": 5,
     "health": 5,
@@ -2070,7 +2072,7 @@
     "propertyPath": [
       "onForward"
     ],
-    "value": false
+    "value": true
   },
   {
     "__type__": "CCPropertyOverrideInfo",
@@ -2301,7 +2303,7 @@
     "propertyPath": [
       "onForward"
     ],
-    "value": false
+    "value": true
   },
   {
     "__type__": "CCPropertyOverrideInfo",

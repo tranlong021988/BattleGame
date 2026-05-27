@@ -8,6 +8,7 @@ import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
 import { UnitSpawner } from './UnitSpawner';
 import { UnitBehavior } from './UnitBehavior';
+import { BattleSpatialGrid } from './BattleSpatialGrid';
 
 const { ccclass, property } = _decorator;
 
@@ -39,6 +40,8 @@ export class UnitPrefabEntry {
 @ccclass('GameManager')
 export class GameManager extends Component {
 
+    static instance: GameManager | null = null;
+
     @property
     useWorkerRVO = true;
 
@@ -64,6 +67,14 @@ export class GameManager extends Component {
 
     @property
     visualSmooth = 16;
+
+    @property
+    spatialGridCellSize = 4;
+
+    @property
+    spatialGridUpdateInterval = 2;
+
+    spatialGrid: BattleSpatialGrid = new BattleSpatialGrid();
 
     @property(Label)
     teamAAliveLabel: Label | null = null;
@@ -110,9 +121,6 @@ export class GameManager extends Component {
     @property
     formationZNoise = 0.25;
 
-    // Khoảng trống giữa đội hình theo trục X.
-    // Dùng để chừa chỗ cho tướng đứng ở giữa.
-    // Set 0 nếu không muốn chừa.
     @property
     centerGapWidth = 3;
 
@@ -135,6 +143,8 @@ export class GameManager extends Component {
     private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
 
     start() {
+        GameManager.instance = this;
+
         this.teamA.length = 0;
         this.teamB.length = 0;
 
@@ -151,6 +161,8 @@ export class GameManager extends Component {
 
         EnemyFinder.teamA = this.teamA;
         EnemyFinder.teamB = this.teamB;
+
+        this.spatialGrid.cellSize = this.spatialGridCellSize;
 
         this.sim.setBattlefield(
             this.battleMinX,
@@ -191,10 +203,15 @@ export class GameManager extends Component {
             this.spawnAutoWave();
         }
 
+        this.rebuildSpatialGrid();
         this.refreshBattleStatsUI();
     }
 
     onDestroy() {
+        if (GameManager.instance === this) {
+            GameManager.instance = null;
+        }
+
         if (this.sim && this.sim.destroy) {
             this.sim.destroy();
         }
@@ -219,9 +236,18 @@ export class GameManager extends Component {
             this.sim.step();
         }
 
+        if (this.frame % this.spatialGridUpdateInterval === 0) {
+            this.rebuildSpatialGrid();
+        }
+
         if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
         }
+    }
+
+    private rebuildSpatialGrid() {
+        this.spatialGrid.cellSize = this.spatialGridCellSize;
+        this.spatialGrid.build(this.teamA, this.teamB);
     }
 
     private registerSceneHero(hero: Unit | null, team: number, typeName: string) {
@@ -401,6 +427,8 @@ export class GameManager extends Component {
                 this.teamBSpawnZ
             );
         }
+
+        this.rebuildSpatialGrid();
     }
 
     private spawnEntryFormation(
@@ -611,6 +639,7 @@ export class GameManager extends Component {
                 EnemyFinder.teamA = this.teamA;
 
                 this.spawner.despawnUnit(unit, entry.prefab);
+                this.rebuildSpatialGrid();
                 this.refreshBattleStatsUI();
             }
 
@@ -633,6 +662,7 @@ export class GameManager extends Component {
                 EnemyFinder.teamB = this.teamB;
 
                 this.spawner.despawnUnit(unit, entry.prefab);
+                this.rebuildSpatialGrid();
                 this.refreshBattleStatsUI();
             }
 
@@ -680,6 +710,7 @@ export class GameManager extends Component {
         unit.resetForDespawn();
         unit.node.active = false;
 
+        this.rebuildSpatialGrid();
         this.refreshBattleStatsUI();
     }
 
