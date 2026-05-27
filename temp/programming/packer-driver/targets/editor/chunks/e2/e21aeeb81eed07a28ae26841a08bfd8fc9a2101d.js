@@ -75,9 +75,12 @@ System.register(["cc"], function (_export, _context) {
           this.pending = false;
           this.nextAgentId = 1;
           this.agentMap = new Map();
-          this.circleData = new Float32Array(0);
-          this.rectData = new Float32Array(0);
+          this.idsBuffer = null;
+          this.floatsBuffer = null;
+          this.intsBuffer = null;
+          this.bufferCapacity = 0;
           this.obstacleDirty = true;
+          this.sequence = 0;
           this.createWorker();
         }
 
@@ -91,6 +94,10 @@ System.register(["cc"], function (_export, _context) {
           this.pending = false;
           this.agentMap.clear();
           this.agents.length = 0;
+          this.idsBuffer = null;
+          this.floatsBuffer = null;
+          this.intsBuffer = null;
+          this.bufferCapacity = 0;
         }
 
         setBattlefield(minX, maxX, minZ, maxZ) {
@@ -148,35 +155,17 @@ System.register(["cc"], function (_export, _context) {
           if (!this.worker || !this.workerReady) return;
           if (this.pending) return;
           if (this.agents.length <= 0) return;
-          this.pending = true;
-          this.rebuildObstacleBuffersIfNeeded();
+
+          if (this.obstacleDirty) {
+            this.sendObstaclesToWorker();
+          }
+
           const count = this.agents.length;
-          const ids = new Int32Array(count); // 18 floats / agent
-          // 0 pos.x
-          // 1 pos.z
-          // 2 vel.x
-          // 3 vel.z
-          // 4 prefVel.x
-          // 5 prefVel.z
-          // 6 maxSpeed
-          // 7 radius
-          // 8 neighborDist
-          // 9 forwardX
-          // 10 forwardZ
-          // 11 overtakeLookAhead
-          // 12 overtakeSideRange
-          // 13 overtakeSideStrength
-          // 14 overtakeSpeedDiff
-          // 15 overtakeSeed
-          // 16 team
-          // 17 onForward
-
-          const floats = new Float32Array(count * 18); // 3 ints / agent
-          // 0 maxNeighbors
-          // 1 locked
-          // 2 enableAllyOvertake
-
-          const ints = new Int32Array(count * 3);
+          this.ensureBuffers(count);
+          if (!this.idsBuffer || !this.floatsBuffer || !this.intsBuffer) return;
+          const ids = this.idsBuffer;
+          const floats = this.floatsBuffer;
+          const ints = this.intsBuffer;
 
           for (let i = 0; i < count; i++) {
             const a = this.agents[i];
@@ -206,10 +195,11 @@ System.register(["cc"], function (_export, _context) {
             ints[ii + 2] = a.enableAllyOvertake ? 1 : 0;
           }
 
-          const circleData = this.circleData.slice();
-          const rectData = this.rectData.slice();
+          this.pending = true;
+          this.sequence++;
           this.worker.postMessage({
             type: 'step',
+            sequence: this.sequence,
             ids,
             floats,
             ints,
@@ -220,37 +210,56 @@ System.register(["cc"], function (_export, _context) {
             minX: this.minX,
             maxX: this.maxX,
             minZ: this.minZ,
-            maxZ: this.maxZ,
-            circleData,
-            rectData
-          }, [ids.buffer, floats.buffer, ints.buffer, circleData.buffer, rectData.buffer]);
+            maxZ: this.maxZ
+          }, [ids.buffer, floats.buffer, ints.buffer]); // Sau transfer, buffer bị detach.
+          // Sẽ được gán lại khi Worker trả kết quả.
+
+          this.idsBuffer = null;
+          this.floatsBuffer = null;
+          this.intsBuffer = null;
         }
 
-        rebuildObstacleBuffersIfNeeded() {
-          if (!this.obstacleDirty) return;
-          this.circleData = new Float32Array(this.circleObs.length * 3);
+        ensureBuffers(count) {
+          if (this.bufferCapacity >= count && this.idsBuffer && this.floatsBuffer && this.intsBuffer) {
+            return;
+          }
+
+          this.bufferCapacity = Math.max(count, this.bufferCapacity * 2, 64);
+          this.idsBuffer = new Int32Array(this.bufferCapacity);
+          this.floatsBuffer = new Float32Array(this.bufferCapacity * 18);
+          this.intsBuffer = new Int32Array(this.bufferCapacity * 3);
+        }
+
+        sendObstaclesToWorker() {
+          if (!this.worker || !this.workerReady) return;
+          const circleData = new Float32Array(this.circleObs.length * 3);
 
           for (let i = 0; i < this.circleObs.length; i++) {
             const ob = this.circleObs[i];
             const k = i * 3;
-            this.circleData[k + 0] = ob.x;
-            this.circleData[k + 1] = ob.z;
-            this.circleData[k + 2] = ob.r;
+            circleData[k + 0] = ob.x;
+            circleData[k + 1] = ob.z;
+            circleData[k + 2] = ob.r;
           }
 
-          this.rectData = new Float32Array(this.rectObs.length * 6);
+          const rectData = new Float32Array(this.rectObs.length * 6);
 
           for (let i = 0; i < this.rectObs.length; i++) {
             const ob = this.rectObs[i];
             const k = i * 6;
-            this.rectData[k + 0] = ob.x;
-            this.rectData[k + 1] = ob.z;
-            this.rectData[k + 2] = ob.hx;
-            this.rectData[k + 3] = ob.hz;
-            this.rectData[k + 4] = ob.cos;
-            this.rectData[k + 5] = ob.sin;
+            rectData[k + 0] = ob.x;
+            rectData[k + 1] = ob.z;
+            rectData[k + 2] = ob.hx;
+            rectData[k + 3] = ob.hz;
+            rectData[k + 4] = ob.cos;
+            rectData[k + 5] = ob.sin;
           }
 
+          this.worker.postMessage({
+            type: 'obstacles',
+            circleData,
+            rectData
+          }, [circleData.buffer, rectData.buffer]);
           this.obstacleDirty = false;
         }
 
@@ -273,12 +282,20 @@ System.register(["cc"], function (_export, _context) {
 
             if (data.type === 'ready') {
               this.workerReady = true;
+
+              if (this.obstacleDirty) {
+                this.sendObstaclesToWorker();
+              }
+
               return;
             }
 
             if (data.type === 'result') {
               this.pending = false;
-              this.applyWorkerResult(data.ids, data.result);
+              this.idsBuffer = data.ids;
+              this.floatsBuffer = data.floats;
+              this.intsBuffer = data.ints;
+              this.applyWorkerResult(data.ids, data.floats, data.count);
             }
           };
 
@@ -288,22 +305,27 @@ System.register(["cc"], function (_export, _context) {
           };
         }
 
-        applyWorkerResult(ids, result) {
-          for (let i = 0; i < ids.length; i++) {
+        applyWorkerResult(ids, floats, count) {
+          for (let i = 0; i < count; i++) {
             const id = ids[i];
             const a = this.agentMap.get(id);
             if (!a) continue;
-            const k = i * 4;
-            a.pos.x = result[k + 0];
-            a.pos.z = result[k + 1];
-            a.vel.x = result[k + 2];
-            a.vel.z = result[k + 3];
+            const fi = i * 18;
+            a.pos.x = floats[fi + 0];
+            a.pos.z = floats[fi + 1];
+            a.vel.x = floats[fi + 2];
+            a.vel.z = floats[fi + 3];
           }
         }
 
         static workerSource() {
           return `
 const grid = new Map();
+
+let circleData = new Float32Array(0);
+let rectData = new Float32Array(0);
+
+const agentCache = [];
 
 function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
@@ -313,10 +335,103 @@ function key(gx, gz) {
     return gx + "_" + gz;
 }
 
-function buildGrid(agents, cellSize) {
+function getAgentFromCache(index) {
+    let a = agentCache[index];
+
+    if (!a) {
+        a = {
+            id: 0,
+
+            x: 0,
+            z: 0,
+
+            vx: 0,
+            vz: 0,
+
+            prefX: 0,
+            prefZ: 0,
+
+            maxSpeed: 0,
+            radius: 0,
+            neighborDist: 0,
+
+            forwardX: 0,
+            forwardZ: 1,
+
+            overtakeLookAhead: 0,
+            overtakeSideRange: 0,
+            overtakeSideStrength: 0,
+            overtakeSpeedDiff: 0,
+            overtakeSeed: 1,
+
+            team: -1,
+            onForward: 0,
+
+            maxNeighbors: 0,
+            locked: false,
+            enableAllyOvertake: false,
+
+            gridX: 0,
+            gridZ: 0
+        };
+
+        agentCache[index] = a;
+    }
+
+    return a;
+}
+
+function buildAgents(ids, floats, ints, count) {
+    const agents = agentCache;
+
+    for (let i = 0; i < count; i++) {
+        const a = getAgentFromCache(i);
+
+        const fi = i * 18;
+        const ii = i * 3;
+
+        a.id = ids[i];
+
+        a.x = floats[fi + 0];
+        a.z = floats[fi + 1];
+
+        a.vx = floats[fi + 2];
+        a.vz = floats[fi + 3];
+
+        a.prefX = floats[fi + 4];
+        a.prefZ = floats[fi + 5];
+
+        a.maxSpeed = floats[fi + 6];
+        a.radius = floats[fi + 7];
+        a.neighborDist = floats[fi + 8];
+
+        a.forwardX = floats[fi + 9];
+        a.forwardZ = floats[fi + 10];
+
+        a.overtakeLookAhead = floats[fi + 11];
+        a.overtakeSideRange = floats[fi + 12];
+        a.overtakeSideStrength = floats[fi + 13];
+        a.overtakeSpeedDiff = floats[fi + 14];
+        a.overtakeSeed = floats[fi + 15];
+
+        a.team = floats[fi + 16];
+        a.onForward = floats[fi + 17];
+
+        a.maxNeighbors = ints[ii + 0];
+        a.locked = ints[ii + 1] === 1;
+        a.enableAllyOvertake = ints[ii + 2] === 1;
+
+        a.gridX = 0;
+        a.gridZ = 0;
+    }
+
+    return agents;
+}
+
+function buildGrid(agents, count, cellSize) {
     grid.clear();
 
-    for (let i = 0; i < agents.length; i++) {
+    for (let i = 0; i < count; i++) {
         const a = agents[i];
 
         a.gridX = Math.floor(a.x / cellSize);
@@ -334,8 +449,9 @@ function buildGrid(agents, cellSize) {
     }
 }
 
-function getNeighbors(a) {
-    const result = [];
+function collectNeighbors(a, result, cellSize) {
+    result.length = 0;
+
     const maxDistSq = a.neighborDist * a.neighborDist;
 
     for (let x = -1; x <= 1; x++) {
@@ -355,122 +471,47 @@ function getNeighbors(a) {
 
                 if (d > maxDistSq) continue;
 
-                result.push({
-                    agent: b,
-                    distSq: d
-                });
+                result.push(b);
             }
         }
     }
 
-    result.sort((a, b) => a.distSq - b.distSq);
+    result.sort((a, b) => {
+        const dxA = a.x - currentNeighborAgent.x;
+        const dzA = a.z - currentNeighborAgent.z;
+        const dA = dxA * dxA + dzA * dzA;
 
-    const out = [];
-    const count = Math.min(a.maxNeighbors, result.length);
+        const dxB = b.x - currentNeighborAgent.x;
+        const dzB = b.z - currentNeighborAgent.z;
+        const dB = dxB * dxB + dzB * dzB;
 
-    for (let i = 0; i < count; i++) {
-        out.push(result[i].agent);
+        return dA - dB;
+    });
+
+    if (result.length > a.maxNeighbors) {
+        result.length = a.maxNeighbors;
     }
-
-    return out;
 }
 
-function unpackAgents(ids, floats, ints, count) {
-    const agents = new Array(count);
+let currentNeighborAgent = null;
+const neighborScratch = [];
 
-    for (let i = 0; i < count; i++) {
-        const fi = i * 18;
-        const ii = i * 3;
+function pushAgentOutOfCircle(a, k) {
+    const ox = circleData[k + 0];
+    const oz = circleData[k + 1];
+    const r = circleData[k + 2];
 
-        agents[i] = {
-            id: ids[i],
-
-            x: floats[fi + 0],
-            z: floats[fi + 1],
-
-            vx: floats[fi + 2],
-            vz: floats[fi + 3],
-
-            prefX: floats[fi + 4],
-            prefZ: floats[fi + 5],
-
-            maxSpeed: floats[fi + 6],
-            radius: floats[fi + 7],
-            neighborDist: floats[fi + 8],
-
-            forwardX: floats[fi + 9],
-            forwardZ: floats[fi + 10],
-
-            overtakeLookAhead: floats[fi + 11],
-            overtakeSideRange: floats[fi + 12],
-            overtakeSideStrength: floats[fi + 13],
-            overtakeSpeedDiff: floats[fi + 14],
-            overtakeSeed: floats[fi + 15],
-
-            team: floats[fi + 16],
-            onForward: floats[fi + 17],
-
-            maxNeighbors: ints[ii + 0],
-            locked: ints[ii + 1] === 1,
-            enableAllyOvertake: ints[ii + 2] === 1,
-
-            gridX: 0,
-            gridZ: 0
-        };
-    }
-
-    return agents;
-}
-
-function unpackCircles(data) {
-    const count = data.length / 3;
-    const circles = new Array(count);
-
-    for (let i = 0; i < count; i++) {
-        const k = i * 3;
-
-        circles[i] = {
-            x: data[k + 0],
-            z: data[k + 1],
-            r: data[k + 2]
-        };
-    }
-
-    return circles;
-}
-
-function unpackRects(data) {
-    const count = data.length / 6;
-    const rects = new Array(count);
-
-    for (let i = 0; i < count; i++) {
-        const k = i * 6;
-
-        rects[i] = {
-            x: data[k + 0],
-            z: data[k + 1],
-            hx: data[k + 2],
-            hz: data[k + 3],
-            cos: data[k + 4],
-            sin: data[k + 5]
-        };
-    }
-
-    return rects;
-}
-
-function pushAgentOutOfCircle(a, ob) {
-    const dx = a.x - ob.x;
-    const dz = a.z - ob.z;
+    const dx = a.x - ox;
+    const dz = a.z - oz;
 
     const distSq = dx * dx + dz * dz;
-    const minDist = a.radius + ob.r;
+    const minDist = a.radius + r;
 
     if (distSq >= minDist * minDist) return;
 
     if (distSq < 1e-8) {
-        a.x = ob.x + minDist + 0.001;
-        a.z = ob.z;
+        a.x = ox + minDist + 0.001;
+        a.z = oz;
         return;
     }
 
@@ -484,20 +525,27 @@ function pushAgentOutOfCircle(a, ob) {
     a.z += nz * push;
 }
 
-function pushAgentOutOfRect(a, ob) {
-    const dx = a.x - ob.x;
-    const dz = a.z - ob.z;
+function pushAgentOutOfRect(a, k) {
+    const ox = rectData[k + 0];
+    const oz = rectData[k + 1];
+    const hx = rectData[k + 2];
+    const hz = rectData[k + 3];
+    const cos = rectData[k + 4];
+    const sin = rectData[k + 5];
 
-    const lx = dx * ob.cos + dz * ob.sin;
-    const lz = -dx * ob.sin + dz * ob.cos;
+    const dx = a.x - ox;
+    const dz = a.z - oz;
 
-    const px = clamp(lx, -ob.hx, ob.hx);
-    const pz = clamp(lz, -ob.hz, ob.hz);
+    const lx = dx * cos + dz * sin;
+    const lz = -dx * sin + dz * cos;
 
-    const ox = lx - px;
-    const oz = lz - pz;
+    const px = clamp(lx, -hx, hx);
+    const pz = clamp(lz, -hz, hz);
 
-    const distSq = ox * ox + oz * oz;
+    const qx = lx - px;
+    const qz = lz - pz;
+
+    const distSq = qx * qx + qz * qz;
 
     let nxL = 0;
     let nzL = 0;
@@ -508,14 +556,14 @@ function pushAgentOutOfRect(a, ob) {
 
         if (dist >= a.radius) return;
 
-        nxL = ox / dist;
-        nzL = oz / dist;
+        nxL = qx / dist;
+        nzL = qz / dist;
         push = a.radius - dist + 0.001;
     } else {
-        const dLeft = lx + ob.hx;
-        const dRight = ob.hx - lx;
-        const dBottom = lz + ob.hz;
-        const dTop = ob.hz - lz;
+        const dLeft = lx + hx;
+        const dRight = hx - lx;
+        const dBottom = lz + hz;
+        const dTop = hz - lz;
 
         let minD = dLeft;
         nxL = -1;
@@ -542,24 +590,24 @@ function pushAgentOutOfRect(a, ob) {
         push = minD + a.radius + 0.001;
     }
 
-    const nx = nxL * ob.cos - nzL * ob.sin;
-    const nz = nxL * ob.sin + nzL * ob.cos;
+    const nx = nxL * cos - nzL * sin;
+    const nz = nxL * sin + nzL * cos;
 
     a.x += nx * push;
     a.z += nz * push;
 }
 
-function pushAgentOutOfObstacles(a, circles, rects) {
-    for (let i = 0; i < circles.length; i++) {
-        pushAgentOutOfCircle(a, circles[i]);
+function pushAgentOutOfObstacles(a) {
+    for (let i = 0; i < circleData.length; i += 3) {
+        pushAgentOutOfCircle(a, i);
     }
 
-    for (let i = 0; i < rects.length; i++) {
-        pushAgentOutOfRect(a, rects[i]);
+    for (let i = 0; i < rectData.length; i += 6) {
+        pushAgentOutOfRect(a, i);
     }
 }
 
-function applyAllyOvertake(a, agents) {
+function applyAllyOvertake(a, agents, count) {
     if (!a.enableAllyOvertake) return;
     if (a.locked) return;
     if (a.onForward !== 1) return;
@@ -570,7 +618,7 @@ function applyAllyOvertake(a, agents) {
     const lookAhead = a.overtakeLookAhead;
     const sideRange = a.overtakeSideRange;
 
-    for (let i = 0; i < agents.length; i++) {
+    for (let i = 0; i < count; i++) {
         const b = agents[i];
 
         if (b === a) continue;
@@ -633,10 +681,10 @@ function applyAllyOvertake(a, agents) {
     }
 }
 
-function applyVelocityAvoidance(agents, circles, rects) {
-    buildGrid(agents, currentStepData.cellSize);
+function applyVelocityAvoidance(agents, count, data) {
+    buildGrid(agents, count, data.cellSize);
 
-    for (let i = 0; i < agents.length; i++) {
+    for (let i = 0; i < count; i++) {
         const a = agents[i];
 
         if (a.locked) continue;
@@ -644,10 +692,11 @@ function applyVelocityAvoidance(agents, circles, rects) {
         let vx = a.prefX;
         let vz = a.prefZ;
 
-        const neighbors = getNeighbors(a);
+        currentNeighborAgent = a;
+        collectNeighbors(a, neighborScratch, data.cellSize);
 
-        for (let j = 0; j < neighbors.length; j++) {
-            const b = neighbors[j];
+        for (let j = 0; j < neighborScratch.length; j++) {
+            const b = neighborScratch[j];
 
             const dx = a.x - b.x;
             const dz = a.z - b.z;
@@ -680,7 +729,7 @@ function applyVelocityAvoidance(agents, circles, rects) {
         a.vx = vx;
         a.vz = vz;
 
-        applyAllyOvertake(a, agents);
+        applyAllyOvertake(a, agents, count);
 
         const speed = Math.sqrt(a.vx * a.vx + a.vz * a.vz);
 
@@ -689,10 +738,12 @@ function applyVelocityAvoidance(agents, circles, rects) {
             a.vz = (a.vz / speed) * a.maxSpeed;
         }
     }
+
+    currentNeighborAgent = null;
 }
 
-function moveAgents(agents, circles, rects, data) {
-    for (let i = 0; i < agents.length; i++) {
+function moveAgents(agents, count, data) {
+    for (let i = 0; i < count; i++) {
         const a = agents[i];
 
         if (!a.locked) {
@@ -700,7 +751,7 @@ function moveAgents(agents, circles, rects, data) {
             a.z += a.vz * data.timeStep;
 
             for (let k = 0; k < 3; k++) {
-                pushAgentOutOfObstacles(a, circles, rects);
+                pushAgentOutOfObstacles(a);
             }
         }
 
@@ -711,15 +762,17 @@ function moveAgents(agents, circles, rects, data) {
     }
 }
 
-function hardSeparateAgents(agents) {
-    buildGrid(agents, currentStepData.cellSize);
+function hardSeparateAgents(agents, count, data) {
+    buildGrid(agents, count, data.cellSize);
 
-    for (let i = 0; i < agents.length; i++) {
+    for (let i = 0; i < count; i++) {
         const a = agents[i];
-        const neighbors = getNeighbors(a);
 
-        for (let j = 0; j < neighbors.length; j++) {
-            const b = neighbors[j];
+        currentNeighborAgent = a;
+        collectNeighbors(a, neighborScratch, data.cellSize);
+
+        for (let j = 0; j < neighborScratch.length; j++) {
+            const b = neighborScratch[j];
 
             const dx = b.x - a.x;
             const dz = b.z - a.z;
@@ -756,16 +809,18 @@ function hardSeparateAgents(agents) {
             }
         }
     }
+
+    currentNeighborAgent = null;
 }
 
-function solveObstaclesAgain(agents, circles, rects, data) {
-    for (let i = 0; i < agents.length; i++) {
+function solveObstaclesAgain(agents, count, data) {
+    for (let i = 0; i < count; i++) {
         const a = agents[i];
 
         if (a.locked) continue;
 
         for (let k = 0; k < 3; k++) {
-            pushAgentOutOfObstacles(a, circles, rects);
+            pushAgentOutOfObstacles(a);
         }
 
         if (data.useBounds === 1) {
@@ -775,60 +830,61 @@ function solveObstaclesAgain(agents, circles, rects, data) {
     }
 }
 
-function packResult(agents) {
-    const result = new Float32Array(agents.length * 4);
-
-    for (let i = 0; i < agents.length; i++) {
+function writeResultToFloats(agents, floats, count) {
+    for (let i = 0; i < count; i++) {
         const a = agents[i];
-        const k = i * 4;
+        const fi = i * 18;
 
-        result[k + 0] = a.x;
-        result[k + 1] = a.z;
-        result[k + 2] = a.vx;
-        result[k + 3] = a.vz;
+        floats[fi + 0] = a.x;
+        floats[fi + 1] = a.z;
+        floats[fi + 2] = a.vx;
+        floats[fi + 3] = a.vz;
     }
-
-    return result;
 }
 
-let currentStepData = null;
-
 function step(data) {
-    currentStepData = data;
-
-    const agents = unpackAgents(
+    const agents = buildAgents(
         data.ids,
         data.floats,
         data.ints,
         data.count
     );
 
-    const circles = unpackCircles(data.circleData);
-    const rects = unpackRects(data.rectData);
+    applyVelocityAvoidance(agents, data.count, data);
+    moveAgents(agents, data.count, data);
+    hardSeparateAgents(agents, data.count, data);
+    solveObstaclesAgain(agents, data.count, data);
 
-    applyVelocityAvoidance(agents, circles, rects);
-    moveAgents(agents, circles, rects, data);
-    hardSeparateAgents(agents);
-    solveObstaclesAgain(agents, circles, rects, data);
-
-    const result = packResult(agents);
+    writeResultToFloats(
+        agents,
+        data.floats,
+        data.count
+    );
 
     self.postMessage({
         type: 'result',
+        sequence: data.sequence,
         ids: data.ids,
-        result
+        floats: data.floats,
+        ints: data.ints,
+        count: data.count
     }, [
         data.ids.buffer,
-        result.buffer
+        data.floats.buffer,
+        data.ints.buffer
     ]);
-
-    currentStepData = null;
 }
 
 self.onmessage = function(event) {
     const data = event.data;
 
     if (!data) return;
+
+    if (data.type === 'obstacles') {
+        circleData = data.circleData || new Float32Array(0);
+        rectData = data.rectData || new Float32Array(0);
+        return;
+    }
 
     if (data.type === 'step') {
         step(data);

@@ -19,6 +19,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("UnitBehavior", "./UnitBehavior", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfUnitType(extras) {
+    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -100,7 +104,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, pos, team, parent, maxSpeed, health, damage) {
+        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, health, damage, defense) {
           var node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -123,8 +127,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), UnitBehavior) : UnitBehavior);
           unit.moveSpeed = maxSpeed;
+          props.unitType = unitType;
           props.maxHealth = health;
           props.damage = damage;
+          props.defense = defense;
           props.resetForSpawn();
           var forwardX = 0;
           var forwardZ = team === 0 ? 1 : -1;
@@ -162,13 +168,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         removeAgentFromSimulator(unit) {
-          if (!this.sim || !unit.agent) return; // Worker backend / chuẩn backend mới
+          if (!this.sim || !unit.agent) return;
 
           if (typeof this.sim.removeAgent === 'function') {
             this.sim.removeAgent(unit.agent);
             return;
-          } // Fallback cho RVO main-thread cũ
-
+          }
 
           if (this.sim.agents && Array.isArray(this.sim.agents)) {
             var idx = this.sim.agents.indexOf(unit.agent);

@@ -223,7 +223,7 @@
                 "moveSpeed",
                 "radius",
                 "attackRange",
-                "rotationSpeed",
+                "targetSearchRange",
                 "visualThreshold",
                 "overtakeLookAhead",
                 "overtakeSideRange",
@@ -250,7 +250,7 @@
             "c9271TusC9EpKwLJeUpSKGf",
             [
                 "maxHealth",
-                "health",
+                "defense",
                 "node",
                 "__prefab"
             ],
@@ -261,11 +261,12 @@
         [
             "447a2LC9oVLFLwtjUuBODgj",
             [
-                "attackInterval",
+                "attackIntervalMin",
+                "attackIntervalMax",
                 "node",
                 "__prefab"
             ],
-            2,
+            1,
             1,
             4
         ]
@@ -466,7 +467,8 @@
             0,
             1,
             2,
-            2
+            3,
+            3
         ]
     ],
     [
@@ -507,7 +509,7 @@
                     7,
                     0.7,
                     1.7,
-                    20,
+                    35,
                     0.03,
                     2,
                     1,
@@ -540,6 +542,7 @@
                 [
                     24,
                     0.4,
+                    0.45,
                     -7,
                     [
                         0,

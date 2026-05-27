@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, Unit, UnitProps, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, UnitBehavior;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, CounterSettings, _dec, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, UnitBehavior;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -9,16 +9,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
   function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
 
-  function _reportPossibleCrUseOfGameManager(extras) {
-    _reporterNs.report("GameManager", "./GameManager", _context.meta, extras);
-  }
-
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfUnitProps(extras) {
     _reporterNs.report("UnitProps", "./UnitProps", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfGameManager(extras) {
+    _reporterNs.report("GameManager", "./GameManager", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfCounterSettings(extras) {
+    _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
   }
 
   return {
@@ -31,11 +35,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _decorator = _cc._decorator;
       Component = _cc.Component;
     }, function (_unresolved_2) {
-      GameManager = _unresolved_2.GameManager;
+      Unit = _unresolved_2.Unit;
     }, function (_unresolved_3) {
-      Unit = _unresolved_3.Unit;
+      UnitProps = _unresolved_3.UnitProps;
     }, function (_unresolved_4) {
-      UnitProps = _unresolved_4.UnitProps;
+      CounterSettings = _unresolved_4.CounterSettings;
     }],
     execute: function () {
       _crd = true;
@@ -49,20 +53,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         property
       } = _decorator);
 
-      _export("UnitBehavior", UnitBehavior = (_dec = ccclass('UnitBehavior'), _dec2 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-        error: Error()
-      }), GameManager) : GameManager), _dec(_class = (_class2 = class UnitBehavior extends Component {
+      _export("UnitBehavior", UnitBehavior = (_dec = ccclass('UnitBehavior'), _dec(_class = (_class2 = class UnitBehavior extends Component {
         constructor(...args) {
           super(...args);
 
-          _initializerDefineProperty(this, "gameManager", _descriptor, this);
+          _initializerDefineProperty(this, "attackIntervalMin", _descriptor, this);
 
-          _initializerDefineProperty(this, "attackInterval", _descriptor2, this);
+          _initializerDefineProperty(this, "attackIntervalMax", _descriptor2, this);
 
+          this.gameManager = null;
           this.unit = void 0;
           this.props = void 0;
           this.attackTimer = 0;
-          this.deadHandled = false;
+          this.nextAttackInterval = 1;
         }
 
         onLoad() {
@@ -75,74 +78,78 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         resetForSpawn() {
-          // Random attack phase để tránh phe update trước luôn thắng.
-          this.attackTimer = Math.random() * this.attackInterval;
-          this.deadHandled = false;
+          this.attackTimer = 0;
+          this.randomizeNextAttackInterval();
         }
 
         resetForDespawn() {
           this.attackTimer = 0;
-          this.deadHandled = true;
         }
 
         update(deltaTime) {
+          if (!this.unit || !this.props) return;
           if (!this.node.activeInHierarchy) return;
-
-          if (this.props.isDead()) {
-            this.handleDeath();
-            return;
-          }
-
-          if (!this.unit.onBusy) {
-            return;
-          }
-
-          const enemy = this.unit.enemy;
-
-          if (!enemy || !enemy.node.activeInHierarchy || !enemy.props) {
-            this.unit.clearEnemy();
-            this.attackTimer = 0;
-            return;
-          }
-
-          if (enemy.props.isDead()) {
-            this.unit.clearEnemy();
-            this.attackTimer = 0;
-            return;
-          }
-
+          if (this.props.isDead()) return;
+          if (!this.unit.onBusy) return;
+          if (!this.unit.enemy) return;
+          if (!this.unit.enemy.node.activeInHierarchy) return;
+          if (!this.unit.enemy.props) return;
+          if (this.unit.enemy.props.isDead()) return;
           this.attackTimer += deltaTime;
 
-          if (this.attackTimer >= this.attackInterval) {
-            this.attackTimer = 0;
-            enemy.props.takeDamage(this.props.damage);
+          if (this.attackTimer < this.nextAttackInterval) {
+            return;
           }
-        }
 
-        handleDeath() {
-          if (this.deadHandled) return;
-          this.deadHandled = true;
           this.attackTimer = 0;
-          this.unit.clearEnemy();
+          this.randomizeNextAttackInterval();
+          this.dealDamageToEnemy();
+        }
 
-          if (this.gameManager) {
-            this.gameManager.despawnUnit(this.unit);
+        dealDamageToEnemy() {
+          const enemy = this.unit.enemy;
+          if (!enemy || !enemy.props) return;
+          const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          let finalDamage = this.props.damage;
+
+          if (counter) {
+            finalDamage = counter.calculateDamage(this.props, enemy.props);
+          } else {
+            finalDamage = Math.max(1, this.props.damage - enemy.props.defense);
+          }
+
+          enemy.props.takeDamage(finalDamage);
+
+          if (enemy.props.isDead()) {
+            if (this.gameManager) {
+              this.gameManager.despawnUnit(enemy);
+            }
+
+            this.unit.clearEnemy();
           }
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "gameManager", [_dec2], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return null;
+        randomizeNextAttackInterval() {
+          const min = Math.max(0.05, this.attackIntervalMin);
+          const max = Math.max(min, this.attackIntervalMax);
+          this.nextAttackInterval = min + Math.random() * (max - min);
         }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "attackInterval", [property], {
+
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 0.5;
+          return 0.8;
+        }
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMax", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 1.2;
         }
       })), _class2)) || _class));
 

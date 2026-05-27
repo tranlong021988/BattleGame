@@ -3,6 +3,7 @@ import { Unit } from './Unit';
 import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
 import { UnitBehavior } from './UnitBehavior';
+import { UnitType } from './BattleTypes';
 
 const { ccclass } = _decorator;
 
@@ -63,12 +64,14 @@ export class UnitSpawner extends Component {
     spawnUnit(
         prefab: Prefab,
         unitTypeName: string,
+        unitType: UnitType,
         pos: Vec3,
         team: number,
         parent: Node,
         maxSpeed: number,
         health: number,
-        damage: number
+        damage: number,
+        defense: number
     ): Unit {
         const node = this.getNode(prefab);
 
@@ -87,8 +90,10 @@ export class UnitSpawner extends Component {
 
         unit.moveSpeed = maxSpeed;
 
+        props.unitType = unitType;
         props.maxHealth = health;
         props.damage = damage;
+        props.defense = defense;
         props.resetForSpawn();
 
         const forwardX = 0;
@@ -134,13 +139,11 @@ export class UnitSpawner extends Component {
     private removeAgentFromSimulator(unit: Unit) {
         if (!this.sim || !unit.agent) return;
 
-        // Worker backend / chuẩn backend mới
         if (typeof this.sim.removeAgent === 'function') {
             this.sim.removeAgent(unit.agent);
             return;
         }
 
-        // Fallback cho RVO main-thread cũ
         if (this.sim.agents && Array.isArray(this.sim.agents)) {
             const idx = this.sim.agents.indexOf(unit.agent);
 

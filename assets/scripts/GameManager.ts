@@ -1,14 +1,21 @@
 import { _decorator, Component, Prefab, Vec3, Label } from 'cc';
+
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
 import { EnemyFinder } from './EnemyFinder';
+
 import { RVOSimulator } from './rvo/RVO';
 import { RVOWorkerSimulator } from './rvo/RVOWorkerSimulator';
+
 import { ObstacleCircle } from './ObstacleCircle';
 import { ObstacleRect } from './ObstacleRect';
+
 import { UnitSpawner } from './UnitSpawner';
 import { UnitBehavior } from './UnitBehavior';
+
 import { BattleSpatialGrid } from './BattleSpatialGrid';
+
+import { UnitType } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
 
@@ -20,6 +27,9 @@ export class UnitPrefabEntry {
 
     @property(Prefab)
     prefab: Prefab | null = null;
+
+    @property({ type: UnitType })
+    unitType: UnitType = UnitType.LightSword;
 
     @property
     unitCount: number = 1;
@@ -34,7 +44,10 @@ export class UnitPrefabEntry {
     health: number = 30;
 
     @property
-    damage: number = 1;
+    damage: number = 5;
+
+    @property
+    defense: number = 0;
 }
 
 @ccclass('GameManager')
@@ -57,12 +70,21 @@ export class GameManager extends Component {
     @property(Unit)
     teamBHero: Unit | null = null;
 
-    @property battleMinX = -28;
-    @property battleMaxX = 28;
-    @property battleMinZ = -18;
-    @property battleMaxZ = 18;
+    @property
+    battleMinX = -28;
 
-    @property updateInterval = 2;
+    @property
+    battleMaxX = 28;
+
+    @property
+    battleMinZ = -18;
+
+    @property
+    battleMaxZ = 18;
+
+    @property
+    updateInterval = 2;
+
     frame = 0;
 
     @property
@@ -180,12 +202,20 @@ export class GameManager extends Component {
 
         for (const ob of this.circleObstacles) {
             const p = ob.node.worldPosition;
-            this.sim.addCircleObstacle(p.x, p.z, ob.radius);
+
+            this.sim.addCircleObstacle(
+                p.x,
+                p.z,
+                ob.radius
+            );
         }
 
         for (const ob of this.rectObstacles) {
             const p = ob.node.worldPosition;
-            const angle = ob.node.eulerAngles.y * Math.PI / 180;
+
+            const angle =
+                ob.node.eulerAngles.y *
+                Math.PI / 180;
 
             this.sim.addRectObstacle(
                 p.x,
@@ -218,25 +248,38 @@ export class GameManager extends Component {
     }
 
     private createSimulator() {
-        if (this.useWorkerRVO && RVOWorkerSimulator.isSupported()) {
+        if (
+            this.useWorkerRVO &&
+            RVOWorkerSimulator.isSupported()
+        ) {
             this.sim = new RVOWorkerSimulator();
-            console.log('[GameManager] Using Worker RVO backend');
+
+            console.log(
+                '[GameManager] Using Worker RVO backend'
+            );
         } else {
             this.sim = new RVOSimulator();
-            console.log('[GameManager] Using Main Thread RVO backend');
+
+            console.log(
+                '[GameManager] Using Main Thread RVO backend'
+            );
         }
     }
 
     update(deltaTime: number) {
         this.frame++;
 
-        Unit.visualLerpT = 1 - Math.exp(-this.visualSmooth * deltaTime);
+        Unit.visualLerpT =
+            1 - Math.exp(-this.visualSmooth * deltaTime);
 
         if (this.frame % this.updateInterval === 0) {
             this.sim.step();
         }
 
-        if (this.frame % this.spatialGridUpdateInterval === 0) {
+        if (
+            this.frame %
+            this.spatialGridUpdateInterval === 0
+        ) {
             this.rebuildSpatialGrid();
         }
 
@@ -246,58 +289,13 @@ export class GameManager extends Component {
     }
 
     private rebuildSpatialGrid() {
-        this.spatialGrid.cellSize = this.spatialGridCellSize;
-        this.spatialGrid.build(this.teamA, this.teamB);
-    }
+        this.spatialGrid.cellSize =
+            this.spatialGridCellSize;
 
-    private registerSceneHero(hero: Unit | null, team: number, typeName: string) {
-        if (!hero) return;
-        if (!hero.node.activeInHierarchy) return;
-
-        hero.isHero = true;
-
-        const props = hero.getComponent(UnitProps);
-        if (props) {
-            props.resetForSpawn();
-        }
-
-        const behavior = hero.getComponent(UnitBehavior);
-        if (behavior) {
-            behavior.gameManager = this;
-            behavior.resetForSpawn();
-        }
-
-        const finder = hero.getComponent(EnemyFinder);
-        if (finder) {
-            finder.resetForSpawn(team);
-        }
-
-        const forwardX = 0;
-        const forwardZ = team === 0 ? 1 : -1;
-
-        hero.init(
-            this.sim,
-            team,
-            typeName,
-            forwardX,
-            forwardZ
+        this.spatialGrid.build(
+            this.teamA,
+            this.teamB
         );
-
-        if (team === 0) {
-            if (this.teamA.indexOf(hero) < 0) {
-                this.teamA.push(hero);
-                this.aliveCount[0]++;
-            }
-
-            EnemyFinder.teamA = this.teamA;
-        } else {
-            if (this.teamB.indexOf(hero) < 0) {
-                this.teamB.push(hero);
-                this.aliveCount[1]++;
-            }
-
-            EnemyFinder.teamB = this.teamB;
-        }
     }
 
     private buildPrefabMaps() {
@@ -306,12 +304,20 @@ export class GameManager extends Component {
 
         for (const entry of this.teamAPrefabs) {
             if (!this.isValidEntry(entry)) continue;
-            this.teamAPrefabMap.set(entry.name, entry);
+
+            this.teamAPrefabMap.set(
+                entry.name,
+                entry
+            );
         }
 
         for (const entry of this.teamBPrefabs) {
             if (!this.isValidEntry(entry)) continue;
-            this.teamBPrefabMap.set(entry.name, entry);
+
+            this.teamBPrefabMap.set(
+                entry.name,
+                entry
+            );
         }
     }
 
@@ -337,36 +343,53 @@ export class GameManager extends Component {
         }
     }
 
-    private isValidEntry(entry: UnitPrefabEntry | null): boolean {
+    private isValidEntry(
+        entry: UnitPrefabEntry | null
+    ): boolean {
+
         if (!entry) return false;
         if (!entry.name) return false;
         if (!entry.prefab) return false;
+
         return true;
     }
 
-    private getTeamEntry(team: number, unitName: string): UnitPrefabEntry | null {
-        const map = team === 0
-            ? this.teamAPrefabMap
-            : this.teamBPrefabMap;
+    private getTeamEntry(
+        team: number,
+        unitName: string
+    ): UnitPrefabEntry | null {
+
+        const map =
+            team === 0
+                ? this.teamAPrefabMap
+                : this.teamBPrefabMap;
 
         const entry = map.get(unitName);
 
         if (!entry || !entry.prefab) {
             console.warn(
-                `[GameManager] Missing unit entry. team=${team}, unitName=${unitName}`
+                '[GameManager] Missing unit entry:',
+                unitName
             );
+
             return null;
         }
 
         return entry;
     }
 
-    private getRandomEntry(entries: UnitPrefabEntry[]): UnitPrefabEntry | null {
+    private getRandomEntry(
+        entries: UnitPrefabEntry[]
+    ): UnitPrefabEntry | null {
+
         const validEntries: UnitPrefabEntry[] = [];
 
         for (const entry of entries) {
             if (!this.isValidEntry(entry)) continue;
-            if (Math.floor(entry.unitCount) <= 0) continue;
+
+            if (Math.floor(entry.unitCount) <= 0) {
+                continue;
+            }
 
             validEntries.push(entry);
         }
@@ -375,42 +398,34 @@ export class GameManager extends Component {
             return null;
         }
 
-        const index = Math.floor(Math.random() * validEntries.length);
+        const index = Math.floor(
+            Math.random() * validEntries.length
+        );
+
         return validEntries[index];
-    }
-
-    private refreshBattleStatsUI() {
-        if (this.teamAAliveLabel) {
-            this.teamAAliveLabel.string = `A Alive: ${this.aliveCount[0]}`;
-        }
-
-        if (this.teamADeathLabel) {
-            this.teamADeathLabel.string = `A Death: ${this.deathCount[0]}`;
-        }
-
-        if (this.teamBAliveLabel) {
-            this.teamBAliveLabel.string = `B Alive: ${this.aliveCount[1]}`;
-        }
-
-        if (this.teamBDeathLabel) {
-            this.teamBDeathLabel.string = `B Death: ${this.deathCount[1]}`;
-        }
     }
 
     private updateAutoSpawn(deltaTime: number) {
         this.spawnWaveTimer += deltaTime;
 
-        if (this.spawnWaveTimer < this.spawnWaveInterval) {
+        if (
+            this.spawnWaveTimer <
+            this.spawnWaveInterval
+        ) {
             return;
         }
 
         this.spawnWaveTimer = 0;
+
         this.spawnAutoWave();
     }
 
     spawnAutoWave() {
-        const entryA = this.getRandomEntry(this.teamAPrefabs);
-        const entryB = this.getRandomEntry(this.teamBPrefabs);
+        const entryA =
+            this.getRandomEntry(this.teamAPrefabs);
+
+        const entryB =
+            this.getRandomEntry(this.teamBPrefabs);
 
         if (entryA) {
             this.spawnEntryFormation(
@@ -436,34 +451,57 @@ export class GameManager extends Component {
         entry: UnitPrefabEntry,
         baseZ: number
     ) {
-        const count = Math.max(0, Math.floor(entry.unitCount));
-        const maxPerRow = Math.max(1, Math.floor(this.maxUnitPerRow));
+
+        const count = Math.max(
+            0,
+            Math.floor(entry.unitCount)
+        );
+
+        const maxPerRow = Math.max(
+            1,
+            Math.floor(this.maxUnitPerRow)
+        );
 
         let spawned = 0;
         let row = 0;
 
         while (spawned < count) {
-            const remaining = count - spawned;
-            const rowCount = Math.min(maxPerRow, remaining);
 
-            const rowXPositions = this.buildCenteredRowXPositions(
-                rowCount,
-                row
+            const remaining = count - spawned;
+
+            const rowCount = Math.min(
+                maxPerRow,
+                remaining
             );
 
-            for (let col = 0; col < rowCount; col++) {
+            const rowXPositions =
+                this.buildCenteredRowXPositions(
+                    rowCount,
+                    row
+                );
+
+            for (
+                let col = 0;
+                col < rowCount;
+                col++
+            ) {
+
                 const x = rowXPositions[col];
 
-                const rowZOffset = row * this.spaceBetweenRow;
+                const rowZOffset =
+                    row * this.spaceBetweenRow;
 
-                const baseUnitZ = team === 0
-                    ? baseZ - rowZOffset
-                    : baseZ + rowZOffset;
+                const baseUnitZ =
+                    team === 0
+                        ? baseZ - rowZOffset
+                        : baseZ + rowZOffset;
 
-                const z = baseUnitZ + this.randomRange(
-                    -this.formationZNoise,
-                    this.formationZNoise
-                );
+                const z =
+                    baseUnitZ +
+                    this.randomRange(
+                        -this.formationZNoise,
+                        this.formationZNoise
+                    );
 
                 const pos = new Vec3(x, 0, z);
 
@@ -480,19 +518,35 @@ export class GameManager extends Component {
         }
     }
 
-    private buildCenteredRowXPositions(rowCount: number, rowIndex: number): number[] {
+    private buildCenteredRowXPositions(
+        rowCount: number,
+        rowIndex: number
+    ): number[] {
+
         const result: number[] = [];
 
         if (rowCount <= 0) {
             return result;
         }
 
-        const gap = Math.max(0, this.centerGapWidth);
+        const gap = Math.max(
+            0,
+            this.centerGapWidth
+        );
 
         if (gap <= 0) {
-            for (let col = 0; col < rowCount; col++) {
+
+            for (
+                let col = 0;
+                col < rowCount;
+                col++
+            ) {
+
                 const x =
-                    (col - (rowCount - 1) * 0.5) *
+                    (
+                        col -
+                        (rowCount - 1) * 0.5
+                    ) *
                     this.spaceBetweenUnit;
 
                 result.push(x);
@@ -504,9 +558,12 @@ export class GameManager extends Component {
         const gapHalf = gap * 0.5;
 
         let pairIndex = 0;
-        const startRightSide = rowIndex % 2 === 1;
+
+        const startRightSide =
+            rowIndex % 2 === 1;
 
         while (result.length < rowCount) {
+
             const leftX =
                 -gapHalf -
                 pairIndex * this.spaceBetweenUnit;
@@ -516,12 +573,15 @@ export class GameManager extends Component {
                 pairIndex * this.spaceBetweenUnit;
 
             if (startRightSide) {
+
                 result.push(rightX);
 
                 if (result.length < rowCount) {
                     result.push(leftX);
                 }
+
             } else {
+
                 result.push(leftX);
 
                 if (result.length < rowCount) {
@@ -537,19 +597,29 @@ export class GameManager extends Component {
         return result;
     }
 
-    spawnTeamA(unitName: string, pos: Vec3): Unit | null {
-        const entry = this.getTeamEntry(0, unitName);
-        if (!entry || !entry.prefab) return null;
+    spawnTeamA(
+        unitName: string,
+        pos: Vec3
+    ): Unit | null {
+
+        const entry =
+            this.getTeamEntry(0, unitName);
+
+        if (!entry || !entry.prefab) {
+            return null;
+        }
 
         const unit = this.spawner.spawnUnit(
             entry.prefab,
             entry.name,
+            entry.unitType,
             pos,
             0,
             this.node,
             entry.maxSpeed,
             entry.health,
-            entry.damage
+            entry.damage,
+            entry.defense
         );
 
         if (this.teamA.indexOf(unit) < 0) {
@@ -557,7 +627,8 @@ export class GameManager extends Component {
             this.aliveCount[0]++;
         }
 
-        const behavior = unit.getComponent(UnitBehavior);
+        const behavior =
+            unit.getComponent(UnitBehavior);
 
         if (behavior) {
             behavior.gameManager = this;
@@ -570,19 +641,29 @@ export class GameManager extends Component {
         return unit;
     }
 
-    spawnTeamB(unitName: string, pos: Vec3): Unit | null {
-        const entry = this.getTeamEntry(1, unitName);
-        if (!entry || !entry.prefab) return null;
+    spawnTeamB(
+        unitName: string,
+        pos: Vec3
+    ): Unit | null {
+
+        const entry =
+            this.getTeamEntry(1, unitName);
+
+        if (!entry || !entry.prefab) {
+            return null;
+        }
 
         const unit = this.spawner.spawnUnit(
             entry.prefab,
             entry.name,
+            entry.unitType,
             pos,
             1,
             this.node,
             entry.maxSpeed,
             entry.health,
-            entry.damage
+            entry.damage,
+            entry.defense
         );
 
         if (this.teamB.indexOf(unit) < 0) {
@@ -590,7 +671,8 @@ export class GameManager extends Component {
             this.aliveCount[1]++;
         }
 
-        const behavior = unit.getComponent(UnitBehavior);
+        const behavior =
+            unit.getComponent(UnitBehavior);
 
         if (behavior) {
             behavior.gameManager = this;
@@ -614,19 +696,20 @@ export class GameManager extends Component {
         const team = unit.team;
         const unitName = unit.unitTypeName;
 
-        const entry = this.getTeamEntry(team, unitName);
+        const entry =
+            this.getTeamEntry(team, unitName);
 
         if (!entry || !entry.prefab) {
-            console.warn(
-                `[GameManager] Cannot despawn. Missing prefab. team=${team}, unitName=${unitName}`
-            );
             return;
         }
 
         if (team === 0) {
-            const idx = this.teamA.indexOf(unit);
+
+            const idx =
+                this.teamA.indexOf(unit);
 
             if (idx >= 0) {
+
                 this.teamA.splice(idx, 1);
 
                 this.aliveCount[0]--;
@@ -638,7 +721,11 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamA = this.teamA;
 
-                this.spawner.despawnUnit(unit, entry.prefab);
+                this.spawner.despawnUnit(
+                    unit,
+                    entry.prefab
+                );
+
                 this.rebuildSpatialGrid();
                 this.refreshBattleStatsUI();
             }
@@ -647,9 +734,12 @@ export class GameManager extends Component {
         }
 
         if (team === 1) {
-            const idx = this.teamB.indexOf(unit);
+
+            const idx =
+                this.teamB.indexOf(unit);
 
             if (idx >= 0) {
+
                 this.teamB.splice(idx, 1);
 
                 this.aliveCount[1]--;
@@ -661,7 +751,11 @@ export class GameManager extends Component {
 
                 EnemyFinder.teamB = this.teamB;
 
-                this.spawner.despawnUnit(unit, entry.prefab);
+                this.spawner.despawnUnit(
+                    unit,
+                    entry.prefab
+                );
+
                 this.rebuildSpatialGrid();
                 this.refreshBattleStatsUI();
             }
@@ -674,7 +768,9 @@ export class GameManager extends Component {
         const team = unit.team;
 
         if (team === 0) {
-            const idx = this.teamA.indexOf(unit);
+
+            const idx =
+                this.teamA.indexOf(unit);
 
             if (idx >= 0) {
                 this.teamA.splice(idx, 1);
@@ -688,8 +784,11 @@ export class GameManager extends Component {
             }
 
             EnemyFinder.teamA = this.teamA;
+
         } else {
-            const idx = this.teamB.indexOf(unit);
+
+            const idx =
+                this.teamB.indexOf(unit);
 
             if (idx >= 0) {
                 this.teamB.splice(idx, 1);
@@ -705,33 +804,117 @@ export class GameManager extends Component {
             EnemyFinder.teamB = this.teamB;
         }
 
-        this.removeAgentFromSimulator(unit);
-
         unit.resetForDespawn();
+
         unit.node.active = false;
 
         this.rebuildSpatialGrid();
         this.refreshBattleStatsUI();
     }
 
-    private removeAgentFromSimulator(unit: Unit) {
-        if (!this.sim || !unit.agent) return;
+    private registerSceneHero(
+        hero: Unit | null,
+        team: number,
+        typeName: string
+    ) {
 
-        if (typeof this.sim.removeAgent === 'function') {
-            this.sim.removeAgent(unit.agent);
-            return;
+        if (!hero) return;
+        if (!hero.node.activeInHierarchy) return;
+
+        hero.isHero = true;
+
+        const props =
+            hero.getComponent(UnitProps);
+
+        if (props) {
+            props.resetForSpawn();
         }
 
-        if (this.sim.agents && Array.isArray(this.sim.agents)) {
-            const idx = this.sim.agents.indexOf(unit.agent);
+        const behavior =
+            hero.getComponent(UnitBehavior);
 
-            if (idx >= 0) {
-                this.sim.agents.splice(idx, 1);
+        if (behavior) {
+            behavior.gameManager = this;
+            behavior.resetForSpawn();
+        }
+
+        const finder =
+            hero.getComponent(EnemyFinder);
+
+        if (finder) {
+            finder.resetForSpawn(team);
+        }
+
+        const forwardX = 0;
+        const forwardZ =
+            team === 0 ? 1 : -1;
+
+        hero.init(
+            this.sim,
+            team,
+            typeName,
+            forwardX,
+            forwardZ
+        );
+
+        if (team === 0) {
+
+            if (
+                this.teamA.indexOf(hero) < 0
+            ) {
+                this.teamA.push(hero);
+                this.aliveCount[0]++;
             }
+
+            EnemyFinder.teamA = this.teamA;
+
+        } else {
+
+            if (
+                this.teamB.indexOf(hero) < 0
+            ) {
+                this.teamB.push(hero);
+                this.aliveCount[1]++;
+            }
+
+            EnemyFinder.teamB = this.teamB;
         }
     }
 
-    private randomRange(min: number, max: number) {
-        return Math.random() * (max - min) + min;
+    private refreshBattleStatsUI() {
+
+        if (this.teamAAliveLabel) {
+            this.teamAAliveLabel.string =
+                'A Alive: ' +
+                this.aliveCount[0];
+        }
+
+        if (this.teamADeathLabel) {
+            this.teamADeathLabel.string =
+                'A Death: ' +
+                this.deathCount[0];
+        }
+
+        if (this.teamBAliveLabel) {
+            this.teamBAliveLabel.string =
+                'B Alive: ' +
+                this.aliveCount[1];
+        }
+
+        if (this.teamBDeathLabel) {
+            this.teamBDeathLabel.string =
+                'B Death: ' +
+                this.deathCount[1];
+        }
+    }
+
+    private randomRange(
+        min: number,
+        max: number
+    ) {
+
+        return (
+            Math.random() * (max - min) + min
+        );
     }
 }

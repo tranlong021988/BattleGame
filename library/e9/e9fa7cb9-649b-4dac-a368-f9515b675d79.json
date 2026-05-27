@@ -570,7 +570,10 @@
     "moveSpeed": 7,
     "radius": 0.7,
     "attackRange": 1.7,
-    "rotationSpeed": 20,
+    "targetSearchRange": 35,
+    "attackCheckIntervalFrames": 2,
+    "targetSearchIntervalFrames": 6,
+    "rotationSpeed": 10,
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
@@ -624,9 +627,10 @@
     "__prefab": {
       "__id__": 39
     },
+    "unitType": 0,
     "maxHealth": 5,
-    "health": 5,
     "damage": 1,
+    "defense": 5,
     "_id": ""
   },
   {
@@ -645,8 +649,8 @@
     "__prefab": {
       "__id__": 41
     },
-    "gameManager": null,
-    "attackInterval": 0.4,
+    "attackIntervalMin": 0.4,
+    "attackIntervalMax": 0.45,
     "_id": ""
   },
   {

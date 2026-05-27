@@ -923,5 +923,15 @@
     "url": "db://assets/scripts/BattleSpatialGrid.ts",
     "value": {},
     "versionCode": 1
+  },
+  "fe45a3a2-00d4-41f3-bfbc-35c0c7f5802a": {
+    "url": "db://assets/scripts/BattleTypes.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "05b5fa2b-3f44-4842-8e74-276cd2f32062": {
+    "url": "db://assets/scripts/CounterSettings.ts",
+    "value": {},
+    "versionCode": 1
   }
 }
