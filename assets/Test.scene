@@ -764,7 +764,7 @@
       "__type__": "cc.Vec3",
       "x": 0,
       "y": 0,
-      "z": 0
+      "z": -14.871
     },
     "_lrot": {
       "__type__": "cc.Quat",
@@ -813,10 +813,10 @@
     },
     "_lrot": {
       "__type__": "cc.Quat",
-      "x": -0.3535533905932738,
-      "y": 0.6123724356957945,
-      "z": 0.3535533905932736,
-      "w": 0.6123724356957947
+      "x": -0.27059805007309856,
+      "y": 0.6532814824381881,
+      "z": 0.27059805007309845,
+      "w": 0.6532814824381884
     },
     "_lscale": {
       "__type__": "cc.Vec3",
@@ -828,9 +828,9 @@
     "_layer": 1073741824,
     "_euler": {
       "__type__": "cc.Vec3",
-      "x": -60,
+      "x": -45,
       "y": 89.99999999999997,
-      "z": -3.1805546814635168e-15
+      "z": 3.1805546814635168e-15
     },
     "_id": "aaWtP1HkZALKwT+e2Uh0UC"
   },
@@ -846,7 +846,7 @@
     "__prefab": null,
     "_projection": 1,
     "_priority": 0,
-    "_fov": 45,
+    "_fov": 40,
     "_fovAxis": 0,
     "_orthoHeight": 13,
     "_near": 1,
@@ -892,10 +892,10 @@
     "__prefab": null,
     "enableDragX": true,
     "enableDragZ": true,
-    "minX": -5,
-    "maxX": 5,
-    "minZ": -15,
-    "maxZ": 15,
+    "minX": -2,
+    "maxX": 2,
+    "minZ": -20,
+    "maxZ": 0,
     "dragSensitivity": 0.05,
     "smoothSpeed": 15,
     "invertX": true,
@@ -933,8 +933,8 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 50,
-      "y": 20,
+      "x": 100,
+      "y": 30,
       "z": 1
     },
     "_mobility": 0,
@@ -1099,8 +1099,8 @@
     "spawnImmediatelyOnStart": true,
     "prewarmOnStart": true,
     "spawnWaveInterval": 3,
-    "teamASpawnZ": -15,
-    "teamBSpawnZ": 15,
+    "teamASpawnZ": -17,
+    "teamBSpawnZ": 17,
     "maxUnitPerRow": 8,
     "spaceBetweenUnit": 1.8,
     "spaceBetweenRow": 2,
@@ -1997,7 +1997,7 @@
       "__type__": "cc.Vec3",
       "x": 0,
       "y": 0,
-      "z": 12
+      "z": 15
     }
   },
   {
@@ -2282,7 +2282,7 @@
       "__type__": "cc.Vec3",
       "x": 0,
       "y": 0,
-      "z": -12
+      "z": -15
     }
   },
   {
