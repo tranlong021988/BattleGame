@@ -114,6 +114,7 @@
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
       ],
       "dependScripts": [
+        "ddf62b90-4e0c-4b71-acaf-286c47ce719e",
         "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
@@ -931,6 +932,11 @@
   },
   "05b5fa2b-3f44-4842-8e74-276cd2f32062": {
     "url": "db://assets/scripts/CounterSettings.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "ddf62b90-4e0c-4b71-acaf-286c47ce719e": {
+    "url": "db://assets/scripts/DebugStats.ts",
     "value": {},
     "versionCode": 1
   }

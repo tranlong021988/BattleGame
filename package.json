@@ -7,7 +7,10 @@
   "devDependencies": {
     "gh-pages": "^6.3.0"
   },
-"scripts": {
-  "deploy": "echo. > build/web-mobile/.nojekyll && gh-pages -d build/web-mobile"
-}
+  "scripts": {
+    "deploy": "echo. > build/web-mobile/.nojekyll && gh-pages -d build/web-mobile"
+  },
+  "dependencies": {
+    "stats.js": "^0.17.0"
+  }
 }
