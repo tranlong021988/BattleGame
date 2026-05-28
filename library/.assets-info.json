@@ -89,7 +89,7 @@
       "time": 1776578345590.7947
     },
     "Test.scene": {
-      "time": 1780005710301.3127,
+      "time": 1780007697684.2063,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -369,7 +369,7 @@
       "time": 1780005602379.695
     },
     "scripts\\DebugStats.ts": {
-      "time": 1780005793251.5713,
+      "time": 1780006705779.4924,
       "uuid": "ddf62b90-4e0c-4b71-acaf-286c47ce719e"
     }
   },

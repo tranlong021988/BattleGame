@@ -40,10 +40,10 @@ System.register(["__unresolved_0", "cc", "stats.js"], function (_export, _contex
 
         start() {
           // Chỉ chạy trên browser
-          if (typeof document === 'undefined') {
-            return;
-          }
 
+          /* if (typeof document === 'undefined') {
+               return;
+           }*/
           this.stats = new (_crd && Stats === void 0 ? (_reportPossibleCrUseOfStats({
             error: Error()
           }), Stats) : Stats)(); // 0 = FPS

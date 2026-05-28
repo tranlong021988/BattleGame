@@ -11,9 +11,9 @@ export class DebugStats extends Component {
     start() {
 
         // Chỉ chạy trên browser
-        if (typeof document === 'undefined') {
+       /* if (typeof document === 'undefined') {
             return;
-        }
+        }*/
 
         this.stats = new Stats();
 
