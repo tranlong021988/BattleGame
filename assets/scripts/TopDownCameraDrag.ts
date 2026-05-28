@@ -1,4 +1,4 @@
-import { _decorator, Component, input, Input, EventTouch, EventMouse, Vec3 } from 'cc';
+import { _decorator, Component, Node, Vec3, input, Input, EventTouch } from 'cc';
 
 const { ccclass, property } = _decorator;
 
@@ -6,42 +6,47 @@ const { ccclass, property } = _decorator;
 export class TopDownCameraDrag extends Component {
 
     @property
-    enableTouch = true;
+    enableDragX = true;
 
     @property
-    enableMouse = true;
+    enableDragZ = true;
 
     @property
-    minZ = -30;
+    minX = -20;
 
     @property
-    maxZ = 30;
+    maxX = 20;
 
     @property
-    dragSensitivity = 0.05;
+    minZ = -20;
 
     @property
-    smoothSpeed = 10;
+    maxZ = 20;
 
     @property
-    invertDrag = false;
+    dragSensitivity = 0.03;
 
-    private targetZ = 0;
-    private dragging = false;
+    @property
+    smoothSpeed = 12;
 
-    private tempPos = new Vec3();
+    @property
+    invertX = false;
+
+    @property
+    invertZ = false;
+
+    private targetPos = new Vec3();
+    private currentPos = new Vec3();
+
+    private isDragging = false;
 
     onEnable() {
-        this.targetZ = this.node.worldPosition.z;
+        this.node.getWorldPosition(this.targetPos);
 
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
         input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
-
-        input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
-        input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
-        input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
     }
 
     onDisable() {
@@ -49,85 +54,72 @@ export class TopDownCameraDrag extends Component {
         input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+    }
 
-        input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
-        input.off(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
-        input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+    start() {
+        this.node.getWorldPosition(this.targetPos);
     }
 
     private onTouchStart(event: EventTouch) {
-        if (!this.enableTouch) return;
-        this.dragging = true;
+        this.isDragging = true;
+        this.node.getWorldPosition(this.targetPos);
     }
 
     private onTouchMove(event: EventTouch) {
-        if (!this.enableTouch) return;
-        if (!this.dragging) return;
+        if (!this.isDragging) return;
 
         const delta = event.getDelta();
 
-        this.applyDragDelta(delta.y);
+        let moveX = delta.x * this.dragSensitivity;
+        let moveZ = delta.y * this.dragSensitivity;
+
+        if (!this.invertX) {
+            moveX = -moveX;
+        }
+
+        if (!this.invertZ) {
+            moveZ = -moveZ;
+        }
+
+        if (this.enableDragX) {
+            this.targetPos.x += moveX;
+        }
+
+        if (this.enableDragZ) {
+            this.targetPos.z += moveZ;
+        }
+
+        this.targetPos.x = this.clamp(
+            this.targetPos.x,
+            this.minX,
+            this.maxX
+        );
+
+        this.targetPos.z = this.clamp(
+            this.targetPos.z,
+            this.minZ,
+            this.maxZ
+        );
     }
 
     private onTouchEnd(event: EventTouch) {
-        if (!this.enableTouch) return;
-        this.dragging = false;
-    }
-
-    private onMouseDown(event: EventMouse) {
-        if (!this.enableMouse) return;
-
-        if (event.getButton() !== EventMouse.BUTTON_LEFT) {
-            return;
-        }
-
-        this.dragging = true;
-    }
-
-    private onMouseMove(event: EventMouse) {
-        if (!this.enableMouse) return;
-        if (!this.dragging) return;
-
-        const delta = event.getDelta();
-
-        this.applyDragDelta(delta.y);
-    }
-
-    private onMouseUp(event: EventMouse) {
-        if (!this.enableMouse) return;
-        this.dragging = false;
-    }
-
-    private applyDragDelta(deltaY: number) {
-        const dir = this.invertDrag ? -1 : 1;
-
-        this.targetZ += deltaY * this.dragSensitivity * dir;
-        this.targetZ = this.clamp(this.targetZ, this.minZ, this.maxZ);
+        this.isDragging = false;
     }
 
     update(deltaTime: number) {
-        const current = this.node.worldPosition;
+        this.node.getWorldPosition(this.currentPos);
 
         const t = 1 - Math.exp(-this.smoothSpeed * deltaTime);
-        const newZ = current.z + (this.targetZ - current.z) * t;
 
-        this.tempPos.set(current.x, current.y, newZ);
-        this.node.setWorldPosition(this.tempPos);
+        const newX = this.currentPos.x + (this.targetPos.x - this.currentPos.x) * t;
+        const newY = this.currentPos.y;
+        const newZ = this.currentPos.z + (this.targetPos.z - this.currentPos.z) * t;
+
+        this.currentPos.set(newX, newY, newZ);
+        this.node.setWorldPosition(this.currentPos);
     }
 
-    public setTargetZ(z: number) {
-        this.targetZ = this.clamp(z, this.minZ, this.maxZ);
-    }
-
-    public jumpToZ(z: number) {
-        this.targetZ = this.clamp(z, this.minZ, this.maxZ);
-
-        const current = this.node.worldPosition;
-        this.tempPos.set(current.x, current.y, this.targetZ);
-        this.node.setWorldPosition(this.tempPos);
-    }
-
-    private clamp(v: number, min: number, max: number) {
-        return Math.max(min, Math.min(max, v));
+    private clamp(value: number, min: number, max: number) {
+        return Math.max(min, Math.min(max, value));
     }
 }

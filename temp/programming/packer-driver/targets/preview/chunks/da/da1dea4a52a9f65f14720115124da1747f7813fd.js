@@ -1,7 +1,7 @@
-System.register(["cc"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _crd, ccclass, property, UnitProps;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitType, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _crd, ccclass, property, UnitProps;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -9,13 +9,21 @@ System.register(["cc"], function (_export, _context) {
 
   function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
 
+  function _reportPossibleCrUseOfUnitType(extras) {
+    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  }
+
   return {
-    setters: [function (_cc) {
+    setters: [function (_unresolved_) {
+      _reporterNs = _unresolved_;
+    }, function (_cc) {
       _cclegacy = _cc.cclegacy;
       __checkObsolete__ = _cc.__checkObsolete__;
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+    }, function (_unresolved_2) {
+      UnitType = _unresolved_2.UnitType;
     }],
     execute: function () {
       _crd = true;
@@ -29,27 +37,30 @@ System.register(["cc"], function (_export, _context) {
         property
       } = _decorator);
 
-      _export("UnitProps", UnitProps = (_dec = ccclass('UnitProps'), _dec(_class = (_class2 = class UnitProps extends Component {
+      _export("UnitProps", UnitProps = (_dec = ccclass('UnitProps'), _dec2 = property({
+        type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+          error: Error()
+        }), UnitType) : UnitType
+      }), _dec(_class = (_class2 = class UnitProps extends Component {
         constructor() {
           super(...arguments);
 
-          _initializerDefineProperty(this, "maxHealth", _descriptor, this);
+          _initializerDefineProperty(this, "unitType", _descriptor, this);
 
-          _initializerDefineProperty(this, "health", _descriptor2, this);
+          _initializerDefineProperty(this, "maxHealth", _descriptor2, this);
 
           _initializerDefineProperty(this, "damage", _descriptor3, this);
+
+          _initializerDefineProperty(this, "defense", _descriptor4, this);
+
+          this.health = 30;
         }
 
         resetForSpawn() {
           this.health = this.maxHealth;
         }
 
-        isDead() {
-          return this.health <= 0;
-        }
-
         takeDamage(amount) {
-          if (this.isDead()) return;
           this.health -= amount;
 
           if (this.health < 0) {
@@ -57,14 +68,20 @@ System.register(["cc"], function (_export, _context) {
           }
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "maxHealth", [property], {
+        isDead() {
+          return this.health <= 0;
+        }
+
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec2], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 30;
+          return (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSword;
         }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "health", [property], {
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "maxHealth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -77,6 +94,13 @@ System.register(["cc"], function (_export, _context) {
         writable: true,
         initializer: function initializer() {
           return 1;
+        }
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0;
         }
       })), _class2)) || _class));
 

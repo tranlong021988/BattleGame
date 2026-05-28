@@ -890,13 +890,16 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "enableTouch": true,
-    "enableMouse": true,
+    "enableDragX": true,
+    "enableDragZ": true,
+    "minX": -5,
+    "maxX": 5,
     "minZ": -15,
     "maxZ": 15,
     "dragSensitivity": 0.05,
     "smoothSpeed": 15,
-    "invertDrag": true,
+    "invertX": true,
+    "invertZ": false,
     "_id": "64yDVoMxlOEKr8/SObuSzd"
   },
   {
@@ -1100,7 +1103,7 @@
     "teamBSpawnZ": 15,
     "maxUnitPerRow": 8,
     "spaceBetweenUnit": 1.8,
-    "spaceBetweenRow": 0,
+    "spaceBetweenRow": 2,
     "formationZNoise": 1,
     "centerGapWidth": 2.5,
     "circleObstacles": [
@@ -1128,7 +1131,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 0,
-    "unitCount": 8,
+    "unitCount": 10,
     "prewarmCount": 40,
     "maxSpeed": 5,
     "health": 5,
@@ -1158,7 +1161,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 0,
-    "unitCount": 8,
+    "unitCount": 10,
     "prewarmCount": 40,
     "maxSpeed": 5,
     "health": 5,

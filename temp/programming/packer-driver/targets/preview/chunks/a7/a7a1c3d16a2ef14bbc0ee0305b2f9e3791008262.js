@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, input, Input, EventMouse, Vec3, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _crd, ccclass, property, TopDownCameraDrag;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, input, Input, _dec, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _crd, ccclass, property, TopDownCameraDrag;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -16,17 +16,16 @@ System.register(["cc"], function (_export, _context) {
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+      Vec3 = _cc.Vec3;
       input = _cc.input;
       Input = _cc.Input;
-      EventMouse = _cc.EventMouse;
-      Vec3 = _cc.Vec3;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "5bcc66+7gVGqIHNVMwg6Mww", "TopDownCameraDrag", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'input', 'Input', 'EventTouch', 'EventMouse', 'Vec3']);
+      __checkObsolete__(['_decorator', 'Component', 'Node', 'Vec3', 'input', 'Input', 'EventTouch']);
 
       ({
         ccclass,
@@ -37,34 +36,37 @@ System.register(["cc"], function (_export, _context) {
         constructor() {
           super(...arguments);
 
-          _initializerDefineProperty(this, "enableTouch", _descriptor, this);
+          _initializerDefineProperty(this, "enableDragX", _descriptor, this);
 
-          _initializerDefineProperty(this, "enableMouse", _descriptor2, this);
+          _initializerDefineProperty(this, "enableDragZ", _descriptor2, this);
 
-          _initializerDefineProperty(this, "minZ", _descriptor3, this);
+          _initializerDefineProperty(this, "minX", _descriptor3, this);
 
-          _initializerDefineProperty(this, "maxZ", _descriptor4, this);
+          _initializerDefineProperty(this, "maxX", _descriptor4, this);
 
-          _initializerDefineProperty(this, "dragSensitivity", _descriptor5, this);
+          _initializerDefineProperty(this, "minZ", _descriptor5, this);
 
-          _initializerDefineProperty(this, "smoothSpeed", _descriptor6, this);
+          _initializerDefineProperty(this, "maxZ", _descriptor6, this);
 
-          _initializerDefineProperty(this, "invertDrag", _descriptor7, this);
+          _initializerDefineProperty(this, "dragSensitivity", _descriptor7, this);
 
-          this.targetZ = 0;
-          this.dragging = false;
-          this.tempPos = new Vec3();
+          _initializerDefineProperty(this, "smoothSpeed", _descriptor8, this);
+
+          _initializerDefineProperty(this, "invertX", _descriptor9, this);
+
+          _initializerDefineProperty(this, "invertZ", _descriptor10, this);
+
+          this.targetPos = new Vec3();
+          this.currentPos = new Vec3();
+          this.isDragging = false;
         }
 
         onEnable() {
-          this.targetZ = this.node.worldPosition.z;
+          this.node.getWorldPosition(this.targetPos);
           input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
           input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
           input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
           input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
-          input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
-          input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
-          input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
         }
 
         onDisable() {
@@ -72,122 +74,125 @@ System.register(["cc"], function (_export, _context) {
           input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
           input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
           input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
-          input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
-          input.off(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
-          input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        }
+
+        start() {
+          this.node.getWorldPosition(this.targetPos);
         }
 
         onTouchStart(event) {
-          if (!this.enableTouch) return;
-          this.dragging = true;
+          this.isDragging = true;
+          this.node.getWorldPosition(this.targetPos);
         }
 
         onTouchMove(event) {
-          if (!this.enableTouch) return;
-          if (!this.dragging) return;
+          if (!this.isDragging) return;
           var delta = event.getDelta();
-          this.applyDragDelta(delta.y);
+          var moveX = delta.x * this.dragSensitivity;
+          var moveZ = delta.y * this.dragSensitivity;
+
+          if (!this.invertX) {
+            moveX = -moveX;
+          }
+
+          if (!this.invertZ) {
+            moveZ = -moveZ;
+          }
+
+          if (this.enableDragX) {
+            this.targetPos.x += moveX;
+          }
+
+          if (this.enableDragZ) {
+            this.targetPos.z += moveZ;
+          }
+
+          this.targetPos.x = this.clamp(this.targetPos.x, this.minX, this.maxX);
+          this.targetPos.z = this.clamp(this.targetPos.z, this.minZ, this.maxZ);
         }
 
         onTouchEnd(event) {
-          if (!this.enableTouch) return;
-          this.dragging = false;
-        }
-
-        onMouseDown(event) {
-          if (!this.enableMouse) return;
-
-          if (event.getButton() !== EventMouse.BUTTON_LEFT) {
-            return;
-          }
-
-          this.dragging = true;
-        }
-
-        onMouseMove(event) {
-          if (!this.enableMouse) return;
-          if (!this.dragging) return;
-          var delta = event.getDelta();
-          this.applyDragDelta(delta.y);
-        }
-
-        onMouseUp(event) {
-          if (!this.enableMouse) return;
-          this.dragging = false;
-        }
-
-        applyDragDelta(deltaY) {
-          var dir = this.invertDrag ? -1 : 1;
-          this.targetZ += deltaY * this.dragSensitivity * dir;
-          this.targetZ = this.clamp(this.targetZ, this.minZ, this.maxZ);
+          this.isDragging = false;
         }
 
         update(deltaTime) {
-          var current = this.node.worldPosition;
+          this.node.getWorldPosition(this.currentPos);
           var t = 1 - Math.exp(-this.smoothSpeed * deltaTime);
-          var newZ = current.z + (this.targetZ - current.z) * t;
-          this.tempPos.set(current.x, current.y, newZ);
-          this.node.setWorldPosition(this.tempPos);
+          var newX = this.currentPos.x + (this.targetPos.x - this.currentPos.x) * t;
+          var newY = this.currentPos.y;
+          var newZ = this.currentPos.z + (this.targetPos.z - this.currentPos.z) * t;
+          this.currentPos.set(newX, newY, newZ);
+          this.node.setWorldPosition(this.currentPos);
         }
 
-        setTargetZ(z) {
-          this.targetZ = this.clamp(z, this.minZ, this.maxZ);
+        clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
         }
 
-        jumpToZ(z) {
-          this.targetZ = this.clamp(z, this.minZ, this.maxZ);
-          var current = this.node.worldPosition;
-          this.tempPos.set(current.x, current.y, this.targetZ);
-          this.node.setWorldPosition(this.tempPos);
-        }
-
-        clamp(v, min, max) {
-          return Math.max(min, Math.min(max, v));
-        }
-
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "enableTouch", [property], {
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "enableDragX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "enableMouse", [property], {
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "enableDragZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "minZ", [property], {
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "minX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return -30;
+          return -20;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "maxZ", [property], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "maxX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 30;
+          return 20;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "dragSensitivity", [property], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "minZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 0.05;
+          return -20;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "smoothSpeed", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "maxZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 10;
+          return 20;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "invertDrag", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "dragSensitivity", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.03;
+        }
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "smoothSpeed", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 12;
+        }
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "invertX", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "invertZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
