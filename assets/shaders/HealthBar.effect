@@ -1,0 +1,138 @@
+﻿CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: healthbar-vs:vert
+      frag: healthbar-fs:frag
+      rasterizerState:
+        cullMode: none
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendSrcAlpha: src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties:
+        bgColor:    { value: [0.05, 0.05, 0.05, 0.85], linear: true, editor: { type: color } }
+        fullColor:  { value: [0.0, 1.0, 0.15, 1.0], linear: true, editor: { type: color } }
+        emptyColor: { value: [1.0, 0.05, 0.02, 1.0], linear: true, editor: { type: color } }
+
+        # x = padding ngang
+        # y = padding dọc
+        # z = edge softness
+        # w = unused
+        barParams: { value: [0.08, 0.18, 0.002, 0.0] }
+
+        # fallback khi chưa bật instancing / debug trong editor
+        # x = healthRatio
+        healthParams: { value: [1.0, 0.0, 0.0, 0.0] }
+}%
+
+CCProgram healthbar-vs %{
+  precision highp float;
+
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/decode-base>
+  #include <legacy/local-batch>
+
+  out vec2 v_uv;
+  out vec4 v_health_params;
+
+  #if USE_INSTANCING
+    in vec4 a_health_params;
+  #endif
+
+  uniform Constant {
+    vec4 bgColor;
+    vec4 fullColor;
+    vec4 emptyColor;
+    vec4 barParams;
+    vec4 healthParams;
+  };
+
+  vec4 vert () {
+    vec4 localPos;
+    CCVertInput(localPos);
+
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+
+    vec3 worldCenter = (matWorld * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+
+    float scaleX = length(matWorld[0].xyz);
+    float scaleY = length(matWorld[1].xyz);
+
+    vec4 viewCenter = cc_matView * vec4(worldCenter, 1.0);
+
+    vec4 viewPos = viewCenter;
+    viewPos.x += localPos.x * scaleX;
+    viewPos.y += localPos.y * scaleY;
+
+    v_uv = a_texCoord;
+
+    #if USE_INSTANCING
+      v_health_params = a_health_params;
+    #else
+      v_health_params = healthParams;
+    #endif
+
+    return cc_matProj * viewPos;
+  }
+}%
+
+CCProgram healthbar-fs %{
+  precision highp float;
+
+  #include <legacy/output-standard>
+
+  in vec2 v_uv;
+  in vec4 v_health_params;
+
+  uniform Constant {
+    vec4 bgColor;
+    vec4 fullColor;
+    vec4 emptyColor;
+    vec4 barParams;
+    vec4 healthParams;
+  };
+
+  vec4 frag () {
+    float health = clamp(v_health_params.x, 0.0, 1.0);
+
+    float padX = clamp(barParams.x, 0.0, 0.45);
+    float padY = clamp(barParams.y, 0.0, 0.45);
+    float soft = max(barParams.z, 0.0001);
+
+    vec4 color = bgColor;
+
+    float insideX =
+      smoothstep(padX, padX + soft, v_uv.x) *
+      (1.0 - smoothstep(1.0 - padX - soft, 1.0 - padX, v_uv.x));
+
+    float insideY =
+      smoothstep(padY, padY + soft, v_uv.y) *
+      (1.0 - smoothstep(1.0 - padY - soft, 1.0 - padY, v_uv.y));
+
+    float inside = insideX * insideY;
+
+    float innerU = clamp(
+      (v_uv.x - padX) / max(0.0001, 1.0 - padX * 2.0),
+      0.0,
+      1.0
+    );
+
+    float fillMask =
+      1.0 - smoothstep(health, health + soft, innerU);
+
+    vec4 fillColor = mix(emptyColor, fullColor, health);
+
+    color = mix(color, fillColor, inside * fillMask);
+
+    return CCFragOutput(color);
+  }
+}%

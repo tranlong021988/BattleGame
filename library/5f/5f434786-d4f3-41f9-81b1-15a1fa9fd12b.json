@@ -1,0 +1,46 @@
+{
+  "__type__": "cc.Material",
+  "_name": "HealthBarMat",
+  "_objFlags": 0,
+  "__editorExtras__": {},
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "6f5e145f-b447-476e-b560-f9891e928736",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 0,
+  "_defines": [
+    {
+      "USE_INSTANCING": true
+    }
+  ],
+  "_states": [
+    {
+      "rasterizerState": {},
+      "depthStencilState": {},
+      "blendState": {
+        "targets": [
+          {}
+        ]
+      }
+    }
+  ],
+  "_props": [
+    {
+      "bgColor": {
+        "__type__": "cc.Color",
+        "r": 42,
+        "g": 42,
+        "b": 42,
+        "a": 255
+      },
+      "barParams": {
+        "__type__": "cc.Vec4",
+        "x": 0.02,
+        "y": 0.1,
+        "z": -1.5,
+        "w": 2
+      }
+    }
+  ]
+}

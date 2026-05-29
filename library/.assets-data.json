@@ -64,12 +64,15 @@
         "8e39c061-d956-43ce-ad16-db3efa6f7be1",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
+        "5f434786-d4f3-41f9-81b1-15a1fa9fd12b",
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
         "83287fd9-fec5-4875-b152-b729e98a0ec9",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec"
       ],
       "dependScripts": [
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
+        "6c024aa7-a229-41fd-8a4c-51ee2113e594",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "362a6ce2-8e20-4944-8fed-7f2fa95db536",
         "c92714ee-b02f-44a4-ac0b-25e52948a19f",
@@ -85,12 +88,15 @@
         "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
+        "5f434786-d4f3-41f9-81b1-15a1fa9fd12b",
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
         "31c94d47-e409-42f3-b397-08be549e95e2",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec"
       ],
       "dependScripts": [
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
+        "6c024aa7-a229-41fd-8a4c-51ee2113e594",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "362a6ce2-8e20-4944-8fed-7f2fa95db536",
         "c92714ee-b02f-44a4-ac0b-25e52948a19f",
@@ -936,6 +942,27 @@
   },
   "ddf62b90-4e0c-4b71-acaf-286c47ce719e": {
     "url": "db://assets/scripts/DebugStats.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "5f434786-d4f3-41f9-81b1-15a1fa9fd12b": {
+    "url": "db://assets/materials/HealthBarMat.mtl",
+    "value": {
+      "depends": [
+        "6f5e145f-b447-476e-b560-f9891e928736"
+      ]
+    },
+    "versionCode": 1
+  },
+  "6f5e145f-b447-476e-b560-f9891e928736": {
+    "url": "db://assets/shaders/HealthBar.effect",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "6c024aa7-a229-41fd-8a4c-51ee2113e594": {
+    "url": "db://assets/scripts/HealthBar3D.ts",
     "value": {},
     "versionCode": 1
   }

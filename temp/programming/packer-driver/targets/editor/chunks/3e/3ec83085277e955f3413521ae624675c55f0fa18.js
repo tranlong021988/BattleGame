@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitType, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _crd, ccclass, property, UnitProps;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitType, HealthBar3D, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _crd, ccclass, property, UnitProps;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -11,6 +11,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
   function _reportPossibleCrUseOfUnitType(extras) {
     _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfHealthBar3D(extras) {
+    _reporterNs.report("HealthBar3D", "./HealthBar3D", _context.meta, extras);
   }
 
   return {
@@ -24,6 +28,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       Component = _cc.Component;
     }, function (_unresolved_2) {
       UnitType = _unresolved_2.UnitType;
+    }, function (_unresolved_3) {
+      HealthBar3D = _unresolved_3.HealthBar3D;
     }],
     execute: function () {
       _crd = true;
@@ -41,7 +47,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
           error: Error()
         }), UnitType) : UnitType
-      }), _dec(_class = (_class2 = class UnitProps extends Component {
+      }), _dec3 = property(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+        error: Error()
+      }), HealthBar3D) : HealthBar3D), _dec(_class = (_class2 = class UnitProps extends Component {
         constructor(...args) {
           super(...args);
 
@@ -53,11 +61,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "defense", _descriptor4, this);
 
+          _initializerDefineProperty(this, "healthBar", _descriptor5, this);
+
           this.health = 30;
         }
 
         resetForSpawn() {
           this.health = this.maxHealth;
+          this.updateHealthBar();
         }
 
         takeDamage(amount) {
@@ -66,10 +77,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.health < 0) {
             this.health = 0;
           }
+
+          this.updateHealthBar();
+        }
+
+        heal(amount) {
+          this.health += amount;
+
+          if (this.health > this.maxHealth) {
+            this.health = this.maxHealth;
+          }
+
+          this.updateHealthBar();
         }
 
         isDead() {
           return this.health <= 0;
+        }
+
+        getHealthRatio() {
+          if (this.maxHealth <= 0) {
+            return 0;
+          }
+
+          return this.health / this.maxHealth;
+        }
+
+        updateHealthBar() {
+          if (!this.healthBar) return;
+          this.healthBar.setHealthRatio(this.getHealthRatio());
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec2], {
@@ -101,6 +137,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         writable: true,
         initializer: function () {
           return 0;
+        }
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "healthBar", [_dec3], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
         }
       })), _class2)) || _class));
 

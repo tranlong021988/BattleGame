@@ -414,6 +414,50 @@
         "chunks\\legacy\\output-standard.chunk",
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"
+      ],
+      "shaders\\HealthBar.effect": [
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\healthbar-vs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\input.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode-base.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\common-define.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\data\\unpack.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\morph.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\morph-animation.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-morph.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\skinning.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-skinning.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\skinning-animation-lbs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-global.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\local-batch.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local-batched.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\world-transform.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\healthbar-fs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\output-standard.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\aces.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\gamma.chunk",
+        "chunks\\healthbar-vs.chunk",
+        "chunks\\legacy\\input.chunk",
+        "chunks\\legacy\\decode.chunk",
+        "chunks\\legacy\\decode-base.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\common\\data\\unpack.chunk",
+        "chunks\\legacy\\morph.chunk",
+        "chunks\\builtin\\functionalities\\morph-animation.chunk",
+        "chunks\\builtin\\uniforms\\cc-morph.chunk",
+        "chunks\\legacy\\skinning.chunk",
+        "chunks\\builtin\\uniforms\\cc-skinning.chunk",
+        "chunks\\builtin\\functionalities\\skinning-animation-lbs.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\legacy\\local-batch.chunk",
+        "chunks\\builtin\\uniforms\\cc-local-batched.chunk",
+        "chunks\\builtin\\uniforms\\cc-local.chunk",
+        "chunks\\builtin\\functionalities\\world-transform.chunk",
+        "chunks\\healthbar-fs.chunk",
+        "chunks\\legacy\\output-standard.chunk",
+        "chunks\\common\\color\\aces.chunk",
+        "chunks\\common\\color\\gamma.chunk"
       ]
     },
     "uuid": {
@@ -459,6 +503,11 @@
       "materials\\terrain-sand.mtl": [
         "c8f66d17-351a-48da-a12c-0212d28575c4",
         "a3cd009f-0ab0-420d-9278-b9fdab939bbc"
+      ],
+      "materials\\HealthBarMat.mtl": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4",
+        "711ebe11-f673-4cd9-9a83-63c60ba54c5b",
+        "6f5e145f-b447-476e-b560-f9891e928736"
       ]
     }
   },
