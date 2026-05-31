@@ -36,9 +36,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitType) : UnitType).LightSword;
           this.totalCount = 0;
           this.units = [];
-          // Nếu wave này đã bị AI assign 1 wave counter vào rồi,
-          // AI sẽ tránh spawn thêm nhiều counter vào cùng 1 wave.
-          this.counterAssigned = false;
+          this.assignedCounterCount = 0;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -52,6 +50,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
           }
+        }
+
+        addCounterAssignment(count) {
+          this.assignedCounterCount += Math.max(1, Math.floor(count));
         }
 
         getAliveCount() {
@@ -72,6 +74,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return this.getAliveCount() / this.totalCount;
+        }
+
+        getCounterCoverageRatio() {
+          var alive = this.getAliveCount();
+
+          if (alive <= 0) {
+            return 1;
+          }
+
+          return this.assignedCounterCount / alive;
+        }
+
+        isCounterCovered(requiredCoverageRatio) {
+          return this.getCounterCoverageRatio() >= requiredCoverageRatio;
         }
 
         hasEngaged() {

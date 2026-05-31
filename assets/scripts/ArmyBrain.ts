@@ -12,7 +12,6 @@ export class ArmyBrain extends Component {
     @property(GameManager)
     gameManager: GameManager | null = null;
 
-    // 0 = team A, 1 = team B
     @property
     team = 1;
 
@@ -40,19 +39,23 @@ export class ArmyBrain extends Component {
     @property
     preferUnengagedWave = true;
 
+    // Chuẩn hóa:
+    // Không còn dùng boolean avoidAssigned nữa.
+    // AI luôn dùng coverage để biết wave địch đã được counter đủ chưa.
     @property
-    avoidAlreadyAssignedWave = true;
+    counterCoverageRatio = 1.0;
+
+    @property
+    maxCounterAssignmentsPerWave = 3;
 
     @property
     spawnRandomIfNoThreat = true;
 
-    // Fix deadlock đầu trận:
-    // nếu chưa có enemy wave nào, AI sẽ chủ động spawn opening wave.
     @property
     spawnOpeningWaveIfNoEnemyWave = true;
 
     @property
-    enableDebugLog = true;
+    enableDebugLog = false;
 
     private timer = 0;
     private nextInterval = 3;
@@ -93,10 +96,6 @@ export class ArmyBrain extends Component {
         const entries = this.gameManager.getTeamEntries(this.team);
         const validEntries = this.getValidEntries(entries);
 
-        this.log(
-            `Think. validEntries=${validEntries.length}`
-        );
-
         if (validEntries.length <= 0) {
             this.log('Abort: no valid entries.');
             return;
@@ -105,41 +104,14 @@ export class ArmyBrain extends Component {
         const enemyTeam = this.team === 0 ? 1 : 0;
         const enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
 
-        this.log(
-            `Enemy waves alive=${enemyWaves.length}`
-        );
-
         if (enemyWaves.length <= 0) {
             if (this.spawnOpeningWaveIfNoEnemyWave) {
-                const opening = this.getRandomEntry(validEntries);
-
-                if (opening) {
-                    this.log(
-                        `No enemy wave. Spawn opening: ${opening.name} / ${unitTypeToName(opening.unitType)}`
-                    );
-
-                    this.gameManager.spawnWaveByEntry(
-                        this.team,
-                        opening
-                    );
-                }
-
+                this.spawnOpeningWave(validEntries);
                 return;
             }
 
             if (this.spawnRandomIfNoThreat) {
-                const randomEntry = this.getRandomEntry(validEntries);
-
-                if (randomEntry) {
-                    this.log(
-                        `No enemy wave. Spawn random: ${randomEntry.name}`
-                    );
-
-                    this.gameManager.spawnWaveByEntry(
-                        this.team,
-                        randomEntry
-                    );
-                }
+                this.spawnRandom(validEntries, 'No enemy wave');
             }
 
             return;
@@ -151,25 +123,14 @@ export class ArmyBrain extends Component {
             this.log('No valid threat wave found.');
 
             if (this.spawnRandomIfNoThreat) {
-                const randomEntry = this.getRandomEntry(validEntries);
-
-                if (randomEntry) {
-                    this.log(
-                        `Fallback random spawn: ${randomEntry.name} / ${unitTypeToName(randomEntry.unitType)}`
-                    );
-
-                    this.gameManager.spawnWaveByEntry(
-                        this.team,
-                        randomEntry
-                    );
-                }
+                this.spawnRandom(validEntries, 'No valid threat');
             }
 
             return;
         }
 
         this.log(
-            `Target wave id=${targetWave.id}, team=${targetWave.team}, type=${unitTypeToName(targetWave.unitType)}, alive=${targetWave.getAliveCount()}/${targetWave.totalCount}, ratio=${targetWave.getAliveRatio().toFixed(2)}, engaged=${targetWave.hasEngaged()}, assigned=${targetWave.counterAssigned}`
+            `Target wave id=${targetWave.id}, type=${unitTypeToName(targetWave.unitType)}, alive=${targetWave.getAliveCount()}/${targetWave.totalCount}, assigned=${targetWave.assignedCounterCount}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}`
         );
 
         const selectedEntry = this.chooseEntryAgainstWave(
@@ -191,13 +152,47 @@ export class ArmyBrain extends Component {
             selectedEntry
         );
 
-        if (spawned && this.avoidAlreadyAssignedWave) {
-            targetWave.counterAssigned = true;
+        if (spawned) {
+            targetWave.addCounterAssignment(selectedEntry.unitCount);
 
             this.log(
-                `Mark target wave ${targetWave.id} as counterAssigned.`
+                `Counter assignment wave ${targetWave.id}: +${selectedEntry.unitCount}, totalAssigned=${targetWave.assignedCounterCount}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}`
             );
         }
+    }
+
+    private spawnOpeningWave(validEntries: UnitPrefabEntry[]) {
+        if (!this.gameManager) return;
+
+        const opening = this.getRandomEntry(validEntries);
+
+        if (!opening) return;
+
+        this.log(
+            `Opening spawn: ${opening.name} / ${unitTypeToName(opening.unitType)}`
+        );
+
+        this.gameManager.spawnWaveByEntry(
+            this.team,
+            opening
+        );
+    }
+
+    private spawnRandom(validEntries: UnitPrefabEntry[], reason: string) {
+        if (!this.gameManager) return;
+
+        const randomEntry = this.getRandomEntry(validEntries);
+
+        if (!randomEntry) return;
+
+        this.log(
+            `${reason}. Random spawn: ${randomEntry.name} / ${unitTypeToName(randomEntry.unitType)}`
+        );
+
+        this.gameManager.spawnWaveByEntry(
+            this.team,
+            randomEntry
+        );
     }
 
     private findBestThreatWave(): BattleWave | null {
@@ -215,17 +210,11 @@ export class ArmyBrain extends Component {
             const wave = waves[i];
 
             if (!wave) continue;
+            if (wave.isDead()) continue;
 
             const aliveCount = wave.getAliveCount();
             const aliveRatio = wave.getAliveRatio();
             const engaged = wave.hasEngaged();
-
-            if (wave.isDead()) {
-                this.log(
-                    `Skip wave ${wave.id}: dead`
-                );
-                continue;
-            }
 
             if (aliveRatio < this.minThreatAliveRatio) {
                 this.log(
@@ -234,24 +223,35 @@ export class ArmyBrain extends Component {
                 continue;
             }
 
-            if (
-                this.avoidAlreadyAssignedWave &&
-                wave.counterAssigned
-            ) {
+            const hardAssignmentCap =
+                this.maxCounterAssignmentsPerWave *
+                Math.max(1, wave.totalCount);
+
+            if (wave.assignedCounterCount >= hardAssignmentCap) {
                 this.log(
-                    `Skip wave ${wave.id}: already assigned`
+                    `Skip wave ${wave.id}: assignment cap ${wave.assignedCounterCount}/${hardAssignmentCap}`
+                );
+                continue;
+            }
+
+            if (wave.isCounterCovered(this.counterCoverageRatio)) {
+                this.log(
+                    `Skip wave ${wave.id}: coverage ${wave.getCounterCoverageRatio().toFixed(2)} >= ${this.counterCoverageRatio}`
                 );
                 continue;
             }
 
             let score = 0;
 
+            // Wave còn đông thì nguy hiểm.
             score += aliveRatio * 100;
 
+            // Wave chưa engage thì counter có giá trị hơn.
             if (this.preferUnengagedWave && !engaged) {
                 score += 50;
             }
 
+            // Gần điểm phòng thủ thì nguy hiểm hơn.
             const distSq = wave.getClosestDistanceSqTo(
                 defendPoint.x,
                 defendPoint.z
@@ -261,6 +261,15 @@ export class ArmyBrain extends Component {
 
             score += Math.max(0, 100 - dist);
 
+            // Đã thiếu counter nhiều thì ưu tiên bổ sung.
+            const uncovered = Math.max(
+                0,
+                this.counterCoverageRatio - wave.getCounterCoverageRatio()
+            );
+
+            score += uncovered * 40;
+
+            // Ưu tiên nhẹ wave đang tiến sâu vào sân nhà.
             const avgZ = wave.getAverageZ();
 
             if (this.team === 0) {
@@ -276,7 +285,7 @@ export class ArmyBrain extends Component {
             }
 
             this.log(
-                `Wave candidate id=${wave.id}, type=${unitTypeToName(wave.unitType)}, alive=${aliveCount}/${wave.totalCount}, ratio=${aliveRatio.toFixed(2)}, engaged=${engaged}, assigned=${wave.counterAssigned}, score=${score.toFixed(2)}`
+                `Wave candidate id=${wave.id}, type=${unitTypeToName(wave.unitType)}, alive=${aliveCount}/${wave.totalCount}, ratio=${aliveRatio.toFixed(2)}, engaged=${engaged}, assigned=${wave.assignedCounterCount}, coverage=${wave.getCounterCoverageRatio().toFixed(2)}, score=${score.toFixed(2)}`
             );
 
             if (score > bestScore) {
@@ -332,7 +341,6 @@ export class ArmyBrain extends Component {
         }
 
         if (bestEntries.length <= 0) {
-            this.log('No best entries. Random fallback.');
             return this.getRandomEntry(entries);
         }
 
@@ -340,13 +348,7 @@ export class ArmyBrain extends Component {
             Math.random() * bestEntries.length
         );
 
-        const selected = bestEntries[index];
-
-        this.log(
-            `Best score=${bestScore.toFixed(2)}, bestCount=${bestEntries.length}, selected=${selected.name}`
-        );
-
-        return selected;
+        return bestEntries[index];
     }
 
     private getCounterScore(

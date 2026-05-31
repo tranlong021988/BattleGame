@@ -1017,3 +1017,12 @@
 5-31-2026 16:02:39-debug: [Build Memory track]: builder:build-project-total start:240.81MB, end 241.96MB, increase: 1.15MB
 5-31-2026 16:02:39-debug: Stop record console. {file(F:\Github\BattleGame\temp\builder\log\web-mobile5-14-2026 23-41.log)}
 5-31-2026 16:02:39-debug: ================================ build Task (web-mobile) Finished in (1 min 54 s)ms ================================
+5-31-2026 16:38:38-debug: refresh db internal success
+5-31-2026 16:38:38-debug: refresh db assets success
+5-31-2026 16:38:38-debug: Run asset db hook engine-extends:afterRefresh ...
+5-31-2026 16:38:38-debug: Run asset db hook engine-extends:afterRefresh success!
+5-31-2026 16:38:38-debug: asset-db:refresh-all-database (76ms)
+5-31-2026 16:38:38-debug: asset-db:worker-effect-data-processing (3ms)
+5-31-2026 16:38:38-debug: asset-db-hook-engine-extends-afterRefresh (3ms)
+5-31-2026 16:38:40-debug: %cImport%c: F:\Github\BattleGame\assets\Test.scenebackground: #aaff85; color: #000;color: #000;
+5-31-2026 16:38:40-debug: asset-db:reimport-asset1effe86e-a401-4769-9dbc-62218c68834d (33ms)

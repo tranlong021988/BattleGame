@@ -10,12 +10,9 @@ export class BattleWave {
     unitType: UnitType = UnitType.LightSword;
 
     totalCount = 0;
-
     units: Unit[] = [];
 
-    // Nếu wave này đã bị AI assign 1 wave counter vào rồi,
-    // AI sẽ tránh spawn thêm nhiều counter vào cùng 1 wave.
-    counterAssigned = false;
+    assignedCounterCount = 0;
 
     constructor(
         id: number,
@@ -39,6 +36,13 @@ export class BattleWave {
         }
     }
 
+    addCounterAssignment(count: number) {
+        this.assignedCounterCount += Math.max(
+            1,
+            Math.floor(count)
+        );
+    }
+
     getAliveCount() {
         let count = 0;
 
@@ -59,6 +63,20 @@ export class BattleWave {
         }
 
         return this.getAliveCount() / this.totalCount;
+    }
+
+    getCounterCoverageRatio() {
+        const alive = this.getAliveCount();
+
+        if (alive <= 0) {
+            return 1;
+        }
+
+        return this.assignedCounterCount / alive;
+    }
+
+    isCounterCovered(requiredCoverageRatio: number) {
+        return this.getCounterCoverageRatio() >= requiredCoverageRatio;
     }
 
     hasEngaged() {
