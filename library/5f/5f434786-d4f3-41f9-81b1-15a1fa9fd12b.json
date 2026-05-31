@@ -20,7 +20,9 @@
       "depthStencilState": {},
       "blendState": {
         "targets": [
-          {}
+          {
+            "blend": false
+          }
         ]
       }
     }
@@ -29,9 +31,16 @@
     {
       "bgColor": {
         "__type__": "cc.Color",
-        "r": 42,
-        "g": 42,
-        "b": 42,
+        "r": 60,
+        "g": 60,
+        "b": 60,
+        "a": 255
+      },
+      "mainColor": {
+        "__type__": "cc.Color",
+        "r": 0,
+        "g": 0,
+        "b": 255,
         "a": 255
       },
       "barParams": {

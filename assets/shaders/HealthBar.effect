@@ -18,8 +18,7 @@
           blendDstAlpha: one_minus_src_alpha
       properties:
         bgColor:    { value: [0.05, 0.05, 0.05, 0.85], linear: true, editor: { type: color } }
-        fullColor:  { value: [0.0, 1.0, 0.15, 1.0], linear: true, editor: { type: color } }
-        emptyColor: { value: [1.0, 0.05, 0.02, 1.0], linear: true, editor: { type: color } }
+        mainColor:  { value: [0.0, 1.0, 0.15, 1.0], linear: true, editor: { type: color } }
 
         # x = padding ngang
         # y = padding dọc
@@ -27,7 +26,7 @@
         # w = unused
         barParams: { value: [0.08, 0.18, 0.002, 0.0] }
 
-        # fallback khi chưa bật instancing / debug trong editor
+        # fallback khi chưa bật instancing
         # x = healthRatio
         healthParams: { value: [1.0, 0.0, 0.0, 0.0] }
 }%
@@ -42,15 +41,16 @@ CCProgram healthbar-vs %{
 
   out vec2 v_uv;
   out vec4 v_health_params;
+  out vec4 v_bar_color;
 
   #if USE_INSTANCING
     in vec4 a_health_params;
+    in vec4 a_bar_color;
   #endif
 
   uniform Constant {
     vec4 bgColor;
-    vec4 fullColor;
-    vec4 emptyColor;
+    vec4 mainColor;
     vec4 barParams;
     vec4 healthParams;
   };
@@ -77,8 +77,10 @@ CCProgram healthbar-vs %{
 
     #if USE_INSTANCING
       v_health_params = a_health_params;
+      v_bar_color = a_bar_color;
     #else
       v_health_params = healthParams;
+      v_bar_color = mainColor;
     #endif
 
     return cc_matProj * viewPos;
@@ -92,17 +94,19 @@ CCProgram healthbar-fs %{
 
   in vec2 v_uv;
   in vec4 v_health_params;
+  in vec4 v_bar_color;
 
   uniform Constant {
     vec4 bgColor;
-    vec4 fullColor;
-    vec4 emptyColor;
+    vec4 mainColor;
     vec4 barParams;
     vec4 healthParams;
   };
 
   vec4 frag () {
     float health = clamp(v_health_params.x, 0.0, 1.0);
+    float visible = clamp(v_health_params.y, 0.0, 1.0);
+
 
     float padX = clamp(barParams.x, 0.0, 0.45);
     float padY = clamp(barParams.y, 0.0, 0.45);
@@ -129,10 +133,12 @@ CCProgram healthbar-fs %{
     float fillMask =
       1.0 - smoothstep(health, health + soft, innerU);
 
-    vec4 fillColor = mix(emptyColor, fullColor, health);
+    vec4 fillColor = vec4(v_bar_color.rgb, 1.0);
+
 
     color = mix(color, fillColor, inside * fillMask);
 
+    color.a *= visible;
     return CCFragOutput(color);
   }
 }%

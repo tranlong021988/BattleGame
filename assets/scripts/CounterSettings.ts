@@ -13,16 +13,9 @@ export class CounterRule {
     @property({ type: UnitType })
     defenderType: UnitType = UnitType.LightSpear;
 
-    // Tăng damage của attacker khi đánh defender.
-    // Hard counter: 2.0
-    // Soft counter: 1.5
     @property
     damageMultiplier: number = 1;
 
-    // Hệ số damage mà defender nhận.
-    // 1.0 = bình thường
-    // 0.75 = defender giảm 25% damage nhận vào
-    // 0.5 = defender giảm 50% damage nhận vào
     @property
     receivedDamageMultiplier: number = 1;
 
@@ -72,7 +65,21 @@ export class CounterSettings extends Component {
             return 1;
         }
 
-        return Math.max(0, rule.receivedDamageMultiplier);
+        return Math.max(0.01, rule.receivedDamageMultiplier);
+    }
+
+    getCounterScore(attackerType: UnitType, defenderType: UnitType): number {
+        const damageMul = this.getDamageMultiplier(
+            attackerType,
+            defenderType
+        );
+
+        const receivedMul = this.getReceivedDamageMultiplier(
+            attackerType,
+            defenderType
+        );
+
+        return damageMul * (1 / Math.max(0.1, receivedMul));
     }
 
     calculateDamage(attacker: UnitProps, defender: UnitProps): number {
@@ -136,9 +143,25 @@ export class CounterSettings extends Component {
         this.rules.length = 0;
 
         // =====================================================
-        // SPEAR
-        // Anti cavalry.
+        // SIMPLE LIGHT TEST LOOP
+        // Dùng bộ này để test ArmyBrain dễ nhìn:
+        //
+        // LightSword   > LightSpear
+        // LightSpear   > LightCavalry
+        // LightCavalry > LightArcher
+        // LightArcher  > LightMace
+        // LightMace    > LightSword
+        // LightMagic   > LightMace
+        // LightSword   > LightMagic
         // =====================================================
+
+        this.addRule(
+            UnitType.LightSword,
+            UnitType.LightSpear,
+            2.0,
+            1.0,
+            'Light Sword hard-counters Light Spear'
+        );
 
         this.addRule(
             UnitType.LightSpear,
@@ -147,6 +170,81 @@ export class CounterSettings extends Component {
             1.0,
             'Light Spear hard-counters Light Cavalry'
         );
+
+        this.addRule(
+            UnitType.LightCavalry,
+            UnitType.LightArcher,
+            2.0,
+            1.0,
+            'Light Cavalry hard-counters Light Archer'
+        );
+
+        this.addRule(
+            UnitType.LightArcher,
+            UnitType.LightMace,
+            2.0,
+            1.0,
+            'Light Archer hard-counters Light Mace'
+        );
+
+        this.addRule(
+            UnitType.LightMace,
+            UnitType.LightSword,
+            2.0,
+            1.0,
+            'Light Mace hard-counters Light Sword'
+        );
+
+        this.addRule(
+            UnitType.LightMagic,
+            UnitType.LightMace,
+            2.0,
+            1.0,
+            'Light Magic hard-counters Light Mace'
+        );
+
+        this.addRule(
+            UnitType.LightSword,
+            UnitType.LightMagic,
+            2.0,
+            1.0,
+            'Light Sword hard-counters Light Magic'
+        );
+
+        // =====================================================
+        // OPTIONAL LIGHT SOFT COUNTERS
+        // Có thể giữ để AI có lựa chọn phụ.
+        // Nếu muốn test cực sạch, bạn có thể comment block này.
+        // =====================================================
+
+        this.addRule(
+            UnitType.LightArcher,
+            UnitType.LightSpear,
+            1.5,
+            1.0,
+            'Light Archer soft-counters Light Spear'
+        );
+
+        this.addRule(
+            UnitType.LightCavalry,
+            UnitType.LightMagic,
+            1.5,
+            1.0,
+            'Light Cavalry soft-counters Light Magic'
+        );
+
+        this.addRule(
+            UnitType.LightSpear,
+            UnitType.LightMace,
+            1.5,
+            1.0,
+            'Light Spear soft-counters Light Mace'
+        );
+
+        // =====================================================
+        // HEAVY RULES
+        // Giữ sẵn để sau này mở rộng 12 unit.
+        // =====================================================
 
         this.addRule(
             UnitType.LightSpear,
@@ -178,35 +276,6 @@ export class CounterSettings extends Component {
             1.5,
             1.0,
             'Heavy Spear soft-counters Heavy Sword'
-        );
-
-        // =====================================================
-        // SWORD
-        // Generalist anti-light / infantry pressure.
-        // =====================================================
-
-        this.addRule(
-            UnitType.LightSword,
-            UnitType.LightSpear,
-            2.0,
-            1.0,
-            'Light Sword hard-counters Light Spear'
-        );
-
-        this.addRule(
-            UnitType.LightSword,
-            UnitType.LightArcher,
-            2.0,
-            1.0,
-            'Light Sword hard-counters Light Archer'
-        );
-
-        this.addRule(
-            UnitType.LightSword,
-            UnitType.LightMagic,
-            1.5,
-            1.0,
-            'Light Sword soft-counters Light Magic'
         );
 
         this.addRule(
@@ -249,11 +318,6 @@ export class CounterSettings extends Component {
             'Heavy Sword soft-counters Light Magic'
         );
 
-        // =====================================================
-        // MACE
-        // Armor breaker.
-        // =====================================================
-
         this.addRule(
             UnitType.LightMace,
             UnitType.HeavySword,
@@ -294,27 +358,6 @@ export class CounterSettings extends Component {
             'Heavy Mace soft-counters Heavy Cavalry'
         );
 
-        // =====================================================
-        // ARCHER
-        // Ranged pressure.
-        // =====================================================
-
-        this.addRule(
-            UnitType.LightArcher,
-            UnitType.LightSpear,
-            2.0,
-            1.0,
-            'Light Archer hard-counters Light Spear'
-        );
-
-        this.addRule(
-            UnitType.LightArcher,
-            UnitType.LightMace,
-            2.0,
-            1.0,
-            'Light Archer hard-counters Light Mace'
-        );
-
         this.addRule(
             UnitType.HeavyArcher,
             UnitType.HeavySword,
@@ -339,33 +382,12 @@ export class CounterSettings extends Component {
             'Heavy Archer soft-counters Heavy Cavalry'
         );
 
-        // =====================================================
-        // CAVALRY
-        // Backline dive.
-        // =====================================================
-
-        this.addRule(
-            UnitType.LightCavalry,
-            UnitType.LightArcher,
-            2.0,
-            1.0,
-            'Light Cavalry hard-counters Light Archer'
-        );
-
         this.addRule(
             UnitType.LightCavalry,
             UnitType.HeavyArcher,
             2.0,
             1.0,
             'Light Cavalry hard-counters Heavy Archer'
-        );
-
-        this.addRule(
-            UnitType.LightCavalry,
-            UnitType.LightMagic,
-            2.0,
-            1.0,
-            'Light Cavalry hard-counters Light Magic'
         );
 
         this.addRule(
@@ -408,11 +430,6 @@ export class CounterSettings extends Component {
             'Heavy Cavalry soft-counters Heavy Sword'
         );
 
-        // =====================================================
-        // MAGIC
-        // Anti blob / anti heavy.
-        // =====================================================
-
         this.addRule(
             UnitType.LightMagic,
             UnitType.LightSword,
@@ -427,14 +444,6 @@ export class CounterSettings extends Component {
             1.5,
             1.0,
             'Light Magic soft-counters Light Spear'
-        );
-
-        this.addRule(
-            UnitType.LightMagic,
-            UnitType.LightMace,
-            1.5,
-            1.0,
-            'Light Magic soft-counters Light Mace'
         );
 
         this.addRule(
@@ -470,8 +479,7 @@ export class CounterSettings extends Component {
         );
 
         // =====================================================
-        // Defensive examples.
-        // These are optional but useful to make some counters feel defensive.
+        // DEFENSIVE RULE EXAMPLES
         // =====================================================
 
         this.addRule(

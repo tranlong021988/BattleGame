@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, Unit, UnitProps, EnemyFinder, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, UnitType, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _class4, _class5, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _class6, _crd, ccclass, property, UnitPrefabEntry, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, Unit, UnitProps, EnemyFinder, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, UnitType, BattleWave, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _class4, _class5, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _class6, _crd, ccclass, property, UnitPrefabEntry, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -53,6 +53,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfBattleWave(extras) {
+    _reporterNs.report("BattleWave", "./BattleWave", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -87,6 +91,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       BattleSpatialGrid = _unresolved_11.BattleSpatialGrid;
     }, function (_unresolved_12) {
       UnitType = _unresolved_12.UnitType;
+    }, function (_unresolved_13) {
+      BattleWave = _unresolved_13.BattleWave;
     }],
     execute: function () {
       _crd = true;
@@ -286,6 +292,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.sim = null;
           this.teamA = [];
           this.teamB = [];
+          this.waves = [];
+          this.nextWaveId = 1;
           this.spawner = void 0;
           this.teamAPrefabMap = new Map();
           this.teamBPrefabMap = new Map();
@@ -295,6 +303,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           GameManager.instance = this;
           this.teamA.length = 0;
           this.teamB.length = 0;
+          this.waves.length = 0;
+          this.nextWaveId = 1;
           this.aliveCount[0] = 0;
           this.aliveCount[1] = 0;
           this.deathCount[0] = 0;
@@ -458,6 +468,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return validEntries[index];
         }
 
+        getTeamEntries(team) {
+          return team === 0 ? this.teamAPrefabs : this.teamBPrefabs;
+        }
+
+        getAliveUnits(team) {
+          return team === 0 ? this.teamA : this.teamB;
+        }
+
+        getWavesByTeam(team) {
+          var result = [];
+
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+            result.push(wave);
+          }
+
+          return result;
+        }
+
         updateAutoSpawn(deltaTime) {
           this.spawnWaveTimer += deltaTime;
 
@@ -484,8 +516,34 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.rebuildSpatialGrid();
         }
 
+        spawnWaveByEntry(team, entry) {
+          if (!entry || !entry.prefab) {
+            return null;
+          }
+
+          var baseZ = team === 0 ? this.teamASpawnZ : this.teamBSpawnZ;
+          var wave = this.spawnEntryFormation(team, entry, baseZ);
+          this.rebuildSpatialGrid();
+          return wave;
+        }
+
+        spawnWaveByName(team, unitName) {
+          var entry = this.getTeamEntry(team, unitName);
+          if (!entry) return null;
+          return this.spawnWaveByEntry(team, entry);
+        }
+
         spawnEntryFormation(team, entry, baseZ) {
           var count = Math.max(0, Math.floor(entry.unitCount));
+
+          if (count <= 0) {
+            return null;
+          }
+
+          var wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave)(this.nextWaveId++, team, entry.name, entry.unitType, count);
+          this.waves.push(wave);
           var maxPerRow = Math.max(1, Math.floor(this.maxUnitPerRow));
           var spawned = 0;
           var row = 0;
@@ -501,11 +559,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               var baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
               var z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
               var pos = new Vec3(x, 0, z);
+              var unit = null;
 
               if (team === 0) {
-                this.spawnTeamA(entry.name, pos);
+                unit = this.spawnTeamA(entry.name, pos);
               } else {
-                this.spawnTeamB(entry.name, pos);
+                unit = this.spawnTeamB(entry.name, pos);
+              }
+
+              if (unit) {
+                wave.addUnit(unit);
               }
 
               spawned++;
@@ -513,6 +576,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             row++;
           }
+
+          return wave;
         }
 
         buildCenteredRowXPositions(rowCount, rowIndex) {

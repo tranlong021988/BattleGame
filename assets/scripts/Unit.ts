@@ -69,6 +69,8 @@ export class Unit extends Component {
     props!: UnitProps;
     finder!: EnemyFinder;
 
+    private initialYaw = 0;
+
     private lastStablePos = { x: 0, z: 0 };
     private tempPos = new Vec3();
 
@@ -93,6 +95,8 @@ export class Unit extends Component {
         this.sim = sim;
 
         const p = this.node.worldPosition;
+
+        this.initialYaw = this.node.eulerAngles.y;
 
         this.agent = sim.addAgent(p.x, p.z);
         this.agent.maxSpeed = this.moveSpeed;
@@ -129,6 +133,8 @@ export class Unit extends Component {
             this.enemy = null;
             this.onBusy = false;
             this.onForward = false;
+
+            this.initialYaw = this.node.eulerAngles.y;
 
             this.agent.locked = true;
             this.agent.vel.x = 0;
@@ -278,7 +284,7 @@ export class Unit extends Component {
             ) {
                 this.clearEnemy();
             } else {
-                this.lookAtEnemySmooth(deltaTime);
+                this.lookAtTargetSmooth(this.enemy, deltaTime);
 
                 this.sim.setPrefVelocity(this.agent, 0, 0);
                 this.agent.vel.x = 0;
@@ -304,7 +310,7 @@ export class Unit extends Component {
             this.cachedNearestEnemy = null;
             this.cachedNearestInRange = null;
 
-            this.lookAtEnemySmooth(deltaTime);
+            this.lookAtTargetSmooth(this.enemy, deltaTime);
 
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
@@ -318,6 +324,9 @@ export class Unit extends Component {
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
+
+            this.returnToInitialYawSmooth(deltaTime);
+
             this.sync(deltaTime, false);
             return;
         }
@@ -359,7 +368,7 @@ export class Unit extends Component {
                 );
             }
 
-            this.lookAtEnemySmooth(deltaTime);
+            this.lookAtTargetSmooth(this.enemy, deltaTime);
             this.sync(deltaTime, false);
         } else {
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -553,12 +562,12 @@ export class Unit extends Component {
             : EnemyFinder.teamA;
     }
 
-    private lookAtEnemySmooth(deltaTime: number) {
+    private lookAtTargetSmooth(target: Unit, deltaTime: number) {
         if (!this.agent) return;
-        if (!this.enemy || !this.enemy.agent) return;
+        if (!target || !target.agent) return;
 
-        const dx = this.enemy.agent.pos.x - this.agent.pos.x;
-        const dz = this.enemy.agent.pos.z - this.agent.pos.z;
+        const dx = target.agent.pos.x - this.agent.pos.x;
+        const dz = target.agent.pos.z - this.agent.pos.z;
 
         if (dx * dx + dz * dz < 0.0001) {
             return;
@@ -570,6 +579,18 @@ export class Unit extends Component {
         const newY = this.lerpAngle(
             currentY,
             targetY,
+            this.rotationSpeed * deltaTime
+        );
+
+        this.node.setRotationFromEuler(0, newY, 0);
+    }
+
+    private returnToInitialYawSmooth(deltaTime: number) {
+        const currentY = this.node.eulerAngles.y;
+
+        const newY = this.lerpAngle(
+            currentY,
+            this.initialYaw,
             this.rotationSpeed * deltaTime
         );
 

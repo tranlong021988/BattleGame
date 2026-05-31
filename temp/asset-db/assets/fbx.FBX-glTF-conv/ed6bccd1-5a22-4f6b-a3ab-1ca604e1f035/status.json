@@ -2,12 +2,12 @@
   "version": "2.3.14",
   "sourceTimeStamp": 1778265951546.8882,
   "outputTimeStamps": {
-    "log.json": 1780070505789.2024,
-    "out.bin": 1780070505782.2012,
-    "out.gltf": 1780070505788.2014
+    "out.gltf": 1780154120419.0994,
+    "log.json": 1780154120420.101,
+    "out.bin": 1780154120411.1372
   },
   "options": {
-    "animationBakeRate": 24,
+    "animationBakeRate": 30,
     "smartMaterialEnabled": true,
     "matchMeshNames": true
   }

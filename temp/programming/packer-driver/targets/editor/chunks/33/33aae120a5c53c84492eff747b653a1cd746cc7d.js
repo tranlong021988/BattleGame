@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, MeshRenderer, _dec, _class, _class2, _descriptor, _crd, ccclass, property, HealthBar3D;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, MeshRenderer, Color, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, HealthBar3D;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -17,24 +17,27 @@ System.register(["cc"], function (_export, _context) {
       _decorator = _cc._decorator;
       Component = _cc.Component;
       MeshRenderer = _cc.MeshRenderer;
+      Color = _cc.Color;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "6c024qnoilB/YpMUe4hE+WU", "HealthBar3D", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'MeshRenderer']);
+      __checkObsolete__(['_decorator', 'Component', 'MeshRenderer', 'Color']);
 
       ({
         ccclass,
         property
       } = _decorator);
 
-      _export("HealthBar3D", HealthBar3D = (_dec = ccclass('HealthBar3D'), _dec(_class = (_class2 = class HealthBar3D extends Component {
+      _export("HealthBar3D", HealthBar3D = (_dec = ccclass('HealthBar3D'), _dec2 = property(Color), _dec(_class = (_class2 = class HealthBar3D extends Component {
         constructor(...args) {
           super(...args);
 
           _initializerDefineProperty(this, "hideWhenFull", _descriptor, this);
+
+          _initializerDefineProperty(this, "mainColor", _descriptor2, this);
 
           this.renderer = null;
           this.currentRatio = 1;
@@ -42,22 +45,34 @@ System.register(["cc"], function (_export, _context) {
 
         onLoad() {
           this.renderer = this.getComponent(MeshRenderer);
-          this.setHealthRatio(1);
+          this.applyAll();
+        }
+
+        onEnable() {
+          this.renderer = this.getComponent(MeshRenderer);
+          this.applyAll();
         }
 
         setHealthRatio(ratio) {
           this.currentRatio = Math.max(0, Math.min(1, ratio));
+          this.applyAll();
+        }
 
-          if (this.hideWhenFull) {
-            this.node.active = this.currentRatio < 0.999;
-          }
-
-          if (!this.renderer) return;
-          this.renderer.setInstancedAttribute('a_health_params', [this.currentRatio, 0, 0, 0]);
+        setMainColor(color) {
+          this.mainColor.set(color);
+          this.applyAll();
         }
 
         getHealthRatio() {
           return this.currentRatio;
+        }
+
+        applyAll() {
+          if (!this.renderer) return;
+          const shouldShow = !this.hideWhenFull || this.currentRatio < 0.999;
+          this.renderer.enabled = shouldShow;
+          this.renderer.setInstancedAttribute('a_health_params', [this.currentRatio, shouldShow ? 1 : 0, 0, 0]);
+          this.renderer.setInstancedAttribute('a_bar_color', [this.mainColor.r / 255, this.mainColor.g / 255, this.mainColor.b / 255, 1]);
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "hideWhenFull", [property], {
@@ -66,6 +81,13 @@ System.register(["cc"], function (_export, _context) {
         writable: true,
         initializer: function () {
           return true;
+        }
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "mainColor", [_dec2], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return new Color(0, 255, 40, 255);
         }
       })), _class2)) || _class));
 

@@ -16,6 +16,7 @@ import { UnitBehavior } from './UnitBehavior';
 import { BattleSpatialGrid } from './BattleSpatialGrid';
 
 import { UnitType } from './BattleTypes';
+import { BattleWave } from './BattleWave';
 
 const { ccclass, property } = _decorator;
 
@@ -159,6 +160,10 @@ export class GameManager extends Component {
     teamA: Unit[] = [];
     teamB: Unit[] = [];
 
+    waves: BattleWave[] = [];
+
+    private nextWaveId = 1;
+
     private spawner!: UnitSpawner;
 
     private teamAPrefabMap: Map<string, UnitPrefabEntry> = new Map();
@@ -169,6 +174,9 @@ export class GameManager extends Component {
 
         this.teamA.length = 0;
         this.teamB.length = 0;
+
+        this.waves.length = 0;
+        this.nextWaveId = 1;
 
         this.aliveCount[0] = 0;
         this.aliveCount[1] = 0;
@@ -405,6 +413,34 @@ export class GameManager extends Component {
         return validEntries[index];
     }
 
+    public getTeamEntries(team: number): UnitPrefabEntry[] {
+        return team === 0
+            ? this.teamAPrefabs
+            : this.teamBPrefabs;
+    }
+
+    public getAliveUnits(team: number): Unit[] {
+        return team === 0
+            ? this.teamA
+            : this.teamB;
+    }
+
+    public getWavesByTeam(team: number): BattleWave[] {
+        const result: BattleWave[] = [];
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+
+            result.push(wave);
+        }
+
+        return result;
+    }
+
     private updateAutoSpawn(deltaTime: number) {
         this.spawnWaveTimer += deltaTime;
 
@@ -446,16 +482,70 @@ export class GameManager extends Component {
         this.rebuildSpatialGrid();
     }
 
+    public spawnWaveByEntry(
+        team: number,
+        entry: UnitPrefabEntry
+    ): BattleWave | null {
+
+        if (!entry || !entry.prefab) {
+            return null;
+        }
+
+        const baseZ =
+            team === 0
+                ? this.teamASpawnZ
+                : this.teamBSpawnZ;
+
+        const wave = this.spawnEntryFormation(
+            team,
+            entry,
+            baseZ
+        );
+
+        this.rebuildSpatialGrid();
+
+        return wave;
+    }
+
+    public spawnWaveByName(
+        team: number,
+        unitName: string
+    ): BattleWave | null {
+
+        const entry = this.getTeamEntry(
+            team,
+            unitName
+        );
+
+        if (!entry) return null;
+
+        return this.spawnWaveByEntry(team, entry);
+    }
+
     private spawnEntryFormation(
         team: number,
         entry: UnitPrefabEntry,
         baseZ: number
-    ) {
+    ): BattleWave | null {
 
         const count = Math.max(
             0,
             Math.floor(entry.unitCount)
         );
+
+        if (count <= 0) {
+            return null;
+        }
+
+        const wave = new BattleWave(
+            this.nextWaveId++,
+            team,
+            entry.name,
+            entry.unitType,
+            count
+        );
+
+        this.waves.push(wave);
 
         const maxPerRow = Math.max(
             1,
@@ -505,10 +595,22 @@ export class GameManager extends Component {
 
                 const pos = new Vec3(x, 0, z);
 
+                let unit: Unit | null = null;
+
                 if (team === 0) {
-                    this.spawnTeamA(entry.name, pos);
+                    unit = this.spawnTeamA(
+                        entry.name,
+                        pos
+                    );
                 } else {
-                    this.spawnTeamB(entry.name, pos);
+                    unit = this.spawnTeamB(
+                        entry.name,
+                        pos
+                    );
+                }
+
+                if (unit) {
+                    wave.addUnit(unit);
                 }
 
                 spawned++;
@@ -516,6 +618,8 @@ export class GameManager extends Component {
 
             row++;
         }
+
+        return wave;
     }
 
     private buildCenteredRowXPositions(

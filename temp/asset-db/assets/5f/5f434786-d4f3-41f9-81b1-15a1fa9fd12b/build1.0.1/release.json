@@ -39,7 +39,9 @@
                     "depthStencilState": {},
                     "blendState": {
                         "targets": [
-                            {}
+                            {
+                                "blend": false
+                            }
                         ]
                     }
                 }
@@ -57,7 +59,13 @@
                         8,
                         [
                             4,
-                            4280953386
+                            4282137660
+                        ],
+                        "mainColor",
+                        8,
+                        [
+                            4,
+                            4294901760
                         ],
                         "barParams",
                         8,

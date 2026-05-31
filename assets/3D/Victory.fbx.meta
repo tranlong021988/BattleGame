@@ -37,7 +37,7 @@
         "sample": 30,
         "span": {
           "from": 0,
-          "to": 2.2083332538604736
+          "to": 2.200000047683716
         },
         "events": [],
         "speed": 2
@@ -103,18 +103,18 @@
     "imageMetas": [],
     "fbx": {
       "smartMaterialEnabled": true,
-      "animationBakeRate": 24
+      "animationBakeRate": 30
     },
     "animationImportSettings": [
       {
         "name": "Scene",
-        "duration": 2.2083332538604736,
+        "duration": 2.200000047683716,
         "fps": 30,
         "splits": [
           {
             "name": "Scene",
             "from": 0,
-            "to": 2.2083332538604736,
+            "to": 2.200000047683716,
             "wrapMode": 2,
             "previousId": "cbc2b",
             "speed": 2
@@ -163,9 +163,10 @@
     },
     "meshSimplify": {
       "enable": true,
-      "targetRatio": 0.7,
+      "targetRatio": 0.5,
       "autoErrorRate": true,
-      "errorRate": 0
+      "errorRate": 0.15,
+      "lockBoundary": true
     },
     "meshCompress": {
       "enable": true,
