@@ -40,7 +40,7 @@
       "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1780167379431.976,
+      "time": 1780335865515.661,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -89,7 +89,7 @@
       "time": 1776578345590.7947
     },
     "Test.scene": {
-      "time": 1780252599365.3335,
+      "time": 1780337322651.5696,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -117,7 +117,7 @@
       "time": 1776594848700.45
     },
     "scripts\\UnitProps.ts": {
-      "time": 1780086171694.63,
+      "time": 1780335190854.5498,
       "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
     },
     "Fighter.Body.low_Baked.001_vat.meta": {
@@ -299,7 +299,7 @@
       "time": 1778599427046.7278
     },
     "scripts\\UnitBehavior.ts": {
-      "time": 1779891775070.3535,
+      "time": 1780335209796.0889,
       "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
     },
     "3D\\1989_dog.fbx.meta": {

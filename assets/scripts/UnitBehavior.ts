@@ -84,8 +84,17 @@ export class UnitBehavior extends Component {
         enemy.props.takeDamage(finalDamage);
 
         if (enemy.props.isDead()) {
-            if (this.gameManager) {
-                this.gameManager.despawnUnit(enemy);
+            const gm =
+                this.gameManager ||
+                GameManager.instance;
+
+            if (gm) {
+                gm.reportKill(
+                    this.unit,
+                    enemy
+                );
+
+                gm.despawnUnit(enemy);
             }
 
             this.unit.clearEnemy();

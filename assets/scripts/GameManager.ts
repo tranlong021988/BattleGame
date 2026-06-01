@@ -18,6 +18,8 @@ import { BattleSpatialGrid } from './BattleSpatialGrid';
 import { UnitType } from './BattleTypes';
 import { BattleWave } from './BattleWave';
 
+import { CounterSettings } from './CounterSettings';
+
 const { ccclass, property } = _decorator;
 
 @ccclass('UnitPrefabEntry')
@@ -111,8 +113,23 @@ export class GameManager extends Component {
     @property(Label)
     teamBDeathLabel: Label | null = null;
 
+    @property(Label)
+    teamAKillLabel: Label | null = null;
+
+    @property(Label)
+    teamBKillLabel: Label | null = null;
+
+    @property(Label)
+    teamACounterKillLabel: Label | null = null;
+
+    @property(Label)
+    teamBCounterKillLabel: Label | null = null;
+
     aliveCount = [0, 0];
     deathCount = [0, 0];
+
+    killCount = [0, 0];
+    counterKillCount = [0, 0];
 
     @property
     enableAutoSpawn = true;
@@ -183,6 +200,12 @@ export class GameManager extends Component {
 
         this.deathCount[0] = 0;
         this.deathCount[1] = 0;
+
+        this.killCount[0] = 0;
+        this.killCount[1] = 0;
+
+        this.counterKillCount[0] = 0;
+        this.counterKillCount[1] = 0;
 
         this.spawnWaveTimer = 0;
 
@@ -296,6 +319,58 @@ export class GameManager extends Component {
         }
     }
 
+    public reportKill(
+        killer: Unit | null,
+        victim: Unit | null
+    ) {
+        if (!killer || !victim) return;
+        if (!killer.props || !victim.props) return;
+
+        const killerTeam = killer.team;
+
+        if (killerTeam !== 0 && killerTeam !== 1) {
+            return;
+        }
+
+        this.killCount[killerTeam]++;
+
+        const counter = CounterSettings.instance;
+
+        let isCounterKill = false;
+
+        if (counter) {
+            const damageMul = counter.getDamageMultiplier(
+                killer.props.unitType,
+                victim.props.unitType
+            );
+
+            const receivedMul = counter.getReceivedDamageMultiplier(
+                killer.props.unitType,
+                victim.props.unitType
+            );
+
+            isCounterKill =
+                damageMul > 1.0001 ||
+                receivedMul < 0.9999;
+        }
+
+        if (isCounterKill) {
+            this.counterKillCount[killerTeam]++;
+        }
+
+        this.refreshBattleStatsUI();
+    }
+
+    public getCounterKillRatio(team: number) {
+        if (team !== 0 && team !== 1) return 0;
+
+        if (this.killCount[team] <= 0) {
+            return 0;
+        }
+
+        return this.counterKillCount[team] / this.killCount[team];
+    }
+
     private rebuildSpatialGrid() {
         this.spatialGrid.cellSize =
             this.spatialGridCellSize;
@@ -351,10 +426,7 @@ export class GameManager extends Component {
         }
     }
 
-    private isValidEntry(
-        entry: UnitPrefabEntry | null
-    ): boolean {
-
+    private isValidEntry(entry: UnitPrefabEntry | null): boolean {
         if (!entry) return false;
         if (!entry.name) return false;
         if (!entry.prefab) return false;
@@ -1009,6 +1081,36 @@ export class GameManager extends Component {
             this.teamBDeathLabel.string =
                 'B Death: ' +
                 this.deathCount[1];
+        }
+
+        if (this.teamAKillLabel) {
+            this.teamAKillLabel.string =
+                'A Kill: ' +
+                this.killCount[0];
+        }
+
+        if (this.teamBKillLabel) {
+            this.teamBKillLabel.string =
+                'B Kill: ' +
+                this.killCount[1];
+        }
+
+        if (this.teamACounterKillLabel) {
+            this.teamACounterKillLabel.string =
+                'A Counter Kill: ' +
+                this.counterKillCount[0] +
+                ' (' +
+                Math.round(this.getCounterKillRatio(0) * 100) +
+                '%)';
+        }
+
+        if (this.teamBCounterKillLabel) {
+            this.teamBCounterKillLabel.string =
+                'B Counter Kill: ' +
+                this.counterKillCount[1] +
+                ' (' +
+                Math.round(this.getCounterKillRatio(1) * 100) +
+                '%)';
         }
     }
 
