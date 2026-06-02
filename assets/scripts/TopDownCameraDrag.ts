@@ -7,8 +7,7 @@ import {
     Input,
     EventTouch,
     EventMouse,
-    geometry,
-    PhysicsSystem,
+    view,
 } from 'cc';
 
 const { ccclass, property } = _decorator;
@@ -46,11 +45,16 @@ export class TopDownCameraDrag extends Component {
     @property mouseWheelSensitivity = 0.03;
     @property zoomSmoothSpeed = 12;
 
-    @property
-    zoomToPointer = true;
+    @property zoomToPointer = true;
 
     @property
-    groundY = 0;
+    zoomPointerMoveStrength = 8;
+
+    @property
+    invertZoomPointerX = false;
+
+    @property
+    invertZoomPointerZ = false;
 
     private targetPos = new Vec3();
     private currentPos = new Vec3();
@@ -60,10 +64,6 @@ export class TopDownCameraDrag extends Component {
 
     private lastPinchDistance = 0;
     private targetFov = 45;
-
-    private tempRay = new geometry.Ray();
-    private beforeZoomPoint = new Vec3();
-    private afterZoomPoint = new Vec3();
 
     onEnable() {
         this.node.getWorldPosition(this.targetPos);
@@ -164,11 +164,11 @@ export class TopDownCameraDrag extends Component {
 
         if (Math.abs(scrollY) < 0.0001) return;
 
-        const screenPos = event.getLocation();
+        const p = event.getLocation();
 
         this.zoomAtScreenPoint(
-            screenPos.x,
-            screenPos.y,
+            p.x,
+            p.y,
             scrollY * this.mouseWheelSensitivity
         );
     }
@@ -211,7 +211,6 @@ export class TopDownCameraDrag extends Component {
         }
 
         const delta = dist - this.lastPinchDistance;
-
         const center = this.getTouchCenter(touches);
 
         this.zoomAtScreenPoint(
@@ -223,18 +222,14 @@ export class TopDownCameraDrag extends Component {
         this.lastPinchDistance = dist;
     }
 
-    private zoomAtScreenPoint(screenX: number, screenY: number, zoomDelta: number) {
+    private zoomAtScreenPoint(
+        screenX: number,
+        screenY: number,
+        zoomDelta: number
+    ) {
         if (!this.targetCamera) return;
 
-        let hasBeforePoint = false;
-
-        if (this.zoomToPointer) {
-            hasBeforePoint = this.screenPointToGround(
-                screenX,
-                screenY,
-                this.beforeZoomPoint
-            );
-        }
+        const oldFov = this.targetFov;
 
         // Pinch out / wheel up => zoom in => FOV nhỏ lại.
         this.targetFov -= zoomDelta;
@@ -245,30 +240,71 @@ export class TopDownCameraDrag extends Component {
             this.maxFov
         );
 
-        if (this.zoomToPointer && hasBeforePoint) {
-            this.applyInstantFovForRaycast();
+        const fovChange = oldFov - this.targetFov;
 
-            const hasAfterPoint = this.screenPointToGround(
+        if (
+            this.zoomToPointer &&
+            Math.abs(fovChange) > 0.0001
+        ) {
+            this.applyZoomPointerBias(
                 screenX,
                 screenY,
-                this.afterZoomPoint
+                fovChange
             );
-
-            if (hasAfterPoint) {
-                const dx = this.beforeZoomPoint.x - this.afterZoomPoint.x;
-                const dz = this.beforeZoomPoint.z - this.afterZoomPoint.z;
-
-                if (this.enableDragX) {
-                    this.targetPos.x += dx;
-                }
-
-                if (this.enableDragZ) {
-                    this.targetPos.z += dz;
-                }
-            }
         }
 
         this.clampTargetPosition();
+    }
+
+    private applyZoomPointerBias(
+        screenX: number,
+        screenY: number,
+        fovChange: number
+    ) {
+        const size = view.getVisibleSize();
+
+        if (size.width <= 0 || size.height <= 0) {
+            return;
+        }
+
+        const normalizedX =
+            (screenX / size.width - 0.5) * 2;
+
+        const normalizedY =
+            (screenY / size.height - 0.5) * 2;
+
+        const fovRange = Math.max(
+            0.0001,
+            this.maxFov - this.minFov
+        );
+
+        const zoomAmount = fovChange / fovRange;
+
+        let moveX =
+            normalizedX *
+            zoomAmount *
+            this.zoomPointerMoveStrength;
+
+        let moveZ =
+            normalizedY *
+            zoomAmount *
+            this.zoomPointerMoveStrength;
+
+        if (this.invertZoomPointerX) {
+            moveX = -moveX;
+        }
+
+        if (this.invertZoomPointerZ) {
+            moveZ = -moveZ;
+        }
+
+        if (this.enableDragX) {
+            this.targetPos.x += moveX;
+        }
+
+        if (this.enableDragZ) {
+            this.targetPos.z += moveZ;
+        }
     }
 
     update(deltaTime: number) {
@@ -307,48 +343,6 @@ export class TopDownCameraDrag extends Component {
             (this.targetFov - this.targetCamera.fov) * t;
     }
 
-    private applyInstantFovForRaycast() {
-        if (!this.targetCamera) return;
-
-        // Raycast để giữ tâm zoom cần dùng FOV mới ngay lập tức.
-        // Visual vẫn smooth vì updateZoom tiếp tục kéo về targetFov.
-        this.targetCamera.fov = this.targetFov;
-    }
-
-    private screenPointToGround(
-        screenX: number,
-        screenY: number,
-        out: Vec3
-    ): boolean {
-        if (!this.targetCamera) return false;
-
-        this.targetCamera.screenPointToRay(
-            screenX,
-            screenY,
-            this.tempRay
-        );
-
-        const ray = this.tempRay;
-
-        if (Math.abs(ray.d.y) < 0.000001) {
-            return false;
-        }
-
-        const t = (this.groundY - ray.o.y) / ray.d.y;
-
-        if (t < 0) {
-            return false;
-        }
-
-        out.set(
-            ray.o.x + ray.d.x * t,
-            this.groundY,
-            ray.o.z + ray.d.z * t
-        );
-
-        return true;
-    }
-
     private clampTargetPosition() {
         const bounds = this.getDynamicBounds();
 
@@ -380,7 +374,7 @@ export class TopDownCameraDrag extends Component {
         }
 
         const zoom01 = this.clamp(
-            (this.maxFov - this.targetFov) /
+            (this.maxFov - this.targetCamera.fov) /
             (this.maxFov - this.minFov),
             0,
             1

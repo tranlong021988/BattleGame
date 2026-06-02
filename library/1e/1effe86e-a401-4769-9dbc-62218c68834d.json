@@ -1255,10 +1255,12 @@
     "minFov": 8,
     "maxFov": 15,
     "pinchSensitivity": 0.05,
-    "mouseWheelSensitivity": 0.05,
+    "mouseWheelSensitivity": 0.04,
     "zoomSmoothSpeed": 10,
     "zoomToPointer": true,
-    "groundY": 0,
+    "zoomPointerMoveStrength": 8,
+    "invertZoomPointerX": true,
+    "invertZoomPointerZ": false,
     "_id": "64yDVoMxlOEKr8/SObuSzd"
   },
   {
