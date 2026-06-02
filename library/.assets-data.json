@@ -109,21 +109,29 @@
     "url": "db://assets/Test.scene",
     "value": {
       "depends": [
-        "817257f8-8eda-4313-a407-8ae5d0e791b0",
-        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
+        "09612976-b88c-46e6-a717-93a8a38611bc@f9941",
+        "028193d4-783a-4d77-a304-630e5f21fe8a@f9941",
+        "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941",
+        "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8@f9941",
+        "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae@f9941",
+        "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab@f9941",
+        "20835ba4-6145-4fbc-a58a-051ce700aa3e@f9941",
         "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
         "e9fa7cb9-649b-4dac-a368-f9515b675d79",
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
         "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
+        "817257f8-8eda-4313-a407-8ae5d0e791b0",
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
         "837662e8-92db-4dea-820d-eafbe218fe17",
         "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
       ],
       "dependScripts": [
-        "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
+        "8a2cc15b-f736-42b8-92c1-ecc6b7aa8450",
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
-        "360c09ec-bbac-4350-9ea8-2786553038bf",
         "6fc5265c-f2e8-478d-b01e-2a02f5a37b15",
+        "360c09ec-bbac-4350-9ea8-2786553038bf",
+        "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53",
         "05b5fa2b-3f44-4842-8e74-276cd2f32062"
@@ -975,6 +983,183 @@
   },
   "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53": {
     "url": "db://assets/scripts/ArmyBrain.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "0d8884f5-9730-48da-99e0-7e44d29f6d14": {
+    "url": "db://assets/MiniMap",
+    "value": {},
+    "versionCode": 1
+  },
+  "f3e429e0-e07d-48cc-80d4-98f6aafeb897": {
+    "url": "db://assets/MiniMap/images",
+    "value": {},
+    "versionCode": 1
+  },
+  "f8ea029f-b400-4410-89a7-57f8577e8acb": {
+    "url": "db://assets/MiniMap/images/bow-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f8ea029f-b400-4410-89a7-57f8577e8acb@6c48a": {
+    "url": "db://assets/MiniMap/images/bow-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "f8ea029f-b400-4410-89a7-57f8577e8acb"
+      ]
+    },
+    "versionCode": 1
+  },
+  "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8": {
+    "url": "db://assets/MiniMap/images/horse-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8@6c48a": {
+    "url": "db://assets/MiniMap/images/horse-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8"
+      ]
+    },
+    "versionCode": 1
+  },
+  "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae": {
+    "url": "db://assets/MiniMap/images/mace-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae@6c48a": {
+    "url": "db://assets/MiniMap/images/mace-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae"
+      ]
+    },
+    "versionCode": 1
+  },
+  "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab": {
+    "url": "db://assets/MiniMap/images/magic-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab@6c48a": {
+    "url": "db://assets/MiniMap/images/magic-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab"
+      ]
+    },
+    "versionCode": 1
+  },
+  "028193d4-783a-4d77-a304-630e5f21fe8a": {
+    "url": "db://assets/MiniMap/images/spear-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "028193d4-783a-4d77-a304-630e5f21fe8a@6c48a": {
+    "url": "db://assets/MiniMap/images/spear-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "028193d4-783a-4d77-a304-630e5f21fe8a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "09612976-b88c-46e6-a717-93a8a38611bc": {
+    "url": "db://assets/MiniMap/images/sword-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "09612976-b88c-46e6-a717-93a8a38611bc@6c48a": {
+    "url": "db://assets/MiniMap/images/sword-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "09612976-b88c-46e6-a717-93a8a38611bc"
+      ]
+    },
+    "versionCode": 1
+  },
+  "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae@f9941": {
+    "url": "db://assets/MiniMap/images/mace-ico.png@f9941",
+    "value": {
+      "depends": [
+        "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "09612976-b88c-46e6-a717-93a8a38611bc@f9941": {
+    "url": "db://assets/MiniMap/images/sword-ico.png@f9941",
+    "value": {
+      "depends": [
+        "09612976-b88c-46e6-a717-93a8a38611bc@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "028193d4-783a-4d77-a304-630e5f21fe8a@f9941": {
+    "url": "db://assets/MiniMap/images/spear-ico.png@f9941",
+    "value": {
+      "depends": [
+        "028193d4-783a-4d77-a304-630e5f21fe8a@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8@f9941": {
+    "url": "db://assets/MiniMap/images/horse-ico.png@f9941",
+    "value": {
+      "depends": [
+        "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab@f9941": {
+    "url": "db://assets/MiniMap/images/magic-ico.png@f9941",
+    "value": {
+      "depends": [
+        "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941": {
+    "url": "db://assets/MiniMap/images/bow-ico.png@f9941",
+    "value": {
+      "depends": [
+        "f8ea029f-b400-4410-89a7-57f8577e8acb@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "d51bdb9f-5659-4396-986e-7e975ecf40a9": {
+    "url": "db://assets/MiniMap/images/auto-atlas.pac",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "d01ac8e7-fca7-4022-afe0-14a123deae2e": {
+    "url": "db://assets/scripts/BattleInformationIconItem.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "8a2cc15b-f736-42b8-92c1-ecc6b7aa8450": {
+    "url": "db://assets/scripts/BattleInformationPanel.ts",
     "value": {},
     "versionCode": 1
   }

@@ -59,7 +59,18 @@
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json",
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001.fbx",
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png",
-            "3D\\Fighter.Body.low_Baked.001_vat\\Untitled.fbx"
+            "3D\\Fighter.Body.low_Baked.001_vat\\Untitled.fbx",
+            "MiniMap",
+            "MiniMap\\images",
+            "MiniMap\\images\\bow-ico.png",
+            "MiniMap\\images\\horse-ico.png",
+            "MiniMap\\images\\mace-ico.png",
+            "MiniMap\\images\\magic-ico.png",
+            "MiniMap\\images\\spear-ico.png",
+            "MiniMap\\images\\sword-ico.png",
+            "MiniMap\\images\\auto-atlas.pac",
+            "scripts\\BattleInformationIconItem.ts",
+            "scripts\\BattleInformationPanel.ts"
         ]
     }
 }

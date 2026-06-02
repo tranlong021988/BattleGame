@@ -5,7 +5,7 @@
       "time": 1776667555102.3574
     },
     "scripts": {
-      "time": 1780371682382.9636,
+      "time": 1780400112267.6714,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1780382676594.5813,
+      "time": 1780400899379.6523,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -404,8 +404,85 @@
       "time": 1780371682382.9636
     },
     "scripts\\ArmyBrain.ts": {
-      "time": 1780374049686.2095,
+      "time": 1780394542322.0789,
       "uuid": "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53"
+    },
+    "MiniMap.meta": {
+      "time": 1780392078449.1252
+    },
+    "MiniMap": {
+      "time": 1780392087081.9885,
+      "uuid": "0d8884f5-9730-48da-99e0-7e44d29f6d14"
+    },
+    "MiniMap\\images.meta": {
+      "time": 1780392087082.9846
+    },
+    "MiniMap\\images": {
+      "time": 1780392133547.3894,
+      "uuid": "f3e429e0-e07d-48cc-80d4-98f6aafeb897"
+    },
+    "MiniMap\\images\\bow-ico.png.meta": {
+      "time": 1780392105032.7302
+    },
+    "MiniMap\\images\\horse-ico.png.meta": {
+      "time": 1780392105022.7637
+    },
+    "MiniMap\\images\\mace-ico.png.meta": {
+      "time": 1780392105018.7761
+    },
+    "MiniMap\\images\\magic-ico.png.meta": {
+      "time": 1780392105023.7603
+    },
+    "MiniMap\\images\\spear-ico.png.meta": {
+      "time": 1780392105021.7954
+    },
+    "MiniMap\\images\\sword-ico.png.meta": {
+      "time": 1780392105021.7954
+    },
+    "MiniMap\\images\\bow-ico.png": {
+      "time": 1780392011239.45,
+      "uuid": "f8ea029f-b400-4410-89a7-57f8577e8acb"
+    },
+    "MiniMap\\images\\horse-ico.png": {
+      "time": 1780391949265.0437,
+      "uuid": "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8"
+    },
+    "MiniMap\\images\\mace-ico.png": {
+      "time": 1780392030595.8242,
+      "uuid": "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae"
+    },
+    "MiniMap\\images\\magic-ico.png": {
+      "time": 1780392052147.8965,
+      "uuid": "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab"
+    },
+    "MiniMap\\images\\spear-ico.png": {
+      "time": 1780391938173.996,
+      "uuid": "028193d4-783a-4d77-a304-630e5f21fe8a"
+    },
+    "MiniMap\\images\\sword-ico.png": {
+      "time": 1780391924725.8926,
+      "uuid": "09612976-b88c-46e6-a717-93a8a38611bc"
+    },
+    "MiniMap\\images\\auto-atlas.pac.meta": {
+      "time": 1780392133558.0605
+    },
+    "MiniMap\\images\\auto-atlas.pac": {
+      "time": 1775546487605.9688,
+      "uuid": "d51bdb9f-5659-4396-986e-7e975ecf40a9"
+    },
+    "scripts\\BattleInformationIconItem.ts.meta": {
+      "time": 1780400082973.7388
+    },
+    "scripts\\BattleInformationIconItem.ts": {
+      "time": 1780400845690.9207,
+      "uuid": "d01ac8e7-fca7-4022-afe0-14a123deae2e"
+    },
+    "scripts\\BattleInformationPanel.ts.meta": {
+      "time": 1780400112276.6519
+    },
+    "scripts\\BattleInformationPanel.ts": {
+      "time": 1780400565707.2227,
+      "uuid": "8a2cc15b-f736-42b8-92c1-ecc6b7aa8450"
     }
   },
   "missing": {}

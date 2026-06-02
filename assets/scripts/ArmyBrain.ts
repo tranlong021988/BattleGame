@@ -43,6 +43,21 @@ export class ArmyBrain extends Component {
     preferUnengagedWave = true;
 
     @property
+    useAdaptiveStrategy = true;
+
+    @property
+    unitAdvantageThreshold = 8;
+
+    @property
+    attackIntelligence = 1.0;
+
+    @property
+    defenseIntelligence = 0.85;
+
+    @property
+    neutralAttackChance = 0.5;
+
+    @property
     counterCoverageRatio = 1.0;
 
     @property
@@ -55,15 +70,21 @@ export class ArmyBrain extends Component {
     spawnOpeningWaveIfNoEnemyWave = true;
 
     @property
+    enableStateLog = true;
+
+    @property
     enableDebugLog = false;
 
     private timer = 0;
     private nextInterval = 3;
 
+    private currentPreferUnengaged = true;
+    private currentStrategyState = 'UNKNOWN';
+
     start() {
         this.randomizeNextInterval();
 
-        this.log(
+        this.debugLog(
             `Start. team=${this.team}, nextInterval=${this.nextInterval.toFixed(2)}`
         );
     }
@@ -102,12 +123,18 @@ export class ArmyBrain extends Component {
         const validEntries = this.getValidEntries(entries);
 
         if (validEntries.length <= 0) {
-            this.log('Abort: no valid entries.');
+            this.debugLog('Abort: no valid entries.');
             return;
         }
 
         const enemyTeam = this.team === 0 ? 1 : 0;
         const enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
+
+        this.currentPreferUnengaged = this.resolvePreferUnengagedWave();
+
+        this.stateLog(
+            `STATE=${this.currentStrategyState}, preferUnengaged=${this.currentPreferUnengaged}`
+        );
 
         if (enemyWaves.length <= 0) {
             if (this.spawnOpeningWaveIfNoEnemyWave) {
@@ -125,7 +152,7 @@ export class ArmyBrain extends Component {
         const targetWave = this.findBestThreatWave();
 
         if (!targetWave) {
-            this.log('No valid threat wave found.');
+            this.debugLog('No valid threat wave found.');
 
             if (this.spawnRandomIfNoThreat) {
                 this.spawnRandom(validEntries, 'No valid threat');
@@ -134,7 +161,7 @@ export class ArmyBrain extends Component {
             return;
         }
 
-        this.log(
+        this.debugLog(
             `Target wave id=${targetWave.id}, type=${unitTypeToName(targetWave.unitType)}, alive=${targetWave.getAliveCount()}/${targetWave.totalCount}, assigned=${targetWave.assignedCounterCount}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}`
         );
 
@@ -144,11 +171,11 @@ export class ArmyBrain extends Component {
         );
 
         if (!selectedEntry) {
-            this.log('Abort: no selected entry.');
+            this.debugLog('Abort: no selected entry.');
             return;
         }
 
-        this.log(
+        this.debugLog(
             `Spawn selected: ${selectedEntry.name} / ${unitTypeToName(selectedEntry.unitType)}`
         );
 
@@ -160,10 +187,97 @@ export class ArmyBrain extends Component {
         if (spawned) {
             targetWave.addCounterAssignment(selectedEntry.unitCount);
 
-            this.log(
+            this.debugLog(
                 `Counter assignment wave ${targetWave.id}: +${selectedEntry.unitCount}, totalAssigned=${targetWave.assignedCounterCount}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}`
             );
         }
+    }
+
+    private resolvePreferUnengagedWave() {
+        if (!this.useAdaptiveStrategy) {
+            this.currentStrategyState = this.preferUnengagedWave
+                ? 'MANUAL_ATTACK'
+                : 'MANUAL_DEFENSE';
+
+            return this.preferUnengagedWave;
+        }
+
+        if (!this.gameManager) {
+            this.currentStrategyState = 'NO_GAME_MANAGER';
+            return this.preferUnengagedWave;
+        }
+
+        const enemyTeam = this.team === 0 ? 1 : 0;
+
+        const myAlive = this.getAliveUnitCount(this.team);
+        const enemyAlive = this.getAliveUnitCount(enemyTeam);
+
+        const unitDiff = myAlive - enemyAlive;
+        const threshold = Math.max(1, Math.floor(this.unitAdvantageThreshold));
+
+        if (unitDiff >= threshold) {
+            const roll = Math.random();
+            const correct = roll <= this.attackIntelligence;
+
+            this.currentStrategyState = correct
+                ? 'ATTACK'
+                : 'ATTACK_MISREAD_TO_DEFENSE';
+
+            this.stateLog(
+                `myAlive=${myAlive}, enemyAlive=${enemyAlive}, diff=${unitDiff}, threshold=${threshold}, desired=ATTACK, roll=${roll.toFixed(2)}, intelligence=${this.attackIntelligence}, final=${this.currentStrategyState}`
+            );
+
+            return correct ? true : false;
+        }
+
+        if (unitDiff <= -threshold) {
+            const roll = Math.random();
+            const correct = roll <= this.defenseIntelligence;
+
+            this.currentStrategyState = correct
+                ? 'DEFENSE'
+                : 'DEFENSE_MISREAD_TO_ATTACK';
+
+            this.stateLog(
+                `myAlive=${myAlive}, enemyAlive=${enemyAlive}, diff=${unitDiff}, threshold=${threshold}, desired=DEFENSE, roll=${roll.toFixed(2)}, intelligence=${this.defenseIntelligence}, final=${this.currentStrategyState}`
+            );
+
+            return correct ? false : true;
+        }
+
+        const neutralRoll = Math.random();
+        const attack = neutralRoll <= this.neutralAttackChance;
+
+        this.currentStrategyState = attack
+            ? 'NEUTRAL_ATTACK'
+            : 'NEUTRAL_DEFENSE';
+
+        this.stateLog(
+            `myAlive=${myAlive}, enemyAlive=${enemyAlive}, diff=${unitDiff}, threshold=${threshold}, desired=NEUTRAL, attackChance=${this.neutralAttackChance}, roll=${neutralRoll.toFixed(2)}, final=${this.currentStrategyState}`
+        );
+
+        return attack;
+    }
+
+    private getAliveUnitCount(team: number) {
+        if (!this.gameManager) return 0;
+
+        const units = this.gameManager.getAliveUnits(team);
+
+        let count = 0;
+
+        for (let i = 0; i < units.length; i++) {
+            const u = units[i];
+
+            if (!u) continue;
+            if (!u.node.activeInHierarchy) continue;
+            if (!u.props) continue;
+            if (u.props.isDead()) continue;
+
+            count++;
+        }
+
+        return count;
     }
 
     private spawnOpeningWave(validEntries: UnitPrefabEntry[]) {
@@ -173,7 +287,7 @@ export class ArmyBrain extends Component {
 
         if (!opening) return;
 
-        this.log(
+        this.debugLog(
             `Opening spawn: ${opening.name} / ${unitTypeToName(opening.unitType)}`
         );
 
@@ -190,7 +304,7 @@ export class ArmyBrain extends Component {
 
         if (!randomEntry) return;
 
-        this.log(
+        this.debugLog(
             `${reason}. Random spawn: ${randomEntry.name} / ${unitTypeToName(randomEntry.unitType)}`
         );
 
@@ -222,7 +336,7 @@ export class ArmyBrain extends Component {
             const engaged = wave.hasEngaged();
 
             if (aliveRatio < this.minThreatAliveRatio) {
-                this.log(
+                this.debugLog(
                     `Skip wave ${wave.id}: aliveRatio ${aliveRatio.toFixed(2)} < ${this.minThreatAliveRatio}`
                 );
                 continue;
@@ -233,14 +347,14 @@ export class ArmyBrain extends Component {
                 Math.max(1, wave.totalCount);
 
             if (wave.assignedCounterCount >= hardAssignmentCap) {
-                this.log(
+                this.debugLog(
                     `Skip wave ${wave.id}: assignment cap ${wave.assignedCounterCount}/${hardAssignmentCap}`
                 );
                 continue;
             }
 
             if (wave.isCounterCovered(this.counterCoverageRatio)) {
-                this.log(
+                this.debugLog(
                     `Skip wave ${wave.id}: coverage ${wave.getCounterCoverageRatio().toFixed(2)} >= ${this.counterCoverageRatio}`
                 );
                 continue;
@@ -250,8 +364,12 @@ export class ArmyBrain extends Component {
 
             score += aliveRatio * 100;
 
-            if (this.preferUnengagedWave && !engaged) {
+            if (this.currentPreferUnengaged && !engaged) {
                 score += 50;
+            }
+
+            if (!this.currentPreferUnengaged && engaged) {
+                score += 25;
             }
 
             const distSq = wave.getClosestDistanceSqTo(
@@ -284,7 +402,7 @@ export class ArmyBrain extends Component {
                 );
             }
 
-            this.log(
+            this.debugLog(
                 `Wave candidate id=${wave.id}, type=${unitTypeToName(wave.unitType)}, alive=${aliveCount}/${wave.totalCount}, ratio=${aliveRatio.toFixed(2)}, engaged=${engaged}, assigned=${wave.assignedCounterCount}, coverage=${wave.getCounterCoverageRatio().toFixed(2)}, score=${score.toFixed(2)}`
             );
 
@@ -307,7 +425,7 @@ export class ArmyBrain extends Component {
         if (Math.random() > accuracy) {
             const random = this.getRandomEntry(entries);
 
-            this.log(
+            this.debugLog(
                 `Sensitive miss. Random choice: ${random ? random.name : 'null'}`
             );
 
@@ -327,7 +445,7 @@ export class ArmyBrain extends Component {
                 targetWave.unitType
             );
 
-            this.log(
+            this.debugLog(
                 `Candidate ${entry.name} / ${unitTypeToName(entry.unitType)} vs ${unitTypeToName(targetWave.unitType)} score=${score.toFixed(2)}`
             );
 
@@ -466,11 +584,19 @@ export class ArmyBrain extends Component {
         return Math.max(min, Math.min(max, v));
     }
 
-    private log(message: string) {
+    private stateLog(message: string) {
+        if (!this.enableStateLog) return;
+
+        console.log(
+            `[ArmyBrain State T${this.team}] ${message}`
+        );
+    }
+
+    private debugLog(message: string) {
         if (!this.enableDebugLog) return;
 
         console.log(
-            `[ArmyBrain T${this.team}] ${message}`
+            `[ArmyBrain Debug T${this.team}] ${message}`
         );
     }
 }
