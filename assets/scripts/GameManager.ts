@@ -144,6 +144,9 @@ export class GameManager extends Component {
     spawnWaveInterval = 3;
 
     @property
+    maxAutoSpawnDeltaTime = 0.1;
+
+    @property
     teamASpawnZ = -20;
 
     @property
@@ -514,7 +517,12 @@ export class GameManager extends Component {
     }
 
     private updateAutoSpawn(deltaTime: number) {
-        this.spawnWaveTimer += deltaTime;
+        const safeDeltaTime = Math.min(
+            deltaTime,
+            Math.max(0.016, this.maxAutoSpawnDeltaTime)
+        );
+
+        this.spawnWaveTimer += safeDeltaTime;
 
         if (
             this.spawnWaveTimer <

@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, CounterSettings, _dec, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, UnitBehavior;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, GameManager, CounterSettings, _dec, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, UnitBehavior;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -39,7 +39,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_3) {
       UnitProps = _unresolved_3.UnitProps;
     }, function (_unresolved_4) {
-      CounterSettings = _unresolved_4.CounterSettings;
+      GameManager = _unresolved_4.GameManager;
+    }, function (_unresolved_5) {
+      CounterSettings = _unresolved_5.CounterSettings;
     }],
     execute: function () {
       _crd = true;
@@ -123,8 +125,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           enemy.props.takeDamage(finalDamage);
 
           if (enemy.props.isDead()) {
-            if (this.gameManager) {
-              this.gameManager.despawnUnit(enemy);
+            const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance;
+
+            if (gm) {
+              gm.reportKill(this.unit, enemy);
+              gm.despawnUnit(enemy);
             }
 
             this.unit.clearEnemy();

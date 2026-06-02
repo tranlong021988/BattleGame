@@ -25,6 +25,9 @@ export class ArmyBrain extends Component {
     maxSpawnInterval = 5.0;
 
     @property
+    maxBrainDeltaTime = 0.1;
+
+    @property
     sensitive = 1.0;
 
     @property
@@ -39,9 +42,6 @@ export class ArmyBrain extends Component {
     @property
     preferUnengagedWave = true;
 
-    // Chuẩn hóa:
-    // Không còn dùng boolean avoidAssigned nữa.
-    // AI luôn dùng coverage để biết wave địch đã được counter đủ chưa.
     @property
     counterCoverageRatio = 1.0;
 
@@ -78,7 +78,12 @@ export class ArmyBrain extends Component {
             return;
         }
 
-        this.timer += deltaTime;
+        const safeDeltaTime = Math.min(
+            deltaTime,
+            Math.max(0.016, this.maxBrainDeltaTime)
+        );
+
+        this.timer += safeDeltaTime;
 
         if (this.timer < this.nextInterval) {
             return;
@@ -243,15 +248,12 @@ export class ArmyBrain extends Component {
 
             let score = 0;
 
-            // Wave còn đông thì nguy hiểm.
             score += aliveRatio * 100;
 
-            // Wave chưa engage thì counter có giá trị hơn.
             if (this.preferUnengagedWave && !engaged) {
                 score += 50;
             }
 
-            // Gần điểm phòng thủ thì nguy hiểm hơn.
             const distSq = wave.getClosestDistanceSqTo(
                 defendPoint.x,
                 defendPoint.z
@@ -261,7 +263,6 @@ export class ArmyBrain extends Component {
 
             score += Math.max(0, 100 - dist);
 
-            // Đã thiếu counter nhiều thì ưu tiên bổ sung.
             const uncovered = Math.max(
                 0,
                 this.counterCoverageRatio - wave.getCounterCoverageRatio()
@@ -269,7 +270,6 @@ export class ArmyBrain extends Component {
 
             score += uncovered * 40;
 
-            // Ưu tiên nhẹ wave đang tiến sâu vào sân nhà.
             const avgZ = wave.getAverageZ();
 
             if (this.team === 0) {

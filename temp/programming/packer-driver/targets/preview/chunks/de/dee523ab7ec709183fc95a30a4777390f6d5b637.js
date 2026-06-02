@@ -55,15 +55,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "defenderType", _descriptor2, this);
 
-          // Tăng damage của attacker khi đánh defender.
-          // Hard counter: 2.0
-          // Soft counter: 1.5
           _initializerDefineProperty(this, "damageMultiplier", _descriptor3, this);
 
-          // Hệ số damage mà defender nhận.
-          // 1.0 = bình thường
-          // 0.75 = defender giảm 25% damage nhận vào
-          // 0.5 = defender giảm 50% damage nhận vào
           _initializerDefineProperty(this, "receivedDamageMultiplier", _descriptor4, this);
 
           _initializerDefineProperty(this, "note", _descriptor5, this);
@@ -152,7 +145,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return 1;
           }
 
-          return Math.max(0, rule.receivedDamageMultiplier);
+          return Math.max(0.01, rule.receivedDamageMultiplier);
+        }
+
+        getCounterScore(attackerType, defenderType) {
+          var damageMul = this.getDamageMultiplier(attackerType, defenderType);
+          var receivedMul = this.getReceivedDamageMultiplier(attackerType, defenderType);
+          return damageMul * (1 / Math.max(0.1, receivedMul));
         }
 
         calculateDamage(attacker, defender) {
@@ -187,15 +186,77 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         createDefaultRules() {
           this.rules.length = 0; // =====================================================
-          // SPEAR
-          // Anti cavalry.
+          // SIMPLE LIGHT TEST LOOP
+          // Dùng bộ này để test ArmyBrain dễ nhìn:
+          //
+          // LightSword   > LightSpear
+          // LightSpear   > LightCavalry
+          // LightCavalry > LightArcher
+          // LightArcher  > LightMace
+          // LightMace    > LightSword
+          // LightMagic   > LightMace
+          // LightSword   > LightMagic
           // =====================================================
 
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSpear, 2.0, 1.0, 'Light Sword hard-counters Light Spear');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightSpear, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightCavalry, 2.0, 1.0, 'Light Spear hard-counters Light Cavalry');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightArcher, 2.0, 1.0, 'Light Cavalry hard-counters Light Archer');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightArcher, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMace, 2.0, 1.0, 'Light Archer hard-counters Light Mace');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMace, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSword, 2.0, 1.0, 'Light Mace hard-counters Light Sword');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMagic, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMace, 2.0, 1.0, 'Light Magic hard-counters Light Mace');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMagic, 2.0, 1.0, 'Light Sword hard-counters Light Magic'); // =====================================================
+          // OPTIONAL LIGHT SOFT COUNTERS
+          // Có thể giữ để AI có lựa chọn phụ.
+          // Nếu muốn test cực sạch, bạn có thể comment block này.
+          // =====================================================
+
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightArcher, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSpear, 1.5, 1.0, 'Light Archer soft-counters Light Spear');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMagic, 1.5, 1.0, 'Light Cavalry soft-counters Light Magic');
+          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSpear, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightMace, 1.5, 1.0, 'Light Spear soft-counters Light Mace'); // =====================================================
+          // HEAVY RULES
+          // Giữ sẵn để sau này mở rộng 12 unit.
+          // =====================================================
+
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightSpear, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -215,26 +276,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).HeavySpear, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
-          }), UnitType) : UnitType).HeavySword, 1.5, 1.0, 'Heavy Spear soft-counters Heavy Sword'); // =====================================================
-          // SWORD
-          // Generalist anti-light / infantry pressure.
-          // =====================================================
-
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSpear, 2.0, 1.0, 'Light Sword hard-counters Light Spear');
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightArcher, 2.0, 1.0, 'Light Sword hard-counters Light Archer');
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightMagic, 1.5, 1.0, 'Light Sword soft-counters Light Magic');
+          }), UnitType) : UnitType).HeavySword, 1.5, 1.0, 'Heavy Spear soft-counters Heavy Sword');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).HeavySword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -259,11 +301,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).HeavySword, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
-          }), UnitType) : UnitType).LightMagic, 1.5, 1.0, 'Heavy Sword soft-counters Light Magic'); // =====================================================
-          // MACE
-          // Armor breaker.
-          // =====================================================
-
+          }), UnitType) : UnitType).LightMagic, 1.5, 1.0, 'Heavy Sword soft-counters Light Magic');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightMace, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -288,21 +326,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).HeavyMace, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
-          }), UnitType) : UnitType).HeavyCavalry, 1.5, 1.0, 'Heavy Mace soft-counters Heavy Cavalry'); // =====================================================
-          // ARCHER
-          // Ranged pressure.
-          // =====================================================
-
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightArcher, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSpear, 2.0, 1.0, 'Light Archer hard-counters Light Spear');
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightArcher, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightMace, 2.0, 1.0, 'Light Archer hard-counters Light Mace');
+          }), UnitType) : UnitType).HeavyCavalry, 1.5, 1.0, 'Heavy Mace soft-counters Heavy Cavalry');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).HeavyArcher, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -317,26 +341,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).HeavyArcher, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
-          }), UnitType) : UnitType).HeavyCavalry, 1.5, 1.0, 'Heavy Archer soft-counters Heavy Cavalry'); // =====================================================
-          // CAVALRY
-          // Backline dive.
-          // =====================================================
-
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightArcher, 2.0, 1.0, 'Light Cavalry hard-counters Light Archer');
+          }), UnitType) : UnitType).HeavyCavalry, 1.5, 1.0, 'Heavy Archer soft-counters Heavy Cavalry');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).HeavyArcher, 2.0, 1.0, 'Light Cavalry hard-counters Heavy Archer');
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightMagic, 2.0, 1.0, 'Light Cavalry hard-counters Light Magic');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -361,11 +371,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).HeavyCavalry, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
-          }), UnitType) : UnitType).HeavySword, 1.5, 1.0, 'Heavy Cavalry soft-counters Heavy Sword'); // =====================================================
-          // MAGIC
-          // Anti blob / anti heavy.
-          // =====================================================
-
+          }), UnitType) : UnitType).HeavySword, 1.5, 1.0, 'Heavy Cavalry soft-counters Heavy Sword');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightMagic, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -376,11 +382,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitType) : UnitType).LightMagic, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).LightSpear, 1.5, 1.0, 'Light Magic soft-counters Light Spear');
-          this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightMagic, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightMace, 1.5, 1.0, 'Light Magic soft-counters Light Mace');
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).HeavyMagic, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -401,8 +402,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitType) : UnitType).HeavyMagic, (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
             error: Error()
           }), UnitType) : UnitType).HeavyCavalry, 1.5, 1.0, 'Heavy Magic soft-counters Heavy Cavalry'); // =====================================================
-          // Defensive examples.
-          // These are optional but useful to make some counters feel defensive.
+          // DEFENSIVE RULE EXAMPLES
           // =====================================================
 
           this.addRule((_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({

@@ -100,6 +100,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.updateOffset = 0;
           this.props = void 0;
           this.finder = void 0;
+          this.initialYaw = 0;
           this.lastStablePos = {
             x: 0,
             z: 0
@@ -124,6 +125,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.unitTypeName = unitTypeName;
           this.sim = sim;
           const p = this.node.worldPosition;
+          this.initialYaw = this.node.eulerAngles.y;
           this.agent = sim.addAgent(p.x, p.z);
           this.agent.maxSpeed = this.moveSpeed;
           this.agent.radius = this.radius;
@@ -151,6 +153,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.enemy = null;
             this.onBusy = false;
             this.onForward = false;
+            this.initialYaw = this.node.eulerAngles.y;
             this.agent.locked = true;
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
@@ -281,7 +284,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
               this.clearEnemy();
             } else {
-              this.lookAtEnemySmooth(deltaTime);
+              this.lookAtTargetSmooth(this.enemy, deltaTime);
               this.sim.setPrefVelocity(this.agent, 0, 0);
               this.agent.vel.x = 0;
               this.agent.vel.z = 0;
@@ -301,7 +304,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.agent.locked = true;
             this.cachedNearestEnemy = null;
             this.cachedNearestInRange = null;
-            this.lookAtEnemySmooth(deltaTime);
+            this.lookAtTargetSmooth(this.enemy, deltaTime);
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
@@ -313,6 +316,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
+            this.returnToInitialYawSmooth(deltaTime);
             this.sync(deltaTime, false);
             return;
           }
@@ -343,7 +347,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
             }
 
-            this.lookAtEnemySmooth(deltaTime);
+            this.lookAtTargetSmooth(this.enemy, deltaTime);
             this.sync(deltaTime, false);
           } else {
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -513,11 +517,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), EnemyFinder) : EnemyFinder).teamA;
         }
 
-        lookAtEnemySmooth(deltaTime) {
+        lookAtTargetSmooth(target, deltaTime) {
           if (!this.agent) return;
-          if (!this.enemy || !this.enemy.agent) return;
-          const dx = this.enemy.agent.pos.x - this.agent.pos.x;
-          const dz = this.enemy.agent.pos.z - this.agent.pos.z;
+          if (!target || !target.agent) return;
+          const dx = target.agent.pos.x - this.agent.pos.x;
+          const dz = target.agent.pos.z - this.agent.pos.z;
 
           if (dx * dx + dz * dz < 0.0001) {
             return;
@@ -526,6 +530,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           const currentY = this.node.eulerAngles.y;
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
+          this.node.setRotationFromEuler(0, newY, 0);
+        }
+
+        returnToInitialYawSmooth(deltaTime) {
+          const currentY = this.node.eulerAngles.y;
+          const newY = this.lerpAngle(currentY, this.initialYaw, this.rotationSpeed * deltaTime);
           this.node.setRotationFromEuler(0, newY, 0);
         }
 

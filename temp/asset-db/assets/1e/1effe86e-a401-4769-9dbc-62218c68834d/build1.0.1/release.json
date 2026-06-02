@@ -267,11 +267,12 @@
                 "minFov",
                 "maxFov",
                 "pinchSensitivity",
+                "mouseWheelSensitivity",
                 "zoomSmoothSpeed",
                 "node",
                 "targetCamera"
             ],
-            -7,
+            -8,
             1,
             1
         ],
@@ -845,7 +846,8 @@
             9,
             10,
             11,
-            11
+            12,
+            12
         ],
         [
             19,
@@ -1914,6 +1916,7 @@
                     true,
                     8,
                     15,
+                    0.05,
                     0.05,
                     10,
                     -72,
