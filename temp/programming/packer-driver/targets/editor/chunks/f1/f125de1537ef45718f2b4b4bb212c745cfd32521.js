@@ -46,6 +46,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         addUnit(unit) {
           if (!unit) return;
+          BattleWave.unitWaveMap.set(unit, this.id);
 
           if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
@@ -74,6 +75,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return this.getAliveCount() / this.totalCount;
+        }
+
+        getRandomAliveUnit() {
+          const aliveUnits = [];
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            aliveUnits.push(u);
+          }
+
+          if (aliveUnits.length <= 0) {
+            return null;
+          }
+
+          const index = Math.floor(Math.random() * aliveUnits.length);
+          return aliveUnits[index];
         }
 
         getCounterCoverageRatio() {
@@ -160,6 +178,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         isUnitAlive(unit) {
           if (!unit) return false;
+          const currentWaveId = BattleWave.unitWaveMap.get(unit);
+
+          if (currentWaveId !== this.id) {
+            return false;
+          }
+
           if (!unit.node.activeInHierarchy) return false;
           if (!unit.agent) return false;
           if (!unit.props) return false;
@@ -168,6 +192,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
       });
+
+      BattleWave.unitWaveMap = new WeakMap();
 
       _cclegacy._RF.pop();
 

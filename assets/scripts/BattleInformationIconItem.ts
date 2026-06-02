@@ -60,9 +60,14 @@ export class BattleInformationIconItem extends Component {
         this.initComponents();
 
         if (this.iconSprite) {
-            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
-            this.iconSprite.spriteFrame = spriteFrame;
-            this.iconSprite.color = this.normalColor;
+            this.iconSprite.sizeMode =
+                Sprite.SizeMode.CUSTOM;
+
+            this.iconSprite.spriteFrame =
+                spriteFrame;
+
+            this.iconSprite.color =
+                this.normalColor;
         }
 
         if (this.uiTransform) {
@@ -82,7 +87,9 @@ export class BattleInformationIconItem extends Component {
     }
 
     public setAliveRatio(ratio: number) {
-        if (!this.uiTransform) return;
+        if (!this.uiTransform) {
+            return;
+        }
 
         const r = this.clamp01(ratio);
 
@@ -91,6 +98,7 @@ export class BattleInformationIconItem extends Component {
                 this.originalWidth,
                 0
             );
+
             return;
         }
 
@@ -109,28 +117,46 @@ export class BattleInformationIconItem extends Component {
         isEngaged: boolean,
         time: number
     ) {
-        if (!this.iconSprite) return;
+        if (!this.iconSprite) {
+            return;
+        }
 
-        if (!this.flashEnabled || !isEngaged) {
-            this.iconSprite.color = this.normalColor;
+        if (
+            !this.flashEnabled ||
+            !isEngaged
+        ) {
+            this.iconSprite.color =
+                this.normalColor;
+
             return;
         }
 
         const t =
-            (Math.sin(time * this.flashSpeed) + 1) * 0.5;
+            (
+                Math.sin(
+                    time *
+                    this.flashSpeed
+                ) + 1
+            ) * 0.5;
 
-        this.iconSprite.color = this.lerpColor(
-            this.normalColor,
-            this.engageFlashColor,
-            t
-        );
+        this.iconSprite.color =
+            this.lerpColor(
+                this.normalColor,
+                this.engageFlashColor,
+                t
+            );
     }
 
     public resetVisual() {
         if (this.iconSprite) {
-            this.iconSprite.color = this.normalColor;
-            this.iconSprite.spriteFrame = null;
-            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+            this.iconSprite.color =
+                this.normalColor;
+
+            this.iconSprite.spriteFrame =
+                null;
+
+            this.iconSprite.sizeMode =
+                Sprite.SizeMode.CUSTOM;
         }
 
         if (this.uiTransform) {
@@ -145,14 +171,17 @@ export class BattleInformationIconItem extends Component {
 
     private initComponents() {
         if (!this.iconSprite) {
-            this.iconSprite = this.getComponent(Sprite);
+            this.iconSprite =
+                this.getComponent(Sprite);
         }
 
         if (!this.iconSprite) {
-            this.iconSprite = this.node.addComponent(Sprite);
+            this.iconSprite =
+                this.node.addComponent(Sprite);
         }
 
-        this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+        this.iconSprite.sizeMode =
+            Sprite.SizeMode.CUSTOM;
 
         this.uiTransform =
             this.getComponent(UITransform);
@@ -175,15 +204,29 @@ export class BattleInformationIconItem extends Component {
     ) {
         const c = new Color();
 
-        c.r = Math.round(a.r + (b.r - a.r) * t);
-        c.g = Math.round(a.g + (b.g - a.g) * t);
-        c.b = Math.round(a.b + (b.b - a.b) * t);
-        c.a = Math.round(a.a + (b.a - a.a) * t);
+        c.r = Math.round(
+            a.r + (b.r - a.r) * t
+        );
+
+        c.g = Math.round(
+            a.g + (b.g - a.g) * t
+        );
+
+        c.b = Math.round(
+            a.b + (b.b - a.b) * t
+        );
+
+        c.a = Math.round(
+            a.a + (b.a - a.a) * t
+        );
 
         return c;
     }
 
     private clamp01(v: number) {
-        return Math.max(0, Math.min(1, v));
+        return Math.max(
+            0,
+            Math.min(1, v)
+        );
     }
 }

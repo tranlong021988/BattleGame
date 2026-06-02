@@ -69,6 +69,28 @@ export class BattleWave {
         return this.getAliveCount() / this.totalCount;
     }
 
+    getRandomAliveUnit(): Unit | null {
+        const aliveUnits: Unit[] = [];
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            aliveUnits.push(u);
+        }
+
+        if (aliveUnits.length <= 0) {
+            return null;
+        }
+
+        const index = Math.floor(
+            Math.random() * aliveUnits.length
+        );
+
+        return aliveUnits[index];
+    }
+
     getCounterCoverageRatio() {
         const alive = this.getAliveCount();
 

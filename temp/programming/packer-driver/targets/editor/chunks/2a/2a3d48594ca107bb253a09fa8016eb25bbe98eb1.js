@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, Unit, UnitProps, EnemyFinder, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, UnitType, BattleWave, CounterSettings, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _class4, _class5, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _class6, _crd, ccclass, property, UnitPrefabEntry, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, Unit, UnitProps, EnemyFinder, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, UnitType, BattleWave, CounterSettings, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _class4, _class5, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _class6, _crd, ccclass, property, UnitPrefabEntry, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -285,25 +285,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "spawnWaveInterval", _descriptor34, this);
 
-          _initializerDefineProperty(this, "teamASpawnZ", _descriptor35, this);
+          _initializerDefineProperty(this, "maxAutoSpawnDeltaTime", _descriptor35, this);
 
-          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor36, this);
+          _initializerDefineProperty(this, "teamASpawnZ", _descriptor36, this);
 
-          _initializerDefineProperty(this, "maxUnitPerRow", _descriptor37, this);
+          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor37, this);
 
-          _initializerDefineProperty(this, "spaceBetweenUnit", _descriptor38, this);
+          _initializerDefineProperty(this, "maxUnitPerRow", _descriptor38, this);
 
-          _initializerDefineProperty(this, "spaceBetweenRow", _descriptor39, this);
+          _initializerDefineProperty(this, "spaceBetweenUnit", _descriptor39, this);
 
-          _initializerDefineProperty(this, "formationZNoise", _descriptor40, this);
+          _initializerDefineProperty(this, "spaceBetweenRow", _descriptor40, this);
 
-          _initializerDefineProperty(this, "centerGapWidth", _descriptor41, this);
+          _initializerDefineProperty(this, "formationZNoise", _descriptor41, this);
+
+          _initializerDefineProperty(this, "centerGapWidth", _descriptor42, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor42, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor43, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor43, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor44, this);
 
           this.sim = null;
           this.teamA = [];
@@ -549,7 +551,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         updateAutoSpawn(deltaTime) {
-          this.spawnWaveTimer += deltaTime;
+          const safeDeltaTime = Math.min(deltaTime, Math.max(0.016, this.maxAutoSpawnDeltaTime));
+          this.spawnWaveTimer += safeDeltaTime;
 
           if (this.spawnWaveTimer < this.spawnWaveInterval) {
             return;
@@ -1118,63 +1121,70 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 3;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "teamASpawnZ", [property], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "maxAutoSpawnDeltaTime", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.1;
+        }
+      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "teamASpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return -20;
         }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "teamBSpawnZ", [property], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "teamBSpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 20;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "maxUnitPerRow", [property], {
+      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "maxUnitPerRow", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 8;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "spaceBetweenUnit", [property], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "spaceBetweenUnit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.5;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "spaceBetweenRow", [property], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "spaceBetweenRow", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.5;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "formationZNoise", [property], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "formationZNoise", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.25;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "centerGapWidth", [property], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "centerGapWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 3;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "circleObstacles", [_dec17], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "circleObstacles", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "rectObstacles", [_dec18], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "rectObstacles", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,

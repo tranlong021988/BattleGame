@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _crd, ccclass, property, TopDownCameraDrag;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _crd, ccclass, property, TopDownCameraDrag;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -20,13 +20,14 @@ System.register(["cc"], function (_export, _context) {
       Vec3 = _cc.Vec3;
       input = _cc.input;
       Input = _cc.Input;
+      view = _cc.view;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "5bcc66+7gVGqIHNVMwg6Mww", "TopDownCameraDrag", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Camera', 'Vec3', 'input', 'Input', 'EventTouch']);
+      __checkObsolete__(['_decorator', 'Component', 'Camera', 'Vec3', 'input', 'Input', 'EventTouch', 'EventMouse', 'view']);
 
       ({
         ccclass,
@@ -51,23 +52,39 @@ System.register(["cc"], function (_export, _context) {
 
           _initializerDefineProperty(this, "maxZ", _descriptor7, this);
 
-          _initializerDefineProperty(this, "dragSensitivity", _descriptor8, this);
+          _initializerDefineProperty(this, "expandBoundsWhenZoomIn", _descriptor8, this);
 
-          _initializerDefineProperty(this, "smoothSpeed", _descriptor9, this);
+          _initializerDefineProperty(this, "maxBoundsExpandMultiplier", _descriptor9, this);
 
-          _initializerDefineProperty(this, "invertX", _descriptor10, this);
+          _initializerDefineProperty(this, "dragSensitivity", _descriptor10, this);
 
-          _initializerDefineProperty(this, "invertZ", _descriptor11, this);
+          _initializerDefineProperty(this, "smoothSpeed", _descriptor11, this);
 
-          _initializerDefineProperty(this, "enablePinchZoom", _descriptor12, this);
+          _initializerDefineProperty(this, "invertX", _descriptor12, this);
 
-          _initializerDefineProperty(this, "minFov", _descriptor13, this);
+          _initializerDefineProperty(this, "invertZ", _descriptor13, this);
 
-          _initializerDefineProperty(this, "maxFov", _descriptor14, this);
+          _initializerDefineProperty(this, "enablePinchZoom", _descriptor14, this);
 
-          _initializerDefineProperty(this, "pinchSensitivity", _descriptor15, this);
+          _initializerDefineProperty(this, "enableMouseWheelZoom", _descriptor15, this);
 
-          _initializerDefineProperty(this, "zoomSmoothSpeed", _descriptor16, this);
+          _initializerDefineProperty(this, "minFov", _descriptor16, this);
+
+          _initializerDefineProperty(this, "maxFov", _descriptor17, this);
+
+          _initializerDefineProperty(this, "pinchSensitivity", _descriptor18, this);
+
+          _initializerDefineProperty(this, "mouseWheelSensitivity", _descriptor19, this);
+
+          _initializerDefineProperty(this, "zoomSmoothSpeed", _descriptor20, this);
+
+          _initializerDefineProperty(this, "zoomToPointer", _descriptor21, this);
+
+          _initializerDefineProperty(this, "zoomPointerMoveStrength", _descriptor22, this);
+
+          _initializerDefineProperty(this, "invertZoomPointerX", _descriptor23, this);
+
+          _initializerDefineProperty(this, "invertZoomPointerZ", _descriptor24, this);
 
           this.targetPos = new Vec3();
           this.currentPos = new Vec3();
@@ -88,6 +105,7 @@ System.register(["cc"], function (_export, _context) {
           input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
           input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
           input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+          input.on(Input.EventType.MOUSE_WHEEL, this.onMouseWheel, this);
         }
 
         onDisable() {
@@ -95,6 +113,7 @@ System.register(["cc"], function (_export, _context) {
           input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
           input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
           input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+          input.off(Input.EventType.MOUSE_WHEEL, this.onMouseWheel, this);
         }
 
         start() {
@@ -162,6 +181,15 @@ System.register(["cc"], function (_export, _context) {
           this.lastPinchDistance = 0;
         }
 
+        onMouseWheel(event) {
+          if (!this.enableMouseWheelZoom) return;
+          if (!this.targetCamera) return;
+          var scrollY = event.getScrollY();
+          if (Math.abs(scrollY) < 0.0001) return;
+          var p = event.getLocation();
+          this.zoomAtScreenPoint(p.x, p.y, scrollY * this.mouseWheelSensitivity);
+        }
+
         handleDrag(event) {
           if (!this.isDragging) return;
           var delta = event.getDelta();
@@ -184,8 +212,7 @@ System.register(["cc"], function (_export, _context) {
             this.targetPos.z += moveZ;
           }
 
-          this.targetPos.x = this.clamp(this.targetPos.x, this.minX, this.maxX);
-          this.targetPos.z = this.clamp(this.targetPos.z, this.minZ, this.maxZ);
+          this.clampTargetPosition();
         }
 
         handlePinchZoom(touches) {
@@ -197,11 +224,56 @@ System.register(["cc"], function (_export, _context) {
             return;
           }
 
-          var delta = dist - this.lastPinchDistance; // Hai ngón tách xa nhau => zoom in => FOV nhỏ lại
-
-          this.targetFov -= delta * this.pinchSensitivity;
-          this.targetFov = this.clamp(this.targetFov, this.minFov, this.maxFov);
+          var delta = dist - this.lastPinchDistance;
+          var center = this.getTouchCenter(touches);
+          this.zoomAtScreenPoint(center.x, center.y, delta * this.pinchSensitivity);
           this.lastPinchDistance = dist;
+        }
+
+        zoomAtScreenPoint(screenX, screenY, zoomDelta) {
+          if (!this.targetCamera) return;
+          var oldFov = this.targetFov; // Pinch out / wheel up => zoom in => FOV nhỏ lại.
+
+          this.targetFov -= zoomDelta;
+          this.targetFov = this.clamp(this.targetFov, this.minFov, this.maxFov);
+          var fovChange = oldFov - this.targetFov;
+
+          if (this.zoomToPointer && Math.abs(fovChange) > 0.0001) {
+            this.applyZoomPointerBias(screenX, screenY, fovChange);
+          }
+
+          this.clampTargetPosition();
+        }
+
+        applyZoomPointerBias(screenX, screenY, fovChange) {
+          var size = view.getVisibleSize();
+
+          if (size.width <= 0 || size.height <= 0) {
+            return;
+          }
+
+          var normalizedX = (screenX / size.width - 0.5) * 2;
+          var normalizedY = (screenY / size.height - 0.5) * 2;
+          var fovRange = Math.max(0.0001, this.maxFov - this.minFov);
+          var zoomAmount = fovChange / fovRange;
+          var moveX = normalizedX * zoomAmount * this.zoomPointerMoveStrength;
+          var moveZ = normalizedY * zoomAmount * this.zoomPointerMoveStrength;
+
+          if (this.invertZoomPointerX) {
+            moveX = -moveX;
+          }
+
+          if (this.invertZoomPointerZ) {
+            moveZ = -moveZ;
+          }
+
+          if (this.enableDragX) {
+            this.targetPos.x += moveX;
+          }
+
+          if (this.enableDragZ) {
+            this.targetPos.z += moveZ;
+          }
         }
 
         update(deltaTime) {
@@ -211,6 +283,7 @@ System.register(["cc"], function (_export, _context) {
 
         updatePosition(deltaTime) {
           this.node.getWorldPosition(this.currentPos);
+          this.clampTargetPosition();
           var t = 1 - Math.exp(-this.smoothSpeed * deltaTime);
           var newX = this.currentPos.x + (this.targetPos.x - this.currentPos.x) * t;
           var newY = this.currentPos.y;
@@ -225,6 +298,36 @@ System.register(["cc"], function (_export, _context) {
           this.targetCamera.fov = this.targetCamera.fov + (this.targetFov - this.targetCamera.fov) * t;
         }
 
+        clampTargetPosition() {
+          var bounds = this.getDynamicBounds();
+          this.targetPos.x = this.clamp(this.targetPos.x, bounds.minX, bounds.maxX);
+          this.targetPos.z = this.clamp(this.targetPos.z, bounds.minZ, bounds.maxZ);
+        }
+
+        getDynamicBounds() {
+          if (!this.expandBoundsWhenZoomIn || !this.targetCamera || this.maxFov <= this.minFov) {
+            return {
+              minX: this.minX,
+              maxX: this.maxX,
+              minZ: this.minZ,
+              maxZ: this.maxZ
+            };
+          }
+
+          var zoom01 = this.clamp((this.maxFov - this.targetCamera.fov) / (this.maxFov - this.minFov), 0, 1);
+          var expandMultiplier = 1 + zoom01 * (Math.max(1, this.maxBoundsExpandMultiplier) - 1);
+          var centerX = (this.minX + this.maxX) * 0.5;
+          var centerZ = (this.minZ + this.maxZ) * 0.5;
+          var halfX = (this.maxX - this.minX) * 0.5 * expandMultiplier;
+          var halfZ = (this.maxZ - this.minZ) * 0.5 * expandMultiplier;
+          return {
+            minX: centerX - halfX,
+            maxX: centerX + halfX,
+            minZ: centerZ - halfZ,
+            maxZ: centerZ + halfZ
+          };
+        }
+
         getTouchDistance(touches) {
           if (touches.length < 2) return 0;
           var p0 = touches[0].getLocation();
@@ -232,6 +335,15 @@ System.register(["cc"], function (_export, _context) {
           var dx = p1.x - p0.x;
           var dy = p1.y - p0.y;
           return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        getTouchCenter(touches) {
+          var p0 = touches[0].getLocation();
+          var p1 = touches[1].getLocation();
+          return {
+            x: (p0.x + p1.x) * 0.5,
+            y: (p0.y + p1.y) * 0.5
+          };
         }
 
         clamp(value, min, max) {
@@ -287,68 +399,124 @@ System.register(["cc"], function (_export, _context) {
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "dragSensitivity", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.03;
-        }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "smoothSpeed", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 12;
-        }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "invertX", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return false;
-        }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "invertZ", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return false;
-        }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "enablePinchZoom", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "expandBoundsWhenZoomIn", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "minFov", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "maxBoundsExpandMultiplier", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 2.5;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "dragSensitivity", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.03;
+        }
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "smoothSpeed", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 12;
+        }
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "invertX", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "invertZ", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "enablePinchZoom", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "enableMouseWheelZoom", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "minFov", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 25;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "maxFov", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "maxFov", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 60;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "pinchSensitivity", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "pinchSensitivity", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.08;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "zoomSmoothSpeed", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "mouseWheelSensitivity", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.03;
+        }
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "zoomSmoothSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 12;
+        }
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "zoomToPointer", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "zoomPointerMoveStrength", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 8;
+        }
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "invertZoomPointerX", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "invertZoomPointerZ", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
         }
       })), _class2)) || _class));
 
