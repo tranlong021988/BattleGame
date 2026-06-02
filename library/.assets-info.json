@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1780400899379.6523,
+      "time": 1780402945303.3633,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -397,7 +397,7 @@
       "time": 1780371682382.9636
     },
     "scripts\\BattleWave.ts": {
-      "time": 1780371682382.9636,
+      "time": 1780401167611.9817,
       "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
     },
     "scripts\\ArmyBrain.ts.meta": {
@@ -474,14 +474,14 @@
       "time": 1780400082973.7388
     },
     "scripts\\BattleInformationIconItem.ts": {
-      "time": 1780400845690.9207,
+      "time": 1780402605124.5588,
       "uuid": "d01ac8e7-fca7-4022-afe0-14a123deae2e"
     },
     "scripts\\BattleInformationPanel.ts.meta": {
       "time": 1780400112276.6519
     },
     "scripts\\BattleInformationPanel.ts": {
-      "time": 1780400565707.2227,
+      "time": 1780402619134.2542,
       "uuid": "8a2cc15b-f736-42b8-92c1-ecc6b7aa8450"
     }
   },

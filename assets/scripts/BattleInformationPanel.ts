@@ -1,6 +1,7 @@
 import {
     _decorator,
     Component,
+    Layers,
     Node,
     Sprite,
     SpriteFrame,
@@ -55,18 +56,25 @@ export class BattleInformationPanel extends Component {
     updateInterval = 0.1;
 
     @property
-    removeDeadWaveIcon = true;
+    iconWidth = 40;
 
     @property
-    destroyRemovedIcon = true;
+    iconHeight = 40;
 
     @property
-    iconWidth = 32;
+    teamAAnchorY = 0;
 
     @property
-    iconHeight = 32;
+    teamBAnchorY = 1;
+
+    @property
+    prewarmIconCount = 32;
+
+    @property
+    maxPoolSize = 128;
 
     private records: Map<number, WaveIconRecord> = new Map();
+    private pool: Node[] = [];
 
     private timer = 0;
     private time = 0;
@@ -77,6 +85,7 @@ export class BattleInformationPanel extends Component {
         }
 
         this.clearAllIcons();
+        this.prewarmPool();
     }
 
     update(deltaTime: number) {
@@ -84,7 +93,7 @@ export class BattleInformationPanel extends Component {
         this.timer += deltaTime;
 
         if (this.timer < this.updateInterval) {
-            this.updateBlinkOnly();
+            this.updateFlashOnly();
             return;
         }
 
@@ -92,6 +101,22 @@ export class BattleInformationPanel extends Component {
 
         this.syncWithBattleWaves();
         this.updateAllIcons();
+    }
+
+    private prewarmPool() {
+        const count = Math.max(
+            0,
+            Math.floor(this.prewarmIconCount)
+        );
+
+        for (let i = 0; i < count; i++) {
+            const node = this.createIconNode();
+
+            node.active = false;
+            this.node.addChild(node);
+
+            this.pool.push(node);
+        }
     }
 
     private syncWithBattleWaves() {
@@ -124,8 +149,10 @@ export class BattleInformationPanel extends Component {
             return;
         }
 
-        const node = this.createIconNode();
+        const node = this.getIconNodeFromPool();
         node.name = `wave-icon-${wave.id}-${wave.unitName}`;
+        node.layer = Layers.Enum.UI_2D;
+        node.active = true;
 
         root.addChild(node);
 
@@ -136,7 +163,17 @@ export class BattleInformationPanel extends Component {
             wave.unitType
         );
 
-        item.setup(spriteFrame);
+        const anchorY =
+            wave.team === 0
+                ? this.teamAAnchorY
+                : this.teamBAnchorY;
+
+        item.setup(
+            spriteFrame,
+            this.iconWidth,
+            this.iconHeight,
+            anchorY
+        );
 
         this.records.set(wave.id, {
             wave,
@@ -145,8 +182,18 @@ export class BattleInformationPanel extends Component {
         });
     }
 
+    private getIconNodeFromPool() {
+        if (this.pool.length > 0) {
+            return this.pool.pop()!;
+        }
+
+        return this.createIconNode();
+    }
+
     private createIconNode() {
         const node = new Node('wave-icon');
+
+        node.layer = Layers.Enum.UI_2D;
 
         const ui = node.addComponent(UITransform);
         ui.setContentSize(
@@ -155,7 +202,9 @@ export class BattleInformationPanel extends Component {
         );
         ui.setAnchorPoint(0.5, 0.5);
 
-        node.addComponent(Sprite);
+        const sprite = node.addComponent(Sprite);
+        sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+
         node.addComponent(BattleInformationIconItem);
 
         return node;
@@ -169,11 +218,7 @@ export class BattleInformationPanel extends Component {
 
             if (!wave || wave.isDead()) {
                 record.item.setAliveRatio(0);
-
-                if (this.removeDeadWaveIcon) {
-                    removeIds.push(waveId);
-                }
-
+                removeIds.push(waveId);
                 return;
             }
 
@@ -187,11 +232,11 @@ export class BattleInformationPanel extends Component {
         });
 
         for (let i = 0; i < removeIds.length; i++) {
-            this.removeIcon(removeIds[i]);
+            this.releaseIcon(removeIds[i]);
         }
     }
 
-    private updateBlinkOnly() {
+    private updateFlashOnly() {
         this.records.forEach((record) => {
             const wave = record.wave;
 
@@ -204,18 +249,22 @@ export class BattleInformationPanel extends Component {
         });
     }
 
-    private removeIcon(waveId: number) {
+    private releaseIcon(waveId: number) {
         const record = this.records.get(waveId);
 
         if (!record) return;
 
         record.item.resetVisual();
 
-        if (this.destroyRemovedIcon) {
-            record.node.destroy();
+        record.node.removeFromParent();
+        record.node.active = false;
+        record.node.name = 'wave-icon-pooled';
+
+        if (this.pool.length < this.maxPoolSize) {
+            this.node.addChild(record.node);
+            this.pool.push(record.node);
         } else {
-            record.node.removeFromParent();
-            record.node.active = false;
+            record.node.destroy();
         }
 
         this.records.delete(waveId);
@@ -223,10 +272,16 @@ export class BattleInformationPanel extends Component {
 
     public clearAllIcons() {
         this.records.forEach((record) => {
-            if (this.destroyRemovedIcon) {
-                record.node.destroy();
+            record.item.resetVisual();
+
+            record.node.removeFromParent();
+            record.node.active = false;
+
+            if (this.pool.length < this.maxPoolSize) {
+                this.node.addChild(record.node);
+                this.pool.push(record.node);
             } else {
-                record.node.removeFromParent();
+                record.node.destroy();
             }
         });
 

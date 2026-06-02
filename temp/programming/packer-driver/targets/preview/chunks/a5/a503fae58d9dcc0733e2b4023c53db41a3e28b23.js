@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Sprite, UIOpacity, UITransform, Vec3, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, BattleInformationIconItem;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Sprite, UITransform, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, BattleInformationIconItem;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -15,25 +15,24 @@ System.register(["cc"], function (_export, _context) {
       __checkObsolete__ = _cc.__checkObsolete__;
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
+      Color = _cc.Color;
       Component = _cc.Component;
       Sprite = _cc.Sprite;
-      UIOpacity = _cc.UIOpacity;
       UITransform = _cc.UITransform;
-      Vec3 = _cc.Vec3;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "d01acjn/KdAIq/gFKEj3q4u", "BattleInformationIconItem", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Sprite', 'SpriteFrame', 'UIOpacity', 'UITransform', 'Vec3']);
+      __checkObsolete__(['_decorator', 'Color', 'Component', 'Sprite', 'SpriteFrame', 'UITransform']);
 
       ({
         ccclass,
         property
       } = _decorator);
 
-      _export("BattleInformationIconItem", BattleInformationIconItem = (_dec = ccclass('BattleInformationIconItem'), _dec2 = property(Sprite), _dec(_class = (_class2 = class BattleInformationIconItem extends Component {
+      _export("BattleInformationIconItem", BattleInformationIconItem = (_dec = ccclass('BattleInformationIconItem'), _dec2 = property(Sprite), _dec3 = property(Color), _dec4 = property(Color), _dec(_class = (_class2 = class BattleInformationIconItem extends Component {
         constructor() {
           super(...arguments);
 
@@ -43,83 +42,84 @@ System.register(["cc"], function (_export, _context) {
 
           _initializerDefineProperty(this, "iconHeight", _descriptor3, this);
 
-          _initializerDefineProperty(this, "minVisibleScaleY", _descriptor4, this);
+          _initializerDefineProperty(this, "minVisibleHeightRatio", _descriptor4, this);
 
-          _initializerDefineProperty(this, "blinkEnabled", _descriptor5, this);
+          _initializerDefineProperty(this, "flashEnabled", _descriptor5, this);
 
-          _initializerDefineProperty(this, "blinkSpeed", _descriptor6, this);
+          _initializerDefineProperty(this, "flashSpeed", _descriptor6, this);
 
-          _initializerDefineProperty(this, "blinkMinOpacity", _descriptor7, this);
+          _initializerDefineProperty(this, "normalColor", _descriptor7, this);
 
-          _initializerDefineProperty(this, "blinkMaxOpacity", _descriptor8, this);
+          _initializerDefineProperty(this, "engageFlashColor", _descriptor8, this);
 
-          this.opacity = null;
-          this.baseScale = new Vec3(1, 1, 1);
+          this.uiTransform = null;
+          this.originalWidth = 40;
+          this.originalHeight = 40;
         }
 
         onLoad() {
           this.initComponents();
         }
 
-        setup(spriteFrame, width, height) {
+        setup(spriteFrame, width, height, anchorY) {
           this.iconWidth = width;
           this.iconHeight = height;
+          this.originalWidth = width;
+          this.originalHeight = height;
           this.initComponents();
-          var ui = this.getComponent(UITransform);
-
-          if (ui) {
-            ui.setContentSize(this.iconWidth, this.iconHeight);
-            ui.setAnchorPoint(0.5, 0.5);
-          }
 
           if (this.iconSprite) {
             this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
             this.iconSprite.spriteFrame = spriteFrame;
-            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+            this.iconSprite.color = this.normalColor;
           }
 
-          if (ui) {
-            ui.setContentSize(this.iconWidth, this.iconHeight);
+          if (this.uiTransform) {
+            this.uiTransform.setContentSize(this.originalWidth, this.originalHeight);
+            this.uiTransform.setAnchorPoint(0.5, anchorY);
           }
 
-          if (this.opacity) {
-            this.opacity.opacity = 255;
-          }
-
-          this.baseScale.set(1, 1, 1);
-          this.node.setScale(this.baseScale);
+          this.node.setScale(1, 1, 1);
+          this.node.active = true;
         }
 
         setAliveRatio(ratio) {
+          if (!this.uiTransform) return;
           var r = this.clamp01(ratio);
 
           if (r <= 0) {
-            this.node.setScale(this.baseScale.x, 0, this.baseScale.z);
+            this.uiTransform.setContentSize(this.originalWidth, 0);
             return;
           }
 
-          var visualScaleY = Math.max(this.minVisibleScaleY, r);
-          this.node.setScale(this.baseScale.x, this.baseScale.y * visualScaleY, this.baseScale.z);
+          var visualRatio = Math.max(this.minVisibleHeightRatio, r);
+          this.uiTransform.setContentSize(this.originalWidth, this.originalHeight * visualRatio);
         }
 
         updateEngageVisual(isEngaged, time) {
-          if (!this.opacity) return;
+          if (!this.iconSprite) return;
 
-          if (!this.blinkEnabled || !isEngaged) {
-            this.opacity.opacity = 255;
+          if (!this.flashEnabled || !isEngaged) {
+            this.iconSprite.color = this.normalColor;
             return;
           }
 
-          var t = (Math.sin(time * this.blinkSpeed) + 1) * 0.5;
-          this.opacity.opacity = this.blinkMinOpacity + (this.blinkMaxOpacity - this.blinkMinOpacity) * t;
+          var t = (Math.sin(time * this.flashSpeed) + 1) * 0.5;
+          this.iconSprite.color = this.lerpColor(this.normalColor, this.engageFlashColor, t);
         }
 
         resetVisual() {
-          if (this.opacity) {
-            this.opacity.opacity = 255;
+          if (this.iconSprite) {
+            this.iconSprite.color = this.normalColor;
+            this.iconSprite.spriteFrame = null;
+            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
           }
 
-          this.node.setScale(this.baseScale);
+          if (this.uiTransform) {
+            this.uiTransform.setContentSize(this.originalWidth, this.originalHeight);
+          }
+
+          this.node.setScale(1, 1, 1);
         }
 
         initComponents() {
@@ -127,22 +127,27 @@ System.register(["cc"], function (_export, _context) {
             this.iconSprite = this.getComponent(Sprite);
           }
 
-          if (this.iconSprite) {
-            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+          if (!this.iconSprite) {
+            this.iconSprite = this.node.addComponent(Sprite);
           }
 
-          this.opacity = this.getComponent(UIOpacity);
+          this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+          this.uiTransform = this.getComponent(UITransform);
 
-          if (!this.opacity) {
-            this.opacity = this.node.addComponent(UIOpacity);
+          if (!this.uiTransform) {
+            this.uiTransform = this.node.addComponent(UITransform);
           }
 
-          var ui = this.getComponent(UITransform);
+          this.uiTransform.setContentSize(this.iconWidth, this.iconHeight);
+        }
 
-          if (ui) {
-            ui.setContentSize(this.iconWidth, this.iconHeight);
-            ui.setAnchorPoint(0.5, 0.5);
-          }
+        lerpColor(a, b, t) {
+          var c = new Color();
+          c.r = Math.round(a.r + (b.r - a.r) * t);
+          c.g = Math.round(a.g + (b.g - a.g) * t);
+          c.b = Math.round(a.b + (b.b - a.b) * t);
+          c.a = Math.round(a.a + (b.a - a.a) * t);
+          return c;
         }
 
         clamp01(v) {
@@ -170,40 +175,40 @@ System.register(["cc"], function (_export, _context) {
         initializer: function initializer() {
           return 40;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "minVisibleScaleY", [property], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "minVisibleHeightRatio", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.05;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "blinkEnabled", [property], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "flashEnabled", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "blinkSpeed", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "flashSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 8;
+          return 10;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "blinkMinOpacity", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "normalColor", [_dec3], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 100;
+          return new Color(255, 255, 255, 255);
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "blinkMaxOpacity", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "engageFlashColor", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 255;
+          return new Color(255, 60, 60, 255);
         }
       })), _class2)) || _class));
 

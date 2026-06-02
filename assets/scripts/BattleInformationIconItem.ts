@@ -1,11 +1,10 @@
 import {
     _decorator,
+    Color,
     Component,
     Sprite,
     SpriteFrame,
-    UIOpacity,
     UITransform,
-    Vec3,
 } from 'cc';
 
 const { ccclass, property } = _decorator;
@@ -23,22 +22,24 @@ export class BattleInformationIconItem extends Component {
     iconHeight = 40;
 
     @property
-    minVisibleScaleY = 0.05;
+    minVisibleHeightRatio = 0.05;
 
     @property
-    blinkEnabled = true;
+    flashEnabled = true;
 
     @property
-    blinkSpeed = 8;
+    flashSpeed = 10;
 
-    @property
-    blinkMinOpacity = 100;
+    @property(Color)
+    normalColor: Color = new Color(255, 255, 255, 255);
 
-    @property
-    blinkMaxOpacity = 255;
+    @property(Color)
+    engageFlashColor: Color = new Color(255, 60, 60, 255);
 
-    private opacity: UIOpacity | null = null;
-    private baseScale = new Vec3(1, 1, 1);
+    private uiTransform: UITransform | null = null;
+
+    private originalWidth = 40;
+    private originalHeight = 40;
 
     onLoad() {
         this.initComponents();
@@ -47,84 +48,99 @@ export class BattleInformationIconItem extends Component {
     public setup(
         spriteFrame: SpriteFrame | null,
         width: number,
-        height: number
+        height: number,
+        anchorY: number
     ) {
         this.iconWidth = width;
         this.iconHeight = height;
 
+        this.originalWidth = width;
+        this.originalHeight = height;
+
         this.initComponents();
-
-        const ui = this.getComponent(UITransform);
-
-        if (ui) {
-            ui.setContentSize(this.iconWidth, this.iconHeight);
-            ui.setAnchorPoint(0.5, 0.5);
-        }
 
         if (this.iconSprite) {
             this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
             this.iconSprite.spriteFrame = spriteFrame;
-            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+            this.iconSprite.color = this.normalColor;
         }
 
-        if (ui) {
-            ui.setContentSize(this.iconWidth, this.iconHeight);
+        if (this.uiTransform) {
+            this.uiTransform.setContentSize(
+                this.originalWidth,
+                this.originalHeight
+            );
+
+            this.uiTransform.setAnchorPoint(
+                0.5,
+                anchorY
+            );
         }
 
-        if (this.opacity) {
-            this.opacity.opacity = 255;
-        }
-
-        this.baseScale.set(1, 1, 1);
-        this.node.setScale(this.baseScale);
+        this.node.setScale(1, 1, 1);
+        this.node.active = true;
     }
 
     public setAliveRatio(ratio: number) {
+        if (!this.uiTransform) return;
+
         const r = this.clamp01(ratio);
 
         if (r <= 0) {
-            this.node.setScale(
-                this.baseScale.x,
-                0,
-                this.baseScale.z
+            this.uiTransform.setContentSize(
+                this.originalWidth,
+                0
             );
             return;
         }
 
-        const visualScaleY = Math.max(
-            this.minVisibleScaleY,
+        const visualRatio = Math.max(
+            this.minVisibleHeightRatio,
             r
         );
 
-        this.node.setScale(
-            this.baseScale.x,
-            this.baseScale.y * visualScaleY,
-            this.baseScale.z
+        this.uiTransform.setContentSize(
+            this.originalWidth,
+            this.originalHeight * visualRatio
         );
     }
 
-    public updateEngageVisual(isEngaged: boolean, time: number) {
-        if (!this.opacity) return;
+    public updateEngageVisual(
+        isEngaged: boolean,
+        time: number
+    ) {
+        if (!this.iconSprite) return;
 
-        if (!this.blinkEnabled || !isEngaged) {
-            this.opacity.opacity = 255;
+        if (!this.flashEnabled || !isEngaged) {
+            this.iconSprite.color = this.normalColor;
             return;
         }
 
         const t =
-            (Math.sin(time * this.blinkSpeed) + 1) * 0.5;
+            (Math.sin(time * this.flashSpeed) + 1) * 0.5;
 
-        this.opacity.opacity =
-            this.blinkMinOpacity +
-            (this.blinkMaxOpacity - this.blinkMinOpacity) * t;
+        this.iconSprite.color = this.lerpColor(
+            this.normalColor,
+            this.engageFlashColor,
+            t
+        );
     }
 
     public resetVisual() {
-        if (this.opacity) {
-            this.opacity.opacity = 255;
+        if (this.iconSprite) {
+            this.iconSprite.color = this.normalColor;
+            this.iconSprite.spriteFrame = null;
+            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
         }
 
-        this.node.setScale(this.baseScale);
+        if (this.uiTransform) {
+            this.uiTransform.setContentSize(
+                this.originalWidth,
+                this.originalHeight
+            );
+        }
+
+        this.node.setScale(1, 1, 1);
     }
 
     private initComponents() {
@@ -132,22 +148,39 @@ export class BattleInformationIconItem extends Component {
             this.iconSprite = this.getComponent(Sprite);
         }
 
-        if (this.iconSprite) {
-            this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+        if (!this.iconSprite) {
+            this.iconSprite = this.node.addComponent(Sprite);
         }
 
-        this.opacity = this.getComponent(UIOpacity);
+        this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
 
-        if (!this.opacity) {
-            this.opacity = this.node.addComponent(UIOpacity);
+        this.uiTransform =
+            this.getComponent(UITransform);
+
+        if (!this.uiTransform) {
+            this.uiTransform =
+                this.node.addComponent(UITransform);
         }
 
-        const ui = this.getComponent(UITransform);
+        this.uiTransform.setContentSize(
+            this.iconWidth,
+            this.iconHeight
+        );
+    }
 
-        if (ui) {
-            ui.setContentSize(this.iconWidth, this.iconHeight);
-            ui.setAnchorPoint(0.5, 0.5);
-        }
+    private lerpColor(
+        a: Color,
+        b: Color,
+        t: number
+    ) {
+        const c = new Color();
+
+        c.r = Math.round(a.r + (b.r - a.r) * t);
+        c.g = Math.round(a.g + (b.g - a.g) * t);
+        c.b = Math.round(a.b + (b.b - a.b) * t);
+        c.a = Math.round(a.a + (b.a - a.a) * t);
+
+        return c;
     }
 
     private clamp01(v: number) {

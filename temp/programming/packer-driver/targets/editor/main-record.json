@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 27280543.3388,
+      "mTimestamp": 29070755.4321,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -6447,7 +6447,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1780371682382.9636,
+        "mtime": 1780401167611.9817,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -6553,7 +6553,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts": {
       "mTimestamp": {
-        "mtime": 1780400845690.9207,
+        "mtime": 1780402605124.5588,
         "uuid": "d01ac8e7-fca7-4022-afe0-14a123deae2e"
       },
       "chunkId": "a503fae58d9dcc0733e2b4023c53db41a3e28b23",
@@ -6568,11 +6568,11 @@
           "value": "cc",
           "loc": {
             "start": {
-              "line": 9,
+              "line": 8,
               "column": 7
             },
             "end": {
-              "line": 9,
+              "line": 8,
               "column": 11
             }
           }
@@ -6605,7 +6605,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationPanel.ts": {
       "mTimestamp": {
-        "mtime": 1780400565707.2227,
+        "mtime": 1780402619134.2542,
         "uuid": "8a2cc15b-f736-42b8-92c1-ecc6b7aa8450"
       },
       "chunkId": "9b1ada8aa322a81cec81e7677f4afd351186ac69",
@@ -6624,11 +6624,11 @@
           "value": "cc",
           "loc": {
             "start": {
-              "line": 8,
+              "line": 9,
               "column": 7
             },
             "end": {
-              "line": 8,
+              "line": 9,
               "column": 11
             }
           }
@@ -6638,11 +6638,11 @@
           "resolved": "__unresolved_1",
           "loc": {
             "start": {
-              "line": 10,
+              "line": 11,
               "column": 28
             },
             "end": {
-              "line": 10,
+              "line": 11,
               "column": 43
             }
           }
@@ -6652,11 +6652,11 @@
           "resolved": "__unresolved_2",
           "loc": {
             "start": {
-              "line": 12,
+              "line": 13,
               "column": 25
             },
             "end": {
-              "line": 12,
+              "line": 13,
               "column": 40
             }
           }
@@ -6666,11 +6666,11 @@
           "resolved": "__unresolved_3",
           "loc": {
             "start": {
-              "line": 13,
+              "line": 14,
               "column": 42
             },
             "end": {
-              "line": 13,
+              "line": 14,
               "column": 71
             }
           }

@@ -3,6 +3,8 @@ import { UnitType } from './BattleTypes';
 
 export class BattleWave {
 
+    private static unitWaveMap: WeakMap<Unit, number> = new WeakMap();
+
     id = 0;
     team = 0;
 
@@ -30,6 +32,8 @@ export class BattleWave {
 
     addUnit(unit: Unit) {
         if (!unit) return;
+
+        BattleWave.unitWaveMap.set(unit, this.id);
 
         if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
@@ -159,6 +163,13 @@ export class BattleWave {
 
     private isUnitAlive(unit: Unit | null) {
         if (!unit) return false;
+
+        const currentWaveId = BattleWave.unitWaveMap.get(unit);
+
+        if (currentWaveId !== this.id) {
+            return false;
+        }
+
         if (!unit.node.activeInHierarchy) return false;
         if (!unit.agent) return false;
         if (!unit.props) return false;

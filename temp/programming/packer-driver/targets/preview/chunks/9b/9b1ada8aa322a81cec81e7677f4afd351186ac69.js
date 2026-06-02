@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Sprite, SpriteFrame, UITransform, GameManager, UnitType, BattleInformationIconItem, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _crd, ccclass, property, UnitIconInfo, BattleInformationPanel;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Layers, Node, Sprite, SpriteFrame, UITransform, GameManager, UnitType, BattleInformationIconItem, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _crd, ccclass, property, UnitIconInfo, BattleInformationPanel;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -34,6 +34,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+      Layers = _cc.Layers;
       Node = _cc.Node;
       Sprite = _cc.Sprite;
       SpriteFrame = _cc.SpriteFrame;
@@ -50,7 +51,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "8a2ccFb9zZCuJLB7Ma3qoRQ", "BattleInformationPanel", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Node', 'Sprite', 'SpriteFrame', 'UITransform']);
+      __checkObsolete__(['_decorator', 'Component', 'Layers', 'Node', 'Sprite', 'SpriteFrame', 'UITransform']);
 
       ({
         ccclass,
@@ -110,15 +111,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "updateInterval", _descriptor9, this);
 
-          _initializerDefineProperty(this, "removeDeadWaveIcon", _descriptor10, this);
+          _initializerDefineProperty(this, "iconWidth", _descriptor10, this);
 
-          _initializerDefineProperty(this, "destroyRemovedIcon", _descriptor11, this);
+          _initializerDefineProperty(this, "iconHeight", _descriptor11, this);
 
-          _initializerDefineProperty(this, "iconWidth", _descriptor12, this);
+          _initializerDefineProperty(this, "teamAAnchorY", _descriptor12, this);
 
-          _initializerDefineProperty(this, "iconHeight", _descriptor13, this);
+          _initializerDefineProperty(this, "teamBAnchorY", _descriptor13, this);
+
+          _initializerDefineProperty(this, "prewarmIconCount", _descriptor14, this);
+
+          _initializerDefineProperty(this, "maxPoolSize", _descriptor15, this);
 
           this.records = new Map();
+          this.pool = [];
           this.timer = 0;
           this.time = 0;
         }
@@ -131,6 +137,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.clearAllIcons();
+          this.prewarmPool();
         }
 
         update(deltaTime) {
@@ -138,13 +145,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.timer += deltaTime;
 
           if (this.timer < this.updateInterval) {
-            this.updateBlinkOnly();
+            this.updateFlashOnly();
             return;
           }
 
           this.timer = 0;
           this.syncWithBattleWaves();
           this.updateAllIcons();
+        }
+
+        prewarmPool() {
+          var count = Math.max(0, Math.floor(this.prewarmIconCount));
+
+          for (var i = 0; i < count; i++) {
+            var node = this.createIconNode();
+            node.active = false;
+            this.node.addChild(node);
+            this.pool.push(node);
+          }
         }
 
         syncWithBattleWaves() {
@@ -168,14 +186,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          var node = this.createIconNode();
+          var node = this.getIconNodeFromPool();
           node.name = "wave-icon-" + wave.id + "-" + wave.unitName;
+          node.layer = Layers.Enum.UI_2D;
+          node.active = true;
           root.addChild(node);
           var item = node.getComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
           }), BattleInformationIconItem) : BattleInformationIconItem);
           var spriteFrame = this.getSpriteFrame(wave.team, wave.unitType);
-          item.setup(spriteFrame);
+          var anchorY = wave.team === 0 ? this.teamAAnchorY : this.teamBAnchorY;
+          item.setup(spriteFrame, this.iconWidth, this.iconHeight, anchorY);
           this.records.set(wave.id, {
             wave,
             item,
@@ -183,12 +204,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           });
         }
 
+        getIconNodeFromPool() {
+          if (this.pool.length > 0) {
+            return this.pool.pop();
+          }
+
+          return this.createIconNode();
+        }
+
         createIconNode() {
           var node = new Node('wave-icon');
+          node.layer = Layers.Enum.UI_2D;
           var ui = node.addComponent(UITransform);
           ui.setContentSize(this.iconWidth, this.iconHeight);
           ui.setAnchorPoint(0.5, 0.5);
-          node.addComponent(Sprite);
+          var sprite = node.addComponent(Sprite);
+          sprite.sizeMode = Sprite.SizeMode.CUSTOM;
           node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
           }), BattleInformationIconItem) : BattleInformationIconItem);
@@ -202,11 +233,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             if (!wave || wave.isDead()) {
               record.item.setAliveRatio(0);
-
-              if (this.removeDeadWaveIcon) {
-                removeIds.push(waveId);
-              }
-
+              removeIds.push(waveId);
               return;
             }
 
@@ -216,11 +243,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           });
 
           for (var i = 0; i < removeIds.length; i++) {
-            this.removeIcon(removeIds[i]);
+            this.releaseIcon(removeIds[i]);
           }
         }
 
-        updateBlinkOnly() {
+        updateFlashOnly() {
           this.records.forEach(record => {
             var wave = record.wave;
             if (!wave || wave.isDead()) return;
@@ -228,16 +255,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           });
         }
 
-        removeIcon(waveId) {
+        releaseIcon(waveId) {
           var record = this.records.get(waveId);
           if (!record) return;
           record.item.resetVisual();
+          record.node.removeFromParent();
+          record.node.active = false;
+          record.node.name = 'wave-icon-pooled';
 
-          if (this.destroyRemovedIcon) {
-            record.node.destroy();
+          if (this.pool.length < this.maxPoolSize) {
+            this.node.addChild(record.node);
+            this.pool.push(record.node);
           } else {
-            record.node.removeFromParent();
-            record.node.active = false;
+            record.node.destroy();
           }
 
           this.records.delete(waveId);
@@ -245,10 +275,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         clearAllIcons() {
           this.records.forEach(record => {
-            if (this.destroyRemovedIcon) {
-              record.node.destroy();
+            record.item.resetVisual();
+            record.node.removeFromParent();
+            record.node.active = false;
+
+            if (this.pool.length < this.maxPoolSize) {
+              this.node.addChild(record.node);
+              this.pool.push(record.node);
             } else {
-              record.node.removeFromParent();
+              record.node.destroy();
             }
           });
           this.records.clear();
@@ -326,33 +361,47 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "removeDeadWaveIcon", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return true;
+          return 40;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "destroyRemovedIcon", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return true;
+          return 40;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "teamAAnchorY", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0;
+        }
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "teamBAnchorY", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1;
+        }
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 32;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 32;
+          return 128;
         }
       })), _class5)) || _class4));
 

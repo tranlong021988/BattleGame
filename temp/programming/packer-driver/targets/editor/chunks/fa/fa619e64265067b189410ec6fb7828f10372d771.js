@@ -46,6 +46,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         addUnit(unit) {
           if (!unit) return;
+          BattleWave.unitWaveMap.set(unit, this.id);
 
           if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
@@ -160,6 +161,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         isUnitAlive(unit) {
           if (!unit) return false;
+          const currentWaveId = BattleWave.unitWaveMap.get(unit);
+
+          if (currentWaveId !== this.id) {
+            return false;
+          }
+
           if (!unit.node.activeInHierarchy) return false;
           if (!unit.agent) return false;
           if (!unit.props) return false;
@@ -168,6 +175,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
       });
+
+      BattleWave.unitWaveMap = new WeakMap();
 
       _cclegacy._RF.pop();
 
