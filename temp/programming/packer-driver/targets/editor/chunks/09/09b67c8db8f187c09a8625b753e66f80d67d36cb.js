@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _crd, ccclass, property, CinematicOrbitRig;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, CinematicOrbitRig;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -55,9 +55,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           _initializerDefineProperty(this, "enableOrbit", _descriptor7, this);
 
-          _initializerDefineProperty(this, "resetOrbitAngleOnUserFocus", _descriptor8, this);
-
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor9, this);
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor8, this);
 
           this.targetUnit = null;
           this.originalParent = null;
@@ -79,7 +77,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.updateOrbit(deltaTime);
         }
 
-        setTarget(unit, resetOrbitAngle = false) {
+        setTarget(unit) {
           if (!unit) {
             this.clearTarget();
             return;
@@ -91,12 +89,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.currentMoveSmooth = isSwitching ? this.switchTargetLocalMoveSmooth : this.firstFocusLocalMoveSmooth;
           this.node.setParent(unit.node, true);
           this.targetLocalPos.set(0, this.heightOffset, 0);
-
-          if (resetOrbitAngle && this.resetOrbitAngleOnUserFocus) {
-            this.resetOrbitRotation();
-          }
-
-          this.log(`Set target=${unit.node.name}, switching=${isSwitching}, reset=${resetOrbitAngle}, smooth=${this.currentMoveSmooth}`);
+          this.log(`Set target=${unit.node.name}, switching=${isSwitching}, smooth=${this.currentMoveSmooth}`);
         }
 
         clearTarget() {
@@ -118,11 +111,6 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
         getCameraFov() {
           return this.cameraFov;
-        }
-
-        resetOrbitRotation() {
-          this.currentEuler.set(0, 0, 0);
-          this.node.setRotationFromEuler(0, 0, 0);
         }
 
         updateLocalMove(deltaTime) {
@@ -193,14 +181,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         initializer: function () {
           return true;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "resetOrbitAngleOnUserFocus", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return true;
-        }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

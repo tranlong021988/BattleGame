@@ -89,16 +89,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "autoFindGameManager", _descriptor5, this);
 
-          // ENTER ORBIT:
-          // position chạy trước, rotation + fov chạy sau.
           _initializerDefineProperty(this, "enterMoveDuration", _descriptor6, this);
 
           _initializerDefineProperty(this, "enterFocusDelayRatio", _descriptor7, this);
 
           _initializerDefineProperty(this, "enterFocusDuration", _descriptor8, this);
 
-          // EXIT ORBIT:
-          // rotation + fov chạy trước, position chạy sau.
           _initializerDefineProperty(this, "returnFocusDuration", _descriptor9, this);
 
           _initializerDefineProperty(this, "returnMoveDelayRatio", _descriptor10, this);
@@ -412,10 +408,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.mainCamera) {
             this.finishReturn();
             return;
-          } //
-          // Reparent ngay, giữ world transform để không giựt parent.
-          //
-
+          }
 
           this.mainCamera.node.setParent(this.originalParent, true);
           this.mainCamera.node.getWorldPosition(this.returnStartPos);
@@ -440,19 +433,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.returnTimer += deltaTime;
-          var focusDuration = Math.max(0.0001, this.returnFocusDuration); //
-          // EXIT:
-          // Rotation + FOV chạy trước.
-          //
-
+          var focusDuration = Math.max(0.0001, this.returnFocusDuration);
           var focus01 = this.clamp01(this.returnTimer / focusDuration);
           var focusT = this.smooth01(focus01);
           Quat.slerp(this.returnCurrentRot, this.returnStartRot, this.originalRot, focusT);
           this.mainCamera.node.setWorldRotation(this.returnCurrentRot);
-          this.mainCamera.fov = this.returnStartFov + (this.originalFov - this.returnStartFov) * focusT; //
-          // Position chạy sau.
-          //
-
+          this.mainCamera.fov = this.returnStartFov + (this.originalFov - this.returnStartFov) * focusT;
           var moveDelay = focusDuration * this.returnMoveDelayRatio;
           var moveDuration = Math.max(0.0001, this.returnMoveDuration);
           var move01 = this.clamp01((this.returnTimer - moveDelay) / moveDuration);

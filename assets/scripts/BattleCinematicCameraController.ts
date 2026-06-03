@@ -43,8 +43,6 @@ export class BattleCinematicCameraController extends Component {
     @property
     autoFindGameManager = true;
 
-    // ENTER ORBIT:
-    // position chạy trước, rotation + fov chạy sau.
     @property
     enterMoveDuration = 1.0;
 
@@ -54,8 +52,6 @@ export class BattleCinematicCameraController extends Component {
     @property
     enterFocusDuration = 0.7;
 
-    // EXIT ORBIT:
-    // rotation + fov chạy trước, position chạy sau.
     @property
     returnFocusDuration = 0.7;
 
@@ -477,9 +473,6 @@ export class BattleCinematicCameraController extends Component {
             return;
         }
 
-        //
-        // Reparent ngay, giữ world transform để không giựt parent.
-        //
         this.mainCamera.node.setParent(
             this.originalParent,
             true
@@ -516,10 +509,6 @@ export class BattleCinematicCameraController extends Component {
             this.returnFocusDuration
         );
 
-        //
-        // EXIT:
-        // Rotation + FOV chạy trước.
-        //
         const focus01 = this.clamp01(
             this.returnTimer / focusDuration
         );
@@ -539,9 +528,6 @@ export class BattleCinematicCameraController extends Component {
             this.returnStartFov +
             (this.originalFov - this.returnStartFov) * focusT;
 
-        //
-        // Position chạy sau.
-        //
         const moveDelay =
             focusDuration * this.returnMoveDelayRatio;
 

@@ -34,9 +34,6 @@ export class CinematicOrbitRig extends Component {
     enableOrbit = true;
 
     @property
-    resetOrbitAngleOnUserFocus = true;
-
-    @property
     enableDebugLog = false;
 
     private targetUnit: Unit | null = null;
@@ -61,10 +58,7 @@ export class CinematicOrbitRig extends Component {
         this.updateOrbit(deltaTime);
     }
 
-    public setTarget(
-        unit: Unit | null,
-        resetOrbitAngle: boolean = false
-    ) {
+    public setTarget(unit: Unit | null) {
         if (!unit) {
             this.clearTarget();
             return;
@@ -89,12 +83,8 @@ export class CinematicOrbitRig extends Component {
             0
         );
 
-        if (resetOrbitAngle && this.resetOrbitAngleOnUserFocus) {
-            this.resetOrbitRotation();
-        }
-
         this.log(
-            `Set target=${unit.node.name}, switching=${isSwitching}, reset=${resetOrbitAngle}, smooth=${this.currentMoveSmooth}`
+            `Set target=${unit.node.name}, switching=${isSwitching}, smooth=${this.currentMoveSmooth}`
         );
     }
 
@@ -119,11 +109,6 @@ export class CinematicOrbitRig extends Component {
         return this.cameraFov;
     }
 
-    public resetOrbitRotation() {
-        this.currentEuler.set(0, 0, 0);
-        this.node.setRotationFromEuler(0, 0, 0);
-    }
-
     private updateLocalMove(deltaTime: number) {
         this.currentLocalPos.set(this.node.position);
 
@@ -145,6 +130,7 @@ export class CinematicOrbitRig extends Component {
 
         this.currentEuler.set(this.node.eulerAngles);
         this.currentEuler.y += this.orbitSpeed * deltaTime;
+
         this.node.setRotationFromEuler(this.currentEuler);
     }
 
