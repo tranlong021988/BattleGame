@@ -44,6 +44,8 @@ export class RVOSimulator {
 
     cellSize = 2.2;
     timeStep = 1 / 60;
+    minStepDeltaTime = 1 / 120;
+    maxStepDeltaTime = 1 / 20;
 
     // Số vòng chống xuyên vật cản.
     // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
@@ -92,6 +94,22 @@ export class RVOSimulator {
 
     private clamp(v: number, min: number, max: number) {
         return Math.max(min, Math.min(max, v));
+    }
+
+    private getSafeDeltaTime(deltaTime?: number) {
+        if (
+            typeof deltaTime !== 'number' ||
+            !isFinite(deltaTime) ||
+            deltaTime <= 0
+        ) {
+            return this.timeStep;
+        }
+
+        return this.clamp(
+            deltaTime,
+            this.minStepDeltaTime,
+            this.maxStepDeltaTime
+        );
     }
 
     private buildGrid() {
@@ -282,7 +300,9 @@ export class RVOSimulator {
         );
     }
 
-    step() {
+    step(deltaTime?: number) {
+        const dt = this.getSafeDeltaTime(deltaTime);
+
         this.buildGrid();
 
         // ===== VELOCITY =====
@@ -444,8 +464,8 @@ export class RVOSimulator {
         // ===== MOVE =====
         for (let a of this.agents) {
             if (!a.locked) {
-                a.pos.x += a.vel.x * this.timeStep;
-                a.pos.z += a.vel.z * this.timeStep;
+                a.pos.x += a.vel.x * dt;
+                a.pos.z += a.vel.z * dt;
 
                 // Chống xuyên obstacle sau khi di chuyển.
                 for (let i = 0; i < this.obstacleSolveIterations; i++) {
@@ -505,5 +525,7 @@ export class RVOSimulator {
         }
 
         this.buildGrid();
+
+        return true;
     }
 }

@@ -149,7 +149,8 @@
         "447a22c2-f685-4b14-bc2d-8d4b81383823",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
         "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53",
-        "05b5fa2b-3f44-4842-8e74-276cd2f32062"
+        "05b5fa2b-3f44-4842-8e74-276cd2f32062",
+        "ab22e050-e49c-465a-8d8e-9e08e1a78e78"
       ]
     },
     "versionCode": 2
@@ -1185,6 +1186,11 @@
   },
   "1cbcd1a3-c701-4c5c-94da-9f29be475f76": {
     "url": "db://assets/scripts/BattleCinematicCameraController.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "ab22e050-e49c-465a-8d8e-9e08e1a78e78": {
+    "url": "db://assets/scripts/SpawnBackPressureGate.ts",
     "value": {},
     "versionCode": 1
   }

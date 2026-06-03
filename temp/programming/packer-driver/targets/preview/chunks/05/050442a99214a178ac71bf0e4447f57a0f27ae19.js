@@ -65,6 +65,8 @@ System.register(["cc"], function (_export, _context) {
           this.rectObs = [];
           this.cellSize = 2.2;
           this.timeStep = 1 / 60;
+          this.minStepDeltaTime = 1 / 120;
+          this.maxStepDeltaTime = 1 / 20;
           this.useBounds = false;
           this.minX = -99999;
           this.maxX = 99999;
@@ -151,10 +153,19 @@ System.register(["cc"], function (_export, _context) {
           this.obstacleDirty = true;
         }
 
-        step() {
-          if (!this.worker || !this.workerReady) return;
-          if (this.pending) return;
-          if (this.agents.length <= 0) return;
+        getSafeDeltaTime(deltaTime) {
+          if (typeof deltaTime !== 'number' || !isFinite(deltaTime) || deltaTime <= 0) {
+            return this.timeStep;
+          }
+
+          return Math.max(this.minStepDeltaTime, Math.min(this.maxStepDeltaTime, deltaTime));
+        }
+
+        step(deltaTime) {
+          if (!this.worker || !this.workerReady) return false;
+          if (this.pending) return false;
+          if (this.agents.length <= 0) return false;
+          var safeDeltaTime = this.getSafeDeltaTime(deltaTime);
 
           if (this.obstacleDirty) {
             this.sendObstaclesToWorker();
@@ -162,7 +173,7 @@ System.register(["cc"], function (_export, _context) {
 
           var count = this.agents.length;
           this.ensureBuffers(count);
-          if (!this.idsBuffer || !this.floatsBuffer || !this.intsBuffer) return;
+          if (!this.idsBuffer || !this.floatsBuffer || !this.intsBuffer) return false;
           var ids = this.idsBuffer;
           var floats = this.floatsBuffer;
           var ints = this.intsBuffer;
@@ -205,7 +216,7 @@ System.register(["cc"], function (_export, _context) {
             ints,
             count,
             cellSize: this.cellSize,
-            timeStep: this.timeStep,
+            timeStep: safeDeltaTime,
             useBounds: this.useBounds ? 1 : 0,
             minX: this.minX,
             maxX: this.maxX,
@@ -217,6 +228,7 @@ System.register(["cc"], function (_export, _context) {
           this.idsBuffer = null;
           this.floatsBuffer = null;
           this.intsBuffer = null;
+          return true;
         }
 
         ensureBuffers(count) {

@@ -53,6 +53,8 @@ System.register(["cc"], function (_export, _context) {
           this.grid = new Map();
           this.cellSize = 2.2;
           this.timeStep = 1 / 60;
+          this.minStepDeltaTime = 1 / 120;
+          this.maxStepDeltaTime = 1 / 20;
           // Số vòng chống xuyên vật cản.
           // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
           this.obstacleSolveIterations = 3;
@@ -104,6 +106,14 @@ System.register(["cc"], function (_export, _context) {
 
         clamp(v, min, max) {
           return Math.max(min, Math.min(max, v));
+        }
+
+        getSafeDeltaTime(deltaTime) {
+          if (typeof deltaTime !== 'number' || !isFinite(deltaTime) || deltaTime <= 0) {
+            return this.timeStep;
+          }
+
+          return this.clamp(deltaTime, this.minStepDeltaTime, this.maxStepDeltaTime);
         }
 
         buildGrid() {
@@ -263,7 +273,8 @@ System.register(["cc"], function (_export, _context) {
           a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
         }
 
-        step() {
+        step(deltaTime) {
+          const dt = this.getSafeDeltaTime(deltaTime);
           this.buildGrid(); // ===== VELOCITY =====
 
           for (let a of this.agents) {
@@ -399,8 +410,8 @@ System.register(["cc"], function (_export, _context) {
 
           for (let a of this.agents) {
             if (!a.locked) {
-              a.pos.x += a.vel.x * this.timeStep;
-              a.pos.z += a.vel.z * this.timeStep; // Chống xuyên obstacle sau khi di chuyển.
+              a.pos.x += a.vel.x * dt;
+              a.pos.z += a.vel.z * dt; // Chống xuyên obstacle sau khi di chuyển.
 
               for (let i = 0; i < this.obstacleSolveIterations; i++) {
                 this.pushAgentOutOfObstacles(a);
@@ -455,6 +466,7 @@ System.register(["cc"], function (_export, _context) {
           }
 
           this.buildGrid();
+          return true;
         }
 
       });

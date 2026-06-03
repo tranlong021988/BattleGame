@@ -54,6 +54,8 @@ export class RVOWorkerSimulator {
 
     cellSize = 2.2;
     timeStep = 1 / 60;
+    minStepDeltaTime = 1 / 120;
+    maxStepDeltaTime = 1 / 20;
 
     useBounds = false;
     minX = -99999;
@@ -155,10 +157,27 @@ export class RVOWorkerSimulator {
         this.obstacleDirty = true;
     }
 
-    step() {
-        if (!this.worker || !this.workerReady) return;
-        if (this.pending) return;
-        if (this.agents.length <= 0) return;
+    private getSafeDeltaTime(deltaTime?: number) {
+        if (
+            typeof deltaTime !== 'number' ||
+            !isFinite(deltaTime) ||
+            deltaTime <= 0
+        ) {
+            return this.timeStep;
+        }
+
+        return Math.max(
+            this.minStepDeltaTime,
+            Math.min(this.maxStepDeltaTime, deltaTime)
+        );
+    }
+
+    step(deltaTime?: number) {
+        if (!this.worker || !this.workerReady) return false;
+        if (this.pending) return false;
+        if (this.agents.length <= 0) return false;
+
+        const safeDeltaTime = this.getSafeDeltaTime(deltaTime);
 
         if (this.obstacleDirty) {
             this.sendObstaclesToWorker();
@@ -168,7 +187,7 @@ export class RVOWorkerSimulator {
 
         this.ensureBuffers(count);
 
-        if (!this.idsBuffer || !this.floatsBuffer || !this.intsBuffer) return;
+        if (!this.idsBuffer || !this.floatsBuffer || !this.intsBuffer) return false;
 
         const ids = this.idsBuffer;
         const floats = this.floatsBuffer;
@@ -219,7 +238,7 @@ export class RVOWorkerSimulator {
             count,
 
             cellSize: this.cellSize,
-            timeStep: this.timeStep,
+            timeStep: safeDeltaTime,
 
             useBounds: this.useBounds ? 1 : 0,
             minX: this.minX,
@@ -237,6 +256,8 @@ export class RVOWorkerSimulator {
         this.idsBuffer = null;
         this.floatsBuffer = null;
         this.intsBuffer = null;
+
+        return true;
     }
 
     private ensureBuffers(count: number) {

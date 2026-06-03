@@ -55,7 +55,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           _initializerDefineProperty(this, "enableOrbit", _descriptor7, this);
 
-          _initializerDefineProperty(this, "resetOrbitAngleOnNewTarget", _descriptor8, this);
+          _initializerDefineProperty(this, "resetOrbitAngleOnUserFocus", _descriptor8, this);
 
           _initializerDefineProperty(this, "enableDebugLog", _descriptor9, this);
 
@@ -79,7 +79,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.updateOrbit(deltaTime);
         }
 
-        setTarget(unit) {
+        setTarget(unit, resetOrbitAngle = false) {
           if (!unit) {
             this.clearTarget();
             return;
@@ -92,13 +92,11 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.node.setParent(unit.node, true);
           this.targetLocalPos.set(0, this.heightOffset, 0);
 
-          if (this.resetOrbitAngleOnNewTarget) {
-            this.currentEuler.set(this.node.eulerAngles);
-            this.currentEuler.y = 0;
-            this.node.setRotationFromEuler(this.currentEuler);
+          if (resetOrbitAngle && this.resetOrbitAngleOnUserFocus) {
+            this.resetOrbitRotation();
           }
 
-          this.log(`Set target=${unit.node.name}, switching=${isSwitching}, smooth=${this.currentMoveSmooth}`);
+          this.log(`Set target=${unit.node.name}, switching=${isSwitching}, reset=${resetOrbitAngle}, smooth=${this.currentMoveSmooth}`);
         }
 
         clearTarget() {
@@ -122,9 +120,9 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return this.cameraFov;
         }
 
-        isLocalPositionClose(threshold) {
-          const p = this.node.position;
-          return Vec3.distance(p, this.targetLocalPos) <= threshold;
+        resetOrbitRotation() {
+          this.currentEuler.set(0, 0, 0);
+          this.node.setRotationFromEuler(0, 0, 0);
         }
 
         updateLocalMove(deltaTime) {
@@ -195,12 +193,12 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         initializer: function () {
           return true;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "resetOrbitAngleOnNewTarget", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "resetOrbitAngleOnUserFocus", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return false;
+          return true;
         }
       }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,

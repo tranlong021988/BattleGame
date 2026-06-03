@@ -43,6 +43,8 @@ export class BattleCinematicCameraController extends Component {
     @property
     autoFindGameManager = true;
 
+    // ENTER ORBIT:
+    // position chạy trước, rotation + fov chạy sau.
     @property
     enterMoveDuration = 1.0;
 
@@ -52,14 +54,16 @@ export class BattleCinematicCameraController extends Component {
     @property
     enterFocusDuration = 0.7;
 
+    // EXIT ORBIT:
+    // rotation + fov chạy trước, position chạy sau.
     @property
-    returnMoveSmooth = 6;
+    returnFocusDuration = 0.7;
 
     @property
-    returnRotateSmooth = 6;
+    returnMoveDelayRatio = 0.5;
 
     @property
-    returnFovSmooth = 6;
+    returnMoveDuration = 1.0;
 
     @property
     returnPositionThreshold = 0.03;
@@ -94,12 +98,10 @@ export class BattleCinematicCameraController extends Component {
     private currentUnit: Unit | null = null;
 
     private originalParent: Node | null = null;
+
     private originalPos = new Vec3();
     private originalRot = new Quat();
     private originalFov = 45;
-
-    private tempWorldPos = new Vec3();
-    private tempWorldRot = new Quat();
 
     private startLocalPos = new Vec3();
     private startLocalRot = new Quat();
@@ -111,10 +113,18 @@ export class BattleCinematicCameraController extends Component {
     private targetLocalPos = new Vec3();
     private targetLocalRot = new Quat();
 
+    private returnStartPos = new Vec3();
+    private returnStartRot = new Quat();
+    private returnStartFov = 45;
+
+    private returnCurrentPos = new Vec3();
+    private returnCurrentRot = new Quat();
+
     private exitTapTimer = 0;
     private uiTapSuppressTimer = 0;
 
     private enterTimer = 0;
+    private returnTimer = 0;
 
     onEnable() {
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
@@ -161,7 +171,6 @@ export class BattleCinematicCameraController extends Component {
         if (!wave) return;
 
         const unit = wave.getRandomPreferredAliveUnit();
-
         if (!unit) return;
 
         this.suppressExitTap();
@@ -195,8 +204,6 @@ export class BattleCinematicCameraController extends Component {
         if (!unit) return;
         if (this.state !== CinematicState.Orbit) return;
         if (this.currentUnit !== unit) return;
-
-        this.log(`Focused unit will despawn: ${unit.node.name}`);
 
         const switched = this.trySwitchTargetBeforeDespawn();
 
@@ -465,12 +472,24 @@ export class BattleCinematicCameraController extends Component {
     private beginReturnToOriginal() {
         if (this.state === CinematicState.Idle) return;
 
-        if (this.mainCamera) {
-            this.mainCamera.node.setParent(
-                this.originalParent,
-                true
-            );
+        if (!this.mainCamera) {
+            this.finishReturn();
+            return;
         }
+
+        //
+        // Reparent ngay, giữ world transform để không giựt parent.
+        //
+        this.mainCamera.node.setParent(
+            this.originalParent,
+            true
+        );
+
+        this.mainCamera.node.getWorldPosition(this.returnStartPos);
+        this.mainCamera.node.getWorldRotation(this.returnStartRot);
+        this.returnStartFov = this.mainCamera.fov;
+
+        this.returnTimer = 0;
 
         this.state = CinematicState.Returning;
 
@@ -481,7 +500,7 @@ export class BattleCinematicCameraController extends Component {
             this.orbitRig.clearTarget();
         }
 
-        this.log('Begin smooth return');
+        this.log('Begin delayed smooth return');
     }
 
     private updateReturnToOriginal(deltaTime: number) {
@@ -490,56 +509,79 @@ export class BattleCinematicCameraController extends Component {
             return;
         }
 
-        this.mainCamera.node.getWorldPosition(this.tempWorldPos);
-        this.mainCamera.node.getWorldRotation(this.tempWorldRot);
+        this.returnTimer += deltaTime;
 
-        const moveT =
-            1 - Math.exp(-this.returnMoveSmooth * deltaTime);
+        const focusDuration = Math.max(
+            0.0001,
+            this.returnFocusDuration
+        );
 
-        const rotT =
-            1 - Math.exp(-this.returnRotateSmooth * deltaTime);
+        //
+        // EXIT:
+        // Rotation + FOV chạy trước.
+        //
+        const focus01 = this.clamp01(
+            this.returnTimer / focusDuration
+        );
+
+        const focusT = this.smooth01(focus01);
+
+        Quat.slerp(
+            this.returnCurrentRot,
+            this.returnStartRot,
+            this.originalRot,
+            focusT
+        );
+
+        this.mainCamera.node.setWorldRotation(this.returnCurrentRot);
+
+        this.mainCamera.fov =
+            this.returnStartFov +
+            (this.originalFov - this.returnStartFov) * focusT;
+
+        //
+        // Position chạy sau.
+        //
+        const moveDelay =
+            focusDuration * this.returnMoveDelayRatio;
+
+        const moveDuration = Math.max(
+            0.0001,
+            this.returnMoveDuration
+        );
+
+        const move01 = this.clamp01(
+            (this.returnTimer - moveDelay) /
+            moveDuration
+        );
+
+        const moveT = this.smooth01(move01);
 
         Vec3.lerp(
-            this.tempWorldPos,
-            this.tempWorldPos,
+            this.returnCurrentPos,
+            this.returnStartPos,
             this.originalPos,
             moveT
         );
 
-        Quat.slerp(
-            this.tempWorldRot,
-            this.tempWorldRot,
-            this.originalRot,
-            rotT
-        );
-
-        this.mainCamera.node.setWorldPosition(this.tempWorldPos);
-        this.mainCamera.node.setWorldRotation(this.tempWorldRot);
-
-        const fovT =
-            1 - Math.exp(-this.returnFovSmooth * deltaTime);
-
-        this.mainCamera.fov =
-            this.mainCamera.fov +
-            (this.originalFov - this.mainCamera.fov) * fovT;
+        this.mainCamera.node.setWorldPosition(this.returnCurrentPos);
 
         const posDone =
             Vec3.distance(
-                this.tempWorldPos,
+                this.returnCurrentPos,
                 this.originalPos
             ) <= this.returnPositionThreshold;
 
         const fovDone =
             Math.abs(
-                this.mainCamera.fov - this.originalFov
+                this.mainCamera.fov -
+                this.originalFov
             ) <= this.returnFovThreshold;
 
-        if (posDone && fovDone) {
-            this.mainCamera.node.setParent(
-                this.originalParent,
-                true
-            );
+        const rotDone = focus01 >= 1;
+        const moveDone = move01 >= 1;
 
+        if (posDone && fovDone && rotDone && moveDone) {
             this.mainCamera.node.setWorldPosition(this.originalPos);
             this.mainCamera.node.setWorldRotation(this.originalRot);
             this.mainCamera.fov = this.originalFov;

@@ -5,7 +5,7 @@
       "time": 1776667555102.3574
     },
     "scripts": {
-      "time": 1780455033388.0403,
+      "time": 1780475677688.6636,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -19,14 +19,14 @@
       "time": 1776667555103.354
     },
     "scripts\\rvo\\RVO.ts": {
-      "time": 1778666924359.5576,
+      "time": 1780451534000,
       "uuid": "220c203c-ef11-4ca0-8d3c-4607999a8a88"
     },
     "scripts\\Unit.ts.meta": {
       "time": 1776667555103.354
     },
     "scripts\\Unit.ts": {
-      "time": 1780462613798.2002,
+      "time": 1780471817466.001,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\EnemyFinder.ts.meta": {
@@ -40,7 +40,7 @@
       "time": 1776667555102.3574
     },
     "scripts\\GameManager.ts": {
-      "time": 1780456958475.9197,
+      "time": 1780451534000,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -75,21 +75,21 @@
       "time": 1776667555102.3574
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1780462636302.3662,
+      "time": 1780470877175.143,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
       "time": 1776667555102.3574
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1780462685254.7346,
+      "time": 1780470876599.1414,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1780462870202.2646,
+      "time": 1780482002465.085,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -285,7 +285,7 @@
       "time": 1778051894605.1921
     },
     "materials\\terrain-sand.mtl": {
-      "time": 1779942358390.718,
+      "time": 1780471448221.858,
       "uuid": "817257f8-8eda-4313-a407-8ae5d0e791b0"
     },
     "scripts\\UnitSpawner.ts.meta": {
@@ -341,7 +341,7 @@
       "time": 1779778008755.1814
     },
     "scripts\\rvo\\RVOWorkerSimulator.ts": {
-      "time": 1779856544929.5444,
+      "time": 1780451552000,
       "uuid": "fb8a1849-3759-4dfb-ac42-f957ce6a64ab"
     },
     "scripts\\BattleSpatialGrid.ts.meta": {
@@ -488,15 +488,22 @@
       "time": 1780455033388.0403
     },
     "scripts\\CinematicOrbitRig.ts": {
-      "time": 1780460923852.2424,
+      "time": 1780481835264.4014,
       "uuid": "7735f014-d1bf-435b-9532-d99924f1ad9e"
     },
     "scripts\\BattleCinematicCameraController.ts.meta": {
       "time": 1780455033388.0403
     },
     "scripts\\BattleCinematicCameraController.ts": {
-      "time": 1780461022797.7727,
+      "time": 1780480358066.0742,
       "uuid": "1cbcd1a3-c701-4c5c-94da-9f29be475f76"
+    },
+    "scripts\\SpawnBackPressureGate.ts.meta": {
+      "time": 1780475677696.6643
+    },
+    "scripts\\SpawnBackPressureGate.ts": {
+      "time": 1780475693236.6516,
+      "uuid": "ab22e050-e49c-465a-8d8e-9e08e1a78e78"
     }
   },
   "missing": {}

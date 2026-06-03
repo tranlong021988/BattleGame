@@ -20,46 +20,27 @@ export class Unit extends Component {
     @property radius = 0.5;
     @property attackRange = 1;
 
-    @property
-    targetSearchRange = 60;
-
-    @property
-    attackCheckIntervalFrames = 2;
-
-    @property
-    targetSearchIntervalFrames = 6;
+    @property targetSearchRange = 60;
+    @property attackCheckIntervalFrames = 2;
+    @property targetSearchIntervalFrames = 6;
 
     @property rotationSpeed = 10;
 
     @property moveThreshold = 0.2;
     @property velThreshold = 0.05;
+    @property visualThreshold = 0.01;
 
-    @property
-    visualThreshold = 0.01;
-
-    @property
-    onForward = true;
-
-    @property
-    isSteady = false;
+    @property onForward = true;
+    @property isSteady = false;
 
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
 
-    @property
-    enableAllyOvertake = true;
-
-    @property
-    overtakeLookAhead = 2.2;
-
-    @property
-    overtakeSideRange = 1.2;
-
-    @property
-    overtakeSideStrength = 0.75;
-
-    @property
-    overtakeSpeedDiff = 0.15;
+    @property enableAllyOvertake = true;
+    @property overtakeLookAhead = 2.2;
+    @property overtakeSideRange = 1.2;
+    @property overtakeSideStrength = 0.75;
+    @property overtakeSpeedDiff = 0.15;
 
     team = 0;
     unitTypeName = '';
@@ -100,11 +81,8 @@ export class Unit extends Component {
         this.unitTypeName = unitTypeName;
         this.sim = sim;
 
-        //
-        // QUAN TRỌNG:
-        // Unit node chỉ handle position, không handle rotation.
-        // Toàn bộ rotation visual sẽ nằm ở visualRoot.
-        //
+        // Unit node chỉ handle position.
+        // Rotation visual nằm ở visualRoot.
         this.node.setRotationFromEuler(0, 0, 0);
 
         const p = this.node.worldPosition;
@@ -191,7 +169,6 @@ export class Unit extends Component {
         this.agent.overtakeSideRange = this.overtakeSideRange;
         this.agent.overtakeSideStrength = this.overtakeSideStrength;
         this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
-
         this.agent.overtakeSeed = this.updateOffset % 2 === 0 ? 1 : -1;
     }
 
@@ -266,7 +243,6 @@ export class Unit extends Component {
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
-
             this.agent.locked = this.isSteady;
         }
     }
@@ -275,19 +251,6 @@ export class Unit extends Component {
         if (!this.sim || !this.agent) return;
 
         this.frameCounter++;
-
-        //
-        // Chống mọi rotation còn sót lại từ spawn/pool.
-        // Unit node chỉ được dùng cho position.
-        //
-        if (
-            Math.abs(this.node.eulerAngles.x) > 0.001 ||
-            Math.abs(this.node.eulerAngles.y) > 0.001 ||
-            Math.abs(this.node.eulerAngles.z) > 0.001
-        ) {
-            this.node.setRotationFromEuler(0, 0, 0);
-        }
-
         this.applyRuntimeAgentData();
 
         if (this.isSteady) {
@@ -436,9 +399,7 @@ export class Unit extends Component {
 
         const nearestEnemy = this.getNearestEnemyThrottled();
 
-        if (!nearestEnemy || !nearestEnemy.agent) {
-            return;
-        }
+        if (!nearestEnemy || !nearestEnemy.agent) return;
 
         if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
             const myZ = this.agent.pos.z;
@@ -594,9 +555,7 @@ export class Unit extends Component {
         const dx = target.agent.pos.x - this.agent.pos.x;
         const dz = target.agent.pos.z - this.agent.pos.z;
 
-        if (dx * dx + dz * dz < 0.0001) {
-            return;
-        }
+        if (dx * dx + dz * dz < 0.0001) return;
 
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
         const currentY = this.getVisualEulerY();

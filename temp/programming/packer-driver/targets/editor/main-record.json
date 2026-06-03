@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 7257875.5194,
+      "mTimestamp": 26514307.2476,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1323,7 +1323,7 @@
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts",
           "resolved": "__unresolved_23",
           "loc": {
             "start": {
@@ -1332,91 +1332,105 @@
             },
             "end": {
               "line": 5,
-              "column": 2513
+              "column": 2517
+            }
+          }
+        },
+        {
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts",
+          "resolved": "__unresolved_24",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 2533
+            },
+            "end": {
+              "line": 5,
+              "column": 2605
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts",
-          "resolved": "__unresolved_24",
+          "resolved": "__unresolved_25",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2529
+              "column": 2621
             },
             "end": {
               "line": 5,
-              "column": 2588
+              "column": 2680
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts",
-          "resolved": "__unresolved_25",
+          "resolved": "__unresolved_26",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2604
+              "column": 2696
             },
             "end": {
               "line": 5,
-              "column": 2671
+              "column": 2763
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts",
-          "resolved": "__unresolved_26",
+          "resolved": "__unresolved_27",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2687
+              "column": 2779
             },
             "end": {
               "line": 5,
-              "column": 2751
+              "column": 2843
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts",
-          "resolved": "__unresolved_27",
+          "resolved": "__unresolved_28",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2767
+              "column": 2859
             },
             "end": {
               "line": 5,
-              "column": 2833
+              "column": 2925
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts",
-          "resolved": "__unresolved_28",
+          "resolved": "__unresolved_29",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2849
+              "column": 2941
             },
             "end": {
               "line": 5,
-              "column": 2911
+              "column": 3003
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts",
-          "resolved": "__unresolved_29",
+          "resolved": "__unresolved_30",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2927
+              "column": 3019
             },
             "end": {
               "line": 5,
-              "column": 3004
+              "column": 3096
             }
           }
         }
@@ -1581,6 +1595,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts"
           },
           "messages": []
         },
@@ -3737,7 +3758,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1780456958475.9197,
+        "mtime": 1780451534000,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -4229,7 +4250,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1780462613798.2002,
+        "mtime": 1780471817466.001,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -4460,7 +4481,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts": {
       "mTimestamp": {
-        "mtime": 1778666924359.5576,
+        "mtime": 1780451534000,
         "uuid": "220c203c-ef11-4ca0-8d3c-4607999a8a88"
       },
       "chunkId": "8caf8513575212e5e25e9cb316f234d28dd51b24",
@@ -5278,7 +5299,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts": {
       "mTimestamp": {
-        "mtime": 1779856544929.5444,
+        "mtime": 1780451552000,
         "uuid": "fb8a1849-3759-4dfb-ac42-f957ce6a64ab"
       },
       "chunkId": "050442a99214a178ac71bf0e4447f57a0f27ae19",
@@ -7182,7 +7203,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts": {
       "mTimestamp": {
-        "mtime": 1780461022797.7727,
+        "mtime": 1780480358066.0742,
         "uuid": "1cbcd1a3-c701-4c5c-94da-9f29be475f76"
       },
       "chunkId": "0c1b8365f5689e6f24eaa3cfe2d2622bfc051527",
@@ -7308,7 +7329,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts": {
       "mTimestamp": {
-        "mtime": 1780460923852.2424,
+        "mtime": 1780481835264.4014,
         "uuid": "7735f014-d1bf-435b-9532-d99924f1ad9e"
       },
       "chunkId": "09b67c8db8f187c09a8625b753e66f80d67d36cb",
@@ -7364,6 +7385,90 @@
           "resolved": {
             "type": "module",
             "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts": {
+      "mTimestamp": {
+        "mtime": 1780475693236.6516,
+        "uuid": "ab22e050-e49c-465a-8d8e-9e08e1a78e78"
+      },
+      "chunkId": "21c9dcfb0e097a15270aaf90886dc0748ecd9037",
+      "imports": [
+        {
+          "value": "cce:/internal/code-quality/cr.mjs",
+          "resolved": "__unresolved_0"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 7
+            },
+            "end": {
+              "line": 5,
+              "column": 11
+            }
+          }
+        },
+        {
+          "value": "./GameManager",
+          "resolved": "__unresolved_1",
+          "loc": {
+            "start": {
+              "line": 7,
+              "column": 28
+            },
+            "end": {
+              "line": 7,
+              "column": 43
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/code-quality/cr.mjs"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts"
           },
           "messages": []
         }

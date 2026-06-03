@@ -91,6 +91,15 @@ export class GameManager extends Component {
     @property
     updateInterval = 2;
 
+    @property
+    useRvoDeltaTime = true;
+
+    @property
+    maxRvoStepDeltaTime = 0.05;
+
+    @property
+    rvoDeltaTimeScale = 1.0;
+
     frame = 0;
 
     @property
@@ -171,6 +180,7 @@ export class GameManager extends Component {
     centerGapWidth = 3;
 
     private spawnWaveTimer = 0;
+    private rvoStepDeltaAccumulator = 0;
 
     @property({ type: [ObstacleCircle] })
     circleObstacles: ObstacleCircle[] = [];
@@ -214,6 +224,7 @@ export class GameManager extends Component {
         this.counterKillCount[1] = 0;
 
         this.spawnWaveTimer = 0;
+        this.rvoStepDeltaAccumulator = 0;
 
         this.createSimulator();
         this.buildPrefabMaps();
@@ -309,8 +320,16 @@ export class GameManager extends Component {
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
 
+        this.rvoStepDeltaAccumulator += deltaTime;
+
         if (this.frame % this.updateInterval === 0) {
-            this.sim.step();
+            const rvoStepDeltaTime = this.getRvoStepDeltaTime();
+
+            const stepped = this.sim.step(rvoStepDeltaTime);
+
+            if (stepped !== false) {
+                this.rvoStepDeltaAccumulator = 0;
+            }
         }
 
         if (
@@ -323,6 +342,21 @@ export class GameManager extends Component {
         if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
         }
+    }
+
+
+
+    private getRvoStepDeltaTime() {
+        if (!this.useRvoDeltaTime) {
+            return undefined;
+        }
+
+        const safeDeltaTime = Math.min(
+            this.rvoStepDeltaAccumulator,
+            Math.max(0.016, this.maxRvoStepDeltaTime)
+        );
+
+        return safeDeltaTime * this.rvoDeltaTimeScale;
     }
 
     public reportKill(

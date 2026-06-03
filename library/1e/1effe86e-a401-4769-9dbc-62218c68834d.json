@@ -69,12 +69,15 @@
       },
       {
         "__id__": 197
+      },
+      {
+        "__id__": 199
       }
     ],
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 199
+      "__id__": 201
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -105,7 +108,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 204
+      "__id__": 206
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -1626,6 +1629,9 @@
     "battleMinZ": -50,
     "battleMaxZ": 50,
     "updateInterval": 2,
+    "useRvoDeltaTime": true,
+    "maxRvoStepDeltaTime": 0.05,
+    "rvoDeltaTimeScale": 1,
     "visualSmooth": 16,
     "spatialGridCellSize": 4,
     "spatialGridUpdateInterval": 2,
@@ -1756,11 +1762,11 @@
     "gameManager": null,
     "autoFindGameManager": true,
     "enterMoveDuration": 1,
-    "enterFocusDelayRatio": 0.5,
+    "enterFocusDelayRatio": 0.7,
     "enterFocusDuration": 1,
-    "returnMoveSmooth": 4,
-    "returnRotateSmooth": 4,
-    "returnFovSmooth": 4,
+    "returnFocusDuration": 1,
+    "returnMoveDelayRatio": 0.7,
+    "returnMoveDuration": 1,
     "returnPositionThreshold": 0.03,
     "returnFovThreshold": 0.08,
     "switchTargetWhenUnitDead": true,
@@ -2010,11 +2016,11 @@
     },
     "orbitSpeed": 20,
     "firstFocusLocalMoveSmooth": 4,
-    "switchTargetLocalMoveSmooth": 3,
+    "switchTargetLocalMoveSmooth": 2,
     "heightOffset": 0,
     "cameraFov": 80,
     "enableOrbit": true,
-    "resetOrbitAngleOnNewTarget": false,
+    "resetOrbitAngleOnUserFocus": true,
     "enableDebugLog": false,
     "_id": "146LUKMa5FSrNN2wIGI1a5"
   },
@@ -2168,7 +2174,7 @@
     "unitType": 0,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4.6,
+    "maxSpeed": 2.3,
     "health": 35,
     "damage": 7,
     "defense": 1
@@ -2183,7 +2189,7 @@
     "unitType": 2,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4,
+    "maxSpeed": 2,
     "health": 40,
     "damage": 6,
     "defense": 2
@@ -2198,7 +2204,7 @@
     "unitType": 4,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 3.6,
+    "maxSpeed": 1.8,
     "health": 45,
     "damage": 8,
     "defense": 2
@@ -2213,7 +2219,7 @@
     "unitType": 6,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 3.4,
+    "maxSpeed": 1.7,
     "health": 28,
     "damage": 7,
     "defense": 0
@@ -2228,7 +2234,7 @@
     "unitType": 8,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 6.8,
+    "maxSpeed": 3.4,
     "health": 42,
     "damage": 8,
     "defense": 1
@@ -2243,7 +2249,7 @@
     "unitType": 10,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 3,
+    "maxSpeed": 1.5,
     "health": 26,
     "damage": 10,
     "defense": 0
@@ -2258,7 +2264,7 @@
     "unitType": 0,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4.6,
+    "maxSpeed": 2.3,
     "health": 35,
     "damage": 7,
     "defense": 1
@@ -2273,7 +2279,7 @@
     "unitType": 2,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4,
+    "maxSpeed": 2,
     "health": 40,
     "damage": 6,
     "defense": 2
@@ -2288,7 +2294,7 @@
     "unitType": 4,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 3.6,
+    "maxSpeed": 1.8,
     "health": 45,
     "damage": 8,
     "defense": 2
@@ -2303,7 +2309,7 @@
     "unitType": 6,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 3.4,
+    "maxSpeed": 1.7,
     "health": 28,
     "damage": 7,
     "defense": 0
@@ -2318,7 +2324,7 @@
     "unitType": 8,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 6.8,
+    "maxSpeed": 3.4,
     "health": 42,
     "damage": 8,
     "defense": 1
@@ -2333,7 +2339,7 @@
     "unitType": 10,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 3,
+    "maxSpeed": 1.5,
     "health": 26,
     "damage": 10,
     "defense": 0
@@ -3160,9 +3166,9 @@
     "_lrot": {
       "__type__": "cc.Quat",
       "x": 0,
-      "y": 1,
+      "y": 0,
       "z": 0,
-      "w": 6.123233995736766e-17
+      "w": 1
     },
     "_lscale": {
       "__type__": "cc.Vec3",
@@ -3175,7 +3181,7 @@
     "_euler": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 180,
+      "y": 0,
       "z": 0
     },
     "_id": "31pS4GIgJP8LZ1Oy4NcBrU"
@@ -3441,9 +3447,9 @@
     "value": {
       "__type__": "cc.Quat",
       "x": 0,
-      "y": 0,
+      "y": 1,
       "z": 0,
-      "w": 1
+      "w": 6.123233995736766e-17
     }
   },
   {
@@ -3457,7 +3463,7 @@
     "value": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 0,
+      "y": 180,
       "z": 0
     }
   },
@@ -4827,8 +4833,8 @@
     },
     "team": 1,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
-    "minSpawnInterval": 3,
-    "maxSpawnInterval": 3.5,
+    "minSpawnInterval": 2,
+    "maxSpawnInterval": 3,
     "maxBrainDeltaTime": 0.1,
     "sensitive": 1,
     "minSensitive": 1,
@@ -4908,8 +4914,8 @@
     },
     "team": 0,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
-    "minSpawnInterval": 3,
-    "maxSpawnInterval": 3.5,
+    "minSpawnInterval": 2,
+    "maxSpawnInterval": 3,
     "maxBrainDeltaTime": 0.1,
     "sensitive": 1,
     "minSensitive": 1,
@@ -4989,6 +4995,90 @@
     "_id": "19uM/rTCdIYarBGEFIPXYI"
   },
   {
+    "__type__": "cc.Node",
+    "_name": "SpawnBackPressureGate",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 200
+      }
+    ],
+    "_prefab": null,
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 1073741824,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_id": "058xC0LsRHc5c6wewv4pRK"
+  },
+  {
+    "__type__": "ab22eBQ5JxGWo2Ongjhp454",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 199
+    },
+    "_enabled": false,
+    "__prefab": null,
+    "gameManager": {
+      "__id__": 38
+    },
+    "armyBrains": [
+      {
+        "__id__": 196
+      },
+      {
+        "__id__": 194
+      }
+    ],
+    "autoFindGameManager": true,
+    "checkInterval": 0.2,
+    "enableFpsGate": true,
+    "minFpsToSpawn": 24,
+    "lowFpsGraceTime": 0.8,
+    "lowFpsHoldDuration": 1.5,
+    "fpsSmooth": 6,
+    "enableAliveUnitGate": true,
+    "maxAliveUnitsToSpawn": 300,
+    "resumeAliveUnits": 260,
+    "enableWaveGate": true,
+    "maxAliveWavesToSpawn": 60,
+    "resumeAliveWaves": 45,
+    "minimumPauseDuration": 0.5,
+    "debugLabel": null,
+    "enableDebugLog": false,
+    "_id": "681Rd3NjhNba2pheY6S1sl"
+  },
+  {
     "__type__": "cc.PrefabInfo",
     "root": null,
     "asset": null,
@@ -4996,10 +5086,10 @@
     "instance": null,
     "targetOverrides": [
       {
-        "__id__": 200
+        "__id__": 202
       },
       {
-        "__id__": 202
+        "__id__": 204
       }
     ],
     "nestedPrefabInstanceRoots": [
@@ -5030,7 +5120,7 @@
       "__id__": 64
     },
     "targetInfo": {
-      "__id__": 201
+      "__id__": 203
     }
   },
   {
@@ -5052,7 +5142,7 @@
       "__id__": 103
     },
     "targetInfo": {
-      "__id__": 203
+      "__id__": 205
     }
   },
   {
@@ -5064,28 +5154,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 205
-    },
-    "shadows": {
-      "__id__": 206
-    },
-    "_skybox": {
       "__id__": 207
     },
-    "fog": {
+    "shadows": {
       "__id__": 208
     },
-    "octree": {
+    "_skybox": {
       "__id__": 209
     },
-    "skin": {
+    "fog": {
       "__id__": 210
     },
-    "lightProbeInfo": {
+    "octree": {
       "__id__": 211
     },
-    "postSettings": {
+    "skin": {
       "__id__": 212
+    },
+    "lightProbeInfo": {
+      "__id__": 213
+    },
+    "postSettings": {
+      "__id__": 214
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

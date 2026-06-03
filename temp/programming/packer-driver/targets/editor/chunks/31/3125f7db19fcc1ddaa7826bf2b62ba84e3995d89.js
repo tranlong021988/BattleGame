@@ -128,11 +128,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         init(sim, team, unitTypeName, forwardX, forwardZ) {
           this.team = team;
           this.unitTypeName = unitTypeName;
-          this.sim = sim; //
-          // QUAN TRỌNG:
-          // Unit node chỉ handle position, không handle rotation.
-          // Toàn bộ rotation visual sẽ nằm ở visualRoot.
-          //
+          this.sim = sim; // Unit node chỉ handle position.
+          // Rotation visual nằm ở visualRoot.
 
           this.node.setRotationFromEuler(0, 0, 0);
           const p = this.node.worldPosition;
@@ -279,15 +276,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         update(deltaTime) {
           if (!this.sim || !this.agent) return;
-          this.frameCounter++; //
-          // Chống mọi rotation còn sót lại từ spawn/pool.
-          // Unit node chỉ được dùng cho position.
-          //
-
-          if (Math.abs(this.node.eulerAngles.x) > 0.001 || Math.abs(this.node.eulerAngles.y) > 0.001 || Math.abs(this.node.eulerAngles.z) > 0.001) {
-            this.node.setRotationFromEuler(0, 0, 0);
-          }
-
+          this.frameCounter++;
           this.applyRuntimeAgentData();
 
           if (this.isSteady) {
@@ -407,10 +396,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         updateForwardPhase() {
           if (!this.agent) return;
           const nearestEnemy = this.getNearestEnemyThrottled();
-
-          if (!nearestEnemy || !nearestEnemy.agent) {
-            return;
-          }
+          if (!nearestEnemy || !nearestEnemy.agent) return;
 
           if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
             const myZ = this.agent.pos.z;
@@ -541,11 +527,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!target || !target.agent) return;
           const dx = target.agent.pos.x - this.agent.pos.x;
           const dz = target.agent.pos.z - this.agent.pos.z;
-
-          if (dx * dx + dz * dz < 0.0001) {
-            return;
-          }
-
+          if (dx * dx + dz * dz < 0.0001) return;
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           const currentY = this.getVisualEulerY();
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
