@@ -64,9 +64,9 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
-      "z": 1
+      "x": 1.5,
+      "y": 1.5,
+      "z": 1.5
     },
     "_mobility": 0,
     "_layer": 1073741824,
@@ -568,7 +568,7 @@
     "node": {
       "__id__": 32
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": {
       "__id__": 34
     },
@@ -733,6 +733,10 @@
     "__prefab": {
       "__id__": 43
     },
+    "visualRoot": {
+      "__id__": 7
+    },
+    "visualYawOffset": 0,
     "moveSpeed": 7,
     "radius": 0.7,
     "attackRange": 1.7,
@@ -743,7 +747,7 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
-    "onForward": true,
+    "onForward": false,
     "isSteady": false,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -794,9 +798,9 @@
       "__id__": 47
     },
     "unitType": 0,
-    "maxHealth": 5,
-    "damage": 1,
-    "defense": 5,
+    "maxHealth": 50,
+    "damage": 20,
+    "defense": 10,
     "healthBar": {
       "__id__": 36
     },

@@ -58,6 +58,9 @@ export class GameManager extends Component {
 
     static instance: GameManager | null = null;
 
+    @property(Component)
+    cinematicController: Component | null = null;
+
     @property
     useWorkerRVO = true;
 
@@ -372,6 +375,17 @@ export class GameManager extends Component {
         }
 
         return this.counterKillCount[team] / this.killCount[team];
+    }
+
+    private notifyUnitWillDespawn(unit: Unit) {
+        const anyController = this.cinematicController as any;
+
+        if (
+            anyController &&
+            typeof anyController.onUnitWillDespawn === 'function'
+        ) {
+            anyController.onUnitWillDespawn(unit);
+        }
     }
 
     private rebuildSpatialGrid() {
@@ -872,6 +886,8 @@ export class GameManager extends Component {
     despawnUnit(unit: Unit) {
         if (!unit) return;
 
+        this.notifyUnitWillDespawn(unit);
+
         if (unit.isHero) {
             this.handleHeroDeath(unit);
             return;
@@ -989,7 +1005,6 @@ export class GameManager extends Component {
         }
 
         unit.resetForDespawn();
-
         unit.node.active = false;
 
         this.rebuildSpatialGrid();
@@ -1126,7 +1141,6 @@ export class GameManager extends Component {
         min: number,
         max: number
     ) {
-
         return (
             Math.random() * (max - min) + min
         );

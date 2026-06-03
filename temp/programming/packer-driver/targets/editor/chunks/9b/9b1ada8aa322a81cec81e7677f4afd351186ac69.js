@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Layers, Node, Sprite, SpriteFrame, UITransform, GameManager, UnitType, BattleInformationIconItem, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _crd, ccclass, property, UnitIconInfo, BattleInformationPanel;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Layers, Node, Sprite, SpriteFrame, UITransform, GameManager, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _crd, ccclass, property, UnitIconInfo, BattleInformationPanel;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -25,6 +25,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("BattleInformationIconItem", "./BattleInformationIconItem", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfBattleCinematicCameraController(extras) {
+    _reporterNs.report("BattleCinematicCameraController", "./BattleCinematicCameraController", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -45,13 +49,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       UnitType = _unresolved_3.UnitType;
     }, function (_unresolved_4) {
       BattleInformationIconItem = _unresolved_4.BattleInformationIconItem;
+    }, function (_unresolved_5) {
+      BattleCinematicCameraController = _unresolved_5.BattleCinematicCameraController;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "8a2ccFb9zZCuJLB7Ma3qoRQ", "BattleInformationPanel", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Layers', 'Node', 'Sprite', 'SpriteFrame', 'UITransform']);
+      __checkObsolete__(['_decorator', 'Component', 'EventTouch', 'Layers', 'Node', 'Sprite', 'SpriteFrame', 'UITransform']);
 
       ({
         ccclass,
@@ -89,9 +95,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _export("BattleInformationPanel", BattleInformationPanel = (_dec4 = ccclass('BattleInformationPanel'), _dec5 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
         error: Error()
-      }), GameManager) : GameManager), _dec6 = property(Node), _dec7 = property(Node), _dec8 = property({
+      }), GameManager) : GameManager), _dec6 = property(_crd && BattleCinematicCameraController === void 0 ? (_reportPossibleCrUseOfBattleCinematicCameraController({
+        error: Error()
+      }), BattleCinematicCameraController) : BattleCinematicCameraController), _dec7 = property(Node), _dec8 = property(Node), _dec9 = property({
         type: [UnitIconInfo]
-      }), _dec9 = property({
+      }), _dec10 = property({
         type: [UnitIconInfo]
       }), _dec4(_class4 = (_class5 = class BattleInformationPanel extends Component {
         constructor(...args) {
@@ -99,29 +107,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "gameManager", _descriptor3, this);
 
-          _initializerDefineProperty(this, "teamAIconRoot", _descriptor4, this);
+          _initializerDefineProperty(this, "cinematicController", _descriptor4, this);
 
-          _initializerDefineProperty(this, "teamBIconRoot", _descriptor5, this);
+          _initializerDefineProperty(this, "teamAIconRoot", _descriptor5, this);
 
-          _initializerDefineProperty(this, "teamAIcons", _descriptor6, this);
+          _initializerDefineProperty(this, "teamBIconRoot", _descriptor6, this);
 
-          _initializerDefineProperty(this, "teamBIcons", _descriptor7, this);
+          _initializerDefineProperty(this, "teamAIcons", _descriptor7, this);
 
-          _initializerDefineProperty(this, "autoFindGameManager", _descriptor8, this);
+          _initializerDefineProperty(this, "teamBIcons", _descriptor8, this);
 
-          _initializerDefineProperty(this, "updateInterval", _descriptor9, this);
+          _initializerDefineProperty(this, "autoFindGameManager", _descriptor9, this);
 
-          _initializerDefineProperty(this, "iconWidth", _descriptor10, this);
+          _initializerDefineProperty(this, "updateInterval", _descriptor10, this);
 
-          _initializerDefineProperty(this, "iconHeight", _descriptor11, this);
+          _initializerDefineProperty(this, "iconWidth", _descriptor11, this);
 
-          _initializerDefineProperty(this, "teamAAnchorY", _descriptor12, this);
+          _initializerDefineProperty(this, "iconHeight", _descriptor12, this);
 
-          _initializerDefineProperty(this, "teamBAnchorY", _descriptor13, this);
+          _initializerDefineProperty(this, "teamAAnchorY", _descriptor13, this);
 
-          _initializerDefineProperty(this, "prewarmIconCount", _descriptor14, this);
+          _initializerDefineProperty(this, "teamBAnchorY", _descriptor14, this);
 
-          _initializerDefineProperty(this, "maxPoolSize", _descriptor15, this);
+          _initializerDefineProperty(this, "prewarmIconCount", _descriptor15, this);
+
+          _initializerDefineProperty(this, "maxPoolSize", _descriptor16, this);
+
+          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor17, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor18, this);
 
           this.records = new Map();
           this.pool = [];
@@ -166,14 +180,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         syncWithBattleWaves() {
-          if (!this.gameManager) return;
+          if (!this.gameManager) {
+            return;
+          }
+
           const waves = this.gameManager.waves;
 
           for (let i = 0; i < waves.length; i++) {
             const wave = waves[i];
             if (!wave) continue;
             if (wave.isDead()) continue;
-            if (this.records.has(wave.id)) continue;
+
+            if (this.records.has(wave.id)) {
+              continue;
+            }
+
             this.createIconForWave(wave);
           }
         }
@@ -182,14 +203,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const root = wave.team === 0 ? this.teamAIconRoot : this.teamBIconRoot;
 
           if (!root) {
-            console.warn('[BattleInformationPanel] Missing icon root for team:', wave.team);
             return;
           }
 
           const node = this.getIconNodeFromPool();
-          node.name = `wave-icon-${wave.id}-${wave.unitName}`;
-          node.layer = Layers.Enum.UI_2D;
           node.active = true;
+          node.layer = Layers.Enum.UI_2D;
+          node.name = `wave-icon-${wave.id}`;
+          this.clearIconEvents(node);
+
+          if (this.enableIconClickFocus && this.cinematicController) {
+            node.on(Node.EventType.TOUCH_START, event => {
+              var _this$cinematicContro;
+
+              (_this$cinematicContro = this.cinematicController) == null || _this$cinematicContro.suppressExitTap();
+              this.stopTouchPropagation(event);
+            }, this);
+            node.on(Node.EventType.TOUCH_END, event => {
+              var _this$cinematicContro2, _this$cinematicContro3;
+
+              (_this$cinematicContro2 = this.cinematicController) == null || _this$cinematicContro2.suppressExitTap();
+              (_this$cinematicContro3 = this.cinematicController) == null || _this$cinematicContro3.focusWave(wave);
+              this.stopTouchPropagation(event);
+            }, this);
+          }
+
           root.addChild(node);
           const item = node.getComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
@@ -202,28 +240,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             item,
             node
           });
-        }
-
-        getIconNodeFromPool() {
-          if (this.pool.length > 0) {
-            return this.pool.pop();
-          }
-
-          return this.createIconNode();
-        }
-
-        createIconNode() {
-          const node = new Node('wave-icon');
-          node.layer = Layers.Enum.UI_2D;
-          const ui = node.addComponent(UITransform);
-          ui.setContentSize(this.iconWidth, this.iconHeight);
-          ui.setAnchorPoint(0.5, 0.5);
-          const sprite = node.addComponent(Sprite);
-          sprite.sizeMode = Sprite.SizeMode.CUSTOM;
-          node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
-            error: Error()
-          }), BattleInformationIconItem) : BattleInformationIconItem);
-          return node;
+          this.log(`Create icon wave=${wave.id}`);
         }
 
         updateAllIcons() {
@@ -232,13 +249,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             const wave = record.wave;
 
             if (!wave || wave.isDead()) {
-              record.item.setAliveRatio(0);
               removeIds.push(waveId);
               return;
             }
 
-            const aliveRatio = wave.getAliveRatio();
-            record.item.setAliveRatio(aliveRatio);
+            const ratio = wave.getAliveRatio();
+            record.item.setAliveRatio(ratio);
             record.item.updateEngageVisual(wave.hasEngaged(), this.time);
           });
 
@@ -250,18 +266,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         updateFlashOnly() {
           this.records.forEach(record => {
             const wave = record.wave;
-            if (!wave || wave.isDead()) return;
+
+            if (!wave || wave.isDead()) {
+              return;
+            }
+
             record.item.updateEngageVisual(wave.hasEngaged(), this.time);
           });
         }
 
         releaseIcon(waveId) {
           const record = this.records.get(waveId);
-          if (!record) return;
+
+          if (!record) {
+            return;
+          }
+
+          this.clearIconEvents(record.node);
           record.item.resetVisual();
           record.node.removeFromParent();
           record.node.active = false;
-          record.node.name = 'wave-icon-pooled';
 
           if (this.pool.length < this.maxPoolSize) {
             this.node.addChild(record.node);
@@ -273,28 +297,50 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.records.delete(waveId);
         }
 
+        getIconNodeFromPool() {
+          if (this.pool.length > 0) {
+            return this.pool.pop();
+          }
+
+          return this.createIconNode();
+        }
+
+        createIconNode() {
+          const node = new Node('battle-info-icon');
+          node.layer = Layers.Enum.UI_2D;
+          const ui = node.addComponent(UITransform);
+          ui.setContentSize(this.iconWidth, this.iconHeight);
+          const sprite = node.addComponent(Sprite);
+          sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+          node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
+            error: Error()
+          }), BattleInformationIconItem) : BattleInformationIconItem);
+          return node;
+        }
+
+        clearIconEvents(node) {
+          node.off(Node.EventType.TOUCH_START);
+          node.off(Node.EventType.TOUCH_END);
+          node.off(Node.EventType.TOUCH_CANCEL);
+        }
+
+        stopTouchPropagation(event) {
+          const e = event;
+
+          if (typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
+          }
+        }
+
         clearAllIcons() {
           this.records.forEach(record => {
+            this.clearIconEvents(record.node);
             record.item.resetVisual();
             record.node.removeFromParent();
             record.node.active = false;
-
-            if (this.pool.length < this.maxPoolSize) {
-              this.node.addChild(record.node);
-              this.pool.push(record.node);
-            } else {
-              record.node.destroy();
-            }
+            this.pool.push(record.node);
           });
           this.records.clear();
-
-          if (this.teamAIconRoot) {
-            this.teamAIconRoot.removeAllChildren();
-          }
-
-          if (this.teamBIconRoot) {
-            this.teamBIconRoot.removeAllChildren();
-          }
         }
 
         getSpriteFrame(team, unitType) {
@@ -308,8 +354,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
-          console.warn('[BattleInformationPanel] Missing icon for team/unitType:', team, unitType);
           return null;
+        }
+
+        log(msg) {
+          if (!this.enableDebugLog) {
+            return;
+          }
+
+          console.log(`[BattleInformationPanel] ${msg}`);
         }
 
       }, (_descriptor3 = _applyDecoratedDescriptor(_class5.prototype, "gameManager", [_dec5], {
@@ -319,89 +372,110 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return null;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class5.prototype, "teamAIconRoot", [_dec6], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class5.prototype, "cinematicController", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return null;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "teamBIconRoot", [_dec7], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "teamAIconRoot", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return null;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class5.prototype, "teamAIcons", [_dec8], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class5.prototype, "teamBIconRoot", [_dec8], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
+        }
+      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "teamAIcons", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "teamBIcons", [_dec9], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "teamBIcons", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "autoFindGameManager", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "autoFindGameManager", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.1;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 40;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 40;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "teamAAnchorY", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "teamAAnchorY", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "teamBAnchorY", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "teamBAnchorY", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 32;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 128;
+        }
+      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return false;
         }
       })), _class5)) || _class4));
 

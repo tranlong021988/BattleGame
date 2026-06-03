@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, EnemyFinder, UnitProps, GameManager, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, EnemyFinder, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -30,6 +30,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
+      Node = _cc.Node;
       Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
       EnemyFinder = _unresolved_2.EnemyFinder;
@@ -43,52 +44,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "6e964qkrR5F2YvWvH5N+eXO", "Unit", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Vec3']);
+      __checkObsolete__(['_decorator', 'Component', 'Node', 'Vec3']);
 
       ({
         ccclass,
         property
       } = _decorator);
 
-      _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Vec3), _dec(_class = (_class2 = (_class3 = class Unit extends Component {
+      _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Node), _dec3 = property(Vec3), _dec(_class = (_class2 = (_class3 = class Unit extends Component {
         constructor(...args) {
           super(...args);
 
-          _initializerDefineProperty(this, "moveSpeed", _descriptor, this);
+          _initializerDefineProperty(this, "visualRoot", _descriptor, this);
 
-          _initializerDefineProperty(this, "radius", _descriptor2, this);
+          _initializerDefineProperty(this, "visualYawOffset", _descriptor2, this);
 
-          _initializerDefineProperty(this, "attackRange", _descriptor3, this);
+          _initializerDefineProperty(this, "moveSpeed", _descriptor3, this);
 
-          _initializerDefineProperty(this, "targetSearchRange", _descriptor4, this);
+          _initializerDefineProperty(this, "radius", _descriptor4, this);
 
-          _initializerDefineProperty(this, "attackCheckIntervalFrames", _descriptor5, this);
+          _initializerDefineProperty(this, "attackRange", _descriptor5, this);
 
-          _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor6, this);
+          _initializerDefineProperty(this, "targetSearchRange", _descriptor6, this);
 
-          _initializerDefineProperty(this, "rotationSpeed", _descriptor7, this);
+          _initializerDefineProperty(this, "attackCheckIntervalFrames", _descriptor7, this);
 
-          _initializerDefineProperty(this, "moveThreshold", _descriptor8, this);
+          _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor8, this);
 
-          _initializerDefineProperty(this, "velThreshold", _descriptor9, this);
+          _initializerDefineProperty(this, "rotationSpeed", _descriptor9, this);
 
-          _initializerDefineProperty(this, "visualThreshold", _descriptor10, this);
+          _initializerDefineProperty(this, "moveThreshold", _descriptor10, this);
 
-          _initializerDefineProperty(this, "onForward", _descriptor11, this);
+          _initializerDefineProperty(this, "velThreshold", _descriptor11, this);
 
-          _initializerDefineProperty(this, "isSteady", _descriptor12, this);
+          _initializerDefineProperty(this, "visualThreshold", _descriptor12, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor13, this);
+          _initializerDefineProperty(this, "onForward", _descriptor13, this);
 
-          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor14, this);
+          _initializerDefineProperty(this, "isSteady", _descriptor14, this);
 
-          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor15, this);
+          _initializerDefineProperty(this, "forwardDir", _descriptor15, this);
 
-          _initializerDefineProperty(this, "overtakeSideRange", _descriptor16, this);
+          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor16, this);
 
-          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor17, this);
+          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor17, this);
 
-          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor18, this);
+          _initializerDefineProperty(this, "overtakeSideRange", _descriptor18, this);
+
+          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor19, this);
+
+          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor20, this);
 
           this.team = 0;
           this.unitTypeName = '';
@@ -123,9 +128,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         init(sim, team, unitTypeName, forwardX, forwardZ) {
           this.team = team;
           this.unitTypeName = unitTypeName;
-          this.sim = sim;
+          this.sim = sim; //
+          // QUAN TRỌNG:
+          // Unit node chỉ handle position, không handle rotation.
+          // Toàn bộ rotation visual sẽ nằm ở visualRoot.
+          //
+
+          this.node.setRotationFromEuler(0, 0, 0);
           const p = this.node.worldPosition;
-          this.initialYaw = this.node.eulerAngles.y;
+          this.initialYaw = this.getVisualEulerY();
           this.agent = sim.addAgent(p.x, p.z);
           this.agent.maxSpeed = this.moveSpeed;
           this.agent.radius = this.radius;
@@ -153,7 +164,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.enemy = null;
             this.onBusy = false;
             this.onForward = false;
-            this.initialYaw = this.node.eulerAngles.y;
+            this.initialYaw = this.getVisualEulerY();
             this.agent.locked = true;
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
@@ -268,7 +279,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         update(deltaTime) {
           if (!this.sim || !this.agent) return;
-          this.frameCounter++;
+          this.frameCounter++; //
+          // Chống mọi rotation còn sót lại từ spawn/pool.
+          // Unit node chỉ được dùng cho position.
+          //
+
+          if (Math.abs(this.node.eulerAngles.x) > 0.001 || Math.abs(this.node.eulerAngles.y) > 0.001 || Math.abs(this.node.eulerAngles.z) > 0.001) {
+            this.node.setRotationFromEuler(0, 0, 0);
+          }
+
           this.applyRuntimeAgentData();
 
           if (this.isSteady) {
@@ -528,15 +547,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-          const currentY = this.node.eulerAngles.y;
+          const currentY = this.getVisualEulerY();
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
-          this.node.setRotationFromEuler(0, newY, 0);
+          this.setVisualYaw(newY);
         }
 
         returnToInitialYawSmooth(deltaTime) {
-          const currentY = this.node.eulerAngles.y;
+          const currentY = this.getVisualEulerY();
           const newY = this.lerpAngle(currentY, this.initialYaw, this.rotationSpeed * deltaTime);
-          this.node.setRotationFromEuler(0, newY, 0);
+          this.setVisualYaw(newY);
         }
 
         sync(deltaTime, rotateByVelocity) {
@@ -568,9 +587,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.lastStablePos.x = this.agent.pos.x;
           this.lastStablePos.z = this.agent.pos.z;
           const targetAngle = Math.atan2(vx, vz) * 180 / Math.PI;
-          const currentY = this.node.eulerAngles.y;
+          const currentY = this.getVisualEulerY();
           const newY = this.lerpAngle(currentY, targetAngle, this.rotationSpeed * deltaTime);
-          this.node.setRotationFromEuler(0, newY, 0);
+          this.setVisualYaw(newY);
+        }
+
+        getVisualNode() {
+          return this.visualRoot || this.node;
+        }
+
+        getVisualEulerY() {
+          return this.getVisualNode().eulerAngles.y - this.visualYawOffset;
+        }
+
+        setVisualYaw(y) {
+          this.getVisualNode().setRotationFromEuler(0, y + this.visualYawOffset, 0);
         }
 
         lerpAngle(a, b, t) {
@@ -580,126 +611,140 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return a + diff * t;
         }
 
-      }, _class3.visualLerpT = 1, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "moveSpeed", [property], {
+      }, _class3.visualLerpT = 1, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "visualRoot", [_dec2], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
+        }
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "visualYawOffset", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0;
+        }
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "moveSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "radius", [property], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "radius", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.5;
         }
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "attackRange", [property], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "attackRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchRange", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 60;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "attackCheckIntervalFrames", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "attackCheckIntervalFrames", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchIntervalFrames", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchIntervalFrames", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 6;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "rotationSpeed", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "rotationSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 10;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "moveThreshold", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "moveThreshold", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.2;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "velThreshold", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "velThreshold", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.05;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "visualThreshold", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "visualThreshold", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.01;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec2], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec3], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new Vec3(0, 0, 1);
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2.2;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.2;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.75;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

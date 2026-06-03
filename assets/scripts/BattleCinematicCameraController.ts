@@ -44,13 +44,13 @@ export class BattleCinematicCameraController extends Component {
     autoFindGameManager = true;
 
     @property
-    moveSmooth = 4;
+    enterMoveDuration = 1.0;
 
     @property
-    rotateSmooth = 4;
+    enterFocusDelayRatio = 0.5;
 
     @property
-    fovSmooth = 6;
+    enterFocusDuration = 0.7;
 
     @property
     returnMoveSmooth = 6;
@@ -86,16 +86,7 @@ export class BattleCinematicCameraController extends Component {
     uiTapSuppressDuration = 0.25;
 
     @property
-    useParentLock = true;
-
-    @property
-    lockPositionThreshold = 0.12;
-
-    @property
-    lockFovThreshold = 0.2;
-
-    @property
-    enableDebugLog = true;
+    enableDebugLog = false;
 
     private state: CinematicState = CinematicState.Idle;
 
@@ -107,16 +98,23 @@ export class BattleCinematicCameraController extends Component {
     private originalRot = new Quat();
     private originalFov = 45;
 
-    private tempPos = new Vec3();
-    private tempRot = new Quat();
+    private tempWorldPos = new Vec3();
+    private tempWorldRot = new Quat();
 
-    private targetPos = new Vec3();
-    private targetRot = new Quat();
+    private startLocalPos = new Vec3();
+    private startLocalRot = new Quat();
+    private startFov = 45;
+
+    private currentLocalPos = new Vec3();
+    private currentLocalRot = new Quat();
+
+    private targetLocalPos = new Vec3();
+    private targetLocalRot = new Quat();
 
     private exitTapTimer = 0;
     private uiTapSuppressTimer = 0;
 
-    private cameraLockedToRig = false;
+    private enterTimer = 0;
 
     onEnable() {
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
@@ -147,7 +145,7 @@ export class BattleCinematicCameraController extends Component {
             this.validateTarget();
 
             if (this.state === CinematicState.Orbit) {
-                this.updateCameraToOrbit(deltaTime);
+                this.updateCameraLocalToOrbitPose(deltaTime);
             }
 
             return;
@@ -162,7 +160,8 @@ export class BattleCinematicCameraController extends Component {
     public focusWave(wave: BattleWave | null) {
         if (!wave) return;
 
-        const unit = wave.getRandomAliveUnit();
+        const unit = wave.getRandomPreferredAliveUnit();
+
         if (!unit) return;
 
         this.suppressExitTap();
@@ -171,17 +170,17 @@ export class BattleCinematicCameraController extends Component {
             this.captureCurrentCamera();
         }
 
-        if (this.cameraLockedToRig) {
-            this.unlockCameraKeepWorld();
-        }
-
         this.state = CinematicState.Orbit;
+
         this.currentWave = wave;
         this.currentUnit = unit;
 
         if (this.orbitRig) {
             this.orbitRig.setTarget(unit);
         }
+
+        this.parentCameraToOrbitRigKeepWorld();
+        this.resetEnterTweenFromCurrentLocalPose();
 
         if (this.topDownCameraDrag) {
             this.topDownCameraDrag.enabled = false;
@@ -192,8 +191,23 @@ export class BattleCinematicCameraController extends Component {
         this.log(`Focus wave=${wave.id}, unit=${unit.node.name}`);
     }
 
+    public onUnitWillDespawn(unit: Unit | null) {
+        if (!unit) return;
+        if (this.state !== CinematicState.Orbit) return;
+        if (this.currentUnit !== unit) return;
+
+        this.log(`Focused unit will despawn: ${unit.node.name}`);
+
+        const switched = this.trySwitchTargetBeforeDespawn();
+
+        if (!switched) {
+            this.beginReturnToOriginal();
+        }
+    }
+
     public exitCinematic() {
         if (this.state === CinematicState.Idle) return;
+
         this.beginReturnToOriginal();
     }
 
@@ -213,6 +227,14 @@ export class BattleCinematicCameraController extends Component {
         return this.state !== CinematicState.Idle;
     }
 
+    public isOrbiting() {
+        return this.state === CinematicState.Orbit;
+    }
+
+    public isReturning() {
+        return this.state === CinematicState.Returning;
+    }
+
     private captureCurrentCamera() {
         if (!this.mainCamera) return;
 
@@ -224,6 +246,25 @@ export class BattleCinematicCameraController extends Component {
         this.originalFov = this.mainCamera.fov;
     }
 
+    private parentCameraToOrbitRigKeepWorld() {
+        if (!this.mainCamera || !this.orbitRig) return;
+
+        this.mainCamera.node.setParent(
+            this.orbitRig.node,
+            true
+        );
+    }
+
+    private resetEnterTweenFromCurrentLocalPose() {
+        if (!this.mainCamera) return;
+
+        this.enterTimer = 0;
+
+        this.startLocalPos.set(this.mainCamera.node.position);
+        this.startLocalRot.set(this.mainCamera.node.rotation);
+        this.startFov = this.mainCamera.fov;
+    }
+
     private validateTarget() {
         if (!this.currentWave) {
             this.beginReturnToOriginal();
@@ -231,23 +272,12 @@ export class BattleCinematicCameraController extends Component {
         }
 
         if (this.currentWave.isDead()) {
-            if (this.switchWaveWhenCurrentWaveDead) {
-                const switchedSameTeam =
-                    this.switchToAnotherWave(this.currentWave.team, true);
+            const switched = this.trySwitchTargetBeforeDespawn();
 
-                if (switchedSameTeam) return;
+            if (!switched) {
+                this.beginReturnToOriginal();
             }
 
-            if (this.switchToEnemyTeamIfCurrentTeamDead) {
-                const enemyTeam = this.currentWave.team === 0 ? 1 : 0;
-
-                const switchedEnemy =
-                    this.switchToAnotherWave(enemyTeam, false);
-
-                if (switchedEnemy) return;
-            }
-
-            this.beginReturnToOriginal();
             return;
         }
 
@@ -257,31 +287,60 @@ export class BattleCinematicCameraController extends Component {
                 return;
             }
 
-            const nextUnit = this.currentWave.getRandomAliveUnit();
+            const switched = this.trySwitchTargetBeforeDespawn();
 
-            if (nextUnit) {
-                this.switchToUnit(this.currentWave, nextUnit);
-                return;
+            if (!switched) {
+                this.beginReturnToOriginal();
             }
-
-            if (this.switchWaveWhenCurrentWaveDead) {
-                const switchedSameTeam =
-                    this.switchToAnotherWave(this.currentWave.team, true);
-
-                if (switchedSameTeam) return;
-            }
-
-            if (this.switchToEnemyTeamIfCurrentTeamDead) {
-                const enemyTeam = this.currentWave.team === 0 ? 1 : 0;
-
-                const switchedEnemy =
-                    this.switchToAnotherWave(enemyTeam, false);
-
-                if (switchedEnemy) return;
-            }
-
-            this.beginReturnToOriginal();
         }
+    }
+
+    private trySwitchTargetBeforeDespawn() {
+        if (!this.currentWave) return false;
+
+        const sameWaveUnit =
+            this.currentWave.getRandomPreferredAliveUnit();
+
+        if (
+            sameWaveUnit &&
+            sameWaveUnit !== this.currentUnit
+        ) {
+            this.switchToUnit(
+                this.currentWave,
+                sameWaveUnit
+            );
+
+            return true;
+        }
+
+        if (this.switchWaveWhenCurrentWaveDead) {
+            const switchedSameTeam =
+                this.switchToAnotherWave(
+                    this.currentWave.team,
+                    true
+                );
+
+            if (switchedSameTeam) {
+                return true;
+            }
+        }
+
+        if (this.switchToEnemyTeamIfCurrentTeamDead) {
+            const enemyTeam =
+                this.currentWave.team === 0 ? 1 : 0;
+
+            const switchedEnemy =
+                this.switchToAnotherWave(
+                    enemyTeam,
+                    false
+                );
+
+            if (switchedEnemy) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private switchToAnotherWave(
@@ -303,7 +362,10 @@ export class BattleCinematicCameraController extends Component {
             if (!wave) continue;
             if (excludeCurrentWave && wave === this.currentWave) continue;
             if (wave.isDead()) continue;
-            if (!wave.getRandomAliveUnit()) continue;
+
+            const unit = wave.getRandomPreferredAliveUnit();
+
+            if (!unit) continue;
 
             candidates.push(wave);
         }
@@ -317,7 +379,7 @@ export class BattleCinematicCameraController extends Component {
         );
 
         const nextWave = candidates[waveIndex];
-        const nextUnit = nextWave.getRandomAliveUnit();
+        const nextUnit = nextWave.getRandomPreferredAliveUnit();
 
         if (!nextUnit) return false;
 
@@ -330,10 +392,6 @@ export class BattleCinematicCameraController extends Component {
         wave: BattleWave,
         unit: Unit
     ) {
-        if (this.cameraLockedToRig) {
-            this.unlockCameraKeepWorld();
-        }
-
         this.currentWave = wave;
         this.currentUnit = unit;
 
@@ -341,142 +399,77 @@ export class BattleCinematicCameraController extends Component {
             this.orbitRig.setTarget(unit);
         }
 
+        this.parentCameraToOrbitRigKeepWorld();
+        this.resetEnterTweenFromCurrentLocalPose();
+
         this.exitTapTimer = this.exitTapDelay;
 
         this.log(`Switch unit wave=${wave.id}, unit=${unit.node.name}`);
     }
 
-    private updateCameraToOrbit(deltaTime: number) {
+    private updateCameraLocalToOrbitPose(deltaTime: number) {
         if (!this.mainCamera || !this.orbitRig) return;
-
-        if (this.cameraLockedToRig) {
-            this.applyLockedLocalPose();
-            return;
-        }
 
         const orbitCamera = this.orbitRig.getCameraNode();
         if (!orbitCamera) return;
 
-        orbitCamera.getWorldPosition(this.targetPos);
-        orbitCamera.getWorldRotation(this.targetRot);
+        this.enterTimer += deltaTime;
 
-        this.mainCamera.node.getWorldPosition(this.tempPos);
-        this.mainCamera.node.getWorldRotation(this.tempRot);
+        this.targetLocalPos.set(orbitCamera.position);
+        this.targetLocalRot.set(orbitCamera.rotation);
 
-        const moveT =
-            1 - Math.exp(-this.moveSmooth * deltaTime);
-
-        const rotT =
-            1 - Math.exp(-this.rotateSmooth * deltaTime);
+        const moveDuration = Math.max(0.0001, this.enterMoveDuration);
+        const move01 = this.clamp01(this.enterTimer / moveDuration);
+        const moveT = this.smooth01(move01);
 
         Vec3.lerp(
-            this.tempPos,
-            this.tempPos,
-            this.targetPos,
+            this.currentLocalPos,
+            this.startLocalPos,
+            this.targetLocalPos,
             moveT
         );
 
+        this.mainCamera.node.setPosition(this.currentLocalPos);
+
+        const focusDelay =
+            moveDuration * this.enterFocusDelayRatio;
+
+        const focusDuration = Math.max(
+            0.0001,
+            this.enterFocusDuration
+        );
+
+        const focus01 = this.clamp01(
+            (this.enterTimer - focusDelay) /
+            focusDuration
+        );
+
+        const focusT = this.smooth01(focus01);
+
         Quat.slerp(
-            this.tempRot,
-            this.tempRot,
-            this.targetRot,
-            rotT
+            this.currentLocalRot,
+            this.startLocalRot,
+            this.targetLocalRot,
+            focusT
         );
 
-        this.mainCamera.node.setWorldPosition(this.tempPos);
-        this.mainCamera.node.setWorldRotation(this.tempRot);
+        this.mainCamera.node.setRotation(this.currentLocalRot);
 
-        const fovT =
-            1 - Math.exp(-this.fovSmooth * deltaTime);
+        const targetFov = this.orbitRig.getCameraFov();
 
         this.mainCamera.fov =
-            this.mainCamera.fov +
-            (this.orbitRig.getCameraFov() - this.mainCamera.fov) * fovT;
-
-        if (this.useParentLock && this.canLockCameraToRig()) {
-            this.lockCameraToRig();
-        }
-    }
-
-    private canLockCameraToRig() {
-        if (!this.mainCamera || !this.orbitRig) return false;
-
-        const orbitCamera = this.orbitRig.getCameraNode();
-        if (!orbitCamera) return false;
-
-        orbitCamera.getWorldPosition(this.targetPos);
-        this.mainCamera.node.getWorldPosition(this.tempPos);
-
-        const posDistance = Vec3.distance(this.tempPos, this.targetPos);
-
-        const fovDistance =
-            Math.abs(this.mainCamera.fov - this.orbitRig.getCameraFov());
-
-        const canLock =
-            posDistance <= this.lockPositionThreshold &&
-            fovDistance <= this.lockFovThreshold;
-
-        this.log(
-            `LockCheck pos=${posDistance.toFixed(3)} fov=${fovDistance.toFixed(3)} can=${canLock}`
-        );
-
-        return canLock;
-    }
-
-    private lockCameraToRig() {
-        if (!this.mainCamera || !this.orbitRig) return;
-
-        const orbitCamera = this.orbitRig.getCameraNode();
-        if (!orbitCamera) return;
-
-        this.mainCamera.node.setParent(
-            this.orbitRig.node,
-            true
-        );
-
-        this.cameraLockedToRig = true;
-
-        this.applyLockedLocalPose();
-
-        this.log('LOCKED: MainCamera parent -> OrbitRig');
-    }
-
-    private applyLockedLocalPose() {
-        if (!this.mainCamera || !this.orbitRig) return;
-
-        const orbitCamera = this.orbitRig.getCameraNode();
-        if (!orbitCamera) return;
-
-        this.mainCamera.node.setPosition(
-            orbitCamera.position
-        );
-
-        this.mainCamera.node.setRotation(
-            orbitCamera.rotation
-        );
-
-        this.mainCamera.fov =
-            this.orbitRig.getCameraFov();
-    }
-
-    private unlockCameraKeepWorld() {
-        if (!this.mainCamera) return;
-
-        this.mainCamera.node.setParent(
-            this.originalParent,
-            true
-        );
-
-        this.cameraLockedToRig = false;
-
-        this.log('UNLOCKED: MainCamera parent -> originalParent');
+            this.startFov +
+            (targetFov - this.startFov) * focusT;
     }
 
     private beginReturnToOriginal() {
         if (this.state === CinematicState.Idle) return;
 
-        if (this.cameraLockedToRig) {
-            this.unlockCameraKeepWorld();
+        if (this.mainCamera) {
+            this.mainCamera.node.setParent(
+                this.originalParent,
+                true
+            );
         }
 
         this.state = CinematicState.Returning;
@@ -497,8 +490,8 @@ export class BattleCinematicCameraController extends Component {
             return;
         }
 
-        this.mainCamera.node.getWorldPosition(this.tempPos);
-        this.mainCamera.node.getWorldRotation(this.tempRot);
+        this.mainCamera.node.getWorldPosition(this.tempWorldPos);
+        this.mainCamera.node.getWorldRotation(this.tempWorldRot);
 
         const moveT =
             1 - Math.exp(-this.returnMoveSmooth * deltaTime);
@@ -507,21 +500,21 @@ export class BattleCinematicCameraController extends Component {
             1 - Math.exp(-this.returnRotateSmooth * deltaTime);
 
         Vec3.lerp(
-            this.tempPos,
-            this.tempPos,
+            this.tempWorldPos,
+            this.tempWorldPos,
             this.originalPos,
             moveT
         );
 
         Quat.slerp(
-            this.tempRot,
-            this.tempRot,
+            this.tempWorldRot,
+            this.tempWorldRot,
             this.originalRot,
             rotT
         );
 
-        this.mainCamera.node.setWorldPosition(this.tempPos);
-        this.mainCamera.node.setWorldRotation(this.tempRot);
+        this.mainCamera.node.setWorldPosition(this.tempWorldPos);
+        this.mainCamera.node.setWorldRotation(this.tempWorldRot);
 
         const fovT =
             1 - Math.exp(-this.returnFovSmooth * deltaTime);
@@ -532,7 +525,7 @@ export class BattleCinematicCameraController extends Component {
 
         const posDone =
             Vec3.distance(
-                this.tempPos,
+                this.tempWorldPos,
                 this.originalPos
             ) <= this.returnPositionThreshold;
 
@@ -560,7 +553,6 @@ export class BattleCinematicCameraController extends Component {
 
         this.currentWave = null;
         this.currentUnit = null;
-        this.cameraLockedToRig = false;
 
         if (this.topDownCameraDrag) {
             this.topDownCameraDrag.enabled = true;
@@ -594,6 +586,15 @@ export class BattleCinematicCameraController extends Component {
         if (unit.props.isDead()) return false;
 
         return true;
+    }
+
+    private smooth01(t: number) {
+        const x = this.clamp01(t);
+        return x * x * (3 - 2 * x);
+    }
+
+    private clamp01(v: number) {
+        return Math.max(0, Math.min(1, v));
     }
 
     private log(msg: string) {

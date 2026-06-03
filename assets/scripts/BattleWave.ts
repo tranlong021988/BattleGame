@@ -70,6 +70,12 @@ export class BattleWave {
     }
 
     getRandomAliveUnit(): Unit | null {
+        return this.getRandomPreferredAliveUnit();
+    }
+
+    getRandomPreferredAliveUnit(): Unit | null {
+        const onForwardUnits: Unit[] = [];
+        const notBusyUnits: Unit[] = [];
         const aliveUnits: Unit[] = [];
 
         for (let i = 0; i < this.units.length; i++) {
@@ -78,17 +84,30 @@ export class BattleWave {
             if (!this.isUnitAlive(u)) continue;
 
             aliveUnits.push(u);
+
+            if (u.onForward) {
+                onForwardUnits.push(u);
+                continue;
+            }
+
+            if (!u.onBusy) {
+                notBusyUnits.push(u);
+            }
         }
 
-        if (aliveUnits.length <= 0) {
-            return null;
+        if (onForwardUnits.length > 0) {
+            return this.randomFromList(onForwardUnits);
         }
 
-        const index = Math.floor(
-            Math.random() * aliveUnits.length
-        );
+        if (notBusyUnits.length > 0) {
+            return this.randomFromList(notBusyUnits);
+        }
 
-        return aliveUnits[index];
+        if (aliveUnits.length > 0) {
+            return this.randomFromList(aliveUnits);
+        }
+
+        return null;
     }
 
     getCounterCoverageRatio() {
@@ -181,6 +200,16 @@ export class BattleWave {
         }
 
         return best;
+    }
+
+    private randomFromList(list: Unit[]) {
+        if (list.length <= 0) return null;
+
+        const index = Math.floor(
+            Math.random() * list.length
+        );
+
+        return list[index];
     }
 
     private isUnitAlive(unit: Unit | null) {

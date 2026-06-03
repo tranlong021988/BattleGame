@@ -1,4 +1,4 @@
-import { _decorator, Component, Vec3 } from 'cc';
+import { _decorator, Component, Node, Vec3 } from 'cc';
 import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
 import { GameManager } from './GameManager';
@@ -9,6 +9,12 @@ const { ccclass, property } = _decorator;
 export class Unit extends Component {
 
     static visualLerpT = 1;
+
+    @property(Node)
+    visualRoot: Node | null = null;
+
+    @property
+    visualYawOffset = 0;
 
     @property moveSpeed = 2;
     @property radius = 0.5;
@@ -94,9 +100,16 @@ export class Unit extends Component {
         this.unitTypeName = unitTypeName;
         this.sim = sim;
 
+        //
+        // QUAN TRỌNG:
+        // Unit node chỉ handle position, không handle rotation.
+        // Toàn bộ rotation visual sẽ nằm ở visualRoot.
+        //
+        this.node.setRotationFromEuler(0, 0, 0);
+
         const p = this.node.worldPosition;
 
-        this.initialYaw = this.node.eulerAngles.y;
+        this.initialYaw = this.getVisualEulerY();
 
         this.agent = sim.addAgent(p.x, p.z);
         this.agent.maxSpeed = this.moveSpeed;
@@ -134,7 +147,7 @@ export class Unit extends Component {
             this.onBusy = false;
             this.onForward = false;
 
-            this.initialYaw = this.node.eulerAngles.y;
+            this.initialYaw = this.getVisualEulerY();
 
             this.agent.locked = true;
             this.agent.vel.x = 0;
@@ -262,6 +275,18 @@ export class Unit extends Component {
         if (!this.sim || !this.agent) return;
 
         this.frameCounter++;
+
+        //
+        // Chống mọi rotation còn sót lại từ spawn/pool.
+        // Unit node chỉ được dùng cho position.
+        //
+        if (
+            Math.abs(this.node.eulerAngles.x) > 0.001 ||
+            Math.abs(this.node.eulerAngles.y) > 0.001 ||
+            Math.abs(this.node.eulerAngles.z) > 0.001
+        ) {
+            this.node.setRotationFromEuler(0, 0, 0);
+        }
 
         this.applyRuntimeAgentData();
 
@@ -574,7 +599,7 @@ export class Unit extends Component {
         }
 
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-        const currentY = this.node.eulerAngles.y;
+        const currentY = this.getVisualEulerY();
 
         const newY = this.lerpAngle(
             currentY,
@@ -582,11 +607,11 @@ export class Unit extends Component {
             this.rotationSpeed * deltaTime
         );
 
-        this.node.setRotationFromEuler(0, newY, 0);
+        this.setVisualYaw(newY);
     }
 
     private returnToInitialYawSmooth(deltaTime: number) {
-        const currentY = this.node.eulerAngles.y;
+        const currentY = this.getVisualEulerY();
 
         const newY = this.lerpAngle(
             currentY,
@@ -594,7 +619,7 @@ export class Unit extends Component {
             this.rotationSpeed * deltaTime
         );
 
-        this.node.setRotationFromEuler(0, newY, 0);
+        this.setVisualYaw(newY);
     }
 
     private sync(deltaTime: number, rotateByVelocity: boolean) {
@@ -640,7 +665,7 @@ export class Unit extends Component {
         this.lastStablePos.z = this.agent.pos.z;
 
         const targetAngle = Math.atan2(vx, vz) * 180 / Math.PI;
-        const currentY = this.node.eulerAngles.y;
+        const currentY = this.getVisualEulerY();
 
         const newY = this.lerpAngle(
             currentY,
@@ -648,7 +673,23 @@ export class Unit extends Component {
             this.rotationSpeed * deltaTime
         );
 
-        this.node.setRotationFromEuler(0, newY, 0);
+        this.setVisualYaw(newY);
+    }
+
+    private getVisualNode(): Node {
+        return this.visualRoot || this.node;
+    }
+
+    private getVisualEulerY() {
+        return this.getVisualNode().eulerAngles.y - this.visualYawOffset;
+    }
+
+    private setVisualYaw(y: number) {
+        this.getVisualNode().setRotationFromEuler(
+            0,
+            y + this.visualYawOffset,
+            0
+        );
     }
 
     private lerpAngle(a: number, b: number, t: number) {

@@ -14,11 +14,13 @@
             "shaders\\HealthBar.effect",
             "shaders\\VAT-Animation.effect",
             "scripts\\ArmyBrain.ts",
+            "scripts\\BattleCinematicCameraController.ts",
             "scripts\\BattleInformationIconItem.ts",
             "scripts\\BattleInformationPanel.ts",
             "scripts\\BattleSpatialGrid.ts",
             "scripts\\BattleTypes.ts",
             "scripts\\BattleWave.ts",
+            "scripts\\CinematicOrbitRig.ts",
             "scripts\\CounterSettings.ts",
             "scripts\\DebugStats.ts",
             "scripts\\EnemyFinder.ts",
@@ -70,9 +72,7 @@
             "MiniMap\\images\\mace-ico.png",
             "MiniMap\\images\\magic-ico.png",
             "MiniMap\\images\\spear-ico.png",
-            "MiniMap\\images\\sword-ico.png",
-            "scripts\\CinematicOrbitRig.ts",
-            "scripts\\BattleCinematicCameraController.ts"
+            "MiniMap\\images\\sword-ico.png"
         ]
     }
 }

@@ -84,7 +84,10 @@ System.register(["cc"], function (_export, _context) {
         }
 
         setAliveRatio(ratio) {
-          if (!this.uiTransform) return;
+          if (!this.uiTransform) {
+            return;
+          }
+
           const r = this.clamp01(ratio);
 
           if (r <= 0) {
@@ -97,7 +100,9 @@ System.register(["cc"], function (_export, _context) {
         }
 
         updateEngageVisual(isEngaged, time) {
-          if (!this.iconSprite) return;
+          if (!this.iconSprite) {
+            return;
+          }
 
           if (!this.flashEnabled || !isEngaged) {
             this.iconSprite.color = this.normalColor;

@@ -77,6 +77,45 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.getAliveCount() / this.totalCount;
         }
 
+        getRandomAliveUnit() {
+          return this.getRandomPreferredAliveUnit();
+        }
+
+        getRandomPreferredAliveUnit() {
+          var onForwardUnits = [];
+          var notBusyUnits = [];
+          var aliveUnits = [];
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            aliveUnits.push(u);
+
+            if (u.onForward) {
+              onForwardUnits.push(u);
+              continue;
+            }
+
+            if (!u.onBusy) {
+              notBusyUnits.push(u);
+            }
+          }
+
+          if (onForwardUnits.length > 0) {
+            return this.randomFromList(onForwardUnits);
+          }
+
+          if (notBusyUnits.length > 0) {
+            return this.randomFromList(notBusyUnits);
+          }
+
+          if (aliveUnits.length > 0) {
+            return this.randomFromList(aliveUnits);
+          }
+
+          return null;
+        }
+
         getCounterCoverageRatio() {
           var alive = this.getAliveCount();
 
@@ -157,6 +196,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return best;
+        }
+
+        randomFromList(list) {
+          if (list.length <= 0) return null;
+          var index = Math.floor(Math.random() * list.length);
+          return list[index];
         }
 
         isUnitAlive(unit) {

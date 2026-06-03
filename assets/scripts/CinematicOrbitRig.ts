@@ -19,7 +19,10 @@ export class CinematicOrbitRig extends Component {
     orbitSpeed = 20;
 
     @property
-    followSmooth = 12;
+    firstFocusLocalMoveSmooth = 8;
+
+    @property
+    switchTargetLocalMoveSmooth = 3;
 
     @property
     heightOffset = 0;
@@ -31,62 +34,31 @@ export class CinematicOrbitRig extends Component {
     enableOrbit = true;
 
     @property
-    snapToTargetOnFirstFocus = true;
-
-    @property
-    snapToTargetOnSwitch = false;
-
-    @property
     resetOrbitAngleOnNewTarget = false;
 
     @property
     enableDebugLog = false;
 
     private targetUnit: Unit | null = null;
+    private originalParent: Node | null = null;
 
-    private currentPos = new Vec3();
-    private targetPos = new Vec3();
+    private targetLocalPos = new Vec3();
+    private currentLocalPos = new Vec3();
     private currentEuler = new Vec3();
 
     private hasTargetBefore = false;
+    private currentMoveSmooth = 8;
 
     onLoad() {
-        this.node.getWorldPosition(this.currentPos);
+        this.originalParent = this.node.parent;
         this.currentEuler.set(this.node.eulerAngles);
     }
 
     update(deltaTime: number) {
         if (!this.targetUnit) return;
 
-        if (
-            !this.targetUnit.node ||
-            !this.targetUnit.node.activeInHierarchy
-        ) {
-            return;
-        }
-
-        this.targetUnit.node.getWorldPosition(this.targetPos);
-        this.targetPos.y += this.heightOffset;
-
-        this.node.getWorldPosition(this.currentPos);
-
-        const t =
-            1 - Math.exp(-this.followSmooth * deltaTime);
-
-        Vec3.lerp(
-            this.currentPos,
-            this.currentPos,
-            this.targetPos,
-            t
-        );
-
-        this.node.setWorldPosition(this.currentPos);
-
-        if (this.enableOrbit) {
-            this.currentEuler.set(this.node.eulerAngles);
-            this.currentEuler.y += this.orbitSpeed * deltaTime;
-            this.node.setRotationFromEuler(this.currentEuler);
-        }
+        this.updateLocalMove(deltaTime);
+        this.updateOrbit(deltaTime);
     }
 
     public setTarget(unit: Unit | null) {
@@ -102,16 +74,17 @@ export class CinematicOrbitRig extends Component {
         this.targetUnit = unit;
         this.hasTargetBefore = true;
 
-        unit.node.getWorldPosition(this.targetPos);
-        this.targetPos.y += this.heightOffset;
+        this.currentMoveSmooth = isSwitching
+            ? this.switchTargetLocalMoveSmooth
+            : this.firstFocusLocalMoveSmooth;
 
-        const shouldSnap =
-            (!isSwitching && this.snapToTargetOnFirstFocus) ||
-            (isSwitching && this.snapToTargetOnSwitch);
+        this.node.setParent(unit.node, true);
 
-        if (shouldSnap) {
-            this.node.setWorldPosition(this.targetPos);
-        }
+        this.targetLocalPos.set(
+            0,
+            this.heightOffset,
+            0
+        );
 
         if (this.resetOrbitAngleOnNewTarget) {
             this.currentEuler.set(this.node.eulerAngles);
@@ -119,12 +92,18 @@ export class CinematicOrbitRig extends Component {
             this.node.setRotationFromEuler(this.currentEuler);
         }
 
-        this.log(`Set target: ${unit.node.name}`);
+        this.log(
+            `Set target=${unit.node.name}, switching=${isSwitching}, smooth=${this.currentMoveSmooth}`
+        );
     }
 
     public clearTarget() {
         this.targetUnit = null;
         this.hasTargetBefore = false;
+
+        if (this.originalParent) {
+            this.node.setParent(this.originalParent, true);
+        }
     }
 
     public getTargetUnit() {
@@ -139,15 +118,37 @@ export class CinematicOrbitRig extends Component {
         return this.cameraFov;
     }
 
-    public isCloseToTarget(threshold: number) {
-        if (!this.targetUnit) return false;
+    public isLocalPositionClose(threshold: number) {
+        const p = this.node.position;
 
-        this.targetUnit.node.getWorldPosition(this.targetPos);
-        this.targetPos.y += this.heightOffset;
+        return Vec3.distance(
+            p,
+            this.targetLocalPos
+        ) <= threshold;
+    }
 
-        this.node.getWorldPosition(this.currentPos);
+    private updateLocalMove(deltaTime: number) {
+        this.currentLocalPos.set(this.node.position);
 
-        return Vec3.distance(this.currentPos, this.targetPos) <= threshold;
+        const t =
+            1 - Math.exp(-this.currentMoveSmooth * deltaTime);
+
+        Vec3.lerp(
+            this.currentLocalPos,
+            this.currentLocalPos,
+            this.targetLocalPos,
+            t
+        );
+
+        this.node.setPosition(this.currentLocalPos);
+    }
+
+    private updateOrbit(deltaTime: number) {
+        if (!this.enableOrbit) return;
+
+        this.currentEuler.set(this.node.eulerAngles);
+        this.currentEuler.y += this.orbitSpeed * deltaTime;
+        this.node.setRotationFromEuler(this.currentEuler);
     }
 
     private log(msg: string) {

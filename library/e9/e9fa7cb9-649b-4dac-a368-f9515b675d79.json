@@ -64,9 +64,9 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
-      "z": 1
+      "x": 1.5,
+      "y": 1.5,
+      "z": 1.5
     },
     "_mobility": 0,
     "_layer": 1073741824,
@@ -361,9 +361,9 @@
     "value": {
       "__type__": "cc.Quat",
       "x": 0,
-      "y": 0,
+      "y": 1,
       "z": 0,
-      "w": 1
+      "w": 6.123233995736766e-17
     }
   },
   {
@@ -377,7 +377,7 @@
     "value": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 0,
+      "y": 180,
       "z": 0
     }
   },
@@ -720,6 +720,10 @@
     "__prefab": {
       "__id__": 42
     },
+    "visualRoot": {
+      "__id__": 7
+    },
+    "visualYawOffset": 0,
     "moveSpeed": 7,
     "radius": 0.7,
     "attackRange": 1.7,
@@ -730,13 +734,13 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
-    "onForward": true,
+    "onForward": false,
     "isSteady": false,
     "forwardDir": {
       "__type__": "cc.Vec3",
       "x": 0,
       "y": 0,
-      "z": 1
+      "z": -1
     },
     "enableAllyOvertake": true,
     "overtakeLookAhead": 2,
@@ -781,9 +785,9 @@
       "__id__": 46
     },
     "unitType": 0,
-    "maxHealth": 5,
-    "damage": 1,
-    "defense": 5,
+    "maxHealth": 50,
+    "damage": 20,
+    "defense": 10,
     "healthBar": {
       "__id__": 35
     },
@@ -822,7 +826,7 @@
       "__id__": 0
     },
     "fileId": "d8mT9ldedJ6KOXr6hDv0TP",
-    "targetOverrides": null,
+    "targetOverrides": [],
     "nestedPrefabInstanceRoots": [
       {
         "__id__": 7
