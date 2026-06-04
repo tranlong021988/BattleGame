@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 4068.4547,
+      "mTimestamp": 6629.7806,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 29330869.6681,
+      "mTimestamp": 24582992.9464,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1673,7 +1673,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1780455357006,
+      "mTimestamp": 1780541715445,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -5392,7 +5392,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1780455357006,
+      "mTimestamp": 1780541715445,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -5838,7 +5838,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts": {
       "mTimestamp": {
-        "mtime": 1780394542322.0789,
+        "mtime": 1780566295538.3467,
         "uuid": "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53"
       },
       "chunkId": "7046b8a2e081044834d35aee792adb3160853300",
@@ -5893,20 +5893,6 @@
               "column": 51
             }
           }
-        },
-        {
-          "value": "./BattleTypes",
-          "resolved": "__unresolved_3",
-          "loc": {
-            "start": {
-              "line": 5,
-              "column": 41
-            },
-            "end": {
-              "line": 5,
-              "column": 56
-            }
-          }
         }
       ],
       "type": "esm",
@@ -5950,13 +5936,6 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts"
-          },
-          "messages": []
-        },
-        {
-          "resolved": {
-            "type": "module",
-            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts"
           },
           "messages": []
         }

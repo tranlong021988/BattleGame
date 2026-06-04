@@ -35,8 +35,8 @@
         "progress": 1,
         "state": "success",
         "stage": "build",
-        "message": "6-3-2026 18:11:33 build success in 7 s!",
-        "detailMessage": "// ---- build task cocos-service：onAfterBuild ----\r",
+        "message": "6-4-2026 18:39:08 build success in 8 s!",
+        "detailMessage": "// ---- build task cocos-service：onAfterCompressSettings ----\r",
         "options": {
           "name": "BattleGame",
           "server": "",
@@ -97,7 +97,7 @@
           "__version__": "1.3.9",
           "logDest": "project://temp/builder/log/web-mobile5-14-2026 23-41.log"
         },
-        "time": "6-3-2026 18:11:25",
+        "time": "6-4-2026 18:38:59",
         "dirty": false
       }
     }
