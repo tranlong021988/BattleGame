@@ -1,4 +1,4 @@
-import { _decorator, Component, Prefab, Vec3, Label } from 'cc';
+import { _decorator, Component, Vec3, Label } from 'cc';
 
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
@@ -15,48 +15,26 @@ import { UnitBehavior } from './UnitBehavior';
 
 import { BattleSpatialGrid } from './BattleSpatialGrid';
 
-import { UnitType } from './BattleTypes';
 import { BattleWave } from './BattleWave';
-
 import { CounterSettings } from './CounterSettings';
 
+import {
+    BattleUnitDatabase,
+    UnitPrefabEntry,
+    HeroEntry,
+} from './BattleUnitDatabase';
+
+export { UnitPrefabEntry } from './BattleUnitDatabase';
+
 const { ccclass, property } = _decorator;
-
-@ccclass('UnitPrefabEntry')
-export class UnitPrefabEntry {
-
-    @property
-    name: string = '';
-
-    @property(Prefab)
-    prefab: Prefab | null = null;
-
-    @property({ type: UnitType })
-    unitType: UnitType = UnitType.LightSword;
-
-    @property
-    unitCount: number = 1;
-
-    @property
-    prewarmCount: number = 0;
-
-    @property
-    maxSpeed: number = 2;
-
-    @property
-    health: number = 30;
-
-    @property
-    damage: number = 5;
-
-    @property
-    defense: number = 0;
-}
 
 @ccclass('GameManager')
 export class GameManager extends Component {
 
     static instance: GameManager | null = null;
+
+    @property(BattleUnitDatabase)
+    unitDatabase: BattleUnitDatabase | null = null;
 
     @property(Component)
     cinematicController: Component | null = null;
@@ -64,16 +42,7 @@ export class GameManager extends Component {
     @property
     useWorkerRVO = true;
 
-    @property({ type: [UnitPrefabEntry] })
-    teamAPrefabs: UnitPrefabEntry[] = [];
-
-    @property({ type: [UnitPrefabEntry] })
-    teamBPrefabs: UnitPrefabEntry[] = [];
-
-    @property(Unit)
     teamAHero: Unit | null = null;
-
-    @property(Unit)
     teamBHero: Unit | null = null;
 
     @property
@@ -92,13 +61,7 @@ export class GameManager extends Component {
     updateInterval = 2;
 
     @property
-    useRvoDeltaTime = true;
-
-    @property
     maxRvoStepDeltaTime = 0.05;
-
-    @property
-    rvoDeltaTimeScale = 1.0;
 
     frame = 0;
 
@@ -137,11 +100,20 @@ export class GameManager extends Component {
     @property(Label)
     teamBCounterKillLabel: Label | null = null;
 
+    @property(Label)
+    teamACombatPointLabel: Label | null = null;
+
+    @property(Label)
+    teamBCombatPointLabel: Label | null = null;
+
     aliveCount = [0, 0];
     deathCount = [0, 0];
 
     killCount = [0, 0];
     counterKillCount = [0, 0];
+
+    combatPoint = [0, 0];
+    maxCombatPoint = [0, 0];
 
     @property
     enableAutoSpawn = true;
@@ -180,7 +152,6 @@ export class GameManager extends Component {
     centerGapWidth = 3;
 
     private spawnWaveTimer = 0;
-    private rvoStepDeltaAccumulator = 0;
 
     @property({ type: [ObstacleCircle] })
     circleObstacles: ObstacleCircle[] = [];
@@ -211,6 +182,9 @@ export class GameManager extends Component {
         this.waves.length = 0;
         this.nextWaveId = 1;
 
+        this.teamAHero = null;
+        this.teamBHero = null;
+
         this.aliveCount[0] = 0;
         this.aliveCount[1] = 0;
 
@@ -224,7 +198,8 @@ export class GameManager extends Component {
         this.counterKillCount[1] = 0;
 
         this.spawnWaveTimer = 0;
-        this.rvoStepDeltaAccumulator = 0;
+
+        this.resetCombatPoint();
 
         this.createSimulator();
         this.buildPrefabMaps();
@@ -274,8 +249,7 @@ export class GameManager extends Component {
             );
         }
 
-        this.registerSceneHero(this.teamAHero, 0, 'hero_a');
-        this.registerSceneHero(this.teamBHero, 1, 'hero_b');
+        this.registerDatabaseHeroes();
 
         if (this.spawnImmediatelyOnStart) {
             this.spawnAutoWave();
@@ -293,6 +267,22 @@ export class GameManager extends Component {
         if (this.sim && this.sim.destroy) {
             this.sim.destroy();
         }
+    }
+
+    private resetCombatPoint() {
+        const aMax = this.unitDatabase
+            ? this.unitDatabase.getMaxCombatPoint(0)
+            : 0;
+
+        const bMax = this.unitDatabase
+            ? this.unitDatabase.getMaxCombatPoint(1)
+            : 0;
+
+        this.maxCombatPoint[0] = Math.max(0, aMax);
+        this.maxCombatPoint[1] = Math.max(0, bMax);
+
+        this.combatPoint[0] = this.maxCombatPoint[0];
+        this.combatPoint[1] = this.maxCombatPoint[1];
     }
 
     private createSimulator() {
@@ -320,16 +310,13 @@ export class GameManager extends Component {
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
 
-        this.rvoStepDeltaAccumulator += deltaTime;
-
         if (this.frame % this.updateInterval === 0) {
-            const rvoStepDeltaTime = this.getRvoStepDeltaTime();
+            const safeDt = Math.min(
+                deltaTime,
+                Math.max(0.001, this.maxRvoStepDeltaTime)
+            );
 
-            const stepped = this.sim.step(rvoStepDeltaTime);
-
-            if (stepped !== false) {
-                this.rvoStepDeltaAccumulator = 0;
-            }
+            this.sim.step(safeDt);
         }
 
         if (
@@ -342,21 +329,6 @@ export class GameManager extends Component {
         if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
         }
-    }
-
-
-
-    private getRvoStepDeltaTime() {
-        if (!this.useRvoDeltaTime) {
-            return undefined;
-        }
-
-        const safeDeltaTime = Math.min(
-            this.rvoStepDeltaAccumulator,
-            Math.max(0.016, this.maxRvoStepDeltaTime)
-        );
-
-        return safeDeltaTime * this.rvoDeltaTimeScale;
     }
 
     public reportKill(
@@ -398,7 +370,128 @@ export class GameManager extends Component {
             this.counterKillCount[killerTeam]++;
         }
 
+        this.addCombatPointFromKill(
+            killer,
+            isCounterKill
+        );
+
         this.refreshBattleStatsUI();
+    }
+
+    private addCombatPointFromKill(
+        killer: Unit,
+        isCounterKill: boolean
+    ) {
+        if (!this.isCombatPointEnabled()) return;
+
+        const team = killer.team;
+        const entry = this.getRuntimeRewardEntry(
+            killer,
+            team
+        );
+
+        if (!entry) return;
+
+        let reward = Math.max(0, entry.killReward);
+
+        if (isCounterKill) {
+            reward += Math.max(
+                0,
+                entry.counterKillReward
+            );
+        }
+
+        this.addCombatPoint(team, reward);
+    }
+
+    private getRuntimeRewardEntry(
+        unit: Unit,
+        team: number
+    ): {
+        killReward: number;
+        counterKillReward: number;
+    } | null {
+
+        if (unit.isHero) {
+            const heroEntry = this.getHeroEntry(team);
+
+            if (!heroEntry) return null;
+
+            return {
+                killReward: heroEntry.killReward,
+                counterKillReward: heroEntry.counterKillReward
+            };
+        }
+
+        const entry = this.getTeamEntry(
+            team,
+            unit.unitTypeName
+        );
+
+        if (!entry) return null;
+
+        return {
+            killReward: entry.killReward,
+            counterKillReward: entry.counterKillReward
+        };
+    }
+
+    public addCombatPoint(
+        team: number,
+        amount: number
+    ) {
+        if (team !== 0 && team !== 1) return;
+        if (amount <= 0) return;
+
+        this.combatPoint[team] = Math.min(
+            this.maxCombatPoint[team],
+            this.combatPoint[team] + amount
+        );
+    }
+
+    public spendCombatPoint(
+        team: number,
+        amount: number
+    ) {
+        if (team !== 0 && team !== 1) return false;
+        if (amount <= 0) return true;
+
+        if (this.combatPoint[team] < amount) {
+            return false;
+        }
+
+        this.combatPoint[team] -= amount;
+        return true;
+    }
+
+    public canAffordEntry(
+        team: number,
+        entry: UnitPrefabEntry | null
+    ) {
+        if (!entry) return false;
+        if (!this.isCombatPointEnabled()) return true;
+
+        return this.combatPoint[team] >=
+            Math.max(0, entry.combatPointCost);
+    }
+
+    public getCombatPoint(team: number) {
+        if (team !== 0 && team !== 1) return 0;
+
+        return this.combatPoint[team];
+    }
+
+    public getMaxCombatPoint(team: number) {
+        if (team !== 0 && team !== 1) return 0;
+
+        return this.maxCombatPoint[team];
+    }
+
+    private isCombatPointEnabled() {
+        return !!(
+            this.unitDatabase &&
+            this.unitDatabase.enableCombatPoint
+        );
     }
 
     public getCounterKillRatio(team: number) {
@@ -436,7 +529,10 @@ export class GameManager extends Component {
         this.teamAPrefabMap.clear();
         this.teamBPrefabMap.clear();
 
-        for (const entry of this.teamAPrefabs) {
+        const teamAEntries = this.getDatabaseTeamEntries(0);
+        const teamBEntries = this.getDatabaseTeamEntries(1);
+
+        for (const entry of teamAEntries) {
             if (!this.isValidEntry(entry)) continue;
 
             this.teamAPrefabMap.set(
@@ -445,7 +541,7 @@ export class GameManager extends Component {
             );
         }
 
-        for (const entry of this.teamBPrefabs) {
+        for (const entry of teamBEntries) {
             if (!this.isValidEntry(entry)) continue;
 
             this.teamBPrefabMap.set(
@@ -456,7 +552,10 @@ export class GameManager extends Component {
     }
 
     private prewarmAllUnits() {
-        for (const entry of this.teamAPrefabs) {
+        const teamAEntries = this.getDatabaseTeamEntries(0);
+        const teamBEntries = this.getDatabaseTeamEntries(1);
+
+        for (const entry of teamAEntries) {
             if (!this.isValidEntry(entry)) continue;
 
             this.spawner.prewarm(
@@ -466,7 +565,7 @@ export class GameManager extends Component {
             );
         }
 
-        for (const entry of this.teamBPrefabs) {
+        for (const entry of teamBEntries) {
             if (!this.isValidEntry(entry)) continue;
 
             this.spawner.prewarm(
@@ -475,6 +574,14 @@ export class GameManager extends Component {
                 this.node
             );
         }
+    }
+
+    private getDatabaseTeamEntries(team: number) {
+        if (!this.unitDatabase) {
+            return [];
+        }
+
+        return this.unitDatabase.getTeamEntries(team);
     }
 
     private isValidEntry(entry: UnitPrefabEntry | null): boolean {
@@ -489,6 +596,15 @@ export class GameManager extends Component {
         team: number,
         unitName: string
     ): UnitPrefabEntry | null {
+
+        if (this.unitDatabase) {
+            const dbEntry =
+                this.unitDatabase.getEntry(team, unitName);
+
+            if (dbEntry && dbEntry.prefab) {
+                return dbEntry;
+            }
+        }
 
         const map =
             team === 0
@@ -509,8 +625,15 @@ export class GameManager extends Component {
         return entry;
     }
 
+    private getHeroEntry(team: number): HeroEntry | null {
+        if (!this.unitDatabase) return null;
+
+        return this.unitDatabase.getHeroEntry(team);
+    }
+
     private getRandomEntry(
-        entries: UnitPrefabEntry[]
+        entries: UnitPrefabEntry[],
+        team: number
     ): UnitPrefabEntry | null {
 
         const validEntries: UnitPrefabEntry[] = [];
@@ -519,6 +642,10 @@ export class GameManager extends Component {
             if (!this.isValidEntry(entry)) continue;
 
             if (Math.floor(entry.unitCount) <= 0) {
+                continue;
+            }
+
+            if (!this.canAffordEntry(team, entry)) {
                 continue;
             }
 
@@ -537,9 +664,7 @@ export class GameManager extends Component {
     }
 
     public getTeamEntries(team: number): UnitPrefabEntry[] {
-        return team === 0
-            ? this.teamAPrefabs
-            : this.teamBPrefabs;
+        return this.getDatabaseTeamEntries(team);
     }
 
     public getAliveUnits(team: number): Unit[] {
@@ -585,17 +710,24 @@ export class GameManager extends Component {
     }
 
     spawnAutoWave() {
+        const teamAEntries =
+            this.getDatabaseTeamEntries(0);
+
+        const teamBEntries =
+            this.getDatabaseTeamEntries(1);
+
         const entryA =
-            this.getRandomEntry(this.teamAPrefabs);
+            this.getRandomEntry(teamAEntries, 0);
 
         const entryB =
-            this.getRandomEntry(this.teamBPrefabs);
+            this.getRandomEntry(teamBEntries, 1);
 
         if (entryA) {
             this.spawnEntryFormation(
                 0,
                 entryA,
-                this.teamASpawnZ
+                this.teamASpawnZ,
+                true
             );
         }
 
@@ -603,7 +735,8 @@ export class GameManager extends Component {
             this.spawnEntryFormation(
                 1,
                 entryB,
-                this.teamBSpawnZ
+                this.teamBSpawnZ,
+                true
             );
         }
 
@@ -627,7 +760,8 @@ export class GameManager extends Component {
         const wave = this.spawnEntryFormation(
             team,
             entry,
-            baseZ
+            baseZ,
+            true
         );
 
         this.rebuildSpatialGrid();
@@ -653,7 +787,8 @@ export class GameManager extends Component {
     private spawnEntryFormation(
         team: number,
         entry: UnitPrefabEntry,
-        baseZ: number
+        baseZ: number,
+        spendCost: boolean
     ): BattleWave | null {
 
         const count = Math.max(
@@ -662,6 +797,20 @@ export class GameManager extends Component {
         );
 
         if (count <= 0) {
+            return null;
+        }
+
+        const cost = Math.max(
+            0,
+            entry.combatPointCost
+        );
+
+        if (
+            spendCost &&
+            this.isCombatPointEnabled() &&
+            !this.spendCombatPoint(team, cost)
+        ) {
+            this.refreshBattleStatsUI();
             return null;
         }
 
@@ -1045,13 +1194,44 @@ export class GameManager extends Component {
         this.refreshBattleStatsUI();
     }
 
+    private registerDatabaseHeroes() {
+        if (!this.unitDatabase) return;
+
+        const heroA = this.unitDatabase.getHeroEntry(0);
+        const heroB = this.unitDatabase.getHeroEntry(1);
+
+        this.registerSceneHero(
+            heroA,
+            0,
+            'hero_a'
+        );
+
+        this.registerSceneHero(
+            heroB,
+            1,
+            'hero_b'
+        );
+    }
+
     private registerSceneHero(
-        hero: Unit | null,
+        heroEntry: HeroEntry | null,
         team: number,
-        typeName: string
+        fallbackTypeName: string
     ) {
 
-        if (!hero) return;
+        if (!heroEntry) return;
+        if (!heroEntry.heroNode) return;
+
+        const hero = heroEntry.heroNode.getComponent(Unit);
+
+        if (!hero) {
+            console.warn(
+                '[GameManager] Hero node missing Unit component:',
+                heroEntry.heroNode.name
+            );
+            return;
+        }
+
         if (!hero.node.activeInHierarchy) return;
 
         hero.isHero = true;
@@ -1060,6 +1240,11 @@ export class GameManager extends Component {
             hero.getComponent(UnitProps);
 
         if (props) {
+            props.maxHealth = heroEntry.health;
+            props.health = heroEntry.health;
+            props.damage = heroEntry.damage;
+            props.defense = heroEntry.defense;
+            props.unitType = heroEntry.unitType;
             props.resetForSpawn();
         }
 
@@ -1078,19 +1263,28 @@ export class GameManager extends Component {
             finder.resetForSpawn(team);
         }
 
+        const unitTypeName =
+            heroEntry.name && heroEntry.name.length > 0
+                ? heroEntry.name
+                : fallbackTypeName;
+
         const forwardX = 0;
         const forwardZ =
             team === 0 ? 1 : -1;
 
+        hero.moveSpeed = heroEntry.maxSpeed;
+
         hero.init(
             this.sim,
             team,
-            typeName,
+            unitTypeName,
             forwardX,
             forwardZ
         );
 
         if (team === 0) {
+
+            this.teamAHero = hero;
 
             if (
                 this.teamA.indexOf(hero) < 0
@@ -1102,6 +1296,8 @@ export class GameManager extends Component {
             EnemyFinder.teamA = this.teamA;
 
         } else {
+
+            this.teamBHero = hero;
 
             if (
                 this.teamB.indexOf(hero) < 0
@@ -1168,6 +1364,22 @@ export class GameManager extends Component {
                 ' (' +
                 Math.round(this.getCounterKillRatio(1) * 100) +
                 '%)';
+        }
+
+        if (this.teamACombatPointLabel) {
+            this.teamACombatPointLabel.string =
+                'A CP: ' +
+                Math.floor(this.combatPoint[0]) +
+                '/' +
+                Math.floor(this.maxCombatPoint[0]); 
+        }
+
+        if (this.teamBCombatPointLabel) {
+            this.teamBCombatPointLabel.string =
+                'B CP: ' +
+                Math.floor(this.combatPoint[1]) +
+                '/' +
+                Math.floor(this.maxCombatPoint[1]);
         }
     }
 

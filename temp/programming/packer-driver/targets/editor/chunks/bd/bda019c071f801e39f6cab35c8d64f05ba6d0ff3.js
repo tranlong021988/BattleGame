@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, input, Input, Quat, Vec3, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, input, Input, Quat, Vec3, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -89,17 +89,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "autoFindGameManager", _descriptor5, this);
 
-          _initializerDefineProperty(this, "moveSmooth", _descriptor6, this);
+          _initializerDefineProperty(this, "enterMoveDuration", _descriptor6, this);
 
-          _initializerDefineProperty(this, "rotateSmooth", _descriptor7, this);
+          _initializerDefineProperty(this, "enterFocusDelayRatio", _descriptor7, this);
 
-          _initializerDefineProperty(this, "fovSmooth", _descriptor8, this);
+          _initializerDefineProperty(this, "enterFocusDuration", _descriptor8, this);
 
-          _initializerDefineProperty(this, "returnMoveSmooth", _descriptor9, this);
+          _initializerDefineProperty(this, "returnFocusDuration", _descriptor9, this);
 
-          _initializerDefineProperty(this, "returnRotateSmooth", _descriptor10, this);
+          _initializerDefineProperty(this, "returnMoveDelayRatio", _descriptor10, this);
 
-          _initializerDefineProperty(this, "returnFovSmooth", _descriptor11, this);
+          _initializerDefineProperty(this, "returnMoveDuration", _descriptor11, this);
 
           _initializerDefineProperty(this, "returnPositionThreshold", _descriptor12, this);
 
@@ -117,13 +117,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "uiTapSuppressDuration", _descriptor19, this);
 
-          _initializerDefineProperty(this, "useParentLock", _descriptor20, this);
-
-          _initializerDefineProperty(this, "lockPositionThreshold", _descriptor21, this);
-
-          _initializerDefineProperty(this, "lockFovThreshold", _descriptor22, this);
-
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor23, this);
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor20, this);
 
           this.state = CinematicState.Idle;
           this.currentWave = null;
@@ -132,13 +126,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.originalPos = new Vec3();
           this.originalRot = new Quat();
           this.originalFov = 45;
-          this.tempPos = new Vec3();
-          this.tempRot = new Quat();
-          this.targetPos = new Vec3();
-          this.targetRot = new Quat();
+          this.startLocalPos = new Vec3();
+          this.startLocalRot = new Quat();
+          this.startFov = 45;
+          this.currentLocalPos = new Vec3();
+          this.currentLocalRot = new Quat();
+          this.targetLocalPos = new Vec3();
+          this.targetLocalRot = new Quat();
+          this.returnStartPos = new Vec3();
+          this.returnStartRot = new Quat();
+          this.returnStartFov = 45;
+          this.returnCurrentPos = new Vec3();
+          this.returnCurrentRot = new Quat();
           this.exitTapTimer = 0;
           this.uiTapSuppressTimer = 0;
-          this.cameraLockedToRig = false;
+          this.enterTimer = 0;
+          this.returnTimer = 0;
         }
 
         onEnable() {
@@ -172,7 +175,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.validateTarget();
 
             if (this.state === CinematicState.Orbit) {
-              this.updateCameraToOrbit(deltaTime);
+              this.updateCameraLocalToOrbitPose(deltaTime);
             }
 
             return;
@@ -186,16 +189,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         focusWave(wave) {
           if (!wave) return;
-          const unit = wave.getRandomAliveUnit();
+          const unit = wave.getRandomPreferredAliveUnit();
           if (!unit) return;
           this.suppressExitTap();
 
           if (this.state === CinematicState.Idle) {
             this.captureCurrentCamera();
-          }
-
-          if (this.cameraLockedToRig) {
-            this.unlockCameraKeepWorld();
           }
 
           this.state = CinematicState.Orbit;
@@ -206,12 +205,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.orbitRig.setTarget(unit);
           }
 
+          this.parentCameraToOrbitRigKeepWorld();
+          this.resetEnterTweenFromCurrentLocalPose();
+
           if (this.topDownCameraDrag) {
             this.topDownCameraDrag.enabled = false;
           }
 
           this.exitTapTimer = this.exitTapDelay;
           this.log(`Focus wave=${wave.id}, unit=${unit.node.name}`);
+        }
+
+        onUnitWillDespawn(unit) {
+          if (!unit) return;
+          if (this.state !== CinematicState.Orbit) return;
+          if (this.currentUnit !== unit) return;
+          const switched = this.trySwitchTargetBeforeDespawn();
+
+          if (!switched) {
+            this.beginReturnToOriginal();
+          }
         }
 
         exitCinematic() {
@@ -228,12 +241,33 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.state !== CinematicState.Idle;
         }
 
+        isOrbiting() {
+          return this.state === CinematicState.Orbit;
+        }
+
+        isReturning() {
+          return this.state === CinematicState.Returning;
+        }
+
         captureCurrentCamera() {
           if (!this.mainCamera) return;
           this.originalParent = this.mainCamera.node.parent;
           this.mainCamera.node.getWorldPosition(this.originalPos);
           this.mainCamera.node.getWorldRotation(this.originalRot);
           this.originalFov = this.mainCamera.fov;
+        }
+
+        parentCameraToOrbitRigKeepWorld() {
+          if (!this.mainCamera || !this.orbitRig) return;
+          this.mainCamera.node.setParent(this.orbitRig.node, true);
+        }
+
+        resetEnterTweenFromCurrentLocalPose() {
+          if (!this.mainCamera) return;
+          this.enterTimer = 0;
+          this.startLocalPos.set(this.mainCamera.node.position);
+          this.startLocalRot.set(this.mainCamera.node.rotation);
+          this.startFov = this.mainCamera.fov;
         }
 
         validateTarget() {
@@ -243,18 +277,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (this.currentWave.isDead()) {
-            if (this.switchWaveWhenCurrentWaveDead) {
-              const switchedSameTeam = this.switchToAnotherWave(this.currentWave.team, true);
-              if (switchedSameTeam) return;
+            const switched = this.trySwitchTargetBeforeDespawn();
+
+            if (!switched) {
+              this.beginReturnToOriginal();
             }
 
-            if (this.switchToEnemyTeamIfCurrentTeamDead) {
-              const enemyTeam = this.currentWave.team === 0 ? 1 : 0;
-              const switchedEnemy = this.switchToAnotherWave(enemyTeam, false);
-              if (switchedEnemy) return;
-            }
-
-            this.beginReturnToOriginal();
             return;
           }
 
@@ -264,26 +292,41 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return;
             }
 
-            const nextUnit = this.currentWave.getRandomAliveUnit();
+            const switched = this.trySwitchTargetBeforeDespawn();
 
-            if (nextUnit) {
-              this.switchToUnit(this.currentWave, nextUnit);
-              return;
+            if (!switched) {
+              this.beginReturnToOriginal();
             }
-
-            if (this.switchWaveWhenCurrentWaveDead) {
-              const switchedSameTeam = this.switchToAnotherWave(this.currentWave.team, true);
-              if (switchedSameTeam) return;
-            }
-
-            if (this.switchToEnemyTeamIfCurrentTeamDead) {
-              const enemyTeam = this.currentWave.team === 0 ? 1 : 0;
-              const switchedEnemy = this.switchToAnotherWave(enemyTeam, false);
-              if (switchedEnemy) return;
-            }
-
-            this.beginReturnToOriginal();
           }
+        }
+
+        trySwitchTargetBeforeDespawn() {
+          if (!this.currentWave) return false;
+          const sameWaveUnit = this.currentWave.getRandomPreferredAliveUnit();
+
+          if (sameWaveUnit && sameWaveUnit !== this.currentUnit) {
+            this.switchToUnit(this.currentWave, sameWaveUnit);
+            return true;
+          }
+
+          if (this.switchWaveWhenCurrentWaveDead) {
+            const switchedSameTeam = this.switchToAnotherWave(this.currentWave.team, true);
+
+            if (switchedSameTeam) {
+              return true;
+            }
+          }
+
+          if (this.switchToEnemyTeamIfCurrentTeamDead) {
+            const enemyTeam = this.currentWave.team === 0 ? 1 : 0;
+            const switchedEnemy = this.switchToAnotherWave(enemyTeam, false);
+
+            if (switchedEnemy) {
+              return true;
+            }
+          }
+
+          return false;
         }
 
         switchToAnotherWave(team, excludeCurrentWave) {
@@ -302,7 +345,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!wave) continue;
             if (excludeCurrentWave && wave === this.currentWave) continue;
             if (wave.isDead()) continue;
-            if (!wave.getRandomAliveUnit()) continue;
+            const unit = wave.getRandomPreferredAliveUnit();
+            if (!unit) continue;
             candidates.push(wave);
           }
 
@@ -312,17 +356,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           const waveIndex = Math.floor(Math.random() * candidates.length);
           const nextWave = candidates[waveIndex];
-          const nextUnit = nextWave.getRandomAliveUnit();
+          const nextUnit = nextWave.getRandomPreferredAliveUnit();
           if (!nextUnit) return false;
           this.switchToUnit(nextWave, nextUnit);
           return true;
         }
 
         switchToUnit(wave, unit) {
-          if (this.cameraLockedToRig) {
-            this.unlockCameraKeepWorld();
-          }
-
           this.currentWave = wave;
           this.currentUnit = unit;
 
@@ -330,84 +370,47 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.orbitRig.setTarget(unit);
           }
 
+          this.parentCameraToOrbitRigKeepWorld();
+          this.resetEnterTweenFromCurrentLocalPose();
           this.exitTapTimer = this.exitTapDelay;
           this.log(`Switch unit wave=${wave.id}, unit=${unit.node.name}`);
         }
 
-        updateCameraToOrbit(deltaTime) {
-          if (!this.mainCamera || !this.orbitRig) return;
-
-          if (this.cameraLockedToRig) {
-            this.applyLockedLocalPose();
-            return;
-          }
-
-          const orbitCamera = this.orbitRig.getCameraNode();
-          if (!orbitCamera) return;
-          orbitCamera.getWorldPosition(this.targetPos);
-          orbitCamera.getWorldRotation(this.targetRot);
-          this.mainCamera.node.getWorldPosition(this.tempPos);
-          this.mainCamera.node.getWorldRotation(this.tempRot);
-          const moveT = 1 - Math.exp(-this.moveSmooth * deltaTime);
-          const rotT = 1 - Math.exp(-this.rotateSmooth * deltaTime);
-          Vec3.lerp(this.tempPos, this.tempPos, this.targetPos, moveT);
-          Quat.slerp(this.tempRot, this.tempRot, this.targetRot, rotT);
-          this.mainCamera.node.setWorldPosition(this.tempPos);
-          this.mainCamera.node.setWorldRotation(this.tempRot);
-          const fovT = 1 - Math.exp(-this.fovSmooth * deltaTime);
-          this.mainCamera.fov = this.mainCamera.fov + (this.orbitRig.getCameraFov() - this.mainCamera.fov) * fovT;
-
-          if (this.useParentLock && this.canLockCameraToRig()) {
-            this.lockCameraToRig();
-          }
-        }
-
-        canLockCameraToRig() {
-          if (!this.mainCamera || !this.orbitRig) return false;
-          const orbitCamera = this.orbitRig.getCameraNode();
-          if (!orbitCamera) return false;
-          orbitCamera.getWorldPosition(this.targetPos);
-          this.mainCamera.node.getWorldPosition(this.tempPos);
-          const posDistance = Vec3.distance(this.tempPos, this.targetPos);
-          const fovDistance = Math.abs(this.mainCamera.fov - this.orbitRig.getCameraFov());
-          const canLock = posDistance <= this.lockPositionThreshold && fovDistance <= this.lockFovThreshold;
-          this.log(`LockCheck pos=${posDistance.toFixed(3)} fov=${fovDistance.toFixed(3)} can=${canLock}`);
-          return canLock;
-        }
-
-        lockCameraToRig() {
+        updateCameraLocalToOrbitPose(deltaTime) {
           if (!this.mainCamera || !this.orbitRig) return;
           const orbitCamera = this.orbitRig.getCameraNode();
           if (!orbitCamera) return;
-          this.mainCamera.node.setParent(this.orbitRig.node, true);
-          this.cameraLockedToRig = true;
-          this.applyLockedLocalPose();
-          this.log('LOCKED: MainCamera parent -> OrbitRig');
-        }
-
-        applyLockedLocalPose() {
-          if (!this.mainCamera || !this.orbitRig) return;
-          const orbitCamera = this.orbitRig.getCameraNode();
-          if (!orbitCamera) return;
-          this.mainCamera.node.setPosition(orbitCamera.position);
-          this.mainCamera.node.setRotation(orbitCamera.rotation);
-          this.mainCamera.fov = this.orbitRig.getCameraFov();
-        }
-
-        unlockCameraKeepWorld() {
-          if (!this.mainCamera) return;
-          this.mainCamera.node.setParent(this.originalParent, true);
-          this.cameraLockedToRig = false;
-          this.log('UNLOCKED: MainCamera parent -> originalParent');
+          this.enterTimer += deltaTime;
+          this.targetLocalPos.set(orbitCamera.position);
+          this.targetLocalRot.set(orbitCamera.rotation);
+          const moveDuration = Math.max(0.0001, this.enterMoveDuration);
+          const move01 = this.clamp01(this.enterTimer / moveDuration);
+          const moveT = this.smooth01(move01);
+          Vec3.lerp(this.currentLocalPos, this.startLocalPos, this.targetLocalPos, moveT);
+          this.mainCamera.node.setPosition(this.currentLocalPos);
+          const focusDelay = moveDuration * this.enterFocusDelayRatio;
+          const focusDuration = Math.max(0.0001, this.enterFocusDuration);
+          const focus01 = this.clamp01((this.enterTimer - focusDelay) / focusDuration);
+          const focusT = this.smooth01(focus01);
+          Quat.slerp(this.currentLocalRot, this.startLocalRot, this.targetLocalRot, focusT);
+          this.mainCamera.node.setRotation(this.currentLocalRot);
+          const targetFov = this.orbitRig.getCameraFov();
+          this.mainCamera.fov = this.startFov + (targetFov - this.startFov) * focusT;
         }
 
         beginReturnToOriginal() {
           if (this.state === CinematicState.Idle) return;
 
-          if (this.cameraLockedToRig) {
-            this.unlockCameraKeepWorld();
+          if (!this.mainCamera) {
+            this.finishReturn();
+            return;
           }
 
+          this.mainCamera.node.setParent(this.originalParent, true);
+          this.mainCamera.node.getWorldPosition(this.returnStartPos);
+          this.mainCamera.node.getWorldRotation(this.returnStartRot);
+          this.returnStartFov = this.mainCamera.fov;
+          this.returnTimer = 0;
           this.state = CinematicState.Returning;
           this.currentWave = null;
           this.currentUnit = null;
@@ -416,7 +419,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.orbitRig.clearTarget();
           }
 
-          this.log('Begin smooth return');
+          this.log('Begin delayed smooth return');
         }
 
         updateReturnToOriginal(deltaTime) {
@@ -425,21 +428,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          this.mainCamera.node.getWorldPosition(this.tempPos);
-          this.mainCamera.node.getWorldRotation(this.tempRot);
-          const moveT = 1 - Math.exp(-this.returnMoveSmooth * deltaTime);
-          const rotT = 1 - Math.exp(-this.returnRotateSmooth * deltaTime);
-          Vec3.lerp(this.tempPos, this.tempPos, this.originalPos, moveT);
-          Quat.slerp(this.tempRot, this.tempRot, this.originalRot, rotT);
-          this.mainCamera.node.setWorldPosition(this.tempPos);
-          this.mainCamera.node.setWorldRotation(this.tempRot);
-          const fovT = 1 - Math.exp(-this.returnFovSmooth * deltaTime);
-          this.mainCamera.fov = this.mainCamera.fov + (this.originalFov - this.mainCamera.fov) * fovT;
-          const posDone = Vec3.distance(this.tempPos, this.originalPos) <= this.returnPositionThreshold;
+          this.returnTimer += deltaTime;
+          const focusDuration = Math.max(0.0001, this.returnFocusDuration);
+          const focus01 = this.clamp01(this.returnTimer / focusDuration);
+          const focusT = this.smooth01(focus01);
+          Quat.slerp(this.returnCurrentRot, this.returnStartRot, this.originalRot, focusT);
+          this.mainCamera.node.setWorldRotation(this.returnCurrentRot);
+          this.mainCamera.fov = this.returnStartFov + (this.originalFov - this.returnStartFov) * focusT;
+          const moveDelay = focusDuration * this.returnMoveDelayRatio;
+          const moveDuration = Math.max(0.0001, this.returnMoveDuration);
+          const move01 = this.clamp01((this.returnTimer - moveDelay) / moveDuration);
+          const moveT = this.smooth01(move01);
+          Vec3.lerp(this.returnCurrentPos, this.returnStartPos, this.originalPos, moveT);
+          this.mainCamera.node.setWorldPosition(this.returnCurrentPos);
+          const posDone = Vec3.distance(this.returnCurrentPos, this.originalPos) <= this.returnPositionThreshold;
           const fovDone = Math.abs(this.mainCamera.fov - this.originalFov) <= this.returnFovThreshold;
+          const rotDone = focus01 >= 1;
+          const moveDone = move01 >= 1;
 
-          if (posDone && fovDone) {
-            this.mainCamera.node.setParent(this.originalParent, true);
+          if (posDone && fovDone && rotDone && moveDone) {
             this.mainCamera.node.setWorldPosition(this.originalPos);
             this.mainCamera.node.setWorldRotation(this.originalRot);
             this.mainCamera.fov = this.originalFov;
@@ -451,7 +458,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.state = CinematicState.Idle;
           this.currentWave = null;
           this.currentUnit = null;
-          this.cameraLockedToRig = false;
 
           if (this.topDownCameraDrag) {
             this.topDownCameraDrag.enabled = true;
@@ -482,6 +488,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!unit.props) return false;
           if (unit.props.isDead()) return false;
           return true;
+        }
+
+        smooth01(t) {
+          const x = this.clamp01(t);
+          return x * x * (3 - 2 * x);
+        }
+
+        clamp01(v) {
+          return Math.max(0, Math.min(1, v));
         }
 
         log(msg) {
@@ -524,47 +539,47 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return true;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "moveSmooth", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "enterMoveDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 4;
+          return 1.0;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "rotateSmooth", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "enterFocusDelayRatio", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 4;
+          return 0.5;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "fovSmooth", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enterFocusDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 6;
+          return 0.7;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "returnMoveSmooth", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "returnFocusDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 6;
+          return 0.7;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "returnRotateSmooth", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "returnMoveDelayRatio", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 6;
+          return 0.5;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "returnFovSmooth", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "returnMoveDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 6;
+          return 1.0;
         }
       }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "returnPositionThreshold", [property], {
         configurable: true,
@@ -622,33 +637,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 0.25;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "useParentLock", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return true;
-        }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "lockPositionThreshold", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 0.12;
-        }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "lockFovThreshold", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 0.2;
-        }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return true;
+          return false;
         }
       })), _class2)) || _class));
 

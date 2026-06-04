@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _crd, ccclass, property, CinematicOrbitRig;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _crd, ccclass, property, CinematicOrbitRig;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -45,53 +45,36 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           _initializerDefineProperty(this, "orbitSpeed", _descriptor2, this);
 
-          _initializerDefineProperty(this, "followSmooth", _descriptor3, this);
+          _initializerDefineProperty(this, "firstFocusLocalMoveSmooth", _descriptor3, this);
 
-          _initializerDefineProperty(this, "heightOffset", _descriptor4, this);
+          _initializerDefineProperty(this, "switchTargetLocalMoveSmooth", _descriptor4, this);
 
-          _initializerDefineProperty(this, "cameraFov", _descriptor5, this);
+          _initializerDefineProperty(this, "heightOffset", _descriptor5, this);
 
-          _initializerDefineProperty(this, "enableOrbit", _descriptor6, this);
+          _initializerDefineProperty(this, "cameraFov", _descriptor6, this);
 
-          _initializerDefineProperty(this, "snapToTargetOnFirstFocus", _descriptor7, this);
+          _initializerDefineProperty(this, "enableOrbit", _descriptor7, this);
 
-          _initializerDefineProperty(this, "snapToTargetOnSwitch", _descriptor8, this);
-
-          _initializerDefineProperty(this, "resetOrbitAngleOnNewTarget", _descriptor9, this);
-
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor10, this);
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor8, this);
 
           this.targetUnit = null;
-          this.currentPos = new Vec3();
-          this.targetPos = new Vec3();
+          this.originalParent = null;
+          this.targetLocalPos = new Vec3();
+          this.currentLocalPos = new Vec3();
           this.currentEuler = new Vec3();
           this.hasTargetBefore = false;
+          this.currentMoveSmooth = 8;
         }
 
         onLoad() {
-          this.node.getWorldPosition(this.currentPos);
+          this.originalParent = this.node.parent;
           this.currentEuler.set(this.node.eulerAngles);
         }
 
         update(deltaTime) {
           if (!this.targetUnit) return;
-
-          if (!this.targetUnit.node || !this.targetUnit.node.activeInHierarchy) {
-            return;
-          }
-
-          this.targetUnit.node.getWorldPosition(this.targetPos);
-          this.targetPos.y += this.heightOffset;
-          this.node.getWorldPosition(this.currentPos);
-          var t = 1 - Math.exp(-this.followSmooth * deltaTime);
-          Vec3.lerp(this.currentPos, this.currentPos, this.targetPos, t);
-          this.node.setWorldPosition(this.currentPos);
-
-          if (this.enableOrbit) {
-            this.currentEuler.set(this.node.eulerAngles);
-            this.currentEuler.y += this.orbitSpeed * deltaTime;
-            this.node.setRotationFromEuler(this.currentEuler);
-          }
+          this.updateLocalMove(deltaTime);
+          this.updateOrbit(deltaTime);
         }
 
         setTarget(unit) {
@@ -103,26 +86,19 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           var isSwitching = this.hasTargetBefore && this.targetUnit !== unit;
           this.targetUnit = unit;
           this.hasTargetBefore = true;
-          unit.node.getWorldPosition(this.targetPos);
-          this.targetPos.y += this.heightOffset;
-          var shouldSnap = !isSwitching && this.snapToTargetOnFirstFocus || isSwitching && this.snapToTargetOnSwitch;
-
-          if (shouldSnap) {
-            this.node.setWorldPosition(this.targetPos);
-          }
-
-          if (this.resetOrbitAngleOnNewTarget) {
-            this.currentEuler.set(this.node.eulerAngles);
-            this.currentEuler.y = 0;
-            this.node.setRotationFromEuler(this.currentEuler);
-          }
-
-          this.log("Set target: " + unit.node.name);
+          this.currentMoveSmooth = isSwitching ? this.switchTargetLocalMoveSmooth : this.firstFocusLocalMoveSmooth;
+          this.node.setParent(unit.node, true);
+          this.targetLocalPos.set(0, this.heightOffset, 0);
+          this.log("Set target=" + unit.node.name + ", switching=" + isSwitching + ", smooth=" + this.currentMoveSmooth);
         }
 
         clearTarget() {
           this.targetUnit = null;
           this.hasTargetBefore = false;
+
+          if (this.originalParent) {
+            this.node.setParent(this.originalParent, true);
+          }
         }
 
         getTargetUnit() {
@@ -137,12 +113,18 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return this.cameraFov;
         }
 
-        isCloseToTarget(threshold) {
-          if (!this.targetUnit) return false;
-          this.targetUnit.node.getWorldPosition(this.targetPos);
-          this.targetPos.y += this.heightOffset;
-          this.node.getWorldPosition(this.currentPos);
-          return Vec3.distance(this.currentPos, this.targetPos) <= threshold;
+        updateLocalMove(deltaTime) {
+          this.currentLocalPos.set(this.node.position);
+          var t = 1 - Math.exp(-this.currentMoveSmooth * deltaTime);
+          Vec3.lerp(this.currentLocalPos, this.currentLocalPos, this.targetLocalPos, t);
+          this.node.setPosition(this.currentLocalPos);
+        }
+
+        updateOrbit(deltaTime) {
+          if (!this.enableOrbit) return;
+          this.currentEuler.set(this.node.eulerAngles);
+          this.currentEuler.y += this.orbitSpeed * deltaTime;
+          this.node.setRotationFromEuler(this.currentEuler);
         }
 
         log(msg) {
@@ -164,56 +146,42 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "followSmooth", [property], {
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "firstFocusLocalMoveSmooth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 12;
+          return 8;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "heightOffset", [property], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "switchTargetLocalMoveSmooth", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 3;
+        }
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "heightOffset", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "cameraFov", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "cameraFov", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 35;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "enableOrbit", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "enableOrbit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "snapToTargetOnFirstFocus", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return true;
-        }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "snapToTargetOnSwitch", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return false;
-        }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "resetOrbitAngleOnNewTarget", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return false;
-        }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

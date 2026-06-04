@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Prefab, Vec3, Label, Unit, UnitProps, EnemyFinder, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, UnitType, BattleWave, CounterSettings, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _class4, _class5, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _class6, _crd, ccclass, property, UnitPrefabEntry, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, Label, Unit, UnitProps, EnemyFinder, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _class3, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -49,16 +49,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("BattleSpatialGrid", "./BattleSpatialGrid", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfUnitType(extras) {
-    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
-  }
-
   function _reportPossibleCrUseOfBattleWave(extras) {
     _reporterNs.report("BattleWave", "./BattleWave", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfCounterSettings(extras) {
     _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfBattleUnitDatabase(extras) {
+    _reporterNs.report("BattleUnitDatabase", "./BattleUnitDatabase", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfUnitPrefabEntry(extras) {
+    _reporterNs.report("UnitPrefabEntry", "./BattleUnitDatabase", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfHeroEntry(extras) {
+    _reporterNs.report("HeroEntry", "./BattleUnitDatabase", _context.meta, extras);
   }
 
   return {
@@ -70,7 +78,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
       Component = _cc.Component;
-      Prefab = _cc.Prefab;
       Vec3 = _cc.Vec3;
       Label = _cc.Label;
     }, function (_unresolved_2) {
@@ -94,218 +101,129 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_11) {
       BattleSpatialGrid = _unresolved_11.BattleSpatialGrid;
     }, function (_unresolved_12) {
-      UnitType = _unresolved_12.UnitType;
+      BattleWave = _unresolved_12.BattleWave;
     }, function (_unresolved_13) {
-      BattleWave = _unresolved_13.BattleWave;
+      CounterSettings = _unresolved_13.CounterSettings;
     }, function (_unresolved_14) {
-      CounterSettings = _unresolved_14.CounterSettings;
+      BattleUnitDatabase = _unresolved_14.BattleUnitDatabase;
+    }, function (_unresolved_15) {
+      _export("UnitPrefabEntry", _unresolved_15.UnitPrefabEntry);
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Prefab', 'Vec3', 'Label']);
+      __checkObsolete__(['_decorator', 'Component', 'Vec3', 'Label']);
 
       ({
         ccclass,
         property
       } = _decorator);
 
-      _export("UnitPrefabEntry", UnitPrefabEntry = (_dec = ccclass('UnitPrefabEntry'), _dec2 = property(Prefab), _dec3 = property({
-        type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-          error: Error()
-        }), UnitType) : UnitType
-      }), _dec(_class = (_class2 = class UnitPrefabEntry {
-        constructor() {
-          _initializerDefineProperty(this, "name", _descriptor, this);
-
-          _initializerDefineProperty(this, "prefab", _descriptor2, this);
-
-          _initializerDefineProperty(this, "unitType", _descriptor3, this);
-
-          _initializerDefineProperty(this, "unitCount", _descriptor4, this);
-
-          _initializerDefineProperty(this, "prewarmCount", _descriptor5, this);
-
-          _initializerDefineProperty(this, "maxSpeed", _descriptor6, this);
-
-          _initializerDefineProperty(this, "health", _descriptor7, this);
-
-          _initializerDefineProperty(this, "damage", _descriptor8, this);
-
-          _initializerDefineProperty(this, "defense", _descriptor9, this);
-        }
-
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "name", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return '';
-        }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "prefab", [_dec2], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return null;
-        }
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec3], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSword;
-        }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "unitCount", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1;
-        }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "prewarmCount", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0;
-        }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "maxSpeed", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 2;
-        }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "health", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 30;
-        }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 5;
-        }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0;
-        }
-      })), _class2)) || _class));
-
-      _export("GameManager", GameManager = (_dec4 = ccclass('GameManager'), _dec5 = property({
-        type: [UnitPrefabEntry]
-      }), _dec6 = property({
-        type: [UnitPrefabEntry]
-      }), _dec7 = property(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
+      _export("GameManager", GameManager = (_dec = ccclass('GameManager'), _dec2 = property(_crd && BattleUnitDatabase === void 0 ? (_reportPossibleCrUseOfBattleUnitDatabase({
         error: Error()
-      }), Unit) : Unit), _dec8 = property(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
-        error: Error()
-      }), Unit) : Unit), _dec9 = property(Label), _dec10 = property(Label), _dec11 = property(Label), _dec12 = property(Label), _dec13 = property(Label), _dec14 = property(Label), _dec15 = property(Label), _dec16 = property(Label), _dec17 = property({
+      }), BattleUnitDatabase) : BattleUnitDatabase), _dec3 = property(Component), _dec4 = property(Label), _dec5 = property(Label), _dec6 = property(Label), _dec7 = property(Label), _dec8 = property(Label), _dec9 = property(Label), _dec10 = property(Label), _dec11 = property(Label), _dec12 = property(Label), _dec13 = property(Label), _dec14 = property({
         type: [_crd && ObstacleCircle === void 0 ? (_reportPossibleCrUseOfObstacleCircle({
           error: Error()
         }), ObstacleCircle) : ObstacleCircle]
-      }), _dec18 = property({
+      }), _dec15 = property({
         type: [_crd && ObstacleRect === void 0 ? (_reportPossibleCrUseOfObstacleRect({
           error: Error()
         }), ObstacleRect) : ObstacleRect]
-      }), _dec4(_class4 = (_class5 = (_class6 = class GameManager extends Component {
+      }), _dec(_class = (_class2 = (_class3 = class GameManager extends Component {
         constructor() {
           super(...arguments);
 
-          _initializerDefineProperty(this, "useWorkerRVO", _descriptor10, this);
+          _initializerDefineProperty(this, "unitDatabase", _descriptor, this);
 
-          _initializerDefineProperty(this, "teamAPrefabs", _descriptor11, this);
+          _initializerDefineProperty(this, "cinematicController", _descriptor2, this);
 
-          _initializerDefineProperty(this, "teamBPrefabs", _descriptor12, this);
+          _initializerDefineProperty(this, "useWorkerRVO", _descriptor3, this);
 
-          _initializerDefineProperty(this, "teamAHero", _descriptor13, this);
+          this.teamAHero = null;
+          this.teamBHero = null;
 
-          _initializerDefineProperty(this, "teamBHero", _descriptor14, this);
+          _initializerDefineProperty(this, "battleMinX", _descriptor4, this);
 
-          _initializerDefineProperty(this, "battleMinX", _descriptor15, this);
+          _initializerDefineProperty(this, "battleMaxX", _descriptor5, this);
 
-          _initializerDefineProperty(this, "battleMaxX", _descriptor16, this);
+          _initializerDefineProperty(this, "battleMinZ", _descriptor6, this);
 
-          _initializerDefineProperty(this, "battleMinZ", _descriptor17, this);
+          _initializerDefineProperty(this, "battleMaxZ", _descriptor7, this);
 
-          _initializerDefineProperty(this, "battleMaxZ", _descriptor18, this);
+          _initializerDefineProperty(this, "updateInterval", _descriptor8, this);
 
-          _initializerDefineProperty(this, "updateInterval", _descriptor19, this);
+          _initializerDefineProperty(this, "maxRvoStepDeltaTime", _descriptor9, this);
 
           this.frame = 0;
 
-          _initializerDefineProperty(this, "visualSmooth", _descriptor20, this);
+          _initializerDefineProperty(this, "visualSmooth", _descriptor10, this);
 
-          _initializerDefineProperty(this, "spatialGridCellSize", _descriptor21, this);
+          _initializerDefineProperty(this, "spatialGridCellSize", _descriptor11, this);
 
-          _initializerDefineProperty(this, "spatialGridUpdateInterval", _descriptor22, this);
+          _initializerDefineProperty(this, "spatialGridUpdateInterval", _descriptor12, this);
 
           this.spatialGrid = new (_crd && BattleSpatialGrid === void 0 ? (_reportPossibleCrUseOfBattleSpatialGrid({
             error: Error()
           }), BattleSpatialGrid) : BattleSpatialGrid)();
 
-          _initializerDefineProperty(this, "teamAAliveLabel", _descriptor23, this);
+          _initializerDefineProperty(this, "teamAAliveLabel", _descriptor13, this);
 
-          _initializerDefineProperty(this, "teamADeathLabel", _descriptor24, this);
+          _initializerDefineProperty(this, "teamADeathLabel", _descriptor14, this);
 
-          _initializerDefineProperty(this, "teamBAliveLabel", _descriptor25, this);
+          _initializerDefineProperty(this, "teamBAliveLabel", _descriptor15, this);
 
-          _initializerDefineProperty(this, "teamBDeathLabel", _descriptor26, this);
+          _initializerDefineProperty(this, "teamBDeathLabel", _descriptor16, this);
 
-          _initializerDefineProperty(this, "teamAKillLabel", _descriptor27, this);
+          _initializerDefineProperty(this, "teamAKillLabel", _descriptor17, this);
 
-          _initializerDefineProperty(this, "teamBKillLabel", _descriptor28, this);
+          _initializerDefineProperty(this, "teamBKillLabel", _descriptor18, this);
 
-          _initializerDefineProperty(this, "teamACounterKillLabel", _descriptor29, this);
+          _initializerDefineProperty(this, "teamACounterKillLabel", _descriptor19, this);
 
-          _initializerDefineProperty(this, "teamBCounterKillLabel", _descriptor30, this);
+          _initializerDefineProperty(this, "teamBCounterKillLabel", _descriptor20, this);
+
+          _initializerDefineProperty(this, "teamACombatPointLabel", _descriptor21, this);
+
+          _initializerDefineProperty(this, "teamBCombatPointLabel", _descriptor22, this);
 
           this.aliveCount = [0, 0];
           this.deathCount = [0, 0];
           this.killCount = [0, 0];
           this.counterKillCount = [0, 0];
+          this.combatPoint = [0, 0];
+          this.maxCombatPoint = [0, 0];
 
-          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor31, this);
+          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor23, this);
 
-          _initializerDefineProperty(this, "spawnImmediatelyOnStart", _descriptor32, this);
+          _initializerDefineProperty(this, "spawnImmediatelyOnStart", _descriptor24, this);
 
-          _initializerDefineProperty(this, "prewarmOnStart", _descriptor33, this);
+          _initializerDefineProperty(this, "prewarmOnStart", _descriptor25, this);
 
-          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor34, this);
+          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor26, this);
 
-          _initializerDefineProperty(this, "maxAutoSpawnDeltaTime", _descriptor35, this);
+          _initializerDefineProperty(this, "maxAutoSpawnDeltaTime", _descriptor27, this);
 
-          _initializerDefineProperty(this, "teamASpawnZ", _descriptor36, this);
+          _initializerDefineProperty(this, "teamASpawnZ", _descriptor28, this);
 
-          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor37, this);
+          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor29, this);
 
-          _initializerDefineProperty(this, "maxUnitPerRow", _descriptor38, this);
+          _initializerDefineProperty(this, "maxUnitPerRow", _descriptor30, this);
 
-          _initializerDefineProperty(this, "spaceBetweenUnit", _descriptor39, this);
+          _initializerDefineProperty(this, "spaceBetweenUnit", _descriptor31, this);
 
-          _initializerDefineProperty(this, "spaceBetweenRow", _descriptor40, this);
+          _initializerDefineProperty(this, "spaceBetweenRow", _descriptor32, this);
 
-          _initializerDefineProperty(this, "formationZNoise", _descriptor41, this);
+          _initializerDefineProperty(this, "formationZNoise", _descriptor33, this);
 
-          _initializerDefineProperty(this, "centerGapWidth", _descriptor42, this);
+          _initializerDefineProperty(this, "centerGapWidth", _descriptor34, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor43, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor35, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor44, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor36, this);
 
           this.sim = null;
           this.teamA = [];
@@ -323,6 +241,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamB.length = 0;
           this.waves.length = 0;
           this.nextWaveId = 1;
+          this.teamAHero = null;
+          this.teamBHero = null;
           this.aliveCount[0] = 0;
           this.aliveCount[1] = 0;
           this.deathCount[0] = 0;
@@ -332,6 +252,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.counterKillCount[0] = 0;
           this.counterKillCount[1] = 0;
           this.spawnWaveTimer = 0;
+          this.resetCombatPoint();
           this.createSimulator();
           this.buildPrefabMaps();
           (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
@@ -362,8 +283,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.sim.addRectObstacle(_p.x, _p.z, _ob.halfWidth, _ob.halfHeight, angle);
           }
 
-          this.registerSceneHero(this.teamAHero, 0, 'hero_a');
-          this.registerSceneHero(this.teamBHero, 1, 'hero_b');
+          this.registerDatabaseHeroes();
 
           if (this.spawnImmediatelyOnStart) {
             this.spawnAutoWave();
@@ -381,6 +301,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.sim && this.sim.destroy) {
             this.sim.destroy();
           }
+        }
+
+        resetCombatPoint() {
+          var aMax = this.unitDatabase ? this.unitDatabase.getMaxCombatPoint(0) : 0;
+          var bMax = this.unitDatabase ? this.unitDatabase.getMaxCombatPoint(1) : 0;
+          this.maxCombatPoint[0] = Math.max(0, aMax);
+          this.maxCombatPoint[1] = Math.max(0, bMax);
+          this.combatPoint[0] = this.maxCombatPoint[0];
+          this.combatPoint[1] = this.maxCombatPoint[1];
         }
 
         createSimulator() {
@@ -406,7 +335,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), Unit) : Unit).visualLerpT = 1 - Math.exp(-this.visualSmooth * deltaTime);
 
           if (this.frame % this.updateInterval === 0) {
-            this.sim.step();
+            var safeDt = Math.min(deltaTime, Math.max(0.001, this.maxRvoStepDeltaTime));
+            this.sim.step(safeDt);
           }
 
           if (this.frame % this.spatialGridUpdateInterval === 0) {
@@ -443,7 +373,78 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.counterKillCount[killerTeam]++;
           }
 
+          this.addCombatPointFromKill(killer, isCounterKill);
           this.refreshBattleStatsUI();
+        }
+
+        addCombatPointFromKill(killer, isCounterKill) {
+          if (!this.isCombatPointEnabled()) return;
+          var team = killer.team;
+          var entry = this.getRuntimeRewardEntry(killer, team);
+          if (!entry) return;
+          var reward = Math.max(0, entry.killReward);
+
+          if (isCounterKill) {
+            reward += Math.max(0, entry.counterKillReward);
+          }
+
+          this.addCombatPoint(team, reward);
+        }
+
+        getRuntimeRewardEntry(unit, team) {
+          if (unit.isHero) {
+            var heroEntry = this.getHeroEntry(team);
+            if (!heroEntry) return null;
+            return {
+              killReward: heroEntry.killReward,
+              counterKillReward: heroEntry.counterKillReward
+            };
+          }
+
+          var entry = this.getTeamEntry(team, unit.unitTypeName);
+          if (!entry) return null;
+          return {
+            killReward: entry.killReward,
+            counterKillReward: entry.counterKillReward
+          };
+        }
+
+        addCombatPoint(team, amount) {
+          if (team !== 0 && team !== 1) return;
+          if (amount <= 0) return;
+          this.combatPoint[team] = Math.min(this.maxCombatPoint[team], this.combatPoint[team] + amount);
+        }
+
+        spendCombatPoint(team, amount) {
+          if (team !== 0 && team !== 1) return false;
+          if (amount <= 0) return true;
+
+          if (this.combatPoint[team] < amount) {
+            return false;
+          }
+
+          this.combatPoint[team] -= amount;
+          return true;
+        }
+
+        canAffordEntry(team, entry) {
+          if (!entry) return false;
+          if (!this.isCombatPointEnabled()) return true;
+          return this.combatPoint[team] >= Math.max(0, entry.combatPointCost);
+        }
+
+        getCombatPoint(team) {
+          if (team !== 0 && team !== 1) return 0;
+          return this.combatPoint[team];
+        }
+
+        getMaxCombatPoint(team) {
+          if (team !== 0 && team !== 1) return 0;
+          return this.maxCombatPoint[team];
+        }
+
+        isCombatPointEnabled() {
+          return !!(this.unitDatabase && this.unitDatabase.enableCombatPoint);
         }
 
         getCounterKillRatio(team) {
@@ -456,6 +457,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.counterKillCount[team] / this.killCount[team];
         }
 
+        notifyUnitWillDespawn(unit) {
+          var anyController = this.cinematicController;
+
+          if (anyController && typeof anyController.onUnitWillDespawn === 'function') {
+            anyController.onUnitWillDespawn(unit);
+          }
+        }
+
         rebuildSpatialGrid() {
           this.spatialGrid.cellSize = this.spatialGridCellSize;
           this.spatialGrid.build(this.teamA, this.teamB);
@@ -464,28 +473,41 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         buildPrefabMaps() {
           this.teamAPrefabMap.clear();
           this.teamBPrefabMap.clear();
+          var teamAEntries = this.getDatabaseTeamEntries(0);
+          var teamBEntries = this.getDatabaseTeamEntries(1);
 
-          for (var entry of this.teamAPrefabs) {
+          for (var entry of teamAEntries) {
             if (!this.isValidEntry(entry)) continue;
             this.teamAPrefabMap.set(entry.name, entry);
           }
 
-          for (var _entry of this.teamBPrefabs) {
+          for (var _entry of teamBEntries) {
             if (!this.isValidEntry(_entry)) continue;
             this.teamBPrefabMap.set(_entry.name, _entry);
           }
         }
 
         prewarmAllUnits() {
-          for (var entry of this.teamAPrefabs) {
+          var teamAEntries = this.getDatabaseTeamEntries(0);
+          var teamBEntries = this.getDatabaseTeamEntries(1);
+
+          for (var entry of teamAEntries) {
             if (!this.isValidEntry(entry)) continue;
             this.spawner.prewarm(entry.prefab, entry.prewarmCount, this.node);
           }
 
-          for (var _entry2 of this.teamBPrefabs) {
+          for (var _entry2 of teamBEntries) {
             if (!this.isValidEntry(_entry2)) continue;
             this.spawner.prewarm(_entry2.prefab, _entry2.prewarmCount, this.node);
           }
+        }
+
+        getDatabaseTeamEntries(team) {
+          if (!this.unitDatabase) {
+            return [];
+          }
+
+          return this.unitDatabase.getTeamEntries(team);
         }
 
         isValidEntry(entry) {
@@ -496,6 +518,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getTeamEntry(team, unitName) {
+          if (this.unitDatabase) {
+            var dbEntry = this.unitDatabase.getEntry(team, unitName);
+
+            if (dbEntry && dbEntry.prefab) {
+              return dbEntry;
+            }
+          }
+
           var map = team === 0 ? this.teamAPrefabMap : this.teamBPrefabMap;
           var entry = map.get(unitName);
 
@@ -507,13 +537,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return entry;
         }
 
-        getRandomEntry(entries) {
+        getHeroEntry(team) {
+          if (!this.unitDatabase) return null;
+          return this.unitDatabase.getHeroEntry(team);
+        }
+
+        getRandomEntry(entries, team) {
           var validEntries = [];
 
           for (var entry of entries) {
             if (!this.isValidEntry(entry)) continue;
 
             if (Math.floor(entry.unitCount) <= 0) {
+              continue;
+            }
+
+            if (!this.canAffordEntry(team, entry)) {
               continue;
             }
 
@@ -529,7 +568,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getTeamEntries(team) {
-          return team === 0 ? this.teamAPrefabs : this.teamBPrefabs;
+          return this.getDatabaseTeamEntries(team);
         }
 
         getAliveUnits(team) {
@@ -563,15 +602,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         spawnAutoWave() {
-          var entryA = this.getRandomEntry(this.teamAPrefabs);
-          var entryB = this.getRandomEntry(this.teamBPrefabs);
+          var teamAEntries = this.getDatabaseTeamEntries(0);
+          var teamBEntries = this.getDatabaseTeamEntries(1);
+          var entryA = this.getRandomEntry(teamAEntries, 0);
+          var entryB = this.getRandomEntry(teamBEntries, 1);
 
           if (entryA) {
-            this.spawnEntryFormation(0, entryA, this.teamASpawnZ);
+            this.spawnEntryFormation(0, entryA, this.teamASpawnZ, true);
           }
 
           if (entryB) {
-            this.spawnEntryFormation(1, entryB, this.teamBSpawnZ);
+            this.spawnEntryFormation(1, entryB, this.teamBSpawnZ, true);
           }
 
           this.rebuildSpatialGrid();
@@ -583,7 +624,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           var baseZ = team === 0 ? this.teamASpawnZ : this.teamBSpawnZ;
-          var wave = this.spawnEntryFormation(team, entry, baseZ);
+          var wave = this.spawnEntryFormation(team, entry, baseZ, true);
           this.rebuildSpatialGrid();
           return wave;
         }
@@ -594,10 +635,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.spawnWaveByEntry(team, entry);
         }
 
-        spawnEntryFormation(team, entry, baseZ) {
+        spawnEntryFormation(team, entry, baseZ, spendCost) {
           var count = Math.max(0, Math.floor(entry.unitCount));
 
           if (count <= 0) {
+            return null;
+          }
+
+          var cost = Math.max(0, entry.combatPointCost);
+
+          if (spendCost && this.isCombatPointEnabled() && !this.spendCombatPoint(team, cost)) {
+            this.refreshBattleStatsUI();
             return null;
           }
 
@@ -748,6 +796,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         despawnUnit(unit) {
           if (!unit) return;
+          this.notifyUnitWillDespawn(unit);
 
           if (unit.isHero) {
             this.handleHeroDeath(unit);
@@ -854,8 +903,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.refreshBattleStatsUI();
         }
 
-        registerSceneHero(hero, team, typeName) {
-          if (!hero) return;
+        registerDatabaseHeroes() {
+          if (!this.unitDatabase) return;
+          var heroA = this.unitDatabase.getHeroEntry(0);
+          var heroB = this.unitDatabase.getHeroEntry(1);
+          this.registerSceneHero(heroA, 0, 'hero_a');
+          this.registerSceneHero(heroB, 1, 'hero_b');
+        }
+
+        registerSceneHero(heroEntry, team, fallbackTypeName) {
+          if (!heroEntry) return;
+          if (!heroEntry.heroNode) return;
+          var hero = heroEntry.heroNode.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
+            error: Error()
+          }), Unit) : Unit);
+
+          if (!hero) {
+            console.warn('[GameManager] Hero node missing Unit component:', heroEntry.heroNode.name);
+            return;
+          }
+
           if (!hero.node.activeInHierarchy) return;
           hero.isHero = true;
           var props = hero.getComponent(_crd && UnitProps === void 0 ? (_reportPossibleCrUseOfUnitProps({
@@ -863,6 +930,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), UnitProps) : UnitProps);
 
           if (props) {
+            props.maxHealth = heroEntry.health;
+            props.health = heroEntry.health;
+            props.damage = heroEntry.damage;
+            props.defense = heroEntry.defense;
+            props.unitType = heroEntry.unitType;
             props.resetForSpawn();
           }
 
@@ -883,11 +955,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             finder.resetForSpawn(team);
           }
 
+          var unitTypeName = heroEntry.name && heroEntry.name.length > 0 ? heroEntry.name : fallbackTypeName;
           var forwardX = 0;
           var forwardZ = team === 0 ? 1 : -1;
-          hero.init(this.sim, team, typeName, forwardX, forwardZ);
+          hero.moveSpeed = heroEntry.maxSpeed;
+          hero.init(this.sim, team, unitTypeName, forwardX, forwardZ);
 
           if (team === 0) {
+            this.teamAHero = hero;
+
             if (this.teamA.indexOf(hero) < 0) {
               this.teamA.push(hero);
               this.aliveCount[0]++;
@@ -897,6 +973,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               error: Error()
             }), EnemyFinder) : EnemyFinder).teamA = this.teamA;
           } else {
+            this.teamBHero = hero;
+
             if (this.teamB.indexOf(hero) < 0) {
               this.teamB.push(hero);
               this.aliveCount[1]++;
@@ -940,258 +1018,273 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.teamBCounterKillLabel) {
             this.teamBCounterKillLabel.string = 'B Counter Kill: ' + this.counterKillCount[1] + ' (' + Math.round(this.getCounterKillRatio(1) * 100) + '%)';
           }
+
+          if (this.teamACombatPointLabel) {
+            this.teamACombatPointLabel.string = 'A CP: ' + Math.floor(this.combatPoint[0]) + '/' + Math.floor(this.maxCombatPoint[0]);
+          }
+
+          if (this.teamBCombatPointLabel) {
+            this.teamBCombatPointLabel.string = 'B CP: ' + Math.floor(this.combatPoint[1]) + '/' + Math.floor(this.maxCombatPoint[1]);
+          }
         }
 
         randomRange(min, max) {
           return Math.random() * (max - min) + min;
         }
 
-      }, _class6.instance = null, _class6), (_descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "useWorkerRVO", [property], {
+      }, _class3.instance = null, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "unitDatabase", [_dec2], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "cinematicController", [_dec3], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "useWorkerRVO", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "teamAPrefabs", [_dec5], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return [];
-        }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "teamBPrefabs", [_dec6], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return [];
-        }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "teamAHero", [_dec7], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return null;
-        }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "teamBHero", [_dec8], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return null;
-        }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "battleMinX", [property], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "battleMinX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -28;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "battleMaxX", [property], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 28;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "battleMinZ", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "battleMinZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -18;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "battleMaxZ", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 18;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "visualSmooth", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "maxRvoStepDeltaTime", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.05;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "visualSmooth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 16;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "spatialGridCellSize", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridCellSize", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 4;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "spatialGridUpdateInterval", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridUpdateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "teamAAliveLabel", [_dec9], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "teamAAliveLabel", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "teamADeathLabel", [_dec10], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "teamADeathLabel", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "teamBAliveLabel", [_dec11], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "teamBAliveLabel", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "teamBDeathLabel", [_dec12], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "teamBDeathLabel", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor27 = _applyDecoratedDescriptor(_class5.prototype, "teamAKillLabel", [_dec13], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "teamAKillLabel", [_dec8], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor28 = _applyDecoratedDescriptor(_class5.prototype, "teamBKillLabel", [_dec14], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "teamBKillLabel", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor29 = _applyDecoratedDescriptor(_class5.prototype, "teamACounterKillLabel", [_dec15], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "teamACounterKillLabel", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor30 = _applyDecoratedDescriptor(_class5.prototype, "teamBCounterKillLabel", [_dec16], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "teamBCounterKillLabel", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor31 = _applyDecoratedDescriptor(_class5.prototype, "enableAutoSpawn", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "teamACombatPointLabel", [_dec12], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "teamBCombatPointLabel", [_dec13], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "enableAutoSpawn", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor32 = _applyDecoratedDescriptor(_class5.prototype, "spawnImmediatelyOnStart", [property], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "spawnImmediatelyOnStart", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "prewarmOnStart", [property], {
+      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "prewarmOnStart", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "spawnWaveInterval", [property], {
+      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "spawnWaveInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "maxAutoSpawnDeltaTime", [property], {
+      }), _descriptor27 = _applyDecoratedDescriptor(_class2.prototype, "maxAutoSpawnDeltaTime", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "teamASpawnZ", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class2.prototype, "teamASpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -20;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "teamBSpawnZ", [property], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class2.prototype, "teamBSpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "maxUnitPerRow", [property], {
+      }), _descriptor30 = _applyDecoratedDescriptor(_class2.prototype, "maxUnitPerRow", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 8;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "spaceBetweenUnit", [property], {
+      }), _descriptor31 = _applyDecoratedDescriptor(_class2.prototype, "spaceBetweenUnit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.5;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "spaceBetweenRow", [property], {
+      }), _descriptor32 = _applyDecoratedDescriptor(_class2.prototype, "spaceBetweenRow", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.5;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "formationZNoise", [property], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class2.prototype, "formationZNoise", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "centerGapWidth", [property], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class2.prototype, "centerGapWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "circleObstacles", [_dec17], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "rectObstacles", [_dec18], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      })), _class5)) || _class4));
+      })), _class2)) || _class));
 
       _cclegacy._RF.pop();
 

@@ -73,7 +73,8 @@
             "MiniMap\\images\\mace-ico.png",
             "MiniMap\\images\\magic-ico.png",
             "MiniMap\\images\\spear-ico.png",
-            "MiniMap\\images\\sword-ico.png"
+            "MiniMap\\images\\sword-ico.png",
+            "scripts\\BattleUnitDatabase.ts"
         ]
     }
 }
