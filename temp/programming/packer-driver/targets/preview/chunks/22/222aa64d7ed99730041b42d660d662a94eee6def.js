@@ -85,9 +85,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "maxBrainDeltaTime", _descriptor6, this);
 
-          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor7, this);
+          _initializerDefineProperty(this, "enableMaxAliveUnitLimit", _descriptor7, this);
 
-          _initializerDefineProperty(this, "maxAliveWaves", _descriptor8, this);
+          _initializerDefineProperty(this, "maxAliveUnits", _descriptor8, this);
 
           _initializerDefineProperty(this, "defenseWaveThreshold", _descriptor9, this);
 
@@ -143,8 +143,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         thinkAndSpawn() {
           if (!this.gameManager) return;
 
-          if (!this.canSpawnMoreWave()) {
-            this.debugLog("Skip spawn: aliveWaves=" + this.getAliveWaveCount(this.team) + " >= maxAliveWaves=" + this.maxAliveWaves);
+          if (!this.canSpawnMoreUnit()) {
+            this.debugLog("Skip spawn: aliveUnits=" + this.getAliveUnitCount(this.team) + " >= maxAliveUnits=" + this.maxAliveUnits);
             return;
           }
 
@@ -159,7 +159,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyTeam = this.team === 0 ? 1 : 0;
           var enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
           this.resolveMode(enemyWaves.length);
-          this.stateLog("MODE=" + this.currentModeName + ", myWaves=" + this.getAliveWaveCount(this.team) + ", enemyWaves=" + enemyWaves.length + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", AI=" + this.getAIIntelligence().toFixed(2));
+          this.stateLog("MODE=" + this.currentModeName + ", myWaves=" + this.getAliveWaveCount(this.team) + ", myUnits=" + this.getAliveUnitCount(this.team) + ", enemyWaves=" + enemyWaves.length + ", enemyUnits=" + this.getAliveUnitCount(enemyTeam) + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", AI=" + this.getAIIntelligence().toFixed(2));
 
           if (enemyWaves.length <= 0) {
             if (this.spawnOpeningWaveIfNoEnemyWave) {
@@ -187,7 +187,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var selectedEntry = this.chooseEntryAgainstWave(validEntries, targetWave);
 
           if (!selectedEntry) {
-            this.debugLog('No affordable entry. Skip spawn.');
+            this.debugLog('No affordable/spawnable entry. Skip spawn.');
             return;
           }
 
@@ -338,7 +338,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         chooseEntryAgainstWave(entries, targetWave) {
-          var affordableEntries = this.getAffordableEntries(entries);
+          var affordableEntries = this.getSpawnableAffordableEntries(entries);
 
           if (affordableEntries.length <= 0) {
             return null;
@@ -387,6 +387,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
+            if (!this.canSpawnEntryByUnitLimit(entry)) {
+              continue;
+            }
+
             result.push(entry);
           }
 
@@ -394,7 +398,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getRandomAffordableEntry(entries) {
-          var affordable = this.getAffordableEntries(entries);
+          var affordable = this.getSpawnableAffordableEntries(entries);
 
           if (affordable.length <= 0) {
             return null;
@@ -417,6 +421,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
+            if (!this.canSpawnEntryByUnitLimit(entry)) {
+              continue;
+            }
+
             var cost = Math.max(0, entry.combatPointCost);
 
             if (cost < bestCost) {
@@ -428,14 +436,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return best;
         }
 
-        canSpawnMoreWave() {
-          if (!this.enableMaxAliveWaveLimit) {
+        canSpawnMoreUnit() {
+          if (!this.enableMaxAliveUnitLimit) {
             return true;
           }
 
-          var max = Math.max(1, Math.floor(this.maxAliveWaves));
-          var alive = this.getAliveWaveCount(this.team);
+          var max = Math.max(1, Math.floor(this.maxAliveUnits));
+          var alive = this.getAliveUnitCount(this.team);
           return alive < max;
+        }
+
+        canSpawnEntryByUnitLimit(entry) {
+          if (!this.isValidEntry(entry)) return false;
+
+          if (!this.enableMaxAliveUnitLimit) {
+            return true;
+          }
+
+          var max = Math.max(1, Math.floor(this.maxAliveUnits));
+          var alive = this.getAliveUnitCount(this.team);
+          var add = Math.max(1, Math.floor(entry.unitCount));
+          return alive + add <= max;
+        }
+
+        getSpawnableAffordableEntries(entries) {
+          var affordable = this.getAffordableEntries(entries);
+          var result = [];
+
+          for (var i = 0; i < affordable.length; i++) {
+            var entry = affordable[i];
+
+            if (!this.canSpawnEntryByUnitLimit(entry)) {
+              continue;
+            }
+
+            result.push(entry);
+          }
+
+          return result;
         }
 
         getAliveWaveCount(team) {
@@ -453,9 +491,122 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return count;
         }
 
+        getAliveUnitCount(team) {
+          if (!this.gameManager) return 0;
+          var waves = this.gameManager.getWavesByTeam(team);
+          var count = 0;
+
+          for (var i = 0; i < waves.length; i++) {
+            count += this.getAliveUnitCountInWave(waves[i]);
+          }
+
+          return count;
+        }
+
+        getAliveUnitCountInWave(wave) {
+          if (!wave) return 0;
+          if (wave.isDead()) return 0;
+          var anyWave = wave;
+
+          if (typeof anyWave.getAliveUnitCount === 'function') {
+            return Math.max(0, Math.floor(anyWave.getAliveUnitCount()));
+          }
+
+          if (typeof anyWave.getAliveCount === 'function') {
+            return Math.max(0, Math.floor(anyWave.getAliveCount()));
+          }
+
+          if (typeof anyWave.aliveUnitCount === 'number') {
+            return Math.max(0, Math.floor(anyWave.aliveUnitCount));
+          }
+
+          if (typeof anyWave.aliveCount === 'number') {
+            return Math.max(0, Math.floor(anyWave.aliveCount));
+          }
+
+          var units = this.getWaveUnitList(anyWave);
+
+          if (units && units.length > 0) {
+            var count = 0;
+
+            for (var i = 0; i < units.length; i++) {
+              if (!this.isUnitDead(units[i])) {
+                count++;
+              }
+            }
+
+            return count;
+          }
+
+          var total = this.getWaveTotalUnitCount(anyWave);
+
+          if (total > 0) {
+            return Math.max(0, Math.ceil(total * wave.getAliveRatio()));
+          }
+
+          return wave.getAliveRatio() > 0 ? 1 : 0;
+        }
+
+        getWaveUnitList(anyWave) {
+          if (!anyWave) return null;
+          if (Array.isArray(anyWave.units)) return anyWave.units;
+          if (Array.isArray(anyWave.unitList)) return anyWave.unitList;
+          if (Array.isArray(anyWave.members)) return anyWave.members;
+          if (Array.isArray(anyWave.aliveUnits)) return anyWave.aliveUnits;
+          return null;
+        }
+
+        getWaveTotalUnitCount(anyWave) {
+          if (!anyWave) return 0;
+
+          if (typeof anyWave.totalUnitCount === 'number') {
+            return Math.max(0, Math.floor(anyWave.totalUnitCount));
+          }
+
+          if (typeof anyWave.unitCount === 'number') {
+            return Math.max(0, Math.floor(anyWave.unitCount));
+          }
+
+          if (typeof anyWave.maxUnitCount === 'number') {
+            return Math.max(0, Math.floor(anyWave.maxUnitCount));
+          }
+
+          return 0;
+        }
+
+        isUnitDead(unit) {
+          if (!unit) return true;
+
+          if (typeof unit.isDead === 'function') {
+            return unit.isDead();
+          }
+
+          if (typeof unit.isAlive === 'function') {
+            return !unit.isAlive();
+          }
+
+          if (typeof unit.health === 'number') {
+            return unit.health <= 0;
+          }
+
+          if (typeof unit.hp === 'number') {
+            return unit.hp <= 0;
+          }
+
+          if (typeof unit.dead === 'boolean') {
+            return unit.dead;
+          }
+
+          if (typeof unit.isDeadFlag === 'boolean') {
+            return unit.isDeadFlag;
+          }
+
+          return false;
+        }
+
         spawnOpeningWave(validEntries) {
           if (!this.gameManager) return;
-          if (!this.canSpawnMoreWave()) return;
+          if (!this.canSpawnMoreUnit()) return;
           var opening = this.getRandomAffordableEntry(validEntries);
           if (!opening) return;
           this.gameManager.spawnWaveByEntry(this.team, opening);
@@ -463,7 +614,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         spawnRandom(validEntries, reason) {
           if (!this.gameManager) return;
-          if (!this.canSpawnMoreWave()) return;
+          if (!this.canSpawnMoreUnit()) return;
           var randomEntry = this.getRandomAffordableEntry(validEntries);
           if (!randomEntry) return;
           this.debugLog(reason + ". Random spawn: " + randomEntry.name);
@@ -595,19 +746,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "enableMaxAliveWaveLimit", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "enableMaxAliveUnitLimit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWaves", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveUnits", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 7;
+          return 70;
         }
       }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "defenseWaveThreshold", [property], {
         configurable: true,
