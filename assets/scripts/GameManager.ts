@@ -113,7 +113,7 @@ export class GameManager extends Component {
     counterKillCount = [0, 0];
 
     combatPoint = [0, 0];
-    maxCombatPoint = [0, 0];
+    initialCombatPoint = [0, 0];
 
     @property
     enableAutoSpawn = true;
@@ -270,19 +270,19 @@ export class GameManager extends Component {
     }
 
     private resetCombatPoint() {
-        const aMax = this.unitDatabase
-            ? this.unitDatabase.getMaxCombatPoint(0)
+        const aInitial = this.unitDatabase
+            ? this.unitDatabase.getInitialCombatPoint(0)
             : 0;
 
-        const bMax = this.unitDatabase
-            ? this.unitDatabase.getMaxCombatPoint(1)
+        const bInitial = this.unitDatabase
+            ? this.unitDatabase.getInitialCombatPoint(1)
             : 0;
 
-        this.maxCombatPoint[0] = Math.max(0, aMax);
-        this.maxCombatPoint[1] = Math.max(0, bMax);
+        this.initialCombatPoint[0] = Math.max(0, aInitial);
+        this.initialCombatPoint[1] = Math.max(0, bInitial);
 
-        this.combatPoint[0] = this.maxCombatPoint[0];
-        this.combatPoint[1] = this.maxCombatPoint[1];
+        this.combatPoint[0] = this.initialCombatPoint[0];
+        this.combatPoint[1] = this.initialCombatPoint[1];
     }
 
     private createSimulator() {
@@ -370,70 +370,60 @@ export class GameManager extends Component {
             this.counterKillCount[killerTeam]++;
         }
 
-        this.addCombatPointFromKill(
-            killer,
+        this.addCombatPointFromVictim(
+            killerTeam,
+            victim,
             isCounterKill
         );
 
         this.refreshBattleStatsUI();
     }
 
-    private addCombatPointFromKill(
-        killer: Unit,
+    private addCombatPointFromVictim(
+        killerTeam: number,
+        victim: Unit,
         isCounterKill: boolean
     ) {
         if (!this.isCombatPointEnabled()) return;
+        if (!this.unitDatabase) return;
 
-        const team = killer.team;
-        const entry = this.getRuntimeRewardEntry(
-            killer,
-            team
-        );
+        const bountyValue = this.getVictimBountyValue(victim);
+        if (bountyValue <= 0) return;
 
-        if (!entry) return;
+        const reward =
+            this.unitDatabase.calculateKillRewardFromBounty(
+                bountyValue,
+                isCounterKill
+            );
 
-        let reward = Math.max(0, entry.killReward);
+        this.addCombatPoint(killerTeam, reward);
+    }
 
-        if (isCounterKill) {
-            reward += Math.max(
+    private getVictimBountyValue(victim: Unit) {
+        const victimTeam = victim.team;
+
+        if (victim.isHero) {
+            const heroEntry = this.getHeroEntry(victimTeam);
+
+            if (!heroEntry) return 0;
+
+            return Math.max(
                 0,
-                entry.counterKillReward
+                heroEntry.combatPointBountyValue
             );
         }
 
-        this.addCombatPoint(team, reward);
-    }
-
-    private getRuntimeRewardEntry(
-        unit: Unit,
-        team: number
-    ): {
-        killReward: number;
-        counterKillReward: number;
-    } | null {
-
-        if (unit.isHero) {
-            const heroEntry = this.getHeroEntry(team);
-
-            if (!heroEntry) return null;
-
-            return {
-                killReward: heroEntry.killReward,
-                counterKillReward: heroEntry.counterKillReward
-            };
-        }
-
         const entry = this.getTeamEntry(
-            team,
-            unit.unitTypeName
+            victimTeam,
+            victim.unitTypeName
         );
 
-        if (!entry) return null;
+        if (!entry) return 0;
 
-        return {
-            killReward: entry.killReward,
-            counterKillReward: entry.counterKillReward
-        };
+        return Math.max(
+            0,
+            entry.combatPointCost
+        );
     }
 
     public addCombatPoint(
@@ -443,10 +433,7 @@ export class GameManager extends Component {
         if (team !== 0 && team !== 1) return;
         if (amount <= 0) return;
 
-        this.combatPoint[team] = Math.min(
-            this.maxCombatPoint[team],
-            this.combatPoint[team] + amount
-        );
+        this.combatPoint[team] += amount;
     }
 
     public spendCombatPoint(
@@ -481,10 +468,10 @@ export class GameManager extends Component {
         return this.combatPoint[team];
     }
 
-    public getMaxCombatPoint(team: number) {
+    public getInitialCombatPoint(team: number) {
         if (team !== 0 && team !== 1) return 0;
 
-        return this.maxCombatPoint[team];
+        return this.initialCombatPoint[team];
     }
 
     private isCombatPointEnabled() {
@@ -1369,17 +1356,13 @@ export class GameManager extends Component {
         if (this.teamACombatPointLabel) {
             this.teamACombatPointLabel.string =
                 'A CP: ' +
-                Math.floor(this.combatPoint[0]) +
-                '/' +
-                Math.floor(this.maxCombatPoint[0]); 
+                Math.floor(this.combatPoint[0]);
         }
 
         if (this.teamBCombatPointLabel) {
             this.teamBCombatPointLabel.string =
                 'B CP: ' +
-                Math.floor(this.combatPoint[1]) +
-                '/' +
-                Math.floor(this.maxCombatPoint[1]);
+                Math.floor(this.combatPoint[1]);
         }
     }
 

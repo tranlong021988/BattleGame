@@ -2,7 +2,7 @@ import { _decorator, Component } from 'cc';
 import { GameManager, UnitPrefabEntry } from './GameManager';
 import { BattleWave } from './BattleWave';
 import { CounterSettings } from './CounterSettings';
-import { UnitType } from './BattleTypes';
+import { UnitType, unitTypeToName } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
 
@@ -57,13 +57,7 @@ export class ArmyBrain extends Component {
     attackCounterCoverageRatio = 1.0;
 
     @property
-    sensitive = 1.0;
-
-    @property
-    minSensitive = 0.0;
-
-    @property
-    maxSensitive = 1.0;
+    aiIntelligence = 1.0;
 
     @property
     spawnRandomIfNoThreat = true;
@@ -135,10 +129,10 @@ export class ArmyBrain extends Component {
         const enemyTeam = this.team === 0 ? 1 : 0;
         const enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
 
-        this.resolveMode();
+        this.resolveMode(enemyWaves.length);
 
         this.stateLog(
-            `MODE=${this.currentModeName}, myWaves=${this.getAliveWaveCount(this.team)}, enemyWaves=${this.getAliveWaveCount(enemyTeam)}, maxWaves=${this.maxAliveWaves}`
+            `MODE=${this.currentModeName}, myWaves=${this.getAliveWaveCount(this.team)}, enemyWaves=${enemyWaves.length}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, AI=${this.getAIIntelligence().toFixed(2)}`
         );
 
         if (enemyWaves.length <= 0) {
@@ -169,7 +163,22 @@ export class ArmyBrain extends Component {
             targetWave
         );
 
-        if (!selectedEntry) return;
+        if (!selectedEntry) {
+            this.debugLog('No affordable entry. Skip spawn.');
+            return;
+        }
+
+        const selectedCounterScore = this.getCounterScore(
+            selectedEntry.unitType,
+            targetWave.unitType
+        );
+
+        const isRealCounter =
+            this.isRealCounterScore(selectedCounterScore);
+
+        this.debugLog(
+            `Decision: targetWave=${targetWave.id}, target=${unitTypeToName(targetWave.unitType)}, selected=${selectedEntry.name}/${unitTypeToName(selectedEntry.unitType)}, score=${selectedCounterScore.toFixed(2)}, isCounter=${isRealCounter}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, cost=${selectedEntry.combatPointCost}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}, engaged=${targetWave.hasEngaged()}`
+        );
 
         const spawned = this.gameManager.spawnWaveByEntry(
             this.team,
@@ -177,22 +186,31 @@ export class ArmyBrain extends Component {
         );
 
         if (spawned) {
-            targetWave.addCounterAssignment(selectedEntry.unitCount);
+            if (isRealCounter) {
+                targetWave.addCounterAssignment(selectedEntry.unitCount);
 
-            this.debugLog(
-                `Spawn ${selectedEntry.name} counter target wave=${targetWave.id}`
-            );
+                this.debugLog(
+                    `Counter assignment added: wave=${targetWave.id}, +${selectedEntry.unitCount}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}`
+                );
+            } else {
+                this.debugLog(
+                    `Spawned fallback/non-counter unit. No counter assignment added for wave=${targetWave.id}`
+                );
+            }
         }
     }
 
-    private resolveMode() {
+    private resolveMode(enemyAliveWaveCount: number) {
         const myWaves = this.getAliveWaveCount(this.team);
 
+        const threshold = Math.max(
+            0,
+            Math.floor(this.defenseWaveThreshold)
+        );
+
         const shouldDefense =
-            myWaves <= Math.max(
-                0,
-                Math.floor(this.defenseWaveThreshold)
-            );
+            myWaves <= threshold &&
+            enemyAliveWaveCount > myWaves;
 
         if (shouldDefense) {
             const roll = Math.random();
@@ -329,6 +347,9 @@ export class ArmyBrain extends Component {
         if (!this.isAliveThreatWave(wave)) return false;
 
         if (wave!.isCounterCovered(this.attackCounterCoverageRatio)) {
+            this.debugLog(
+                `Skip attack target wave=${wave!.id}: coverage=${wave!.getCounterCoverageRatio().toFixed(2)} >= ${this.attackCounterCoverageRatio}`
+            );
             return false;
         }
 
@@ -338,11 +359,16 @@ export class ArmyBrain extends Component {
     private isValidDefenseThreatWave(wave: BattleWave | null) {
         if (!this.isAliveThreatWave(wave)) return false;
 
-        //
-        // Defense Mode:
-        // Bỏ qua attackCounterCoverageRatio.
-        // Nếu mối nguy gần nhà nhất vẫn còn sống, cứ cho phép reinforce.
-        //
+        const engaged = wave!.hasEngaged();
+        const covered = wave!.isCounterCovered(this.attackCounterCoverageRatio);
+
+        if (!engaged && covered) {
+            this.debugLog(
+                `Skip defense target wave=${wave!.id}: not engaged and coverage=${wave!.getCounterCoverageRatio().toFixed(2)} >= ${this.attackCounterCoverageRatio}`
+            );
+            return false;
+        }
+
         return true;
     }
 
@@ -357,6 +383,140 @@ export class ArmyBrain extends Component {
         }
 
         return true;
+    }
+
+    private chooseEntryAgainstWave(
+        entries: UnitPrefabEntry[],
+        targetWave: BattleWave
+    ): UnitPrefabEntry | null {
+
+        const affordableEntries =
+            this.getAffordableEntries(entries);
+
+        if (affordableEntries.length <= 0) {
+            return null;
+        }
+
+        const intelligence = this.getAIIntelligence();
+
+        if (Math.random() > intelligence) {
+            return this.getRandomAffordableEntry(entries);
+        }
+
+        let bestScore = -Infinity;
+        const bestEntries: UnitPrefabEntry[] = [];
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (!this.isValidEntry(entry)) continue;
+
+            const score = this.getCounterScore(
+                entry.unitType,
+                targetWave.unitType
+            );
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestEntries.length = 0;
+                bestEntries.push(entry);
+            } else if (Math.abs(score - bestScore) < 0.0001) {
+                bestEntries.push(entry);
+            }
+        }
+
+        if (bestEntries.length > 0) {
+            const index = Math.floor(
+                Math.random() * bestEntries.length
+            );
+
+            return bestEntries[index];
+        }
+
+        return this.getCheapestAffordableEntry(entries);
+    }
+
+    private getAffordableEntries(
+        entries: UnitPrefabEntry[]
+    ): UnitPrefabEntry[] {
+
+        const result: UnitPrefabEntry[] = [];
+
+        if (!this.gameManager) return result;
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidEntry(entry)) continue;
+
+            if (
+                !this.gameManager.canAffordEntry(
+                    this.team,
+                    entry
+                )
+            ) {
+                continue;
+            }
+
+            result.push(entry);
+        }
+
+        return result;
+    }
+
+    private getRandomAffordableEntry(
+        entries: UnitPrefabEntry[]
+    ): UnitPrefabEntry | null {
+
+        const affordable =
+            this.getAffordableEntries(entries);
+
+        if (affordable.length <= 0) {
+            return null;
+        }
+
+        const index = Math.floor(
+            Math.random() * affordable.length
+        );
+
+        return affordable[index];
+    }
+
+    private getCheapestAffordableEntry(
+        entries: UnitPrefabEntry[]
+    ): UnitPrefabEntry | null {
+
+        if (!this.gameManager) return null;
+
+        let best: UnitPrefabEntry | null = null;
+        let bestCost = Infinity;
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidEntry(entry)) continue;
+
+            if (
+                !this.gameManager.canAffordEntry(
+                    this.team,
+                    entry
+                )
+            ) {
+                continue;
+            }
+
+            const cost = Math.max(
+                0,
+                entry.combatPointCost
+            );
+
+            if (cost < bestCost) {
+                bestCost = cost;
+                best = entry;
+            }
+        }
+
+        return best;
     }
 
     private canSpawnMoreWave() {
@@ -397,7 +557,7 @@ export class ArmyBrain extends Component {
         if (!this.gameManager) return;
         if (!this.canSpawnMoreWave()) return;
 
-        const opening = this.getRandomEntry(validEntries);
+        const opening = this.getRandomAffordableEntry(validEntries);
 
         if (!opening) return;
 
@@ -414,7 +574,8 @@ export class ArmyBrain extends Component {
         if (!this.gameManager) return;
         if (!this.canSpawnMoreWave()) return;
 
-        const randomEntry = this.getRandomEntry(validEntries);
+        const randomEntry =
+            this.getRandomAffordableEntry(validEntries);
 
         if (!randomEntry) return;
 
@@ -426,50 +587,6 @@ export class ArmyBrain extends Component {
             this.team,
             randomEntry
         );
-    }
-
-    private chooseEntryAgainstWave(
-        entries: UnitPrefabEntry[],
-        targetWave: BattleWave
-    ): UnitPrefabEntry | null {
-
-        const accuracy = this.getAccuracy();
-
-        if (Math.random() > accuracy) {
-            return this.getRandomEntry(entries);
-        }
-
-        let bestScore = -Infinity;
-        const bestEntries: UnitPrefabEntry[] = [];
-
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-
-            if (!this.isValidEntry(entry)) continue;
-
-            const score = this.getCounterScore(
-                entry.unitType,
-                targetWave.unitType
-            );
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestEntries.length = 0;
-                bestEntries.push(entry);
-            } else if (Math.abs(score - bestScore) < 0.0001) {
-                bestEntries.push(entry);
-            }
-        }
-
-        if (bestEntries.length <= 0) {
-            return this.getRandomEntry(entries);
-        }
-
-        const index = Math.floor(
-            Math.random() * bestEntries.length
-        );
-
-        return bestEntries[index];
     }
 
     private getCounterScore(
@@ -486,6 +603,10 @@ export class ArmyBrain extends Component {
             attackerType,
             defenderType
         );
+    }
+
+    private isRealCounterScore(score: number) {
+        return score > 1.0001;
     }
 
     private getDefendPoint() {
@@ -513,21 +634,11 @@ export class ArmyBrain extends Component {
         };
     }
 
-    private getAccuracy() {
-        const min = Math.min(
-            this.minSensitive,
-            this.maxSensitive
-        );
-
-        const max = Math.max(
-            this.minSensitive,
-            this.maxSensitive
-        );
-
+    private getAIIntelligence() {
         return this.clamp(
-            this.sensitive,
-            min,
-            max
+            this.aiIntelligence,
+            0,
+            1
         );
     }
 
@@ -558,20 +669,6 @@ export class ArmyBrain extends Component {
         }
 
         return valid;
-    }
-
-    private getRandomEntry(entries: UnitPrefabEntry[]) {
-        const valid = this.getValidEntries(entries);
-
-        if (valid.length <= 0) {
-            return null;
-        }
-
-        const index = Math.floor(
-            Math.random() * valid.length
-        );
-
-        return valid[index];
     }
 
     private isValidEntry(entry: UnitPrefabEntry | null) {

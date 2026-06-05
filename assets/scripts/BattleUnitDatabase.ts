@@ -35,12 +35,6 @@ export class UnitPrefabEntry {
 
     @property
     combatPointCost: number = 10;
-
-    @property
-    killReward: number = 1;
-
-    @property
-    counterKillReward: number = 1;
 }
 
 @ccclass('HeroEntry')
@@ -68,10 +62,7 @@ export class HeroEntry {
     defense: number = 0;
 
     @property
-    killReward: number = 0;
-
-    @property
-    counterKillReward: number = 0;
+    combatPointBountyValue: number = 0;
 }
 
 @ccclass('BattleUnitDatabase')
@@ -81,10 +72,16 @@ export class BattleUnitDatabase extends Component {
     enableCombatPoint = true;
 
     @property
-    teamAMaxCombatPoint = 100;
+    teamAInitialCombatPoint = 100;
 
     @property
-    teamBMaxCombatPoint = 100;
+    teamBInitialCombatPoint = 100;
+
+    @property
+    killRewardCostWeight = 0.0;
+
+    @property
+    counterKillRewardCostWeight = 0.15;
 
     @property(HeroEntry)
     teamAHero: HeroEntry = new HeroEntry();
@@ -110,10 +107,10 @@ export class BattleUnitDatabase extends Component {
             : this.teamBHero;
     }
 
-    public getMaxCombatPoint(team: number): number {
+    public getInitialCombatPoint(team: number): number {
         return team === 0
-            ? this.teamAMaxCombatPoint
-            : this.teamBMaxCombatPoint;
+            ? this.teamAInitialCombatPoint
+            : this.teamBInitialCombatPoint;
     }
 
     public getEntry(
@@ -134,5 +131,24 @@ export class BattleUnitDatabase extends Component {
         }
 
         return null;
+    }
+
+    public calculateKillRewardFromBounty(
+        bountyValue: number,
+        isCounterKill: boolean
+    ) {
+        const baseValue = Math.max(0, bountyValue);
+
+        let reward =
+            baseValue *
+            Math.max(0, this.killRewardCostWeight);
+
+        if (isCounterKill) {
+            reward +=
+                baseValue *
+                Math.max(0, this.counterKillRewardCostWeight);
+        }
+
+        return reward;
     }
 }
