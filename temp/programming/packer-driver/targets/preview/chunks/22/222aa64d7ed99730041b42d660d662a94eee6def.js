@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _crd, ccclass, property, ArmyBrainMode, ArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, unitTypeToName, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _crd, ccclass, property, ArmyBrainMode, ArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -29,6 +29,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
     _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfunitTypeToName(extras) {
+    _reporterNs.report("unitTypeToName", "./BattleTypes", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -42,6 +46,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       GameManager = _unresolved_2.GameManager;
     }, function (_unresolved_3) {
       CounterSettings = _unresolved_3.CounterSettings;
+    }, function (_unresolved_4) {
+      unitTypeToName = _unresolved_4.unitTypeToName;
     }],
     execute: function () {
       _crd = true;
@@ -95,19 +101,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "attackCounterCoverageRatio", _descriptor14, this);
 
-          _initializerDefineProperty(this, "sensitive", _descriptor15, this);
+          _initializerDefineProperty(this, "aiIntelligence", _descriptor15, this);
 
-          _initializerDefineProperty(this, "minSensitive", _descriptor16, this);
+          _initializerDefineProperty(this, "spawnRandomIfNoThreat", _descriptor16, this);
 
-          _initializerDefineProperty(this, "maxSensitive", _descriptor17, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor17, this);
 
-          _initializerDefineProperty(this, "spawnRandomIfNoThreat", _descriptor18, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor18, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor19, this);
-
-          _initializerDefineProperty(this, "enableStateLog", _descriptor20, this);
-
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor21, this);
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor19, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -156,8 +158,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           var enemyTeam = this.team === 0 ? 1 : 0;
           var enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
-          this.resolveMode();
-          this.stateLog("MODE=" + this.currentModeName + ", myWaves=" + this.getAliveWaveCount(this.team) + ", enemyWaves=" + this.getAliveWaveCount(enemyTeam) + ", maxWaves=" + this.maxAliveWaves);
+          this.resolveMode(enemyWaves.length);
+          this.stateLog("MODE=" + this.currentModeName + ", myWaves=" + this.getAliveWaveCount(this.team) + ", enemyWaves=" + enemyWaves.length + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", AI=" + this.getAIIntelligence().toFixed(2));
 
           if (enemyWaves.length <= 0) {
             if (this.spawnOpeningWaveIfNoEnemyWave) {
@@ -183,18 +185,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           var selectedEntry = this.chooseEntryAgainstWave(validEntries, targetWave);
-          if (!selectedEntry) return;
+
+          if (!selectedEntry) {
+            this.debugLog('No affordable entry. Skip spawn.');
+            return;
+          }
+
+          var selectedCounterScore = this.getCounterScore(selectedEntry.unitType, targetWave.unitType);
+          var isRealCounter = this.isRealCounterScore(selectedCounterScore);
+          this.debugLog("Decision: targetWave=" + targetWave.id + ", target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+            error: Error()
+          }), unitTypeToName) : unitTypeToName)(targetWave.unitType) + ", selected=" + selectedEntry.name + "/" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+            error: Error()
+          }), unitTypeToName) : unitTypeToName)(selectedEntry.unitType) + ", score=" + selectedCounterScore.toFixed(2) + ", isCounter=" + isRealCounter + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", cost=" + selectedEntry.combatPointCost + ", coverage=" + targetWave.getCounterCoverageRatio().toFixed(2) + ", engaged=" + targetWave.hasEngaged());
           var spawned = this.gameManager.spawnWaveByEntry(this.team, selectedEntry);
 
           if (spawned) {
-            targetWave.addCounterAssignment(selectedEntry.unitCount);
-            this.debugLog("Spawn " + selectedEntry.name + " counter target wave=" + targetWave.id);
+            if (isRealCounter) {
+              targetWave.addCounterAssignment(selectedEntry.unitCount);
+              this.debugLog("Counter assignment added: wave=" + targetWave.id + ", +" + selectedEntry.unitCount + ", coverage=" + targetWave.getCounterCoverageRatio().toFixed(2));
+            } else {
+              this.debugLog("Spawned fallback/non-counter unit. No counter assignment added for wave=" + targetWave.id);
+            }
           }
         }
 
-        resolveMode() {
+        resolveMode(enemyAliveWaveCount) {
           var myWaves = this.getAliveWaveCount(this.team);
-          var shouldDefense = myWaves <= Math.max(0, Math.floor(this.defenseWaveThreshold));
+          var threshold = Math.max(0, Math.floor(this.defenseWaveThreshold));
+          var shouldDefense = myWaves <= threshold && enemyAliveWaveCount > myWaves;
 
           if (shouldDefense) {
             var _roll = Math.random();
@@ -286,6 +305,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (!this.isAliveThreatWave(wave)) return false;
 
           if (wave.isCounterCovered(this.attackCounterCoverageRatio)) {
+            this.debugLog("Skip attack target wave=" + wave.id + ": coverage=" + wave.getCounterCoverageRatio().toFixed(2) + " >= " + this.attackCounterCoverageRatio);
             return false;
           }
 
@@ -293,11 +313,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         isValidDefenseThreatWave(wave) {
-          if (!this.isAliveThreatWave(wave)) return false; //
-          // Defense Mode:
-          // Bỏ qua attackCounterCoverageRatio.
-          // Nếu mối nguy gần nhà nhất vẫn còn sống, cứ cho phép reinforce.
-          //
+          if (!this.isAliveThreatWave(wave)) return false;
+          var engaged = wave.hasEngaged();
+          var covered = wave.isCounterCovered(this.attackCounterCoverageRatio);
+
+          if (!engaged && covered) {
+            this.debugLog("Skip defense target wave=" + wave.id + ": not engaged and coverage=" + wave.getCounterCoverageRatio().toFixed(2) + " >= " + this.attackCounterCoverageRatio);
+            return false;
+          }
 
           return true;
         }
@@ -312,6 +335,97 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return true;
+        }
+
+        chooseEntryAgainstWave(entries, targetWave) {
+          var affordableEntries = this.getAffordableEntries(entries);
+
+          if (affordableEntries.length <= 0) {
+            return null;
+          }
+
+          var intelligence = this.getAIIntelligence();
+
+          if (Math.random() > intelligence) {
+            return this.getRandomAffordableEntry(entries);
+          }
+
+          var bestScore = -Infinity;
+          var bestEntries = [];
+
+          for (var i = 0; i < affordableEntries.length; i++) {
+            var entry = affordableEntries[i];
+            if (!this.isValidEntry(entry)) continue;
+            var score = this.getCounterScore(entry.unitType, targetWave.unitType);
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestEntries.length = 0;
+              bestEntries.push(entry);
+            } else if (Math.abs(score - bestScore) < 0.0001) {
+              bestEntries.push(entry);
+            }
+          }
+
+          if (bestEntries.length > 0) {
+            var index = Math.floor(Math.random() * bestEntries.length);
+            return bestEntries[index];
+          }
+
+          return this.getCheapestAffordableEntry(entries);
+        }
+
+        getAffordableEntries(entries) {
+          var result = [];
+          if (!this.gameManager) return result;
+
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!this.isValidEntry(entry)) continue;
+
+            if (!this.gameManager.canAffordEntry(this.team, entry)) {
+              continue;
+            }
+
+            result.push(entry);
+          }
+
+          return result;
+        }
+
+        getRandomAffordableEntry(entries) {
+          var affordable = this.getAffordableEntries(entries);
+
+          if (affordable.length <= 0) {
+            return null;
+          }
+
+          var index = Math.floor(Math.random() * affordable.length);
+          return affordable[index];
+        }
+
+        getCheapestAffordableEntry(entries) {
+          if (!this.gameManager) return null;
+          var best = null;
+          var bestCost = Infinity;
+
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!this.isValidEntry(entry)) continue;
+
+            if (!this.gameManager.canAffordEntry(this.team, entry)) {
+              continue;
+            }
+
+            var cost = Math.max(0, entry.combatPointCost);
+
+            if (cost < bestCost) {
+              bestCost = cost;
+              best = entry;
+            }
+          }
+
+          return best;
         }
 
         canSpawnMoreWave() {
@@ -342,7 +456,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         spawnOpeningWave(validEntries) {
           if (!this.gameManager) return;
           if (!this.canSpawnMoreWave()) return;
-          var opening = this.getRandomEntry(validEntries);
+          var opening = this.getRandomAffordableEntry(validEntries);
           if (!opening) return;
           this.gameManager.spawnWaveByEntry(this.team, opening);
         }
@@ -350,42 +464,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         spawnRandom(validEntries, reason) {
           if (!this.gameManager) return;
           if (!this.canSpawnMoreWave()) return;
-          var randomEntry = this.getRandomEntry(validEntries);
+          var randomEntry = this.getRandomAffordableEntry(validEntries);
           if (!randomEntry) return;
           this.debugLog(reason + ". Random spawn: " + randomEntry.name);
           this.gameManager.spawnWaveByEntry(this.team, randomEntry);
-        }
-
-        chooseEntryAgainstWave(entries, targetWave) {
-          var accuracy = this.getAccuracy();
-
-          if (Math.random() > accuracy) {
-            return this.getRandomEntry(entries);
-          }
-
-          var bestScore = -Infinity;
-          var bestEntries = [];
-
-          for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            if (!this.isValidEntry(entry)) continue;
-            var score = this.getCounterScore(entry.unitType, targetWave.unitType);
-
-            if (score > bestScore) {
-              bestScore = score;
-              bestEntries.length = 0;
-              bestEntries.push(entry);
-            } else if (Math.abs(score - bestScore) < 0.0001) {
-              bestEntries.push(entry);
-            }
-          }
-
-          if (bestEntries.length <= 0) {
-            return this.getRandomEntry(entries);
-          }
-
-          var index = Math.floor(Math.random() * bestEntries.length);
-          return bestEntries[index];
         }
 
         getCounterScore(attackerType, defenderType) {
@@ -398,6 +480,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return counter.getCounterScore(attackerType, defenderType);
+        }
+
+        isRealCounterScore(score) {
+          return score > 1.0001;
         }
 
         getDefendPoint() {
@@ -423,10 +509,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           };
         }
 
-        getAccuracy() {
-          var min = Math.min(this.minSensitive, this.maxSensitive);
-          var max = Math.max(this.minSensitive, this.maxSensitive);
-          return this.clamp(this.sensitive, min, max);
+        getAIIntelligence() {
+          return this.clamp(this.aiIntelligence, 0, 1);
         }
 
         randomizeNextInterval() {
@@ -445,17 +529,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return valid;
-        }
-
-        getRandomEntry(entries) {
-          var valid = this.getValidEntries(entries);
-
-          if (valid.length <= 0) {
-            return null;
-          }
-
-          var index = Math.floor(Math.random() * valid.length);
-          return valid[index];
         }
 
         isValidEntry(entry) {
@@ -578,49 +651,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 1.0;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "sensitive", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "aiIntelligence", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.0;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "minSensitive", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.0;
-        }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "maxSensitive", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.0;
-        }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "spawnRandomIfNoThreat", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "spawnRandomIfNoThreat", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

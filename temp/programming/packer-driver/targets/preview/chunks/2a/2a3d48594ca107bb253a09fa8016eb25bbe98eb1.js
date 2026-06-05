@@ -193,7 +193,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.killCount = [0, 0];
           this.counterKillCount = [0, 0];
           this.combatPoint = [0, 0];
-          this.maxCombatPoint = [0, 0];
+          this.initialCombatPoint = [0, 0];
 
           _initializerDefineProperty(this, "enableAutoSpawn", _descriptor23, this);
 
@@ -304,12 +304,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         resetCombatPoint() {
-          var aMax = this.unitDatabase ? this.unitDatabase.getMaxCombatPoint(0) : 0;
-          var bMax = this.unitDatabase ? this.unitDatabase.getMaxCombatPoint(1) : 0;
-          this.maxCombatPoint[0] = Math.max(0, aMax);
-          this.maxCombatPoint[1] = Math.max(0, bMax);
-          this.combatPoint[0] = this.maxCombatPoint[0];
-          this.combatPoint[1] = this.maxCombatPoint[1];
+          var aInitial = this.unitDatabase ? this.unitDatabase.getInitialCombatPoint(0) : 0;
+          var bInitial = this.unitDatabase ? this.unitDatabase.getInitialCombatPoint(1) : 0;
+          this.initialCombatPoint[0] = Math.max(0, aInitial);
+          this.initialCombatPoint[1] = Math.max(0, bInitial);
+          this.combatPoint[0] = this.initialCombatPoint[0];
+          this.combatPoint[1] = this.initialCombatPoint[1];
         }
 
         createSimulator() {
@@ -373,46 +373,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.counterKillCount[killerTeam]++;
           }
 
-          this.addCombatPointFromKill(killer, isCounterKill);
+          this.addCombatPointFromVictim(killerTeam, victim, isCounterKill);
           this.refreshBattleStatsUI();
         }
 
-        addCombatPointFromKill(killer, isCounterKill) {
+        addCombatPointFromVictim(killerTeam, victim, isCounterKill) {
           if (!this.isCombatPointEnabled()) return;
-          var team = killer.team;
-          var entry = this.getRuntimeRewardEntry(killer, team);
-          if (!entry) return;
-          var reward = Math.max(0, entry.killReward);
-
-          if (isCounterKill) {
-            reward += Math.max(0, entry.counterKillReward);
-          }
-
-          this.addCombatPoint(team, reward);
+          if (!this.unitDatabase) return;
+          var bountyValue = this.getVictimBountyValue(victim);
+          if (bountyValue <= 0) return;
+          var reward = this.unitDatabase.calculateKillRewardFromBounty(bountyValue, isCounterKill);
+          this.addCombatPoint(killerTeam, reward);
         }
 
-        getRuntimeRewardEntry(unit, team) {
-          if (unit.isHero) {
-            var heroEntry = this.getHeroEntry(team);
-            if (!heroEntry) return null;
-            return {
-              killReward: heroEntry.killReward,
-              counterKillReward: heroEntry.counterKillReward
-            };
+        getVictimBountyValue(victim) {
+          var victimTeam = victim.team;
+
+          if (victim.isHero) {
+            var heroEntry = this.getHeroEntry(victimTeam);
+            if (!heroEntry) return 0;
+            return Math.max(0, heroEntry.combatPointBountyValue);
           }
 
-          var entry = this.getTeamEntry(team, unit.unitTypeName);
-          if (!entry) return null;
-          return {
-            killReward: entry.killReward,
-            counterKillReward: entry.counterKillReward
-          };
+          var entry = this.getTeamEntry(victimTeam, victim.unitTypeName);
+          if (!entry) return 0;
+          return Math.max(0, entry.combatPointCost);
         }
 
         addCombatPoint(team, amount) {
           if (team !== 0 && team !== 1) return;
           if (amount <= 0) return;
-          this.combatPoint[team] = Math.min(this.maxCombatPoint[team], this.combatPoint[team] + amount);
+          this.combatPoint[team] += amount;
         }
 
         spendCombatPoint(team, amount) {
@@ -438,9 +429,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.combatPoint[team];
         }
 
-        getMaxCombatPoint(team) {
+        getInitialCombatPoint(team) {
           if (team !== 0 && team !== 1) return 0;
-          return this.maxCombatPoint[team];
+          return this.initialCombatPoint[team];
         }
 
         isCombatPointEnabled() {
@@ -1020,11 +1011,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (this.teamACombatPointLabel) {
-            this.teamACombatPointLabel.string = 'A CP: ' + Math.floor(this.combatPoint[0]) + '/' + Math.floor(this.maxCombatPoint[0]);
+            this.teamACombatPointLabel.string = 'A CP: ' + Math.floor(this.combatPoint[0]);
           }
 
           if (this.teamBCombatPointLabel) {
-            this.teamBCombatPointLabel.string = 'B CP: ' + Math.floor(this.combatPoint[1]) + '/' + Math.floor(this.maxCombatPoint[1]);
+            this.teamBCombatPointLabel.string = 'B CP: ' + Math.floor(this.combatPoint[1]);
           }
         }
 

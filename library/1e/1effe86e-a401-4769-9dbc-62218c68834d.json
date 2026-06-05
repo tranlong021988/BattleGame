@@ -1717,8 +1717,8 @@
     "enableCombatPoint": true,
     "teamAInitialCombatPoint": 100,
     "teamBInitialCombatPoint": 100,
-    "killRewardCostWeight": 0.01,
-    "counterKillRewardCostWeight": 0.15,
+    "killRewardCostWeight": 0.05,
+    "counterKillRewardCostWeight": 0.1,
     "teamAHero": {
       "__id__": 49
     },
@@ -3380,7 +3380,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 0,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
     "health": 100,
@@ -3396,7 +3396,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 2,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 4.5,
     "health": 120,
@@ -3412,7 +3412,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 4,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 4.5,
     "health": 85,
@@ -3428,7 +3428,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 6,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
     "health": 70,
@@ -3444,7 +3444,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 8,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 7,
     "health": 90,
@@ -3460,7 +3460,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 0,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
     "health": 100,
@@ -3476,7 +3476,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 2,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 4.5,
     "health": 120,
@@ -3492,7 +3492,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 4,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 4.5,
     "health": 85,
@@ -3508,7 +3508,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 6,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
     "health": 70,
@@ -3524,7 +3524,7 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 8,
-    "unitCount": 10,
+    "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 7,
     "health": 90,
@@ -5311,8 +5311,8 @@
     },
     "team": 1,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
-    "minSpawnInterval": 4.5,
-    "maxSpawnInterval": 5,
+    "minSpawnInterval": 3,
+    "maxSpawnInterval": 4,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
@@ -5389,8 +5389,8 @@
     },
     "team": 0,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
-    "minSpawnInterval": 4.5,
-    "maxSpawnInterval": 5,
+    "minSpawnInterval": 3,
+    "maxSpawnInterval": 4,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
