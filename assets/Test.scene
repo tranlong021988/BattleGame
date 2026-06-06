@@ -1082,9 +1082,9 @@
     },
     "_lscale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
-      "z": 1
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.5
     },
     "_mobility": 0,
     "_layer": 33554432,
@@ -3383,9 +3383,9 @@
     "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
-    "health": 100,
-    "damage": 15,
-    "defense": 5,
+    "health": 110,
+    "damage": 10,
+    "defense": 2,
     "combatPointCost": 10
   },
   {
@@ -3398,10 +3398,10 @@
     "unitType": 2,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4.5,
-    "health": 120,
-    "damage": 13.5,
-    "defense": 7,
+    "maxSpeed": 5.2,
+    "health": 95,
+    "damage": 9,
+    "defense": 1,
     "combatPointCost": 10
   },
   {
@@ -3414,10 +3414,10 @@
     "unitType": 4,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4.5,
-    "health": 85,
-    "damage": 19.5,
-    "defense": 3,
+    "maxSpeed": 4,
+    "health": 130,
+    "damage": 11,
+    "defense": 0,
     "combatPointCost": 13
   },
   {
@@ -3430,10 +3430,10 @@
     "unitType": 6,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 5,
-    "health": 70,
-    "damage": 15,
-    "defense": 2,
+    "maxSpeed": 4.5,
+    "health": 75,
+    "damage": 8,
+    "defense": 0,
     "combatPointCost": 11
   },
   {
@@ -3447,9 +3447,9 @@
     "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 7,
-    "health": 90,
-    "damage": 18,
-    "defense": 3,
+    "health": 120,
+    "damage": 12,
+    "defense": 1,
     "combatPointCost": 12
   },
   {
@@ -3463,9 +3463,9 @@
     "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 5,
-    "health": 100,
-    "damage": 15,
-    "defense": 5,
+    "health": 110,
+    "damage": 10,
+    "defense": 2,
     "combatPointCost": 10
   },
   {
@@ -3478,10 +3478,10 @@
     "unitType": 2,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4.5,
-    "health": 120,
-    "damage": 13.5,
-    "defense": 7,
+    "maxSpeed": 5.2,
+    "health": 95,
+    "damage": 9,
+    "defense": 1,
     "combatPointCost": 10
   },
   {
@@ -3494,10 +3494,10 @@
     "unitType": 4,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 4.5,
-    "health": 85,
-    "damage": 19.5,
-    "defense": 3,
+    "maxSpeed": 4,
+    "health": 130,
+    "damage": 11,
+    "defense": 0,
     "combatPointCost": 13
   },
   {
@@ -3510,10 +3510,10 @@
     "unitType": 6,
     "unitCount": 8,
     "prewarmCount": 20,
-    "maxSpeed": 5,
-    "health": 70,
-    "damage": 15,
-    "defense": 2,
+    "maxSpeed": 4.5,
+    "health": 75,
+    "damage": 8,
+    "defense": 0,
     "combatPointCost": 11
   },
   {
@@ -3527,9 +3527,9 @@
     "unitCount": 8,
     "prewarmCount": 20,
     "maxSpeed": 7,
-    "health": 90,
-    "damage": 18,
-    "defense": 3,
+    "health": 120,
+    "damage": 12,
+    "defense": 1,
     "combatPointCost": 12
   },
   {
