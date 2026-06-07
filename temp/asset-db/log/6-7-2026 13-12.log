@@ -2034,3 +2034,10 @@
 6-7-2026 17:11:57-debug: [Build Memory track]: builder:build-project-total start:234.73MB, end 246.23MB, increase: 11.50MB
 6-7-2026 17:11:57-debug: ================================ build Task (web-mobile) Finished in (14 s)ms ================================
 6-7-2026 17:11:57-debug: Stop record console. {file(F:\Github\BattleGame\temp\builder\log\web-mobile5-14-2026 23-41.log)}
+6-7-2026 17:22:38-debug: refresh db internal success
+6-7-2026 17:22:38-debug: Run asset db hook engine-extends:afterRefresh ...
+6-7-2026 17:22:38-debug: Run asset db hook engine-extends:afterRefresh success!
+6-7-2026 17:22:38-debug: refresh db assets success
+6-7-2026 17:22:38-debug: asset-db:refresh-all-database (90ms)
+6-7-2026 17:22:38-debug: asset-db:worker-effect-data-processing (5ms)
+6-7-2026 17:22:38-debug: asset-db-hook-engine-extends-afterRefresh (5ms)
