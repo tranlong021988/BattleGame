@@ -725,8 +725,8 @@
     },
     "visualYawOffset": 0,
     "moveSpeed": 7,
-    "radius": 0.7,
-    "attackRange": 1.7,
+    "radius": 0.5,
+    "attackRange": 1,
     "targetSearchRange": 35,
     "attackCheckIntervalFrames": 2,
     "targetSearchIntervalFrames": 6,
@@ -826,7 +826,6 @@
       "__id__": 0
     },
     "fileId": "d8mT9ldedJ6KOXr6hDv0TP",
-    "instance": null,
     "targetOverrides": [],
     "nestedPrefabInstanceRoots": [
       {

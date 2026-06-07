@@ -1069,7 +1069,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 300,
+      "x": 325,
       "y": 0,
       "z": 0
     },
@@ -1717,8 +1717,8 @@
     "enableCombatPoint": true,
     "teamAInitialCombatPoint": 1000,
     "teamBInitialCombatPoint": 1000,
-    "killRewardCostWeight": 0.05,
-    "counterKillRewardCostWeight": 0.1,
+    "killRewardCostWeight": 0.005,
+    "counterKillRewardCostWeight": 0.01,
     "teamAHero": {
       "__id__": 49
     },
@@ -1887,10 +1887,10 @@
     },
     "unitType": 0,
     "maxSpeed": 5,
-    "health": 500,
+    "health": 30,
     "damage": 50,
-    "defense": 10,
-    "combatPointBountyValue": 0
+    "defense": 1,
+    "combatPointBountyValue": 1
   },
   {
     "__type__": "cc.Node",
@@ -2425,7 +2425,7 @@
     "node": {
       "__id__": 79
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": null,
     "_materials": [
       {
@@ -2562,7 +2562,7 @@
     },
     "visualYawOffset": 0,
     "moveSpeed": 7,
-    "radius": 0.7,
+    "radius": 0.5,
     "attackRange": 1.7,
     "targetSearchRange": 35,
     "attackCheckIntervalFrames": 2,
@@ -2571,7 +2571,7 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
-    "onForward": false,
+    "onForward": true,
     "isSteady": true,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -2612,7 +2612,7 @@
     "unitType": 0,
     "maxHealth": 50,
     "damage": 20,
-    "defense": 10,
+    "defense": 1,
     "healthBar": {
       "__id__": 82
     },
@@ -2640,10 +2640,10 @@
     },
     "unitType": 0,
     "maxSpeed": 5,
-    "health": 500,
+    "health": 30,
     "damage": 50,
-    "defense": 10,
-    "combatPointBountyValue": 0
+    "defense": 1,
+    "combatPointBountyValue": 1
   },
   {
     "__type__": "cc.Node",
@@ -3298,11 +3298,11 @@
     "_enabled": true,
     "__prefab": null,
     "visualRoot": {
-      "__id__": 54
+      "__id__": 94
     },
     "visualYawOffset": 0,
     "moveSpeed": 7,
-    "radius": 0.7,
+    "radius": 0.5,
     "attackRange": 1.7,
     "targetSearchRange": 35,
     "attackCheckIntervalFrames": 2,
@@ -3311,7 +3311,7 @@
     "moveThreshold": 0.2,
     "velThreshold": 0.05,
     "visualThreshold": 0.03,
-    "onForward": false,
+    "onForward": true,
     "isSteady": true,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -3352,7 +3352,7 @@
     "unitType": 0,
     "maxHealth": 50,
     "damage": 20,
-    "defense": 10,
+    "defense": 1,
     "healthBar": {
       "__id__": 121
     },
@@ -5311,8 +5311,8 @@
     },
     "team": 1,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
-    "minSpawnInterval": 3,
-    "maxSpawnInterval": 4,
+    "minSpawnInterval": 2,
+    "maxSpawnInterval": 3,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveUnitLimit": true,
     "maxAliveUnits": 60,
@@ -5389,8 +5389,8 @@
     },
     "team": 0,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
-    "minSpawnInterval": 3,
-    "maxSpawnInterval": 4,
+    "minSpawnInterval": 2,
+    "maxSpawnInterval": 3,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveUnitLimit": true,
     "maxAliveUnits": 60,
