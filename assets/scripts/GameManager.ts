@@ -310,7 +310,12 @@ export class GameManager extends Component {
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
 
-        if (this.frame % this.updateInterval === 0) {
+        const rvoUpdateInterval = Math.max(
+            1,
+            Math.floor(this.updateInterval)
+        );
+
+        if (this.frame % rvoUpdateInterval === 0) {
             const safeDt = Math.min(
                 deltaTime,
                 Math.max(0.001, this.maxRvoStepDeltaTime)
@@ -319,10 +324,12 @@ export class GameManager extends Component {
             this.sim.step(safeDt);
         }
 
-        if (
-            this.frame %
-            this.spatialGridUpdateInterval === 0
-        ) {
+        const gridUpdateInterval = Math.max(
+            1,
+            Math.floor(this.spatialGridUpdateInterval)
+        );
+
+        if (this.frame % gridUpdateInterval === 0) {
             this.rebuildSpatialGrid();
         }
 
@@ -1174,11 +1181,37 @@ export class GameManager extends Component {
             EnemyFinder.teamB = this.teamB;
         }
 
+        const behavior =
+            unit.getComponent(UnitBehavior);
+
+        if (behavior) {
+            behavior.resetForDespawn();
+        }
+
+        this.removeAgentFromSimulator(unit);
+
         unit.resetForDespawn();
         unit.node.active = false;
 
         this.rebuildSpatialGrid();
         this.refreshBattleStatsUI();
+    }
+
+    private removeAgentFromSimulator(unit: Unit) {
+        if (!this.sim || !unit.agent) return;
+
+        if (typeof this.sim.removeAgent === 'function') {
+            this.sim.removeAgent(unit.agent);
+            return;
+        }
+
+        if (this.sim.agents && Array.isArray(this.sim.agents)) {
+            const idx = this.sim.agents.indexOf(unit.agent);
+
+            if (idx >= 0) {
+                this.sim.agents.splice(idx, 1);
+            }
+        }
     }
 
     private registerDatabaseHeroes() {

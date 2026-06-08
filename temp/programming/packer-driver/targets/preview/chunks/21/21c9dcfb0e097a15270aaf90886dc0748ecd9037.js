@@ -105,17 +105,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         update(deltaTime) {
           this.updateFps(deltaTime);
           this.checkTimer += deltaTime;
+          var safeCheckInterval = this.getSafeCheckInterval();
 
           if (this.pauseTimer > 0) {
             this.pauseTimer -= deltaTime;
           }
 
-          if (this.checkTimer < this.checkInterval) {
+          if (this.checkTimer < safeCheckInterval) {
             return;
           }
 
           this.checkTimer = 0;
-          this.evaluateSpawnPressure();
+          this.evaluateSpawnPressure(safeCheckInterval);
         }
 
         captureOriginalStates() {
@@ -138,7 +139,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.smoothedFps = this.smoothedFps + (instantFps - this.smoothedFps) * t;
         }
 
-        evaluateSpawnPressure() {
+        evaluateSpawnPressure(checkDeltaTime) {
           var aliveUnits = this.getAliveUnitCount();
           var aliveWaves = this.getAliveWaveCount();
           var shouldPause = false;
@@ -146,7 +147,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (this.enableFpsGate) {
             if (this.smoothedFps < this.minFpsToSpawn) {
-              this.lowFpsTimer += this.checkInterval;
+              this.lowFpsTimer += checkDeltaTime;
             } else {
               this.lowFpsTimer = 0;
             }
@@ -186,6 +187,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.updateDebugLabel(aliveUnits, aliveWaves);
+        }
+
+        getSafeCheckInterval() {
+          return Math.max(0.016, this.checkInterval);
         }
 
         setPaused(value, reason) {

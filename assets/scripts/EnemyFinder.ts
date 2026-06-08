@@ -46,7 +46,12 @@ export class EnemyFinder extends Component {
 
         this.frame++;
 
-        if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {
+        const safeUpdateInterval = Math.max(
+            1,
+            Math.floor(this.updateInterval)
+        );
+
+        if ((this.frame + this.updateOffset) % safeUpdateInterval !== 0) {
             return;
         }
 

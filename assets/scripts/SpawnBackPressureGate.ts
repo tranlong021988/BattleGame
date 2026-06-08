@@ -88,18 +88,19 @@ export class SpawnBackPressureGate extends Component {
         this.updateFps(deltaTime);
 
         this.checkTimer += deltaTime;
+        const safeCheckInterval = this.getSafeCheckInterval();
 
         if (this.pauseTimer > 0) {
             this.pauseTimer -= deltaTime;
         }
 
-        if (this.checkTimer < this.checkInterval) {
+        if (this.checkTimer < safeCheckInterval) {
             return;
         }
 
         this.checkTimer = 0;
 
-        this.evaluateSpawnPressure();
+        this.evaluateSpawnPressure(safeCheckInterval);
     }
 
     private captureOriginalStates() {
@@ -130,7 +131,7 @@ export class SpawnBackPressureGate extends Component {
             (instantFps - this.smoothedFps) * t;
     }
 
-    private evaluateSpawnPressure() {
+    private evaluateSpawnPressure(checkDeltaTime: number) {
         const aliveUnits = this.getAliveUnitCount();
         const aliveWaves = this.getAliveWaveCount();
 
@@ -139,7 +140,7 @@ export class SpawnBackPressureGate extends Component {
 
         if (this.enableFpsGate) {
             if (this.smoothedFps < this.minFpsToSpawn) {
-                this.lowFpsTimer += this.checkInterval;
+                this.lowFpsTimer += checkDeltaTime;
             } else {
                 this.lowFpsTimer = 0;
             }
@@ -206,6 +207,13 @@ export class SpawnBackPressureGate extends Component {
         }
 
         this.updateDebugLabel(aliveUnits, aliveWaves);
+    }
+
+    private getSafeCheckInterval() {
+        return Math.max(
+            0.016,
+            this.checkInterval
+        );
     }
 
     private setPaused(value: boolean, reason: string) {

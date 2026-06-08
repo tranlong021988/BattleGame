@@ -333,13 +333,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           (_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit).visualLerpT = 1 - Math.exp(-this.visualSmooth * deltaTime);
+          var rvoUpdateInterval = Math.max(1, Math.floor(this.updateInterval));
 
-          if (this.frame % this.updateInterval === 0) {
+          if (this.frame % rvoUpdateInterval === 0) {
             var safeDt = Math.min(deltaTime, Math.max(0.001, this.maxRvoStepDeltaTime));
             this.sim.step(safeDt);
           }
 
-          if (this.frame % this.spatialGridUpdateInterval === 0) {
+          var gridUpdateInterval = Math.max(1, Math.floor(this.spatialGridUpdateInterval));
+
+          if (this.frame % gridUpdateInterval === 0) {
             this.rebuildSpatialGrid();
           }
 
@@ -888,10 +891,36 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }), EnemyFinder) : EnemyFinder).teamB = this.teamB;
           }
 
+          var behavior = unit.getComponent(_crd && UnitBehavior === void 0 ? (_reportPossibleCrUseOfUnitBehavior({
+            error: Error()
+          }), UnitBehavior) : UnitBehavior);
+
+          if (behavior) {
+            behavior.resetForDespawn();
+          }
+
+          this.removeAgentFromSimulator(unit);
           unit.resetForDespawn();
           unit.node.active = false;
           this.rebuildSpatialGrid();
           this.refreshBattleStatsUI();
+        }
+
+        removeAgentFromSimulator(unit) {
+          if (!this.sim || !unit.agent) return;
+
+          if (typeof this.sim.removeAgent === 'function') {
+            this.sim.removeAgent(unit.agent);
+            return;
+          }
+
+          if (this.sim.agents && Array.isArray(this.sim.agents)) {
+            var idx = this.sim.agents.indexOf(unit.agent);
+
+            if (idx >= 0) {
+              this.sim.agents.splice(idx, 1);
+            }
+          }
         }
 
         registerDatabaseHeroes() {
