@@ -15,19 +15,22 @@ export class BattleWave {
     units: Unit[] = [];
 
     assignedCounterCount = 0;
+    laneId = -1;
 
     constructor(
         id: number,
         team: number,
         unitName: string,
         unitType: UnitType,
-        totalCount: number
+        totalCount: number,
+        laneId: number = -1
     ) {
         this.id = id;
         this.team = team;
         this.unitName = unitName;
         this.unitType = unitType;
         this.totalCount = totalCount;
+        this.laneId = laneId;
     }
 
     addUnit(unit: Unit) {

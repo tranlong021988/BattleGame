@@ -76,8 +76,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (this.unit.onForward) return;
           this.frame++;
+          const safeUpdateInterval = Math.max(1, Math.floor(this.updateInterval));
 
-          if ((this.frame + this.updateOffset) % this.updateInterval !== 0) {
+          if ((this.frame + this.updateOffset) % safeUpdateInterval !== 0) {
             return;
           }
 

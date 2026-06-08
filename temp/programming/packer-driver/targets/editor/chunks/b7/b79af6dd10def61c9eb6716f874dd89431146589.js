@@ -98,6 +98,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.team = 0;
           this.unitTypeName = '';
           this.isHero = false;
+          this.laneId = -1;
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -145,6 +146,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.frameCounter = this.updateOffset;
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+
+          if (this.laneId < 0) {
+            this.laneId = -1;
+          }
+
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
           this.applyRuntimeAgentData();
@@ -239,6 +245,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.onForward = true;
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.laneId = -1;
 
           if (this.agent) {
             this.agent.locked = false;
@@ -264,6 +271,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.onBusy = false;
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.laneId = -1;
 
           if (this.agent) {
             this.agent.vel.x = 0;
@@ -394,37 +402,133 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         updateForwardPhase() {
-          if (!this.agent) return;
-          const nearestEnemy = this.getNearestEnemyThrottled();
-          if (!nearestEnemy || !nearestEnemy.agent) return;
+          if (!this.agent) return; // Rule ưu tiên:
+          // 1. Nếu lane hiện tại có địch, cứ forward cho tới khi vượt qua Z/X của địch cùng lane gần nhất.
+          // 2. Nếu lane hiện tại trống, KHÔNG cắt chéo ngay. Tiếp tục forward để tạo pha thọc sườn.
+          // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
+          // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
+
+          const nearestLaneEnemy = this.findNearestEnemyInSameLane();
+
+          if (nearestLaneEnemy && nearestLaneEnemy.agent) {
+            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
+              this.onForward = false;
+            }
+
+            return;
+          }
+
+          const nearestAdjacentLaneEnemy = this.findNearestEnemyInAdjacentLane();
+
+          if (nearestAdjacentLaneEnemy && nearestAdjacentLaneEnemy.agent && this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)) {
+            this.onForward = false;
+            return;
+          }
+
+          const enemyHero = this.getEnemyHero();
+
+          if (enemyHero && enemyHero.agent && this.hasPassedTargetAlongForward(enemyHero)) {
+            this.onForward = false;
+            return;
+          }
+        }
+
+        hasPassedTargetAlongForward(target) {
+          if (!this.agent || !target || !target.agent) return false;
 
           if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
             const myZ = this.agent.pos.z;
-            const enemyZ = nearestEnemy.agent.pos.z;
+            const targetZ = target.agent.pos.z;
 
-            if (this.forwardDir.z > 0 && myZ >= enemyZ) {
-              this.onForward = false;
-              return;
+            if (this.forwardDir.z > 0 && myZ >= targetZ) {
+              return true;
             }
 
-            if (this.forwardDir.z < 0 && myZ <= enemyZ) {
-              this.onForward = false;
-              return;
-            }
-          } else {
-            const myX = this.agent.pos.x;
-            const enemyX = nearestEnemy.agent.pos.x;
-
-            if (this.forwardDir.x > 0 && myX >= enemyX) {
-              this.onForward = false;
-              return;
+            if (this.forwardDir.z < 0 && myZ <= targetZ) {
+              return true;
             }
 
-            if (this.forwardDir.x < 0 && myX <= enemyX) {
-              this.onForward = false;
-              return;
+            return false;
+          }
+
+          const myX = this.agent.pos.x;
+          const targetX = target.agent.pos.x;
+
+          if (this.forwardDir.x > 0 && myX >= targetX) {
+            return true;
+          }
+
+          if (this.forwardDir.x < 0 && myX <= targetX) {
+            return true;
+          }
+
+          return false;
+        }
+
+        findNearestEnemyInSameLane() {
+          if (!this.agent) return null;
+          if (this.laneId < 0) return this.getNearestEnemyThrottled();
+          const enemies = this.getEnemyList();
+          let best = null;
+          let bestDistSq = Infinity;
+          const maxRangeSq = this.targetSearchRange * this.targetSearchRange;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!this.isValidEnemy(e)) continue;
+            if (e.laneId !== this.laneId) continue;
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+            if (d > maxRangeSq) continue;
+
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              best = e;
             }
           }
+
+          return best;
+        }
+
+        findNearestEnemyInAdjacentLane() {
+          if (!this.agent) return null;
+          if (this.laneId < 0) return null;
+          const enemies = this.getEnemyList();
+          let best = null;
+          let bestDistSq = Infinity;
+          const maxRangeSq = this.targetSearchRange * this.targetSearchRange;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!this.isValidEnemy(e)) continue;
+            if (!this.isAdjacentLane(e.laneId)) continue;
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+            if (d > maxRangeSq) continue;
+
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              best = e;
+            }
+          }
+
+          return best;
+        }
+
+        isAdjacentLane(otherLaneId) {
+          if (this.laneId < 0) return false;
+          if (otherLaneId < 0) return false;
+          return Math.abs(otherLaneId - this.laneId) === 1;
+        }
+
+        getEnemyHero() {
+          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm) return null;
+          return this.team === 0 ? gm.teamBHero : gm.teamAHero;
         }
 
         clearInvalidEnemy() {

@@ -27,7 +27,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       _cclegacy._RF.push({}, "2d08duCH6RMR4qPFCZCa+i3", "BattleWave", undefined);
 
       _export("BattleWave", BattleWave = class BattleWave {
-        constructor(id, team, unitName, unitType, totalCount) {
+        constructor(id, team, unitName, unitType, totalCount, laneId = -1) {
           this.id = 0;
           this.team = 0;
           this.unitName = '';
@@ -37,11 +37,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.totalCount = 0;
           this.units = [];
           this.assignedCounterCount = 0;
+          this.laneId = -1;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
           this.unitType = unitType;
           this.totalCount = totalCount;
+          this.laneId = laneId;
         }
 
         addUnit(unit) {

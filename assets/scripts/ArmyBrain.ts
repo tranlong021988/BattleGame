@@ -33,10 +33,10 @@ export class ArmyBrain extends Component {
     maxBrainDeltaTime = 0.1;
 
     @property
-    enableMaxAliveUnitLimit = true;
+    enableMaxAliveWaveLimit = true;
 
     @property
-    maxAliveUnits = 70;
+    maxAliveWaves = 7;
 
     @property
     defenseWaveThreshold = 2;
@@ -55,6 +55,9 @@ export class ArmyBrain extends Component {
 
     @property
     attackCounterCoverageRatio = 1.0;
+
+    @property
+    counterSameLaneChance = 0.75;
 
     @property
     aiIntelligence = 1.0;
@@ -111,9 +114,9 @@ export class ArmyBrain extends Component {
     private thinkAndSpawn() {
         if (!this.gameManager) return;
 
-        if (!this.canSpawnMoreUnit()) {
+        if (!this.canSpawnMoreWave()) {
             this.debugLog(
-                `Skip spawn: aliveUnits=${this.getAliveUnitCount(this.team)} >= maxAliveUnits=${this.maxAliveUnits}`
+                `Skip spawn: aliveWaves=${this.getAliveWaveCount(this.team)} >= maxAliveWaves=${this.maxAliveWaves}`
             );
             return;
         }
@@ -132,7 +135,7 @@ export class ArmyBrain extends Component {
         this.resolveMode(enemyWaves.length);
 
         this.stateLog(
-            `MODE=${this.currentModeName}, myWaves=${this.getAliveWaveCount(this.team)}, myUnits=${this.getAliveUnitCount(this.team)}, enemyWaves=${enemyWaves.length}, enemyUnits=${this.getAliveUnitCount(enemyTeam)}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, AI=${this.getAIIntelligence().toFixed(2)}`
+            `MODE=${this.currentModeName}, myWaves=${this.getAliveWaveCount(this.team)}, enemyWaves=${enemyWaves.length}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, AI=${this.getAIIntelligence().toFixed(2)}`
         );
 
         if (enemyWaves.length <= 0) {
@@ -164,7 +167,7 @@ export class ArmyBrain extends Component {
         );
 
         if (!selectedEntry) {
-            this.debugLog('No affordable/spawnable entry. Skip spawn.');
+            this.debugLog('No affordable entry. Skip spawn.');
             return;
         }
 
@@ -177,12 +180,21 @@ export class ArmyBrain extends Component {
             this.isRealCounterScore(selectedCounterScore);
 
         this.debugLog(
-            `Decision: targetWave=${targetWave.id}, target=${unitTypeToName(targetWave.unitType)}, selected=${selectedEntry.name}/${unitTypeToName(selectedEntry.unitType)}, score=${selectedCounterScore.toFixed(2)}, isCounter=${isRealCounter}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, cost=${selectedEntry.combatPointCost}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}, engaged=${targetWave.hasEngaged()}`
+            `Decision: targetWave=${targetWave.id}, target=${unitTypeToName(targetWave.unitType)}, selected=${selectedEntry.name}/${unitTypeToName(selectedEntry.unitType)}, score=${selectedCounterScore.toFixed(2)}, isCounter=${isRealCounter}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, cost=${selectedEntry.combatPointCost}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}, lane=${targetWave.laneId}, engaged=${targetWave.hasEngaged()}`
+        );
+
+        const spawnLaneId = this.getCounterSpawnLaneId(
+            targetWave
+        );
+
+        this.debugLog(
+            `Counter spawn lane: targetLane=${targetWave.laneId}, spawnLane=${spawnLaneId}, sameLaneChance=${this.counterSameLaneChance.toFixed(2)}`
         );
 
         const spawned = this.gameManager.spawnWaveByEntry(
             this.team,
-            selectedEntry
+            selectedEntry,
+            spawnLaneId
         );
 
         if (spawned) {
@@ -391,7 +403,7 @@ export class ArmyBrain extends Component {
     ): UnitPrefabEntry | null {
 
         const affordableEntries =
-            this.getSpawnableAffordableEntries(entries);
+            this.getAffordableEntries(entries);
 
         if (affordableEntries.length <= 0) {
             return null;
@@ -458,10 +470,6 @@ export class ArmyBrain extends Component {
                 continue;
             }
 
-            if (!this.canSpawnEntryByUnitLimit(entry)) {
-                continue;
-            }
-
             result.push(entry);
         }
 
@@ -473,7 +481,7 @@ export class ArmyBrain extends Component {
     ): UnitPrefabEntry | null {
 
         const affordable =
-            this.getSpawnableAffordableEntries(entries);
+            this.getAffordableEntries(entries);
 
         if (affordable.length <= 0) {
             return null;
@@ -509,10 +517,6 @@ export class ArmyBrain extends Component {
                 continue;
             }
 
-            if (!this.canSpawnEntryByUnitLimit(entry)) {
-                continue;
-            }
-
             const cost = Math.max(
                 0,
                 entry.combatPointCost
@@ -527,60 +531,19 @@ export class ArmyBrain extends Component {
         return best;
     }
 
-    private canSpawnMoreUnit() {
-        if (!this.enableMaxAliveUnitLimit) {
+    private canSpawnMoreWave() {
+        if (!this.enableMaxAliveWaveLimit) {
             return true;
         }
 
         const max = Math.max(
             1,
-            Math.floor(this.maxAliveUnits)
+            Math.floor(this.maxAliveWaves)
         );
 
-        const alive = this.getAliveUnitCount(this.team);
+        const alive = this.getAliveWaveCount(this.team);
 
         return alive < max;
-    }
-
-    private canSpawnEntryByUnitLimit(entry: UnitPrefabEntry | null) {
-        if (!this.isValidEntry(entry)) return false;
-
-        if (!this.enableMaxAliveUnitLimit) {
-            return true;
-        }
-
-        const max = Math.max(
-            1,
-            Math.floor(this.maxAliveUnits)
-        );
-
-        const alive = this.getAliveUnitCount(this.team);
-        const add = Math.max(
-            1,
-            Math.floor(entry!.unitCount)
-        );
-
-        return alive + add <= max;
-    }
-
-    private getSpawnableAffordableEntries(
-        entries: UnitPrefabEntry[]
-    ): UnitPrefabEntry[] {
-
-        const affordable = this.getAffordableEntries(entries);
-        const result: UnitPrefabEntry[] = [];
-
-        for (let i = 0; i < affordable.length; i++) {
-            const entry = affordable[i];
-
-            if (!this.canSpawnEntryByUnitLimit(entry)) {
-                continue;
-            }
-
-            result.push(entry);
-        }
-
-        return result;
     }
 
     private getAliveWaveCount(team: number) {
@@ -602,142 +565,9 @@ export class ArmyBrain extends Component {
         return count;
     }
 
-    private getAliveUnitCount(team: number) {
-        if (!this.gameManager) return 0;
-
-        const waves = this.gameManager.getWavesByTeam(team);
-
-        let count = 0;
-
-        for (let i = 0; i < waves.length; i++) {
-            count += this.getAliveUnitCountInWave(waves[i]);
-        }
-
-        return count;
-    }
-
-    private getAliveUnitCountInWave(wave: BattleWave | null) {
-        if (!wave) return 0;
-        if (wave.isDead()) return 0;
-
-        const anyWave = wave as any;
-
-        if (typeof anyWave.getAliveUnitCount === 'function') {
-            return Math.max(
-                0,
-                Math.floor(anyWave.getAliveUnitCount())
-            );
-        }
-
-        if (typeof anyWave.getAliveCount === 'function') {
-            return Math.max(
-                0,
-                Math.floor(anyWave.getAliveCount())
-            );
-        }
-
-        if (typeof anyWave.aliveUnitCount === 'number') {
-            return Math.max(
-                0,
-                Math.floor(anyWave.aliveUnitCount)
-            );
-        }
-
-        if (typeof anyWave.aliveCount === 'number') {
-            return Math.max(
-                0,
-                Math.floor(anyWave.aliveCount)
-            );
-        }
-
-        const units = this.getWaveUnitList(anyWave);
-
-        if (units && units.length > 0) {
-            let count = 0;
-
-            for (let i = 0; i < units.length; i++) {
-                if (!this.isUnitDead(units[i])) {
-                    count++;
-                }
-            }
-
-            return count;
-        }
-
-        const total = this.getWaveTotalUnitCount(anyWave);
-
-        if (total > 0) {
-            return Math.max(
-                0,
-                Math.ceil(total * wave.getAliveRatio())
-            );
-        }
-
-        return wave.getAliveRatio() > 0 ? 1 : 0;
-    }
-
-    private getWaveUnitList(anyWave: any): any[] | null {
-        if (!anyWave) return null;
-
-        if (Array.isArray(anyWave.units)) return anyWave.units;
-        if (Array.isArray(anyWave.unitList)) return anyWave.unitList;
-        if (Array.isArray(anyWave.members)) return anyWave.members;
-        if (Array.isArray(anyWave.aliveUnits)) return anyWave.aliveUnits;
-
-        return null;
-    }
-
-    private getWaveTotalUnitCount(anyWave: any) {
-        if (!anyWave) return 0;
-
-        if (typeof anyWave.totalUnitCount === 'number') {
-            return Math.max(0, Math.floor(anyWave.totalUnitCount));
-        }
-
-        if (typeof anyWave.unitCount === 'number') {
-            return Math.max(0, Math.floor(anyWave.unitCount));
-        }
-
-        if (typeof anyWave.maxUnitCount === 'number') {
-            return Math.max(0, Math.floor(anyWave.maxUnitCount));
-        }
-
-        return 0;
-    }
-
-    private isUnitDead(unit: any) {
-        if (!unit) return true;
-
-        if (typeof unit.isDead === 'function') {
-            return unit.isDead();
-        }
-
-        if (typeof unit.isAlive === 'function') {
-            return !unit.isAlive();
-        }
-
-        if (typeof unit.health === 'number') {
-            return unit.health <= 0;
-        }
-
-        if (typeof unit.hp === 'number') {
-            return unit.hp <= 0;
-        }
-
-        if (typeof unit.dead === 'boolean') {
-            return unit.dead;
-        }
-
-        if (typeof unit.isDeadFlag === 'boolean') {
-            return unit.isDeadFlag;
-        }
-
-        return false;
-    }
-
     private spawnOpeningWave(validEntries: UnitPrefabEntry[]) {
         if (!this.gameManager) return;
-        if (!this.canSpawnMoreUnit()) return;
+        if (!this.canSpawnMoreWave()) return;
 
         const opening = this.getRandomAffordableEntry(validEntries);
 
@@ -754,7 +584,7 @@ export class ArmyBrain extends Component {
         reason: string
     ) {
         if (!this.gameManager) return;
-        if (!this.canSpawnMoreUnit()) return;
+        if (!this.canSpawnMoreWave()) return;
 
         const randomEntry =
             this.getRandomAffordableEntry(validEntries);
@@ -769,6 +599,55 @@ export class ArmyBrain extends Component {
             this.team,
             randomEntry
         );
+    }
+
+    private getCounterSpawnLaneId(targetWave: BattleWave) {
+        if (!this.gameManager) {
+            return targetWave.laneId;
+        }
+
+        const laneCount = this.gameManager.getSafeLaneCount();
+
+        if (laneCount <= 1) {
+            return 0;
+        }
+
+        const targetLane = this.gameManager.clampLaneId(
+            targetWave.laneId
+        );
+
+        const sameLaneChance = this.clamp(
+            this.counterSameLaneChance,
+            0,
+            1
+        );
+
+        if (Math.random() <= sameLaneChance) {
+            return targetLane;
+        }
+
+        const neighborLanes: number[] = [];
+
+        const leftLane = targetLane - 1;
+        const rightLane = targetLane + 1;
+
+        if (leftLane >= 0) {
+            neighborLanes.push(leftLane);
+        }
+
+        if (rightLane < laneCount) {
+            neighborLanes.push(rightLane);
+        }
+
+        if (neighborLanes.length <= 0) {
+            return targetLane;
+        }
+
+        const index = Math.floor(
+            Math.random() * neighborLanes.length
+        );
+
+        return neighborLanes[index];
     }
 
     private getCounterScore(

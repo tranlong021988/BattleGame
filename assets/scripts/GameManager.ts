@@ -151,6 +151,21 @@ export class GameManager extends Component {
     @property
     centerGapWidth = 3;
 
+    @property
+    enableLaneSpawn = true;
+
+    @property
+    laneCount = 3;
+
+    @property
+    defaultSpawnLane = 1;
+
+    @property
+    autoSpawnRandomLane = true;
+
+    @property
+    squareFormationWidth = 4;
+
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -310,12 +325,7 @@ export class GameManager extends Component {
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
 
-        const rvoUpdateInterval = Math.max(
-            1,
-            Math.floor(this.updateInterval)
-        );
-
-        if (this.frame % rvoUpdateInterval === 0) {
+        if (this.frame % this.updateInterval === 0) {
             const safeDt = Math.min(
                 deltaTime,
                 Math.max(0.001, this.maxRvoStepDeltaTime)
@@ -324,12 +334,10 @@ export class GameManager extends Component {
             this.sim.step(safeDt);
         }
 
-        const gridUpdateInterval = Math.max(
-            1,
-            Math.floor(this.spatialGridUpdateInterval)
-        );
-
-        if (this.frame % gridUpdateInterval === 0) {
+        if (
+            this.frame %
+            this.spatialGridUpdateInterval === 0
+        ) {
             this.rebuildSpatialGrid();
         }
 
@@ -739,7 +747,8 @@ export class GameManager extends Component {
 
     public spawnWaveByEntry(
         team: number,
-        entry: UnitPrefabEntry
+        entry: UnitPrefabEntry,
+        laneId: number = -1
     ): BattleWave | null {
 
         if (!entry || !entry.prefab) {
@@ -755,7 +764,8 @@ export class GameManager extends Component {
             team,
             entry,
             baseZ,
-            true
+            true,
+            laneId
         );
 
         this.rebuildSpatialGrid();
@@ -765,7 +775,8 @@ export class GameManager extends Component {
 
     public spawnWaveByName(
         team: number,
-        unitName: string
+        unitName: string,
+        laneId: number = -1
     ): BattleWave | null {
 
         const entry = this.getTeamEntry(
@@ -775,14 +786,19 @@ export class GameManager extends Component {
 
         if (!entry) return null;
 
-        return this.spawnWaveByEntry(team, entry);
+        return this.spawnWaveByEntry(
+            team,
+            entry,
+            laneId
+        );
     }
 
     private spawnEntryFormation(
         team: number,
         entry: UnitPrefabEntry,
         baseZ: number,
-        spendCost: boolean
+        spendCost: boolean,
+        requestedLaneId: number = -1
     ): BattleWave | null {
 
         const count = Math.max(
@@ -808,16 +824,107 @@ export class GameManager extends Component {
             return null;
         }
 
+        const laneId =
+            this.resolveSpawnLaneId(requestedLaneId);
+
         const wave = new BattleWave(
             this.nextWaveId++,
             team,
             entry.name,
             entry.unitType,
-            count
+            count,
+            laneId
         );
 
         this.waves.push(wave);
 
+        if (this.enableLaneSpawn) {
+            this.spawnSquareFormationInLane(
+                team,
+                entry,
+                baseZ,
+                wave,
+                laneId,
+                count
+            );
+        } else {
+            this.spawnCenteredRowsFormation(
+                team,
+                entry,
+                baseZ,
+                wave,
+                count
+            );
+        }
+
+        return wave;
+    }
+
+    private spawnSquareFormationInLane(
+        team: number,
+        entry: UnitPrefabEntry,
+        baseZ: number,
+        wave: BattleWave,
+        laneId: number,
+        count: number
+    ) {
+        const width = Math.max(
+            1,
+            Math.floor(this.squareFormationWidth)
+        );
+
+        const laneCenterX =
+            this.getLaneCenterX(laneId);
+
+        for (let i = 0; i < count; i++) {
+            const row = Math.floor(i / width);
+            const col = i % width;
+
+            const rowCount = Math.min(
+                width,
+                count - row * width
+            );
+
+            const x =
+                laneCenterX +
+                (
+                    col -
+                    (rowCount - 1) * 0.5
+                ) *
+                this.spaceBetweenUnit;
+
+            const rowZOffset =
+                row * this.spaceBetweenRow;
+
+            const baseUnitZ =
+                team === 0
+                    ? baseZ - rowZOffset
+                    : baseZ + rowZOffset;
+
+            const z =
+                baseUnitZ +
+                this.randomRange(
+                    -this.formationZNoise,
+                    this.formationZNoise
+                );
+
+            this.spawnUnitForWave(
+                team,
+                entry,
+                new Vec3(x, 0, z),
+                wave,
+                laneId
+            );
+        }
+    }
+
+    private spawnCenteredRowsFormation(
+        team: number,
+        entry: UnitPrefabEntry,
+        baseZ: number,
+        wave: BattleWave,
+        count: number
+    ) {
         const maxPerRow = Math.max(
             1,
             Math.floor(this.maxUnitPerRow)
@@ -864,33 +971,101 @@ export class GameManager extends Component {
                         this.formationZNoise
                     );
 
-                const pos = new Vec3(x, 0, z);
-
-                let unit: Unit | null = null;
-
-                if (team === 0) {
-                    unit = this.spawnTeamA(
-                        entry.name,
-                        pos
-                    );
-                } else {
-                    unit = this.spawnTeamB(
-                        entry.name,
-                        pos
-                    );
-                }
-
-                if (unit) {
-                    wave.addUnit(unit);
-                }
+                this.spawnUnitForWave(
+                    team,
+                    entry,
+                    new Vec3(x, 0, z),
+                    wave,
+                    wave.laneId
+                );
 
                 spawned++;
             }
 
             row++;
         }
+    }
 
-        return wave;
+    private spawnUnitForWave(
+        team: number,
+        entry: UnitPrefabEntry,
+        pos: Vec3,
+        wave: BattleWave,
+        laneId: number
+    ) {
+        let unit: Unit | null = null;
+
+        if (team === 0) {
+            unit = this.spawnTeamA(
+                entry.name,
+                pos
+            );
+        } else {
+            unit = this.spawnTeamB(
+                entry.name,
+                pos
+            );
+        }
+
+        if (!unit) return;
+
+        unit.laneId = laneId;
+
+        wave.addUnit(unit);
+    }
+
+    public resolveSpawnLaneId(
+        requestedLaneId: number = -1
+    ): number {
+        const count = this.getSafeLaneCount();
+
+        if (requestedLaneId >= 0) {
+            return this.clampLaneId(requestedLaneId);
+        }
+
+        if (this.enableLaneSpawn && this.autoSpawnRandomLane) {
+            return Math.floor(Math.random() * count);
+        }
+
+        return this.clampLaneId(this.defaultSpawnLane);
+    }
+
+    public getSafeLaneCount() {
+        return Math.max(
+            1,
+            Math.floor(this.laneCount)
+        );
+    }
+
+    public clampLaneId(laneId: number) {
+        const count = this.getSafeLaneCount();
+
+        return Math.max(
+            0,
+            Math.min(
+                count - 1,
+                Math.floor(laneId)
+            )
+        );
+    }
+
+    public getLaneCenterX(laneId: number) {
+        const count = this.getSafeLaneCount();
+        const safeLane = this.clampLaneId(laneId);
+
+        const width =
+            this.battleMaxX - this.battleMinX;
+
+        if (width <= 0) {
+            return 0;
+        }
+
+        const laneWidth = width / count;
+
+        return (
+            this.battleMinX +
+            laneWidth * (safeLane + 0.5)
+        );
     }
 
     private buildCenteredRowXPositions(
@@ -1181,37 +1356,11 @@ export class GameManager extends Component {
             EnemyFinder.teamB = this.teamB;
         }
 
-        const behavior =
-            unit.getComponent(UnitBehavior);
-
-        if (behavior) {
-            behavior.resetForDespawn();
-        }
-
-        this.removeAgentFromSimulator(unit);
-
         unit.resetForDespawn();
         unit.node.active = false;
 
         this.rebuildSpatialGrid();
         this.refreshBattleStatsUI();
-    }
-
-    private removeAgentFromSimulator(unit: Unit) {
-        if (!this.sim || !unit.agent) return;
-
-        if (typeof this.sim.removeAgent === 'function') {
-            this.sim.removeAgent(unit.agent);
-            return;
-        }
-
-        if (this.sim.agents && Array.isArray(this.sim.agents)) {
-            const idx = this.sim.agents.indexOf(unit.agent);
-
-            if (idx >= 0) {
-                this.sim.agents.splice(idx, 1);
-            }
-        }
     }
 
     private registerDatabaseHeroes() {
