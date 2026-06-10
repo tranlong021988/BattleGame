@@ -1623,7 +1623,7 @@
     "teamASpawnZ": -18,
     "teamBSpawnZ": 18,
     "maxUnitPerRow": 8,
-    "spaceBetweenUnit": 1.8,
+    "spaceBetweenUnit": 0.6,
     "spaceBetweenRow": 2,
     "formationZNoise": 1,
     "centerGapWidth": 2.5,
