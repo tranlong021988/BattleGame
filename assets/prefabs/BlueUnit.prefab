@@ -739,7 +739,7 @@
     "visualYawOffset": 0,
     "moveSpeed": 7,
     "radius": 0.5,
-    "attackRange": 1,
+    "attackRange": 1.2,
     "targetSearchRange": 35,
     "attackCheckIntervalFrames": 2,
     "targetSearchIntervalFrames": 6,

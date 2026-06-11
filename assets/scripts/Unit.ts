@@ -413,14 +413,6 @@ export class Unit extends Component {
         const nearestLaneEnemy =
             this.findNearestEnemyInSameLane();
 
-        if (nearestLaneEnemy && nearestLaneEnemy.agent) {
-            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
-                this.onForward = false;
-            }
-
-            return;
-        }
-
         const nearestAdjacentLaneEnemy =
             this.findNearestEnemyInAdjacentLane();
 
@@ -430,6 +422,14 @@ export class Unit extends Component {
             this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
         ) {
             this.onForward = false;
+            return;
+        }
+
+        if (nearestLaneEnemy && nearestLaneEnemy.agent) {
+            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
+                this.onForward = false;
+            }
+
             return;
         }
 
