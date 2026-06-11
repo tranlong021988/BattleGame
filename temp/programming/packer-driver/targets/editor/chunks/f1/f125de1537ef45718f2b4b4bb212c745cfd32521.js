@@ -38,6 +38,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.units = [];
           this.assignedCounterCount = 0;
           this.laneId = -1;
+          this.pendingLaneId = -1;
+          this.combatModeActive = false;
+          this.released = false;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -48,7 +51,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         addUnit(unit) {
           if (!unit) return;
+          if (this.released) return;
           BattleWave.unitWaveMap.set(unit, this.id);
+          BattleWave.unitWaveObjectMap.set(unit, this);
 
           if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
@@ -60,6 +65,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getAliveCount() {
+          if (this.released) {
+            return 0;
+          }
+
           let count = 0;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -84,6 +93,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getRandomPreferredAliveUnit() {
+          if (this.released) {
+            return null;
+          }
+
           const onForwardUnits = [];
           const notBusyUnits = [];
           const aliveUnits = [];
@@ -133,6 +146,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         hasEngaged() {
+          if (this.released) {
+            return false;
+          }
+
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
@@ -145,11 +162,142 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return false;
         }
 
+        hasPendingLaneTransfer() {
+          if (this.released) {
+            return false;
+          }
+
+          return this.pendingLaneId >= 0;
+        }
+
+        noteDefeatedEnemyWave(enemyWave) {
+          if (!enemyWave) return;
+          if (enemyWave.laneId < 0) return;
+          this.pendingLaneId = enemyWave.laneId;
+        }
+
+        setPendingLaneId(laneId) {
+          if (this.released) return;
+          if (laneId < 0) return;
+          this.pendingLaneId = laneId;
+        }
+
+        tryApplyPendingLaneTransfer(formationWidth, unitSpacing) {
+          if (this.released) {
+            return false;
+          }
+
+          if (!this.hasPendingLaneTransfer()) {
+            return false;
+          }
+
+          if (this.hasEngaged()) {
+            return false;
+          }
+
+          this.setLaneId(this.pendingLaneId, formationWidth, unitSpacing);
+          this.pendingLaneId = -1;
+          this.resumeForward();
+          return true;
+        }
+
+        setLaneId(laneId, formationWidth = 1, unitSpacing = 1.5) {
+          if (this.released) return;
+          this.laneId = laneId;
+          this.assignLaneOffsets(formationWidth, unitSpacing);
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            u.laneId = laneId;
+          }
+        }
+
+        resumeForward() {
+          if (this.released) return;
+          this.combatModeActive = false;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy) continue;
+            u.setWaveForwardLane(this.laneId, u.forwardLaneOffsetX);
+          }
+        }
+
+        enterCombatMode() {
+          if (this.released) return;
+
+          if (this.combatModeActive) {
+            return;
+          }
+
+          this.combatModeActive = true;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            u.enterWaveCombatMode();
+          }
+        }
+
+        captureCurrentLaneOffsets(laneCenterX) {
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.agent) continue;
+            u.forwardLaneOffsetX = u.agent.pos.x - laneCenterX;
+          }
+        }
+
+        assignLaneOffsets(formationWidth, unitSpacing) {
+          const aliveUnits = this.getAliveUnitsSortedByX();
+          const count = aliveUnits.length;
+          if (count <= 0) return;
+          const columns = Math.max(1, Math.min(Math.floor(formationWidth), count));
+          const spacing = Math.max(0.01, unitSpacing);
+
+          for (let i = 0; i < count; i++) {
+            const col = Math.min(columns - 1, Math.floor(i * columns / count));
+            aliveUnits[i].forwardLaneOffsetX = (col - (columns - 1) * 0.5) * spacing;
+          }
+        }
+
+        getAliveUnitsSortedByX() {
+          const result = [];
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            result.push(u);
+          }
+
+          result.sort((a, b) => {
+            const ax = a.agent ? a.agent.pos.x : 0;
+            const bx = b.agent ? b.agent.pos.x : 0;
+            return ax - bx;
+          });
+          return result;
+        }
+
         isDead() {
+          if (this.released) {
+            return true;
+          }
+
           return this.getAliveCount() <= 0;
         }
 
+        releaseReferences() {
+          this.released = true;
+          this.pendingLaneId = -1;
+          this.combatModeActive = false;
+          this.assignedCounterCount = 0;
+          this.units.length = 0;
+        }
+
         getAverageX() {
+          if (this.released) return 0;
           let sum = 0;
           let count = 0;
 
@@ -166,6 +314,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getAverageZ() {
+          if (this.released) return 0;
           let sum = 0;
           let count = 0;
 
@@ -182,6 +331,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getClosestDistanceSqTo(x, z) {
+          if (this.released) return Infinity;
           let best = Infinity;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -207,6 +357,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         isUnitAlive(unit) {
+          if (this.released) return false;
           if (!unit) return false;
           const currentWaveId = BattleWave.unitWaveMap.get(unit);
 
@@ -221,9 +372,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return true;
         }
 
+        static getWaveForUnit(unit) {
+          if (!unit) return null;
+          return BattleWave.unitWaveObjectMap.get(unit) || null;
+        }
+
       });
 
       BattleWave.unitWaveMap = new WeakMap();
+      BattleWave.unitWaveObjectMap = new WeakMap();
 
       _cclegacy._RF.pop();
 

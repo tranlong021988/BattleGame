@@ -4,6 +4,7 @@ import { UnitType } from './BattleTypes';
 export class BattleWave {
 
     private static unitWaveMap: WeakMap<Unit, number> = new WeakMap();
+    private static unitWaveObjectMap: WeakMap<Unit, BattleWave> = new WeakMap();
 
     id = 0;
     team = 0;
@@ -16,6 +17,9 @@ export class BattleWave {
 
     assignedCounterCount = 0;
     laneId = -1;
+    pendingLaneId = -1;
+    combatModeActive = false;
+    released = false;
 
     constructor(
         id: number,
@@ -35,8 +39,10 @@ export class BattleWave {
 
     addUnit(unit: Unit) {
         if (!unit) return;
+        if (this.released) return;
 
         BattleWave.unitWaveMap.set(unit, this.id);
+        BattleWave.unitWaveObjectMap.set(unit, this);
 
         if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
@@ -51,6 +57,10 @@ export class BattleWave {
     }
 
     getAliveCount() {
+        if (this.released) {
+            return 0;
+        }
+
         let count = 0;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -77,6 +87,10 @@ export class BattleWave {
     }
 
     getRandomPreferredAliveUnit(): Unit | null {
+        if (this.released) {
+            return null;
+        }
+
         const onForwardUnits: Unit[] = [];
         const notBusyUnits: Unit[] = [];
         const aliveUnits: Unit[] = [];
@@ -128,6 +142,10 @@ export class BattleWave {
     }
 
     hasEngaged() {
+        if (this.released) {
+            return false;
+        }
+
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
 
@@ -141,11 +159,203 @@ export class BattleWave {
         return false;
     }
 
+    hasPendingLaneTransfer() {
+        if (this.released) {
+            return false;
+        }
+
+        return this.pendingLaneId >= 0;
+    }
+
+    noteDefeatedEnemyWave(enemyWave: BattleWave | null) {
+        if (!enemyWave) return;
+        if (enemyWave.laneId < 0) return;
+
+        this.pendingLaneId = enemyWave.laneId;
+    }
+
+    setPendingLaneId(laneId: number) {
+        if (this.released) return;
+        if (laneId < 0) return;
+
+        this.pendingLaneId = laneId;
+    }
+
+    tryApplyPendingLaneTransfer(
+        formationWidth: number,
+        unitSpacing: number
+    ) {
+        if (this.released) {
+            return false;
+        }
+
+        if (!this.hasPendingLaneTransfer()) {
+            return false;
+        }
+
+        if (this.hasEngaged()) {
+            return false;
+        }
+
+        this.setLaneId(
+            this.pendingLaneId,
+            formationWidth,
+            unitSpacing
+        );
+
+        this.pendingLaneId = -1;
+        this.resumeForward();
+
+        return true;
+    }
+
+    setLaneId(
+        laneId: number,
+        formationWidth: number = 1,
+        unitSpacing: number = 1.5
+    ) {
+        if (this.released) return;
+
+        this.laneId = laneId;
+        this.assignLaneOffsets(
+            formationWidth,
+            unitSpacing
+        );
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            u.laneId = laneId;
+        }
+    }
+
+    resumeForward() {
+        if (this.released) return;
+
+        this.combatModeActive = false;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy) continue;
+
+            u.setWaveForwardLane(
+                this.laneId,
+                u.forwardLaneOffsetX
+            );
+        }
+    }
+
+    enterCombatMode() {
+        if (this.released) return;
+
+        if (this.combatModeActive) {
+            return;
+        }
+
+        this.combatModeActive = true;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            u.enterWaveCombatMode();
+        }
+    }
+
+    captureCurrentLaneOffsets(laneCenterX: number) {
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.agent) continue;
+
+            u.forwardLaneOffsetX =
+                u.agent.pos.x - laneCenterX;
+        }
+    }
+
+    private assignLaneOffsets(
+        formationWidth: number,
+        unitSpacing: number
+    ) {
+        const aliveUnits = this.getAliveUnitsSortedByX();
+        const count = aliveUnits.length;
+
+        if (count <= 0) return;
+
+        const columns = Math.max(
+            1,
+            Math.min(
+                Math.floor(formationWidth),
+                count
+            )
+        );
+
+        const spacing = Math.max(
+            0.01,
+            unitSpacing
+        );
+
+        for (let i = 0; i < count; i++) {
+            const col = Math.min(
+                columns - 1,
+                Math.floor(i * columns / count)
+            );
+
+            aliveUnits[i].forwardLaneOffsetX =
+                (
+                    col -
+                    (columns - 1) * 0.5
+                ) *
+                spacing;
+        }
+    }
+
+    private getAliveUnitsSortedByX() {
+        const result: Unit[] = [];
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            result.push(u);
+        }
+
+        result.sort((a, b) => {
+            const ax = a.agent ? a.agent.pos.x : 0;
+            const bx = b.agent ? b.agent.pos.x : 0;
+
+            return ax - bx;
+        });
+
+        return result;
+    }
+
     isDead() {
+        if (this.released) {
+            return true;
+        }
+
         return this.getAliveCount() <= 0;
     }
 
+    releaseReferences() {
+        this.released = true;
+        this.pendingLaneId = -1;
+        this.combatModeActive = false;
+        this.assignedCounterCount = 0;
+        this.units.length = 0;
+    }
+
     getAverageX() {
+        if (this.released) return 0;
+
         let sum = 0;
         let count = 0;
 
@@ -165,6 +375,8 @@ export class BattleWave {
     }
 
     getAverageZ() {
+        if (this.released) return 0;
+
         let sum = 0;
         let count = 0;
 
@@ -184,6 +396,8 @@ export class BattleWave {
     }
 
     getClosestDistanceSqTo(x: number, z: number) {
+        if (this.released) return Infinity;
+
         let best = Infinity;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -216,6 +430,7 @@ export class BattleWave {
     }
 
     private isUnitAlive(unit: Unit | null) {
+        if (this.released) return false;
         if (!unit) return false;
 
         const currentWaveId = BattleWave.unitWaveMap.get(unit);
@@ -230,5 +445,11 @@ export class BattleWave {
         if (unit.props.isDead()) return false;
 
         return true;
+    }
+
+    static getWaveForUnit(unit: Unit | null): BattleWave | null {
+        if (!unit) return null;
+
+        return BattleWave.unitWaveObjectMap.get(unit) || null;
     }
 }

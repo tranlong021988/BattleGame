@@ -40,6 +40,7 @@ export class BattleInformationIconItem extends Component {
 
     private originalWidth = 40;
     private originalHeight = 40;
+    private tempColor = new Color();
 
     onLoad() {
         this.initComponents();
@@ -202,7 +203,7 @@ export class BattleInformationIconItem extends Component {
         b: Color,
         t: number
     ) {
-        const c = new Color();
+        const c = this.tempColor;
 
         c.r = Math.round(
             a.r + (b.r - a.r) * t

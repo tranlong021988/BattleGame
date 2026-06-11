@@ -154,6 +154,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.prewarmPool();
         }
 
+        onDestroy() {
+          this.destroyAllIcons();
+        }
+
         update(deltaTime) {
           this.time += deltaTime;
           this.timer += deltaTime;
@@ -338,9 +342,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             record.item.resetVisual();
             record.node.removeFromParent();
             record.node.active = false;
-            this.pool.push(record.node);
+
+            if (this.pool.length < this.maxPoolSize) {
+              this.pool.push(record.node);
+            } else {
+              record.node.destroy();
+            }
           });
           this.records.clear();
+        }
+
+        destroyAllIcons() {
+          this.records.forEach(record => {
+            this.clearIconEvents(record.node);
+            record.node.destroy();
+          });
+          this.records.clear();
+
+          for (var i = 0; i < this.pool.length; i++) {
+            var node = this.pool[i];
+            if (!node) continue;
+            this.clearIconEvents(node);
+            node.destroy();
+          }
+
+          this.pool.length = 0;
         }
 
         getSpriteFrame(team, unitType) {

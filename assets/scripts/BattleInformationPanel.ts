@@ -106,6 +106,10 @@ export class BattleInformationPanel extends Component {
         this.prewarmPool();
     }
 
+    onDestroy() {
+        this.destroyAllIcons();
+    }
+
     update(deltaTime: number) {
 
         this.time += deltaTime;
@@ -499,13 +503,50 @@ export class BattleInformationPanel extends Component {
                 record.node.active =
                     false;
 
-                this.pool.push(
-                    record.node
-                );
+                if (
+                    this.pool.length <
+                    this.maxPoolSize
+                ) {
+                    this.pool.push(
+                        record.node
+                    );
+                }
+                else {
+                    record.node.destroy();
+                }
             }
         );
 
         this.records.clear();
+    }
+
+    private destroyAllIcons() {
+        this.records.forEach(
+            (record) => {
+                this.clearIconEvents(
+                    record.node
+                );
+
+                record.node.destroy();
+            }
+        );
+
+        this.records.clear();
+
+        for (
+            let i = 0;
+            i < this.pool.length;
+            i++
+        ) {
+            const node = this.pool[i];
+
+            if (!node) continue;
+
+            this.clearIconEvents(node);
+            node.destroy();
+        }
+
+        this.pool.length = 0;
     }
 
     private getSpriteFrame(

@@ -98,6 +98,13 @@ export class UnitBehavior extends Component {
             }
 
             this.unit.clearEnemy();
+
+            if (gm) {
+                gm.onUnitKilled(
+                    this.unit,
+                    enemy
+                );
+            }
         }
     }
 

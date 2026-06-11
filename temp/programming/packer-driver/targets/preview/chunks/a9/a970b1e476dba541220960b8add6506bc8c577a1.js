@@ -55,6 +55,7 @@ System.register(["cc"], function (_export, _context) {
           this.uiTransform = null;
           this.originalWidth = 40;
           this.originalHeight = 40;
+          this.tempColor = new Color();
         }
 
         onLoad() {
@@ -147,7 +148,7 @@ System.register(["cc"], function (_export, _context) {
         }
 
         lerpColor(a, b, t) {
-          var c = new Color();
+          var c = this.tempColor;
           c.r = Math.round(a.r + (b.r - a.r) * t);
           c.g = Math.round(a.g + (b.g - a.g) * t);
           c.b = Math.round(a.b + (b.b - a.b) * t);

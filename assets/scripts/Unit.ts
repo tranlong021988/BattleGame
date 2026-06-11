@@ -41,11 +41,14 @@ export class Unit extends Component {
     @property overtakeSideRange = 1.2;
     @property overtakeSideStrength = 0.75;
     @property overtakeSpeedDiff = 0.15;
+    @property laneReturnTolerance = 0.35;
 
     team = 0;
     unitTypeName = '';
     isHero = false;
     laneId = -1;
+    forwardLaneOffsetX = 0;
+    returningToWaveLaneSlot = false;
 
     sim: any = null;
     agent: any = null;
@@ -216,6 +219,8 @@ export class Unit extends Component {
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.laneId = -1;
+        this.forwardLaneOffsetX = 0;
+        this.returningToWaveLaneSlot = false;
 
         if (this.agent) {
             this.agent.locked = false;
@@ -243,7 +248,6 @@ export class Unit extends Component {
 
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
-        this.laneId = -1;
 
         if (this.agent) {
             this.agent.vel.x = 0;
@@ -251,6 +255,49 @@ export class Unit extends Component {
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
             this.agent.locked = this.isSteady;
+        }
+    }
+
+    setWaveForwardLane(
+        laneId: number,
+        laneOffsetX: number = this.forwardLaneOffsetX,
+        returnToSlot: boolean = true
+    ) {
+        if (this.isSteady) return;
+
+        this.laneId = laneId;
+        this.forwardLaneOffsetX = laneOffsetX;
+        this.returningToWaveLaneSlot = returnToSlot;
+        this.enemy = null;
+        this.onBusy = false;
+        this.onForward = true;
+
+        this.cachedNearestInRange = null;
+        this.cachedNearestEnemy = null;
+
+        if (this.agent) {
+            this.agent.locked = false;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+            this.agent.onForward = 1;
+        }
+    }
+
+    enterWaveCombatMode() {
+        this.returningToWaveLaneSlot = false;
+        this.onForward = false;
+
+        this.cachedNearestEnemy = null;
+        this.cachedNearestInRange = null;
+
+        if (this.agent) {
+            this.agent.onForward = 0;
+
+            if (!this.onBusy) {
+                this.agent.locked = this.isSteady;
+            }
         }
     }
 
@@ -295,6 +342,13 @@ export class Unit extends Component {
         const nearestInRange = this.getNearestEnemyInAttackRangeThrottled();
 
         if (nearestInRange) {
+            const gm = GameManager.instance;
+
+            if (gm) {
+                gm.onWaveCombatStarted(this);
+            }
+
+            this.returningToWaveLaneSlot = false;
             this.onForward = false;
             this.agent.onForward = 0;
 
@@ -327,16 +381,21 @@ export class Unit extends Component {
         }
 
         if (this.onForward) {
-            this.updateForwardPhase();
+            if (
+                this.returningToWaveLaneSlot &&
+                !this.shouldReturnToLaneSlot()
+            ) {
+                this.returningToWaveLaneSlot = false;
+            }
+
+            if (!this.returningToWaveLaneSlot) {
+                this.updateForwardPhase();
+            }
 
             if (this.onForward) {
                 this.agent.onForward = 1;
 
-                this.sim.setPrefVelocity(
-                    this.agent,
-                    this.forwardDir.x * this.agent.maxSpeed,
-                    this.forwardDir.z * this.agent.maxSpeed
-                );
+                this.updateForwardPrefVelocity();
 
                 this.sync(deltaTime, true);
                 return;
@@ -443,6 +502,69 @@ export class Unit extends Component {
             this.onForward = false;
             return;
         }
+    }
+
+    private shouldReturnToLaneSlot() {
+        if (!this.agent) return false;
+
+        const laneTargetX = this.getCurrentLaneTargetX();
+
+        if (
+            !this.returningToWaveLaneSlot ||
+            laneTargetX === null
+        ) {
+            return false;
+        }
+
+        const tolerance = Math.max(
+            0.01,
+            this.laneReturnTolerance
+        );
+
+        return Math.abs(
+            laneTargetX - this.agent.pos.x
+        ) > tolerance;
+    }
+
+    private updateForwardPrefVelocity() {
+        if (!this.agent) return;
+
+        const laneTargetX = this.getCurrentLaneTargetX();
+
+        if (
+            this.returningToWaveLaneSlot &&
+            laneTargetX !== null
+        ) {
+            const dx = laneTargetX - this.agent.pos.x;
+
+            if (this.shouldReturnToLaneSlot()) {
+                this.sim.setPrefVelocity(
+                    this.agent,
+                    Math.sign(dx) * this.agent.maxSpeed,
+                    0
+                );
+
+                return;
+            }
+        }
+
+        this.sim.setPrefVelocity(
+            this.agent,
+            this.forwardDir.x * this.agent.maxSpeed,
+            this.forwardDir.z * this.agent.maxSpeed
+        );
+    }
+
+    private getCurrentLaneTargetX(): number | null {
+        if (this.laneId < 0) return null;
+
+        const gm = GameManager.instance;
+
+        if (!gm || !gm.enableLaneSpawn) {
+            return null;
+        }
+
+        return gm.getLaneCenterX(this.laneId) + this.forwardLaneOffsetX;
     }
 
     private hasPassedTargetAlongForward(target: Unit): boolean {

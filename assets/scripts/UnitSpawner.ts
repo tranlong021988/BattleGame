@@ -18,6 +18,11 @@ export class UnitSpawner extends Component {
         this.sim = sim;
     }
 
+    onDestroy() {
+        this.clearPool();
+        this.sim = null;
+    }
+
     prewarm(prefab: Prefab, count: number, parent: Node) {
         const pool = this.getPool(prefab);
         const safeCount = Math.max(0, Math.floor(count));
@@ -154,6 +159,18 @@ export class UnitSpawner extends Component {
     }
 
     clearPool() {
+        this.pools.forEach((pool) => {
+            for (let i = 0; i < pool.length; i++) {
+                const node = pool[i];
+
+                if (node && node.isValid) {
+                    node.destroy();
+                }
+            }
+
+            pool.length = 0;
+        });
+
         this.pools.clear();
     }
 }

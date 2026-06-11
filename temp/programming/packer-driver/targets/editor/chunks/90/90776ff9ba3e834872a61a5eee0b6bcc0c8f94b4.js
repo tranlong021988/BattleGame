@@ -64,6 +64,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.sim = sim;
         }
 
+        onDestroy() {
+          this.clearPool();
+          this.sim = null;
+        }
+
         prewarm(prefab, count, parent) {
           const pool = this.getPool(prefab);
           const safeCount = Math.max(0, Math.floor(count));
@@ -185,6 +190,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         clearPool() {
+          this.pools.forEach(pool => {
+            for (let i = 0; i < pool.length; i++) {
+              const node = pool[i];
+
+              if (node && node.isValid) {
+                node.destroy();
+              }
+            }
+
+            pool.length = 0;
+          });
           this.pools.clear();
         }
 
