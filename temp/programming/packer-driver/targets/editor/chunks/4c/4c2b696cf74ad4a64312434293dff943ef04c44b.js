@@ -450,7 +450,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!wave.isTargetingWave(victimWave)) continue;
             if (wave.isEngagedWithOtherWave(victimWave)) continue;
             if (wave.laneId < 0) continue;
-            wave.setPendingLaneId(wave.laneId);
+            wave.noteDefeatedEnemyWave(victimWave);
             this.pendingLaneWaves.add(wave);
           }
         }

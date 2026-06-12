@@ -2616,9 +2616,9 @@
     "_enabled": true,
     "__prefab": null,
     "unitType": 0,
-    "maxHealth": 500,
-    "damage": 100,
-    "defense": 1,
+    "maxHealth": 5000,
+    "damage": 300,
+    "defense": 100,
     "healthBar": {
       "__id__": 82
     },
@@ -3357,9 +3357,9 @@
     "_enabled": true,
     "__prefab": null,
     "unitType": 0,
-    "maxHealth": 500,
-    "damage": 100,
-    "defense": 1,
+    "maxHealth": 5000,
+    "damage": 300,
+    "defense": 100,
     "healthBar": {
       "__id__": 121
     },

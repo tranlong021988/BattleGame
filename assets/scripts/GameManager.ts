@@ -467,7 +467,7 @@ export class GameManager extends Component {
             if (wave.isEngagedWithOtherWave(victimWave)) continue;
             if (wave.laneId < 0) continue;
 
-            wave.setPendingLaneId(wave.laneId);
+            wave.noteDefeatedEnemyWave(victimWave);
             this.pendingLaneWaves.add(wave);
         }
     }
