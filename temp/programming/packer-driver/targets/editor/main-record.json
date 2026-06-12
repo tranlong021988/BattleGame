@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 13436338.8241,
+      "mTimestamp": 30330862.3347,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1365,7 +1365,7 @@
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts",
           "resolved": "__unresolved_26",
           "loc": {
             "start": {
@@ -1374,77 +1374,91 @@
             },
             "end": {
               "line": 5,
-              "column": 2769
+              "column": 2781
+            }
+          }
+        },
+        {
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts",
+          "resolved": "__unresolved_27",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 2797
+            },
+            "end": {
+              "line": 5,
+              "column": 2856
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts",
-          "resolved": "__unresolved_27",
+          "resolved": "__unresolved_28",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2785
+              "column": 2872
             },
             "end": {
               "line": 5,
-              "column": 2852
+              "column": 2939
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts",
-          "resolved": "__unresolved_28",
+          "resolved": "__unresolved_29",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2868
+              "column": 2955
             },
             "end": {
               "line": 5,
-              "column": 2932
+              "column": 3019
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts",
-          "resolved": "__unresolved_29",
+          "resolved": "__unresolved_30",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2948
+              "column": 3035
             },
             "end": {
               "line": 5,
-              "column": 3014
+              "column": 3101
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts",
-          "resolved": "__unresolved_30",
+          "resolved": "__unresolved_31",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3030
+              "column": 3117
             },
             "end": {
               "line": 5,
-              "column": 3092
+              "column": 3179
             }
           }
         },
         {
           "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts",
-          "resolved": "__unresolved_31",
+          "resolved": "__unresolved_32",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3108
+              "column": 3195
             },
             "end": {
               "line": 5,
-              "column": 3185
+              "column": 3272
             }
           }
         }
@@ -1630,6 +1644,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts"
           },
           "messages": []
         },
@@ -7828,6 +7849,153 @@
           "resolved": {
             "type": "module",
             "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts": {
+      "mTimestamp": {
+        "mtime": 1781264536803.669,
+        "uuid": "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615"
+      },
+      "chunkId": "6362e7daf8af0d883ef7e04d63ca00a919222726",
+      "imports": [
+        {
+          "value": "cce:/internal/code-quality/cr.mjs",
+          "resolved": "__unresolved_0"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc",
+          "loc": {
+            "start": {
+              "line": 14,
+              "column": 7
+            },
+            "end": {
+              "line": 14,
+              "column": 11
+            }
+          }
+        },
+        {
+          "value": "./GameManager",
+          "resolved": "__unresolved_1",
+          "loc": {
+            "start": {
+              "line": 16,
+              "column": 28
+            },
+            "end": {
+              "line": 16,
+              "column": 43
+            }
+          }
+        },
+        {
+          "value": "./BattleTypes",
+          "resolved": "__unresolved_2",
+          "loc": {
+            "start": {
+              "line": 18,
+              "column": 25
+            },
+            "end": {
+              "line": 18,
+              "column": 40
+            }
+          }
+        },
+        {
+          "value": "./BattleInformationIconItem",
+          "resolved": "__unresolved_3",
+          "loc": {
+            "start": {
+              "line": 19,
+              "column": 42
+            },
+            "end": {
+              "line": 19,
+              "column": 71
+            }
+          }
+        },
+        {
+          "value": "./BattleCinematicCameraController",
+          "resolved": "__unresolved_4",
+          "loc": {
+            "start": {
+              "line": 20,
+              "column": 48
+            },
+            "end": {
+              "line": 20,
+              "column": 83
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/code-quality/cr.mjs"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts"
           },
           "messages": []
         }

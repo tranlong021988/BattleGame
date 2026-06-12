@@ -150,6 +150,7 @@
         "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
         "7735f014-d1bf-435b-9532-d99924f1ad9e",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
+        "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615",
         "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53"
       ]
     },
@@ -1201,6 +1202,11 @@
   },
   "da72df7d-7c50-4d3a-ba00-b095a6c895dd": {
     "url": "db://assets/scripts/TargetSearchWorkerSimulator.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615": {
+    "url": "db://assets/scripts/TrueMiniMapPanel.ts",
     "value": {},
     "versionCode": 1
   }

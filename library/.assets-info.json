@@ -5,7 +5,7 @@
       "time": 1776667555102.3574
     },
     "scripts": {
-      "time": 1781232908397.4023,
+      "time": 1781254284541.0247,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781250022191.61,
+      "time": 1781264618793.113,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -511,6 +511,13 @@
     "scripts\\BattleUnitDatabase.ts": {
       "time": 1780631828411.702,
       "uuid": "6763c90e-a96e-4d4a-9859-896fdbcb348f"
+    },
+    "scripts\\TrueMiniMapPanel.ts.meta": {
+      "time": 1781254284541.0247
+    },
+    "scripts\\TrueMiniMapPanel.ts": {
+      "time": 1781264536803.669,
+      "uuid": "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615"
     }
   },
   "missing": {}
