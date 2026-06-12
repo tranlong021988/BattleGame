@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781246466610.2178,
+      "time": 1781246986429.1106,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -233,7 +233,7 @@
       "uuid": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse.png.meta": {
-      "time": 1781246158473.2727
+      "time": 1781246713147.568
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse.png": {
       "time": 1776746904095.657,
@@ -247,7 +247,7 @@
       "uuid": "e4db8fe8-78ac-4231-a17c-a11ff1c17914"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png.meta": {
-      "time": 1781246163702.5188
+      "time": 1781246713138.0408
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png": {
       "time": 1769966381196.655,
@@ -275,7 +275,7 @@
       "uuid": "06818ec2-cd25-4acf-86bd-aca421dce2fb"
     },
     "textures\\terrain-sand.png.meta": {
-      "time": 1778051894626.1616
+      "time": 1781246724771.5571
     },
     "textures\\terrain-sand.png": {
       "time": 1778051894622.3,
@@ -422,22 +422,22 @@
       "uuid": "f3e429e0-e07d-48cc-80d4-98f6aafeb897"
     },
     "MiniMap\\images\\bow-ico.png.meta": {
-      "time": 1780392105032.7302
+      "time": 1781246749880.8489
     },
     "MiniMap\\images\\horse-ico.png.meta": {
-      "time": 1780392105022.7637
+      "time": 1781246749892.8423
     },
     "MiniMap\\images\\mace-ico.png.meta": {
-      "time": 1780392105018.7761
+      "time": 1781246749899.8486
     },
     "MiniMap\\images\\magic-ico.png.meta": {
-      "time": 1780392105023.7603
+      "time": 1781246749907.8494
     },
     "MiniMap\\images\\spear-ico.png.meta": {
-      "time": 1780392105021.7954
+      "time": 1781246749914.8484
     },
     "MiniMap\\images\\sword-ico.png.meta": {
-      "time": 1780392105021.7954
+      "time": 1781246749918.8435
     },
     "MiniMap\\images\\bow-ico.png": {
       "time": 1780392011239.45,
@@ -464,7 +464,7 @@
       "uuid": "09612976-b88c-46e6-a717-93a8a38611bc"
     },
     "MiniMap\\images\\auto-atlas.pac.meta": {
-      "time": 1780392133558.0605
+      "time": 1781246739843.894
     },
     "MiniMap\\images\\auto-atlas.pac": {
       "time": 1775546487605.9688,

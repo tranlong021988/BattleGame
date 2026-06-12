@@ -10,6 +10,18 @@
         "format": "webp",
         "overwrite": true
       }
+    },
+    "userPreset": {
+      "2daivPkGhJ8JGBZqHm5OSP": {
+        "name": "New Compress Config",
+        "options": {
+          "web": {
+            "webp": {
+              "quality": 75
+            }
+          }
+        }
+      }
     }
   }
 }
