@@ -354,12 +354,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.sim = new (_crd && RVOWorkerSimulator === void 0 ? (_reportPossibleCrUseOfRVOWorkerSimulator({
               error: Error()
             }), RVOWorkerSimulator) : RVOWorkerSimulator)();
-            console.log('[GameManager] Using Worker RVO backend');
           } else {
             this.sim = new (_crd && RVOSimulator === void 0 ? (_reportPossibleCrUseOfRVOSimulator({
               error: Error()
             }), RVOSimulator) : RVOSimulator)();
-            console.log('[GameManager] Using Main Thread RVO backend');
           }
         }
 

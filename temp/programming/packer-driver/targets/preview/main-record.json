@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 4684949.7412,
+      "mTimestamp": 6027023.0313,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3254,7 +3254,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1781234134974.8174,
+        "mtime": 1781240215775.9585,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -4072,7 +4072,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts": {
       "mTimestamp": {
-        "mtime": 1776746904095.657,
+        "mtime": 1781240231736.4595,
         "uuid": "e4db8fe8-78ac-4231-a17c-a11ff1c17914"
       },
       "chunkId": "9753f678ceff8c551556d68b45fa9b6bd3ea8e8f",

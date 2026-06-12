@@ -12,7 +12,7 @@ export class RandomAnimOffset extends Component {
             if (states) {
                 states.play();
                 // Offset ngẫu nhiên từ 0 đến tổng chiều dài clip
-                states.setTime(math.randomRange(0, states.duration));console.log(states.duration);
+                states.setTime(math.randomRange(0, states.duration));
                 // Cập nhật ngay lập tức để tránh bị giật frame đầu
                // states.sample(); 
                 

@@ -331,16 +331,8 @@ export class GameManager extends Component {
             RVOWorkerSimulator.isSupported()
         ) {
             this.sim = new RVOWorkerSimulator();
-
-            console.log(
-                '[GameManager] Using Worker RVO backend'
-            );
         } else {
             this.sim = new RVOSimulator();
-
-            console.log(
-                '[GameManager] Using Main Thread RVO backend'
-            );
         }
     }
 

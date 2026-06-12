@@ -40,7 +40,7 @@
       "time": 1776667555102.3574
     },
     "scripts\\GameManager.ts": {
-      "time": 1781234134974.8174,
+      "time": 1781240215775.9585,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781239168424.8032,
+      "time": 1781240285724.0464,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -243,7 +243,7 @@
       "time": 1776746904095.657
     },
     "scripts\\RandomAnimcationOffset.ts": {
-      "time": 1776746904095.657,
+      "time": 1781240231736.4595,
       "uuid": "e4db8fe8-78ac-4231-a17c-a11ff1c17914"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png.meta": {
