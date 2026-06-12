@@ -89,7 +89,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781240285724.0464,
+      "time": 1781246466610.2178,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -233,7 +233,7 @@
       "uuid": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse.png.meta": {
-      "time": 1776746904095.657
+      "time": 1781246158473.2727
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse.png": {
       "time": 1776746904095.657,
@@ -247,7 +247,7 @@
       "uuid": "e4db8fe8-78ac-4231-a17c-a11ff1c17914"
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png.meta": {
-      "time": 1776747030018.7195
+      "time": 1781246163702.5188
     },
     "3D\\Fighter.Final_Bake1_PBR_Diffuse2.png": {
       "time": 1769966381196.655,
