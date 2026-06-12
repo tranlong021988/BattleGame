@@ -33,6 +33,7 @@
             "scripts\\RandomAnimcationOffset.ts",
             "scripts\\SpawnBackPressureGate.ts",
             "scripts\\TopDownCameraDrag.ts",
+            "scripts\\TrueMiniMapPanel.ts",
             "scripts\\Unit.ts",
             "scripts\\UnitBehavior.ts",
             "scripts\\UnitProps.ts",
@@ -75,7 +76,14 @@
             "MiniMap\\images\\magic-ico.png",
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico.png",
-            "scripts\\TrueMiniMapPanel.ts"
+            "textures\\Square64.png",
+            "MiniMap\\images\\bow-ico-small.png",
+            "MiniMap\\images\\magic-ico-small.png",
+            "MiniMap\\images\\spear-ico-small.png",
+            "MiniMap\\images\\sword-ico-small.png",
+            "MiniMap\\images\\horse-ico-small.png",
+            "MiniMap\\images\\mace-ico-small.png",
+            "MiniMap\\images\\king-ico-small.png"
         ]
     }
 }

@@ -41,6 +41,7 @@ export class BattleInformationIconItem extends Component {
     private originalWidth = 40;
     private originalHeight = 40;
     private tempColor = new Color();
+    private flipX = false;
 
     onLoad() {
         this.initComponents();
@@ -50,13 +51,31 @@ export class BattleInformationIconItem extends Component {
         spriteFrame: SpriteFrame | null,
         width: number,
         height: number,
-        anchorY: number
+        anchorY: number,
+        flipX: boolean = false,
+        normalColor: Color | null = null,
+        engageFlashColor: Color | null = null
     ) {
         this.iconWidth = width;
         this.iconHeight = height;
 
         this.originalWidth = width;
         this.originalHeight = height;
+        this.flipX = flipX;
+
+        if (normalColor) {
+            this.copyColor(
+                normalColor,
+                this.normalColor
+            );
+        }
+
+        if (engageFlashColor) {
+            this.copyColor(
+                engageFlashColor,
+                this.engageFlashColor
+            );
+        }
 
         this.initComponents();
 
@@ -73,7 +92,7 @@ export class BattleInformationIconItem extends Component {
 
         if (this.uiTransform) {
             this.uiTransform.setContentSize(
-                this.originalWidth,
+                this.getVisualWidth(),
                 this.originalHeight
             );
 
@@ -96,7 +115,7 @@ export class BattleInformationIconItem extends Component {
 
         if (r <= 0) {
             this.uiTransform.setContentSize(
-                this.originalWidth,
+                this.getVisualWidth(),
                 0
             );
 
@@ -109,7 +128,7 @@ export class BattleInformationIconItem extends Component {
         );
 
         this.uiTransform.setContentSize(
-            this.originalWidth,
+            this.getVisualWidth(),
             this.originalHeight * visualRatio
         );
     }
@@ -160,6 +179,8 @@ export class BattleInformationIconItem extends Component {
                 Sprite.SizeMode.CUSTOM;
         }
 
+        this.flipX = false;
+
         if (this.uiTransform) {
             this.uiTransform.setContentSize(
                 this.originalWidth,
@@ -193,9 +214,25 @@ export class BattleInformationIconItem extends Component {
         }
 
         this.uiTransform.setContentSize(
-            this.iconWidth,
+            this.getVisualWidth(),
             this.iconHeight
         );
+    }
+
+    private getVisualWidth() {
+        return this.flipX
+            ? -this.originalWidth
+            : this.originalWidth;
+    }
+
+    private copyColor(
+        source: Color,
+        target: Color
+    ) {
+        target.r = source.r;
+        target.g = source.g;
+        target.b = source.b;
+        target.a = source.a;
     }
 
     private lerpColor(

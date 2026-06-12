@@ -56,17 +56,40 @@ System.register(["cc"], function (_export, _context) {
           this.originalWidth = 40;
           this.originalHeight = 40;
           this.tempColor = new Color();
+          this.flipX = false;
         }
 
         onLoad() {
           this.initComponents();
         }
 
-        setup(spriteFrame, width, height, anchorY) {
+        setup(spriteFrame, width, height, anchorY, flipX, normalColor, engageFlashColor) {
+          if (flipX === void 0) {
+            flipX = false;
+          }
+
+          if (normalColor === void 0) {
+            normalColor = null;
+          }
+
+          if (engageFlashColor === void 0) {
+            engageFlashColor = null;
+          }
+
           this.iconWidth = width;
           this.iconHeight = height;
           this.originalWidth = width;
           this.originalHeight = height;
+          this.flipX = flipX;
+
+          if (normalColor) {
+            this.copyColor(normalColor, this.normalColor);
+          }
+
+          if (engageFlashColor) {
+            this.copyColor(engageFlashColor, this.engageFlashColor);
+          }
+
           this.initComponents();
 
           if (this.iconSprite) {
@@ -76,7 +99,7 @@ System.register(["cc"], function (_export, _context) {
           }
 
           if (this.uiTransform) {
-            this.uiTransform.setContentSize(this.originalWidth, this.originalHeight);
+            this.uiTransform.setContentSize(this.getVisualWidth(), this.originalHeight);
             this.uiTransform.setAnchorPoint(0.5, anchorY);
           }
 
@@ -92,12 +115,12 @@ System.register(["cc"], function (_export, _context) {
           var r = this.clamp01(ratio);
 
           if (r <= 0) {
-            this.uiTransform.setContentSize(this.originalWidth, 0);
+            this.uiTransform.setContentSize(this.getVisualWidth(), 0);
             return;
           }
 
           var visualRatio = Math.max(this.minVisibleHeightRatio, r);
-          this.uiTransform.setContentSize(this.originalWidth, this.originalHeight * visualRatio);
+          this.uiTransform.setContentSize(this.getVisualWidth(), this.originalHeight * visualRatio);
         }
 
         updateEngageVisual(isEngaged, time) {
@@ -120,6 +143,8 @@ System.register(["cc"], function (_export, _context) {
             this.iconSprite.spriteFrame = null;
             this.iconSprite.sizeMode = Sprite.SizeMode.CUSTOM;
           }
+
+          this.flipX = false;
 
           if (this.uiTransform) {
             this.uiTransform.setContentSize(this.originalWidth, this.originalHeight);
@@ -144,7 +169,18 @@ System.register(["cc"], function (_export, _context) {
             this.uiTransform = this.node.addComponent(UITransform);
           }
 
-          this.uiTransform.setContentSize(this.iconWidth, this.iconHeight);
+          this.uiTransform.setContentSize(this.getVisualWidth(), this.iconHeight);
+        }
+
+        getVisualWidth() {
+          return this.flipX ? -this.originalWidth : this.originalWidth;
+        }
+
+        copyColor(source, target) {
+          target.r = source.r;
+          target.g = source.g;
+          target.b = source.b;
+          target.a = source.a;
         }
 
         lerpColor(a, b, t) {

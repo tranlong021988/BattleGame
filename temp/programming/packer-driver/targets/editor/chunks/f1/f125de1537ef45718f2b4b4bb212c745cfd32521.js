@@ -162,6 +162,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return false;
         }
 
+        isTargetingWave(targetWave) {
+          if (this.released) return false;
+          if (!targetWave) return false;
+          if (targetWave === this) return false;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.enemy) continue;
+
+            if (BattleWave.getWaveForUnit(u.enemy) === targetWave) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        isEngagedWithOtherWave(targetWave) {
+          if (this.released) return false;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.onBusy) continue;
+            if (!u.enemy) continue;
+            const enemyWave = BattleWave.getWaveForUnit(u.enemy);
+
+            if (enemyWave && enemyWave !== targetWave) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
         hasPendingLaneTransfer() {
           if (this.released) {
             return false;

@@ -354,12 +354,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.sim = new (_crd && RVOWorkerSimulator === void 0 ? (_reportPossibleCrUseOfRVOWorkerSimulator({
               error: Error()
             }), RVOWorkerSimulator) : RVOWorkerSimulator)();
-            console.log('[GameManager] Using Worker RVO backend');
           } else {
             this.sim = new (_crd && RVOSimulator === void 0 ? (_reportPossibleCrUseOfRVOSimulator({
               error: Error()
             }), RVOSimulator) : RVOSimulator)();
-            console.log('[GameManager] Using Main Thread RVO backend');
           }
         }
 
@@ -426,6 +424,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!killerWave || !victimWave) return;
           if (killerWave === victimWave) return;
           if (!victimWave.isDead()) return;
+          this.releaseAssistingWavesAfterWaveDefeated(killerWave, victimWave);
           killerWave.noteDefeatedEnemyWave(victimWave);
           this.pendingLaneWaves.add(killerWave);
           this.processPendingWaveLaneTransfers();
@@ -438,6 +437,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!wave) return;
           if (wave.isDead()) return;
           wave.enterCombatMode();
+        }
+
+        releaseAssistingWavesAfterWaveDefeated(killerWave, victimWave) {
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+            if (!wave) continue;
+            if (wave === killerWave) continue;
+            if (wave === victimWave) continue;
+            if (wave.team !== killerWave.team) continue;
+            if (wave.isDead()) continue;
+            if (!wave.isTargetingWave(victimWave)) continue;
+            if (wave.isEngagedWithOtherWave(victimWave)) continue;
+            if (wave.laneId < 0) continue;
+            wave.noteDefeatedEnemyWave(victimWave);
+            this.pendingLaneWaves.add(wave);
+          }
         }
 
         processPendingWaveLaneTransfers() {

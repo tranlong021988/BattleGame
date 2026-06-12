@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, input, Input, Quat, Vec3, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, input, Input, Quat, Vec3, BattleWave, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -44,11 +44,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       Quat = _cc.Quat;
       Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
-      CinematicOrbitRig = _unresolved_2.CinematicOrbitRig;
+      BattleWave = _unresolved_2.BattleWave;
     }, function (_unresolved_3) {
-      TopDownCameraDrag = _unresolved_3.TopDownCameraDrag;
+      CinematicOrbitRig = _unresolved_3.CinematicOrbitRig;
     }, function (_unresolved_4) {
-      GameManager = _unresolved_4.GameManager;
+      TopDownCameraDrag = _unresolved_4.TopDownCameraDrag;
+    }, function (_unresolved_5) {
+      GameManager = _unresolved_5.GameManager;
     }],
     execute: function () {
       _crd = true;
@@ -216,6 +218,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.log("Focus wave=" + wave.id + ", unit=" + unit.node.name);
         }
 
+        focusUnit(unit) {
+          if (!this.isUnitAlive(unit)) return;
+          this.suppressExitTap();
+
+          if (this.state === CinematicState.Idle) {
+            this.captureCurrentCamera();
+          }
+
+          this.state = CinematicState.Orbit;
+          this.currentWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          this.currentUnit = unit;
+
+          if (this.orbitRig) {
+            this.orbitRig.setTarget(unit);
+          }
+
+          this.parentCameraToOrbitRigKeepWorld();
+          this.resetEnterTweenFromCurrentLocalPose();
+
+          if (this.topDownCameraDrag) {
+            this.topDownCameraDrag.enabled = false;
+          }
+
+          this.exitTapTimer = this.exitTapDelay;
+          this.log("Focus unit=" + unit.node.name);
+        }
+
         onUnitWillDespawn(unit) {
           if (!unit) return;
           if (this.state !== CinematicState.Orbit) return;
@@ -276,7 +307,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         validateTarget() {
           if (!this.currentWave) {
-            this.beginReturnToOriginal();
+            if (!this.isUnitAlive(this.currentUnit)) {
+              this.beginReturnToOriginal();
+            }
+
             return;
           }
 

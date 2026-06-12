@@ -196,6 +196,36 @@ export class BattleCinematicCameraController extends Component {
         this.log(`Focus wave=${wave.id}, unit=${unit.node.name}`);
     }
 
+    public focusUnit(unit: Unit | null) {
+        if (!this.isUnitAlive(unit)) return;
+
+        this.suppressExitTap();
+
+        if (this.state === CinematicState.Idle) {
+            this.captureCurrentCamera();
+        }
+
+        this.state = CinematicState.Orbit;
+
+        this.currentWave = BattleWave.getWaveForUnit(unit);
+        this.currentUnit = unit;
+
+        if (this.orbitRig) {
+            this.orbitRig.setTarget(unit!);
+        }
+
+        this.parentCameraToOrbitRigKeepWorld();
+        this.resetEnterTweenFromCurrentLocalPose();
+
+        if (this.topDownCameraDrag) {
+            this.topDownCameraDrag.enabled = false;
+        }
+
+        this.exitTapTimer = this.exitTapDelay;
+
+        this.log(`Focus unit=${unit!.node.name}`);
+    }
+
     public onUnitWillDespawn(unit: Unit | null) {
         if (!unit) return;
         if (this.state !== CinematicState.Orbit) return;
@@ -270,7 +300,10 @@ export class BattleCinematicCameraController extends Component {
 
     private validateTarget() {
         if (!this.currentWave) {
-            this.beginReturnToOriginal();
+            if (!this.isUnitAlive(this.currentUnit)) {
+                this.beginReturnToOriginal();
+            }
+
             return;
         }
 

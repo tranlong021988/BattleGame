@@ -36,8 +36,7 @@ System.register(["cc"], function (_export, _context) {
             if (states) {
               states.play(); // Offset ngẫu nhiên từ 0 đến tổng chiều dài clip
 
-              states.setTime(math.randomRange(0, states.duration));
-              console.log(states.duration); // Cập nhật ngay lập tức để tránh bị giật frame đầu
+              states.setTime(math.randomRange(0, states.duration)); // Cập nhật ngay lập tức để tránh bị giật frame đầu
               // states.sample(); 
             }
           }
