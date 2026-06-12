@@ -243,6 +243,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.spawner = void 0;
           this.teamAPrefabMap = new Map();
           this.teamBPrefabMap = new Map();
+          this.pendingLaneWaves = new Set();
         }
 
         start() {
@@ -251,6 +252,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamB.length = 0;
           this.waves.length = 0;
           this.nextWaveId = 1;
+          this.pendingLaneWaves.clear();
           this.teamAHero = null;
           this.teamBHero = null;
           this.aliveCount[0] = 0;
@@ -311,6 +313,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.sim && this.sim.destroy) {
             this.sim.destroy();
           }
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (wave) {
+              wave.releaseReferences();
+            }
+          }
+
+          this.waves.length = 0;
+          this.pendingLaneWaves.clear();
+          this.teamA.length = 0;
+          this.teamB.length = 0;
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamA = [];
+          (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+            error: Error()
+          }), EnemyFinder) : EnemyFinder).teamB = [];
+          this.teamAPrefabMap.clear();
+          this.teamBPrefabMap.clear();
+          this.spatialGrid.build([], []);
+          this.sim = null;
         }
 
         resetCombatPoint() {
@@ -356,6 +381,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
           }
+
+          this.processPendingWaveLaneTransfers();
+          this.pruneDeadWaves();
         }
 
         reportKill(killer, victim) {
@@ -385,6 +413,133 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.addCombatPointFromVictim(killerTeam, victim, isCounterKill);
           this.refreshBattleStatsUI();
+        }
+
+        onUnitKilled(killer, victim) {
+          if (!killer || !victim) return;
+          const killerWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(killer);
+          const victimWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(victim);
+          if (!killerWave || !victimWave) return;
+          if (killerWave === victimWave) return;
+          if (!victimWave.isDead()) return;
+          this.releaseAssistingWavesAfterWaveDefeated(killerWave, victimWave);
+          killerWave.noteDefeatedEnemyWave(victimWave);
+          this.pendingLaneWaves.add(killerWave);
+          this.processPendingWaveLaneTransfers();
+        }
+
+        onWaveCombatStarted(unit) {
+          const wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return;
+          if (wave.isDead()) return;
+          wave.enterCombatMode();
+        }
+
+        releaseAssistingWavesAfterWaveDefeated(killerWave, victimWave) {
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+            if (!wave) continue;
+            if (wave === killerWave) continue;
+            if (wave === victimWave) continue;
+            if (wave.team !== killerWave.team) continue;
+            if (wave.isDead()) continue;
+            if (!wave.isTargetingWave(victimWave)) continue;
+            if (wave.isEngagedWithOtherWave(victimWave)) continue;
+            if (wave.laneId < 0) continue;
+            wave.setPendingLaneId(wave.laneId);
+            this.pendingLaneWaves.add(wave);
+          }
+        }
+
+        processPendingWaveLaneTransfers() {
+          if (this.pendingLaneWaves.size <= 0) {
+            return;
+          }
+
+          let shouldRebuildSpatialGrid = false;
+          const waves = Array.from(this.pendingLaneWaves);
+
+          for (let i = 0; i < waves.length; i++) {
+            const wave = waves[i];
+
+            if (!wave || wave.isDead()) {
+              this.pendingLaneWaves.delete(wave);
+              continue;
+            }
+
+            if (!wave.hasPendingLaneTransfer()) {
+              this.pendingLaneWaves.delete(wave);
+              continue;
+            }
+
+            if (!wave.hasEngaged()) {
+              const sameLaneEnemy = this.findNearestEnemyInCurrentLane(wave);
+
+              if (sameLaneEnemy) {
+                wave.setPendingLaneId(sameLaneEnemy.laneId);
+              }
+            }
+
+            if (wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
+              this.pendingLaneWaves.delete(wave);
+              shouldRebuildSpatialGrid = true;
+            }
+          }
+
+          if (shouldRebuildSpatialGrid) {
+            this.rebuildSpatialGrid();
+          }
+        }
+
+        pruneDeadWaves() {
+          for (let i = this.waves.length - 1; i >= 0; i--) {
+            const wave = this.waves[i];
+            if (!wave || !wave.isDead()) continue;
+            this.pendingLaneWaves.delete(wave);
+            wave.releaseReferences();
+            this.waves.splice(i, 1);
+          }
+        }
+
+        findNearestEnemyInCurrentLane(wave) {
+          if (!wave) return null;
+          if (wave.laneId < 0) return null;
+          const enemies = wave.team === 0 ? this.teamB : this.teamA;
+          const x = wave.getAverageX();
+          const z = wave.getAverageZ();
+          let best = null;
+          let bestDistSq = Infinity;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            if (!this.isAliveUnit(enemy)) continue;
+            if (enemy.laneId !== wave.laneId) continue;
+            const dx = enemy.agent.pos.x - x;
+            const dz = enemy.agent.pos.z - z;
+            const d = dx * dx + dz * dz;
+
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              best = enemy;
+            }
+          }
+
+          return best;
+        }
+
+        isAliveUnit(unit) {
+          if (!unit) return false;
+          if (!unit.node.activeInHierarchy) return false;
+          if (!unit.agent) return false;
+          if (!unit.props) return false;
+          if (unit.props.isDead()) return false;
+          return true;
         }
 
         addCombatPointFromVictim(killerTeam, victim, isCounterKill) {
@@ -715,6 +870,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!unit) return;
           unit.laneId = laneId;
+          unit.forwardLaneOffsetX = pos.x - this.getLaneCenterX(laneId);
           wave.addUnit(unit);
         }
 

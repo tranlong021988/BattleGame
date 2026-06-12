@@ -42,6 +42,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.units = [];
           this.assignedCounterCount = 0;
           this.laneId = -1;
+          this.pendingLaneId = -1;
+          this.combatModeActive = false;
+          this.released = false;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -52,7 +55,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         addUnit(unit) {
           if (!unit) return;
+          if (this.released) return;
           BattleWave.unitWaveMap.set(unit, this.id);
+          BattleWave.unitWaveObjectMap.set(unit, this);
 
           if (this.units.indexOf(unit) < 0) {
             this.units.push(unit);
@@ -64,6 +69,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getAliveCount() {
+          if (this.released) {
+            return 0;
+          }
+
           var count = 0;
 
           for (var i = 0; i < this.units.length; i++) {
@@ -88,6 +97,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getRandomPreferredAliveUnit() {
+          if (this.released) {
+            return null;
+          }
+
           var onForwardUnits = [];
           var notBusyUnits = [];
           var aliveUnits = [];
@@ -137,6 +150,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         hasEngaged() {
+          if (this.released) {
+            return false;
+          }
+
           for (var i = 0; i < this.units.length; i++) {
             var u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
@@ -149,11 +166,186 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return false;
         }
 
+        isTargetingWave(targetWave) {
+          if (this.released) return false;
+          if (!targetWave) return false;
+          if (targetWave === this) return false;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.enemy) continue;
+
+            if (BattleWave.getWaveForUnit(u.enemy) === targetWave) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        isEngagedWithOtherWave(targetWave) {
+          if (this.released) return false;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.onBusy) continue;
+            if (!u.enemy) continue;
+            var enemyWave = BattleWave.getWaveForUnit(u.enemy);
+
+            if (enemyWave && enemyWave !== targetWave) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        hasPendingLaneTransfer() {
+          if (this.released) {
+            return false;
+          }
+
+          return this.pendingLaneId >= 0;
+        }
+
+        noteDefeatedEnemyWave(enemyWave) {
+          if (!enemyWave) return;
+          if (enemyWave.laneId < 0) return;
+          this.pendingLaneId = enemyWave.laneId;
+        }
+
+        setPendingLaneId(laneId) {
+          if (this.released) return;
+          if (laneId < 0) return;
+          this.pendingLaneId = laneId;
+        }
+
+        tryApplyPendingLaneTransfer(formationWidth, unitSpacing) {
+          if (this.released) {
+            return false;
+          }
+
+          if (!this.hasPendingLaneTransfer()) {
+            return false;
+          }
+
+          if (this.hasEngaged()) {
+            return false;
+          }
+
+          this.setLaneId(this.pendingLaneId, formationWidth, unitSpacing);
+          this.pendingLaneId = -1;
+          this.resumeForward();
+          return true;
+        }
+
+        setLaneId(laneId, formationWidth, unitSpacing) {
+          if (formationWidth === void 0) {
+            formationWidth = 1;
+          }
+
+          if (unitSpacing === void 0) {
+            unitSpacing = 1.5;
+          }
+
+          if (this.released) return;
+          this.laneId = laneId;
+          this.assignLaneOffsets(formationWidth, unitSpacing);
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            u.laneId = laneId;
+          }
+        }
+
+        resumeForward() {
+          if (this.released) return;
+          this.combatModeActive = false;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy) continue;
+            u.setWaveForwardLane(this.laneId, u.forwardLaneOffsetX);
+          }
+        }
+
+        enterCombatMode() {
+          if (this.released) return;
+
+          if (this.combatModeActive) {
+            return;
+          }
+
+          this.combatModeActive = true;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            u.enterWaveCombatMode();
+          }
+        }
+
+        captureCurrentLaneOffsets(laneCenterX) {
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.agent) continue;
+            u.forwardLaneOffsetX = u.agent.pos.x - laneCenterX;
+          }
+        }
+
+        assignLaneOffsets(formationWidth, unitSpacing) {
+          var aliveUnits = this.getAliveUnitsSortedByX();
+          var count = aliveUnits.length;
+          if (count <= 0) return;
+          var columns = Math.max(1, Math.min(Math.floor(formationWidth), count));
+          var spacing = Math.max(0.01, unitSpacing);
+
+          for (var i = 0; i < count; i++) {
+            var col = Math.min(columns - 1, Math.floor(i * columns / count));
+            aliveUnits[i].forwardLaneOffsetX = (col - (columns - 1) * 0.5) * spacing;
+          }
+        }
+
+        getAliveUnitsSortedByX() {
+          var result = [];
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            result.push(u);
+          }
+
+          result.sort((a, b) => {
+            var ax = a.agent ? a.agent.pos.x : 0;
+            var bx = b.agent ? b.agent.pos.x : 0;
+            return ax - bx;
+          });
+          return result;
+        }
+
         isDead() {
+          if (this.released) {
+            return true;
+          }
+
           return this.getAliveCount() <= 0;
         }
 
+        releaseReferences() {
+          this.released = true;
+          this.pendingLaneId = -1;
+          this.combatModeActive = false;
+          this.assignedCounterCount = 0;
+          this.units.length = 0;
+        }
+
         getAverageX() {
+          if (this.released) return 0;
           var sum = 0;
           var count = 0;
 
@@ -170,6 +362,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getAverageZ() {
+          if (this.released) return 0;
           var sum = 0;
           var count = 0;
 
@@ -186,6 +379,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getClosestDistanceSqTo(x, z) {
+          if (this.released) return Infinity;
           var best = Infinity;
 
           for (var i = 0; i < this.units.length; i++) {
@@ -211,6 +405,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         isUnitAlive(unit) {
+          if (this.released) return false;
           if (!unit) return false;
           var currentWaveId = BattleWave.unitWaveMap.get(unit);
 
@@ -225,9 +420,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return true;
         }
 
+        static getWaveForUnit(unit) {
+          if (!unit) return null;
+          return BattleWave.unitWaveObjectMap.get(unit) || null;
+        }
+
       });
 
       BattleWave.unitWaveMap = new WeakMap();
+      BattleWave.unitWaveObjectMap = new WeakMap();
 
       _cclegacy._RF.pop();
 

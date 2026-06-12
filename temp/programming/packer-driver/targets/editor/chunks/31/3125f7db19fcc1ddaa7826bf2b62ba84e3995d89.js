@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, EnemyFinder, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, EnemyFinder, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -95,10 +95,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor20, this);
 
+          _initializerDefineProperty(this, "laneReturnTolerance", _descriptor21, this);
+
           this.team = 0;
           this.unitTypeName = '';
           this.isHero = false;
           this.laneId = -1;
+          this.forwardLaneOffsetX = 0;
+          this.returningToWaveLaneSlot = false;
           this.sim = null;
           this.agent = null;
           this.enemy = null;
@@ -246,6 +250,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
           this.laneId = -1;
+          this.forwardLaneOffsetX = 0;
+          this.returningToWaveLaneSlot = false;
 
           if (this.agent) {
             this.agent.locked = false;
@@ -271,7 +277,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.onBusy = false;
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
-          this.laneId = -1;
 
           if (this.agent) {
             this.agent.vel.x = 0;
@@ -279,6 +284,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
             this.agent.locked = this.isSteady;
+          }
+        }
+
+        setWaveForwardLane(laneId, laneOffsetX = this.forwardLaneOffsetX, returnToSlot = true) {
+          if (this.isSteady) return;
+          this.laneId = laneId;
+          this.forwardLaneOffsetX = laneOffsetX;
+          this.returningToWaveLaneSlot = returnToSlot;
+          this.enemy = null;
+          this.onBusy = false;
+          this.onForward = true;
+          this.cachedNearestInRange = null;
+          this.cachedNearestEnemy = null;
+
+          if (this.agent) {
+            this.agent.locked = false;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
+            this.agent.onForward = 1;
+          }
+        }
+
+        enterWaveCombatMode() {
+          this.returningToWaveLaneSlot = false;
+          this.onForward = false;
+          this.cachedNearestEnemy = null;
+          this.cachedNearestInRange = null;
+
+          if (this.agent) {
+            this.agent.onForward = 0;
+
+            if (!this.onBusy) {
+              this.agent.locked = this.isSteady;
+            }
           }
         }
 
@@ -313,6 +354,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const nearestInRange = this.getNearestEnemyInAttackRangeThrottled();
 
           if (nearestInRange) {
+            const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance;
+
+            if (gm) {
+              gm.onWaveCombatStarted(this);
+            }
+
+            this.returningToWaveLaneSlot = false;
             this.onForward = false;
             this.agent.onForward = 0;
             this.enemy = nearestInRange;
@@ -338,11 +388,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (this.onForward) {
-            this.updateForwardPhase();
+            if (this.returningToWaveLaneSlot && !this.shouldReturnToLaneSlot()) {
+              this.returningToWaveLaneSlot = false;
+            }
+
+            if (!this.returningToWaveLaneSlot) {
+              this.updateForwardPhase();
+            }
 
             if (this.onForward) {
               this.agent.onForward = 1;
-              this.sim.setPrefVelocity(this.agent, this.forwardDir.x * this.agent.maxSpeed, this.forwardDir.z * this.agent.maxSpeed);
+              this.updateForwardPrefVelocity();
               this.sync(deltaTime, true);
               return;
             }
@@ -430,6 +486,47 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.onForward = false;
             return;
           }
+        }
+
+        shouldReturnToLaneSlot() {
+          if (!this.agent) return false;
+          const laneTargetX = this.getCurrentLaneTargetX();
+
+          if (!this.returningToWaveLaneSlot || laneTargetX === null) {
+            return false;
+          }
+
+          const tolerance = Math.max(0.01, this.laneReturnTolerance);
+          return Math.abs(laneTargetX - this.agent.pos.x) > tolerance;
+        }
+
+        updateForwardPrefVelocity() {
+          if (!this.agent) return;
+          const laneTargetX = this.getCurrentLaneTargetX();
+
+          if (this.returningToWaveLaneSlot && laneTargetX !== null) {
+            const dx = laneTargetX - this.agent.pos.x;
+
+            if (this.shouldReturnToLaneSlot()) {
+              this.sim.setPrefVelocity(this.agent, Math.sign(dx) * this.agent.maxSpeed, 0);
+              return;
+            }
+          }
+
+          this.sim.setPrefVelocity(this.agent, this.forwardDir.x * this.agent.maxSpeed, this.forwardDir.z * this.agent.maxSpeed);
+        }
+
+        getCurrentLaneTargetX() {
+          if (this.laneId < 0) return null;
+          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm || !gm.enableLaneSpawn) {
+            return null;
+          }
+
+          return gm.getLaneCenterX(this.laneId) + this.forwardLaneOffsetX;
         }
 
         hasPassedTargetAlongForward(target) {
@@ -835,6 +932,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         writable: true,
         initializer: function () {
           return 0.15;
+        }
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "laneReturnTolerance", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.35;
         }
       })), _class2)) || _class));
 

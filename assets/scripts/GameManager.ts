@@ -438,6 +438,11 @@ export class GameManager extends Component {
         if (killerWave === victimWave) return;
         if (!victimWave.isDead()) return;
 
+        this.releaseAssistingWavesAfterWaveDefeated(
+            killerWave,
+            victimWave
+        );
+
         killerWave.noteDefeatedEnemyWave(victimWave);
         this.pendingLaneWaves.add(killerWave);
 
@@ -452,6 +457,27 @@ export class GameManager extends Component {
         if (wave.isDead()) return;
 
         wave.enterCombatMode();
+    }
+
+    private releaseAssistingWavesAfterWaveDefeated(
+        killerWave: BattleWave,
+        victimWave: BattleWave
+    ) {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave === killerWave) continue;
+            if (wave === victimWave) continue;
+            if (wave.team !== killerWave.team) continue;
+            if (wave.isDead()) continue;
+            if (!wave.isTargetingWave(victimWave)) continue;
+            if (wave.isEngagedWithOtherWave(victimWave)) continue;
+            if (wave.laneId < 0) continue;
+
+            wave.setPendingLaneId(wave.laneId);
+            this.pendingLaneWaves.add(wave);
+        }
     }
 
     private processPendingWaveLaneTransfers() {

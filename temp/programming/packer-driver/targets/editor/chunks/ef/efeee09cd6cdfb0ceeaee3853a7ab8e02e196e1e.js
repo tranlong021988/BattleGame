@@ -135,6 +135,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             this.unit.clearEnemy();
+
+            if (gm) {
+              gm.onUnitKilled(this.unit, enemy);
+            }
           }
         }
 
