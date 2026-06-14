@@ -37,6 +37,7 @@ export class BattleInformationIconItem extends Component {
     engageFlashColor: Color = new Color(255, 60, 60, 255);
 
     private uiTransform: UITransform | null = null;
+    private iconTransform: UITransform | null = null;
 
     private originalWidth = 40;
     private originalHeight = 40;
@@ -92,7 +93,7 @@ export class BattleInformationIconItem extends Component {
 
         if (this.uiTransform) {
             this.uiTransform.setContentSize(
-                this.getVisualWidth(),
+                this.originalWidth,
                 this.originalHeight
             );
 
@@ -101,6 +102,11 @@ export class BattleInformationIconItem extends Component {
                 anchorY
             );
         }
+
+        this.applyIconSize(
+            this.originalWidth,
+            this.originalHeight
+        );
 
         this.node.setScale(1, 1, 1);
         this.node.active = true;
@@ -114,8 +120,8 @@ export class BattleInformationIconItem extends Component {
         const r = this.clamp01(ratio);
 
         if (r <= 0) {
-            this.uiTransform.setContentSize(
-                this.getVisualWidth(),
+            this.applyIconSize(
+                this.originalWidth,
                 0
             );
 
@@ -127,8 +133,8 @@ export class BattleInformationIconItem extends Component {
             r
         );
 
-        this.uiTransform.setContentSize(
-            this.getVisualWidth(),
+        this.applyIconSize(
+            this.originalWidth,
             this.originalHeight * visualRatio
         );
     }
@@ -188,10 +194,20 @@ export class BattleInformationIconItem extends Component {
             );
         }
 
+        this.applyIconSize(
+            this.originalWidth,
+            this.originalHeight
+        );
+
         this.node.setScale(1, 1, 1);
     }
 
     private initComponents() {
+        if (!this.iconSprite) {
+            this.iconSprite =
+                this.findChildSprite();
+        }
+
         if (!this.iconSprite) {
             this.iconSprite =
                 this.getComponent(Sprite);
@@ -205,6 +221,18 @@ export class BattleInformationIconItem extends Component {
         this.iconSprite.sizeMode =
             Sprite.SizeMode.CUSTOM;
 
+        this.iconTransform =
+            this.iconSprite.node.getComponent(
+                UITransform
+            );
+
+        if (!this.iconTransform) {
+            this.iconTransform =
+                this.iconSprite.node.addComponent(
+                    UITransform
+                );
+        }
+
         this.uiTransform =
             this.getComponent(UITransform);
 
@@ -214,15 +242,70 @@ export class BattleInformationIconItem extends Component {
         }
 
         this.uiTransform.setContentSize(
-            this.getVisualWidth(),
+            this.originalWidth,
+            this.iconHeight
+        );
+
+        this.applyIconSize(
+            this.originalWidth,
             this.iconHeight
         );
     }
 
-    private getVisualWidth() {
-        return this.flipX
-            ? -this.originalWidth
-            : this.originalWidth;
+    private findChildSprite() {
+        const children =
+            this.node.children;
+
+        for (
+            let i = 0;
+            i < children.length;
+            i++
+        ) {
+            const sprite =
+                children[i].getComponent(Sprite);
+
+            if (sprite) {
+                return sprite;
+            }
+        }
+
+        return null;
+    }
+
+    private applyIconSize(
+        width: number,
+        height: number
+    ) {
+        if (this.iconTransform) {
+            this.iconTransform.setContentSize(
+                Math.max(0, width),
+                Math.max(0, height)
+            );
+        }
+
+        if (
+            this.iconSprite &&
+            this.iconSprite.node !== this.node
+        ) {
+            if (this.iconTransform) {
+                this.iconTransform.setAnchorPoint(
+                    0.5,
+                    0.5
+                );
+            }
+
+            this.iconSprite.node.setPosition(
+                0,
+                0,
+                0
+            );
+
+            this.iconSprite.node.setScale(
+                this.flipX ? -1 : 1,
+                1,
+                1
+            );
+        }
     }
 
     private copyColor(

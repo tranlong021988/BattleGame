@@ -289,6 +289,27 @@ export class BattleWave {
         }
     }
 
+    releaseForwardToFreeHunt() {
+        if (this.released) return;
+
+        this.combatModeActive = false;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            u.enterWaveFreeHuntMode();
+        }
+    }
+
+    clearLaneControl() {
+        if (this.released) return;
+
+        this.pendingLaneId = -1;
+        this.combatModeActive = false;
+    }
+
     enterCombatMode() {
         if (this.released) return;
 

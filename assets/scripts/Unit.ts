@@ -27,7 +27,6 @@ export class Unit extends Component {
     @property rotationSpeed = 10;
 
     @property moveThreshold = 0.2;
-    @property velThreshold = 0.05;
     @property visualThreshold = 0.01;
 
     @property onForward = true;
@@ -68,6 +67,7 @@ export class Unit extends Component {
     private frameCounter = 0;
     private cachedNearestInRange: Unit | null = null;
     private cachedNearestEnemy: Unit | null = null;
+    private forwardAdjacentTarget: Unit | null = null;
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
@@ -108,6 +108,7 @@ export class Unit extends Component {
 
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardAdjacentTarget = null;
 
         if (this.laneId < 0) {
             this.laneId = -1;
@@ -127,6 +128,7 @@ export class Unit extends Component {
 
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardAdjacentTarget = null;
 
         if (value) {
             this.enemy = null;
@@ -167,7 +169,11 @@ export class Unit extends Component {
         if (!this.agent) return;
 
         this.agent.team = this.team;
-        this.agent.onForward = this.onForward ? 1 : 0;
+        this.agent.onForward =
+            this.onForward &&
+            !this.returningToWaveLaneSlot
+                ? 1
+                : 0;
 
         this.agent.forwardX = this.forwardDir.x;
         this.agent.forwardZ = this.forwardDir.z;
@@ -218,6 +224,7 @@ export class Unit extends Component {
 
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardAdjacentTarget = null;
         this.laneId = -1;
         this.forwardLaneOffsetX = 0;
         this.returningToWaveLaneSlot = false;
@@ -248,6 +255,7 @@ export class Unit extends Component {
 
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardAdjacentTarget = null;
 
         if (this.agent) {
             this.agent.vel.x = 0;
@@ -255,6 +263,40 @@ export class Unit extends Component {
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
             this.agent.locked = this.isSteady;
+        }
+    }
+
+    public enterFreeHuntMode(
+        searchRange: number = this.targetSearchRange
+    ) {
+        this.isSteady = false;
+        this.onForward = false;
+        this.returningToWaveLaneSlot = false;
+        this.laneId = -1;
+        this.forwardLaneOffsetX = 0;
+        this.targetSearchRange = Math.max(
+            this.targetSearchRange,
+            searchRange
+        );
+
+        this.cachedNearestInRange = null;
+        this.cachedNearestEnemy = null;
+        this.forwardAdjacentTarget = null;
+
+        if (!this.onBusy) {
+            this.enemy = null;
+        }
+
+        if (this.agent) {
+            this.agent.locked = this.onBusy;
+            this.agent.onForward = 0;
+
+            if (!this.onBusy) {
+                this.agent.vel.x = 0;
+                this.agent.vel.z = 0;
+                this.agent.prefVel.x = 0;
+                this.agent.prefVel.z = 0;
+            }
         }
     }
 
@@ -274,6 +316,7 @@ export class Unit extends Component {
 
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardAdjacentTarget = null;
 
         if (this.agent) {
             this.agent.locked = false;
@@ -291,6 +334,24 @@ export class Unit extends Component {
 
         this.cachedNearestEnemy = null;
         this.cachedNearestInRange = null;
+        this.forwardAdjacentTarget = null;
+
+        if (this.agent) {
+            this.agent.onForward = 0;
+
+            if (!this.onBusy) {
+                this.agent.locked = this.isSteady;
+            }
+        }
+    }
+
+    enterWaveFreeHuntMode() {
+        this.returningToWaveLaneSlot = false;
+        this.onForward = false;
+
+        this.cachedNearestEnemy = null;
+        this.cachedNearestInRange = null;
+        this.forwardAdjacentTarget = null;
 
         if (this.agent) {
             this.agent.onForward = 0;
@@ -393,7 +454,10 @@ export class Unit extends Component {
             }
 
             if (this.onForward) {
-                this.agent.onForward = 1;
+                this.agent.onForward =
+                    this.returningToWaveLaneSlot
+                        ? 0
+                        : 1;
 
                 this.updateForwardPrefVelocity();
 
@@ -472,19 +536,9 @@ export class Unit extends Component {
         const nearestLaneEnemy =
             this.findNearestEnemyInSameLane();
 
-        const nearestAdjacentLaneEnemy =
-            this.findNearestEnemyInAdjacentLane();
-
-        if (
-            nearestAdjacentLaneEnemy &&
-            nearestAdjacentLaneEnemy.agent &&
-            this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
-        ) {
-            this.onForward = false;
-            return;
-        }
-
         if (nearestLaneEnemy && nearestLaneEnemy.agent) {
+            this.forwardAdjacentTarget = null;
+
             if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
                 this.onForward = false;
             }
@@ -492,16 +546,73 @@ export class Unit extends Component {
             return;
         }
 
+        let nearestAdjacentLaneEnemy =
+            this.getForwardAdjacentTarget();
+
+        if (!nearestAdjacentLaneEnemy) {
+            nearestAdjacentLaneEnemy =
+                this.findNearestEnemyInAdjacentLane(true);
+            this.forwardAdjacentTarget =
+                nearestAdjacentLaneEnemy;
+        }
+
+        if (nearestAdjacentLaneEnemy) {
+            if (
+                this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
+            ) {
+                this.forwardAdjacentTarget = null;
+
+                if (
+                    !this.releaseWaveForwardToFreeHunt(
+                        nearestAdjacentLaneEnemy
+                    )
+                ) {
+                    this.onForward = false;
+                }
+
+                return;
+            }
+        }
+
         const enemyHero = this.getEnemyHero();
 
         if (
             enemyHero &&
-            enemyHero.agent &&
+            this.isValidEnemy(enemyHero) &&
             this.hasPassedTargetAlongForward(enemyHero)
         ) {
-            this.onForward = false;
+            if (
+                !this.releaseWaveForwardToHeroFreeHunt(
+                    enemyHero
+                )
+            ) {
+                this.onForward = false;
+            }
+
             return;
         }
+    }
+
+    private releaseWaveForwardToFreeHunt(target: Unit) {
+        const gm = GameManager.instance;
+
+        if (!gm) return false;
+
+        return gm.onWaveForwardPassedAdjacentTarget(
+            this,
+            target
+        );
+    }
+
+    private releaseWaveForwardToHeroFreeHunt(hero: Unit) {
+        const gm = GameManager.instance;
+
+        if (!gm) return false;
+
+        return gm.onWaveForwardPassedHeroTarget(
+            this,
+            hero
+        );
     }
 
     private shouldReturnToLaneSlot() {
@@ -599,6 +710,40 @@ export class Unit extends Component {
         return false;
     }
 
+    private isTargetAheadAlongForward(target: Unit): boolean {
+        if (!this.agent || !target || !target.agent) return false;
+
+        if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
+            const dz = target.agent.pos.z - this.agent.pos.z;
+
+            return this.forwardDir.z >= 0
+                ? dz >= 0
+                : dz <= 0;
+        }
+
+        const dx = target.agent.pos.x - this.agent.pos.x;
+
+        return this.forwardDir.x >= 0
+            ? dx >= 0
+            : dx <= 0;
+    }
+
+    private getForwardAdjacentTarget(): Unit | null {
+        const target = this.forwardAdjacentTarget;
+
+        if (!target) return null;
+
+        if (
+            !this.isValidEnemy(target) ||
+            !this.isAdjacentLane(target.laneId)
+        ) {
+            this.forwardAdjacentTarget = null;
+            return null;
+        }
+
+        return target;
+    }
+
     private findNearestEnemyInSameLane(): Unit | null {
         if (!this.agent) return null;
         if (this.laneId < 0) return this.getNearestEnemyThrottled();
@@ -633,7 +778,9 @@ export class Unit extends Component {
         return best;
     }
 
-    private findNearestEnemyInAdjacentLane(): Unit | null {
+    private findNearestEnemyInAdjacentLane(
+        onlyAhead: boolean = false
+    ): Unit | null {
         if (!this.agent) return null;
         if (this.laneId < 0) return null;
 
@@ -651,6 +798,7 @@ export class Unit extends Component {
 
             if (!this.isValidEnemy(e)) continue;
             if (!this.isAdjacentLane(e.laneId)) continue;
+            if (onlyAhead && !this.isTargetAheadAlongForward(e)) continue;
 
             const dx = e.agent!.pos.x - this.agent.pos.x;
             const dz = e.agent!.pos.z - this.agent.pos.z;
@@ -847,37 +995,36 @@ export class Unit extends Component {
         const dz = targetZ - current.z;
 
         const distSq = dx * dx + dz * dz;
+        let visualX = current.x;
+        let visualZ = current.z;
 
         if (distSq >= this.visualThreshold * this.visualThreshold) {
             const t = Unit.visualLerpT;
 
-            const newX = current.x + dx * t;
-            const newZ = current.z + dz * t;
+            visualX = current.x + dx * t;
+            visualZ = current.z + dz * t;
 
-            this.tempPos.set(newX, current.y, newZ);
+            this.tempPos.set(visualX, current.y, visualZ);
             this.node.setWorldPosition(this.tempPos);
         }
 
         if (!rotateByVelocity) return;
 
-        const vx = this.agent.vel.x;
-        const vz = this.agent.vel.z;
-
-        const speedSq = vx * vx + vz * vz;
-
-        if (speedSq < this.velThreshold * this.velThreshold) return;
-
-        const moveDx = this.agent.pos.x - this.lastStablePos.x;
-        const moveDz = this.agent.pos.z - this.lastStablePos.z;
+        const moveDx = visualX - this.lastStablePos.x;
+        const moveDz = visualZ - this.lastStablePos.z;
 
         const moveDistSq = moveDx * moveDx + moveDz * moveDz;
+        const minMove = Math.max(
+            this.visualThreshold,
+            this.moveThreshold
+        );
 
-        if (moveDistSq < this.moveThreshold * this.moveThreshold) return;
+        if (moveDistSq < minMove * minMove) return;
 
-        this.lastStablePos.x = this.agent.pos.x;
-        this.lastStablePos.z = this.agent.pos.z;
+        this.lastStablePos.x = visualX;
+        this.lastStablePos.z = visualZ;
 
-        const targetAngle = Math.atan2(vx, vz) * 180 / Math.PI;
+        const targetAngle = Math.atan2(moveDx, moveDz) * 180 / Math.PI;
         const currentY = this.getVisualEulerY();
 
         const newY = this.lerpAngle(

@@ -922,11 +922,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           node.layer = Layers.Enum.UI_2D;
           var ui = node.addComponent(UITransform);
           ui.setContentSize(this.iconWidth, this.iconHeight);
-          var sprite = node.addComponent(Sprite);
+          var spriteNode = new Node('mini-map-wave-icon-sprite');
+          spriteNode.layer = Layers.Enum.UI_2D;
+          node.addChild(spriteNode);
+          var spriteUi = spriteNode.addComponent(UITransform);
+          spriteUi.setContentSize(this.iconWidth, this.iconHeight);
+          spriteUi.setAnchorPoint(0.5, 0.5);
+          var sprite = spriteNode.addComponent(Sprite);
           sprite.sizeMode = Sprite.SizeMode.CUSTOM;
-          node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
+          var item = node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
           }), BattleInformationIconItem) : BattleInformationIconItem);
+          item.iconSprite = sprite;
           return node;
         }
 

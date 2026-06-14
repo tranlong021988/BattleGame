@@ -63,6 +63,7 @@
             "materials\\VATAnimMat.mtl",
             "prefabs\\BlueUnit.prefab",
             "prefabs\\RedUnit.prefab",
+            "textures\\Square64.png",
             "textures\\terrain-sand.png",
             "3D\\Fighter.Body.low_Baked.001_vat\\1989_dog.fbx",
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001-remap_info.json",
@@ -70,20 +71,19 @@
             "3D\\Fighter.Body.low_Baked.001_vat\\Fighter.Body.low_Baked.001_vat.png",
             "3D\\Fighter.Body.low_Baked.001_vat\\Untitled.fbx",
             "MiniMap\\images\\auto-atlas.pac",
-            "MiniMap\\images\\bow-ico.png",
-            "MiniMap\\images\\horse-ico.png",
-            "MiniMap\\images\\mace-ico.png",
-            "MiniMap\\images\\magic-ico.png",
-            "MiniMap\\images\\spear-ico.png",
-            "MiniMap\\images\\sword-ico.png",
-            "textures\\Square64.png",
             "MiniMap\\images\\bow-ico-small.png",
-            "MiniMap\\images\\magic-ico-small.png",
-            "MiniMap\\images\\spear-ico-small.png",
-            "MiniMap\\images\\sword-ico-small.png",
+            "MiniMap\\images\\bow-ico.png",
             "MiniMap\\images\\horse-ico-small.png",
+            "MiniMap\\images\\horse-ico.png",
+            "MiniMap\\images\\king-ico-small.png",
             "MiniMap\\images\\mace-ico-small.png",
-            "MiniMap\\images\\king-ico-small.png"
+            "MiniMap\\images\\mace-ico.png",
+            "MiniMap\\images\\magic-ico-small.png",
+            "MiniMap\\images\\magic-ico.png",
+            "MiniMap\\images\\spear-ico-small.png",
+            "MiniMap\\images\\spear-ico.png",
+            "MiniMap\\images\\sword-ico-small.png",
+            "MiniMap\\images\\sword-ico.png"
         ]
     }
 }

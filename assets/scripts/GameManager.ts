@@ -166,6 +166,9 @@ export class GameManager extends Component {
     @property
     squareFormationWidth = 4;
 
+    @property
+    waveForwardReleaseRecoveryFrames = 90;
+
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -188,6 +191,8 @@ export class GameManager extends Component {
     private teamAPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private pendingLaneWaves: Set<BattleWave> = new Set();
+    private forwardReleasedWaves: Map<BattleWave, number> = new Map();
+    private endgameFreeHuntUnlocked = false;
 
     start() {
         GameManager.instance = this;
@@ -198,6 +203,8 @@ export class GameManager extends Component {
         this.waves.length = 0;
         this.nextWaveId = 1;
         this.pendingLaneWaves.clear();
+        this.forwardReleasedWaves.clear();
+        this.endgameFreeHuntUnlocked = false;
 
         this.teamAHero = null;
         this.teamBHero = null;
@@ -295,6 +302,7 @@ export class GameManager extends Component {
 
         this.waves.length = 0;
         this.pendingLaneWaves.clear();
+        this.forwardReleasedWaves.clear();
 
         this.teamA.length = 0;
         this.teamB.length = 0;
@@ -358,12 +366,18 @@ export class GameManager extends Component {
             this.rebuildSpatialGrid();
         }
 
-        if (this.enableAutoSpawn) {
+        if (
+            this.enableAutoSpawn &&
+            !this.endgameFreeHuntUnlocked
+        ) {
             this.updateAutoSpawn(deltaTime);
         }
 
         this.processPendingWaveLaneTransfers();
+        this.processWaveCombatRecoveries();
+        this.processForwardReleaseRecoveries();
         this.pruneDeadWaves();
+        this.processEndgameFreeHuntUnlock();
     }
 
     public reportKill(
@@ -419,6 +433,7 @@ export class GameManager extends Component {
         victim: Unit | null
     ) {
         if (!killer || !victim) return;
+        if (this.endgameFreeHuntUnlocked) return;
 
         const killerWave =
             BattleWave.getWaveForUnit(killer);
@@ -442,6 +457,8 @@ export class GameManager extends Component {
     }
 
     public onWaveCombatStarted(unit: Unit | null) {
+        if (this.endgameFreeHuntUnlocked) return;
+
         const wave =
             BattleWave.getWaveForUnit(unit);
 
@@ -449,6 +466,57 @@ export class GameManager extends Component {
         if (wave.isDead()) return;
 
         wave.enterCombatMode();
+        this.forwardReleasedWaves.delete(wave);
+    }
+
+    public onWaveForwardPassedAdjacentTarget(
+        unit: Unit | null,
+        target: Unit | null
+    ) {
+        if (this.endgameFreeHuntUnlocked) return false;
+        if (!unit || !target) return false;
+
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return false;
+        if (wave.isDead()) return false;
+        if (target.laneId < 0) return false;
+
+        wave.setLaneId(
+            target.laneId,
+            this.squareFormationWidth,
+            this.spaceBetweenUnit
+        );
+        wave.releaseForwardToFreeHunt();
+        this.forwardReleasedWaves.set(wave, this.frame);
+        return true;
+    }
+
+    public onWaveForwardPassedHeroTarget(
+        unit: Unit | null,
+        hero: Unit | null
+    ) {
+        if (this.endgameFreeHuntUnlocked) return false;
+        if (!unit || !hero || !hero.agent) return false;
+
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return false;
+        if (wave.isDead()) return false;
+
+        const laneId =
+            this.getNearestLaneIdForX(hero.agent.pos.x);
+
+        wave.setLaneId(
+            laneId,
+            this.squareFormationWidth,
+            this.spaceBetweenUnit
+        );
+        wave.releaseForwardToFreeHunt();
+        this.forwardReleasedWaves.set(wave, this.frame);
+        return true;
     }
 
     private releaseAssistingWavesAfterWaveDefeated(
@@ -473,6 +541,11 @@ export class GameManager extends Component {
     }
 
     private processPendingWaveLaneTransfers() {
+        if (this.endgameFreeHuntUnlocked) {
+            this.pendingLaneWaves.clear();
+            return;
+        }
+
         if (this.pendingLaneWaves.size <= 0) {
             return;
         }
@@ -513,12 +586,81 @@ export class GameManager extends Component {
                 )
             ) {
                 this.pendingLaneWaves.delete(wave);
+                this.forwardReleasedWaves.delete(wave);
                 shouldRebuildSpatialGrid = true;
             }
         }
 
         if (shouldRebuildSpatialGrid) {
             this.rebuildSpatialGrid();
+        }
+    }
+
+    private processWaveCombatRecoveries() {
+        if (this.endgameFreeHuntUnlocked) {
+            return;
+        }
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.isDead()) continue;
+            if (!wave.combatModeActive) continue;
+            if (wave.hasPendingLaneTransfer()) continue;
+            if (wave.hasEngaged()) continue;
+
+            wave.resumeForward();
+        }
+    }
+
+    private processForwardReleaseRecoveries() {
+        if (this.endgameFreeHuntUnlocked) {
+            return;
+        }
+
+        if (this.forwardReleasedWaves.size <= 0) {
+            return;
+        }
+
+        const waves = Array.from(this.forwardReleasedWaves.keys());
+
+        for (let i = 0; i < waves.length; i++) {
+            const wave = waves[i];
+
+            if (!wave || wave.isDead()) {
+                this.forwardReleasedWaves.delete(wave);
+                continue;
+            }
+
+            if (wave.combatModeActive) {
+                this.forwardReleasedWaves.delete(wave);
+                continue;
+            }
+
+            if (wave.hasPendingLaneTransfer()) {
+                continue;
+            }
+
+            if (wave.hasEngaged()) {
+                this.forwardReleasedWaves.set(wave, this.frame);
+                continue;
+            }
+
+            const releasedFrame =
+                this.forwardReleasedWaves.get(wave) ?? 0;
+
+            const recoveryFrames = Math.max(
+                0,
+                Math.floor(this.waveForwardReleaseRecoveryFrames)
+            );
+
+            if (this.frame - releasedFrame < recoveryFrames) {
+                continue;
+            }
+
+            this.forwardReleasedWaves.delete(wave);
+            wave.resumeForward();
         }
     }
 
@@ -529,9 +671,162 @@ export class GameManager extends Component {
             if (!wave || !wave.isDead()) continue;
 
             this.pendingLaneWaves.delete(wave);
+            this.forwardReleasedWaves.delete(wave);
             wave.releaseReferences();
             this.waves.splice(i, 1);
         }
+    }
+
+    private processEndgameFreeHuntUnlock() {
+        if (this.endgameFreeHuntUnlocked) {
+            return;
+        }
+
+        if (!this.isCombatPointEnabled()) {
+            return;
+        }
+
+        if (
+            !this.shouldUnlockEndgameFreeHunt(0) &&
+            !this.shouldUnlockEndgameFreeHunt(1)
+        ) {
+            return;
+        }
+
+        this.unlockEndgameFreeHunt();
+    }
+
+    private shouldUnlockEndgameFreeHunt(team: number) {
+        if (this.canAffordAnySpawnEntry(team)) {
+            return false;
+        }
+
+        if (this.hasAliveNonHeroUnit(team)) {
+            return false;
+        }
+
+        if (this.hasAliveWave(team)) {
+            return false;
+        }
+
+        return this.isAliveUnit(
+            team === 0
+                ? this.teamAHero
+                : this.teamBHero
+        );
+    }
+
+    private unlockEndgameFreeHunt() {
+        this.endgameFreeHuntUnlocked = true;
+        this.pendingLaneWaves.clear();
+        this.forwardReleasedWaves.clear();
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+
+            wave.clearLaneControl();
+        }
+
+        this.freeHuntTeamUnits(this.teamA);
+        this.freeHuntTeamUnits(this.teamB);
+    }
+
+    private freeHuntTeamUnits(units: Unit[]) {
+        const searchRange =
+            this.getEndgameFreeHuntSearchRange();
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!this.isAliveUnit(unit)) continue;
+
+            unit.enterFreeHuntMode(searchRange);
+        }
+    }
+
+    private hasAliveNonHeroUnit(team: number) {
+        const units =
+            team === 0
+                ? this.teamA
+                : this.teamB;
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!unit) continue;
+            if (unit.isHero) continue;
+            if (!this.isAliveUnit(unit)) continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private hasAliveWave(team: number) {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private canAffordAnySpawnEntry(team: number) {
+        const entries =
+            this.getDatabaseTeamEntries(team);
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidEntry(entry)) continue;
+
+            if (Math.floor(entry.unitCount) <= 0) {
+                continue;
+            }
+
+            if (this.canAffordEntry(team, entry)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private getEndgameFreeHuntSearchRange() {
+        const minZ =
+            Math.min(
+                this.battleMinZ,
+                this.teamASpawnZ,
+                this.teamBSpawnZ
+            );
+
+        const maxZ =
+            Math.max(
+                this.battleMaxZ,
+                this.teamASpawnZ,
+                this.teamBSpawnZ
+            );
+
+        const width =
+            this.battleMaxX -
+            this.battleMinX;
+
+        const height =
+            maxZ -
+            minZ;
+
+        return Math.sqrt(
+            width * width +
+            height * height
+        ) + 4;
     }
 
     private findNearestEnemyInCurrentLane(
@@ -987,6 +1282,10 @@ export class GameManager extends Component {
         requestedLaneId: number = -1
     ): BattleWave | null {
 
+        if (this.endgameFreeHuntUnlocked) {
+            return null;
+        }
+
         const count = Math.max(
             0,
             Math.floor(entry.unitCount)
@@ -1254,6 +1553,25 @@ export class GameManager extends Component {
             this.battleMinX +
             laneWidth * (safeLane + 0.5)
         );
+    }
+
+    public getNearestLaneIdForX(x: number) {
+        const count = this.getSafeLaneCount();
+
+        let bestLane = 0;
+        let bestDist = Infinity;
+
+        for (let i = 0; i < count; i++) {
+            const centerX = this.getLaneCenterX(i);
+            const dist = Math.abs(x - centerX);
+
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestLane = i;
+            }
+        }
+
+        return bestLane;
     }
 
     private buildCenteredRowXPositions(
