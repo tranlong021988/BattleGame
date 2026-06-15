@@ -94,17 +94,15 @@ export class UnitBehavior extends Component {
                     enemy
                 );
 
-                gm.despawnUnit(enemy);
-            }
-
-            this.unit.clearEnemy();
-
-            if (gm) {
                 gm.onUnitKilled(
                     this.unit,
                     enemy
                 );
+
+                gm.despawnUnit(enemy);
             }
+
+            this.unit.clearEnemy();
         }
     }
 

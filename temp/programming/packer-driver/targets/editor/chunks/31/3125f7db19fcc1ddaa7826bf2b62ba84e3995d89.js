@@ -327,7 +327,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.returningToWaveLaneSlot = returnToSlot;
           this.enemy = null;
           this.onBusy = false;
-          this.onForward = true;
+          this.onForward = !returnToSlot;
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
@@ -339,7 +339,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
-            this.agent.onForward = 1;
+            this.agent.onForward = returnToSlot ? 0 : 1;
           }
         }
 
@@ -441,17 +441,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          if (this.onForward) {
-            if (this.returningToWaveLaneSlot && !this.shouldReturnToLaneSlot()) {
+          if (this.returningToWaveLaneSlot) {
+            if (!this.shouldReturnToLaneSlot()) {
               this.returningToWaveLaneSlot = false;
+              this.onForward = true;
+            } else {
+              this.onForward = false;
+              this.agent.onForward = 0;
+              this.updateForwardPrefVelocity();
+              this.sync(deltaTime, true);
+              return;
             }
+          }
 
-            if (!this.returningToWaveLaneSlot) {
-              this.updateForwardPhase();
-            }
+          if (this.onForward) {
+            this.updateForwardPhase();
 
             if (this.onForward) {
-              this.agent.onForward = this.returningToWaveLaneSlot ? 0 : 1;
+              this.agent.onForward = 1;
               this.updateForwardPrefVelocity();
               this.sync(deltaTime, true);
               return;
@@ -560,16 +567,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               return;
             }
           }
-
-          const enemyHero = this.getEnemyHero();
-
-          if (enemyHero && this.isValidEnemy(enemyHero) && this.hasPassedTargetAlongForward(enemyHero)) {
-            if (!this.releaseWaveForwardToHeroFreeHunt(enemyHero)) {
-              this.onForward = false;
-            }
-
-            return;
-          }
         }
 
         releaseWaveForwardToFreeHunt(target) {
@@ -578,14 +575,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           if (!gm) return false;
           return gm.onWaveForwardPassedAdjacentTarget(this, target);
-        }
-
-        releaseWaveForwardToHeroFreeHunt(hero) {
-          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          if (!gm) return false;
-          return gm.onWaveForwardPassedHeroTarget(this, hero);
         }
 
         shouldReturnToLaneSlot() {
@@ -742,14 +731,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (this.laneId < 0) return false;
           if (otherLaneId < 0) return false;
           return Math.abs(otherLaneId - this.laneId) === 1;
-        }
-
-        getEnemyHero() {
-          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          if (!gm) return null;
-          return this.team === 0 ? gm.teamBHero : gm.teamAHero;
         }
 
         clearInvalidEnemy() {

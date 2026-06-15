@@ -26,14 +26,14 @@
       "time": 1776667555103.354
     },
     "scripts\\Unit.ts": {
-      "time": 1781512270415.7014,
+      "time": 1781523037457.9468,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\GameManager.ts.meta": {
       "time": 1776667555102.3574
     },
     "scripts\\GameManager.ts": {
-      "time": 1781512976881.5286,
+      "time": 1781522479509.5205,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -68,21 +68,21 @@
       "time": 1776667555102.3574
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1781513554730.8914,
+      "time": 1781521206304.0808,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
       "time": 1776667555102.3574
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1781513554164.7266,
+      "time": 1781521205720.1177,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781514438384.038,
+      "time": 1781523351017.1943,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -292,7 +292,7 @@
       "time": 1778666924359.5576
     },
     "scripts\\UnitBehavior.ts": {
-      "time": 1781232908397.4023,
+      "time": 1781516701663.63,
       "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
     },
     "3D\\1989_dog.fbx.meta": {

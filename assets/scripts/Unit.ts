@@ -320,7 +320,7 @@ export class Unit extends Component {
         this.returningToWaveLaneSlot = returnToSlot;
         this.enemy = null;
         this.onBusy = false;
-        this.onForward = true;
+        this.onForward = !returnToSlot;
 
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
@@ -333,7 +333,7 @@ export class Unit extends Component {
             this.agent.vel.z = 0;
             this.agent.prefVel.x = 0;
             this.agent.prefVel.z = 0;
-            this.agent.onForward = 1;
+            this.agent.onForward = returnToSlot ? 0 : 1;
         }
     }
 
@@ -455,23 +455,25 @@ export class Unit extends Component {
             return;
         }
 
-        if (this.onForward) {
-            if (
-                this.returningToWaveLaneSlot &&
-                !this.shouldReturnToLaneSlot()
-            ) {
+        if (this.returningToWaveLaneSlot) {
+            if (!this.shouldReturnToLaneSlot()) {
                 this.returningToWaveLaneSlot = false;
-            }
+                this.onForward = true;
+            } else {
+                this.onForward = false;
+                this.agent.onForward = 0;
 
-            if (!this.returningToWaveLaneSlot) {
-                this.updateForwardPhase();
+                this.updateForwardPrefVelocity();
+                this.sync(deltaTime, true);
+                return;
             }
+        }
+
+        if (this.onForward) {
+            this.updateForwardPhase();
 
             if (this.onForward) {
-                this.agent.onForward =
-                    this.returningToWaveLaneSlot
-                        ? 0
-                        : 1;
+                this.agent.onForward = 1;
 
                 this.updateForwardPrefVelocity();
 
@@ -641,23 +643,6 @@ export class Unit extends Component {
             }
         }
 
-        const enemyHero = this.getEnemyHero();
-
-        if (
-            enemyHero &&
-            this.isValidEnemy(enemyHero) &&
-            this.hasPassedTargetAlongForward(enemyHero)
-        ) {
-            if (
-                !this.releaseWaveForwardToHeroFreeHunt(
-                    enemyHero
-                )
-            ) {
-                this.onForward = false;
-            }
-
-            return;
-        }
     }
 
     private releaseWaveForwardToFreeHunt(target: Unit) {
@@ -668,17 +653,6 @@ export class Unit extends Component {
         return gm.onWaveForwardPassedAdjacentTarget(
             this,
             target
-        );
-    }
-
-    private releaseWaveForwardToHeroFreeHunt(hero: Unit) {
-        const gm = GameManager.instance;
-
-        if (!gm) return false;
-
-        return gm.onWaveForwardPassedHeroTarget(
-            this,
-            hero
         );
     }
 
@@ -887,16 +861,6 @@ export class Unit extends Component {
         if (otherLaneId < 0) return false;
 
         return Math.abs(otherLaneId - this.laneId) === 1;
-    }
-
-    private getEnemyHero(): Unit | null {
-        const gm = GameManager.instance;
-
-        if (!gm) return null;
-
-        return this.team === 0
-            ? gm.teamBHero
-            : gm.teamAHero;
     }
 
     private clearInvalidEnemy() {

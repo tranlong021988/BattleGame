@@ -739,7 +739,7 @@
     "attackRange": 1.2,
     "targetSearchRange": 35,
     "attackCheckIntervalFrames": 3,
-    "targetSearchIntervalFrames": 12,
+    "targetSearchIntervalFrames": 30,
     "rotationSpeed": 10,
     "moveThreshold": 0.2,
     "visualThreshold": 0.03,
