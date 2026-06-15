@@ -1,14 +1,10 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, instantiate, Unit, EnemyFinder, UnitProps, UnitBehavior, _dec, _class, _crd, ccclass, UnitSpawner;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, instantiate, Unit, UnitProps, UnitBehavior, _dec, _class, _crd, ccclass, UnitSpawner;
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
-  }
-
-  function _reportPossibleCrUseOfEnemyFinder(extras) {
-    _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfUnitProps(extras) {
@@ -36,11 +32,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_2) {
       Unit = _unresolved_2.Unit;
     }, function (_unresolved_3) {
-      EnemyFinder = _unresolved_3.EnemyFinder;
+      UnitProps = _unresolved_3.UnitProps;
     }, function (_unresolved_4) {
-      UnitProps = _unresolved_4.UnitProps;
-    }, function (_unresolved_5) {
-      UnitBehavior = _unresolved_5.UnitBehavior;
+      UnitBehavior = _unresolved_4.UnitBehavior;
     }],
     execute: function () {
       _crd = true;
@@ -122,9 +116,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var unit = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
-          var finder = node.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder);
           var props = node.getComponent(_crd && UnitProps === void 0 ? (_reportPossibleCrUseOfUnitProps({
             error: Error()
           }), UnitProps) : UnitProps);
@@ -142,7 +133,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           unit.enemy = null;
           unit.onBusy = false;
           unit.init(this.sim, team, unitTypeName, forwardX, forwardZ);
-          finder.resetForSpawn(team);
 
           if (behavior) {
             behavior.resetForSpawn();

@@ -381,7 +381,7 @@ export class GameManager extends Component {
         this.processWaveCombatRecoveries();
         this.processForwardReleaseRecoveries();
         this.pruneDeadWaves();
-        this.processHeroFreeHuntUnlock();
+        this.processHeroForwardUnlock();
     }
 
     public reportKill(
@@ -493,7 +493,7 @@ export class GameManager extends Component {
 
         if (!wave) return false;
         if (wave.isDead()) return false;
-        if (!this.areAdjacentLanes(wave.laneId, target.laneId)) {
+        if (!this.areSameOrAdjacentLanes(wave.laneId, target.laneId)) {
             return false;
         }
 
@@ -507,7 +507,7 @@ export class GameManager extends Component {
             targetWave &&
             targetWave !== wave &&
             !targetWave.isDead() &&
-            this.areAdjacentLanes(
+            this.areSameOrAdjacentLanes(
                 wave.laneId,
                 targetWave.laneId
             ) &&
@@ -523,14 +523,14 @@ export class GameManager extends Component {
         return true;
     }
 
-    private areAdjacentLanes(
+    private areSameOrAdjacentLanes(
         laneA: number,
         laneB: number
     ) {
         if (laneA < 0) return false;
         if (laneB < 0) return false;
 
-        return Math.abs(laneA - laneB) === 1;
+        return Math.abs(laneA - laneB) <= 1;
     }
 
     private processPendingWaveLaneTransfers() {
@@ -575,24 +575,50 @@ export class GameManager extends Component {
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
 
-            if (!wave) continue;
-            if (wave.isDead()) continue;
-            if (!wave.combatModeActive) continue;
-            if (wave.hasPendingLaneTransfer()) continue;
-            if (wave.hasEngaged()) continue;
-
-            if (
-                wave.preparePendingLaneFromLastEngagedEnemy() &&
-                wave.tryApplyPendingLaneTransfer(
-                    this.squareFormationWidth,
-                    this.spaceBetweenUnit
-                )
-            ) {
-                continue;
-            }
-
-            wave.resumeForward();
+            this.recoverWaveCombat(wave);
         }
+
+        this.recoverHeroWaveCombat(
+            this.teamAHeroWave,
+            this.teamAHero
+        );
+        this.recoverHeroWaveCombat(
+            this.teamBHeroWave,
+            this.teamBHero
+        );
+    }
+
+    private recoverHeroWaveCombat(
+        wave: BattleWave | null,
+        hero: Unit | null
+    ) {
+        if (!hero || hero.isSteady) {
+            return;
+        }
+
+        this.recoverWaveCombat(wave);
+    }
+
+    private recoverWaveCombat(
+        wave: BattleWave | null
+    ) {
+        if (!wave) return;
+        if (wave.isDead()) return;
+        if (!wave.combatModeActive) return;
+        if (wave.hasPendingLaneTransfer()) return;
+        if (wave.hasEngaged()) return;
+
+        if (
+            wave.preparePendingLaneFromLastEngagedEnemy() &&
+            wave.tryApplyPendingLaneTransfer(
+                this.squareFormationWidth,
+                this.spaceBetweenUnit
+            )
+        ) {
+            return;
+        }
+
+        wave.resumeForward();
     }
 
     private processForwardReleaseRecoveries() {
@@ -652,16 +678,16 @@ export class GameManager extends Component {
         }
     }
 
-    private processHeroFreeHuntUnlock() {
+    private processHeroForwardUnlock() {
         if (!this.isCombatPointEnabled()) {
             return;
         }
 
-        this.tryUnlockHeroFreeHunt(0);
-        this.tryUnlockHeroFreeHunt(1);
+        this.tryUnlockHeroForward(0);
+        this.tryUnlockHeroForward(1);
     }
 
-    private tryUnlockHeroFreeHunt(team: number) {
+    private tryUnlockHeroForward(team: number) {
         const hero =
             team === 0
                 ? this.teamAHero
@@ -687,58 +713,48 @@ export class GameManager extends Component {
             return;
         }
 
-        hero!.enterFreeHuntMode(
-            this.getHeroFreeHuntSearchRange()
-        );
-
-        this.releaseEnemyTeamToHeroFreeHunt(team);
+        this.unlockHeroForward(team, hero!);
     }
 
-    private releaseEnemyTeamToHeroFreeHunt(heroTeam: number) {
-        const enemyTeam =
-            heroTeam === 0 ? 1 : 0;
+    private unlockHeroForward(team: number, hero: Unit) {
+        const laneId = this.getHeroLaneId();
+        let heroWave =
+            team === 0
+                ? this.teamAHeroWave
+                : this.teamBHeroWave;
 
-        for (let i = 0; i < this.waves.length; i++) {
-            const wave = this.waves[i];
-
-            if (!wave) continue;
-            if (wave.team !== enemyTeam) continue;
-            if (wave.isDead()) continue;
-
-            wave.releaseForwardToFreeHunt();
-            this.forwardReleasedWaves.set(
-                wave,
-                this.frame
+        if (!heroWave || heroWave.isDead()) {
+            this.registerHeroWave(
+                hero,
+                team,
+                hero.unitTypeName,
+                hero.props
+                    ? hero.props.unitType
+                    : UnitType.LightSword
             );
+
+            heroWave =
+                team === 0
+                    ? this.teamAHeroWave
+                    : this.teamBHeroWave;
         }
 
-        const enemyUnits =
-            enemyTeam === 0
-                ? this.teamA
-                : this.teamB;
-
-        for (let i = 0; i < enemyUnits.length; i++) {
-            const unit = enemyUnits[i];
-
-            if (!this.isAliveUnit(unit)) continue;
-            if (unit.isHero) continue;
-            if (BattleWave.getWaveForUnit(unit)) continue;
-
-            unit.enterFreeHuntMode(
-                this.getHeroFreeHuntSearchRange()
+        if (heroWave) {
+            heroWave.clearLaneControl();
+            heroWave.setLaneId(
+                laneId,
+                this.squareFormationWidth,
+                this.spaceBetweenUnit
             );
+            this.forwardReleasedWaves.delete(heroWave);
         }
 
-        const enemyHero =
-            enemyTeam === 0
-                ? this.teamAHero
-                : this.teamBHero;
-
-        if (this.isAliveUnit(enemyHero)) {
-            enemyHero!.enterFreeHuntMode(
-                this.getHeroFreeHuntSearchRange()
-            );
-        }
+        hero.setSteady(false, false);
+        hero.setWaveForwardLane(
+            laneId,
+            hero.forwardLaneOffsetX,
+            false
+        );
     }
 
     private hasAliveNonHeroUnit(team: number) {
@@ -793,35 +809,6 @@ export class GameManager extends Component {
         }
 
         return false;
-    }
-
-    private getHeroFreeHuntSearchRange() {
-        const minZ =
-            Math.min(
-                this.battleMinZ,
-                this.teamASpawnZ,
-                this.teamBSpawnZ
-            );
-
-        const maxZ =
-            Math.max(
-                this.battleMaxZ,
-                this.teamASpawnZ,
-                this.teamBSpawnZ
-            );
-
-        const width =
-            this.battleMaxX -
-            this.battleMinX;
-
-        const height =
-            maxZ -
-            minZ;
-
-        return Math.sqrt(
-            width * width +
-            height * height
-        ) + 4;
     }
 
     private findNearestEnemyInCurrentLane(
@@ -1753,15 +1740,6 @@ export class GameManager extends Component {
 
         if (team === 0) {
 
-            if (this.teamAHeroWave) {
-                this.teamAHeroWave.releaseReferences();
-                this.teamAHeroWave = null;
-            }
-
-            if (this.teamAHero === unit) {
-                this.teamAHero = null;
-            }
-
             const idx =
                 this.teamA.indexOf(unit);
 
@@ -1821,6 +1799,15 @@ export class GameManager extends Component {
         const team = unit.team;
 
         if (team === 0) {
+
+            if (this.teamAHeroWave) {
+                this.teamAHeroWave.releaseReferences();
+                this.teamAHeroWave = null;
+            }
+
+            if (this.teamAHero === unit) {
+                this.teamAHero = null;
+            }
 
             const idx =
                 this.teamA.indexOf(unit);

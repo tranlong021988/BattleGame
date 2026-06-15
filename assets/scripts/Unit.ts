@@ -612,8 +612,24 @@ export class Unit extends Component {
         // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
         // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
 
-        // Same-lane enemies no longer steer forward phase decisions.
-        // Contact combat handles them and moves the whole wave to freehunt.
+        const nearestLaneEnemy =
+            this.findNearestEnemyInSameLane();
+
+        if (nearestLaneEnemy && nearestLaneEnemy.agent) {
+            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
+                this.forwardAdjacentTarget = null;
+
+                if (
+                    !this.releaseWaveForwardToFreeHunt(
+                        nearestLaneEnemy
+                    )
+                ) {
+                    this.onForward = false;
+                }
+
+                return;
+            }
+        }
 
         let nearestAdjacentLaneEnemy =
             this.getForwardAdjacentTarget();
@@ -643,6 +659,26 @@ export class Unit extends Component {
             }
         }
 
+        const enemyHero = this.getEnemyHero();
+
+        if (
+            enemyHero &&
+            this.isValidEnemy(enemyHero) &&
+            this.isSameOrAdjacentLane(enemyHero.laneId) &&
+            this.hasPassedTargetAlongForward(enemyHero)
+        ) {
+            this.forwardAdjacentTarget = null;
+
+            if (
+                !this.releaseWaveForwardToFreeHunt(
+                    enemyHero
+                )
+            ) {
+                this.onForward = false;
+            }
+
+            return;
+        }
     }
 
     private releaseWaveForwardToFreeHunt(target: Unit) {
@@ -861,6 +897,23 @@ export class Unit extends Component {
         if (otherLaneId < 0) return false;
 
         return Math.abs(otherLaneId - this.laneId) === 1;
+    }
+
+    private isSameOrAdjacentLane(otherLaneId: number): boolean {
+        if (this.laneId < 0) return false;
+        if (otherLaneId < 0) return false;
+
+        return Math.abs(otherLaneId - this.laneId) <= 1;
+    }
+
+    private getEnemyHero(): Unit | null {
+        const gm = GameManager.instance;
+
+        if (!gm) return null;
+
+        return this.team === 0
+            ? gm.teamBHero
+            : gm.teamAHero;
     }
 
     private clearInvalidEnemy() {

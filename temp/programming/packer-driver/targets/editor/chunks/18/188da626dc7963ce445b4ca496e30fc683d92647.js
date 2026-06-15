@@ -131,14 +131,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             if (gm) {
               gm.reportKill(this.unit, enemy);
+              gm.onUnitKilled(this.unit, enemy);
               gm.despawnUnit(enemy);
             }
 
             this.unit.clearEnemy();
-
-            if (gm) {
-              gm.onUnitKilled(this.unit, enemy);
-            }
           }
         }
 

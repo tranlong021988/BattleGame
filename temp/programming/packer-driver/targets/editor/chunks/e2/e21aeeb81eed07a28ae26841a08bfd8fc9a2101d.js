@@ -285,7 +285,7 @@ System.register(["cc"], function (_export, _context) {
             type: 'application/javascript'
           });
           const url = URL.createObjectURL(blob);
-          this.worker = new Worker(url);
+          this.worker = this.createNamedWorker(url, 'RVOWorkerSimulator');
           URL.revokeObjectURL(url);
 
           this.worker.onmessage = event => {
@@ -315,6 +315,16 @@ System.register(["cc"], function (_export, _context) {
             console.error('[RVOWorkerSimulator] Worker error:', err);
             this.pending = false;
           };
+        }
+
+        createNamedWorker(url, name) {
+          try {
+            return new Worker(url, {
+              name
+            });
+          } catch (err) {
+            return new Worker(url);
+          }
         }
 
         applyWorkerResult(ids, floats, count) {
