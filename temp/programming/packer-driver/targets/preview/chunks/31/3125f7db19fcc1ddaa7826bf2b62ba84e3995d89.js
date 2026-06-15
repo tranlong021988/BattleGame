@@ -1,17 +1,13 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, EnemyFinder, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
   function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) { var desc = {}; Object.keys(descriptor).forEach(function (key) { desc[key] = descriptor[key]; }); desc.enumerable = !!desc.enumerable; desc.configurable = !!desc.configurable; if ('value' in desc || desc.initializer) { desc.writable = true; } desc = decorators.slice().reverse().reduce(function (desc, decorator) { return decorator(target, property, desc) || desc; }, desc); if (context && desc.initializer !== void 0) { desc.value = desc.initializer ? desc.initializer.call(context) : void 0; desc.initializer = undefined; } if (desc.initializer === void 0) { Object.defineProperty(target, property, desc); desc = null; } return desc; }
 
   function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
-
-  function _reportPossibleCrUseOfEnemyFinder(extras) {
-    _reporterNs.report("EnemyFinder", "./EnemyFinder", _context.meta, extras);
-  }
 
   function _reportPossibleCrUseOfUnitProps(extras) {
     _reporterNs.report("UnitProps", "./UnitProps", _context.meta, extras);
@@ -33,11 +29,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       Node = _cc.Node;
       Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
-      EnemyFinder = _unresolved_2.EnemyFinder;
+      UnitProps = _unresolved_2.UnitProps;
     }, function (_unresolved_3) {
-      UnitProps = _unresolved_3.UnitProps;
-    }, function (_unresolved_4) {
-      GameManager = _unresolved_4.GameManager;
+      GameManager = _unresolved_3.GameManager;
     }],
     execute: function () {
       _crd = true;
@@ -107,7 +101,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.onBusy = false;
           this.updateOffset = 0;
           this.props = void 0;
-          this.finder = void 0;
           this.initialYaw = 0;
           this.lastStablePos = {
             x: 0,
@@ -126,9 +119,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.props = this.getComponent(_crd && UnitProps === void 0 ? (_reportPossibleCrUseOfUnitProps({
             error: Error()
           }), UnitProps) : UnitProps);
-          this.finder = this.getComponent(_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder);
         }
 
         init(sim, team, unitTypeName, forwardX, forwardZ) {
@@ -902,11 +892,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getEnemyList() {
-          return this.finder.getTeam() === 0 ? (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), EnemyFinder) : EnemyFinder).teamB : (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
-            error: Error()
-          }), EnemyFinder) : EnemyFinder).teamA;
+          }), GameManager) : GameManager).instance;
+          if (!gm) return [];
+          return this.team === 0 ? gm.teamB : gm.teamA;
         }
 
         lookAtTargetSmooth(target, deltaTime) {

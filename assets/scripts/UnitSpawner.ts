@@ -1,6 +1,5 @@
 import { _decorator, Component, Prefab, Node, instantiate, Vec3 } from 'cc';
 import { Unit } from './Unit';
-import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
 import { UnitBehavior } from './UnitBehavior';
 import { UnitType } from './BattleTypes';
@@ -89,7 +88,6 @@ export class UnitSpawner extends Component {
         node.active = true;
 
         const unit = node.getComponent(Unit)!;
-        const finder = node.getComponent(EnemyFinder)!;
         const props = node.getComponent(UnitProps)!;
         const behavior = node.getComponent(UnitBehavior);
 
@@ -107,8 +105,6 @@ export class UnitSpawner extends Component {
         unit.enemy = null;
         unit.onBusy = false;
         unit.init(this.sim, team, unitTypeName, forwardX, forwardZ);
-
-        finder.resetForSpawn(team);
 
         if (behavior) {
             behavior.resetForSpawn();

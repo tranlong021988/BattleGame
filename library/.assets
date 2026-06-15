@@ -24,7 +24,6 @@
             "scripts\\CinematicOrbitRig.ts",
             "scripts\\CounterSettings.ts",
             "scripts\\DebugStats.ts",
-            "scripts\\EnemyFinder.ts",
             "scripts\\GameManager.ts",
             "scripts\\HealthBar3D.ts",
             "scripts\\Obstacle.ts",

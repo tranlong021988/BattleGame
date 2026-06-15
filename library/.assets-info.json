@@ -5,7 +5,7 @@
       "time": 1776667555102.3574
     },
     "scripts": {
-      "time": 1781497245235.792,
+      "time": 1781512997291.9275,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -26,21 +26,14 @@
       "time": 1776667555103.354
     },
     "scripts\\Unit.ts": {
-      "time": 1781508247757.7195,
+      "time": 1781512270415.7014,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
-    },
-    "scripts\\EnemyFinder.ts.meta": {
-      "time": 1776667555102.3574
-    },
-    "scripts\\EnemyFinder.ts": {
-      "time": 1781508896430.5837,
-      "uuid": "362a6ce2-8e20-4944-8fed-7f2fa95db536"
     },
     "scripts\\GameManager.ts.meta": {
       "time": 1776667555102.3574
     },
     "scripts\\GameManager.ts": {
-      "time": 1781508151496.0493,
+      "time": 1781512976881.5286,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -75,21 +68,21 @@
       "time": 1776667555102.3574
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1781171664631.3708,
+      "time": 1781513554730.8914,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
       "time": 1776667555102.3574
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1781171665232.2615,
+      "time": 1781513554164.7266,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781508967030.6318,
+      "time": 1781514438384.038,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -292,7 +285,7 @@
       "time": 1778058099574.25
     },
     "scripts\\UnitSpawner.ts": {
-      "time": 1781232908397.4023,
+      "time": 1781512972609.7173,
       "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
     },
     "scripts\\UnitBehavior.ts.meta": {

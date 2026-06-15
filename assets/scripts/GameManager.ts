@@ -2,7 +2,6 @@ import { _decorator, Component, Vec3, Label } from 'cc';
 
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
-import { EnemyFinder } from './EnemyFinder';
 
 import { RVOSimulator } from './rvo/RVO';
 import { RVOWorkerSimulator } from './rvo/RVOWorkerSimulator';
@@ -228,9 +227,6 @@ export class GameManager extends Component {
         this.createSimulator();
         this.buildPrefabMaps();
 
-        EnemyFinder.teamA = this.teamA;
-        EnemyFinder.teamB = this.teamB;
-
         this.spatialGrid.cellSize = this.spatialGridCellSize;
 
         this.sim.setBattlefield(
@@ -306,9 +302,6 @@ export class GameManager extends Component {
 
         this.teamA.length = 0;
         this.teamB.length = 0;
-
-        EnemyFinder.teamA = [];
-        EnemyFinder.teamB = [];
 
         this.teamAPrefabMap.clear();
         this.teamBPrefabMap.clear();
@@ -1647,8 +1640,6 @@ export class GameManager extends Component {
             behavior.gameManager = this;
         }
 
-        EnemyFinder.teamA = this.teamA;
-
         this.refreshBattleStatsUI();
 
         return unit;
@@ -1691,8 +1682,6 @@ export class GameManager extends Component {
             behavior.gameManager = this;
         }
 
-        EnemyFinder.teamB = this.teamB;
-
         this.refreshBattleStatsUI();
 
         return unit;
@@ -1734,8 +1723,6 @@ export class GameManager extends Component {
                     this.aliveCount[0] = 0;
                 }
 
-                EnemyFinder.teamA = this.teamA;
-
                 this.spawner.despawnUnit(
                     unit,
                     entry.prefab
@@ -1763,8 +1750,6 @@ export class GameManager extends Component {
                 if (this.aliveCount[1] < 0) {
                     this.aliveCount[1] = 0;
                 }
-
-                EnemyFinder.teamB = this.teamB;
 
                 this.spawner.despawnUnit(
                     unit,
@@ -1798,8 +1783,6 @@ export class GameManager extends Component {
                 this.aliveCount[0] = 0;
             }
 
-            EnemyFinder.teamA = this.teamA;
-
         } else {
 
             const idx =
@@ -1816,7 +1799,6 @@ export class GameManager extends Component {
                 this.aliveCount[1] = 0;
             }
 
-            EnemyFinder.teamB = this.teamB;
         }
 
         unit.resetForDespawn();
@@ -1888,13 +1870,6 @@ export class GameManager extends Component {
             behavior.resetForSpawn();
         }
 
-        const finder =
-            hero.getComponent(EnemyFinder);
-
-        if (finder) {
-            finder.resetForSpawn(team);
-        }
-
         const unitTypeName =
             heroEntry.name && heroEntry.name.length > 0
                 ? heroEntry.name
@@ -1925,8 +1900,6 @@ export class GameManager extends Component {
                 this.aliveCount[0]++;
             }
 
-            EnemyFinder.teamA = this.teamA;
-
         } else {
 
             this.teamBHero = hero;
@@ -1938,7 +1911,6 @@ export class GameManager extends Component {
                 this.aliveCount[1]++;
             }
 
-            EnemyFinder.teamB = this.teamB;
         }
     }
 

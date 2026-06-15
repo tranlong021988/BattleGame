@@ -1,5 +1,4 @@
 import { _decorator, Component, Node, Vec3 } from 'cc';
-import { EnemyFinder } from './EnemyFinder';
 import { UnitProps } from './UnitProps';
 import { GameManager } from './GameManager';
 
@@ -57,8 +56,6 @@ export class Unit extends Component {
     updateOffset = 0;
 
     props!: UnitProps;
-    finder!: EnemyFinder;
-
     private initialYaw = 0;
 
     private lastStablePos = { x: 0, z: 0 };
@@ -73,7 +70,6 @@ export class Unit extends Component {
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
-        this.finder = this.getComponent(EnemyFinder)!;
     }
 
     init(
@@ -1062,9 +1058,13 @@ export class Unit extends Component {
     }
 
     private getEnemyList() {
-        return this.finder.getTeam() === 0
-            ? EnemyFinder.teamB
-            : EnemyFinder.teamA;
+        const gm = GameManager.instance;
+
+        if (!gm) return [];
+
+        return this.team === 0
+            ? gm.teamB
+            : gm.teamA;
     }
 
     private lookAtTargetSmooth(target: Unit, deltaTime: number) {
