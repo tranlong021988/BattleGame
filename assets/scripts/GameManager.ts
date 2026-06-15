@@ -166,9 +166,6 @@ export class GameManager extends Component {
     @property
     squareFormationWidth = 4;
 
-    @property
-    waveForwardReleaseRecoveryFrames = 90;
-
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -443,20 +440,12 @@ export class GameManager extends Component {
 
         if (!killerWave || !victimWave) return;
         if (killerWave === victimWave) return;
-        if (!victimWave.isDead()) return;
-
-        this.releaseAssistingWavesAfterWaveDefeated(
-            killerWave,
-            victimWave
-        );
-
-        killerWave.noteDefeatedEnemyWave(victimWave);
-        this.pendingLaneWaves.add(killerWave);
-
-        this.processPendingWaveLaneTransfers();
     }
 
-    public onWaveCombatStarted(unit: Unit | null) {
+    public onWaveCombatStarted(
+        unit: Unit | null,
+        enemy: Unit | null = null
+    ) {
         if (this.endgameFreeHuntUnlocked) return;
 
         const wave =
@@ -465,6 +454,7 @@ export class GameManager extends Component {
         if (!wave) return;
         if (wave.isDead()) return;
 
+        wave.noteEngagedEnemy(enemy);
         wave.enterCombatMode();
         this.forwardReleasedWaves.delete(wave);
     }
@@ -481,13 +471,7 @@ export class GameManager extends Component {
 
         if (!wave) return false;
         if (wave.isDead()) return false;
-        if (target.laneId < 0) return false;
 
-        wave.setLaneId(
-            target.laneId,
-            this.squareFormationWidth,
-            this.spaceBetweenUnit
-        );
         wave.releaseForwardToFreeHunt();
         this.forwardReleasedWaves.set(wave, this.frame);
         return true;
@@ -506,38 +490,9 @@ export class GameManager extends Component {
         if (!wave) return false;
         if (wave.isDead()) return false;
 
-        const laneId =
-            this.getNearestLaneIdForX(hero.agent.pos.x);
-
-        wave.setLaneId(
-            laneId,
-            this.squareFormationWidth,
-            this.spaceBetweenUnit
-        );
         wave.releaseForwardToFreeHunt();
         this.forwardReleasedWaves.set(wave, this.frame);
         return true;
-    }
-
-    private releaseAssistingWavesAfterWaveDefeated(
-        killerWave: BattleWave,
-        victimWave: BattleWave
-    ) {
-        for (let i = 0; i < this.waves.length; i++) {
-            const wave = this.waves[i];
-
-            if (!wave) continue;
-            if (wave === killerWave) continue;
-            if (wave === victimWave) continue;
-            if (wave.team !== killerWave.team) continue;
-            if (wave.isDead()) continue;
-            if (!wave.isTargetingWave(victimWave)) continue;
-            if (wave.isEngagedWithOtherWave(victimWave)) continue;
-            if (wave.laneId < 0) continue;
-
-            wave.noteDefeatedEnemyWave(victimWave);
-            this.pendingLaneWaves.add(wave);
-        }
     }
 
     private processPendingWaveLaneTransfers() {
@@ -564,19 +519,6 @@ export class GameManager extends Component {
             if (!wave.hasPendingLaneTransfer()) {
                 this.pendingLaneWaves.delete(wave);
                 continue;
-            }
-
-            if (
-                !wave.hasEngaged()
-            ) {
-                const sameLaneEnemy =
-                    this.findNearestEnemyInCurrentLane(wave);
-
-                if (sameLaneEnemy) {
-                    wave.setPendingLaneId(
-                        sameLaneEnemy.laneId
-                    );
-                }
             }
 
             if (
@@ -609,6 +551,16 @@ export class GameManager extends Component {
             if (!wave.combatModeActive) continue;
             if (wave.hasPendingLaneTransfer()) continue;
             if (wave.hasEngaged()) continue;
+
+            if (
+                wave.preparePendingLaneFromLastEngagedEnemy() &&
+                wave.tryApplyPendingLaneTransfer(
+                    this.squareFormationWidth,
+                    this.spaceBetweenUnit
+                )
+            ) {
+                continue;
+            }
 
             wave.resumeForward();
         }
@@ -647,20 +599,18 @@ export class GameManager extends Component {
                 continue;
             }
 
-            const releasedFrame =
-                this.forwardReleasedWaves.get(wave) ?? 0;
-
-            const recoveryFrames = Math.max(
-                0,
-                Math.floor(this.waveForwardReleaseRecoveryFrames)
-            );
-
-            if (this.frame - releasedFrame < recoveryFrames) {
+            if (
+                wave.preparePendingLaneFromLastEngagedEnemy() &&
+                wave.tryApplyPendingLaneTransfer(
+                    this.squareFormationWidth,
+                    this.spaceBetweenUnit
+                )
+            ) {
+                this.forwardReleasedWaves.delete(wave);
                 continue;
             }
 
-            this.forwardReleasedWaves.delete(wave);
-            wave.resumeForward();
+            this.forwardReleasedWaves.set(wave, this.frame);
         }
     }
 

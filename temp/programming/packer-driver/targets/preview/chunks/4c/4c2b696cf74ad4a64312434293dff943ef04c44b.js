@@ -244,6 +244,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamAPrefabMap = new Map();
           this.teamBPrefabMap = new Map();
           this.pendingLaneWaves = new Set();
+          this.forwardReleasedWaves = new Map();
+          this.endgameFreeHuntUnlocked = false;
         }
 
         start() {
@@ -253,6 +255,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.waves.length = 0;
           this.nextWaveId = 1;
           this.pendingLaneWaves.clear();
+          this.forwardReleasedWaves.clear();
+          this.endgameFreeHuntUnlocked = false;
           this.teamAHero = null;
           this.teamBHero = null;
           this.aliveCount[0] = 0;
@@ -324,6 +328,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.waves.length = 0;
           this.pendingLaneWaves.clear();
+          this.forwardReleasedWaves.clear();
           this.teamA.length = 0;
           this.teamB.length = 0;
           (_crd && EnemyFinder === void 0 ? (_reportPossibleCrUseOfEnemyFinder({
@@ -376,12 +381,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.rebuildSpatialGrid();
           }
 
-          if (this.enableAutoSpawn) {
+          if (this.enableAutoSpawn && !this.endgameFreeHuntUnlocked) {
             this.updateAutoSpawn(deltaTime);
           }
 
           this.processPendingWaveLaneTransfers();
+          this.processWaveCombatRecoveries();
+          this.processForwardReleaseRecoveries();
           this.pruneDeadWaves();
+          this.processEndgameFreeHuntUnlock();
         }
 
         reportKill(killer, victim) {
@@ -415,6 +423,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         onUnitKilled(killer, victim) {
           if (!killer || !victim) return;
+          if (this.endgameFreeHuntUnlocked) return;
           var killerWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(killer);
@@ -423,39 +432,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(victim);
           if (!killerWave || !victimWave) return;
           if (killerWave === victimWave) return;
-          if (!victimWave.isDead()) return;
-          this.releaseAssistingWavesAfterWaveDefeated(killerWave, victimWave);
-          killerWave.noteDefeatedEnemyWave(victimWave);
-          this.pendingLaneWaves.add(killerWave);
-          this.processPendingWaveLaneTransfers();
         }
 
-        onWaveCombatStarted(unit) {
+        onWaveCombatStarted(unit, enemy) {
+          if (enemy === void 0) {
+            enemy = null;
+          }
+
+          if (this.endgameFreeHuntUnlocked) return;
           var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return;
           if (wave.isDead()) return;
+          wave.noteEngagedEnemy(enemy);
           wave.enterCombatMode();
+          this.forwardReleasedWaves.delete(wave);
         }
 
-        releaseAssistingWavesAfterWaveDefeated(killerWave, victimWave) {
-          for (var i = 0; i < this.waves.length; i++) {
-            var wave = this.waves[i];
-            if (!wave) continue;
-            if (wave === killerWave) continue;
-            if (wave === victimWave) continue;
-            if (wave.team !== killerWave.team) continue;
-            if (wave.isDead()) continue;
-            if (!wave.isTargetingWave(victimWave)) continue;
-            if (wave.isEngagedWithOtherWave(victimWave)) continue;
-            if (wave.laneId < 0) continue;
-            wave.noteDefeatedEnemyWave(victimWave);
-            this.pendingLaneWaves.add(wave);
-          }
+        onWaveForwardPassedAdjacentTarget(unit, target) {
+          if (this.endgameFreeHuntUnlocked) return false;
+          if (!unit || !target) return false;
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return false;
+          if (wave.isDead()) return false;
+          wave.releaseForwardToFreeHunt();
+          this.forwardReleasedWaves.set(wave, this.frame);
+          return true;
+        }
+
+        onWaveForwardPassedHeroTarget(unit, hero) {
+          if (this.endgameFreeHuntUnlocked) return false;
+          if (!unit || !hero || !hero.agent) return false;
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return false;
+          if (wave.isDead()) return false;
+          wave.releaseForwardToFreeHunt();
+          this.forwardReleasedWaves.set(wave, this.frame);
+          return true;
         }
 
         processPendingWaveLaneTransfers() {
+          if (this.endgameFreeHuntUnlocked) {
+            this.pendingLaneWaves.clear();
+            return;
+          }
+
           if (this.pendingLaneWaves.size <= 0) {
             return;
           }
@@ -476,16 +502,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            if (!wave.hasEngaged()) {
-              var sameLaneEnemy = this.findNearestEnemyInCurrentLane(wave);
-
-              if (sameLaneEnemy) {
-                wave.setPendingLaneId(sameLaneEnemy.laneId);
-              }
-            }
-
             if (wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
               this.pendingLaneWaves.delete(wave);
+              this.forwardReleasedWaves.delete(wave);
               shouldRebuildSpatialGrid = true;
             }
           }
@@ -495,14 +514,188 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
+        processWaveCombatRecoveries() {
+          if (this.endgameFreeHuntUnlocked) {
+            return;
+          }
+
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.isDead()) continue;
+            if (!wave.combatModeActive) continue;
+            if (wave.hasPendingLaneTransfer()) continue;
+            if (wave.hasEngaged()) continue;
+
+            if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
+              continue;
+            }
+
+            wave.resumeForward();
+          }
+        }
+
+        processForwardReleaseRecoveries() {
+          if (this.endgameFreeHuntUnlocked) {
+            return;
+          }
+
+          if (this.forwardReleasedWaves.size <= 0) {
+            return;
+          }
+
+          var waves = Array.from(this.forwardReleasedWaves.keys());
+
+          for (var i = 0; i < waves.length; i++) {
+            var wave = waves[i];
+
+            if (!wave || wave.isDead()) {
+              this.forwardReleasedWaves.delete(wave);
+              continue;
+            }
+
+            if (wave.combatModeActive) {
+              this.forwardReleasedWaves.delete(wave);
+              continue;
+            }
+
+            if (wave.hasPendingLaneTransfer()) {
+              continue;
+            }
+
+            if (wave.hasEngaged()) {
+              this.forwardReleasedWaves.set(wave, this.frame);
+              continue;
+            }
+
+            if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
+              this.forwardReleasedWaves.delete(wave);
+              continue;
+            }
+
+            this.forwardReleasedWaves.set(wave, this.frame);
+          }
+        }
+
         pruneDeadWaves() {
           for (var i = this.waves.length - 1; i >= 0; i--) {
             var wave = this.waves[i];
             if (!wave || !wave.isDead()) continue;
             this.pendingLaneWaves.delete(wave);
+            this.forwardReleasedWaves.delete(wave);
             wave.releaseReferences();
             this.waves.splice(i, 1);
           }
+        }
+
+        processEndgameFreeHuntUnlock() {
+          if (this.endgameFreeHuntUnlocked) {
+            return;
+          }
+
+          if (!this.isCombatPointEnabled()) {
+            return;
+          }
+
+          if (!this.shouldUnlockEndgameFreeHunt(0) && !this.shouldUnlockEndgameFreeHunt(1)) {
+            return;
+          }
+
+          this.unlockEndgameFreeHunt();
+        }
+
+        shouldUnlockEndgameFreeHunt(team) {
+          if (this.canAffordAnySpawnEntry(team)) {
+            return false;
+          }
+
+          if (this.hasAliveNonHeroUnit(team)) {
+            return false;
+          }
+
+          if (this.hasAliveWave(team)) {
+            return false;
+          }
+
+          return this.isAliveUnit(team === 0 ? this.teamAHero : this.teamBHero);
+        }
+
+        unlockEndgameFreeHunt() {
+          this.endgameFreeHuntUnlocked = true;
+          this.pendingLaneWaves.clear();
+          this.forwardReleasedWaves.clear();
+
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+            if (!wave) continue;
+            wave.clearLaneControl();
+          }
+
+          this.freeHuntTeamUnits(this.teamA);
+          this.freeHuntTeamUnits(this.teamB);
+        }
+
+        freeHuntTeamUnits(units) {
+          var searchRange = this.getEndgameFreeHuntSearchRange();
+
+          for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            if (!this.isAliveUnit(unit)) continue;
+            unit.enterFreeHuntMode(searchRange);
+          }
+        }
+
+        hasAliveNonHeroUnit(team) {
+          var units = team === 0 ? this.teamA : this.teamB;
+
+          for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            if (!unit) continue;
+            if (unit.isHero) continue;
+            if (!this.isAliveUnit(unit)) continue;
+            return true;
+          }
+
+          return false;
+        }
+
+        hasAliveWave(team) {
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+            return true;
+          }
+
+          return false;
+        }
+
+        canAffordAnySpawnEntry(team) {
+          var entries = this.getDatabaseTeamEntries(team);
+
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!this.isValidEntry(entry)) continue;
+
+            if (Math.floor(entry.unitCount) <= 0) {
+              continue;
+            }
+
+            if (this.canAffordEntry(team, entry)) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        getEndgameFreeHuntSearchRange() {
+          var minZ = Math.min(this.battleMinZ, this.teamASpawnZ, this.teamBSpawnZ);
+          var maxZ = Math.max(this.battleMaxZ, this.teamASpawnZ, this.teamBSpawnZ);
+          var width = this.battleMaxX - this.battleMinX;
+          var height = maxZ - minZ;
+          return Math.sqrt(width * width + height * height) + 4;
         }
 
         findNearestEnemyInCurrentLane(wave) {
@@ -802,6 +995,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             requestedLaneId = -1;
           }
 
+          if (this.endgameFreeHuntUnlocked) {
+            return null;
+          }
+
           var count = Math.max(0, Math.floor(entry.unitCount));
 
           if (count <= 0) {
@@ -922,6 +1119,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var laneWidth = width / count;
           return this.battleMinX + laneWidth * (safeLane + 0.5);
+        }
+
+        getNearestLaneIdForX(x) {
+          var count = this.getSafeLaneCount();
+          var bestLane = 0;
+          var bestDist = Infinity;
+
+          for (var i = 0; i < count; i++) {
+            var centerX = this.getLaneCenterX(i);
+            var dist = Math.abs(x - centerX);
+
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestLane = i;
+            }
+          }
+
+          return bestLane;
         }
 
         buildCenteredRowXPositions(rowCount, rowIndex) {

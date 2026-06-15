@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -29,6 +29,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("BattleCinematicCameraController", "./BattleCinematicCameraController", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfUnit(extras) {
+    _reporterNs.report("Unit", "./Unit", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -37,6 +41,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       __checkObsolete__ = _cc.__checkObsolete__;
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
+      Color = _cc.Color;
       Component = _cc.Component;
       Layers = _cc.Layers;
       Layout = _cc.Layout;
@@ -50,18 +55,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
     }, function (_unresolved_3) {
-      UnitType = _unresolved_3.UnitType;
+      BattleWave = _unresolved_3.BattleWave;
     }, function (_unresolved_4) {
-      BattleInformationIconItem = _unresolved_4.BattleInformationIconItem;
+      UnitType = _unresolved_4.UnitType;
     }, function (_unresolved_5) {
-      BattleCinematicCameraController = _unresolved_5.BattleCinematicCameraController;
+      BattleInformationIconItem = _unresolved_5.BattleInformationIconItem;
+    }, function (_unresolved_6) {
+      BattleCinematicCameraController = _unresolved_6.BattleCinematicCameraController;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "7f28eHPxddG5r2d0aBU9xYV", "TrueMiniMapPanel", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'EventTouch', 'Layers', 'Layout', 'Node', 'Sprite', 'SpriteFrame', 'Tween', 'tween', 'UITransform', 'Vec3']);
+      __checkObsolete__(['_decorator', 'Color', 'Component', 'EventTouch', 'Layers', 'Layout', 'Node', 'Sprite', 'SpriteFrame', 'Tween', 'tween', 'UITransform', 'Vec3']);
 
       ({
         ccclass,
@@ -105,7 +112,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         type: [MiniMapUnitIconInfo]
       }), _dec11 = property({
         type: [MiniMapUnitIconInfo]
-      }), _dec4(_class4 = (_class5 = class TrueMiniMapPanel extends Component {
+      }), _dec12 = property(SpriteFrame), _dec13 = property(SpriteFrame), _dec14 = property(Color), _dec15 = property(Color), _dec16 = property(Color), _dec17 = property(Color), _dec4(_class4 = (_class5 = class TrueMiniMapPanel extends Component {
         constructor() {
           super(...arguments);
 
@@ -123,41 +130,60 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "teamBIcons", _descriptor9, this);
 
-          _initializerDefineProperty(this, "autoFindGameManager", _descriptor10, this);
+          _initializerDefineProperty(this, "teamAHeroIcon", _descriptor10, this);
 
-          _initializerDefineProperty(this, "disableIconRootLayout", _descriptor11, this);
+          _initializerDefineProperty(this, "teamBHeroIcon", _descriptor11, this);
 
-          _initializerDefineProperty(this, "worldToMiniMapScale", _descriptor12, this);
+          _initializerDefineProperty(this, "autoFindGameManager", _descriptor12, this);
 
-          _initializerDefineProperty(this, "updateInterval", _descriptor13, this);
+          _initializerDefineProperty(this, "disableIconRootLayout", _descriptor13, this);
 
-          _initializerDefineProperty(this, "smoothDampTime", _descriptor14, this);
+          _initializerDefineProperty(this, "worldToMiniMapScale", _descriptor14, this);
 
-          _initializerDefineProperty(this, "tweenScaleDuration", _descriptor15, this);
+          _initializerDefineProperty(this, "updateInterval", _descriptor15, this);
 
-          _initializerDefineProperty(this, "iconWidth", _descriptor16, this);
+          _initializerDefineProperty(this, "smoothDampTime", _descriptor16, this);
 
-          _initializerDefineProperty(this, "iconHeight", _descriptor17, this);
+          _initializerDefineProperty(this, "tweenScaleDuration", _descriptor17, this);
 
-          _initializerDefineProperty(this, "prewarmIconCount", _descriptor18, this);
+          _initializerDefineProperty(this, "iconWidth", _descriptor18, this);
 
-          _initializerDefineProperty(this, "maxPoolSize", _descriptor19, this);
+          _initializerDefineProperty(this, "iconHeight", _descriptor19, this);
 
-          _initializerDefineProperty(this, "clampIconToMapBounds", _descriptor20, this);
+          _initializerDefineProperty(this, "minIconSpacing", _descriptor20, this);
 
-          _initializerDefineProperty(this, "invertXAxis", _descriptor21, this);
+          _initializerDefineProperty(this, "iconBoundaryPadding", _descriptor21, this);
 
-          _initializerDefineProperty(this, "invertZAxis", _descriptor22, this);
+          _initializerDefineProperty(this, "iconSeparationIterations", _descriptor22, this);
 
-          _initializerDefineProperty(this, "showAliveRatio", _descriptor23, this);
+          _initializerDefineProperty(this, "teamAIconTint", _descriptor23, this);
 
-          _initializerDefineProperty(this, "freezeDyingWavePositionAliveCount", _descriptor24, this);
+          _initializerDefineProperty(this, "teamBIconTint", _descriptor24, this);
 
-          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor25, this);
+          _initializerDefineProperty(this, "teamAFlashTint", _descriptor25, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor26, this);
+          _initializerDefineProperty(this, "teamBFlashTint", _descriptor26, this);
+
+          _initializerDefineProperty(this, "prewarmIconCount", _descriptor27, this);
+
+          _initializerDefineProperty(this, "maxPoolSize", _descriptor28, this);
+
+          _initializerDefineProperty(this, "clampIconToMapBounds", _descriptor29, this);
+
+          _initializerDefineProperty(this, "invertXAxis", _descriptor30, this);
+
+          _initializerDefineProperty(this, "invertZAxis", _descriptor31, this);
+
+          _initializerDefineProperty(this, "showAliveRatio", _descriptor32, this);
+
+          _initializerDefineProperty(this, "freezeDyingWavePositionAliveCount", _descriptor33, this);
+
+          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor34, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor35, this);
 
           this.records = new Map();
+          this.heroRecords = new Map();
           this.pool = [];
           this.mapWidth = 0;
           this.mapHeight = 0;
@@ -165,6 +191,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.time = 0;
           this.tempPosition = new Vec3();
           this.tempWorldPosition = new Vec3();
+          this.tempMiniMapPosition = new Vec3();
+          this.iconSeparationRecords = [];
+          this.tempWaveScan = {
+            aliveCount: 0,
+            aliveRatio: 0,
+            engaged: false,
+            dead: true,
+            hasPosition: false
+          };
         }
 
         start() {
@@ -193,10 +228,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.prepareIconRoots();
             this.configureMapSize();
             this.syncWithBattleWaves();
+            this.syncWithHeroes();
             this.updateTargetsAndState();
           }
 
-          this.releaseDeadIcons();
           this.updateIconPositions(deltaTime);
           this.updateFlashOnly();
         }
@@ -268,21 +303,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var i = 0; i < waves.length; i++) {
             var wave = waves[i];
             if (!wave) continue;
-            if (wave.isDead()) continue;
 
             if (this.records.has(wave.id)) {
               continue;
             }
 
-            if (!this.tryGetWaveWorldPosition(wave, this.tempWorldPosition)) {
+            var scan = this.scanWaveForMiniMap(wave, this.tempWorldPosition);
+
+            if (scan.dead) {
               continue;
             }
 
-            this.createIconForWave(wave);
+            if (!scan.hasPosition) {
+              continue;
+            }
+
+            var target = this.getMiniMapPositionFromWorldPosition(this.tempWorldPosition);
+            this.createIconForWave(wave, target, scan.aliveRatio, scan.engaged);
           }
         }
 
-        createIconForWave(wave) {
+        createIconForWave(wave, target, aliveRatio, engaged) {
           var root = wave.team === 0 ? this.teamAIconRoot : this.teamBIconRoot;
 
           if (!root) {
@@ -315,18 +356,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var item = node.getComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
           }), BattleInformationIconItem) : BattleInformationIconItem);
-          item.setup(this.getSpriteFrame(wave.team, wave.unitType), this.iconWidth, this.iconHeight, 0.5);
-          var target = this.getWaveMiniMapPosition(wave, null);
+          item.setup(this.getSpriteFrame(wave.team, wave.unitType), this.iconWidth, this.iconHeight, 0.5, wave.team === 1, this.getTeamIconTint(wave.team), this.getTeamFlashTint(wave.team));
           root.addChild(node);
           node.setPosition(target);
           node.setScale(0, 0, 1);
           node.active = true;
+          item.setAliveRatio(this.showAliveRatio ? aliveRatio : 1);
+          item.updateEngageVisual(engaged, this.time);
           var record = {
+            team: wave.team,
+            pairId: wave.id,
             wave,
             item,
             node,
+            rawPosition: target.clone(),
             targetPosition: target.clone(),
             velocity: new Vec3(),
+            aliveRatio,
+            engaged,
             removing: false
           };
           this.records.set(wave.id, record);
@@ -336,22 +383,147 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.log("Create mini-map icon wave=" + wave.id);
         }
 
+        syncWithHeroes() {
+          if (!this.gameManager) {
+            return;
+          }
+
+          this.syncHeroIcon(0, this.gameManager.teamAHero);
+          this.syncHeroIcon(1, this.gameManager.teamBHero);
+        }
+
+        syncHeroIcon(team, hero) {
+          if (this.heroRecords.has(team)) {
+            return;
+          }
+
+          if (!this.isHeroUnitAlive(hero)) {
+            return;
+          }
+
+          this.tempWorldPosition.set(hero.agent.pos.x, 0, hero.agent.pos.z);
+          var target = this.getMiniMapPositionFromWorldPosition(this.tempWorldPosition);
+          this.createIconForHero(team, hero, target);
+        }
+
+        createIconForHero(team, hero, target) {
+          var root = team === 0 ? this.teamAIconRoot : this.teamBIconRoot;
+
+          if (!root) {
+            return;
+          }
+
+          var node = this.getIconNodeFromPool();
+          Tween.stopAllByTarget(node);
+          node.active = false;
+          node.layer = Layers.Enum.UI_2D;
+          node.name = "mini-map-hero-" + team;
+          this.clearIconEvents(node);
+
+          if (this.enableIconClickFocus && this.cinematicController) {
+            node.on(Node.EventType.TOUCH_START, event => {
+              var _this$cinematicContro4;
+
+              (_this$cinematicContro4 = this.cinematicController) == null || _this$cinematicContro4.suppressExitTap();
+              this.stopTouchPropagation(event);
+            }, this);
+            node.on(Node.EventType.TOUCH_END, event => {
+              var _this$cinematicContro5, _this$cinematicContro6;
+
+              (_this$cinematicContro5 = this.cinematicController) == null || _this$cinematicContro5.suppressExitTap();
+              (_this$cinematicContro6 = this.cinematicController) == null || _this$cinematicContro6.focusUnit(hero);
+              this.stopTouchPropagation(event);
+            }, this);
+          }
+
+          var item = node.getComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
+            error: Error()
+          }), BattleInformationIconItem) : BattleInformationIconItem);
+          item.setup(this.getHeroSpriteFrame(team, hero), this.iconWidth, this.iconHeight, 0.5, team === 1, this.getTeamIconTint(team), this.getTeamFlashTint(team));
+          root.addChild(node);
+          node.setPosition(target);
+          node.setScale(0, 0, 1);
+          node.active = true;
+          var aliveRatio = hero.props ? hero.props.getHealthRatio() : 1;
+          item.setAliveRatio(this.showAliveRatio ? aliveRatio : 1);
+          item.updateEngageVisual(hero.onBusy, this.time);
+          var record = {
+            team,
+            pairId: -1000 - team,
+            unit: hero,
+            item,
+            node,
+            rawPosition: target.clone(),
+            targetPosition: target.clone(),
+            velocity: new Vec3(),
+            aliveRatio,
+            engaged: hero.onBusy,
+            removing: false
+          };
+          this.heroRecords.set(team, record);
+          tween(node).to(this.getSafeTweenDuration(), {
+            scale: new Vec3(1, 1, 1)
+          }).start();
+          this.log("Create mini-map hero icon team=" + team);
+        }
+
         updateTargetsAndState() {
           var removeIds = [];
           this.records.forEach((record, waveId) => {
             var wave = record.wave;
 
-            if (!wave || wave.isDead()) {
+            if (!wave) {
               removeIds.push(waveId);
               return;
             }
 
-            record.targetPosition.set(this.getWaveMiniMapPosition(wave, record.targetPosition));
-            record.item.setAliveRatio(this.showAliveRatio ? wave.getAliveRatio() : 1);
+            var scan = this.scanWaveForMiniMap(wave, this.tempWorldPosition);
+            record.aliveRatio = scan.aliveRatio;
+            record.engaged = scan.engaged;
+
+            if (scan.dead || !scan.hasPosition) {
+              removeIds.push(waveId);
+              return;
+            }
+
+            if (!this.shouldFreezeDyingWavePosition(wave, scan.aliveCount)) {
+              record.rawPosition.set(this.getMiniMapPositionFromWorldPosition(this.tempWorldPosition));
+            } else {
+              record.rawPosition.set(record.targetPosition);
+            }
+
+            record.targetPosition.set(record.rawPosition);
+            record.item.setAliveRatio(this.showAliveRatio ? record.aliveRatio : 1);
           });
 
           for (var i = 0; i < removeIds.length; i++) {
             this.releaseIcon(removeIds[i]);
+          }
+
+          this.updateHeroTargetsAndState();
+          this.resolveIconOverlaps();
+        }
+
+        updateHeroTargetsAndState() {
+          var removeTeams = [];
+          this.heroRecords.forEach((record, team) => {
+            var hero = record.unit;
+
+            if (!this.isHeroUnitAlive(hero)) {
+              removeTeams.push(team);
+              return;
+            }
+
+            record.aliveRatio = hero.props ? hero.props.getHealthRatio() : 1;
+            record.engaged = hero.onBusy;
+            this.tempWorldPosition.set(hero.agent.pos.x, 0, hero.agent.pos.z);
+            record.rawPosition.set(this.getMiniMapPositionFromWorldPosition(this.tempWorldPosition));
+            record.targetPosition.set(record.rawPosition);
+            record.item.setAliveRatio(this.showAliveRatio ? record.aliveRatio : 1);
+          });
+
+          for (var i = 0; i < removeTeams.length; i++) {
+            this.releaseHeroIcon(removeTeams[i]);
           }
         }
 
@@ -370,25 +542,154 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.tempPosition.set(this.smoothDamp(current.x, record.targetPosition.x, 'x', record, deltaTime), this.smoothDamp(current.y, record.targetPosition.y, 'y', record, deltaTime), 0);
             record.node.setPosition(this.tempPosition);
           });
-        }
-
-        releaseDeadIcons() {
-          var removeIds = [];
-          this.records.forEach((record, waveId) => {
+          this.heroRecords.forEach(record => {
             if (record.removing) {
               return;
             }
 
-            var wave = record.wave;
-
-            if (!wave || wave.isDead()) {
-              removeIds.push(waveId);
+            if (this.smoothDampTime <= 0) {
+              record.node.setPosition(record.targetPosition);
+              return;
             }
+
+            var current = record.node.position;
+            this.tempPosition.set(this.smoothDamp(current.x, record.targetPosition.x, 'x', record, deltaTime), this.smoothDamp(current.y, record.targetPosition.y, 'y', record, deltaTime), 0);
+            record.node.setPosition(this.tempPosition);
+          });
+        }
+
+        resolveIconOverlaps() {
+          var minSpacing = Math.max(0, this.minIconSpacing);
+
+          if (minSpacing <= 0) {
+            return;
+          }
+
+          var records = this.iconSeparationRecords;
+          records.length = 0;
+          this.records.forEach(record => {
+            if (record.removing) {
+              return;
+            }
+
+            record.targetPosition.set(record.rawPosition);
+            records.push(record);
+          });
+          this.heroRecords.forEach(record => {
+            if (record.removing) {
+              return;
+            }
+
+            record.targetPosition.set(record.rawPosition);
+            records.push(record);
           });
 
-          for (var i = 0; i < removeIds.length; i++) {
-            this.releaseIcon(removeIds[i]);
+          if (records.length < 2) {
+            return;
           }
+
+          var iterations = Math.max(1, Math.floor(this.iconSeparationIterations));
+          var minSpacingSq = minSpacing * minSpacing;
+
+          for (var iteration = 0; iteration < iterations; iteration++) {
+            for (var i = 0; i < records.length - 1; i++) {
+              var a = records[i];
+
+              for (var j = i + 1; j < records.length; j++) {
+                var b = records[j];
+
+                if (a.team === b.team) {
+                  continue;
+                }
+
+                this.separateIconPair(a, b, minSpacing, minSpacingSq);
+              }
+            }
+
+            this.clampSeparatedIconTargets(records);
+          }
+        }
+
+        clampSeparatedIconTargets(records) {
+          if (this.clampIconToMapBounds) {
+            for (var i = 0; i < records.length; i++) {
+              this.clampMiniMapPosition(records[i].targetPosition);
+            }
+          }
+        }
+
+        separateIconPair(a, b, minSpacing, minSpacingSq) {
+          var aPos = a.targetPosition;
+          var bPos = b.targetPosition;
+          var dx = bPos.x - aPos.x;
+          var dy = bPos.y - aPos.y;
+          var distSq = dx * dx + dy * dy;
+
+          if (distSq >= minSpacingSq) {
+            return;
+          }
+
+          var nx = 0;
+          var ny = 0;
+          var dist = 0;
+
+          if (distSq <= 0.0001) {
+            var angle = this.getBoundaryAwarePairAngle(a, b);
+            nx = Math.cos(angle);
+            ny = Math.sin(angle);
+          } else {
+            dist = Math.sqrt(distSq);
+            nx = dx / dist;
+            ny = dy / dist;
+          }
+
+          var push = (minSpacing - dist) * 0.5;
+          aPos.x -= nx * push;
+          aPos.y -= ny * push;
+          bPos.x += nx * push;
+          bPos.y += ny * push;
+        }
+
+        getIconPairAngle(waveAId, waveBId) {
+          var seed = Math.abs((waveAId + 1) * 97 + (waveBId + 1) * 53);
+          return seed % 360 * 0.017453292519943295;
+        }
+
+        getBoundaryAwarePairAngle(a, b) {
+          var baseAngle = this.getIconPairAngle(a.pairId, b.pairId);
+
+          if (!this.clampIconToMapBounds) {
+            return baseAngle;
+          }
+
+          var midX = (a.rawPosition.x + b.rawPosition.x) * 0.5;
+          var midY = (a.rawPosition.y + b.rawPosition.y) * 0.5;
+          var padding = this.getIconBoundsPadding();
+          var halfWidth = Math.max(0, this.mapWidth * 0.5 - padding);
+          var halfHeight = Math.max(0, this.mapHeight * 0.5 - padding);
+          var edgeRange = Math.max(this.minIconSpacing, padding + 1);
+
+          if (halfWidth > 0 && Math.abs(halfWidth - Math.abs(midX)) < edgeRange) {
+            return midY >= 0 ? -Math.PI * 0.5 : Math.PI * 0.5;
+          }
+
+          if (halfHeight > 0 && Math.abs(halfHeight - Math.abs(midY)) < edgeRange) {
+            return midX >= 0 ? Math.PI : 0;
+          }
+
+          return baseAngle;
+        }
+
+        clampMiniMapPosition(position) {
+          var padding = this.getIconBoundsPadding();
+          var halfWidth = Math.max(0, this.mapWidth * 0.5 - padding);
+          var halfHeight = Math.max(0, this.mapHeight * 0.5 - padding);
+          position.x = Math.max(-halfWidth, Math.min(halfWidth, position.x));
+          position.y = Math.max(-halfHeight, Math.min(halfHeight, position.y));
+        }
+
+        getIconBoundsPadding() {
+          return Math.max(0, this.iconBoundaryPadding, this.iconWidth * 0.5, this.iconHeight * 0.5);
         }
 
         smoothDamp(current, target, axis, record, deltaTime) {
@@ -416,13 +717,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return;
             }
 
-            var wave = record.wave;
-
-            if (!wave || wave.isDead()) {
+            record.item.updateEngageVisual(record.engaged, this.time);
+          });
+          this.heroRecords.forEach(record => {
+            if (record.removing) {
               return;
             }
 
-            record.item.updateEngageVisual(wave.hasEngaged(), this.time);
+            record.item.updateEngageVisual(record.engaged, this.time);
           });
         }
 
@@ -442,10 +744,34 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           record.velocity.set(0, 0, 0);
           this.clearIconEvents(record.node);
           Tween.stopAllByTarget(record.node);
-          this.records.delete(waveId);
           tween(record.node).to(this.getSafeTweenDuration(), {
             scale: new Vec3(0, 0, 1)
           }).call(() => {
+            this.records.delete(waveId);
+            this.recycleIcon(record);
+          }).start();
+        }
+
+        releaseHeroIcon(team) {
+          var record = this.heroRecords.get(team);
+
+          if (!record) {
+            return;
+          }
+
+          if (record.removing) {
+            return;
+          }
+
+          record.removing = true;
+          record.targetPosition.set(record.node.position);
+          record.velocity.set(0, 0, 0);
+          this.clearIconEvents(record.node);
+          Tween.stopAllByTarget(record.node);
+          tween(record.node).to(this.getSafeTweenDuration(), {
+            scale: new Vec3(0, 0, 1)
+          }).call(() => {
+            this.heroRecords.delete(team);
             this.recycleIcon(record);
           }).start();
         }
@@ -466,17 +792,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        getWaveMiniMapPosition(wave, fallback) {
+        getMiniMapPositionFromWorldPosition(worldPosition) {
           if (!this.gameManager) {
-            return fallback ? fallback.clone() : new Vec3();
-          }
-
-          if (fallback && this.shouldFreezeDyingWavePosition(wave)) {
-            return fallback.clone();
-          }
-
-          if (!this.tryGetWaveWorldPosition(wave, this.tempWorldPosition)) {
-            return fallback ? fallback.clone() : new Vec3();
+            return this.tempMiniMapPosition.set(0, 0, 0);
           }
 
           var minX = this.gameManager.battleMinX;
@@ -485,8 +803,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var maxZ = this.gameManager.battleMaxZ;
           var width = Math.max(0.0001, maxX - minX);
           var height = Math.max(0.0001, maxZ - minZ);
-          var x01 = (this.tempWorldPosition.x - minX) / width;
-          var z01 = (this.tempWorldPosition.z - minZ) / height;
+          var x01 = (worldPosition.x - minX) / width;
+          var z01 = (worldPosition.z - minZ) / height;
 
           if (this.clampIconToMapBounds) {
             x01 = this.clamp01(x01);
@@ -501,10 +819,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             z01 = 1 - z01;
           }
 
-          return new Vec3(x01 * this.mapWidth - this.mapWidth * 0.5, z01 * this.mapHeight - this.mapHeight * 0.5, 0);
+          return this.tempMiniMapPosition.set(x01 * this.mapWidth - this.mapWidth * 0.5, z01 * this.mapHeight - this.mapHeight * 0.5, 0);
         }
 
-        shouldFreezeDyingWavePosition(wave) {
+        shouldFreezeDyingWavePosition(wave, aliveCount) {
           var threshold = Math.max(0, Math.floor(this.freezeDyingWavePositionAliveCount));
 
           if (threshold <= 0) {
@@ -515,39 +833,59 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
-          return wave.getAliveCount() <= threshold;
+          return aliveCount <= threshold;
         }
 
-        tryGetWaveWorldPosition(wave, out) {
+        scanWaveForMiniMap(wave, out) {
+          var scan = this.tempWaveScan;
+          scan.aliveCount = 0;
+          scan.aliveRatio = 0;
+          scan.engaged = false;
+          scan.dead = true;
+          scan.hasPosition = false;
+
+          if (!wave || wave.released) {
+            out.set(0, 0, 0);
+            return scan;
+          }
+
           var sumX = 0;
           var sumZ = 0;
-          var count = 0;
           var units = wave.units;
 
           for (var i = 0; i < units.length; i++) {
             var unit = units[i];
             if (!unit) continue;
+            if ((_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+              error: Error()
+            }), BattleWave) : BattleWave).getWaveForUnit(unit) !== wave) continue;
             if (!unit.node.activeInHierarchy) continue;
+            if (!unit.props) continue;
+            if (unit.props.isDead()) continue;
+            if (!unit.agent) continue;
+            sumX += unit.agent.pos.x;
+            sumZ += unit.agent.pos.z;
+            scan.aliveCount++;
 
-            if (unit.agent) {
-              sumX += unit.agent.pos.x;
-              sumZ += unit.agent.pos.z;
-              count++;
-              continue;
+            if (unit.onBusy) {
+              scan.engaged = true;
             }
-
-            var p = unit.node.worldPosition;
-            sumX += p.x;
-            sumZ += p.z;
-            count++;
           }
 
-          if (count <= 0) {
-            return false;
+          if (scan.aliveCount <= 0) {
+            out.set(0, 0, 0);
+            return scan;
           }
 
-          out.set(sumX / count, 0, sumZ / count);
-          return true;
+          out.set(sumX / scan.aliveCount, 0, sumZ / scan.aliveCount);
+          scan.dead = false;
+          scan.hasPosition = true;
+
+          if (wave.totalCount > 0) {
+            scan.aliveRatio = scan.aliveCount / wave.totalCount;
+          }
+
+          return scan;
         }
 
         prewarmPool() {
@@ -584,31 +922,65 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           node.layer = Layers.Enum.UI_2D;
           var ui = node.addComponent(UITransform);
           ui.setContentSize(this.iconWidth, this.iconHeight);
-          var sprite = node.addComponent(Sprite);
+          var spriteNode = new Node('mini-map-wave-icon-sprite');
+          spriteNode.layer = Layers.Enum.UI_2D;
+          node.addChild(spriteNode);
+          var spriteUi = spriteNode.addComponent(UITransform);
+          spriteUi.setContentSize(this.iconWidth, this.iconHeight);
+          spriteUi.setAnchorPoint(0.5, 0.5);
+          var sprite = spriteNode.addComponent(Sprite);
           sprite.sizeMode = Sprite.SizeMode.CUSTOM;
-          node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
+          var item = node.addComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
           }), BattleInformationIconItem) : BattleInformationIconItem);
+          item.iconSprite = sprite;
           return node;
         }
 
         clearAllIcons() {
           this.records.forEach(record => {
+            Tween.stopAllByTarget(record.node);
             this.clearIconEvents(record.node);
             record.item.resetVisual();
             record.node.removeFromParent();
             record.node.active = false;
-            this.pool.push(record.node);
+
+            if (this.pool.length < this.maxPoolSize) {
+              this.pool.push(record.node);
+            } else {
+              record.node.destroy();
+            }
           });
           this.records.clear();
+          this.heroRecords.forEach(record => {
+            Tween.stopAllByTarget(record.node);
+            this.clearIconEvents(record.node);
+            record.item.resetVisual();
+            record.node.removeFromParent();
+            record.node.active = false;
+
+            if (this.pool.length < this.maxPoolSize) {
+              this.pool.push(record.node);
+            } else {
+              record.node.destroy();
+            }
+          });
+          this.heroRecords.clear();
         }
 
         destroyAllIcons() {
           this.records.forEach(record => {
+            Tween.stopAllByTarget(record.node);
             this.clearIconEvents(record.node);
             record.node.destroy();
           });
           this.records.clear();
+          this.heroRecords.forEach(record => {
+            Tween.stopAllByTarget(record.node);
+            this.clearIconEvents(record.node);
+            record.node.destroy();
+          });
+          this.heroRecords.clear();
 
           for (var i = 0; i < this.pool.length; i++) {
             var node = this.pool[i];
@@ -643,6 +1015,36 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return null;
+        }
+
+        getHeroSpriteFrame(team, hero) {
+          var heroSpriteFrame = team === 0 ? this.teamAHeroIcon : this.teamBHeroIcon;
+
+          if (heroSpriteFrame) {
+            return heroSpriteFrame;
+          }
+
+          var unitType = hero.props ? hero.props.unitType : (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            error: Error()
+          }), UnitType) : UnitType).LightSword;
+          return this.getSpriteFrame(team, unitType);
+        }
+
+        isHeroUnitAlive(hero) {
+          if (!hero) return false;
+          if (!hero.node.activeInHierarchy) return false;
+          if (!hero.agent) return false;
+          if (!hero.props) return false;
+          if (hero.props.isDead()) return false;
+          return true;
+        }
+
+        getTeamIconTint(team) {
+          return team === 0 ? this.teamAIconTint : this.teamBIconTint;
+        }
+
+        getTeamFlashTint(team) {
+          return team === 0 ? this.teamAFlashTint : this.teamBFlashTint;
         }
 
         findSpriteFrameInList(list, unitType) {
@@ -722,119 +1124,182 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "autoFindGameManager", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "teamAHeroIcon", [_dec12], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "teamBHeroIcon", [_dec13], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "autoFindGameManager", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "disableIconRootLayout", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "disableIconRootLayout", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "worldToMiniMapScale", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "worldToMiniMapScale", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "smoothDampTime", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "smoothDampTime", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.12;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "tweenScaleDuration", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "tweenScaleDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.15;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 18;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 18;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "minIconSpacing", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 22;
+        }
+      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "iconBoundaryPadding", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 4;
+        }
+      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "iconSeparationIterations", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 4;
+        }
+      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "teamAIconTint", [_dec14], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return new Color(90, 180, 255, 255);
+        }
+      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "teamBIconTint", [_dec15], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return new Color(255, 95, 95, 255);
+        }
+      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "teamAFlashTint", [_dec16], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return new Color(180, 240, 255, 255);
+        }
+      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "teamBFlashTint", [_dec17], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return new Color(255, 220, 90, 255);
+        }
+      }), _descriptor27 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 32;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 128;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "clampIconToMapBounds", [property], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class5.prototype, "clampIconToMapBounds", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "invertXAxis", [property], {
+      }), _descriptor30 = _applyDecoratedDescriptor(_class5.prototype, "invertXAxis", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "invertZAxis", [property], {
+      }), _descriptor31 = _applyDecoratedDescriptor(_class5.prototype, "invertZAxis", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "showAliveRatio", [property], {
+      }), _descriptor32 = _applyDecoratedDescriptor(_class5.prototype, "showAliveRatio", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "freezeDyingWavePositionAliveCount", [property], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "freezeDyingWavePositionAliveCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

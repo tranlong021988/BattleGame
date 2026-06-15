@@ -406,7 +406,10 @@ export class Unit extends Component {
             const gm = GameManager.instance;
 
             if (gm) {
-                gm.onWaveCombatStarted(this);
+                gm.onWaveCombatStarted(
+                    this,
+                    nearestInRange
+                );
             }
 
             this.returningToWaveLaneSlot = false;
@@ -533,18 +536,8 @@ export class Unit extends Component {
         // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
         // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
 
-        const nearestLaneEnemy =
-            this.findNearestEnemyInSameLane();
-
-        if (nearestLaneEnemy && nearestLaneEnemy.agent) {
-            this.forwardAdjacentTarget = null;
-
-            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
-                this.onForward = false;
-            }
-
-            return;
-        }
+        // Same-lane enemies no longer steer forward phase decisions.
+        // Contact combat handles them and moves the whole wave to freehunt.
 
         let nearestAdjacentLaneEnemy =
             this.getForwardAdjacentTarget();

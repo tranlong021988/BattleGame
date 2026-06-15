@@ -26,6 +26,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.teamAGrid = new Map();
           this.teamBGrid = new Map();
           this.tempResult = [];
+          this.nearestSearchBest = null;
+          this.nearestSearchBestDistSq = Infinity;
         }
 
         build(teamA, teamB) {
@@ -57,7 +59,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         queryEnemies(team, x, z, radius) {
-          var enemyGrid = team === 0 ? this.teamBGrid : this.teamAGrid;
+          var enemyGrid = this.getEnemyGrid(team);
           this.tempResult.length = 0;
           var cellRange = Math.ceil(radius / this.cellSize);
           var cx = Math.floor(x / this.cellSize);
@@ -90,24 +92,73 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         findNearestEnemy(team, x, z, radius) {
-          var candidates = this.queryEnemies(team, x, z, radius);
-          var best = null;
-          var bestDistSq = Infinity;
+          var enemyGrid = this.getEnemyGrid(team);
+          var cellRange = Math.ceil(radius / this.cellSize);
+          var cx = Math.floor(x / this.cellSize);
+          var cz = Math.floor(z / this.cellSize);
+          var radiusSq = radius * radius;
+          this.nearestSearchBest = null;
+          this.nearestSearchBestDistSq = Infinity;
 
-          for (var i = 0; i < candidates.length; i++) {
-            var unit = candidates[i];
+          for (var ring = 0; ring <= cellRange; ring++) {
+            var ringMinDistSq = this.getRingMinDistanceSq(cx, cz, ring, x, z);
+
+            if (ringMinDistSq > radiusSq) {
+              break;
+            }
+
+            if (this.nearestSearchBest && ringMinDistSq > this.nearestSearchBestDistSq) {
+              break;
+            }
+
+            this.scanRingForNearest(enemyGrid, cx, cz, ring, x, z, radiusSq);
+          }
+
+          return this.nearestSearchBest;
+        }
+
+        scanRingForNearest(enemyGrid, cx, cz, ring, x, z, radiusSq) {
+          if (ring <= 0) {
+            this.scanCellForNearest(enemyGrid, cx, cz, x, z, radiusSq);
+            return;
+          }
+
+          var minX = cx - ring;
+          var maxX = cx + ring;
+          var minZ = cz - ring;
+          var maxZ = cz + ring;
+
+          for (var gx = minX; gx <= maxX; gx++) {
+            this.scanCellForNearest(enemyGrid, gx, minZ, x, z, radiusSq);
+            this.scanCellForNearest(enemyGrid, gx, maxZ, x, z, radiusSq);
+          }
+
+          for (var gz = minZ + 1; gz <= maxZ - 1; gz++) {
+            this.scanCellForNearest(enemyGrid, minX, gz, x, z, radiusSq);
+            this.scanCellForNearest(enemyGrid, maxX, gz, x, z, radiusSq);
+          }
+        }
+
+        scanCellForNearest(enemyGrid, gx, gz, x, z, radiusSq) {
+          var list = enemyGrid.get(this.getKey(gx, gz));
+          if (!list) return;
+
+          for (var i = 0; i < list.length; i++) {
+            var unit = list[i];
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
             if (!unit.agent) continue;
+            if (!unit.props || unit.props.isDead()) continue;
             var dx = unit.agent.pos.x - x;
             var dz = unit.agent.pos.z - z;
             var d = dx * dx + dz * dz;
+            if (d > radiusSq) continue;
 
-            if (d < bestDistSq) {
-              bestDistSq = d;
-              best = unit;
+            if (d < this.nearestSearchBestDistSq) {
+              this.nearestSearchBestDistSq = d;
+              this.nearestSearchBest = unit;
             }
           }
-
-          return best;
         }
 
         findNearestEnemyInRange(team, x, z, range) {
@@ -116,6 +167,57 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
         getKey(x, z) {
           return x + "_" + z;
+        }
+
+        getRingMinDistanceSq(cx, cz, ring, x, z) {
+          if (ring <= 0) {
+            return this.getCellMinDistanceSq(cx, cz, x, z);
+          }
+
+          var minX = cx - ring;
+          var maxX = cx + ring;
+          var minZ = cz - ring;
+          var maxZ = cz + ring;
+          var left = this.getRectMinDistanceSq(minX, minX, minZ + 1, maxZ - 1, x, z);
+          var right = this.getRectMinDistanceSq(maxX, maxX, minZ + 1, maxZ - 1, x, z);
+          var bottom = this.getRectMinDistanceSq(minX, maxX, minZ, minZ, x, z);
+          var top = this.getRectMinDistanceSq(minX, maxX, maxZ, maxZ, x, z);
+          return Math.min(left, right, bottom, top);
+        }
+
+        getCellMinDistanceSq(gx, gz, x, z) {
+          return this.getRectMinDistanceSq(gx, gx, gz, gz, x, z);
+        }
+
+        getRectMinDistanceSq(minGx, maxGx, minGz, maxGz, x, z) {
+          if (minGx > maxGx || minGz > maxGz) {
+            return Infinity;
+          }
+
+          var minX = minGx * this.cellSize;
+          var maxX = (maxGx + 1) * this.cellSize;
+          var minZ = minGz * this.cellSize;
+          var maxZ = (maxGz + 1) * this.cellSize;
+          var dx = 0;
+          var dz = 0;
+
+          if (x < minX) {
+            dx = minX - x;
+          } else if (x > maxX) {
+            dx = x - maxX;
+          }
+
+          if (z < minZ) {
+            dz = minZ - z;
+          } else if (z > maxZ) {
+            dz = z - maxZ;
+          }
+
+          return dx * dx + dz * dz;
+        }
+
+        getEnemyGrid(team) {
+          return team === 0 ? this.teamBGrid : this.teamAGrid;
         }
 
       });
