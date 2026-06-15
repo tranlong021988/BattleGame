@@ -290,7 +290,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               type: 'application/javascript'
             });
             var url = URL.createObjectURL(blob);
-            this.worker = new Worker(url);
+            this.worker = this.createNamedWorker(url, 'EnemyFinderWorker');
             URL.revokeObjectURL(url);
 
             this.worker.onmessage = event => {
@@ -323,6 +323,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.workerFailed = true;
             this.workerReady = false;
             this.worker = null;
+          }
+        }
+
+        static createNamedWorker(url, name) {
+          try {
+            return new Worker(url, {
+              name
+            });
+          } catch (err) {
+            return new Worker(url);
           }
         }
 

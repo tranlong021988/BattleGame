@@ -329,7 +329,10 @@ export class RVOWorkerSimulator {
 
         const url = URL.createObjectURL(blob);
 
-        this.worker = new Worker(url);
+        this.worker = this.createNamedWorker(
+            url,
+            'RVOWorkerSimulator'
+        );
 
         URL.revokeObjectURL(url);
 
@@ -367,6 +370,14 @@ export class RVOWorkerSimulator {
             console.error('[RVOWorkerSimulator] Worker error:', err);
             this.pending = false;
         };
+    }
+
+    private createNamedWorker(url: string, name: string) {
+        try {
+            return new Worker(url, { name });
+        } catch (err) {
+            return new Worker(url);
+        }
     }
 
     private applyWorkerResult(

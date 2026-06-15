@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 8743948.2534,
+      "mTimestamp": 10005073.0918,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3737,7 +3737,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/EnemyFinder.ts": {
       "mTimestamp": {
-        "mtime": 1781238801893.7454,
+        "mtime": 1781508896430.5837,
         "uuid": "362a6ce2-8e20-4944-8fed-7f2fa95db536"
       },
       "chunkId": "8c985824e5a0cbc5563eadc1b90363864131dd9d",
@@ -3821,7 +3821,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1781506246370.6687,
+        "mtime": 1781508151496.0493,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -4334,7 +4334,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1781498708286.2273,
+        "mtime": 1781508247757.7195,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -5383,7 +5383,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts": {
       "mTimestamp": {
-        "mtime": 1780451552000,
+        "mtime": 1781508910045.3396,
         "uuid": "fb8a1849-3759-4dfb-ac42-f957ce6a64ab"
       },
       "chunkId": "050442a99214a178ac71bf0e4447f57a0f27ae19",
@@ -5479,7 +5479,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts": {
       "mTimestamp": {
-        "mtime": 1781507637196.454,
+        "mtime": 1781508891291.9995,
         "uuid": "52095f96-7140-489a-8f7f-0b94987cbfe7"
       },
       "chunkId": "5d8e4021ccee3efd23657fb998ca8d2669ce83fb",

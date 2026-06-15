@@ -331,7 +331,11 @@ export class EnemyFinder extends Component {
 
             const url = URL.createObjectURL(blob);
 
-            this.worker = new Worker(url);
+            this.worker = this.createNamedWorker(
+                url,
+                'EnemyFinderWorker'
+            );
+
             URL.revokeObjectURL(url);
 
             this.worker.onmessage = (event: MessageEvent) => {
@@ -365,6 +369,14 @@ export class EnemyFinder extends Component {
             this.workerFailed = true;
             this.workerReady = false;
             this.worker = null;
+        }
+    }
+
+    private static createNamedWorker(url: string, name: string) {
+        try {
+            return new Worker(url, { name });
+        } catch (err) {
+            return new Worker(url);
         }
     }
 

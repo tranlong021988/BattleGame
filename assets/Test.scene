@@ -1596,6 +1596,7 @@
     "visualSmooth": 16,
     "spatialGridCellSize": 4,
     "spatialGridUpdateInterval": 2,
+    "useWorkerSpatialTargetQuery": true,
     "teamAAliveLabel": null,
     "teamADeathLabel": null,
     "teamBAliveLabel": null,

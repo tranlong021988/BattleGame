@@ -68,6 +68,8 @@ export class Unit extends Component {
     private cachedNearestInRange: Unit | null = null;
     private cachedNearestEnemy: Unit | null = null;
     private forwardAdjacentTarget: Unit | null = null;
+    private nearestInRangeQueryToken = 0;
+    private nearestEnemyQueryToken = 0;
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
@@ -106,6 +108,7 @@ export class Unit extends Component {
         this.updateOffset = Math.floor(Math.random() * 1000);
         this.frameCounter = this.updateOffset;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.forwardAdjacentTarget = null;
@@ -126,6 +129,7 @@ export class Unit extends Component {
 
         if (!this.agent) return;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.forwardAdjacentTarget = null;
@@ -202,6 +206,11 @@ export class Unit extends Component {
         }
     }
 
+    private invalidateNearestQueryResults() {
+        this.nearestInRangeQueryToken++;
+        this.nearestEnemyQueryToken++;
+    }
+
     private setForwardDir(x: number, z: number) {
         const len = Math.sqrt(x * x + z * z);
 
@@ -222,6 +231,7 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = true;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.forwardAdjacentTarget = null;
@@ -253,6 +263,7 @@ export class Unit extends Component {
         this.enemy = null;
         this.onBusy = false;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.forwardAdjacentTarget = null;
@@ -279,6 +290,7 @@ export class Unit extends Component {
             searchRange
         );
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.forwardAdjacentTarget = null;
@@ -314,6 +326,7 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = true;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
         this.forwardAdjacentTarget = null;
@@ -332,6 +345,7 @@ export class Unit extends Component {
         this.returningToWaveLaneSlot = false;
         this.onForward = false;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestEnemy = null;
         this.cachedNearestInRange = null;
         this.forwardAdjacentTarget = null;
@@ -349,6 +363,7 @@ export class Unit extends Component {
         this.returningToWaveLaneSlot = false;
         this.onForward = false;
 
+        this.invalidateNearestQueryResults();
         this.cachedNearestEnemy = null;
         this.cachedNearestInRange = null;
         this.forwardAdjacentTarget = null;
@@ -509,22 +524,85 @@ export class Unit extends Component {
 
     private getNearestEnemyInAttackRangeThrottled(): Unit | null {
         if (this.shouldRunAttackCheck()) {
-            this.cachedNearestInRange = this.findNearestEnemyInAttackRange();
+            const queryToken =
+                ++this.nearestInRangeQueryToken;
+
+            const queued =
+                this.queueNearestEnemyQuery(
+                    this.attackRange,
+                    (target) => {
+                        if (
+                            queryToken !==
+                            this.nearestInRangeQueryToken
+                        ) {
+                            return;
+                        }
+
+                        this.cachedNearestInRange =
+                            this.isValidEnemyWithinRange(
+                                target,
+                                this.attackRange
+                            )
+                                ? target
+                                : null;
+                    }
+                );
+
+            if (!queued) {
+                this.cachedNearestInRange =
+                    this.findNearestEnemyInAttackRange();
+            }
         } else if (!this.isValidEnemy(this.cachedNearestInRange)) {
             this.cachedNearestInRange = null;
         }
 
-        return this.cachedNearestInRange;
+        return this.isValidEnemyWithinRange(
+            this.cachedNearestInRange,
+            this.attackRange
+        )
+            ? this.cachedNearestInRange
+            : null;
     }
 
     private getNearestEnemyThrottled(): Unit | null {
         if (this.shouldRunTargetSearch()) {
-            this.cachedNearestEnemy = this.findNearestEnemy();
+            const queryToken =
+                ++this.nearestEnemyQueryToken;
+
+            const queued =
+                this.queueNearestEnemyQuery(
+                    this.targetSearchRange,
+                    (target) => {
+                        if (
+                            queryToken !==
+                            this.nearestEnemyQueryToken
+                        ) {
+                            return;
+                        }
+
+                        this.cachedNearestEnemy =
+                            this.isValidEnemyWithinRange(
+                                target,
+                                this.targetSearchRange
+                            )
+                                ? target
+                                : null;
+                    }
+                );
+
+            if (!queued) {
+                this.cachedNearestEnemy = this.findNearestEnemy();
+            }
         } else if (!this.isValidEnemy(this.cachedNearestEnemy)) {
             this.cachedNearestEnemy = null;
         }
 
-        return this.cachedNearestEnemy;
+        return this.isValidEnemyWithinRange(
+            this.cachedNearestEnemy,
+            this.targetSearchRange
+        )
+            ? this.cachedNearestEnemy
+            : null;
     }
 
     private updateForwardPhase() {
@@ -837,6 +915,39 @@ export class Unit extends Component {
         }
     }
 
+    private queueNearestEnemyQuery(
+        radius: number,
+        callback: (target: Unit | null) => void
+    ) {
+        if (!this.agent) return false;
+
+        const gm = GameManager.instance;
+
+        if (!gm || !gm.spatialGrid) {
+            return false;
+        }
+
+        return gm.spatialGrid.requestNearestEnemy(
+            this,
+            this.team,
+            this.agent.pos.x,
+            this.agent.pos.z,
+            radius,
+            (target) => {
+                if (!this.node.activeInHierarchy) {
+                    return;
+                }
+
+                if (!this.agent || this.props.isDead()) {
+                    callback(null);
+                    return;
+                }
+
+                callback(target);
+            }
+        );
+    }
+
     private findNearestEnemyInAttackRange(): Unit | null {
         if (!this.agent) return null;
 
@@ -935,6 +1046,19 @@ export class Unit extends Component {
         if (!e.props || e.props.isDead()) return false;
 
         return true;
+    }
+
+    private isValidEnemyWithinRange(
+        e: Unit | null,
+        range: number
+    ): boolean {
+        if (!this.agent) return false;
+        if (!this.isValidEnemy(e)) return false;
+
+        const dx = e!.agent!.pos.x - this.agent.pos.x;
+        const dz = e!.agent!.pos.z - this.agent.pos.z;
+
+        return dx * dx + dz * dz <= range * range;
     }
 
     private getEnemyList() {

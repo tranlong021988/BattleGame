@@ -74,6 +74,9 @@ export class GameManager extends Component {
     @property
     spatialGridUpdateInterval = 2;
 
+    @property
+    useWorkerSpatialTargetQuery = true;
+
     spatialGrid: BattleSpatialGrid = new BattleSpatialGrid();
 
     @property(Label)
@@ -310,6 +313,7 @@ export class GameManager extends Component {
         this.teamAPrefabMap.clear();
         this.teamBPrefabMap.clear();
 
+        this.spatialGrid.destroy();
         this.spatialGrid.build([], []);
         this.sim = null;
     }
@@ -951,6 +955,9 @@ export class GameManager extends Component {
     private rebuildSpatialGrid() {
         this.spatialGrid.cellSize =
             this.spatialGridCellSize;
+
+        this.spatialGrid.useWorkerTargetQuery =
+            this.useWorkerSpatialTargetQuery;
 
         this.spatialGrid.build(
             this.teamA,
