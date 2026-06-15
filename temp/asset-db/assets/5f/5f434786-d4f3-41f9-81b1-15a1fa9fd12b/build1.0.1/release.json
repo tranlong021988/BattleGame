@@ -1,0 +1,96 @@
+[
+    1,
+    [
+        "6fXhRftEdHbrVg+Ykekoc2"
+    ],
+    [
+        "_effectAsset"
+    ],
+    [
+        [
+            "cc.Material",
+            [
+                "_name",
+                "_states",
+                "_defines",
+                "_props"
+            ],
+            0,
+            12
+        ]
+    ],
+    [
+        [
+            0,
+            0,
+            1,
+            2,
+            3,
+            4
+        ]
+    ],
+    [
+        [
+            0,
+            "HealthBarMat",
+            [
+                {
+                    "rasterizerState": {},
+                    "depthStencilState": {},
+                    "blendState": {
+                        "targets": [
+                            {
+                                "blend": false
+                            }
+                        ]
+                    }
+                }
+            ],
+            [
+                {
+                    "USE_INSTANCING": true
+                }
+            ],
+            [
+                [
+                    [
+                        {},
+                        "bgColor",
+                        8,
+                        [
+                            4,
+                            4280163870
+                        ],
+                        "mainColor",
+                        8,
+                        [
+                            4,
+                            4294901760
+                        ],
+                        "barParams",
+                        8,
+                        [
+                            2,
+                            0.02,
+                            0.1,
+                            -1.5,
+                            2
+                        ]
+                    ]
+                ],
+                11
+            ]
+        ]
+    ],
+    0,
+    0,
+    [
+        0
+    ],
+    [
+        0
+    ],
+    [
+        0
+    ]
+]
