@@ -253,3 +253,100 @@ Nếu cần đo:
 - Current source nên giữ ở hướng runtime cache + spatial grid + worker + sampling.
 - User tạm dừng và muốn Codex ở máy khác đọc file này để bắt kịp.
 
+## Cập nhật performance tối 2026-06-16
+
+User test visual hiện đã khá đúng ý. Vấn đề chính còn lại là frametime tăng. Đã dùng Chrome DevTools Performance trace để đo thật, không chỉ đoán từ source.
+
+Trace trước tối ưu:
+
+- File user đưa: `Trace-20260616T214201.json`.
+- Môi trường record: Chrome DevTools, emulated `iPhone SE`.
+- Bottleneck chính nằm ở main thread: `Unit.updateForwardPhase()` -> `findNearestEnemyInSameLane()` -> `BattleSpatialGrid.queryEnemies()`.
+- Số liệu đáng chú ý:
+  - DroppedFrame khoảng `735`.
+  - `FireAnimationFrame` avg khoảng `3.40ms`, p95 khoảng `8.81ms`.
+  - `updateForwardPhase` inclusive khoảng `5002ms`.
+  - `BattleSpatialGrid.queryEnemies` self khoảng `3911ms`.
+  - `findNearestEnemyInSameLane` inclusive khoảng `4029ms`.
+- Kết luận: thủ phạm không phải wave scan. Thủ phạm là forward lane detection đang dùng `targetSearchRange` lớn cho từng unit đang forward, mỗi frame.
+
+Bối cảnh map:
+
+- User nói battlefield thực tế combat theo trục Z.
+- Kích thước chiến trường khoảng `x = -8..8`, `z = -21..21`.
+- `targetSearchRange` thực tế user set trong Inspector là khoảng `35`, không phải default `60`.
+- Dù là `35`, với map này vẫn rất rộng: gần phủ toàn bộ chiều ngang và phần lớn chiều dài.
+- `spatialGridCellSize = 4`, radius `35` tương đương `cellRange = ceil(35 / 4) = 9`, tức có thể lookup khoảng `19 x 19` cell mỗi query.
+- Vì mỗi unit forward tự scan, chi phí nhân theo số unit forward.
+
+Giải pháp đã code:
+
+- Trong `assets/scripts/Unit.ts` thêm:
+  - `forwardScanRange = 12`
+  - `forwardScanIntervalFrames = 2`
+- `findNearestEnemyInSameLane()` và `findNearestEnemyInAdjacentLane()` hiện dùng `forwardScanRange`, không dùng `targetSearchRange`.
+- `targetSearchRange` vẫn giữ cho freehunt/target search bình thường.
+- Có fallback: nếu `forwardScanRange <= 0`, dùng lại `targetSearchRange`.
+- Forward scan được throttle qua `forwardScanIntervalFrames`.
+- `Unit.frameCounter` đã được khởi tạo bằng `updateOffset`, nên `attackCheckIntervalFrames`, `targetSearchIntervalFrames`, và `forwardScanIntervalFrames` đều đã tự rải phase giữa các unit. Không cần cộng `updateOffset` thêm lần nữa.
+- Thêm cache `forwardLaneTarget` cho same-lane, dùng chung với cache cũ `forwardAdjacentTarget`.
+- Frame không tới lượt scan vẫn check target cache để phát hiện đã vượt enemy, tránh bị "mù" giữa 2 lần scan.
+- Khi unit đổi lane/freehunt/combat/steady/despawn/clear enemy thì clear cache forward target.
+
+Trace sau khi thêm `forwardScanRange`:
+
+- File user đưa: `Trace-20260616T220253.json`.
+- Kết quả:
+  - DroppedFrame giảm từ khoảng `735` xuống `76`.
+  - `FireAnimationFrame` avg giảm từ khoảng `3.40ms` xuống `1.50ms`.
+  - `FireAnimationFrame` p95 giảm từ khoảng `8.81ms` xuống `4.55ms`.
+  - `updateForwardPhase` inclusive giảm từ khoảng `5002ms` xuống `571ms`.
+  - `BattleSpatialGrid.queryEnemies` self giảm từ khoảng `3911ms` xuống `415ms`.
+  - `findNearestEnemyInSameLane` inclusive giảm từ khoảng `4029ms` xuống `339ms`.
+- Kết luận: `forwardScanRange = 12` đánh đúng bottleneck. Chưa cần vội chuyển sang wave-level cache nếu visual vẫn ổn.
+
+Throttle/offset đã rà:
+
+- Trong `assets/scripts/GameManager.ts` thêm:
+  - `rvoUpdateFrameOffset = 0`
+  - `spatialGridUpdateFrameOffset = 1`
+  - helper `shouldRunFrameInterval(interval, offset)`
+- Mục tiêu: RVO step và spatial grid rebuild đều default interval `2`; offset grid `1` giúp tránh dồn cả hai vào cùng frame.
+- Không thêm offset cho:
+  - `ArmyBrain`: đã random `nextInterval`.
+  - `UnitBehavior`: attack interval đã random per unit.
+  - `TrueMiniMapPanel`: thường chỉ một instance, offset không có nhiều ý nghĩa.
+  - `SpawnBackPressureGate`: một gate global, offset không giúp.
+  - `BattleSpatialGrid` worker flush: dùng microtask batching, không nên frame-offset.
+
+Memory/listener từ trace:
+
+- User thấy DevTools Listener đi ngang, memory răng cưa tăng rồi tụt mạnh.
+- Đã parse counter trong trace:
+  - `jsEventListeners`: khoảng `130` rồi xuống `119`, không tăng bậc thang.
+  - `nodes`: giữ nguyên khoảng `30569`.
+  - `documents`: giữ nguyên `2`.
+  - `jsHeapSizeUsed`: tăng răng cưa tới khoảng `189MB`, sau GC tụt về khoảng `51-59MB`.
+- Kết luận: hiện chưa thấy dấu hiệu listener leak hoặc node leak. Đây giống allocation + GC bình thường.
+- Game có listener thật ở:
+  - `TopDownCameraDrag`: input touch/mouse wheel, có `off` trong `onDisable`.
+  - `BattleCinematicCameraController`: input touch/mouse down, có `off` trong `onDisable`.
+  - `TrueMiniMapPanel`: mỗi icon clickable có `TOUCH_START` + `TOUCH_END`; khi reuse/destroy có `clearIconEvents`.
+  - `DebugStats`: director events, có `off` trong `onDestroy`.
+
+Performance hiện tại cần theo dõi tiếp:
+
+- `postMessage` worker vẫn hiện trong trace. Chưa phải bottleneck chính, nhưng nếu scale 500-600 unit có thể tối ưu bằng typed array/reuse buffer/batch tốt hơn.
+- RVO worker `collectNeighbors` còn là vùng cần theo dõi khi unit count cao.
+- Wave recovery và minimap trong trace hiện rất nhỏ, chưa phải vấn đề.
+- Nếu sau này forward scan lại thành bottleneck, hướng tiếp theo mới là wave-level forward detection cache. Không nên quay lại scan per-unit với range lớn.
+
+Lưu ý khi test tiếp:
+
+- Giá trị khuyến nghị hiện tại:
+  - `forwardScanRange = 12`
+  - `forwardScanIntervalFrames = 2`
+- Nếu visual phản ứng hơi trễ khi vượt enemy lane kề/cùng lane, thử tăng `forwardScanRange` lên `14` hoặc `16`.
+- Không khuyến nghị đưa `forwardScanRange` lên lại `35` trên map hiện tại.
+- Nếu muốn nhẹ hơn nữa, có thể thử `forwardScanIntervalFrames = 3`, nhưng cần test visual vì có thể làm phát hiện trễ hơn.
+
