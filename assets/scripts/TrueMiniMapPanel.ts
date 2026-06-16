@@ -171,6 +171,9 @@ export class TrueMiniMapPanel extends Component {
     showAliveRatio = false;
 
     @property
+    maxPositionSampleUnits = 8;
+
+    @property
     freezeDyingWavePositionAliveCount = 1;
 
     @property
@@ -196,6 +199,8 @@ export class TrueMiniMapPanel extends Component {
     private tempWorldPosition = new Vec3();
     private tempMiniMapPosition = new Vec3();
     private iconSeparationRecords: MiniMapSeparationRecord[] = [];
+    private iconSeparationGrid: Map<string, number[]> = new Map();
+    private iconSeparationGridKeys: string[] = [];
     private tempWaveScan: MiniMapWaveScan = {
         aliveCount: 0,
         aliveRatio: 0,
@@ -1017,35 +1022,76 @@ export class TrueMiniMapPanel extends Component {
             iteration < iterations;
             iteration++
         ) {
+            this.buildIconSeparationGrid(
+                records,
+                minSpacing
+            );
+
             for (
                 let i = 0;
-                i < records.length - 1;
+                i < records.length;
                 i++
             ) {
                 const a =
                     records[i];
 
+                const aPos =
+                    a.targetPosition;
+
+                const gx =
+                    Math.floor(aPos.x / minSpacing);
+
+                const gy =
+                    Math.floor(aPos.y / minSpacing);
+
                 for (
-                    let j = i + 1;
-                    j < records.length;
-                    j++
+                    let x = gx - 1;
+                    x <= gx + 1;
+                    x++
                 ) {
-                    const b =
-                        records[j];
-
-                    if (
-                        a.team ===
-                        b.team
+                    for (
+                        let y = gy - 1;
+                        y <= gy + 1;
+                        y++
                     ) {
-                        continue;
-                    }
+                        const list =
+                            this.iconSeparationGrid.get(
+                                this.getIconSeparationKey(
+                                    x,
+                                    y
+                                )
+                            );
 
-                    this.separateIconPair(
-                        a,
-                        b,
-                        minSpacing,
-                        minSpacingSq
-                    );
+                        if (!list) continue;
+
+                        for (
+                            let index = 0;
+                            index < list.length;
+                            index++
+                        ) {
+                            const j =
+                                list[index];
+
+                            if (j <= i) continue;
+
+                            const b =
+                                records[j];
+
+                            if (
+                                a.team ===
+                                b.team
+                            ) {
+                                continue;
+                            }
+
+                            this.separateIconPair(
+                                a,
+                                b,
+                                minSpacing,
+                                minSpacingSq
+                            );
+                        }
+                    }
                 }
             }
 
@@ -1053,6 +1099,73 @@ export class TrueMiniMapPanel extends Component {
                 records
             );
         }
+    }
+
+    private buildIconSeparationGrid(
+        records: MiniMapSeparationRecord[],
+        cellSize: number
+    ) {
+        this.clearIconSeparationGrid();
+
+        for (
+            let i = 0;
+            i < records.length;
+            i++
+        ) {
+            const pos =
+                records[i].targetPosition;
+
+            const key =
+                this.getIconSeparationKey(
+                    Math.floor(pos.x / cellSize),
+                    Math.floor(pos.y / cellSize)
+                );
+
+            let list =
+                this.iconSeparationGrid.get(key);
+
+            if (!list) {
+                list = [];
+                this.iconSeparationGrid.set(
+                    key,
+                    list
+                );
+            }
+
+            if (list.length <= 0) {
+                this.iconSeparationGridKeys.push(
+                    key
+                );
+            }
+
+            list.push(i);
+        }
+    }
+
+    private clearIconSeparationGrid() {
+        for (
+            let i = 0;
+            i < this.iconSeparationGridKeys.length;
+            i++
+        ) {
+            const list =
+                this.iconSeparationGrid.get(
+                    this.iconSeparationGridKeys[i]
+                );
+
+            if (list) {
+                list.length = 0;
+            }
+        }
+
+        this.iconSeparationGridKeys.length = 0;
+    }
+
+    private getIconSeparationKey(
+        x: number,
+        y: number
+    ) {
+        return `${x}_${y}`;
     }
 
     private clampSeparatedIconTargets(
@@ -1613,8 +1726,119 @@ export class TrueMiniMapPanel extends Component {
             return scan;
         }
 
+        const frame =
+            this.gameManager
+                ? this.gameManager.frame
+                : -1;
+
+        const aliveCount =
+            frame >= 0
+                ? wave.getRuntimeAliveCount(frame)
+                : wave.getAliveCount();
+
+        scan.aliveCount =
+            aliveCount;
+
+        scan.engaged =
+            frame >= 0
+                ? wave.hasEngagedRuntime(frame)
+                : wave.hasEngaged();
+
+        if (aliveCount <= 0) {
+            out.set(0, 0, 0);
+            return scan;
+        }
+
+        scan.dead = false;
+
+        if (wave.totalCount > 0) {
+            scan.aliveRatio =
+                aliveCount /
+                wave.totalCount;
+        }
+
         let sumX = 0;
         let sumZ = 0;
+        let sampleCount = 0;
+
+        const units =
+            wave.units;
+
+        const sampleLimit =
+            Math.max(
+                1,
+                Math.floor(
+                    this.maxPositionSampleUnits
+                )
+            );
+
+        const step =
+            units.length > sampleLimit
+                ? Math.max(
+                    1,
+                    Math.floor(
+                        units.length /
+                        sampleLimit
+                    )
+                )
+                : 1;
+
+        for (
+            let i = 0;
+            i < units.length &&
+            sampleCount < sampleLimit;
+            i += step
+        ) {
+            const unit =
+                units[i];
+
+            if (!unit) continue;
+            if (BattleWave.getWaveForUnit(unit) !== wave) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.props) continue;
+            if (unit.props.isDead()) continue;
+            if (!unit.agent) continue;
+
+            sumX += unit.agent.pos.x;
+            sumZ += unit.agent.pos.z;
+
+            sampleCount++;
+        }
+
+        if (sampleCount <= 0) {
+            if (
+                !this.scanFullWavePositionForMiniMap(
+                    wave,
+                    out
+                )
+            ) {
+                out.set(0, 0, 0);
+                scan.dead = true;
+                return scan;
+            }
+
+            scan.hasPosition = true;
+            return scan;
+        }
+
+        out.set(
+            sumX / sampleCount,
+            0,
+            sumZ / sampleCount
+        );
+
+        scan.hasPosition = true;
+
+        return scan;
+    }
+
+    private scanFullWavePositionForMiniMap(
+        wave: BattleWave,
+        out: Vec3
+    ) {
+        let sumX = 0;
+        let sumZ = 0;
+        let count = 0;
 
         const units =
             wave.units;
@@ -1636,35 +1860,20 @@ export class TrueMiniMapPanel extends Component {
 
             sumX += unit.agent.pos.x;
             sumZ += unit.agent.pos.z;
-
-            scan.aliveCount++;
-
-            if (unit.onBusy) {
-                scan.engaged = true;
-            }
+            count++;
         }
 
-        if (scan.aliveCount <= 0) {
-            out.set(0, 0, 0);
-            return scan;
+        if (count <= 0) {
+            return false;
         }
 
         out.set(
-            sumX / scan.aliveCount,
+            sumX / count,
             0,
-            sumZ / scan.aliveCount
+            sumZ / count
         );
 
-        scan.dead = false;
-        scan.hasPosition = true;
-
-        if (wave.totalCount > 0) {
-            scan.aliveRatio =
-                scan.aliveCount /
-                wave.totalCount;
-        }
-
-        return scan;
+        return true;
     }
 
     private prewarmPool() {

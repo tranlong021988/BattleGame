@@ -11,6 +11,13 @@ enum ArmyBrainMode {
     Defense = 1,
 }
 
+type LanePressureInfo = {
+    enemyThreat: number;
+    allyDefense: number;
+    enemyCount: number;
+    allyCount: number;
+};
+
 @ccclass('ArmyBrain')
 export class ArmyBrain extends Component {
 
@@ -58,6 +65,12 @@ export class ArmyBrain extends Component {
 
     @property
     counterSameLaneChance = 0.75;
+
+    @property
+    laneAwareness = 0.5;
+
+    @property
+    flankAggression = 0.25;
 
     @property
     aiIntelligence = 1.0;
@@ -183,8 +196,12 @@ export class ArmyBrain extends Component {
             `Decision: targetWave=${targetWave.id}, target=${unitTypeToName(targetWave.unitType)}, selected=${selectedEntry.name}/${unitTypeToName(selectedEntry.unitType)}, score=${selectedCounterScore.toFixed(2)}, isCounter=${isRealCounter}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, cost=${selectedEntry.combatPointCost}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}, lane=${targetWave.laneId}, engaged=${targetWave.hasEngaged()}`
         );
 
+        const lanePressure =
+            this.buildLanePressureSnapshot();
+
         const spawnLaneId = this.getCounterSpawnLaneId(
-            targetWave
+            targetWave,
+            lanePressure
         );
 
         this.debugLog(
@@ -321,8 +338,7 @@ export class ArmyBrain extends Component {
         const waves = this.gameManager.getWavesByTeam(enemyTeam);
 
         let best: BattleWave | null = null;
-        let bestDistanceSq = Infinity;
-        let bestAliveRatio = -Infinity;
+        let bestScore = -Infinity;
 
         const defendPoint = this.getDefendPoint();
 
@@ -337,17 +353,17 @@ export class ArmyBrain extends Component {
             );
 
             const aliveRatio = wave.getAliveRatio();
+            const dist = Math.sqrt(distSq);
+            const distanceScore =
+                Math.max(0, 120 - dist);
 
-            const closer =
-                distSq < bestDistanceSq;
+            let score = 0;
 
-            const sameDistanceButStronger =
-                Math.abs(distSq - bestDistanceSq) < 0.0001 &&
-                aliveRatio > bestAliveRatio;
+            score += distanceScore;
+            score += aliveRatio * 70;
 
-            if (closer || sameDistanceButStronger) {
-                bestDistanceSq = distSq;
-                bestAliveRatio = aliveRatio;
+            if (score > bestScore) {
+                bestScore = score;
                 best = wave;
             }
         }
@@ -395,6 +411,55 @@ export class ArmyBrain extends Component {
         }
 
         return true;
+    }
+
+    private buildLanePressureSnapshot(): LanePressureInfo[] {
+        const result: LanePressureInfo[] = [];
+
+        if (!this.gameManager) {
+            return result;
+        }
+
+        const laneCount =
+            this.gameManager.getSafeLaneCount();
+
+        for (let i = 0; i < laneCount; i++) {
+            result.push({
+                enemyThreat: 0,
+                allyDefense: 0,
+                enemyCount: 0,
+                allyCount: 0,
+            });
+        }
+
+        const waves = this.gameManager.waves;
+        const enemyTeam = this.team === 0 ? 1 : 0;
+
+        for (let i = 0; i < waves.length; i++) {
+            const wave = waves[i];
+
+            if (!wave) continue;
+            if (wave.released) continue;
+            if (wave.laneId < 0) continue;
+
+            const lane = this.gameManager.clampLaneId(
+                wave.laneId
+            );
+
+            const info = result[lane];
+
+            if (!info) continue;
+
+            if (wave.team === enemyTeam) {
+                info.enemyCount++;
+                info.enemyThreat++;
+            } else if (wave.team === this.team) {
+                info.allyCount++;
+                info.allyDefense++;
+            }
+        }
+
+        return result;
     }
 
     private chooseEntryAgainstWave(
@@ -601,7 +666,10 @@ export class ArmyBrain extends Component {
         );
     }
 
-    private getCounterSpawnLaneId(targetWave: BattleWave) {
+    private getCounterSpawnLaneId(
+        targetWave: BattleWave,
+        lanePressure: LanePressureInfo[]
+    ) {
         if (!this.gameManager) {
             return targetWave.laneId;
         }
@@ -622,7 +690,28 @@ export class ArmyBrain extends Component {
             1
         );
 
-        if (Math.random() <= sameLaneChance) {
+        const targetInfo =
+            lanePressure[targetLane];
+
+        const targetUndefended =
+            !!targetInfo &&
+            targetInfo.enemyCount > 0 &&
+            targetInfo.allyCount <= 0;
+
+        const adjustedSameLaneChance =
+            this.clamp(
+                sameLaneChance +
+                this.getLaneAwareness() *
+                (
+                    targetUndefended
+                        ? this.getDefenseSameLaneBonus()
+                        : -0.25 * this.getFlankAggression()
+                ),
+                0,
+                1
+            );
+
+        if (Math.random() <= adjustedSameLaneChance) {
             return targetLane;
         }
 
@@ -643,11 +732,63 @@ export class ArmyBrain extends Component {
             return targetLane;
         }
 
-        const index = Math.floor(
-            Math.random() * neighborLanes.length
+        return this.chooseSupportLane(
+            neighborLanes,
+            lanePressure
         );
+    }
 
-        return neighborLanes[index];
+    private chooseSupportLane(
+        lanes: number[],
+        lanePressure: LanePressureInfo[]
+    ) {
+        if (lanes.length <= 0) {
+            return 0;
+        }
+
+        if (
+            this.getLaneAwareness() <= 0 ||
+            this.getFlankAggression() <= 0
+        ) {
+            const index = Math.floor(
+                Math.random() * lanes.length
+            );
+
+            return lanes[index];
+        }
+
+        let bestLane = lanes[0];
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < lanes.length; i++) {
+            const lane = lanes[i];
+            const info = lanePressure[lane];
+
+            let score = Math.random() * 0.001;
+
+            if (info) {
+                score +=
+                    Math.max(
+                        0,
+                        info.enemyThreat -
+                        info.allyDefense
+                    );
+
+                if (
+                    info.enemyCount > 0 &&
+                    info.allyCount <= 0
+                ) {
+                    score += 35;
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestLane = lane;
+            }
+        }
+
+        return bestLane;
     }
 
     private getCounterScore(
@@ -701,6 +842,28 @@ export class ArmyBrain extends Component {
             0,
             1
         );
+    }
+
+    private getLaneAwareness() {
+        return this.clamp(
+            this.laneAwareness,
+            0,
+            1
+        );
+    }
+
+    private getFlankAggression() {
+        return this.clamp(
+            this.flankAggression,
+            0,
+            1
+        );
+    }
+
+    private getDefenseSameLaneBonus() {
+        return this.currentMode === ArmyBrainMode.Defense
+            ? 0.45
+            : 0.2;
     }
 
     private randomizeNextInterval() {

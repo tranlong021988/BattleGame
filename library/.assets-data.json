@@ -107,7 +107,8 @@
     "url": "db://assets/Test.scene",
     "value": {
       "depends": [
-        "20835ba4-6145-4fbc-a58a-051ce700aa3e@f9941",
+        "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
+        "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
         "8e39c061-d956-43ce-ad16-db3efa6f7be1",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
@@ -119,14 +120,6 @@
         "31c94d47-e409-42f3-b397-08be549e95e2",
         "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
         "e9fa7cb9-649b-4dac-a368-f9515b675d79",
-        "09612976-b88c-46e6-a717-93a8a38611bc@f9941",
-        "028193d4-783a-4d77-a304-630e5f21fe8a@f9941",
-        "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941",
-        "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8@f9941",
-        "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae@f9941",
-        "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab@f9941",
-        "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
-        "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
         "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5@f9941",
         "c513c3d6-bb46-4592-8efd-b8d73c099863@f9941",
         "b178349e-82da-4293-8dcd-3b05942bc79d@f9941",
@@ -139,7 +132,7 @@
         "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
       ],
       "dependScripts": [
-        "8a2cc15b-f736-42b8-92c1-ecc6b7aa8450",
+        "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615",
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
         "6fc5265c-f2e8-478d-b01e-2a02f5a37b15",
         "6763c90e-a96e-4d4a-9859-896fdbcb348f",
@@ -153,7 +146,6 @@
         "1cbcd1a3-c701-4c5c-94da-9f29be475f76",
         "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
         "7735f014-d1bf-435b-9532-d99924f1ad9e",
-        "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
         "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53"
       ]

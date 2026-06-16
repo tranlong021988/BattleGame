@@ -46,6 +46,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastEngagedEnemyLaneId = -1;
           this.combatModeActive = false;
           this.released = false;
+          this.runtimeStateFrame = -1;
+          this.runtimeAliveCount = 0;
+          this.runtimeHasEngaged = false;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -167,6 +170,48 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return false;
         }
 
+        refreshRuntimeState(frame) {
+          if (this.runtimeStateFrame === frame) {
+            return;
+          }
+
+          this.runtimeStateFrame = frame;
+          this.runtimeAliveCount = 0;
+          this.runtimeHasEngaged = false;
+
+          if (this.released) {
+            return;
+          }
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            this.runtimeAliveCount++;
+
+            if (u.onBusy) {
+              this.runtimeHasEngaged = true;
+            }
+          }
+        }
+
+        getRuntimeAliveCount(frame) {
+          this.refreshRuntimeState(frame);
+          return this.runtimeAliveCount;
+        }
+
+        isDeadRuntime(frame) {
+          if (this.released) {
+            return true;
+          }
+
+          return this.getRuntimeAliveCount(frame) <= 0;
+        }
+
+        hasEngagedRuntime(frame) {
+          this.refreshRuntimeState(frame);
+          return this.runtimeHasEngaged;
+        }
+
         isTargetingWave(targetWave) {
           if (this.released) return false;
           if (!targetWave) return false;
@@ -258,7 +303,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.pendingLaneId = laneId;
         }
 
-        tryApplyPendingLaneTransfer(formationWidth, unitSpacing) {
+        tryApplyPendingLaneTransfer(formationWidth, unitSpacing, skipEngagedCheck) {
+          if (skipEngagedCheck === void 0) {
+            skipEngagedCheck = false;
+          }
+
           if (this.released) {
             return false;
           }
@@ -267,7 +316,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return false;
           }
 
-          if (this.hasEngaged()) {
+          if (!skipEngagedCheck && this.hasEngaged()) {
             return false;
           }
 
@@ -398,6 +447,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastEngagedEnemyLaneId = -1;
           this.combatModeActive = false;
           this.assignedCounterCount = 0;
+          this.runtimeStateFrame = -1;
+          this.runtimeAliveCount = 0;
+          this.runtimeHasEngaged = false;
           this.units.length = 0;
         }
 

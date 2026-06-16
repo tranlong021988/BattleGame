@@ -22,6 +22,10 @@ export class BattleWave {
     combatModeActive = false;
     released = false;
 
+    private runtimeStateFrame = -1;
+    private runtimeAliveCount = 0;
+    private runtimeHasEngaged = false;
+
     constructor(
         id: number,
         team: number,
@@ -160,6 +164,52 @@ export class BattleWave {
         return false;
     }
 
+    refreshRuntimeState(frame: number) {
+        if (this.runtimeStateFrame === frame) {
+            return;
+        }
+
+        this.runtimeStateFrame = frame;
+        this.runtimeAliveCount = 0;
+        this.runtimeHasEngaged = false;
+
+        if (this.released) {
+            return;
+        }
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            this.runtimeAliveCount++;
+
+            if (u.onBusy) {
+                this.runtimeHasEngaged = true;
+            }
+        }
+    }
+
+    getRuntimeAliveCount(frame: number) {
+        this.refreshRuntimeState(frame);
+
+        return this.runtimeAliveCount;
+    }
+
+    isDeadRuntime(frame: number) {
+        if (this.released) {
+            return true;
+        }
+
+        return this.getRuntimeAliveCount(frame) <= 0;
+    }
+
+    hasEngagedRuntime(frame: number) {
+        this.refreshRuntimeState(frame);
+
+        return this.runtimeHasEngaged;
+    }
+
     isTargetingWave(targetWave: BattleWave | null) {
         if (this.released) return false;
         if (!targetWave) return false;
@@ -269,7 +319,8 @@ export class BattleWave {
 
     tryApplyPendingLaneTransfer(
         formationWidth: number,
-        unitSpacing: number
+        unitSpacing: number,
+        skipEngagedCheck: boolean = false
     ) {
         if (this.released) {
             return false;
@@ -279,7 +330,7 @@ export class BattleWave {
             return false;
         }
 
-        if (this.hasEngaged()) {
+        if (!skipEngagedCheck && this.hasEngaged()) {
             return false;
         }
 
@@ -461,6 +512,9 @@ export class BattleWave {
         this.lastEngagedEnemyLaneId = -1;
         this.combatModeActive = false;
         this.assignedCounterCount = 0;
+        this.runtimeStateFrame = -1;
+        this.runtimeAliveCount = 0;
+        this.runtimeHasEngaged = false;
         this.units.length = 0;
     }
 

@@ -847,7 +847,8 @@ export class Unit extends Component {
         if (!this.agent) return null;
         if (this.laneId < 0) return this.getNearestEnemyThrottled();
 
-        const enemies = this.getEnemyList();
+        const enemies =
+            this.getNearbyEnemyList(this.targetSearchRange);
 
         let best: Unit | null = null;
         let bestDistSq = Infinity;
@@ -883,7 +884,8 @@ export class Unit extends Component {
         if (!this.agent) return null;
         if (this.laneId < 0) return null;
 
-        const enemies = this.getEnemyList();
+        const enemies =
+            this.getNearbyEnemyList(this.targetSearchRange);
 
         let best: Unit | null = null;
         let bestDistSq = Infinity;
@@ -1104,6 +1106,23 @@ export class Unit extends Component {
         return this.team === 0
             ? gm.teamB
             : gm.teamA;
+    }
+
+    private getNearbyEnemyList(radius: number) {
+        if (!this.agent) return [];
+
+        const gm = GameManager.instance;
+
+        if (gm && gm.spatialGrid) {
+            return gm.spatialGrid.queryEnemies(
+                this.team,
+                this.agent.pos.x,
+                this.agent.pos.z,
+                radius
+            );
+        }
+
+        return this.getEnemyList();
     }
 
     private lookAtTargetSmooth(target: Unit, deltaTime: number) {

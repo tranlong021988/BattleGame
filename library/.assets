@@ -16,7 +16,6 @@
             "scripts\\ArmyBrain.ts",
             "scripts\\BattleCinematicCameraController.ts",
             "scripts\\BattleInformationIconItem.ts",
-            "scripts\\BattleInformationPanel.ts",
             "scripts\\BattleSpatialGrid.ts",
             "scripts\\BattleTypes.ts",
             "scripts\\BattleUnitDatabase.ts",

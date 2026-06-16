@@ -722,7 +722,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         findNearestEnemyInSameLane() {
           if (!this.agent) return null;
           if (this.laneId < 0) return this.getNearestEnemyThrottled();
-          const enemies = this.getEnemyList();
+          const enemies = this.getNearbyEnemyList(this.targetSearchRange);
           let best = null;
           let bestDistSq = Infinity;
           const maxRangeSq = this.targetSearchRange * this.targetSearchRange;
@@ -748,7 +748,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         findNearestEnemyInAdjacentLane(onlyAhead = false) {
           if (!this.agent) return null;
           if (this.laneId < 0) return null;
-          const enemies = this.getEnemyList();
+          const enemies = this.getNearbyEnemyList(this.targetSearchRange);
           let best = null;
           let bestDistSq = Infinity;
           const maxRangeSq = this.targetSearchRange * this.targetSearchRange;
@@ -917,6 +917,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           if (!gm) return [];
           return this.team === 0 ? gm.teamB : gm.teamA;
+        }
+
+        getNearbyEnemyList(radius) {
+          if (!this.agent) return [];
+          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (gm && gm.spatialGrid) {
+            return gm.spatialGrid.queryEnemies(this.team, this.agent.pos.x, this.agent.pos.z, radius);
+          }
+
+          return this.getEnemyList();
         }
 
         lookAtTargetSmooth(target, deltaTime) {

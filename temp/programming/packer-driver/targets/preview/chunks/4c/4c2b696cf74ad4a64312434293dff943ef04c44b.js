@@ -514,7 +514,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var i = 0; i < waves.length; i++) {
             var wave = waves[i];
 
-            if (!wave || wave.isDead()) {
+            if (!wave || wave.isDeadRuntime(this.frame)) {
               this.pendingLaneWaves.delete(wave);
               continue;
             }
@@ -529,7 +529,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            if (wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
+            if (!wave.hasEngagedRuntime(this.frame) && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
               this.pendingLaneWaves.delete(wave);
               this.forwardReleasedWaves.delete(wave);
               shouldRebuildSpatialGrid = true;
@@ -573,7 +573,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         recoverWaveCombat(wave) {
           if (!wave) return;
-          if (wave.isDead()) return;
+          if (wave.isDeadRuntime(this.frame)) return;
           if (!wave.combatModeActive) return;
 
           if (this.shouldForceTeamFreeHunt(wave.team)) {
@@ -582,9 +582,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (wave.hasPendingLaneTransfer()) return;
-          if (wave.hasEngaged()) return;
+          if (wave.hasEngagedRuntime(this.frame)) return;
 
-          if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
+          if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
             return;
           }
 
@@ -601,7 +601,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var i = 0; i < waves.length; i++) {
             var wave = waves[i];
 
-            if (!wave || wave.isDead()) {
+            if (!wave || wave.isDeadRuntime(this.frame)) {
               this.forwardReleasedWaves.delete(wave);
               continue;
             }
@@ -620,12 +620,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            if (wave.hasEngaged()) {
+            if (wave.hasEngagedRuntime(this.frame)) {
               this.forwardReleasedWaves.set(wave, this.frame);
               continue;
             }
 
-            if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit)) {
+            if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
               this.forwardReleasedWaves.delete(wave);
               continue;
             }
@@ -637,7 +637,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         pruneDeadWaves() {
           for (var i = this.waves.length - 1; i >= 0; i--) {
             var wave = this.waves[i];
-            if (!wave || !wave.isDead()) continue;
+            if (!wave || !wave.isDeadRuntime(this.frame)) continue;
             this.pendingLaneWaves.delete(wave);
             this.forwardReleasedWaves.delete(wave);
             wave.releaseReferences();
