@@ -382,6 +382,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.frameCounter++;
           this.applyRuntimeAgentData();
 
+          if (this.props && this.props.isDead()) {
+            this.enemy = null;
+            this.onBusy = false;
+            this.onForward = false;
+            this.returningToWaveLaneSlot = false;
+            this.agent.onForward = 0;
+            this.agent.locked = true;
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
+            return;
+          }
+
           if (this.isSteady) {
             this.agent.locked = true;
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -445,6 +459,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!this.shouldReturnToLaneSlot()) {
               this.returningToWaveLaneSlot = false;
               this.onForward = true;
+              this.agent.onForward = 0;
+              this.sim.setPrefVelocity(this.agent, 0, 0);
+              this.agent.vel.x = 0;
+              this.agent.vel.z = 0;
+              this.lookForwardSmooth(deltaTime);
+              this.sync(deltaTime, false);
+              return;
             } else {
               this.onForward = false;
               this.agent.onForward = 0;
@@ -546,8 +567,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           // 2. Nếu lane hiện tại trống, KHÔNG cắt chéo ngay. Tiếp tục forward để tạo pha thọc sườn.
           // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
           // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
-          // Same-lane enemies no longer steer forward phase decisions.
-          // Contact combat handles them and moves the whole wave to freehunt.
+
+          const nearestLaneEnemy = this.findNearestEnemyInSameLane();
+
+          if (nearestLaneEnemy && nearestLaneEnemy.agent) {
+            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
+              this.forwardAdjacentTarget = null;
+
+              if (!this.releaseWaveForwardToFreeHunt(nearestLaneEnemy)) {
+                this.onForward = false;
+              }
+
+              return;
+            }
+          }
 
           let nearestAdjacentLaneEnemy = this.getForwardAdjacentTarget();
 
@@ -566,6 +599,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
               return;
             }
+          }
+
+          const enemyHero = this.getEnemyHero();
+
+          if (enemyHero && this.isValidEnemy(enemyHero) && this.isSameOrAdjacentLane(enemyHero.laneId) && this.hasPassedTargetAlongForward(enemyHero)) {
+            this.forwardAdjacentTarget = null;
+
+            if (!this.releaseWaveForwardToFreeHunt(enemyHero)) {
+              this.onForward = false;
+            }
+
+            return;
           }
         }
 
@@ -733,6 +778,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return Math.abs(otherLaneId - this.laneId) === 1;
         }
 
+        isSameOrAdjacentLane(otherLaneId) {
+          if (this.laneId < 0) return false;
+          if (otherLaneId < 0) return false;
+          return Math.abs(otherLaneId - this.laneId) <= 1;
+        }
+
+        getEnemyHero() {
+          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm) return null;
+          return this.team === 0 ? gm.teamBHero : gm.teamAHero;
+        }
+
         clearInvalidEnemy() {
           if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
             this.enemy = null;
@@ -875,6 +934,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         returnToInitialYawSmooth(deltaTime) {
           const currentY = this.getVisualEulerY();
           const newY = this.lerpAngle(currentY, this.initialYaw, this.rotationSpeed * deltaTime);
+          this.setVisualYaw(newY);
+        }
+
+        lookForwardSmooth(deltaTime) {
+          const dx = this.forwardDir.x;
+          const dz = this.forwardDir.z;
+          if (dx * dx + dz * dz < 0.0001) return;
+          const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
+          const currentY = this.getVisualEulerY();
+          const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
         }
 

@@ -72,6 +72,14 @@ export class RVOSimulator {
         return a;
     }
 
+    removeAgent(a: RVOAgent) {
+        const idx = this.agents.indexOf(a);
+
+        if (idx >= 0) {
+            this.agents.splice(idx, 1);
+        }
+    }
+
     setPrefVelocity(a: RVOAgent, vx: number, vz: number) {
         a.prefVel.x = vx;
         a.prefVel.z = vz;

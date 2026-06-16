@@ -379,6 +379,20 @@ export class Unit extends Component {
         this.frameCounter++;
         this.applyRuntimeAgentData();
 
+        if (this.props && this.props.isDead()) {
+            this.enemy = null;
+            this.onBusy = false;
+            this.onForward = false;
+            this.returningToWaveLaneSlot = false;
+            this.agent.onForward = 0;
+            this.agent.locked = true;
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
+            return;
+        }
+
         if (this.isSteady) {
             this.agent.locked = true;
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -459,6 +473,14 @@ export class Unit extends Component {
             if (!this.shouldReturnToLaneSlot()) {
                 this.returningToWaveLaneSlot = false;
                 this.onForward = true;
+                this.agent.onForward = 0;
+
+                this.sim.setPrefVelocity(this.agent, 0, 0);
+                this.agent.vel.x = 0;
+                this.agent.vel.z = 0;
+                this.lookForwardSmooth(deltaTime);
+                this.sync(deltaTime, false);
+                return;
             } else {
                 this.onForward = false;
                 this.agent.onForward = 0;
@@ -1111,6 +1133,24 @@ export class Unit extends Component {
         const newY = this.lerpAngle(
             currentY,
             this.initialYaw,
+            this.rotationSpeed * deltaTime
+        );
+
+        this.setVisualYaw(newY);
+    }
+
+    private lookForwardSmooth(deltaTime: number) {
+        const dx = this.forwardDir.x;
+        const dz = this.forwardDir.z;
+
+        if (dx * dx + dz * dz < 0.0001) return;
+
+        const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
+        const currentY = this.getVisualEulerY();
+
+        const newY = this.lerpAngle(
+            currentY,
+            targetY,
             this.rotationSpeed * deltaTime
         );
 

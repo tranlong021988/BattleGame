@@ -194,6 +194,7 @@ export class GameManager extends Component {
     private forwardReleasedWaves: Map<BattleWave, number> = new Map();
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
+    private heroForwardUnlocked = [false, false];
 
     start() {
         GameManager.instance = this;
@@ -207,6 +208,8 @@ export class GameManager extends Component {
         this.forwardReleasedWaves.clear();
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
+        this.heroForwardUnlocked[0] = false;
+        this.heroForwardUnlocked[1] = false;
 
         this.teamAHero = null;
         this.teamBHero = null;
@@ -312,6 +315,8 @@ export class GameManager extends Component {
         this.forwardReleasedWaves.clear();
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
+        this.heroForwardUnlocked[0] = false;
+        this.heroForwardUnlocked[1] = false;
 
         this.teamA.length = 0;
         this.teamB.length = 0;
@@ -549,6 +554,11 @@ export class GameManager extends Component {
                 continue;
             }
 
+            if (this.shouldForceTeamFreeHunt(wave.team)) {
+                this.forceWaveToHeroPressureFreeHunt(wave);
+                continue;
+            }
+
             if (!wave.hasPendingLaneTransfer()) {
                 this.pendingLaneWaves.delete(wave);
                 continue;
@@ -596,6 +606,25 @@ export class GameManager extends Component {
             return;
         }
 
+        if (this.heroForwardUnlocked[hero.team]) {
+            if (wave) {
+                wave.clearLaneControl();
+            }
+
+            if (
+                !hero.onBusy &&
+                (
+                    hero.onForward ||
+                    hero.returningToWaveLaneSlot ||
+                    hero.laneId >= 0
+                )
+            ) {
+                hero.enterFreeHuntMode();
+            }
+
+            return;
+        }
+
         this.recoverWaveCombat(wave);
     }
 
@@ -605,6 +634,12 @@ export class GameManager extends Component {
         if (!wave) return;
         if (wave.isDead()) return;
         if (!wave.combatModeActive) return;
+
+        if (this.shouldForceTeamFreeHunt(wave.team)) {
+            this.forceWaveToHeroPressureFreeHunt(wave);
+            return;
+        }
+
         if (wave.hasPendingLaneTransfer()) return;
         if (wave.hasEngaged()) return;
 
@@ -633,6 +668,11 @@ export class GameManager extends Component {
 
             if (!wave || wave.isDead()) {
                 this.forwardReleasedWaves.delete(wave);
+                continue;
+            }
+
+            if (this.shouldForceTeamFreeHunt(wave.team)) {
+                this.forceWaveToHeroPressureFreeHunt(wave);
                 continue;
             }
 
@@ -749,12 +789,50 @@ export class GameManager extends Component {
             this.forwardReleasedWaves.delete(heroWave);
         }
 
+        this.heroForwardUnlocked[team] = true;
         hero.setSteady(false, false);
-        hero.setWaveForwardLane(
-            laneId,
-            hero.forwardLaneOffsetX,
-            false
-        );
+        hero.enterFreeHuntMode();
+        this.releaseEnemyNormalWavesToFreeHunt(team);
+    }
+
+    private releaseEnemyNormalWavesToFreeHunt(
+        heroTeam: number
+    ) {
+        const enemyTeam =
+            heroTeam === 0 ? 1 : 0;
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.team !== enemyTeam) continue;
+            if (wave.isDead()) continue;
+
+            this.forceWaveToHeroPressureFreeHunt(wave);
+        }
+    }
+
+    private forceWaveToHeroPressureFreeHunt(
+        wave: BattleWave
+    ) {
+        this.pendingLaneWaves.delete(wave);
+        this.forwardReleasedWaves.delete(wave);
+
+        wave.clearLaneControl();
+        wave.releaseForwardToFreeHunt();
+    }
+
+    private shouldForceTeamFreeHunt(
+        team: number
+    ) {
+        if (team !== 0 && team !== 1) {
+            return false;
+        }
+
+        const enemyTeam =
+            team === 0 ? 1 : 0;
+
+        return this.heroForwardUnlocked[enemyTeam];
     }
 
     private hasAliveNonHeroUnit(team: number) {
@@ -1323,6 +1401,10 @@ export class GameManager extends Component {
             );
         }
 
+        if (this.shouldForceTeamFreeHunt(team)) {
+            this.forceWaveToHeroPressureFreeHunt(wave);
+        }
+
         return wave;
     }
 
@@ -1798,6 +1880,10 @@ export class GameManager extends Component {
     private handleHeroDeath(unit: Unit) {
         const team = unit.team;
 
+        if (team === 0 || team === 1) {
+            this.heroForwardUnlocked[team] = false;
+        }
+
         if (team === 0) {
 
             if (this.teamAHeroWave) {
@@ -1850,11 +1936,29 @@ export class GameManager extends Component {
 
         }
 
+        this.removeUnitAgentFromSimulator(unit);
         unit.resetForDespawn();
         unit.node.active = false;
 
         this.rebuildSpatialGrid();
         this.refreshBattleStatsUI();
+    }
+
+    private removeUnitAgentFromSimulator(unit: Unit) {
+        if (!this.sim || !unit || !unit.agent) return;
+
+        if (typeof this.sim.removeAgent === 'function') {
+            this.sim.removeAgent(unit.agent);
+            return;
+        }
+
+        if (this.sim.agents && Array.isArray(this.sim.agents)) {
+            const idx = this.sim.agents.indexOf(unit.agent);
+
+            if (idx >= 0) {
+                this.sim.agents.splice(idx, 1);
+            }
+        }
     }
 
     private registerDatabaseHeroes() {
