@@ -26,7 +26,7 @@
       "time": 1776667555103.354
     },
     "scripts\\Unit.ts": {
-      "time": 1781606186771.996,
+      "time": 1781609322760.028,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\GameManager.ts.meta": {
@@ -82,7 +82,7 @@
       "time": 1776667555101.3608
     },
     "Test.scene": {
-      "time": 1781607727411.5703,
+      "time": 1781610818647.6592,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -390,7 +390,7 @@
       "time": 1780371682382.9636
     },
     "scripts\\BattleWave.ts": {
-      "time": 1781606437784.9382,
+      "time": 1781609263702.5713,
       "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
     },
     "scripts\\ArmyBrain.ts.meta": {
