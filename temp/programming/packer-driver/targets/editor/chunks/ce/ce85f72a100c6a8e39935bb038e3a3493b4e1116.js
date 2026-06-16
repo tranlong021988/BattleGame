@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -176,11 +176,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "showAliveRatio", _descriptor32, this);
 
-          _initializerDefineProperty(this, "freezeDyingWavePositionAliveCount", _descriptor33, this);
+          _initializerDefineProperty(this, "maxPositionSampleUnits", _descriptor33, this);
 
-          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor34, this);
+          _initializerDefineProperty(this, "freezeDyingWavePositionAliveCount", _descriptor34, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor35, this);
+          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor35, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor36, this);
 
           this.records = new Map();
           this.heroRecords = new Map();
@@ -193,6 +195,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.tempWorldPosition = new Vec3();
           this.tempMiniMapPosition = new Vec3();
           this.iconSeparationRecords = [];
+          this.iconSeparationGrid = new Map();
+          this.iconSeparationGridKeys = [];
           this.tempWaveScan = {
             aliveCount: 0,
             aliveRatio: 0,
@@ -592,22 +596,73 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const minSpacingSq = minSpacing * minSpacing;
 
           for (let iteration = 0; iteration < iterations; iteration++) {
-            for (let i = 0; i < records.length - 1; i++) {
+            this.buildIconSeparationGrid(records, minSpacing);
+
+            for (let i = 0; i < records.length; i++) {
               const a = records[i];
+              const aPos = a.targetPosition;
+              const gx = Math.floor(aPos.x / minSpacing);
+              const gy = Math.floor(aPos.y / minSpacing);
 
-              for (let j = i + 1; j < records.length; j++) {
-                const b = records[j];
+              for (let x = gx - 1; x <= gx + 1; x++) {
+                for (let y = gy - 1; y <= gy + 1; y++) {
+                  const list = this.iconSeparationGrid.get(this.getIconSeparationKey(x, y));
+                  if (!list) continue;
 
-                if (a.team === b.team) {
-                  continue;
+                  for (let index = 0; index < list.length; index++) {
+                    const j = list[index];
+                    if (j <= i) continue;
+                    const b = records[j];
+
+                    if (a.team === b.team) {
+                      continue;
+                    }
+
+                    this.separateIconPair(a, b, minSpacing, minSpacingSq);
+                  }
                 }
-
-                this.separateIconPair(a, b, minSpacing, minSpacingSq);
               }
             }
 
             this.clampSeparatedIconTargets(records);
           }
+        }
+
+        buildIconSeparationGrid(records, cellSize) {
+          this.clearIconSeparationGrid();
+
+          for (let i = 0; i < records.length; i++) {
+            const pos = records[i].targetPosition;
+            const key = this.getIconSeparationKey(Math.floor(pos.x / cellSize), Math.floor(pos.y / cellSize));
+            let list = this.iconSeparationGrid.get(key);
+
+            if (!list) {
+              list = [];
+              this.iconSeparationGrid.set(key, list);
+            }
+
+            if (list.length <= 0) {
+              this.iconSeparationGridKeys.push(key);
+            }
+
+            list.push(i);
+          }
+        }
+
+        clearIconSeparationGrid() {
+          for (let i = 0; i < this.iconSeparationGridKeys.length; i++) {
+            const list = this.iconSeparationGrid.get(this.iconSeparationGridKeys[i]);
+
+            if (list) {
+              list.length = 0;
+            }
+          }
+
+          this.iconSeparationGridKeys.length = 0;
+        }
+
+        getIconSeparationKey(x, y) {
+          return `${x}_${y}`;
         }
 
         clampSeparatedIconTargets(records) {
@@ -849,8 +904,64 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return scan;
           }
 
+          const frame = this.gameManager ? this.gameManager.frame : -1;
+          const aliveCount = frame >= 0 ? wave.getRuntimeAliveCount(frame) : wave.getAliveCount();
+          scan.aliveCount = aliveCount;
+          scan.engaged = frame >= 0 ? wave.hasEngagedRuntime(frame) : wave.hasEngaged();
+
+          if (aliveCount <= 0) {
+            out.set(0, 0, 0);
+            return scan;
+          }
+
+          scan.dead = false;
+
+          if (wave.totalCount > 0) {
+            scan.aliveRatio = aliveCount / wave.totalCount;
+          }
+
           let sumX = 0;
           let sumZ = 0;
+          let sampleCount = 0;
+          const units = wave.units;
+          const sampleLimit = Math.max(1, Math.floor(this.maxPositionSampleUnits));
+          const step = units.length > sampleLimit ? Math.max(1, Math.floor(units.length / sampleLimit)) : 1;
+
+          for (let i = 0; i < units.length && sampleCount < sampleLimit; i += step) {
+            const unit = units[i];
+            if (!unit) continue;
+            if ((_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+              error: Error()
+            }), BattleWave) : BattleWave).getWaveForUnit(unit) !== wave) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.props) continue;
+            if (unit.props.isDead()) continue;
+            if (!unit.agent) continue;
+            sumX += unit.agent.pos.x;
+            sumZ += unit.agent.pos.z;
+            sampleCount++;
+          }
+
+          if (sampleCount <= 0) {
+            if (!this.scanFullWavePositionForMiniMap(wave, out)) {
+              out.set(0, 0, 0);
+              scan.dead = true;
+              return scan;
+            }
+
+            scan.hasPosition = true;
+            return scan;
+          }
+
+          out.set(sumX / sampleCount, 0, sumZ / sampleCount);
+          scan.hasPosition = true;
+          return scan;
+        }
+
+        scanFullWavePositionForMiniMap(wave, out) {
+          let sumX = 0;
+          let sumZ = 0;
+          let count = 0;
           const units = wave.units;
 
           for (let i = 0; i < units.length; i++) {
@@ -865,27 +976,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!unit.agent) continue;
             sumX += unit.agent.pos.x;
             sumZ += unit.agent.pos.z;
-            scan.aliveCount++;
-
-            if (unit.onBusy) {
-              scan.engaged = true;
-            }
+            count++;
           }
 
-          if (scan.aliveCount <= 0) {
-            out.set(0, 0, 0);
-            return scan;
+          if (count <= 0) {
+            return false;
           }
 
-          out.set(sumX / scan.aliveCount, 0, sumZ / scan.aliveCount);
-          scan.dead = false;
-          scan.hasPosition = true;
-
-          if (wave.totalCount > 0) {
-            scan.aliveRatio = scan.aliveCount / wave.totalCount;
-          }
-
-          return scan;
+          out.set(sumX / count, 0, sumZ / count);
+          return true;
         }
 
         prewarmPool() {
@@ -1285,21 +1384,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return false;
         }
-      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "freezeDyingWavePositionAliveCount", [property], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "maxPositionSampleUnits", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 8;
+        }
+      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "freezeDyingWavePositionAliveCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1;
         }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

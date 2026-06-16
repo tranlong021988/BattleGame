@@ -80,6 +80,14 @@ System.register(["cc"], function (_export, _context) {
           return a;
         }
 
+        removeAgent(a) {
+          var idx = this.agents.indexOf(a);
+
+          if (idx >= 0) {
+            this.agents.splice(idx, 1);
+          }
+        }
+
         setPrefVelocity(a, vx, vz) {
           a.prefVel.x = vx;
           a.prefVel.z = vz;

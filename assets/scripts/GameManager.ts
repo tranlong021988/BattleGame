@@ -61,6 +61,9 @@ export class GameManager extends Component {
     updateInterval = 2;
 
     @property
+    rvoUpdateFrameOffset = 0;
+
+    @property
     maxRvoStepDeltaTime = 0.05;
 
     frame = 0;
@@ -73,6 +76,9 @@ export class GameManager extends Component {
 
     @property
     spatialGridUpdateInterval = 2;
+
+    @property
+    spatialGridUpdateFrameOffset = 1;
 
     @property
     useWorkerSpatialTargetQuery = true;
@@ -362,7 +368,12 @@ export class GameManager extends Component {
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
 
-        if (this.frame % this.updateInterval === 0) {
+        if (
+            this.shouldRunFrameInterval(
+                this.updateInterval,
+                this.rvoUpdateFrameOffset
+            )
+        ) {
             const safeDt = Math.min(
                 deltaTime,
                 Math.max(0.001, this.maxRvoStepDeltaTime)
@@ -372,8 +383,10 @@ export class GameManager extends Component {
         }
 
         if (
-            this.frame %
-            this.spatialGridUpdateInterval === 0
+            this.shouldRunFrameInterval(
+                this.spatialGridUpdateInterval,
+                this.spatialGridUpdateFrameOffset
+            )
         ) {
             this.rebuildSpatialGrid();
         }
@@ -387,6 +400,20 @@ export class GameManager extends Component {
         this.processForwardReleaseRecoveries();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
+    }
+
+    private shouldRunFrameInterval(
+        interval: number,
+        offset: number = 0
+    ) {
+        const safeInterval =
+            Math.max(1, Math.floor(interval));
+
+        const phase =
+            ((Math.floor(offset) % safeInterval) + safeInterval) %
+            safeInterval;
+
+        return (this.frame + phase) % safeInterval === 0;
     }
 
     public reportKill(

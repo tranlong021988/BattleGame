@@ -20,6 +20,8 @@ export class Unit extends Component {
     @property attackRange = 1;
 
     @property targetSearchRange = 60;
+    @property forwardScanRange = 12;
+    @property forwardScanIntervalFrames = 2;
     @property attackCheckIntervalFrames = 2;
     @property targetSearchIntervalFrames = 6;
 
@@ -64,6 +66,7 @@ export class Unit extends Component {
     private frameCounter = 0;
     private cachedNearestInRange: Unit | null = null;
     private cachedNearestEnemy: Unit | null = null;
+    private forwardLaneTarget: Unit | null = null;
     private forwardAdjacentTarget: Unit | null = null;
     private nearestInRangeQueryToken = 0;
     private nearestEnemyQueryToken = 0;
@@ -107,6 +110,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (this.laneId < 0) {
@@ -128,6 +132,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (value) {
@@ -230,6 +235,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
         this.laneId = -1;
         this.forwardLaneOffsetX = 0;
@@ -262,6 +268,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (this.agent) {
@@ -289,6 +296,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (!this.onBusy) {
@@ -325,6 +333,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
         this.cachedNearestEnemy = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (this.agent) {
@@ -344,6 +353,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestEnemy = null;
         this.cachedNearestInRange = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (this.agent) {
@@ -362,6 +372,7 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.cachedNearestEnemy = null;
         this.cachedNearestInRange = null;
+        this.forwardLaneTarget = null;
         this.forwardAdjacentTarget = null;
 
         if (this.agent) {
@@ -542,6 +553,11 @@ export class Unit extends Component {
         return this.frameCounter % interval === 0;
     }
 
+    private shouldRunForwardScan(): boolean {
+        const interval = Math.max(1, Math.floor(this.forwardScanIntervalFrames));
+        return this.frameCounter % interval === 0;
+    }
+
     private getNearestEnemyInAttackRangeThrottled(): Unit | null {
         if (this.shouldRunAttackCheck()) {
             const queryToken =
@@ -634,11 +650,22 @@ export class Unit extends Component {
         // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
         // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
 
-        const nearestLaneEnemy =
-            this.findNearestEnemyInSameLane();
+        const shouldScan =
+            this.shouldRunForwardScan();
+
+        let nearestLaneEnemy =
+            this.getForwardLaneTarget();
+
+        if (shouldScan) {
+            nearestLaneEnemy =
+                this.findNearestEnemyInSameLane();
+            this.forwardLaneTarget =
+                nearestLaneEnemy;
+        }
 
         if (nearestLaneEnemy && nearestLaneEnemy.agent) {
             if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
+                this.forwardLaneTarget = null;
                 this.forwardAdjacentTarget = null;
 
                 if (
@@ -656,7 +683,7 @@ export class Unit extends Component {
         let nearestAdjacentLaneEnemy =
             this.getForwardAdjacentTarget();
 
-        if (!nearestAdjacentLaneEnemy) {
+        if (shouldScan) {
             nearestAdjacentLaneEnemy =
                 this.findNearestEnemyInAdjacentLane(true);
             this.forwardAdjacentTarget =
@@ -667,6 +694,7 @@ export class Unit extends Component {
             if (
                 this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
             ) {
+                this.forwardLaneTarget = null;
                 this.forwardAdjacentTarget = null;
 
                 if (
@@ -689,6 +717,7 @@ export class Unit extends Component {
             this.isSameOrAdjacentLane(enemyHero.laneId) &&
             this.hasPassedTargetAlongForward(enemyHero)
         ) {
+            this.forwardLaneTarget = null;
             this.forwardAdjacentTarget = null;
 
             if (
@@ -827,6 +856,22 @@ export class Unit extends Component {
             : dx <= 0;
     }
 
+    private getForwardLaneTarget(): Unit | null {
+        const target = this.forwardLaneTarget;
+
+        if (!target) return null;
+
+        if (
+            !this.isValidEnemy(target) ||
+            target.laneId !== this.laneId
+        ) {
+            this.forwardLaneTarget = null;
+            return null;
+        }
+
+        return target;
+    }
+
     private getForwardAdjacentTarget(): Unit | null {
         const target = this.forwardAdjacentTarget;
 
@@ -847,15 +892,18 @@ export class Unit extends Component {
         if (!this.agent) return null;
         if (this.laneId < 0) return this.getNearestEnemyThrottled();
 
+        const scanRange =
+            this.getForwardScanRange();
+
         const enemies =
-            this.getNearbyEnemyList(this.targetSearchRange);
+            this.getNearbyEnemyList(scanRange);
 
         let best: Unit | null = null;
         let bestDistSq = Infinity;
 
         const maxRangeSq =
-            this.targetSearchRange *
-            this.targetSearchRange;
+            scanRange *
+            scanRange;
 
         for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i];
@@ -884,15 +932,18 @@ export class Unit extends Component {
         if (!this.agent) return null;
         if (this.laneId < 0) return null;
 
+        const scanRange =
+            this.getForwardScanRange();
+
         const enemies =
-            this.getNearbyEnemyList(this.targetSearchRange);
+            this.getNearbyEnemyList(scanRange);
 
         let best: Unit | null = null;
         let bestDistSq = Infinity;
 
         const maxRangeSq =
-            this.targetSearchRange *
-            this.targetSearchRange;
+            scanRange *
+            scanRange;
 
         for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i];
@@ -1106,6 +1157,14 @@ export class Unit extends Component {
         return this.team === 0
             ? gm.teamB
             : gm.teamA;
+    }
+
+    private getForwardScanRange() {
+        if (this.forwardScanRange > 0) {
+            return this.forwardScanRange;
+        }
+
+        return this.targetSearchRange;
     }
 
     private getNearbyEnemyList(radius: number) {

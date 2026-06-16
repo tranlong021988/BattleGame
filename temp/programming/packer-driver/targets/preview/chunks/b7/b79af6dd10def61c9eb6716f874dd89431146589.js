@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -61,33 +61,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "targetSearchRange", _descriptor6, this);
 
-          _initializerDefineProperty(this, "attackCheckIntervalFrames", _descriptor7, this);
+          _initializerDefineProperty(this, "forwardScanRange", _descriptor7, this);
 
-          _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor8, this);
+          _initializerDefineProperty(this, "forwardScanIntervalFrames", _descriptor8, this);
 
-          _initializerDefineProperty(this, "rotationSpeed", _descriptor9, this);
+          _initializerDefineProperty(this, "attackCheckIntervalFrames", _descriptor9, this);
 
-          _initializerDefineProperty(this, "moveThreshold", _descriptor10, this);
+          _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor10, this);
 
-          _initializerDefineProperty(this, "visualThreshold", _descriptor11, this);
+          _initializerDefineProperty(this, "rotationSpeed", _descriptor11, this);
 
-          _initializerDefineProperty(this, "onForward", _descriptor12, this);
+          _initializerDefineProperty(this, "moveThreshold", _descriptor12, this);
 
-          _initializerDefineProperty(this, "isSteady", _descriptor13, this);
+          _initializerDefineProperty(this, "visualThreshold", _descriptor13, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor14, this);
+          _initializerDefineProperty(this, "onForward", _descriptor14, this);
 
-          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor15, this);
+          _initializerDefineProperty(this, "isSteady", _descriptor15, this);
 
-          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor16, this);
+          _initializerDefineProperty(this, "forwardDir", _descriptor16, this);
 
-          _initializerDefineProperty(this, "overtakeSideRange", _descriptor17, this);
+          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor17, this);
 
-          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor18, this);
+          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor18, this);
 
-          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor19, this);
+          _initializerDefineProperty(this, "overtakeSideRange", _descriptor19, this);
 
-          _initializerDefineProperty(this, "laneReturnTolerance", _descriptor20, this);
+          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor20, this);
+
+          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor21, this);
+
+          _initializerDefineProperty(this, "laneReturnTolerance", _descriptor22, this);
 
           this.team = 0;
           this.unitTypeName = '';
@@ -110,6 +114,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.frameCounter = 0;
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
           this.nearestInRangeQueryToken = 0;
           this.nearestEnemyQueryToken = 0;
@@ -142,6 +147,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (this.laneId < 0) {
@@ -164,6 +170,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (value) {
@@ -254,6 +261,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
           this.laneId = -1;
           this.forwardLaneOffsetX = 0;
@@ -284,6 +292,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (this.agent) {
@@ -309,6 +318,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (!this.onBusy) {
@@ -347,6 +357,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (this.agent) {
@@ -365,6 +376,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestEnemy = null;
           this.cachedNearestInRange = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (this.agent) {
@@ -382,6 +394,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.cachedNearestEnemy = null;
           this.cachedNearestInRange = null;
+          this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
 
           if (this.agent) {
@@ -397,6 +410,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (!this.sim || !this.agent) return;
           this.frameCounter++;
           this.applyRuntimeAgentData();
+
+          if (this.props && this.props.isDead()) {
+            this.enemy = null;
+            this.onBusy = false;
+            this.onForward = false;
+            this.returningToWaveLaneSlot = false;
+            this.agent.onForward = 0;
+            this.agent.locked = true;
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, false);
+            return;
+          }
 
           if (this.isSteady) {
             this.agent.locked = true;
@@ -461,6 +488,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!this.shouldReturnToLaneSlot()) {
               this.returningToWaveLaneSlot = false;
               this.onForward = true;
+              this.agent.onForward = 0;
+              this.sim.setPrefVelocity(this.agent, 0, 0);
+              this.agent.vel.x = 0;
+              this.agent.vel.z = 0;
+              this.lookForwardSmooth(deltaTime);
+              this.sync(deltaTime, false);
+              return;
             } else {
               this.onForward = false;
               this.agent.onForward = 0;
@@ -514,6 +548,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.frameCounter % interval === 0;
         }
 
+        shouldRunForwardScan() {
+          var interval = Math.max(1, Math.floor(this.forwardScanIntervalFrames));
+          return this.frameCounter % interval === 0;
+        }
+
         getNearestEnemyInAttackRangeThrottled() {
           if (this.shouldRunAttackCheck()) {
             var queryToken = ++this.nearestInRangeQueryToken;
@@ -563,10 +602,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
           // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
 
-          var nearestLaneEnemy = this.findNearestEnemyInSameLane();
+          var shouldScan = this.shouldRunForwardScan();
+          var nearestLaneEnemy = this.getForwardLaneTarget();
+
+          if (shouldScan) {
+            nearestLaneEnemy = this.findNearestEnemyInSameLane();
+            this.forwardLaneTarget = nearestLaneEnemy;
+          }
 
           if (nearestLaneEnemy && nearestLaneEnemy.agent) {
             if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
+              this.forwardLaneTarget = null;
               this.forwardAdjacentTarget = null;
 
               if (!this.releaseWaveForwardToFreeHunt(nearestLaneEnemy)) {
@@ -579,13 +625,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           var nearestAdjacentLaneEnemy = this.getForwardAdjacentTarget();
 
-          if (!nearestAdjacentLaneEnemy) {
+          if (shouldScan) {
             nearestAdjacentLaneEnemy = this.findNearestEnemyInAdjacentLane(true);
             this.forwardAdjacentTarget = nearestAdjacentLaneEnemy;
           }
 
           if (nearestAdjacentLaneEnemy) {
             if (this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)) {
+              this.forwardLaneTarget = null;
               this.forwardAdjacentTarget = null;
 
               if (!this.releaseWaveForwardToFreeHunt(nearestAdjacentLaneEnemy)) {
@@ -599,6 +646,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var enemyHero = this.getEnemyHero();
 
           if (enemyHero && this.isValidEnemy(enemyHero) && this.isSameOrAdjacentLane(enemyHero.laneId) && this.hasPassedTargetAlongForward(enemyHero)) {
+            this.forwardLaneTarget = null;
             this.forwardAdjacentTarget = null;
 
             if (!this.releaseWaveForwardToFreeHunt(enemyHero)) {
@@ -702,6 +750,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.forwardDir.x >= 0 ? dx >= 0 : dx <= 0;
         }
 
+        getForwardLaneTarget() {
+          var target = this.forwardLaneTarget;
+          if (!target) return null;
+
+          if (!this.isValidEnemy(target) || target.laneId !== this.laneId) {
+            this.forwardLaneTarget = null;
+            return null;
+          }
+
+          return target;
+        }
+
         getForwardAdjacentTarget() {
           var target = this.forwardAdjacentTarget;
           if (!target) return null;
@@ -717,10 +777,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         findNearestEnemyInSameLane() {
           if (!this.agent) return null;
           if (this.laneId < 0) return this.getNearestEnemyThrottled();
-          var enemies = this.getEnemyList();
+          var scanRange = this.getForwardScanRange();
+          var enemies = this.getNearbyEnemyList(scanRange);
           var best = null;
           var bestDistSq = Infinity;
-          var maxRangeSq = this.targetSearchRange * this.targetSearchRange;
+          var maxRangeSq = scanRange * scanRange;
 
           for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
@@ -747,10 +808,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (!this.agent) return null;
           if (this.laneId < 0) return null;
-          var enemies = this.getEnemyList();
+          var scanRange = this.getForwardScanRange();
+          var enemies = this.getNearbyEnemyList(scanRange);
           var best = null;
           var bestDistSq = Infinity;
-          var maxRangeSq = this.targetSearchRange * this.targetSearchRange;
+          var maxRangeSq = scanRange * scanRange;
 
           for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
@@ -918,6 +980,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.team === 0 ? gm.teamB : gm.teamA;
         }
 
+        getForwardScanRange() {
+          if (this.forwardScanRange > 0) {
+            return this.forwardScanRange;
+          }
+
+          return this.targetSearchRange;
+        }
+
+        getNearbyEnemyList(radius) {
+          if (!this.agent) return [];
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (gm && gm.spatialGrid) {
+            return gm.spatialGrid.queryEnemies(this.team, this.agent.pos.x, this.agent.pos.z, radius);
+          }
+
+          return this.getEnemyList();
+        }
+
         lookAtTargetSmooth(target, deltaTime) {
           if (!this.agent) return;
           if (!target || !target.agent) return;
@@ -933,6 +1016,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         returnToInitialYawSmooth(deltaTime) {
           var currentY = this.getVisualEulerY();
           var newY = this.lerpAngle(currentY, this.initialYaw, this.rotationSpeed * deltaTime);
+          this.setVisualYaw(newY);
+        }
+
+        lookForwardSmooth(deltaTime) {
+          var dx = this.forwardDir.x;
+          var dz = this.forwardDir.z;
+          if (dx * dx + dz * dz < 0.0001) return;
+          var targetY = Math.atan2(dx, dz) * 180 / Math.PI;
+          var currentY = this.getVisualEulerY();
+          var newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
         }
 
@@ -1030,98 +1123,112 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 60;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "attackCheckIntervalFrames", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "forwardScanRange", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 12;
+        }
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "forwardScanIntervalFrames", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchIntervalFrames", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "attackCheckIntervalFrames", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 2;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchIntervalFrames", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 6;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "rotationSpeed", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "rotationSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "moveThreshold", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "moveThreshold", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.2;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "visualThreshold", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "visualThreshold", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.01;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec3], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec3], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new Vec3(0, 0, 1);
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2.2;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.2;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.75;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.15;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "laneReturnTolerance", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "laneReturnTolerance", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
