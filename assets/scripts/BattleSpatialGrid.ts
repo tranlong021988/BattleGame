@@ -32,7 +32,9 @@ export class BattleSpatialGrid {
     private nextRequestId = 1;
     private unitIds: WeakMap<Unit, number> = new WeakMap();
     private unitsById: Map<number, Unit> = new Map();
-    private targetSnapshot: number[] = [];
+    private targetSnapshot: Float64Array = new Float64Array(0);
+    private targetSnapshotLength = 0;
+    private packedRequestData: Float64Array = new Float64Array(0);
     private pendingNearestRequests: NearestEnemyRequest[] = [];
     private activeNearestRequests: Map<number, NearestEnemyRequest> = new Map();
     private flushScheduled = false;
@@ -41,7 +43,7 @@ export class BattleSpatialGrid {
         this.teamAGrid.clear();
         this.teamBGrid.clear();
         this.unitsById.clear();
-        this.targetSnapshot.length = 0;
+        this.targetSnapshotLength = 0;
 
         this.fillGrid(this.teamAGrid, teamA, 0);
         this.fillGrid(this.teamBGrid, teamB, 1);
@@ -59,7 +61,9 @@ export class BattleSpatialGrid {
         this.pendingNearestRequests.length = 0;
         this.activeNearestRequests.clear();
         this.unitsById.clear();
-        this.targetSnapshot.length = 0;
+        this.targetSnapshot = new Float64Array(0);
+        this.targetSnapshotLength = 0;
+        this.packedRequestData = new Float64Array(0);
     }
 
     private fillGrid(
@@ -91,7 +95,8 @@ export class BattleSpatialGrid {
 
             const id = this.getUnitId(unit);
             this.unitsById.set(id, unit);
-            this.targetSnapshot.push(
+
+            this.appendTargetSnapshot(
                 id,
                 team,
                 unit.agent.pos.x,
@@ -343,7 +348,7 @@ export class BattleSpatialGrid {
             return false;
         }
 
-        if (this.targetSnapshot.length <= 0) {
+        if (this.targetSnapshotLength <= 0) {
             return false;
         }
 
@@ -395,10 +400,26 @@ export class BattleSpatialGrid {
             return;
         }
 
-        const requests = this.pendingNearestRequests.slice();
-        this.pendingNearestRequests.length = 0;
+        const requests = this.pendingNearestRequests;
+        const packedCapacity =
+            requests.length *
+            5;
 
-        const packedRequests: number[] = [];
+        this.ensurePackedRequestCapacity(packedCapacity);
+
+        const packedRequests =
+            this.packedRequestData;
+
+        let packedLength = 0;
+
+        const unitData =
+            this.targetSnapshot.subarray(
+                0,
+                this.targetSnapshotLength
+            );
+
+        const unitLength =
+            this.targetSnapshotLength;
 
         for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
@@ -412,26 +433,39 @@ export class BattleSpatialGrid {
                 request
             );
 
-            packedRequests.push(
-                request.requestId,
-                request.team,
-                request.x,
-                request.z,
-                request.radius
-            );
+            packedRequests[packedLength++] =
+                request.requestId;
+            packedRequests[packedLength++] =
+                request.team;
+            packedRequests[packedLength++] =
+                request.x;
+            packedRequests[packedLength++] =
+                request.z;
+            packedRequests[packedLength++] =
+                request.radius;
         }
 
-        if (packedRequests.length <= 0) {
+        this.pendingNearestRequests.length = 0;
+
+        if (packedLength <= 0) {
             return;
         }
+
+        const requestData =
+            packedRequests.subarray(
+                0,
+                packedLength
+            );
 
         try {
             this.worker.postMessage({
                 type: 'findNearestBatch',
                 seq: ++this.workerSeq,
                 cellSize: this.cellSize,
-                units: this.targetSnapshot,
-                requests: packedRequests,
+                units: unitData,
+                unitLength,
+                requests: requestData,
+                requestLength: packedLength,
             });
         } catch (err) {
             this.workerFailed = true;
@@ -440,7 +474,7 @@ export class BattleSpatialGrid {
         }
     }
 
-    private applyWorkerResults(results: number[]) {
+    private applyWorkerResults(results: ArrayLike<number>) {
         for (let i = 0; i < results.length; i += 2) {
             const requestId = results[i];
             const targetId = results[i + 1];
@@ -517,6 +551,64 @@ export class BattleSpatialGrid {
         return id;
     }
 
+    private appendTargetSnapshot(
+        id: number,
+        team: number,
+        x: number,
+        z: number
+    ) {
+        this.ensureTargetSnapshotCapacity(
+            this.targetSnapshotLength + 4
+        );
+
+        const data = this.targetSnapshot;
+        let index = this.targetSnapshotLength;
+
+        data[index++] = id;
+        data[index++] = team;
+        data[index++] = x;
+        data[index++] = z;
+
+        this.targetSnapshotLength = index;
+    }
+
+    private ensureTargetSnapshotCapacity(length: number) {
+        if (this.targetSnapshot.length >= length) {
+            return;
+        }
+
+        const capacity = Math.max(
+            length,
+            this.targetSnapshot.length * 2,
+            256
+        );
+
+        const next = new Float64Array(capacity);
+        next.set(
+            this.targetSnapshot.subarray(
+                0,
+                this.targetSnapshotLength
+            )
+        );
+
+        this.targetSnapshot = next;
+    }
+
+    private ensurePackedRequestCapacity(length: number) {
+        if (this.packedRequestData.length >= length) {
+            return;
+        }
+
+        const capacity = Math.max(
+            length,
+            this.packedRequestData.length * 2,
+            128
+        );
+
+        this.packedRequestData =
+            new Float64Array(capacity);
+    }
+
     private createWorker() {
         if (
             typeof Worker === 'undefined' ||
@@ -589,6 +681,14 @@ function getKey(x, z) {
     return x + '_' + z;
 }
 
+var teamAGrid = Object.create(null);
+var teamBGrid = Object.create(null);
+var teamAGridKeys = [];
+var teamBGridKeys = [];
+var resultBuffer = new Int32Array(0);
+var bestId = 0;
+var bestDistSq = Infinity;
+
 function getCellMinDistanceSq(gx, gz, x, z, cellSize) {
     return getRectMinDistanceSq(gx, gx, gz, gz, x, z, cellSize);
 }
@@ -620,10 +720,10 @@ function getRectMinDistanceSq(minGx, maxGx, minGz, maxGz, x, z, cellSize) {
     return dx * dx + dz * dz;
 }
 
-function scanCell(grid, gx, gz, x, z, radiusSq, best) {
+function scanCell(grid, gx, gz, x, z, radiusSq) {
     var list = grid[getKey(gx, gz)];
 
-    if (!list) return best;
+    if (!list) return;
 
     for (var i = 0; i < list.length; i += 4) {
         var id = list[i];
@@ -635,13 +735,11 @@ function scanCell(grid, gx, gz, x, z, radiusSq, best) {
 
         if (d > radiusSq) continue;
 
-        if (d < best.distSq) {
-            best.distSq = d;
-            best.id = id;
+        if (d < bestDistSq) {
+            bestDistSq = d;
+            bestId = id;
         }
     }
-
-    return best;
 }
 
 function findNearest(grid, x, z, radius, cellSize) {
@@ -649,10 +747,8 @@ function findNearest(grid, x, z, radius, cellSize) {
     var cx = Math.floor(x / cellSize);
     var cz = Math.floor(z / cellSize);
     var radiusSq = radius * radius;
-    var best = {
-        id: 0,
-        distSq: Infinity
-    };
+    bestId = 0;
+    bestDistSq = Infinity;
 
     for (var ring = 0; ring <= cellRange; ring++) {
         var ringMinDistSq;
@@ -677,12 +773,12 @@ function findNearest(grid, x, z, radius, cellSize) {
             break;
         }
 
-        if (best.id && ringMinDistSq > best.distSq) {
+        if (bestId && ringMinDistSq > bestDistSq) {
             break;
         }
 
         if (ring <= 0) {
-            best = scanCell(grid, cx, cz, x, z, radiusSq, best);
+            scanCell(grid, cx, cz, x, z, radiusSq);
             continue;
         }
 
@@ -692,23 +788,35 @@ function findNearest(grid, x, z, radius, cellSize) {
         var top = cz + ring;
 
         for (var gx = left; gx <= right; gx++) {
-            best = scanCell(grid, gx, bottom, x, z, radiusSq, best);
-            best = scanCell(grid, gx, top, x, z, radiusSq, best);
+            scanCell(grid, gx, bottom, x, z, radiusSq);
+            scanCell(grid, gx, top, x, z, radiusSq);
         }
 
         for (var gz = bottom + 1; gz <= top - 1; gz++) {
-            best = scanCell(grid, left, gz, x, z, radiusSq, best);
-            best = scanCell(grid, right, gz, x, z, radiusSq, best);
+            scanCell(grid, left, gz, x, z, radiusSq);
+            scanCell(grid, right, gz, x, z, radiusSq);
         }
     }
 
-    return best.id;
+    return bestId;
 }
 
-function buildGrid(units, team, cellSize) {
-    var grid = Object.create(null);
+function clearGrid(grid, keys) {
+    for (var i = 0; i < keys.length; i++) {
+        var list = grid[keys[i]];
 
-    for (var i = 0; i < units.length; i += 4) {
+        if (list) {
+            list.length = 0;
+        }
+    }
+
+    keys.length = 0;
+}
+
+function buildGrid(units, unitLength, team, cellSize, grid, keys) {
+    clearGrid(grid, keys);
+
+    for (var i = 0; i < unitLength; i += 4) {
         if (units[i + 1] !== team) continue;
 
         var x = units[i + 2];
@@ -723,6 +831,10 @@ function buildGrid(units, team, cellSize) {
             grid[key] = list;
         }
 
+        if (list.length <= 0) {
+            keys.push(key);
+        }
+
         list.push(
             units[i],
             units[i + 1],
@@ -734,6 +846,22 @@ function buildGrid(units, team, cellSize) {
     return grid;
 }
 
+function ensureResultCapacity(length) {
+    if (resultBuffer.length >= length) {
+        return resultBuffer;
+    }
+
+    var capacity = Math.max(
+        length,
+        resultBuffer.length * 2,
+        64
+    );
+
+    resultBuffer = new Int32Array(capacity);
+
+    return resultBuffer;
+}
+
 self.onmessage = function(event) {
     var data = event.data;
 
@@ -741,32 +869,51 @@ self.onmessage = function(event) {
 
     if (data.type === 'findNearestBatch') {
         var units = data.units || [];
+        var unitLength = data.unitLength || units.length;
         var requests = data.requests || [];
+        var requestLength = data.requestLength || requests.length;
         var cellSize = Math.max(0.001, data.cellSize || 4);
-        var teamAGrid = buildGrid(units, 0, cellSize);
-        var teamBGrid = buildGrid(units, 1, cellSize);
-        var results = [];
+        var requestCount = Math.floor(requestLength / 5);
+        var teamA = buildGrid(
+            units,
+            unitLength,
+            0,
+            cellSize,
+            teamAGrid,
+            teamAGridKeys
+        );
+        var teamB = buildGrid(
+            units,
+            unitLength,
+            1,
+            cellSize,
+            teamBGrid,
+            teamBGridKeys
+        );
+        var results = ensureResultCapacity(
+            requestCount * 2
+        );
+        var resultLength = 0;
 
-        for (var i = 0; i < requests.length; i += 5) {
+        for (var i = 0; i < requestLength; i += 5) {
             var requestId = requests[i];
             var team = requests[i + 1];
             var x = requests[i + 2];
             var z = requests[i + 3];
             var radius = requests[i + 4];
             var grid = team === 0
-                ? teamBGrid
-                : teamAGrid;
+                ? teamB
+                : teamA;
 
-            results.push(
-                requestId,
-                findNearest(grid, x, z, radius, cellSize)
-            );
+            results[resultLength++] = requestId;
+            results[resultLength++] =
+                findNearest(grid, x, z, radius, cellSize);
         }
 
         self.postMessage({
             type: 'findNearestBatchResult',
             seq: data.seq,
-            results: results
+            results: results.subarray(0, resultLength)
         });
     }
 };

@@ -350,3 +350,21 @@ Lưu ý khi test tiếp:
 - Không khuyến nghị đưa `forwardScanRange` lên lại `35` trên map hiện tại.
 - Nếu muốn nhẹ hơn nữa, có thể thử `forwardScanIntervalFrames = 3`, nhưng cần test visual vì có thể làm phát hiện trễ hơn.
 
+## Cập nhật scale 300 unit ngày 2026-06-17
+
+User muốn chuẩn bị scale lên khoảng 300 unit trên map. Đã tối ưu bước đầu trong `assets/scripts/BattleSpatialGrid.ts`, chỉ đụng target-query worker, không đổi gameplay:
+
+- Main thread không còn pack `targetSnapshot`/requests bằng `number[]`; đổi sang `Float64Array` có capacity reuse.
+- `flushNearestWorkerRequests()` không còn `slice()` pending requests; pack trực tiếp vào buffer tái sử dụng.
+- Worker source không còn tạo grid object/results array mới hoàn toàn mỗi batch:
+  - giữ reusable `teamAGrid`, `teamBGrid`, key list, và `Int32Array` result buffer.
+  - bỏ object `best` cấp phát mỗi request; dùng biến scratch `bestId`, `bestDistSq`.
+- Vẫn giữ main-thread fallback: nếu worker không ready/fail thì `Unit` fallback qua spatial grid main thread như trước.
+- Đã test worker source bằng Node/vm với batch mẫu; kết quả nearest đúng.
+
+Lưu ý test tiếp:
+
+- Hãy record trace 300 unit khoảng 60-90s, có Memory nếu trình duyệt chịu được.
+- So lại `HandlePostMessage`, worker heap, `queryEnemies`, `collectNeighbors`.
+- Nếu worker heap tăng rồi ổn định ở plateau nhỏ thì chấp nhận được; nếu tăng đều không hạ thì soi tiếp worker allocation.
+
