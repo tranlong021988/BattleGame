@@ -107,6 +107,7 @@
     "url": "db://assets/Test.scene",
     "value": {
       "depends": [
+        "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941",
         "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
         "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
         "8e39c061-d956-43ce-ad16-db3efa6f7be1",
