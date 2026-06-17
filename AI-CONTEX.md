@@ -368,3 +368,37 @@ Lưu ý test tiếp:
 - So lại `HandlePostMessage`, worker heap, `queryEnemies`, `collectNeighbors`.
 - Nếu worker heap tăng rồi ổn định ở plateau nhỏ thì chấp nhận được; nếu tăng đều không hạ thì soi tiếp worker allocation.
 
+## Handoff 2026-06-17 cuối ngày
+
+User đã reverse source về mốc "vừa giữ fix BattleSpatialGrid worker, chưa giữ các thử nghiệm RVO". Đã rà lại sau reverse:
+
+- `assets/scripts/rvo/RVO.ts` và `assets/scripts/rvo/RVOWorkerSimulator.ts` không còn diff, đã quay về logic gốc.
+- Không còn residue của thử nghiệm RVO như `insertSortedNeighbor`, `neighborDistanceScratch`, `collectNeighbors(a, result, distances...)`, hoặc `applyAllyOvertake(a, cellSize)`.
+- `currentNeighborAgent` vẫn còn trong RVO worker, nhưng đó là logic gốc.
+- `assets/scripts/BattleSpatialGrid.ts` vẫn giữ tối ưu có ích:
+  - `targetSnapshot` và `packedRequestData` là `Float64Array` reuse buffer.
+  - `flushNearestWorkerRequests()` pack trực tiếp, không `slice()` pending requests.
+  - Worker dùng reusable grid/key list và `Int32Array` result buffer.
+- Working tree sau reverse chủ yếu dirty ở generated/log (`library/.assets-info.json`, `temp/...`). Không tự ý revert nếu không được yêu cầu.
+
+Các trace thử nghiệm RVO trong ngày:
+
+- `Trace-20260617T144755.json`: baseline scale khoảng 230 unit sau fix BattleSpatialGrid worker, vẫn playable; target worker heap thấp; RVO/postMessage bắt đầu là vùng cần theo dõi.
+- Thử tối ưu RVO `collectNeighbors` bằng bounded insertion và lọc overlap sớm: không hiệu quả.
+- Thử đổi `applyAllyOvertake` sang grid-scan: tệ hơn loop tuyến tính ở cỡ 230 unit.
+- Sau các trace `Trace-20260617T153807.json`, `Trace-20260617T155317.json`, `Trace-20260617T160059.json`, kết luận là không giữ hướng RVO micro-opt này. Đừng lặp lại bounded insertion/grid-scan RVO nếu chưa có benchmark cục bộ chứng minh ngược lại.
+
+Hướng performance tiếp theo nếu cần quay lại:
+
+- Tạm không đào sâu tối ưu nữa theo ý user.
+- Nếu cần tiếp tục sau này, ưu tiên đo được average/max alive agent count trong trace hoặc bằng debug counter nhẹ trước khi tối ưu.
+- Hướng đáng cân nhắc hơn RVO micro-opt là giảm tần suất/khối lượng worker payload hoặc thêm spawn/backpressure theo gameplay, nhưng phải test visual kỹ.
+
+Ghi chú UI bottom bar:
+
+- User đang thiết kế `ui-bottom` gồm `icon-container` bên trái và `minimap` bên phải.
+- Vấn đề: minimap size do code quyết định, có thể làm `icon-container` overlap hoặc tạo gap.
+- Cocos built-in `Layout` không có flex-grow kiểu CSS để một child tự ăn phần còn lại khi sibling đổi size động.
+- `Widget` stretch được theo parent/ancestor, nhưng không tự gắn mép phải của `icon-container` vào mép trái của `minimap`.
+- Nếu muốn không viết TS, chỉ ổn khi minimap fixed/percent size trong Inspector. Nếu minimap vẫn dynamic bằng code, giải pháp sạch nhất là một component layout nhỏ sync `iconWidget.right = minimapWidth + gap`, nhưng user hiện muốn tìm cách khác và tạm chưa triển khai.
+
