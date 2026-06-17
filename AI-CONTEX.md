@@ -402,3 +402,60 @@ Ghi chú UI bottom bar:
 - `Widget` stretch được theo parent/ancestor, nhưng không tự gắn mép phải của `icon-container` vào mép trái của `minimap`.
 - Nếu muốn không viết TS, chỉ ổn khi minimap fixed/percent size trong Inspector. Nếu minimap vẫn dynamic bằng code, giải pháp sạch nhất là một component layout nhỏ sync `iconWidget.right = minimapWidth + gap`, nhưng user hiện muốn tìm cách khác và tạm chưa triển khai.
 
+## Handoff 2026-06-18: UI, minimap sizing, FairyGUI
+
+User tạm dừng ở đây. Hôm nay chủ yếu bàn và sửa phần UI layout quanh minimap.
+
+Trạng thái UI hiện tại:
+
+- User đang xây dựng UI, trong đó có `ui-bottom`, `icon-container` và minimap.
+- Vấn đề: minimap trước đây tự tính size từ `worldToMiniMapScale`, nên khi world bounds/scale thay đổi thì width/height minimap thay đổi, dễ xung đột layout với các thành phần UI khác.
+- Đã thử ý tưởng fixed width rồi user đổi yêu cầu sang fixed height.
+
+Thay đổi đã code trong `assets/scripts/TrueMiniMapPanel.ts`:
+
+- Thêm inspector property:
+  - `fixedMapHeight = 0`
+- Logic `configureMapSize()` hiện là:
+  - Nếu `fixedMapHeight > 0`: giữ height minimap cố định, width tự tính theo ratio battlefield.
+  - Nếu `fixedMapHeight <= 0`: fallback về logic cũ dùng `worldToMiniMapScale`.
+- Công thức fixed-height:
+  - `worldWidth = battleMaxX - battleMinX`
+  - `worldHeight = battleMaxZ - battleMinZ`
+  - `mapHeight = fixedMapHeight`
+  - `mapWidth = mapHeight * worldWidth / worldHeight`
+- Với map user nói `x = -8..8`, `z = -21..21`, ratio width/height là `16/42`.
+  - Ví dụ `fixedMapHeight = 210` thì `mapWidth = 80`.
+- Không còn `fixedMapWidth` trong source.
+- Các logic icon/clamp/overlap/click không cần đổi vì vẫn dùng `mapWidth/mapHeight` sau khi tính.
+
+Lưu ý khi test UI:
+
+- Cần set `fixedMapHeight` trong Inspector của node minimap nếu muốn layout ổn định theo chiều cao.
+- Nếu để `fixedMapHeight = 0`, minimap vẫn chạy theo `worldToMiniMapScale` như trước.
+- Cocos Editor có thể đã ghi thay đổi vào `assets/Test.scene` khi user chỉnh UI. Đừng tự revert scene nếu user không yêu cầu.
+- Working tree hiện có nhiều file generated/temp/library dirty do Cocos Editor. Đừng lẫn với source change thật.
+
+FairyGUI discussion:
+
+- User hỏi có thư viện miễn phí cho Cocos dynamic layout không.
+- Đã rà và trao đổi:
+  - `FairyGUI-cocoscreator` là runtime/framework cho Cocos Creator, repo chính thức ghi MIT license.
+  - FairyGUI runtime dùng object/API riêng như `GRoot`, `GComponent`, `GButton`, `GList`, `GTextField`, không phải thao tác từng UI bằng Cocos `Node/Button/Label` thuần.
+  - Workflow cơ bản: thiết kế trong FairyGUI Editor -> publish package -> đưa vào Cocos -> `fgui.UIPackage.addPackage(...)` -> `fgui.UIPackage.createObject(...)` -> add vào `fgui.GRoot`.
+- Nhận định:
+  - Nếu chỉ xử lý minimap/bottom bar thì không nên đưa FairyGUI vào, custom Cocos layout nhỏ rẻ hơn.
+  - Nhưng user nói game sẽ có menu chọn lính, chọn bùa, inventory, popup, list/grid... nên FairyGUI đáng cân nhắc nghiêm túc cho UI lớn.
+  - Không nhất thiết migrate minimap hiện tại sang FairyGUI ngay; minimap realtime/gameplay có thể giữ bằng Cocos, còn menu/inventory/chọn lính/chọn bùa có thể nghiên cứu FairyGUI.
+- Về free/paid:
+  - Runtime Cocos trên GitHub là MIT.
+  - Phần free/paid nhiều khả năng nằm ở FairyGUI Editor/tooling/workflow, không phải runtime Cocos.
+  - Khuyến nghị chưa mua vội; thử bản free bằng một vertical slice nhỏ trước: bottom HUD placeholder, chọn lính list/grid, inventory scroll/list item, export vào Cocos và đo workflow/performance.
+
+Trạng thái dừng:
+
+- User tạm dừng, chưa quyết định dùng FairyGUI.
+- Source change đáng chú ý hiện tại: `TrueMiniMapPanel.ts` có `fixedMapHeight`.
+- Scene/UI có thể đang dirty do chỉnh bằng Cocos Editor.
+- Nếu Codex khác làm tiếp, hãy đọc source hiện tại trước khi sửa, đặc biệt `TrueMiniMapPanel.ts` và `assets/Test.scene`.
+

@@ -117,6 +117,9 @@ export class TrueMiniMapPanel extends Component {
     worldToMiniMapScale = 2;
 
     @property
+    fixedMapHeight = 0;
+
+    @property
     updateInterval = 0.1;
 
     @property
@@ -259,29 +262,53 @@ export class TrueMiniMapPanel extends Component {
             return;
         }
 
-        const scale =
+        const worldWidth =
             Math.max(
                 0.001,
-                this.worldToMiniMapScale
+                this.gameManager.battleMaxX -
+                this.gameManager.battleMinX
             );
 
-        this.mapWidth =
+        const worldHeight =
             Math.max(
-                1,
-                (
-                    this.gameManager.battleMaxX -
-                    this.gameManager.battleMinX
-                ) * scale
+                0.001,
+                this.gameManager.battleMaxZ -
+                this.gameManager.battleMinZ
             );
 
-        this.mapHeight =
-            Math.max(
-                1,
-                (
-                    this.gameManager.battleMaxZ -
-                    this.gameManager.battleMinZ
-                ) * scale
-            );
+        if (this.fixedMapHeight > 0) {
+            this.mapHeight =
+                Math.max(
+                    1,
+                    this.fixedMapHeight
+                );
+
+            this.mapWidth =
+                Math.max(
+                    1,
+                    this.mapHeight *
+                    worldWidth /
+                    worldHeight
+                );
+        } else {
+            const scale =
+                Math.max(
+                    0.001,
+                    this.worldToMiniMapScale
+                );
+
+            this.mapWidth =
+                Math.max(
+                    1,
+                    worldWidth * scale
+                );
+
+            this.mapHeight =
+                Math.max(
+                    1,
+                    worldHeight * scale
+                );
+        }
 
         this.setNodeSize(
             this.node,
