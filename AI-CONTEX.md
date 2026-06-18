@@ -506,3 +506,30 @@ Lưu ý:
 - Nếu sửa rotation tiếp, chỉ tập trung pha cụ thể. Tránh reintroduce `rotationSmoothTime`, smooth-damp angle, hoặc visual velocity filter cũ vì user đã test thấy rung hơn.
 - Working tree có nhiều file generated/temp/library dirty do Cocos. Không tự revert/clean chúng nếu user không yêu cầu.
 
+## Handoff 2026-06-19: A2 rung/nhích sau ally wave, kết luận debug
+
+User báo một case visual không hẳn là bug:
+
+- A1 và B1 đang đánh nhau ở mid.
+- A2 cũng ở mid đang forward, bị A1 chắn phía trước nên đứng sau chờ tràn lên.
+- Khi một unit hàng đầu của B1 chết, unit A2 phía sau có cảm giác rung/nhích như sắp đi hướng khác.
+
+Đã thêm debug tạm thời rồi sau đó đã gỡ sạch khỏi source theo yêu cầu user. Không còn `MotionDebug`, `WaveDebug`, hoặc các property debug trong `GameManager.ts`/`Unit.ts`.
+
+Kết quả debug user test:
+
+- Không có `MotionDebug` khi chỉ log trường hợp unit vẫn `onForward=true` nhưng movement bị lệch. Vì vậy không phải RVO bẻ hướng trong lúc vẫn forward.
+- Có `WaveDebug`.
+- Không có `combat-recover-resume-forward`, nên không phải regroup/recover-forward.
+- Có nhiều log:
+  - `forward-passed-target-release`
+  - `forward-passed-target-release-target-wave`
+- Kết luận: wave A2 bị rule `onWaveForwardPassedAdjacentTarget()` kích hoạt, tức là vượt target cùng lane/lane kề thì `releaseForwardToFreeHunt()`. Visual nhìn như nhích/rung vì wave đã vào freehunt thật, nhưng phía trước nhiều ally A1 chắn nên không lao đi xa được.
+
+Nhận định logic:
+
+- Rule hiện tại đang hoạt động đúng theo yêu cầu cũ: vượt enemy cùng lane hoặc lane kề thì release cả wave sang freehunt.
+- Nhưng trong case ally wave đang chắn phía trước và đang đánh enemy cùng lane, rule này hơi nhạy: wave sau có thể freehunt dù thực tế nên tiếp tục giữ forward/xếp hàng.
+- User nêu hướng sửa có thể hợp lý: với enemy cùng lane thì bỏ rule "vượt enemy gần nhất -> freehunt"; chỉ cho wave cùng lane rời forward khi có ít nhất một unit trong wave thật sự engage (`onWaveCombatStarted`). Rule vượt enemy lane kề vẫn giữ để tránh bỏ qua giao tranh bên cạnh.
+- Chưa code thay đổi này. Nếu tiếp tục, ưu tiên sửa nhỏ ở `Unit.updateForwardPhase()` hoặc `GameManager.onWaveForwardPassedAdjacentTarget()` để phân biệt target cùng lane và target lane kề.
+
