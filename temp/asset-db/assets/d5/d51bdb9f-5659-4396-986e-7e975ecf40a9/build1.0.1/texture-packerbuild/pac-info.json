@@ -1,0 +1,202 @@
+{
+  "md5": "6ffcc",
+  "versionDev": "1.0.2",
+  "sharpMd5": "4e4ce",
+  "result": {
+    "atlases": [
+      {
+        "spriteFrameInfos": [
+          {
+            "name": "bow-ico",
+            "uuid": "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941",
+            "imageUuid": "f8ea029f-b400-4410-89a7-57f8577e8acb",
+            "textureUuid": "f8ea029f-b400-4410-89a7-57f8577e8acb@6c48a",
+            "trim": {
+              "rotatedWidth": 256,
+              "rotatedHeight": 256,
+              "x": 3,
+              "y": 3,
+              "width": 256,
+              "height": 256
+            },
+            "rawWidth": 256,
+            "rawHeight": 256,
+            "width": 262,
+            "height": 262,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\f8\\f8ea029f-b400-4410-89a7-57f8577e8acb.png",
+            "rotated": false,
+            "_mtime": 1780392011239.45,
+            "x": 0,
+            "y": 0,
+            "rotatedWidth": 262,
+            "rotatedHeight": 262
+          },
+          {
+            "name": "king-ico-small",
+            "uuid": "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
+            "imageUuid": "139f9f81-b709-415e-82f1-1f05e89438ce",
+            "textureUuid": "139f9f81-b709-415e-82f1-1f05e89438ce@6c48a",
+            "trim": {
+              "rotatedWidth": 128,
+              "rotatedHeight": 128,
+              "x": 3,
+              "y": 265,
+              "width": 128,
+              "height": 128
+            },
+            "rawWidth": 128,
+            "rawHeight": 128,
+            "width": 134,
+            "height": 134,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\13\\139f9f81-b709-415e-82f1-1f05e89438ce.png",
+            "rotated": false,
+            "_mtime": 1781497245232.7908,
+            "x": 0,
+            "y": 262,
+            "rotatedWidth": 134,
+            "rotatedHeight": 134
+          },
+          {
+            "name": "horse-ico-small",
+            "uuid": "23926ca3-e531-4d19-8249-ca0aa068dbc1@f9941",
+            "imageUuid": "23926ca3-e531-4d19-8249-ca0aa068dbc1",
+            "textureUuid": "23926ca3-e531-4d19-8249-ca0aa068dbc1@6c48a",
+            "trim": {
+              "rotatedWidth": 128,
+              "rotatedHeight": 128,
+              "x": 137,
+              "y": 265,
+              "width": 128,
+              "height": 128
+            },
+            "rawWidth": 128,
+            "rawHeight": 128,
+            "width": 134,
+            "height": 134,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\23\\23926ca3-e531-4d19-8249-ca0aa068dbc1.png",
+            "rotated": false,
+            "_mtime": 1781497245232.7908,
+            "x": 134,
+            "y": 262,
+            "rotatedWidth": 134,
+            "rotatedHeight": 134
+          },
+          {
+            "name": "mace-ico-small",
+            "uuid": "b178349e-82da-4293-8dcd-3b05942bc79d@f9941",
+            "imageUuid": "b178349e-82da-4293-8dcd-3b05942bc79d",
+            "textureUuid": "b178349e-82da-4293-8dcd-3b05942bc79d@6c48a",
+            "trim": {
+              "rotatedWidth": 128,
+              "rotatedHeight": 128,
+              "x": 3,
+              "y": 399,
+              "width": 128,
+              "height": 128
+            },
+            "rawWidth": 128,
+            "rawHeight": 128,
+            "width": 134,
+            "height": 134,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\b1\\b178349e-82da-4293-8dcd-3b05942bc79d.png",
+            "rotated": false,
+            "_mtime": 1781497245232.7908,
+            "x": 0,
+            "y": 396,
+            "rotatedWidth": 134,
+            "rotatedHeight": 134
+          },
+          {
+            "name": "spear-ico-small",
+            "uuid": "c513c3d6-bb46-4592-8efd-b8d73c099863@f9941",
+            "imageUuid": "c513c3d6-bb46-4592-8efd-b8d73c099863",
+            "textureUuid": "c513c3d6-bb46-4592-8efd-b8d73c099863@6c48a",
+            "trim": {
+              "rotatedWidth": 128,
+              "rotatedHeight": 128,
+              "x": 137,
+              "y": 399,
+              "width": 128,
+              "height": 128
+            },
+            "rawWidth": 128,
+            "rawHeight": 128,
+            "width": 134,
+            "height": 134,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\c5\\c513c3d6-bb46-4592-8efd-b8d73c099863.png",
+            "rotated": false,
+            "_mtime": 1781497245232.7908,
+            "x": 134,
+            "y": 396,
+            "rotatedWidth": 134,
+            "rotatedHeight": 134
+          },
+          {
+            "name": "sword-ico-small",
+            "uuid": "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5@f9941",
+            "imageUuid": "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5",
+            "textureUuid": "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5@6c48a",
+            "trim": {
+              "rotatedWidth": 128,
+              "rotatedHeight": 128,
+              "x": 3,
+              "y": 533,
+              "width": 128,
+              "height": 128
+            },
+            "rawWidth": 128,
+            "rawHeight": 128,
+            "width": 134,
+            "height": 134,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\d0\\d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5.png",
+            "rotated": false,
+            "_mtime": 1781497245233.795,
+            "x": 0,
+            "y": 530,
+            "rotatedWidth": 134,
+            "rotatedHeight": 134
+          },
+          {
+            "name": "bow-ico-small",
+            "uuid": "f4904146-35a2-41bf-8f22-cd622c2f0852@f9941",
+            "imageUuid": "f4904146-35a2-41bf-8f22-cd622c2f0852",
+            "textureUuid": "f4904146-35a2-41bf-8f22-cd622c2f0852@6c48a",
+            "trim": {
+              "rotatedWidth": 128,
+              "rotatedHeight": 128,
+              "x": 137,
+              "y": 533,
+              "width": 128,
+              "height": 128
+            },
+            "rawWidth": 128,
+            "rawHeight": 128,
+            "width": 134,
+            "height": 134,
+            "originalPath": "D:\\Works\\Github\\BattleGame\\library\\f4\\f4904146-35a2-41bf-8f22-cd622c2f0852.png",
+            "rotated": false,
+            "_mtime": 1781497245231.6672,
+            "x": 134,
+            "y": 530,
+            "rotatedWidth": 134,
+            "rotatedHeight": 134
+          }
+        ],
+        "width": 512,
+        "height": 1024,
+        "name": "auto-atlas.pac-0",
+        "imagePath": "D:\\Works\\Github\\BattleGame\\temp\\asset-db\\assets\\d5\\d51bdb9f-5659-4396-986e-7e975ecf40a9\\build1.0.1\\texture-packerbuild\\13afc5d2b.png",
+        "imageUuid": "13afc5d2b",
+        "textureUuid": "13afc5d2b@6c48a",
+        "compressed": {
+          "imagePathNoExt": "",
+          "suffixs": [
+            ".png"
+          ]
+        }
+      }
+    ],
+    "unpackedImages": [],
+    "pacUuid": "d51bdb9f-5659-4396-986e-7e975ecf40a9"
+  }
+}

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -140,49 +140,51 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "worldToMiniMapScale", _descriptor14, this);
 
-          _initializerDefineProperty(this, "updateInterval", _descriptor15, this);
+          _initializerDefineProperty(this, "fixedMapHeight", _descriptor15, this);
 
-          _initializerDefineProperty(this, "smoothDampTime", _descriptor16, this);
+          _initializerDefineProperty(this, "updateInterval", _descriptor16, this);
 
-          _initializerDefineProperty(this, "tweenScaleDuration", _descriptor17, this);
+          _initializerDefineProperty(this, "smoothDampTime", _descriptor17, this);
 
-          _initializerDefineProperty(this, "iconWidth", _descriptor18, this);
+          _initializerDefineProperty(this, "tweenScaleDuration", _descriptor18, this);
 
-          _initializerDefineProperty(this, "iconHeight", _descriptor19, this);
+          _initializerDefineProperty(this, "iconWidth", _descriptor19, this);
 
-          _initializerDefineProperty(this, "minIconSpacing", _descriptor20, this);
+          _initializerDefineProperty(this, "iconHeight", _descriptor20, this);
 
-          _initializerDefineProperty(this, "iconBoundaryPadding", _descriptor21, this);
+          _initializerDefineProperty(this, "minIconSpacing", _descriptor21, this);
 
-          _initializerDefineProperty(this, "iconSeparationIterations", _descriptor22, this);
+          _initializerDefineProperty(this, "iconBoundaryPadding", _descriptor22, this);
 
-          _initializerDefineProperty(this, "teamAIconTint", _descriptor23, this);
+          _initializerDefineProperty(this, "iconSeparationIterations", _descriptor23, this);
 
-          _initializerDefineProperty(this, "teamBIconTint", _descriptor24, this);
+          _initializerDefineProperty(this, "teamAIconTint", _descriptor24, this);
 
-          _initializerDefineProperty(this, "teamAFlashTint", _descriptor25, this);
+          _initializerDefineProperty(this, "teamBIconTint", _descriptor25, this);
 
-          _initializerDefineProperty(this, "teamBFlashTint", _descriptor26, this);
+          _initializerDefineProperty(this, "teamAFlashTint", _descriptor26, this);
 
-          _initializerDefineProperty(this, "prewarmIconCount", _descriptor27, this);
+          _initializerDefineProperty(this, "teamBFlashTint", _descriptor27, this);
 
-          _initializerDefineProperty(this, "maxPoolSize", _descriptor28, this);
+          _initializerDefineProperty(this, "prewarmIconCount", _descriptor28, this);
 
-          _initializerDefineProperty(this, "clampIconToMapBounds", _descriptor29, this);
+          _initializerDefineProperty(this, "maxPoolSize", _descriptor29, this);
 
-          _initializerDefineProperty(this, "invertXAxis", _descriptor30, this);
+          _initializerDefineProperty(this, "clampIconToMapBounds", _descriptor30, this);
 
-          _initializerDefineProperty(this, "invertZAxis", _descriptor31, this);
+          _initializerDefineProperty(this, "invertXAxis", _descriptor31, this);
 
-          _initializerDefineProperty(this, "showAliveRatio", _descriptor32, this);
+          _initializerDefineProperty(this, "invertZAxis", _descriptor32, this);
 
-          _initializerDefineProperty(this, "maxPositionSampleUnits", _descriptor33, this);
+          _initializerDefineProperty(this, "showAliveRatio", _descriptor33, this);
 
-          _initializerDefineProperty(this, "freezeDyingWavePositionAliveCount", _descriptor34, this);
+          _initializerDefineProperty(this, "maxPositionSampleUnits", _descriptor34, this);
 
-          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor35, this);
+          _initializerDefineProperty(this, "freezeDyingWavePositionAliveCount", _descriptor35, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor36, this);
+          _initializerDefineProperty(this, "enableIconClickFocus", _descriptor36, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor37, this);
 
           this.records = new Map();
           this.heroRecords = new Map();
@@ -245,9 +247,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          const scale = Math.max(0.001, this.worldToMiniMapScale);
-          this.mapWidth = Math.max(1, (this.gameManager.battleMaxX - this.gameManager.battleMinX) * scale);
-          this.mapHeight = Math.max(1, (this.gameManager.battleMaxZ - this.gameManager.battleMinZ) * scale);
+          const worldWidth = Math.max(0.001, this.gameManager.battleMaxX - this.gameManager.battleMinX);
+          const worldHeight = Math.max(0.001, this.gameManager.battleMaxZ - this.gameManager.battleMinZ);
+
+          if (this.fixedMapHeight > 0) {
+            this.mapHeight = Math.max(1, this.fixedMapHeight);
+            this.mapWidth = Math.max(1, this.mapHeight * worldWidth / worldHeight);
+          } else {
+            const scale = Math.max(0.001, this.worldToMiniMapScale);
+            this.mapWidth = Math.max(1, worldWidth * scale);
+            this.mapHeight = Math.max(1, worldHeight * scale);
+          }
+
           this.setNodeSize(this.node, this.mapWidth, this.mapHeight);
 
           if (this.background) {
@@ -1258,154 +1269,161 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 2;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "fixedMapHeight", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.1;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "smoothDampTime", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "smoothDampTime", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.12;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "tweenScaleDuration", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "tweenScaleDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.15;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "iconWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 18;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "iconHeight", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 18;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "minIconSpacing", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "minIconSpacing", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 22;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "iconBoundaryPadding", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "iconBoundaryPadding", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 4;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "iconSeparationIterations", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "iconSeparationIterations", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 4;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "teamAIconTint", [_dec14], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "teamAIconTint", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new Color(90, 180, 255, 255);
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "teamBIconTint", [_dec15], {
+      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "teamBIconTint", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new Color(255, 95, 95, 255);
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "teamAFlashTint", [_dec16], {
+      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "teamAFlashTint", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new Color(180, 240, 255, 255);
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "teamBFlashTint", [_dec17], {
+      }), _descriptor27 = _applyDecoratedDescriptor(_class5.prototype, "teamBFlashTint", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new Color(255, 220, 90, 255);
         }
-      }), _descriptor27 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class5.prototype, "prewarmIconCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 32;
         }
-      }), _descriptor28 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class5.prototype, "maxPoolSize", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 128;
         }
-      }), _descriptor29 = _applyDecoratedDescriptor(_class5.prototype, "clampIconToMapBounds", [property], {
+      }), _descriptor30 = _applyDecoratedDescriptor(_class5.prototype, "clampIconToMapBounds", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor30 = _applyDecoratedDescriptor(_class5.prototype, "invertXAxis", [property], {
+      }), _descriptor31 = _applyDecoratedDescriptor(_class5.prototype, "invertXAxis", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor31 = _applyDecoratedDescriptor(_class5.prototype, "invertZAxis", [property], {
+      }), _descriptor32 = _applyDecoratedDescriptor(_class5.prototype, "invertZAxis", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor32 = _applyDecoratedDescriptor(_class5.prototype, "showAliveRatio", [property], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "showAliveRatio", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "maxPositionSampleUnits", [property], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "maxPositionSampleUnits", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 8;
         }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "freezeDyingWavePositionAliveCount", [property], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "freezeDyingWavePositionAliveCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -175,6 +175,12 @@ export class GameManager extends Component {
     @property
     squareFormationWidth = 4;
 
+    @property
+    freeHuntNoTargetRecoveryFrames = 8;
+
+    @property
+    heroFreeHuntSearchRange = 80;
+
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -555,6 +561,35 @@ export class GameManager extends Component {
         return true;
     }
 
+    public canUnitRunWaveForwardScan(unit: Unit | null) {
+        if (!unit) return true;
+
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return true;
+
+        return wave.canUnitRunForwardScan(
+            unit,
+            this.frame
+        );
+    }
+
+    public findSharedWaveTargetForUnit(
+        unit: Unit | null
+    ): Unit | null {
+        if (!unit) return null;
+
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return null;
+
+        return wave.findSharedTargetForUnit(
+            unit
+        );
+    }
+
     private areSameOrAdjacentLanes(
         laneA: number,
         laneB: number
@@ -648,7 +683,9 @@ export class GameManager extends Component {
                     hero.laneId >= 0
                 )
             ) {
-                hero.enterFreeHuntMode();
+                hero.enterFreeHuntMode(
+                    this.heroFreeHuntSearchRange
+                );
             }
 
             return;
@@ -728,6 +765,17 @@ export class GameManager extends Component {
                     true
                 )
             ) {
+                this.forwardReleasedWaves.delete(wave);
+                continue;
+            }
+
+            if (
+                wave.shouldRecoverNoTarget(
+                    this.frame,
+                    this.freeHuntNoTargetRecoveryFrames
+                )
+            ) {
+                wave.resumeForward();
                 this.forwardReleasedWaves.delete(wave);
                 continue;
             }
@@ -822,7 +870,9 @@ export class GameManager extends Component {
 
         this.heroForwardUnlocked[team] = true;
         hero.setSteady(false, false);
-        hero.enterFreeHuntMode();
+        hero.enterFreeHuntMode(
+            this.heroFreeHuntSearchRange
+        );
         this.releaseEnemyNormalWavesToFreeHunt(team);
     }
 
@@ -850,7 +900,9 @@ export class GameManager extends Component {
         this.forwardReleasedWaves.delete(wave);
 
         wave.clearLaneControl();
-        wave.releaseForwardToFreeHunt();
+        wave.releaseForwardToFreeHunt(
+            this.heroFreeHuntSearchRange
+        );
     }
 
     private shouldForceTeamFreeHunt(
@@ -1191,11 +1243,6 @@ export class GameManager extends Component {
         const entry = map.get(unitName);
 
         if (!entry || !entry.prefab) {
-            console.warn(
-                '[GameManager] Missing unit entry:',
-                unitName
-            );
-
             return null;
         }
 
@@ -2023,10 +2070,6 @@ export class GameManager extends Component {
         const hero = heroEntry.heroNode.getComponent(Unit);
 
         if (!hero) {
-            console.warn(
-                '[GameManager] Hero node missing Unit component:',
-                heroEntry.heroNode.name
-            );
             return;
         }
 

@@ -45,6 +45,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.forwardScannerFrame = -1;
+          this.forwardScannerUnit = null;
+          this.noTargetSinceFrame = -1;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -208,6 +211,64 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.runtimeHasEngaged;
         }
 
+        hasAnyValidTarget() {
+          if (this.released) {
+            return false;
+          }
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!this.isTargetValid(u.enemy)) continue;
+            return true;
+          }
+
+          return false;
+        }
+
+        findSharedTargetForUnit(requester) {
+          if (this.released) return null;
+          if (!this.isUnitAlive(requester)) return null;
+          if (!requester.agent) return null;
+          let best = null;
+          let bestDistSq = Infinity;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const ally = this.units[i];
+            if (ally === requester) continue;
+            if (!this.isUnitAlive(ally)) continue;
+            if (!this.isTargetValid(ally.enemy)) continue;
+            const target = ally.enemy;
+            const dx = target.agent.pos.x - requester.agent.pos.x;
+            const dz = target.agent.pos.z - requester.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              best = target;
+            }
+          }
+
+          return best;
+        }
+
+        shouldRecoverNoTarget(frame, delayFrames) {
+          if (this.released) return false;
+
+          if (this.hasEngagedRuntime(frame) || this.hasAnyValidTarget()) {
+            this.noTargetSinceFrame = -1;
+            return false;
+          }
+
+          if (this.noTargetSinceFrame < 0) {
+            this.noTargetSinceFrame = frame;
+            return false;
+          }
+
+          const delay = Math.max(0, Math.floor(delayFrames));
+          return frame - this.noTargetSinceFrame >= delay;
+        }
+
         isTargetingWave(targetWave) {
           if (this.released) return false;
           if (!targetWave) return false;
@@ -344,14 +405,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        releaseForwardToFreeHunt() {
+        releaseForwardToFreeHunt(searchRange = 0) {
           if (this.released) return;
           this.combatModeActive = false;
+          this.forwardScannerUnit = null;
+          this.forwardScannerFrame = -1;
+          this.noTargetSinceFrame = -1;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            u.enterWaveFreeHuntMode();
+            u.enterWaveFreeHuntMode(searchRange);
           }
         }
 
@@ -360,6 +424,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.pendingLaneId = -1;
           this.lastEngagedEnemyLaneId = -1;
           this.combatModeActive = false;
+          this.forwardScannerUnit = null;
+          this.forwardScannerFrame = -1;
+          this.noTargetSinceFrame = -1;
         }
 
         enterCombatMode() {
@@ -434,7 +501,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.forwardScannerFrame = -1;
+          this.forwardScannerUnit = null;
+          this.noTargetSinceFrame = -1;
           this.units.length = 0;
+        }
+
+        canUnitRunForwardScan(unit, frame) {
+          if (this.released) return true;
+          if (!this.isUnitAlive(unit)) return false;
+          const shouldPick = !this.isForwardScannerEligible(this.forwardScannerUnit) || this.forwardScannerFrame !== frame;
+
+          if (shouldPick) {
+            this.pickFrontMostForwardScanner();
+            this.forwardScannerFrame = frame;
+          }
+
+          return this.forwardScannerUnit === unit;
         }
 
         getAverageX() {
@@ -495,6 +578,39 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (list.length <= 0) return null;
           const index = Math.floor(Math.random() * list.length);
           return list[index];
+        }
+
+        pickFrontMostForwardScanner() {
+          this.forwardScannerUnit = null;
+          let bestScore = -Infinity;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isForwardScannerEligible(u)) continue;
+            const score = u.agent.pos.x * u.forwardDir.x + u.agent.pos.z * u.forwardDir.z;
+
+            if (score > bestScore) {
+              bestScore = score;
+              this.forwardScannerUnit = u;
+            }
+          }
+        }
+
+        isForwardScannerEligible(unit) {
+          if (!this.isUnitAlive(unit)) return false;
+          if (!unit.agent) return false;
+          if (!unit.onForward) return false;
+          if (unit.returningToWaveLaneSlot) return false;
+          return true;
+        }
+
+        isTargetValid(unit) {
+          if (!unit) return false;
+          if (!unit.node.activeInHierarchy) return false;
+          if (!unit.agent) return false;
+          if (!unit.props) return false;
+          if (unit.props.isDead()) return false;
+          return true;
         }
 
         isUnitAlive(unit) {

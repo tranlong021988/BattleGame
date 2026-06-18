@@ -15,33 +15,38 @@ export class Unit extends Component {
     @property
     visualYawOffset = 0;
 
-    @property moveSpeed = 2;
-    @property radius = 0.5;
-    @property attackRange = 1;
-
-    @property targetSearchRange = 60;
-    @property forwardScanRange = 12;
-    @property forwardScanIntervalFrames = 2;
-    @property attackCheckIntervalFrames = 2;
-    @property targetSearchIntervalFrames = 6;
-
     @property rotationSpeed = 10;
 
     @property moveThreshold = 0.2;
     @property visualThreshold = 0.01;
 
-    @property onForward = true;
-    @property isSteady = false;
+    @property moveSpeed = 2;
+    @property radius = 0.5;
+
+    @property attackRange = 1;
+    @property attackCheckIntervalFrames = 2;
+
+    @property targetSearchRange = 60;
+    @property targetSearchIntervalFrames = 6;
+
+    @property forwardScanRange = 12;
+    @property forwardScanIntervalFrames = 2;
+    @property({ displayName: 'Use Wave Front Scanner' })
+    useWaveForwardScanner = true;
+
+    @property laneReturnTolerance = 0.35;
 
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
+
+    @property onForward = true;
+    @property isSteady = false;
 
     @property enableAllyOvertake = true;
     @property overtakeLookAhead = 2.2;
     @property overtakeSideRange = 1.2;
     @property overtakeSideStrength = 0.75;
     @property overtakeSpeedDiff = 0.15;
-    @property laneReturnTolerance = 0.35;
 
     team = 0;
     unitTypeName = '';
@@ -288,6 +293,7 @@ export class Unit extends Component {
         this.returningToWaveLaneSlot = false;
         this.laneId = -1;
         this.forwardLaneOffsetX = 0;
+        this.resetStableRotationPosition();
         this.targetSearchRange = Math.max(
             this.targetSearchRange,
             searchRange
@@ -329,6 +335,7 @@ export class Unit extends Component {
         this.enemy = null;
         this.onBusy = false;
         this.onForward = !returnToSlot;
+        this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
         this.cachedNearestInRange = null;
@@ -349,6 +356,7 @@ export class Unit extends Component {
     enterWaveCombatMode() {
         this.returningToWaveLaneSlot = false;
         this.onForward = false;
+        this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
         this.cachedNearestEnemy = null;
@@ -365,9 +373,19 @@ export class Unit extends Component {
         }
     }
 
-    enterWaveFreeHuntMode() {
+    enterWaveFreeHuntMode(
+        searchRange: number = 0
+    ) {
         this.returningToWaveLaneSlot = false;
         this.onForward = false;
+        this.resetStableRotationPosition();
+
+        if (searchRange > 0) {
+            this.targetSearchRange = Math.max(
+                this.targetSearchRange,
+                searchRange
+            );
+        }
 
         this.invalidateNearestQueryResults();
         this.cachedNearestEnemy = null;
@@ -485,6 +503,7 @@ export class Unit extends Component {
                 this.returningToWaveLaneSlot = false;
                 this.onForward = true;
                 this.agent.onForward = 0;
+                this.resetStableRotationPosition();
 
                 this.sim.setPrefVelocity(this.agent, 0, 0);
                 this.agent.vel.x = 0;
@@ -497,13 +516,16 @@ export class Unit extends Component {
                 this.agent.onForward = 0;
 
                 this.updateForwardPrefVelocity();
-                this.sync(deltaTime, true);
+                this.lookReturnToLaneSmooth(deltaTime);
+                this.sync(deltaTime, false);
                 return;
             }
         }
 
         if (this.onForward) {
-            this.updateForwardPhase();
+            if (this.canRunForwardScanForWave()) {
+                this.updateForwardPhase();
+            }
 
             if (this.onForward) {
                 this.agent.onForward = 1;
@@ -518,7 +540,11 @@ export class Unit extends Component {
         this.agent.onForward = 0;
 
         if (!this.isValidEnemy(this.enemy)) {
-            this.enemy = this.getNearestEnemyThrottled();
+            this.enemy = this.getSharedWaveTarget();
+
+            if (!this.isValidEnemy(this.enemy)) {
+                this.enemy = this.getNearestEnemyThrottled();
+            }
         }
 
         if (this.enemy && this.enemy.agent) {
@@ -556,6 +582,33 @@ export class Unit extends Component {
     private shouldRunForwardScan(): boolean {
         const interval = Math.max(1, Math.floor(this.forwardScanIntervalFrames));
         return this.frameCounter % interval === 0;
+    }
+
+    private canRunForwardScanForWave() {
+        if (!this.useWaveForwardScanner) {
+            return true;
+        }
+
+        const gm = GameManager.instance;
+
+        if (!gm) return true;
+
+        return gm.canUnitRunWaveForwardScan(this);
+    }
+
+    private getSharedWaveTarget() {
+        const gm = GameManager.instance;
+
+        if (!gm) return null;
+
+        const target =
+            gm.findSharedWaveTargetForUnit(
+                this
+            );
+
+        return this.isValidEnemy(target)
+            ? target
+            : null;
     }
 
     private getNearestEnemyInAttackRangeThrottled(): Unit | null {
@@ -644,11 +697,12 @@ export class Unit extends Component {
     private updateForwardPhase() {
         if (!this.agent) return;
 
-        // Rule ưu tiên:
-        // 1. Nếu lane hiện tại có địch, cứ forward cho tới khi vượt qua Z/X của địch cùng lane gần nhất.
-        // 2. Nếu lane hiện tại trống, KHÔNG cắt chéo ngay. Tiếp tục forward để tạo pha thọc sườn.
-        // 3. Khi đã vượt qua Z/X của địch gần nhất ở lane kề bên, mới free hunt toàn map.
-        // 4. Nếu cuối cùng không gặp ai và đã vượt qua line hero địch, cũng free hunt để đánh hero.
+        // Forward phase:
+        // 1. Scan enemies in the same lane and adjacent lanes.
+        // 2. If this unit has passed a valid target along forwardDir,
+        //    release the wave to free hunt.
+        // 3. Enemy hero line can also release free hunt when it is in
+        //    the same or adjacent lane.
 
         const shouldScan =
             this.shouldRunForwardScan();
@@ -1221,6 +1275,28 @@ export class Unit extends Component {
         const dx = this.forwardDir.x;
         const dz = this.forwardDir.z;
 
+        this.lookDirectionSmooth(dx, dz, deltaTime);
+    }
+
+    private lookReturnToLaneSmooth(deltaTime: number) {
+        if (!this.agent) return;
+
+        const laneTargetX = this.getCurrentLaneTargetX();
+
+        if (laneTargetX === null) return;
+
+        const dx = laneTargetX - this.agent.pos.x;
+
+        if (Math.abs(dx) <= this.laneReturnTolerance) return;
+
+        this.lookDirectionSmooth(Math.sign(dx), 0, deltaTime);
+    }
+
+    private lookDirectionSmooth(
+        dx: number,
+        dz: number,
+        deltaTime: number
+    ) {
         if (dx * dx + dz * dz < 0.0001) return;
 
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
@@ -1278,7 +1354,6 @@ export class Unit extends Component {
 
         const targetAngle = Math.atan2(moveDx, moveDz) * 180 / Math.PI;
         const currentY = this.getVisualEulerY();
-
         const newY = this.lerpAngle(
             currentY,
             targetAngle,
@@ -1302,6 +1377,13 @@ export class Unit extends Component {
             y + this.visualYawOffset,
             0
         );
+    }
+
+    private resetStableRotationPosition() {
+        const p = this.node.worldPosition;
+
+        this.lastStablePos.x = p.x;
+        this.lastStablePos.z = p.z;
     }
 
     private lerpAngle(a: number, b: number, t: number) {

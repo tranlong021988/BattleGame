@@ -2,7 +2,7 @@
 
 Handoff note cho Codex khác khi làm tiếp dự án `BattleGame`.
 
-Ngày ghi chú: 2026-06-16.
+Ngày ghi chú ban đầu: 2026-06-16. Cập nhật gần nhất: 2026-06-18.
 
 Người dùng đang dùng hai Codex ở hai máy khác nhau. Hai phiên không chia sẻ trí nhớ hội thoại, nên trước khi sửa source phải đọc file này và rà lại source hiện tại. Không làm theo trí nhớ cũ nếu code đã đổi.
 
@@ -60,11 +60,12 @@ Khi một unit phát hiện enemy trong attack range:
 Freehunt hiện là unit-level hunt toàn map, nhưng được điều tiết bởi wave recovery:
 
 - Unit tự tìm enemy gần nhất qua spatial grid/worker.
+- Nếu unit chưa có target hợp lệ, nó hỏi target của đồng đội trong cùng wave trước; target mượn không bị giới hạn bởi `targetSearchRange`.
 - Khi unit engage, lane của enemy cuối cùng được ghi vào `lastEngagedEnemyLaneId`.
 - Khi wave không còn unit nào engaged, `GameManager.recoverWaveCombat()` hoặc `processForwardReleaseRecoveries()` sẽ dùng `preparePendingLaneFromLastEngagedEnemy()`.
 - Nếu có pending lane và wave không còn engaged, `tryApplyPendingLaneTransfer()` đổi lane, rồi forward.
 
-Nếu wave release forward/freehunt nhưng chưa bao giờ engage ai, nó có thể không có `lastEngagedEnemyLaneId`. Trường hợp này hiện không có timeout cố ép forward. User đã chấp nhận edge case "con mồi bị wave khác cướp mất thì cứ freehunt tới khi engage".
+Nếu wave release forward/freehunt nhưng chưa bao giờ engage ai, nó có thể không có `lastEngagedEnemyLaneId`. Code hiện có `freeHuntNoTargetRecoveryFrames`: nếu toàn wave không engaged và không ai giữ target hợp lệ đủ số frame này, wave `resumeForward()` ở lane hiện tại.
 
 ## Lane decision hiện tại
 
@@ -117,7 +118,7 @@ Hero unlock/freehunt:
 
 - `GameManager.tryUnlockHeroForward(team)` kiểm tra CP/spawn/non-hero unit/wave.
 - Khi không còn khả năng spawn và không còn unit/wave thường alive, hero thoát steady.
-- `unlockHeroForward()` set `heroForwardUnlocked[team] = true`, `hero.setSteady(false, false)`, `hero.enterFreeHuntMode()`.
+- `unlockHeroForward()` set `heroForwardUnlocked[team] = true`, `hero.setSteady(false, false)`, `hero.enterFreeHuntMode(heroFreeHuntSearchRange)`.
 - Khi hero của team A unlock, các normal wave của team B bị force freehunt. Tương tự chiều ngược lại.
 - Enemy hero không tự thoát steady theo hero kia; nó chỉ thoát steady khi chính team nó đạt điều kiện unlock.
 - Future normal waves spawn sau khi enemy hero unlock cũng bị force freehunt qua `shouldForceTeamFreeHunt()`.
@@ -232,7 +233,7 @@ Nếu cần đo:
 
 ## Known edge cases và lưu ý
 
-- Nếu wave freehunt nhưng chưa kịp engage, mà target bị wave khác giết, wave có thể chưa có `lastEngagedEnemyLaneId`. Hiện không có timeout. User từng nói chấp nhận cho nó freehunt tới khi engage.
+- Nếu wave freehunt nhưng chưa kịp engage, mà target bị wave khác giết, wave có thể chưa có `lastEngagedEnemyLaneId`. Hiện `freeHuntNoTargetRecoveryFrames` sẽ kéo wave về `resumeForward()` khi toàn wave không engaged và không ai có target hợp lệ.
 - Nếu thấy wave chuyển lane kỳ lạ, kiểm tra `lastEngagedEnemyLaneId`, `noteEngagedEnemy()`, `onWaveCombatStarted()`, `onUnitKilled()`.
 - Nếu thấy left sang right trực tiếp, kiểm tra `Unit.isAdjacentLane()`, `GameManager.areSameOrAdjacentLanes()`, và laneId của target/hero.
 - Nếu hero bị vây mà enemy vẫn forward/regroup, kiểm tra `heroForwardUnlocked`, `shouldForceTeamFreeHunt()`, `forceWaveToHeroPressureFreeHunt()`.
@@ -288,6 +289,8 @@ Giải pháp đã code:
 - `targetSearchRange` vẫn giữ cho freehunt/target search bình thường.
 - Có fallback: nếu `forwardScanRange <= 0`, dùng lại `targetSearchRange`.
 - Forward scan được throttle qua `forwardScanIntervalFrames`.
+- Forward scan hiện dùng `Use Wave Front Scanner`: mỗi wave chỉ cho unit đang đi xa nhất theo `forwardDir` được quyền scan. Nếu tắt flag này thì quay về mọi unit đang forward đều có thể scan.
+- Không còn `Forward Scanner Switch Interval Frames`/round-robin scanner. Scanner đổi tự nhiên theo "ai ở mũi đội hình".
 - `Unit.frameCounter` đã được khởi tạo bằng `updateOffset`, nên `attackCheckIntervalFrames`, `targetSearchIntervalFrames`, và `forwardScanIntervalFrames` đều đã tự rải phase giữa các unit. Không cần cộng `updateOffset` thêm lần nữa.
 - Thêm cache `forwardLaneTarget` cho same-lane, dùng chung với cache cũ `forwardAdjacentTarget`.
 - Frame không tới lượt scan vẫn check target cache để phát hiện đã vượt enemy, tránh bị "mù" giữa 2 lần scan.
@@ -458,4 +461,48 @@ Trạng thái dừng:
 - Source change đáng chú ý hiện tại: `TrueMiniMapPanel.ts` có `fixedMapHeight`.
 - Scene/UI có thể đang dirty do chỉnh bằng Cocos Editor.
 - Nếu Codex khác làm tiếp, hãy đọc source hiện tại trước khi sửa, đặc biệt `TrueMiniMapPanel.ts` và `assets/Test.scene`.
+
+## Handoff 2026-06-18 cuối ngày: Unit scan, freehunt recovery, rotation cleanup
+
+User chuyển trọng tâm về performance/visual của unit sau các vòng test trace. Trạng thái source cần nhớ:
+
+- `Unit` Inspector đã được sắp lại theo nhóm dễ chỉnh hơn:
+  - visual/rotation: `visualRoot`, `visualYawOffset`, `rotationSpeed`, `moveThreshold`, `visualThreshold`
+  - movement: `moveSpeed`, `radius`
+  - combat range: `attackRange`, `attackCheckIntervalFrames`
+  - freehunt search: `targetSearchRange`, `targetSearchIntervalFrames`
+  - forward scan: `forwardScanRange`, `forwardScanIntervalFrames`, `Use Wave Front Scanner`
+  - lane return: `laneReturnTolerance`
+  - runtime defaults/state: `forwardDir`, `onForward`, `isSteady`
+  - ally overtake settings
+- Forward scan không còn round-robin. `BattleWave.pickFrontMostForwardScanner()` chọn unit alive/onForward đi xa nhất theo dot(`agent.pos`, `forwardDir`) làm scanner của wave trong frame hiện tại.
+- `forwardScanIntervalFrames` vẫn là nhịp scan enemy thật. `Use Wave Front Scanner = false` sẽ cho mọi unit đang forward scan như kiểu cũ.
+- `Forward Scanner Switch Interval Frames` đã bị bỏ khỏi source.
+- Freehunt target sharing: unit không có target hợp lệ sẽ hỏi target của đồng đội trong wave trước, không áp `targetSearchRange` cho target mượn. Nếu không mượn được mới tự search theo `targetSearchRange`.
+- Nếu wave đã release forward/freehunt nhưng toàn wave không engaged và không ai có target hợp lệ trong `freeHuntNoTargetRecoveryFrames`, `GameManager.processForwardReleaseRecoveries()` sẽ `resumeForward()` tại lane hiện tại.
+- Hero unlock/freehunt dùng `heroFreeHuntSearchRange` để tránh trường hợp range thường quá ngắn làm unit mất target khi hero phase.
+- Rotation cleanup: các thử nghiệm smooth-damp/move-threshold mới đã bị bỏ. Rotation đang dùng logic cũ (`rotationSpeed`, `lerpAngle`) cộng thêm reset `lastStablePos` khi đổi mode. Riêng khi `returningToWaveLaneSlot`, unit xoay theo hướng trái/phải về lane target thay vì đọc delta visual, để giảm cảm giác step-step trong regroup.
+
+Trace cuối ngày:
+
+- `Trace-20260618T181936.json` với setting user gửi:
+  - `targetSearchRange = 8`
+  - `forwardScanRange = 12`
+  - `forwardScanIntervalFrames = 30`
+  - `Use Wave Front Scanner` bật
+  - `attackCheckIntervalFrames = 15`
+  - `targetSearchIntervalFrames = 30`
+- Kết quả trace ổn:
+  - `FireAnimationFrame` avg khoảng `1.64ms`
+  - p95 khoảng `3.22ms`
+  - p99 khoảng `5.36ms`
+  - max khoảng `14.56ms`
+  - không có RAF frame vượt `16.7ms`
+- Nhận định: tăng interval lên cao giúp nhẹ nhưng không tạo cải thiện lớn so với report trước. Nếu visual phản ứng trễ, test lại cấu hình trung gian như `forwardScanIntervalFrames = 15-20`, `attackCheckIntervalFrames = 8-12`.
+
+Lưu ý:
+
+- Đừng quay lại round-robin scanner nếu chưa có lý do visual rõ ràng. Front-most scanner vừa ít thông số vừa hợp logic "người đi đầu phát hiện trước".
+- Nếu sửa rotation tiếp, chỉ tập trung pha cụ thể. Tránh reintroduce `rotationSmoothTime`, smooth-damp angle, hoặc visual velocity filter cũ vì user đã test thấy rung hơn.
+- Working tree có nhiều file generated/temp/library dirty do Cocos. Không tự revert/clean chúng nếu user không yêu cầu.
 
