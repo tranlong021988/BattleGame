@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 26308.0746,
+      "mTimestamp": 14797842.5854,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3180,7 +3180,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1781784982585.6184,
+        "mtime": 1781852732383.1687,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -5890,7 +5890,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1781784964694.1426,
+        "mtime": 1781858908761.8757,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",

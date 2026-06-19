@@ -18,7 +18,7 @@ export class BattleWave {
     assignedCounterCount = 0;
     laneId = -1;
     pendingLaneId = -1;
-    lastEngagedEnemyLaneId = -1;
+    lastEngagedUnitLaneId = -1;
     combatModeActive = false;
     released = false;
 
@@ -340,54 +340,32 @@ export class BattleWave {
         return this.pendingLaneId >= 0;
     }
 
-    noteEngagedEnemy(
-        enemy: Unit | null
-    ) {
-        if (!enemy) return;
-
-        const enemyWave =
-            BattleWave.getWaveForUnit(enemy);
-
-        if (enemyWave && enemyWave.laneId >= 0) {
-            this.noteEngagedEnemyLane(
-                enemyWave.laneId
-            );
-            return;
-        }
-
-        if (enemy.laneId >= 0) {
-            this.noteEngagedEnemyLane(
-                enemy.laneId
-            );
-        }
-    }
-
-    noteEngagedEnemyLane(laneId: number) {
+    noteEngagedUnitLane(laneId: number) {
         if (this.released) return;
         if (laneId < 0) return;
 
-        this.lastEngagedEnemyLaneId = laneId;
+        this.lastEngagedUnitLaneId = laneId;
     }
 
-    hasLastEngagedEnemyLane() {
+    hasLastEngagedUnitLane() {
         if (this.released) {
             return false;
         }
 
-        return this.lastEngagedEnemyLaneId >= 0;
+        return this.lastEngagedUnitLaneId >= 0;
     }
 
-    preparePendingLaneFromLastEngagedEnemy() {
+    preparePendingLaneFromLastEngagedUnit() {
         if (this.released) {
             return false;
         }
 
-        if (!this.hasLastEngagedEnemyLane()) {
+        if (!this.hasLastEngagedUnitLane()) {
             return false;
         }
 
         this.pendingLaneId =
-            this.lastEngagedEnemyLaneId;
+            this.lastEngagedUnitLaneId;
 
         return true;
     }
@@ -402,7 +380,7 @@ export class BattleWave {
     tryApplyPendingLaneTransfer(
         formationWidth: number,
         unitSpacing: number,
-        skipEngagedCheck: boolean = false
+        _skipEngagedCheck: boolean = false
     ) {
         if (this.released) {
             return false;
@@ -412,7 +390,7 @@ export class BattleWave {
             return false;
         }
 
-        if (!skipEngagedCheck && this.hasEngaged()) {
+        if (this.hasEngaged()) {
             return false;
         }
 
@@ -423,10 +401,9 @@ export class BattleWave {
         );
 
         this.pendingLaneId = -1;
-        this.lastEngagedEnemyLaneId = -1;
-        this.resumeForward();
+        this.lastEngagedUnitLaneId = -1;
 
-        return true;
+        return this.resumeForward();
     }
 
     setLaneId(
@@ -452,22 +429,25 @@ export class BattleWave {
     }
 
     resumeForward() {
-        if (this.released) return;
+        if (this.released) return false;
+        if (this.hasEngaged()) return false;
 
         this.combatModeActive = false;
-        this.lastEngagedEnemyLaneId = -1;
+        this.lastEngagedUnitLaneId = -1;
+        this.noTargetSinceFrame = -1;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
 
             if (!this.isUnitAlive(u)) continue;
-            if (u.onBusy) continue;
 
             u.setWaveForwardLane(
                 this.laneId,
                 u.forwardLaneOffsetX
             );
         }
+
+        return true;
     }
 
     releaseForwardToFreeHunt(
@@ -495,7 +475,7 @@ export class BattleWave {
         if (this.released) return;
 
         this.pendingLaneId = -1;
-        this.lastEngagedEnemyLaneId = -1;
+        this.lastEngagedUnitLaneId = -1;
         this.combatModeActive = false;
         this.forwardScannerUnit = null;
         this.forwardScannerFrame = -1;
@@ -505,11 +485,8 @@ export class BattleWave {
     enterCombatMode() {
         if (this.released) return;
 
-        if (this.combatModeActive) {
-            return;
-        }
-
         this.combatModeActive = true;
+        this.noTargetSinceFrame = -1;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -601,7 +578,7 @@ export class BattleWave {
     releaseReferences() {
         this.released = true;
         this.pendingLaneId = -1;
-        this.lastEngagedEnemyLaneId = -1;
+        this.lastEngagedUnitLaneId = -1;
         this.combatModeActive = false;
         this.assignedCounterCount = 0;
         this.runtimeStateFrame = -1;

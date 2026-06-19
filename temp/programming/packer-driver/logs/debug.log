@@ -651,3 +651,439 @@ Feature changed: false
 11:44:23.389 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
 11:44:23.390 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
 11:44:23.406 debug: Target(preview) ends with cost 47.93600000000151ms.
+14:04:08.935 debug: Dispatch build request for time accumulated 2 asset changes.
+14:04:08.936 debug: Build iteration starts.
+Number of accumulated asset changes: 2
+Feature changed: false
+14:04:08.937 debug: Target(editor) build started.
+14:04:08.943 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 07:00:26 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 09:20:11 GMT+0700 (Indochina Time)
+14:04:08.943 debug: Inspect cce:/internal/x/prerequisite-imports
+14:04:08.964 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 21.30 ms
+14:04:08.965 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+14:04:08.966 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+14:04:08.967 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+14:04:08.967 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+14:04:08.968 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+14:04:08.969 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+14:04:08.969 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+14:04:08.969 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+14:04:08.969 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+14:04:08.970 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:04:08.970 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:04:08.970 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:04:08.971 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:04:08.971 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Thu Jun 18 2026 19:16:04 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 14:03:19 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+14:04:08.971 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+14:04:09.069 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 97.80 ms
+14:04:09.070 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+14:04:09.071 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:04:09.071 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+14:04:09.071 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+14:04:09.071 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts. Last mtime: Thu Jun 18 2026 19:16:22 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab, Current mtime: Fri Jun 19 2026 14:03:58 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab
+14:04:09.071 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts
+14:04:09.356 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts' costs: 284.50 ms
+14:04:09.358 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+14:04:09.358 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+14:04:09.359 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:04:09.359 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:04:09.359 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+14:04:09.359 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+14:04:09.360 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+14:04:09.360 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+14:04:09.360 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:04:09.361 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:04:09.361 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:04:09.361 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:04:09.361 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:04:09.362 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:04:09.363 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/code-quality/cr.mjs.
+14:04:09.363 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:04:09.363 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:04:09.363 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:04:09.363 debug: Resolve ./Unit from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:04:09.364 debug: Resolve ./UnitProps from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:04:09.364 debug: Resolve ./rvo/RVO from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:04:09.365 debug: Resolve ./rvo/RVOWorkerSimulator from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:04:09.365 debug: Resolve ./ObstacleCircle from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:04:09.365 debug: Resolve ./ObstacleRect from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:04:09.366 debug: Resolve ./UnitSpawner from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:04:09.366 debug: Resolve ./UnitBehavior from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:04:09.366 debug: Resolve ./BattleSpatialGrid from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:04:09.367 debug: Resolve ./BattleWave from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:04:09.367 debug: Resolve ./CounterSettings from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:04:09.367 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:04:09.368 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:04:09.368 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:04:09.369 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+14:04:09.369 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+14:04:09.369 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:04:09.383 debug: Target(editor) ends with cost 445.9663999993354ms.
+14:04:09.383 debug: Target(preview) build started.
+14:04:09.385 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 07:00:26 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 09:20:12 GMT+0700 (Indochina Time)
+14:04:09.385 debug: Inspect cce:/internal/x/prerequisite-imports
+14:04:09.402 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 17.30 ms
+14:04:09.404 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+14:04:09.404 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+14:04:09.405 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+14:04:09.405 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+14:04:09.406 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+14:04:09.407 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+14:04:09.407 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+14:04:09.408 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+14:04:09.408 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+14:04:09.408 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:04:09.408 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:04:09.409 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:04:09.409 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:04:09.409 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Thu Jun 18 2026 19:16:04 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 14:03:19 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+14:04:09.409 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+14:04:09.501 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 91.60 ms
+14:04:09.502 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+14:04:09.503 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:04:09.503 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+14:04:09.503 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+14:04:09.503 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts. Last mtime: Thu Jun 18 2026 19:16:22 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab, Current mtime: Fri Jun 19 2026 14:03:58 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab
+14:04:09.503 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts
+14:04:09.804 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts' costs: 300.40 ms
+14:04:09.806 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+14:04:09.806 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+14:04:09.806 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:04:09.807 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:04:09.807 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+14:04:09.807 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+14:04:09.807 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+14:04:09.808 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+14:04:09.808 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:04:09.808 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:04:09.809 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:04:09.809 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:04:09.809 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:04:09.810 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:04:09.810 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/code-quality/cr.mjs.
+14:04:09.810 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:04:09.810 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:04:09.810 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:04:09.811 debug: Resolve ./Unit from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:04:09.811 debug: Resolve ./UnitProps from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:04:09.811 debug: Resolve ./rvo/RVO from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:04:09.812 debug: Resolve ./rvo/RVOWorkerSimulator from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:04:09.812 debug: Resolve ./ObstacleCircle from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:04:09.812 debug: Resolve ./ObstacleRect from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:04:09.813 debug: Resolve ./UnitSpawner from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:04:09.813 debug: Resolve ./UnitBehavior from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:04:09.813 debug: Resolve ./BattleSpatialGrid from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:04:09.814 debug: Resolve ./BattleWave from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:04:09.814 debug: Resolve ./CounterSettings from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:04:09.814 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:04:09.815 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:04:09.815 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:04:09.815 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+14:04:09.815 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+14:04:09.816 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:04:09.829 debug: Target(preview) ends with cost 446.1916000004858ms.
+14:07:58.985 debug: Dispatch build request for time accumulated 2 asset changes.
+14:07:58.987 debug: Build iteration starts.
+Number of accumulated asset changes: 2
+Feature changed: false
+14:07:58.987 debug: Target(editor) build started.
+14:07:58.989 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 09:20:11 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 09:24:01 GMT+0700 (Indochina Time)
+14:07:58.989 debug: Inspect cce:/internal/x/prerequisite-imports
+14:07:59.010 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 21.40 ms
+14:07:59.012 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+14:07:59.012 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+14:07:59.013 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+14:07:59.014 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+14:07:59.014 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+14:07:59.015 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+14:07:59.015 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+14:07:59.016 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+14:07:59.016 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+14:07:59.016 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:07:59.016 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:07:59.017 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:07:59.017 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:07:59.017 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Fri Jun 19 2026 14:03:19 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 14:05:42 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+14:07:59.017 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+14:07:59.121 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 104.20 ms
+14:07:59.123 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+14:07:59.123 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:07:59.123 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+14:07:59.124 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+14:07:59.124 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts. Last mtime: Fri Jun 19 2026 14:03:58 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab, Current mtime: Fri Jun 19 2026 14:05:32 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab
+14:07:59.124 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts
+14:07:59.426 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts' costs: 302.40 ms
+14:07:59.428 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+14:07:59.429 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+14:07:59.429 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:07:59.430 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:07:59.430 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+14:07:59.430 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+14:07:59.431 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+14:07:59.431 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+14:07:59.431 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:07:59.432 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:07:59.432 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:07:59.433 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:07:59.433 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:07:59.433 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:07:59.434 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/code-quality/cr.mjs.
+14:07:59.434 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:07:59.434 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:07:59.434 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:07:59.434 debug: Resolve ./Unit from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:07:59.435 debug: Resolve ./UnitProps from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:07:59.435 debug: Resolve ./rvo/RVO from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:07:59.435 debug: Resolve ./rvo/RVOWorkerSimulator from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:07:59.436 debug: Resolve ./ObstacleCircle from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:07:59.436 debug: Resolve ./ObstacleRect from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:07:59.437 debug: Resolve ./UnitSpawner from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:07:59.437 debug: Resolve ./UnitBehavior from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:07:59.437 debug: Resolve ./BattleSpatialGrid from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:07:59.438 debug: Resolve ./BattleWave from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:07:59.438 debug: Resolve ./CounterSettings from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:07:59.438 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:07:59.439 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:07:59.439 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:07:59.439 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+14:07:59.439 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+14:07:59.440 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:07:59.453 debug: Target(editor) ends with cost 466.11120000109076ms.
+14:07:59.454 debug: Target(preview) build started.
+14:07:59.455 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 09:20:12 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 09:24:02 GMT+0700 (Indochina Time)
+14:07:59.455 debug: Inspect cce:/internal/x/prerequisite-imports
+14:07:59.471 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 15.90 ms
+14:07:59.473 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+14:07:59.473 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+14:07:59.474 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+14:07:59.475 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+14:07:59.476 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+14:07:59.477 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+14:07:59.477 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+14:07:59.477 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+14:07:59.478 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+14:07:59.478 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:07:59.478 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:07:59.479 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:07:59.479 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:07:59.479 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Fri Jun 19 2026 14:03:19 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 14:05:42 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+14:07:59.479 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+14:07:59.575 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 95.60 ms
+14:07:59.576 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+14:07:59.576 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:07:59.577 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+14:07:59.577 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+14:07:59.577 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts. Last mtime: Fri Jun 19 2026 14:03:58 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab, Current mtime: Fri Jun 19 2026 14:05:32 GMT+0700 (Indochina Time)@1e335392-7464-462e-b0f4-f1a62cb2f2ab
+14:07:59.577 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts
+14:07:59.882 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts' costs: 305.10 ms
+14:07:59.884 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+14:07:59.885 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+14:07:59.885 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:07:59.885 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:07:59.885 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+14:07:59.886 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+14:07:59.886 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+14:07:59.886 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+14:07:59.887 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:07:59.887 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:07:59.887 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:07:59.888 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:07:59.888 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:07:59.888 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:07:59.889 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/code-quality/cr.mjs.
+14:07:59.889 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:07:59.889 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:07:59.889 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as cce:/internal/x/cc.
+14:07:59.889 debug: Resolve ./Unit from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+14:07:59.890 debug: Resolve ./UnitProps from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+14:07:59.890 debug: Resolve ./rvo/RVO from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+14:07:59.890 debug: Resolve ./rvo/RVOWorkerSimulator from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+14:07:59.891 debug: Resolve ./ObstacleCircle from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+14:07:59.891 debug: Resolve ./ObstacleRect from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+14:07:59.891 debug: Resolve ./UnitSpawner from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+14:07:59.892 debug: Resolve ./UnitBehavior from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+14:07:59.892 debug: Resolve ./BattleSpatialGrid from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+14:07:59.892 debug: Resolve ./BattleWave from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+14:07:59.893 debug: Resolve ./CounterSettings from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+14:07:59.893 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:07:59.893 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:07:59.894 debug: Resolve ./BattleUnitDatabase from file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+14:07:59.894 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+14:07:59.894 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+14:07:59.894 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+14:07:59.908 debug: Target(preview) ends with cost 454.2675000000745ms.
+15:45:51.397 debug: Dispatch build request for time accumulated 1 asset changes.
+15:45:51.399 debug: Build iteration starts.
+Number of accumulated asset changes: 1
+Feature changed: false
+15:45:51.400 debug: Target(editor) build started.
+15:45:51.402 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 09:24:01 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 11:01:54 GMT+0700 (Indochina Time)
+15:45:51.402 debug: Inspect cce:/internal/x/prerequisite-imports
+15:45:51.424 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 22.30 ms
+15:45:51.426 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+15:45:51.427 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+15:45:51.427 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+15:45:51.428 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+15:45:51.428 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+15:45:51.429 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+15:45:51.429 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+15:45:51.430 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+15:45:51.430 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+15:45:51.430 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+15:45:51.431 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:45:51.431 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+15:45:51.431 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+15:45:51.431 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Fri Jun 19 2026 14:05:42 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 15:44:43 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+15:45:51.431 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+15:45:51.535 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 103.80 ms
+15:45:51.536 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+15:45:51.537 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+15:45:51.537 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+15:45:51.537 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+15:45:51.537 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+15:45:51.538 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+15:45:51.538 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+15:45:51.538 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+15:45:51.539 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+15:45:51.539 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+15:45:51.539 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+15:45:51.540 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+15:45:51.540 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+15:45:51.540 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+15:45:51.541 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+15:45:51.541 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+15:45:51.541 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+15:45:51.542 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+15:45:51.542 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+15:45:51.543 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+15:45:51.543 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:45:51.558 debug: Target(editor) ends with cost 158.072899999097ms.
+15:45:51.558 debug: Target(preview) build started.
+15:45:51.560 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 09:24:02 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 11:01:54 GMT+0700 (Indochina Time)
+15:45:51.560 debug: Inspect cce:/internal/x/prerequisite-imports
+15:45:51.581 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 20.00 ms
+15:45:51.582 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+15:45:51.583 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+15:45:51.583 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+15:45:51.584 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+15:45:51.584 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+15:45:51.585 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+15:45:51.585 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+15:45:51.586 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+15:45:51.586 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+15:45:51.586 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+15:45:51.587 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:45:51.587 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+15:45:51.587 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+15:45:51.588 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Fri Jun 19 2026 14:05:42 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 15:44:43 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+15:45:51.588 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+15:45:51.702 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 114.50 ms
+15:45:51.703 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+15:45:51.704 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+15:45:51.704 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+15:45:51.705 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+15:45:51.705 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+15:45:51.705 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+15:45:51.706 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+15:45:51.706 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+15:45:51.706 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+15:45:51.707 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+15:45:51.707 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+15:45:51.707 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+15:45:51.708 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+15:45:51.708 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+15:45:51.708 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+15:45:51.709 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+15:45:51.709 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+15:45:51.710 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+15:45:51.710 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+15:45:51.710 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+15:45:51.711 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:45:51.727 debug: Target(preview) ends with cost 168.5090999994427ms.
+15:50:34.928 debug: Dispatch build request for time accumulated 1 asset changes.
+15:50:34.930 debug: Build iteration starts.
+Number of accumulated asset changes: 1
+Feature changed: false
+15:50:34.930 debug: Target(editor) build started.
+15:50:34.931 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 11:01:54 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 11:06:37 GMT+0700 (Indochina Time)
+15:50:34.931 debug: Inspect cce:/internal/x/prerequisite-imports
+15:50:34.945 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 13.20 ms
+15:50:34.946 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+15:50:34.947 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+15:50:34.947 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+15:50:34.948 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+15:50:34.948 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+15:50:34.949 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+15:50:34.949 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+15:50:34.950 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+15:50:34.950 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+15:50:34.950 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+15:50:34.951 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:50:34.951 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+15:50:34.951 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+15:50:34.951 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Fri Jun 19 2026 15:44:43 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 15:48:28 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+15:50:34.951 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+15:50:35.018 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 66.20 ms
+15:50:35.020 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+15:50:35.020 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+15:50:35.020 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+15:50:35.021 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+15:50:35.021 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+15:50:35.021 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+15:50:35.021 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+15:50:35.022 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+15:50:35.022 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+15:50:35.023 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+15:50:35.023 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+15:50:35.023 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+15:50:35.024 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+15:50:35.024 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+15:50:35.024 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+15:50:35.025 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+15:50:35.025 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+15:50:35.025 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+15:50:35.026 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+15:50:35.026 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+15:50:35.026 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:50:35.039 debug: Target(editor) ends with cost 108.69060000032187ms.
+15:50:35.039 debug: Target(preview) build started.
+15:50:35.040 debug: Detected change: cce:/internal/x/prerequisite-imports. Last mtime: Thu Jan 01 1970 11:01:54 GMT+0700 (Indochina Time), Current mtime: Thu Jan 01 1970 11:06:37 GMT+0700 (Indochina Time)
+15:50:35.040 debug: Inspect cce:/internal/x/prerequisite-imports
+15:50:35.056 debug: transform url: 'cce:/internal/x/prerequisite-imports' costs: 14.90 ms
+15:50:35.057 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-dof-pass.ts.
+15:50:35.058 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-pass.ts.
+15:50:35.059 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-settings.ts.
+15:50:35.059 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline-types.ts.
+15:50:35.060 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/default_renderpipeline/builtin-pipeline.ts.
+15:50:35.060 debug: Resolve file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts from cce:/internal/x/prerequisite-imports as file:///C:/ProgramData/cocos/editors/Creator/3.8.8/resources/resources/3d/engine/editor/assets/tools/debug-view-runtime-control.ts.
+15:50:35.061 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts.
+15:50:35.061 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts.
+15:50:35.062 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts.
+15:50:35.062 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts.
+15:50:35.062 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:50:35.063 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts.
+15:50:35.063 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts.
+15:50:35.063 debug: Detected change: file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts. Last mtime: Fri Jun 19 2026 15:44:43 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7, Current mtime: Fri Jun 19 2026 15:48:28 GMT+0700 (Indochina Time)@2d08db82-1fa4-4c47-8a8f-1426426be8b7
+15:50:35.063 debug: Inspect file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts
+15:50:35.184 debug: transform url: 'file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts' costs: 120.70 ms
+15:50:35.186 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts.
+15:50:35.187 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts.
+15:50:35.187 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/DebugStats.ts.
+15:50:35.187 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts.
+15:50:35.188 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/HealthBar3D.ts.
+15:50:35.188 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Obstacle.ts.
+15:50:35.188 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleCircle.ts.
+15:50:35.189 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/ObstacleRect.ts.
+15:50:35.189 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts.
+15:50:35.189 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts.
+15:50:35.190 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts.
+15:50:35.190 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts.
+15:50:35.190 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts.
+15:50:35.191 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts.
+15:50:35.191 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts.
+15:50:35.191 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts.
+15:50:35.192 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts.
+15:50:35.192 debug: Resolve file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts from cce:/internal/x/prerequisite-imports as file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts.
+15:50:35.192 debug: Resolve cce:/internal/code-quality/cr.mjs from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/code-quality/cr.mjs.
+15:50:35.192 debug: Resolve cc from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as cce:/internal/x/cc.
+15:50:35.193 debug: Resolve ./BattleTypes from file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts as file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts.
+15:50:35.207 debug: Target(preview) ends with cost 168.38320000097156ms.

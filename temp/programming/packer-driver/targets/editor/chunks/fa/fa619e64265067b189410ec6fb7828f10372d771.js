@@ -39,7 +39,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.assignedCounterCount = 0;
           this.laneId = -1;
           this.pendingLaneId = -1;
-          this.lastEngagedEnemyLaneId = -1;
+          this.lastEngagedUnitLaneId = -1;
           this.combatModeActive = false;
           this.released = false;
           this.runtimeStateFrame = -1;
@@ -313,44 +313,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.pendingLaneId >= 0;
         }
 
-        noteEngagedEnemy(enemy) {
-          if (!enemy) return;
-          const enemyWave = BattleWave.getWaveForUnit(enemy);
-
-          if (enemyWave && enemyWave.laneId >= 0) {
-            this.noteEngagedEnemyLane(enemyWave.laneId);
-            return;
-          }
-
-          if (enemy.laneId >= 0) {
-            this.noteEngagedEnemyLane(enemy.laneId);
-          }
-        }
-
-        noteEngagedEnemyLane(laneId) {
+        noteEngagedUnitLane(laneId) {
           if (this.released) return;
           if (laneId < 0) return;
-          this.lastEngagedEnemyLaneId = laneId;
+          this.lastEngagedUnitLaneId = laneId;
         }
 
-        hasLastEngagedEnemyLane() {
+        hasLastEngagedUnitLane() {
           if (this.released) {
             return false;
           }
 
-          return this.lastEngagedEnemyLaneId >= 0;
+          return this.lastEngagedUnitLaneId >= 0;
         }
 
-        preparePendingLaneFromLastEngagedEnemy() {
+        preparePendingLaneFromLastEngagedUnit() {
           if (this.released) {
             return false;
           }
 
-          if (!this.hasLastEngagedEnemyLane()) {
+          if (!this.hasLastEngagedUnitLane()) {
             return false;
           }
 
-          this.pendingLaneId = this.lastEngagedEnemyLaneId;
+          this.pendingLaneId = this.lastEngagedUnitLaneId;
           return true;
         }
 
@@ -360,7 +346,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.pendingLaneId = laneId;
         }
 
-        tryApplyPendingLaneTransfer(formationWidth, unitSpacing, skipEngagedCheck = false) {
+        tryApplyPendingLaneTransfer(formationWidth, unitSpacing, _skipEngagedCheck = false) {
           if (this.released) {
             return false;
           }
@@ -369,15 +355,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return false;
           }
 
-          if (!skipEngagedCheck && this.hasEngaged()) {
+          if (this.hasEngaged()) {
             return false;
           }
 
           this.setLaneId(this.pendingLaneId, formationWidth, unitSpacing);
           this.pendingLaneId = -1;
-          this.lastEngagedEnemyLaneId = -1;
-          this.resumeForward();
-          return true;
+          this.lastEngagedUnitLaneId = -1;
+          return this.resumeForward();
         }
 
         setLaneId(laneId, formationWidth = 1, unitSpacing = 1.5) {
@@ -393,16 +378,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         resumeForward() {
-          if (this.released) return;
+          if (this.released) return false;
+          if (this.hasEngaged()) return false;
           this.combatModeActive = false;
-          this.lastEngagedEnemyLaneId = -1;
+          this.lastEngagedUnitLaneId = -1;
+          this.noTargetSinceFrame = -1;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            if (u.onBusy) continue;
             u.setWaveForwardLane(this.laneId, u.forwardLaneOffsetX);
           }
+
+          return true;
         }
 
         releaseForwardToFreeHunt(searchRange = 0) {
@@ -422,7 +410,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         clearLaneControl() {
           if (this.released) return;
           this.pendingLaneId = -1;
-          this.lastEngagedEnemyLaneId = -1;
+          this.lastEngagedUnitLaneId = -1;
           this.combatModeActive = false;
           this.forwardScannerUnit = null;
           this.forwardScannerFrame = -1;
@@ -431,12 +419,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         enterCombatMode() {
           if (this.released) return;
-
-          if (this.combatModeActive) {
-            return;
-          }
-
           this.combatModeActive = true;
+          this.noTargetSinceFrame = -1;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -495,7 +479,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         releaseReferences() {
           this.released = true;
           this.pendingLaneId = -1;
-          this.lastEngagedEnemyLaneId = -1;
+          this.lastEngagedUnitLaneId = -1;
           this.combatModeActive = false;
           this.assignedCounterCount = 0;
           this.runtimeStateFrame = -1;

@@ -456,7 +456,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(victim);
           if (!killerWave || !victimWave) return;
           if (killerWave === victimWave) return;
-          killerWave.noteEngagedEnemy(victim);
+          this.noteWaveEngagedUnitLane(killerWave, killer);
+          this.noteWaveEngagedUnitLane(victimWave, victim);
         }
 
         onWaveCombatStarted(unit, enemy = null) {
@@ -465,7 +466,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return;
           if (wave.isDead()) return;
-          wave.noteEngagedEnemy(enemy);
+          this.noteWaveEngagedUnitLane(wave, unit);
           wave.enterCombatMode();
           this.forwardReleasedWaves.delete(wave);
           const enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
@@ -476,7 +477,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          enemyWave.noteEngagedEnemy(unit);
+          this.noteWaveEngagedUnitLane(enemyWave, enemy);
           enemyWave.enterCombatMode();
           this.forwardReleasedWaves.delete(enemyWave);
         }
@@ -525,6 +526,71 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return wave.findSharedTargetForUnit(unit);
         }
 
+        noteWaveEngagedUnitLane(wave, unit) {
+          if (!wave) return false;
+          if (!unit || !unit.agent) return false;
+          const laneId = this.getNearestLaneIdForX(unit.agent.pos.x);
+          wave.noteEngagedUnitLane(laneId);
+          return true;
+        }
+
+        noteCurrentEngagedUnitLane(wave) {
+          if (!wave) return false;
+          let noted = false;
+
+          for (let i = 0; i < wave.units.length; i++) {
+            const unit = wave.units[i];
+            if (!this.isAliveUnit(unit)) continue;
+            if (!unit.onBusy) continue;
+            noted = this.noteWaveEngagedUnitLane(wave, unit) || noted;
+          }
+
+          return noted;
+        }
+
+        getMajorityLaneIdForWave(wave) {
+          if (!wave) return -1;
+          const laneCount = this.getSafeLaneCount();
+          const counts = new Array(laneCount).fill(0);
+          let counted = 0;
+
+          for (let i = 0; i < wave.units.length; i++) {
+            const unit = wave.units[i];
+            if (!this.isAliveUnit(unit)) continue;
+            const laneId = this.getNearestLaneIdForX(unit.agent.pos.x);
+            counts[laneId]++;
+            counted++;
+          }
+
+          if (counted <= 0) return -1;
+          const currentLane = wave.laneId >= 0 ? this.clampLaneId(wave.laneId) : -1;
+          let bestLane = currentLane >= 0 ? currentLane : 0;
+          let bestCount = counts[bestLane];
+
+          for (let i = 0; i < laneCount; i++) {
+            if (counts[i] > bestCount) {
+              bestCount = counts[i];
+              bestLane = i;
+            }
+          }
+
+          return bestLane;
+        }
+
+        regroupWaveByMajorityLane(wave) {
+          if (!wave) return false;
+          const laneId = this.getMajorityLaneIdForWave(wave);
+
+          if (laneId < 0) {
+            wave.resumeForward();
+            return false;
+          }
+
+          wave.setLaneId(laneId, this.squareFormationWidth, this.spaceBetweenUnit);
+          wave.resumeForward();
+          return true;
+        }
+
         areSameOrAdjacentLanes(laneA, laneB) {
           if (laneA < 0) return false;
           if (laneB < 0) return false;
@@ -557,7 +623,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            if (!wave.hasEngagedRuntime(this.frame) && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
+            if (wave.hasEngagedRuntime(this.frame)) {
+              this.noteCurrentEngagedUnitLane(wave);
+              continue;
+            }
+
+            if (wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
               this.pendingLaneWaves.delete(wave);
               this.forwardReleasedWaves.delete(wave);
               shouldRebuildSpatialGrid = true;
@@ -610,13 +681,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (wave.hasPendingLaneTransfer()) return;
-          if (wave.hasEngagedRuntime(this.frame)) return;
 
-          if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
+          if (wave.hasEngagedRuntime(this.frame)) {
+            this.noteCurrentEngagedUnitLane(wave);
             return;
           }
 
-          wave.resumeForward();
+          if (!wave.shouldRecoverNoTarget(this.frame, this.freeHuntNoTargetRecoveryFrames)) {
+            return;
+          }
+
+          if (wave.preparePendingLaneFromLastEngagedUnit() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
+            return;
+          }
+
+          this.regroupWaveByMajorityLane(wave);
         }
 
         processForwardReleaseRecoveries() {
@@ -649,22 +728,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             if (wave.hasEngagedRuntime(this.frame)) {
+              this.noteCurrentEngagedUnitLane(wave);
               this.forwardReleasedWaves.set(wave, this.frame);
               continue;
             }
 
-            if (wave.preparePendingLaneFromLastEngagedEnemy() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
+            if (!wave.shouldRecoverNoTarget(this.frame, this.freeHuntNoTargetRecoveryFrames)) {
+              this.forwardReleasedWaves.set(wave, this.frame);
+              continue;
+            }
+
+            if (wave.preparePendingLaneFromLastEngagedUnit() && wave.tryApplyPendingLaneTransfer(this.squareFormationWidth, this.spaceBetweenUnit, true)) {
               this.forwardReleasedWaves.delete(wave);
               continue;
             }
 
-            if (wave.shouldRecoverNoTarget(this.frame, this.freeHuntNoTargetRecoveryFrames)) {
-              wave.resumeForward();
-              this.forwardReleasedWaves.delete(wave);
-              continue;
-            }
-
-            this.forwardReleasedWaves.set(wave, this.frame);
+            this.regroupWaveByMajorityLane(wave);
+            this.forwardReleasedWaves.delete(wave);
           }
         }
 
