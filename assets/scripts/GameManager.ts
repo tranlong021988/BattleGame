@@ -202,7 +202,6 @@ export class GameManager extends Component {
 
     private teamAPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
-    private pendingLaneWaves: Set<BattleWave> = new Set();
     private forwardReleasedWaves: Map<BattleWave, number> = new Map();
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
@@ -216,7 +215,6 @@ export class GameManager extends Component {
 
         this.waves.length = 0;
         this.nextWaveId = 1;
-        this.pendingLaneWaves.clear();
         this.forwardReleasedWaves.clear();
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
@@ -323,7 +321,6 @@ export class GameManager extends Component {
         }
 
         this.waves.length = 0;
-        this.pendingLaneWaves.clear();
         this.forwardReleasedWaves.clear();
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
@@ -401,7 +398,6 @@ export class GameManager extends Component {
             this.updateAutoSpawn(deltaTime);
         }
 
-        this.processPendingWaveLaneTransfers();
         this.processWaveCombatRecoveries();
         this.processForwardReleaseRecoveries();
         this.pruneDeadWaves();
@@ -472,32 +468,6 @@ export class GameManager extends Component {
         this.refreshBattleStatsUI();
     }
 
-    public onUnitKilled(
-        killer: Unit | null,
-        victim: Unit | null
-    ) {
-        if (!killer || !victim) return;
-
-        const killerWave =
-            BattleWave.getWaveForUnit(killer);
-
-        const victimWave =
-            BattleWave.getWaveForUnit(victim);
-
-        if (!killerWave || !victimWave) return;
-        if (killerWave === victimWave) return;
-
-        this.noteWaveEngagedUnitLane(
-            killerWave,
-            killer
-        );
-
-        this.noteWaveEngagedUnitLane(
-            victimWave,
-            victim
-        );
-    }
-
     public onWaveCombatStarted(
         unit: Unit | null,
         enemy: Unit | null = null
@@ -508,10 +478,6 @@ export class GameManager extends Component {
         if (!wave) return;
         if (wave.isDead()) return;
 
-        this.noteWaveEngagedUnitLane(
-            wave,
-            unit
-        );
         wave.enterCombatMode();
         this.forwardReleasedWaves.delete(wave);
 
@@ -526,10 +492,6 @@ export class GameManager extends Component {
             return;
         }
 
-        this.noteWaveEngagedUnitLane(
-            enemyWave,
-            enemy
-        );
         enemyWave.enterCombatMode();
         this.forwardReleasedWaves.delete(enemyWave);
     }
@@ -602,45 +564,6 @@ export class GameManager extends Component {
         return wave.findSharedTargetForUnit(
             unit
         );
-    }
-
-    private noteWaveEngagedUnitLane(
-        wave: BattleWave | null,
-        unit: Unit | null
-    ) {
-        if (!wave) return false;
-        if (!unit || !unit.agent) return false;
-
-        const laneId =
-            this.getNearestLaneIdForX(
-                unit.agent.pos.x
-            );
-
-        wave.noteEngagedUnitLane(laneId);
-        return true;
-    }
-
-    private noteCurrentEngagedUnitLane(
-        wave: BattleWave | null
-    ) {
-        if (!wave) return false;
-
-        let noted = false;
-
-        for (let i = 0; i < wave.units.length; i++) {
-            const unit = wave.units[i];
-
-            if (!this.isAliveUnit(unit)) continue;
-            if (!unit.onBusy) continue;
-
-            noted =
-                this.noteWaveEngagedUnitLane(
-                    wave,
-                    unit
-                ) || noted;
-        }
-
-        return noted;
     }
 
     private getMajorityLaneIdForWave(
@@ -725,55 +648,6 @@ export class GameManager extends Component {
         return Math.abs(laneA - laneB) <= 1;
     }
 
-    private processPendingWaveLaneTransfers() {
-        if (this.pendingLaneWaves.size <= 0) {
-            return;
-        }
-
-        let shouldRebuildSpatialGrid = false;
-        const waves = Array.from(this.pendingLaneWaves);
-
-        for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-
-            if (!wave || wave.isDeadRuntime(this.frame)) {
-                this.pendingLaneWaves.delete(wave);
-                continue;
-            }
-
-            if (this.shouldForceTeamFreeHunt(wave.team)) {
-                this.forceWaveToHeroPressureFreeHunt(wave);
-                continue;
-            }
-
-            if (!wave.hasPendingLaneTransfer()) {
-                this.pendingLaneWaves.delete(wave);
-                continue;
-            }
-
-            if (wave.hasEngagedRuntime(this.frame)) {
-                this.noteCurrentEngagedUnitLane(wave);
-                continue;
-            }
-
-            if (
-                wave.tryApplyPendingLaneTransfer(
-                    this.squareFormationWidth,
-                    this.spaceBetweenUnit,
-                    true
-                )
-            ) {
-                this.pendingLaneWaves.delete(wave);
-                this.forwardReleasedWaves.delete(wave);
-                shouldRebuildSpatialGrid = true;
-            }
-        }
-
-        if (shouldRebuildSpatialGrid) {
-            this.rebuildSpatialGrid();
-        }
-    }
-
     private processWaveCombatRecoveries() {
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
@@ -835,9 +709,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (wave.hasPendingLaneTransfer()) return;
         if (wave.hasEngagedRuntime(this.frame)) {
-            this.noteCurrentEngagedUnitLane(wave);
             return;
         }
 
@@ -845,17 +717,6 @@ export class GameManager extends Component {
             !wave.shouldRecoverNoTarget(
                 this.frame,
                 this.freeHuntNoTargetRecoveryFrames
-            )
-        ) {
-            return;
-        }
-
-        if (
-            wave.preparePendingLaneFromLastEngagedUnit() &&
-            wave.tryApplyPendingLaneTransfer(
-                this.squareFormationWidth,
-                this.spaceBetweenUnit,
-                true
             )
         ) {
             return;
@@ -889,12 +750,7 @@ export class GameManager extends Component {
                 continue;
             }
 
-            if (wave.hasPendingLaneTransfer()) {
-                continue;
-            }
-
             if (wave.hasEngagedRuntime(this.frame)) {
-                this.noteCurrentEngagedUnitLane(wave);
                 this.forwardReleasedWaves.set(wave, this.frame);
                 continue;
             }
@@ -909,18 +765,6 @@ export class GameManager extends Component {
                 continue;
             }
 
-            if (
-                wave.preparePendingLaneFromLastEngagedUnit() &&
-                wave.tryApplyPendingLaneTransfer(
-                    this.squareFormationWidth,
-                    this.spaceBetweenUnit,
-                    true
-                )
-            ) {
-                this.forwardReleasedWaves.delete(wave);
-                continue;
-            }
-
             this.regroupWaveByMajorityLane(wave);
             this.forwardReleasedWaves.delete(wave);
         }
@@ -932,7 +776,6 @@ export class GameManager extends Component {
 
             if (!wave || !wave.isDeadRuntime(this.frame)) continue;
 
-            this.pendingLaneWaves.delete(wave);
             this.forwardReleasedWaves.delete(wave);
             wave.releaseReferences();
             this.waves.splice(i, 1);
@@ -1038,7 +881,6 @@ export class GameManager extends Component {
     private forceWaveToHeroPressureFreeHunt(
         wave: BattleWave
     ) {
-        this.pendingLaneWaves.delete(wave);
         this.forwardReleasedWaves.delete(wave);
 
         wave.clearLaneControl();

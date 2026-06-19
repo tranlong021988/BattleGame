@@ -17,8 +17,6 @@ export class BattleWave {
 
     assignedCounterCount = 0;
     laneId = -1;
-    pendingLaneId = -1;
-    lastEngagedUnitLaneId = -1;
     combatModeActive = false;
     released = false;
 
@@ -222,7 +220,7 @@ export class BattleWave {
             const u = this.units[i];
 
             if (!this.isUnitAlive(u)) continue;
-            if (!this.isTargetValid(u.enemy)) continue;
+            if (!u.hasValidEnemyTarget()) continue;
 
             return true;
         }
@@ -245,9 +243,11 @@ export class BattleWave {
 
             if (ally === requester) continue;
             if (!this.isUnitAlive(ally)) continue;
-            if (!this.isTargetValid(ally.enemy)) continue;
 
-            const target = ally.enemy!;
+            const target = ally.getValidEnemyTarget();
+
+            if (!target) continue;
+
             const dx =
                 target.agent!.pos.x -
                 requester!.agent.pos.x;
@@ -301,9 +301,11 @@ export class BattleWave {
             const u = this.units[i];
 
             if (!this.isUnitAlive(u)) continue;
-            if (!u.enemy) continue;
+            const target = u.getValidEnemyTarget();
 
-            if (BattleWave.getWaveForUnit(u.enemy) === targetWave) {
+            if (!target) continue;
+
+            if (BattleWave.getWaveForUnit(target) === targetWave) {
                 return true;
             }
         }
@@ -319,10 +321,12 @@ export class BattleWave {
 
             if (!this.isUnitAlive(u)) continue;
             if (!u.onBusy) continue;
-            if (!u.enemy) continue;
+            const target = u.getValidEnemyTarget();
+
+            if (!target) continue;
 
             const enemyWave =
-                BattleWave.getWaveForUnit(u.enemy);
+                BattleWave.getWaveForUnit(target);
 
             if (enemyWave && enemyWave !== targetWave) {
                 return true;
@@ -330,80 +334,6 @@ export class BattleWave {
         }
 
         return false;
-    }
-
-    hasPendingLaneTransfer() {
-        if (this.released) {
-            return false;
-        }
-
-        return this.pendingLaneId >= 0;
-    }
-
-    noteEngagedUnitLane(laneId: number) {
-        if (this.released) return;
-        if (laneId < 0) return;
-
-        this.lastEngagedUnitLaneId = laneId;
-    }
-
-    hasLastEngagedUnitLane() {
-        if (this.released) {
-            return false;
-        }
-
-        return this.lastEngagedUnitLaneId >= 0;
-    }
-
-    preparePendingLaneFromLastEngagedUnit() {
-        if (this.released) {
-            return false;
-        }
-
-        if (!this.hasLastEngagedUnitLane()) {
-            return false;
-        }
-
-        this.pendingLaneId =
-            this.lastEngagedUnitLaneId;
-
-        return true;
-    }
-
-    setPendingLaneId(laneId: number) {
-        if (this.released) return;
-        if (laneId < 0) return;
-
-        this.pendingLaneId = laneId;
-    }
-
-    tryApplyPendingLaneTransfer(
-        formationWidth: number,
-        unitSpacing: number,
-        _skipEngagedCheck: boolean = false
-    ) {
-        if (this.released) {
-            return false;
-        }
-
-        if (!this.hasPendingLaneTransfer()) {
-            return false;
-        }
-
-        if (this.hasEngaged()) {
-            return false;
-        }
-
-        this.setLaneId(
-            this.pendingLaneId,
-            formationWidth,
-            unitSpacing
-        );
-
-        this.pendingLaneId = -1;
-        this.lastEngagedUnitLaneId = -1;
-
-        return this.resumeForward();
     }
 
     setLaneId(
@@ -433,7 +363,6 @@ export class BattleWave {
         if (this.hasEngaged()) return false;
 
         this.combatModeActive = false;
-        this.lastEngagedUnitLaneId = -1;
         this.noTargetSinceFrame = -1;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -474,8 +403,6 @@ export class BattleWave {
     clearLaneControl() {
         if (this.released) return;
 
-        this.pendingLaneId = -1;
-        this.lastEngagedUnitLaneId = -1;
         this.combatModeActive = false;
         this.forwardScannerUnit = null;
         this.forwardScannerFrame = -1;
@@ -577,8 +504,6 @@ export class BattleWave {
 
     releaseReferences() {
         this.released = true;
-        this.pendingLaneId = -1;
-        this.lastEngagedUnitLaneId = -1;
         this.combatModeActive = false;
         this.assignedCounterCount = 0;
         this.runtimeStateFrame = -1;
@@ -711,16 +636,6 @@ export class BattleWave {
         if (!unit.agent) return false;
         if (!unit.onForward) return false;
         if (unit.returningToWaveLaneSlot) return false;
-
-        return true;
-    }
-
-    private isTargetValid(unit: Unit | null) {
-        if (!unit) return false;
-        if (!unit.node.activeInHierarchy) return false;
-        if (!unit.agent) return false;
-        if (!unit.props) return false;
-        if (unit.props.isDead()) return false;
 
         return true;
     }

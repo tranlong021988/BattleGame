@@ -43,10 +43,12 @@ export class UnitBehavior extends Component {
         if (this.props.isDead()) return;
 
         if (!this.unit.onBusy) return;
-        if (!this.unit.enemy) return;
-        if (!this.unit.enemy.node.activeInHierarchy) return;
-        if (!this.unit.enemy.props) return;
-        if (this.unit.enemy.props.isDead()) return;
+        const enemy = this.unit.getValidEnemyTarget();
+
+        if (!enemy) {
+            this.unit.clearEnemy();
+            return;
+        }
 
         this.attackTimer += deltaTime;
 
@@ -57,14 +59,10 @@ export class UnitBehavior extends Component {
         this.attackTimer = 0;
         this.randomizeNextAttackInterval();
 
-        this.dealDamageToEnemy();
+        this.dealDamageToEnemy(enemy);
     }
 
-    private dealDamageToEnemy() {
-        const enemy = this.unit.enemy;
-
-        if (!enemy || !enemy.props) return;
-
+    private dealDamageToEnemy(enemy: Unit) {
         const counter = CounterSettings.instance;
 
         let finalDamage = this.props.damage;
@@ -90,11 +88,6 @@ export class UnitBehavior extends Component {
 
             if (gm) {
                 gm.reportKill(
-                    this.unit,
-                    enemy
-                );
-
-                gm.onUnitKilled(
                     this.unit,
                     enemy
                 );

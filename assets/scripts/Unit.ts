@@ -58,6 +58,7 @@ export class Unit extends Component {
     sim: any = null;
     agent: any = null;
 
+    lifeId = 0;
     enemy: Unit | null = null;
     onBusy = false;
     updateOffset = 0;
@@ -73,6 +74,11 @@ export class Unit extends Component {
     private cachedNearestEnemy: Unit | null = null;
     private forwardLaneTarget: Unit | null = null;
     private forwardAdjacentTarget: Unit | null = null;
+    private enemyLifeId = -1;
+    private cachedNearestInRangeLifeId = -1;
+    private cachedNearestEnemyLifeId = -1;
+    private forwardLaneTargetLifeId = -1;
+    private forwardAdjacentTargetLifeId = -1;
     private nearestInRangeQueryToken = 0;
     private nearestEnemyQueryToken = 0;
 
@@ -87,6 +93,7 @@ export class Unit extends Component {
         forwardX: number,
         forwardZ: number
     ) {
+        this.advanceLifeId();
         this.team = team;
         this.unitTypeName = unitTypeName;
         this.sim = sim;
@@ -103,7 +110,7 @@ export class Unit extends Component {
         this.agent.maxSpeed = this.moveSpeed;
         this.agent.radius = this.radius;
 
-        this.enemy = null;
+        this.setEnemyTarget(null);
         this.onBusy = false;
 
         this.onForward = !this.isSteady;
@@ -113,10 +120,7 @@ export class Unit extends Component {
         this.frameCounter = this.updateOffset;
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestInRange = null;
-        this.cachedNearestEnemy = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (this.laneId < 0) {
             this.laneId = -1;
@@ -135,13 +139,10 @@ export class Unit extends Component {
         if (!this.agent) return;
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestInRange = null;
-        this.cachedNearestEnemy = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (value) {
-            this.enemy = null;
+            this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
 
@@ -161,7 +162,7 @@ export class Unit extends Component {
             return;
         }
 
-        this.enemy = null;
+        this.setEnemyTarget(null);
         this.onBusy = false;
         this.onForward = useForwardPhase;
 
@@ -217,6 +218,56 @@ export class Unit extends Component {
         this.nearestEnemyQueryToken++;
     }
 
+    private advanceLifeId() {
+        this.lifeId++;
+
+        if (this.lifeId > Number.MAX_SAFE_INTEGER - 1) {
+            this.lifeId = 1;
+        }
+    }
+
+    private setEnemyTarget(target: Unit | null) {
+        this.enemy = target;
+        this.enemyLifeId = target ? target.lifeId : -1;
+    }
+
+    private setCachedNearestInRangeTarget(target: Unit | null) {
+        this.cachedNearestInRange = target;
+        this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
+    }
+
+    private setCachedNearestEnemyTarget(target: Unit | null) {
+        this.cachedNearestEnemy = target;
+        this.cachedNearestEnemyLifeId = target ? target.lifeId : -1;
+    }
+
+    private setForwardLaneTarget(target: Unit | null) {
+        this.forwardLaneTarget = target;
+        this.forwardLaneTargetLifeId = target ? target.lifeId : -1;
+    }
+
+    private setForwardAdjacentTarget(target: Unit | null) {
+        this.forwardAdjacentTarget = target;
+        this.forwardAdjacentTargetLifeId = target ? target.lifeId : -1;
+    }
+
+    private clearCachedTargets() {
+        this.setCachedNearestInRangeTarget(null);
+        this.setCachedNearestEnemyTarget(null);
+        this.setForwardLaneTarget(null);
+        this.setForwardAdjacentTarget(null);
+    }
+
+    public getValidEnemyTarget(): Unit | null {
+        return this.isValidEnemy(this.enemy, this.enemyLifeId)
+            ? this.enemy
+            : null;
+    }
+
+    public hasValidEnemyTarget() {
+        return !!this.getValidEnemyTarget();
+    }
+
     private setForwardDir(x: number, z: number) {
         const len = Math.sqrt(x * x + z * z);
 
@@ -233,15 +284,13 @@ export class Unit extends Component {
     }
 
     resetForDespawn() {
-        this.enemy = null;
+        this.advanceLifeId();
+        this.setEnemyTarget(null);
         this.onBusy = false;
         this.onForward = true;
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestInRange = null;
-        this.cachedNearestEnemy = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
         this.laneId = -1;
         this.forwardLaneOffsetX = 0;
         this.returningToWaveLaneSlot = false;
@@ -263,18 +312,15 @@ export class Unit extends Component {
         if (this.onBusy) return;
         if (this.onForward) return;
 
-        this.enemy = e;
+        this.setEnemyTarget(e);
     }
 
     clearEnemy() {
-        this.enemy = null;
+        this.setEnemyTarget(null);
         this.onBusy = false;
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestInRange = null;
-        this.cachedNearestEnemy = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (this.agent) {
             this.agent.vel.x = 0;
@@ -300,13 +346,10 @@ export class Unit extends Component {
         );
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestInRange = null;
-        this.cachedNearestEnemy = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (!this.onBusy) {
-            this.enemy = null;
+            this.setEnemyTarget(null);
         }
 
         if (this.agent) {
@@ -332,16 +375,13 @@ export class Unit extends Component {
         this.laneId = laneId;
         this.forwardLaneOffsetX = laneOffsetX;
         this.returningToWaveLaneSlot = returnToSlot;
-        this.enemy = null;
+        this.setEnemyTarget(null);
         this.onBusy = false;
         this.onForward = !returnToSlot;
         this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestInRange = null;
-        this.cachedNearestEnemy = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (this.agent) {
             this.agent.locked = false;
@@ -359,10 +399,7 @@ export class Unit extends Component {
         this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestEnemy = null;
-        this.cachedNearestInRange = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (this.agent) {
             this.agent.onForward = 0;
@@ -388,10 +425,7 @@ export class Unit extends Component {
         }
 
         this.invalidateNearestQueryResults();
-        this.cachedNearestEnemy = null;
-        this.cachedNearestInRange = null;
-        this.forwardLaneTarget = null;
-        this.forwardAdjacentTarget = null;
+        this.clearCachedTargets();
 
         if (this.agent) {
             this.agent.onForward = 0;
@@ -409,7 +443,7 @@ export class Unit extends Component {
         this.applyRuntimeAgentData();
 
         if (this.props && this.props.isDead()) {
-            this.enemy = null;
+            this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
             this.returningToWaveLaneSlot = false;
@@ -432,16 +466,12 @@ export class Unit extends Component {
         }
 
         if (this.onBusy) {
-            if (
-                !this.enemy ||
-                !this.enemy.node.activeInHierarchy ||
-                !this.enemy.agent ||
-                !this.enemy.props ||
-                this.enemy.props.isDead()
-            ) {
+            const busyEnemy = this.getValidEnemyTarget();
+
+            if (!busyEnemy) {
                 this.clearEnemy();
             } else {
-                this.lookAtTargetSmooth(this.enemy, deltaTime);
+                this.lookAtTargetSmooth(busyEnemy, deltaTime);
 
                 this.sim.setPrefVelocity(this.agent, 0, 0);
                 this.agent.vel.x = 0;
@@ -470,14 +500,14 @@ export class Unit extends Component {
             this.onForward = false;
             this.agent.onForward = 0;
 
-            this.enemy = nearestInRange;
+            this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
             this.agent.locked = true;
 
-            this.cachedNearestEnemy = null;
-            this.cachedNearestInRange = null;
+            this.setCachedNearestEnemyTarget(null);
+            this.setCachedNearestInRangeTarget(null);
 
-            this.lookAtTargetSmooth(this.enemy, deltaTime);
+            this.lookAtTargetSmooth(nearestInRange, deltaTime);
 
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
@@ -539,17 +569,23 @@ export class Unit extends Component {
 
         this.agent.onForward = 0;
 
-        if (!this.isValidEnemy(this.enemy)) {
-            this.enemy = this.getNearestEnemyThrottled();
+        if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(
+                this.getNearestEnemyThrottled()
+            );
 
-            if (!this.isValidEnemy(this.enemy)) {
-                this.enemy = this.getSharedWaveTarget();
+            if (!this.hasValidEnemyTarget()) {
+                this.setEnemyTarget(
+                    this.getSharedWaveTarget()
+                );
             }
         }
 
-        if (this.enemy && this.enemy.agent) {
-            const dx = this.enemy.agent.pos.x - this.agent.pos.x;
-            const dz = this.enemy.agent.pos.z - this.agent.pos.z;
+        const enemy = this.getValidEnemyTarget();
+
+        if (enemy && enemy.agent) {
+            const dx = enemy.agent.pos.x - this.agent.pos.x;
+            const dz = enemy.agent.pos.z - this.agent.pos.z;
 
             const dist = Math.sqrt(dx * dx + dz * dz);
 
@@ -561,7 +597,7 @@ export class Unit extends Component {
                 );
             }
 
-            this.lookAtTargetSmooth(this.enemy, deltaTime);
+            this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
         } else {
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -627,27 +663,35 @@ export class Unit extends Component {
                             return;
                         }
 
-                        this.cachedNearestInRange =
+                        this.setCachedNearestInRangeTarget(
                             this.isValidEnemyWithinRange(
                                 target,
                                 this.attackRange
                             )
                                 ? target
-                                : null;
+                                : null
+                        );
                     }
                 );
 
             if (!queued) {
-                this.cachedNearestInRange =
-                    this.findNearestEnemyInAttackRange();
+                this.setCachedNearestInRangeTarget(
+                    this.findNearestEnemyInAttackRange()
+                );
             }
-        } else if (!this.isValidEnemy(this.cachedNearestInRange)) {
-            this.cachedNearestInRange = null;
+        } else if (
+            !this.isValidEnemy(
+                this.cachedNearestInRange,
+                this.cachedNearestInRangeLifeId
+            )
+        ) {
+            this.setCachedNearestInRangeTarget(null);
         }
 
         return this.isValidEnemyWithinRange(
             this.cachedNearestInRange,
-            this.attackRange
+            this.attackRange,
+            this.cachedNearestInRangeLifeId
         )
             ? this.cachedNearestInRange
             : null;
@@ -669,26 +713,35 @@ export class Unit extends Component {
                             return;
                         }
 
-                        this.cachedNearestEnemy =
+                        this.setCachedNearestEnemyTarget(
                             this.isValidEnemyWithinRange(
                                 target,
                                 this.targetSearchRange
                             )
                                 ? target
-                                : null;
+                                : null
+                        );
                     }
                 );
 
             if (!queued) {
-                this.cachedNearestEnemy = this.findNearestEnemy();
+                this.setCachedNearestEnemyTarget(
+                    this.findNearestEnemy()
+                );
             }
-        } else if (!this.isValidEnemy(this.cachedNearestEnemy)) {
-            this.cachedNearestEnemy = null;
+        } else if (
+            !this.isValidEnemy(
+                this.cachedNearestEnemy,
+                this.cachedNearestEnemyLifeId
+            )
+        ) {
+            this.setCachedNearestEnemyTarget(null);
         }
 
         return this.isValidEnemyWithinRange(
             this.cachedNearestEnemy,
-            this.targetSearchRange
+            this.targetSearchRange,
+            this.cachedNearestEnemyLifeId
         )
             ? this.cachedNearestEnemy
             : null;
@@ -713,14 +766,13 @@ export class Unit extends Component {
         if (shouldScan) {
             nearestLaneEnemy =
                 this.findNearestEnemyInSameLane();
-            this.forwardLaneTarget =
-                nearestLaneEnemy;
+            this.setForwardLaneTarget(nearestLaneEnemy);
         }
 
         if (nearestLaneEnemy && nearestLaneEnemy.agent) {
             if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
-                this.forwardLaneTarget = null;
-                this.forwardAdjacentTarget = null;
+                this.setForwardLaneTarget(null);
+                this.setForwardAdjacentTarget(null);
 
                 if (
                     !this.releaseWaveForwardToFreeHunt(
@@ -740,16 +792,15 @@ export class Unit extends Component {
         if (shouldScan) {
             nearestAdjacentLaneEnemy =
                 this.findNearestEnemyInAdjacentLane(true);
-            this.forwardAdjacentTarget =
-                nearestAdjacentLaneEnemy;
+            this.setForwardAdjacentTarget(nearestAdjacentLaneEnemy);
         }
 
         if (nearestAdjacentLaneEnemy) {
             if (
                 this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
             ) {
-                this.forwardLaneTarget = null;
-                this.forwardAdjacentTarget = null;
+                this.setForwardLaneTarget(null);
+                this.setForwardAdjacentTarget(null);
 
                 if (
                     !this.releaseWaveForwardToFreeHunt(
@@ -771,8 +822,8 @@ export class Unit extends Component {
             this.isSameOrAdjacentLane(enemyHero.laneId) &&
             this.hasPassedTargetAlongForward(enemyHero)
         ) {
-            this.forwardLaneTarget = null;
-            this.forwardAdjacentTarget = null;
+            this.setForwardLaneTarget(null);
+            this.setForwardAdjacentTarget(null);
 
             if (
                 !this.releaseWaveForwardToFreeHunt(
@@ -916,10 +967,13 @@ export class Unit extends Component {
         if (!target) return null;
 
         if (
-            !this.isValidEnemy(target) ||
+            !this.isValidEnemy(
+                target,
+                this.forwardLaneTargetLifeId
+            ) ||
             target.laneId !== this.laneId
         ) {
-            this.forwardLaneTarget = null;
+            this.setForwardLaneTarget(null);
             return null;
         }
 
@@ -932,10 +986,13 @@ export class Unit extends Component {
         if (!target) return null;
 
         if (
-            !this.isValidEnemy(target) ||
+            !this.isValidEnemy(
+                target,
+                this.forwardAdjacentTargetLifeId
+            ) ||
             !this.isAdjacentLane(target.laneId)
         ) {
-            this.forwardAdjacentTarget = null;
+            this.setForwardAdjacentTarget(null);
             return null;
         }
 
@@ -1046,14 +1103,8 @@ export class Unit extends Component {
     }
 
     private clearInvalidEnemy() {
-        if (
-            !this.enemy ||
-            !this.enemy.node.activeInHierarchy ||
-            !this.enemy.agent ||
-            !this.enemy.props ||
-            this.enemy.props.isDead()
-        ) {
-            this.enemy = null;
+        if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(null);
         }
     }
 
@@ -1158,6 +1209,10 @@ export class Unit extends Component {
     private findNearestEnemyFallback(): Unit | null {
         if (!this.agent) return null;
 
+        const searchRangeSq =
+            this.targetSearchRange *
+            this.targetSearchRange;
+
         const enemies = this.getEnemyList();
 
         let best: Unit | null = null;
@@ -1172,6 +1227,8 @@ export class Unit extends Component {
             const dz = e.agent!.pos.z - this.agent.pos.z;
             const d = dx * dx + dz * dz;
 
+            if (d > searchRangeSq) continue;
+
             if (d < bestDistSq) {
                 bestDistSq = d;
                 best = e;
@@ -1181,8 +1238,12 @@ export class Unit extends Component {
         return best;
     }
 
-    private isValidEnemy(e: Unit | null): boolean {
+    private isValidEnemy(
+        e: Unit | null,
+        lifeId: number = -1
+    ): boolean {
         if (!e || e === this) return false;
+        if (lifeId >= 0 && e.lifeId !== lifeId) return false;
         if (!e.node.activeInHierarchy) return false;
         if (!e.agent) return false;
         if (!e.props || e.props.isDead()) return false;
@@ -1192,10 +1253,11 @@ export class Unit extends Component {
 
     private isValidEnemyWithinRange(
         e: Unit | null,
-        range: number
+        range: number,
+        lifeId: number = -1
     ): boolean {
         if (!this.agent) return false;
-        if (!this.isValidEnemy(e)) return false;
+        if (!this.isValidEnemy(e, lifeId)) return false;
 
         const dx = e!.agent!.pos.x - this.agent.pos.x;
         const dz = e!.agent!.pos.z - this.agent.pos.z;

@@ -2816,7 +2816,7 @@
     "defaultSpawnLane": 1,
     "autoSpawnRandomLane": true,
     "squareFormationWidth": 4,
-    "freeHuntNoTargetRecoveryFrames": 8,
+    "freeHuntNoTargetRecoveryFrames": 16,
     "heroFreeHuntSearchRange": 35,
     "circleObstacles": [],
     "rectObstacles": [],

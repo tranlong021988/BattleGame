@@ -102,8 +102,7 @@ export class UnitSpawner extends Component {
         const forwardX = 0;
         const forwardZ = team === 0 ? 1 : -1;
 
-        unit.enemy = null;
-        unit.onBusy = false;
+        unit.clearEnemy();
         unit.init(this.sim, team, unitTypeName, forwardX, forwardZ);
 
         if (behavior) {

@@ -646,3 +646,48 @@ Prefer a middle-ground design instead of pure lane-edge acceptance:
 - This avoids tiny slot corrections while also avoiding units gathering on lane edges.
 
 Implementation should be small and localized, likely in `Unit.shouldReturnToLaneSlot()` / `Unit.updateForwardPrefVelocity()`. Do not remove `forwardLaneOffsetX` unless there is a larger formation redesign.
+
+## Handoff 2026-06-19: majority-only lane recovery
+
+User clarified the intended lane recovery rule:
+
+- After a wave leaves forward and enters freehunt/combat, units may chase naturally.
+- A unit without a target can search, then borrow a valid target from teammates.
+- The wave should keep freehunt/chase until the whole wave has no `onBusy` unit and no valid target.
+- Only then should the wave choose its next `laneId`.
+- The next `laneId` should be based on the current positions of the alive units in the wave, not on enemy lane and not on a single engaged unit.
+- If most alive units are near left, choose left; if most are near mid, choose mid. Current implementation keeps current lane on ties because `getMajorityLaneIdForWave()` only switches when another lane has a strictly larger count.
+
+This supersedes the earlier `lastEngagedUnitLaneId` approach.
+
+Code changes made:
+
+- Removed `BattleWave.pendingLaneId`.
+- Removed `BattleWave.lastEngagedUnitLaneId`.
+- Removed `BattleWave.noteEngagedUnitLane()`.
+- Removed `BattleWave.preparePendingLaneFromLastEngagedUnit()`.
+- Removed `BattleWave.tryApplyPendingLaneTransfer()` and related pending-lane helpers.
+- Removed `GameManager.pendingLaneWaves` and `processPendingWaveLaneTransfers()`.
+- Removed `GameManager.onUnitKilled()` because it only existed to record lane candidates.
+- Removed the `gm.onUnitKilled(...)` call from `UnitBehavior`.
+- `GameManager.onWaveCombatStarted()` now only broadcasts combat state to both involved waves and no longer records a lane candidate.
+- `GameManager.recoverWaveCombat()` now:
+  - returns while the wave has any engaged unit,
+  - returns while `shouldRecoverNoTarget(...)` is false,
+  - then calls `regroupWaveByMajorityLane(wave)`.
+- `GameManager.processForwardReleaseRecoveries()` uses the same rule after forward-release/freehunt:
+  - wait while engaged,
+  - wait while any valid target remains,
+  - then `regroupWaveByMajorityLane(wave)`.
+
+Expected behavior:
+
+- A single outlier/dead/last-engaged unit can no longer drag the whole wave to its lane.
+- The observed dangerous flow `mid -> regroup left -> return mid` caused by `lastEngagedUnitLaneId` should be removed.
+- If a wave chases toward an enemy that dies before contact, it should regroup based on where its units currently are, reducing the old "run out then snap back to original lane" behavior.
+
+Current caveats:
+
+- Same-lane `forward-passed-target-release` still exists. A wave can still enter freehunt after passing a same-lane target; that is a separate issue and was not changed in this patch.
+- Regroup still uses slot-based lane return, not lane-band return. A later UX fix may adjust `Unit.shouldReturnToLaneSlot()` / `Unit.updateForwardPrefVelocity()`.
+- `findNearestEnemyInCurrentLane()` remains unused in `GameManager`; it is legacy/dead code and was not touched in this patch.
