@@ -519,10 +519,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent.onForward = 0;
 
           if (!this.isValidEnemy(this.enemy)) {
-            this.enemy = this.getSharedWaveTarget();
+            this.enemy = this.getNearestEnemyThrottled();
 
             if (!this.isValidEnemy(this.enemy)) {
-              this.enemy = this.getNearestEnemyThrottled();
+              this.enemy = this.getSharedWaveTarget();
             }
           }
 

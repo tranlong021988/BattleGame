@@ -60,7 +60,7 @@ Khi một unit phát hiện enemy trong attack range:
 Freehunt hiện là unit-level hunt toàn map, nhưng được điều tiết bởi wave recovery:
 
 - Unit tự tìm enemy gần nhất qua spatial grid/worker.
-- Nếu unit chưa có target hợp lệ, nó hỏi target của đồng đội trong cùng wave trước; target mượn không bị giới hạn bởi `targetSearchRange`.
+- Nếu unit chưa có target hợp lệ, nó tự search theo `targetSearchRange` trước; nếu không tìm được mới hỏi target của đồng đội trong cùng wave. Target mượn không bị giới hạn bởi `targetSearchRange`.
 - Khi unit engage, lane của enemy cuối cùng được ghi vào `lastEngagedEnemyLaneId`.
 - Khi wave không còn unit nào engaged, `GameManager.recoverWaveCombat()` hoặc `processForwardReleaseRecoveries()` sẽ dùng `preparePendingLaneFromLastEngagedEnemy()`.
 - Nếu có pending lane và wave không còn engaged, `tryApplyPendingLaneTransfer()` đổi lane, rồi forward.
@@ -478,7 +478,7 @@ User chuyển trọng tâm về performance/visual của unit sau các vòng tes
 - Forward scan không còn round-robin. `BattleWave.pickFrontMostForwardScanner()` chọn unit alive/onForward đi xa nhất theo dot(`agent.pos`, `forwardDir`) làm scanner của wave trong frame hiện tại.
 - `forwardScanIntervalFrames` vẫn là nhịp scan enemy thật. `Use Wave Front Scanner = false` sẽ cho mọi unit đang forward scan như kiểu cũ.
 - `Forward Scanner Switch Interval Frames` đã bị bỏ khỏi source.
-- Freehunt target sharing: unit không có target hợp lệ sẽ hỏi target của đồng đội trong wave trước, không áp `targetSearchRange` cho target mượn. Nếu không mượn được mới tự search theo `targetSearchRange`.
+- Freehunt target sharing: unit không có target hợp lệ sẽ tự search theo `targetSearchRange` trước. Nếu không tự tìm được mới hỏi target của đồng đội trong wave; target mượn không áp `targetSearchRange`.
 - Nếu wave đã release forward/freehunt nhưng toàn wave không engaged và không ai có target hợp lệ trong `freeHuntNoTargetRecoveryFrames`, `GameManager.processForwardReleaseRecoveries()` sẽ `resumeForward()` tại lane hiện tại.
 - Hero unlock/freehunt dùng `heroFreeHuntSearchRange` để tránh trường hợp range thường quá ngắn làm unit mất target khi hero phase.
 - Rotation cleanup: các thử nghiệm smooth-damp/move-threshold mới đã bị bỏ. Rotation đang dùng logic cũ (`rotationSpeed`, `lerpAngle`) cộng thêm reset `lastStablePos` khi đổi mode. Riêng khi `returningToWaveLaneSlot`, unit xoay theo hướng trái/phải về lane target thay vì đọc delta visual, để giảm cảm giác step-step trong regroup.

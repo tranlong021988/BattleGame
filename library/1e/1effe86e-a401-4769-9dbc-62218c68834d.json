@@ -2818,13 +2818,6 @@
     "squareFormationWidth": 4,
     "freeHuntNoTargetRecoveryFrames": 8,
     "heroFreeHuntSearchRange": 35,
-    "debugWaveStateTransitions": true,
-    "debugUnitMotionSamples": true,
-    "debugMotionTeam": 0,
-    "debugMotionLane": 1,
-    "debugMotionMinFrameDistance": 0.03,
-    "debugMotionMinSideRatio": 0.35,
-    "debugMotionLogCooldownFrames": 10,
     "circleObstacles": [],
     "rectObstacles": [],
     "_id": "004sPmq3RGdpm7Bhn+wfGg"

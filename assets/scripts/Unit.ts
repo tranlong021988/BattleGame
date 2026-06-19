@@ -540,10 +540,10 @@ export class Unit extends Component {
         this.agent.onForward = 0;
 
         if (!this.isValidEnemy(this.enemy)) {
-            this.enemy = this.getSharedWaveTarget();
+            this.enemy = this.getNearestEnemyThrottled();
 
             if (!this.isValidEnemy(this.enemy)) {
-                this.enemy = this.getNearestEnemyThrottled();
+                this.enemy = this.getSharedWaveTarget();
             }
         }
 
