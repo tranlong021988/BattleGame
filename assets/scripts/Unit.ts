@@ -67,6 +67,8 @@ export class Unit extends Component {
     private initialYaw = 0;
 
     private lastStablePos = { x: 0, z: 0 };
+    private moveIntentFacingActive = true;
+    private lastMoveIntentDir = { x: 0, z: 0 };
     private tempPos = new Vec3();
 
     private frameCounter = 0;
@@ -128,6 +130,7 @@ export class Unit extends Component {
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
+        this.resetMoveIntentFacing();
 
         this.applyRuntimeAgentData();
         this.applySteadyState();
@@ -294,6 +297,7 @@ export class Unit extends Component {
         this.laneId = -1;
         this.forwardLaneOffsetX = 0;
         this.returningToWaveLaneSlot = false;
+        this.resetMoveIntentFacing();
 
         if (this.agent) {
             this.agent.locked = false;
@@ -379,6 +383,7 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = !returnToSlot;
         this.resetStableRotationPosition();
+        this.resetMoveIntentFacing();
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -534,6 +539,7 @@ export class Unit extends Component {
                 this.onForward = true;
                 this.agent.onForward = 0;
                 this.resetStableRotationPosition();
+                this.resetMoveIntentFacing();
 
                 this.sim.setPrefVelocity(this.agent, 0, 0);
                 this.agent.vel.x = 0;
@@ -561,8 +567,9 @@ export class Unit extends Component {
                 this.agent.onForward = 1;
 
                 this.updateForwardPrefVelocity();
+                this.lookMoveIntentSmooth(deltaTime);
 
-                this.sync(deltaTime, true);
+                this.sync(deltaTime, false);
                 return;
             }
         }
@@ -1312,6 +1319,10 @@ export class Unit extends Component {
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
         const currentY = this.getVisualEulerY();
 
+        if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
+            return;
+        }
+
         const newY = this.lerpAngle(
             currentY,
             targetY,
@@ -1354,15 +1365,53 @@ export class Unit extends Component {
         this.lookDirectionSmooth(Math.sign(dx), 0, deltaTime);
     }
 
+    private lookMoveIntentSmooth(deltaTime: number) {
+        if (!this.agent) return;
+        if (this.agent.locked) return;
+
+        const dx = this.agent.prefVel.x;
+        const dz = this.agent.prefVel.z;
+        const lenSq = dx * dx + dz * dz;
+
+        if (lenSq < 0.0001) {
+            this.lastMoveIntentDir.x = 0;
+            this.lastMoveIntentDir.z = 0;
+            this.moveIntentFacingActive = false;
+            return;
+        }
+
+        const invLen = 1 / Math.sqrt(lenSq);
+        const dirX = dx * invLen;
+        const dirZ = dz * invLen;
+
+        if (
+            Math.abs(dirX - this.lastMoveIntentDir.x) > 0.001 ||
+            Math.abs(dirZ - this.lastMoveIntentDir.z) > 0.001
+        ) {
+            this.lastMoveIntentDir.x = dirX;
+            this.lastMoveIntentDir.z = dirZ;
+            this.moveIntentFacingActive = true;
+        }
+
+        if (!this.moveIntentFacingActive) return;
+
+        this.moveIntentFacingActive =
+            this.lookDirectionSmooth(dirX, dirZ, deltaTime);
+    }
+
     private lookDirectionSmooth(
         dx: number,
         dz: number,
         deltaTime: number
     ) {
-        if (dx * dx + dz * dz < 0.0001) return;
+        if (dx * dx + dz * dz < 0.0001) return false;
 
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
         const currentY = this.getVisualEulerY();
+
+        if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
+            return false;
+        }
 
         const newY = this.lerpAngle(
             currentY,
@@ -1371,6 +1420,7 @@ export class Unit extends Component {
         );
 
         this.setVisualYaw(newY);
+        return true;
     }
 
     private sync(deltaTime: number, rotateByVelocity: boolean) {
@@ -1434,6 +1484,8 @@ export class Unit extends Component {
     }
 
     private setVisualYaw(y: number) {
+        this.moveIntentFacingActive = true;
+
         this.getVisualNode().setRotationFromEuler(
             0,
             y + this.visualYawOffset,
@@ -1448,6 +1500,12 @@ export class Unit extends Component {
         this.lastStablePos.z = p.z;
     }
 
+    private resetMoveIntentFacing() {
+        this.moveIntentFacingActive = true;
+        this.lastMoveIntentDir.x = 0;
+        this.lastMoveIntentDir.z = 0;
+    }
+
     private lerpAngle(a: number, b: number, t: number) {
         let diff = (b - a) % 360;
 
@@ -1455,5 +1513,14 @@ export class Unit extends Component {
         if (diff < -180) diff += 360;
 
         return a + diff * t;
+    }
+
+    private getAngleDeltaAbs(a: number, b: number) {
+        let diff = (b - a) % 360;
+
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        return Math.abs(diff);
     }
 }

@@ -254,6 +254,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamAPrefabMap = new Map();
           this.teamBPrefabMap = new Map();
           this.forwardReleasedWaves = new Map();
+          this.laneVoteCounts = [];
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
           this.heroForwardUnlocked = [false, false];
@@ -517,11 +518,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         getMajorityLaneIdForWave(wave) {
           if (!wave) return -1;
           var laneCount = this.getSafeLaneCount();
-          var counts = new Array(laneCount).fill(0);
+          var counts = this.laneVoteCounts;
+          counts.length = laneCount;
+
+          for (var i = 0; i < laneCount; i++) {
+            counts[i] = 0;
+          }
+
           var counted = 0;
 
-          for (var i = 0; i < wave.units.length; i++) {
-            var unit = wave.units[i];
+          for (var _i = 0; _i < wave.units.length; _i++) {
+            var unit = wave.units[_i];
             if (!this.isAliveUnit(unit)) continue;
             var laneId = this.getNearestLaneIdForX(unit.agent.pos.x);
             counts[laneId]++;
@@ -533,10 +540,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var bestLane = currentLane >= 0 ? currentLane : 0;
           var bestCount = counts[bestLane];
 
-          for (var _i = 0; _i < laneCount; _i++) {
-            if (counts[_i] > bestCount) {
-              bestCount = counts[_i];
-              bestLane = _i;
+          for (var _i2 = 0; _i2 < laneCount; _i2++) {
+            if (counts[_i2] > bestCount) {
+              bestCount = counts[_i2];
+              bestLane = _i2;
             }
           }
 
@@ -619,11 +626,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          var waves = Array.from(this.forwardReleasedWaves.keys());
-
-          for (var i = 0; i < waves.length; i++) {
-            var wave = waves[i];
-
+          for (var wave of this.forwardReleasedWaves.keys()) {
             if (!wave || wave.isDeadRuntime(this.frame)) {
               this.forwardReleasedWaves.delete(wave);
               continue;
@@ -640,12 +643,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             if (wave.hasEngagedRuntime(this.frame)) {
-              this.forwardReleasedWaves.set(wave, this.frame);
               continue;
             }
 
             if (!wave.shouldRecoverNoTarget(this.frame, this.freeHuntNoTargetRecoveryFrames)) {
-              this.forwardReleasedWaves.set(wave, this.frame);
               continue;
             }
 

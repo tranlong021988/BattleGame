@@ -13,6 +13,9 @@ export class HealthBar3D extends Component {
 
     private renderer: MeshRenderer | null = null;
     private currentRatio = 1;
+    private healthParams = [1, 0, 0, 0];
+    private barColor = [0, 1, 0, 1];
+    private colorDirty = true;
 
     onLoad() {
         this.renderer = this.getComponent(MeshRenderer);
@@ -26,12 +29,13 @@ export class HealthBar3D extends Component {
 
     setHealthRatio(ratio: number) {
         this.currentRatio = Math.max(0, Math.min(1, ratio));
-        this.applyAll();
+        this.applyHealthParams();
     }
 
     setMainColor(color: Color) {
         this.mainColor.set(color);
-        this.applyAll();
+        this.colorDirty = true;
+        this.applyColor();
     }
 
     getHealthRatio() {
@@ -41,30 +45,49 @@ export class HealthBar3D extends Component {
     private applyAll() {
         if (!this.renderer) return;
 
+        this.applyHealthParams();
+        this.applyColor();
+    }
+
+    private applyHealthParams() {
+        if (!this.renderer) return;
+
         const shouldShow =
             !this.hideWhenFull ||
             this.currentRatio < 0.999;
+        const wasShowing =
+            this.renderer.enabled;
 
         this.renderer.enabled = shouldShow;
 
+        this.healthParams[0] = this.currentRatio;
+        this.healthParams[1] = shouldShow ? 1 : 0;
+        this.healthParams[2] = 0;
+        this.healthParams[3] = 0;
+
         this.renderer.setInstancedAttribute(
             'a_health_params',
-            [
-                this.currentRatio,
-                shouldShow ? 1 : 0,
-                0,
-                0
-            ]
+            this.healthParams
         );
+
+        if (shouldShow && (!wasShowing || this.colorDirty)) {
+            this.applyColor();
+        }
+    }
+
+    private applyColor() {
+        if (!this.renderer) return;
+
+        this.barColor[0] = this.mainColor.r / 255;
+        this.barColor[1] = this.mainColor.g / 255;
+        this.barColor[2] = this.mainColor.b / 255;
+        this.barColor[3] = 1;
 
         this.renderer.setInstancedAttribute(
             'a_bar_color',
-            [
-                this.mainColor.r / 255,
-                this.mainColor.g / 255,
-                this.mainColor.b / 255,
-                1
-            ]
+            this.barColor
         );
+
+        this.colorDirty = false;
     }
 }

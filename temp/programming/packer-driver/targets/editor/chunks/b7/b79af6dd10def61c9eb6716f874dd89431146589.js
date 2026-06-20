@@ -115,6 +115,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.moveIntentFacingActive = true;
+          this.lastMoveIntentDir = {
+            x: 0,
+            z: 0
+          };
           this.tempPos = new Vec3();
           this.frameCounter = 0;
           this.cachedNearestInRange = null;
@@ -164,6 +169,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.resetMoveIntentFacing();
           this.applyRuntimeAgentData();
           this.applySteadyState();
         }
@@ -313,6 +319,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.laneId = -1;
           this.forwardLaneOffsetX = 0;
           this.returningToWaveLaneSlot = false;
+          this.resetMoveIntentFacing();
 
           if (this.agent) {
             this.agent.locked = false;
@@ -385,6 +392,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onBusy = false;
           this.onForward = !returnToSlot;
           this.resetStableRotationPosition();
+          this.resetMoveIntentFacing();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
 
@@ -521,6 +529,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.onForward = true;
               this.agent.onForward = 0;
               this.resetStableRotationPosition();
+              this.resetMoveIntentFacing();
               this.sim.setPrefVelocity(this.agent, 0, 0);
               this.agent.vel.x = 0;
               this.agent.vel.z = 0;
@@ -545,7 +554,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (this.onForward) {
               this.agent.onForward = 1;
               this.updateForwardPrefVelocity();
-              this.sync(deltaTime, true);
+              this.lookMoveIntentSmooth(deltaTime);
+              this.sync(deltaTime, false);
               return;
             }
           }
@@ -1071,6 +1081,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (dx * dx + dz * dz < 0.0001) return;
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           const currentY = this.getVisualEulerY();
+
+          if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
+            return;
+          }
+
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
         }
@@ -1096,12 +1111,46 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.lookDirectionSmooth(Math.sign(dx), 0, deltaTime);
         }
 
+        lookMoveIntentSmooth(deltaTime) {
+          if (!this.agent) return;
+          if (this.agent.locked) return;
+          const dx = this.agent.prefVel.x;
+          const dz = this.agent.prefVel.z;
+          const lenSq = dx * dx + dz * dz;
+
+          if (lenSq < 0.0001) {
+            this.lastMoveIntentDir.x = 0;
+            this.lastMoveIntentDir.z = 0;
+            this.moveIntentFacingActive = false;
+            return;
+          }
+
+          const invLen = 1 / Math.sqrt(lenSq);
+          const dirX = dx * invLen;
+          const dirZ = dz * invLen;
+
+          if (Math.abs(dirX - this.lastMoveIntentDir.x) > 0.001 || Math.abs(dirZ - this.lastMoveIntentDir.z) > 0.001) {
+            this.lastMoveIntentDir.x = dirX;
+            this.lastMoveIntentDir.z = dirZ;
+            this.moveIntentFacingActive = true;
+          }
+
+          if (!this.moveIntentFacingActive) return;
+          this.moveIntentFacingActive = this.lookDirectionSmooth(dirX, dirZ, deltaTime);
+        }
+
         lookDirectionSmooth(dx, dz, deltaTime) {
-          if (dx * dx + dz * dz < 0.0001) return;
+          if (dx * dx + dz * dz < 0.0001) return false;
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           const currentY = this.getVisualEulerY();
+
+          if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
+            return false;
+          }
+
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
+          return true;
         }
 
         sync(deltaTime, rotateByVelocity) {
@@ -1146,6 +1195,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         setVisualYaw(y) {
+          this.moveIntentFacingActive = true;
           this.getVisualNode().setRotationFromEuler(0, y + this.visualYawOffset, 0);
         }
 
@@ -1155,11 +1205,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.lastStablePos.z = p.z;
         }
 
+        resetMoveIntentFacing() {
+          this.moveIntentFacingActive = true;
+          this.lastMoveIntentDir.x = 0;
+          this.lastMoveIntentDir.z = 0;
+        }
+
         lerpAngle(a, b, t) {
           let diff = (b - a) % 360;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
           return a + diff * t;
+        }
+
+        getAngleDeltaAbs(a, b) {
+          let diff = (b - a) % 360;
+          if (diff > 180) diff -= 360;
+          if (diff < -180) diff += 360;
+          return Math.abs(diff);
         }
 
       }, _class3.visualLerpT = 1, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "visualRoot", [_dec2], {

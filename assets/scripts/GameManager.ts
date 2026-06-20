@@ -203,6 +203,7 @@ export class GameManager extends Component {
     private teamAPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private forwardReleasedWaves: Map<BattleWave, number> = new Map();
+    private laneVoteCounts: number[] = [];
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
@@ -574,7 +575,13 @@ export class GameManager extends Component {
         const laneCount =
             this.getSafeLaneCount();
         const counts =
-            new Array(laneCount).fill(0);
+            this.laneVoteCounts;
+
+        counts.length = laneCount;
+
+        for (let i = 0; i < laneCount; i++) {
+            counts[i] = 0;
+        }
 
         let counted = 0;
 
@@ -730,11 +737,7 @@ export class GameManager extends Component {
             return;
         }
 
-        const waves = Array.from(this.forwardReleasedWaves.keys());
-
-        for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-
+        for (const wave of this.forwardReleasedWaves.keys()) {
             if (!wave || wave.isDeadRuntime(this.frame)) {
                 this.forwardReleasedWaves.delete(wave);
                 continue;
@@ -751,7 +754,6 @@ export class GameManager extends Component {
             }
 
             if (wave.hasEngagedRuntime(this.frame)) {
-                this.forwardReleasedWaves.set(wave, this.frame);
                 continue;
             }
 
@@ -761,7 +763,6 @@ export class GameManager extends Component {
                     this.freeHuntNoTargetRecoveryFrames
                 )
             ) {
-                this.forwardReleasedWaves.set(wave, this.frame);
                 continue;
             }
 
