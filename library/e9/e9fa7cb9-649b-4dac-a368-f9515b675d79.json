@@ -728,7 +728,7 @@
     "radius": 0.5,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 10,
-    "targetSearchRange": 8,
+    "targetSearchRange": 6,
     "targetSearchIntervalFrames": 15,
     "forwardScanRange": 12,
     "forwardScanIntervalFrames": 15,
