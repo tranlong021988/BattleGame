@@ -4,6 +4,7 @@ import {
     Component,
     EventMouse,
     EventTouch,
+    geometry,
     input,
     Input,
     Node,
@@ -86,6 +87,18 @@ export class BattleCinematicCameraController extends Component {
     uiTapSuppressDuration = 0.25;
 
     @property
+    enableBattlefieldUnitTapFocus = true;
+
+    @property
+    unitTapMaxMovePixels = 12;
+
+    @property
+    unitTapPickRadius = 0.85;
+
+    @property
+    unitTapPickPlaneY = 0;
+
+    @property
     enableDebugLog = false;
 
     private state: CinematicState = CinematicState.Idle;
@@ -122,14 +135,32 @@ export class BattleCinematicCameraController extends Component {
     private enterTimer = 0;
     private returnTimer = 0;
 
+    private touchTapStartX = 0;
+    private touchTapStartY = 0;
+    private hasTouchTapStart = false;
+
+    private mouseTapStartX = 0;
+    private mouseTapStartY = 0;
+    private hasMouseTapStart = false;
+
+    private unitTapRay: any = new geometry.Ray();
+    private unitTapWorldPoint = new Vec3();
+    private unitTapWorldPos = new Vec3();
+
     onEnable() {
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.on(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
         input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
     }
 
     onDisable() {
         input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.off(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
         input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
     }
 
     start() {
@@ -623,6 +654,23 @@ export class BattleCinematicCameraController extends Component {
     }
 
     private onTouchStart(event: EventTouch) {
+        this.hasTouchTapStart = false;
+
+        if (
+            this.enableBattlefieldUnitTapFocus &&
+            this.state === CinematicState.Idle
+        ) {
+            const touches = event.getAllTouches();
+
+            if (touches.length <= 1) {
+                const p = event.getLocation();
+
+                this.touchTapStartX = p.x;
+                this.touchTapStartY = p.y;
+                this.hasTouchTapStart = true;
+            }
+        }
+
         if (!this.tapAnywhereToExit) return;
         if (this.state !== CinematicState.Orbit) return;
         if (this.exitTapTimer > 0) return;
@@ -631,13 +679,272 @@ export class BattleCinematicCameraController extends Component {
         this.beginReturnToOriginal();
     }
 
+    private onTouchEnd(event: EventTouch) {
+        if (!this.hasTouchTapStart) return;
+
+        this.hasTouchTapStart = false;
+
+        if (this.state !== CinematicState.Idle) return;
+        if (this.uiTapSuppressTimer > 0) return;
+
+        const touches = event.getAllTouches();
+
+        if (touches.length > 0) return;
+
+        const p = event.getLocation();
+
+        if (
+            !this.isTapWithinMoveThreshold(
+                this.touchTapStartX,
+                this.touchTapStartY,
+                p.x,
+                p.y
+            )
+        ) {
+            return;
+        }
+
+        this.tryFocusUnitAtScreenPoint(p.x, p.y);
+    }
+
+    private onTouchCancel() {
+        this.hasTouchTapStart = false;
+    }
+
     private onMouseDown(event: EventMouse) {
+        this.hasMouseTapStart = false;
+
+        if (
+            this.enableBattlefieldUnitTapFocus &&
+            this.state === CinematicState.Idle &&
+            this.isPrimaryMouseButton(event)
+        ) {
+            const p = event.getLocation();
+
+            this.mouseTapStartX = p.x;
+            this.mouseTapStartY = p.y;
+            this.hasMouseTapStart = true;
+        }
+
         if (!this.tapAnywhereToExit) return;
         if (this.state !== CinematicState.Orbit) return;
         if (this.exitTapTimer > 0) return;
         if (this.uiTapSuppressTimer > 0) return;
 
         this.beginReturnToOriginal();
+    }
+
+    private onMouseUp(event: EventMouse) {
+        if (!this.hasMouseTapStart) return;
+
+        this.hasMouseTapStart = false;
+
+        if (this.state !== CinematicState.Idle) return;
+        if (this.uiTapSuppressTimer > 0) return;
+        if (!this.isPrimaryMouseButton(event)) return;
+
+        const p = event.getLocation();
+
+        if (
+            !this.isTapWithinMoveThreshold(
+                this.mouseTapStartX,
+                this.mouseTapStartY,
+                p.x,
+                p.y
+            )
+        ) {
+            return;
+        }
+
+        this.tryFocusUnitAtScreenPoint(p.x, p.y);
+    }
+
+    private tryFocusUnitAtScreenPoint(
+        screenX: number,
+        screenY: number
+    ) {
+        if (!this.enableBattlefieldUnitTapFocus) return;
+        if (this.state !== CinematicState.Idle) return;
+
+        const unit = this.pickAliveUnitAtScreenPoint(
+            screenX,
+            screenY
+        );
+
+        if (!unit) return;
+
+        this.focusUnit(unit);
+    }
+
+    private pickAliveUnitAtScreenPoint(
+        screenX: number,
+        screenY: number
+    ) {
+        if (
+            !this.screenPointToBattlePlane(
+                screenX,
+                screenY,
+                this.unitTapWorldPoint
+            )
+        ) {
+            return null;
+        }
+
+        if (!this.gameManager && this.autoFindGameManager) {
+            this.gameManager = GameManager.instance;
+        }
+
+        if (!this.gameManager) return null;
+
+        let bestUnit: Unit | null = null;
+        let bestDistanceSq = Number.POSITIVE_INFINITY;
+
+        const aResult = this.pickClosestAliveUnitInList(
+            this.gameManager.getAliveUnits(0),
+            this.unitTapWorldPoint.x,
+            this.unitTapWorldPoint.z,
+            bestDistanceSq
+        );
+
+        if (aResult.unit) {
+            bestUnit = aResult.unit;
+            bestDistanceSq = aResult.distanceSq;
+        }
+
+        const bResult = this.pickClosestAliveUnitInList(
+            this.gameManager.getAliveUnits(1),
+            this.unitTapWorldPoint.x,
+            this.unitTapWorldPoint.z,
+            bestDistanceSq
+        );
+
+        if (bResult.unit) {
+            bestUnit = bResult.unit;
+        }
+
+        return bestUnit;
+    }
+
+    private pickClosestAliveUnitInList(
+        units: Unit[],
+        x: number,
+        z: number,
+        maxDistanceSq: number
+    ) {
+        let bestUnit: Unit | null = null;
+        let bestDistanceSq = maxDistanceSq;
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!this.isUnitAlive(unit)) continue;
+
+            const pos = unit.agent ? unit.agent.pos : null;
+            let ux = 0;
+            let uz = 0;
+
+            if (pos) {
+                ux = pos.x;
+                uz = pos.z;
+            } else {
+                unit.node.getWorldPosition(this.unitTapWorldPos);
+                ux = this.unitTapWorldPos.x;
+                uz = this.unitTapWorldPos.z;
+            }
+
+            const dx = ux - x;
+            const dz = uz - z;
+            const distanceSq = dx * dx + dz * dz;
+            const pickRadius = Math.max(
+                this.unitTapPickRadius,
+                unit.radius
+            );
+
+            if (distanceSq > pickRadius * pickRadius) continue;
+            if (distanceSq >= bestDistanceSq) continue;
+
+            bestUnit = unit;
+            bestDistanceSq = distanceSq;
+        }
+
+        return {
+            unit: bestUnit,
+            distanceSq: bestDistanceSq
+        };
+    }
+
+    private screenPointToBattlePlane(
+        screenX: number,
+        screenY: number,
+        out: Vec3
+    ) {
+        if (!this.mainCamera) return false;
+
+        const camera: any = this.mainCamera;
+        let ray: any = null;
+
+        if (typeof camera.screenPointToRay !== 'function') {
+            return false;
+        }
+
+        try {
+            ray =
+                camera.screenPointToRay(
+                    screenX,
+                    screenY,
+                    this.unitTapRay
+                ) || this.unitTapRay;
+        } catch (e) {
+            ray =
+                camera.screenPointToRay(
+                    this.unitTapRay,
+                    screenX,
+                    screenY
+                ) || this.unitTapRay;
+        }
+
+        const origin = ray.o || ray.origin;
+        const dir = ray.d || ray.direction;
+
+        if (!origin || !dir) return false;
+        if (Math.abs(dir.y) <= 0.00001) return false;
+
+        const t =
+            (this.unitTapPickPlaneY - origin.y) /
+            dir.y;
+
+        if (t < 0) return false;
+
+        out.set(
+            origin.x + dir.x * t,
+            this.unitTapPickPlaneY,
+            origin.z + dir.z * t
+        );
+
+        return true;
+    }
+
+    private isTapWithinMoveThreshold(
+        startX: number,
+        startY: number,
+        endX: number,
+        endY: number
+    ) {
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const threshold = Math.max(0, this.unitTapMaxMovePixels);
+
+        return dx * dx + dy * dy <= threshold * threshold;
+    }
+
+    private isPrimaryMouseButton(event: EventMouse) {
+        const mouseEvent: any = event;
+
+        if (typeof mouseEvent.getButton !== 'function') {
+            return true;
+        }
+
+        return mouseEvent.getButton() === 0;
     }
 
     private isUnitAlive(unit: Unit | null) {

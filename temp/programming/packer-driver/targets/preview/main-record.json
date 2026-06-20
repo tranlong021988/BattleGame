@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 22616.2136,
+      "mTimestamp": 1634480.2506,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -6457,7 +6457,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts": {
       "mTimestamp": {
-        "mtime": 1781293857358.4062,
+        "mtime": 1781948429873.261,
         "uuid": "1cbcd1a3-c701-4c5c-94da-9f29be475f76"
       },
       "chunkId": "bda019c071f801e39f6cab35c8d64f05ba6d0ff3",
@@ -6476,11 +6476,11 @@
           "value": "cc",
           "loc": {
             "start": {
-              "line": 12,
+              "line": 13,
               "column": 7
             },
             "end": {
-              "line": 12,
+              "line": 13,
               "column": 11
             }
           }
@@ -6490,11 +6490,11 @@
           "resolved": "__unresolved_1",
           "loc": {
             "start": {
-              "line": 14,
+              "line": 15,
               "column": 27
             },
             "end": {
-              "line": 14,
+              "line": 15,
               "column": 41
             }
           }
@@ -6504,11 +6504,11 @@
           "resolved": "__unresolved_2",
           "loc": {
             "start": {
-              "line": 15,
+              "line": 16,
               "column": 34
             },
             "end": {
-              "line": 15,
+              "line": 16,
               "column": 55
             }
           }
@@ -6518,11 +6518,11 @@
           "resolved": "__unresolved_3",
           "loc": {
             "start": {
-              "line": 16,
+              "line": 17,
               "column": 34
             },
             "end": {
-              "line": 16,
+              "line": 17,
               "column": 55
             }
           }
@@ -6532,11 +6532,11 @@
           "resolved": "__unresolved_4",
           "loc": {
             "start": {
-              "line": 18,
+              "line": 19,
               "column": 28
             },
             "end": {
-              "line": 18,
+              "line": 19,
               "column": 43
             }
           }

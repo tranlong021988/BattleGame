@@ -729,9 +729,9 @@
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 10,
     "targetSearchRange": 6,
-    "targetSearchIntervalFrames": 15,
-    "forwardScanRange": 12,
-    "forwardScanIntervalFrames": 15,
+    "targetSearchIntervalFrames": 20,
+    "forwardScanRange": 8,
+    "forwardScanIntervalFrames": 20,
     "useWaveForwardScanner": true,
     "laneReturnTolerance": 0.35,
     "forwardDir": {
