@@ -3743,8 +3743,8 @@
     "radius": 0.5,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 3,
-    "targetSearchRange": 35,
-    "targetSearchIntervalFrames": 15,
+    "targetSearchRange": 40,
+    "targetSearchIntervalFrames": 30,
     "forwardScanRange": 12,
     "forwardScanIntervalFrames": 2,
     "useWaveForwardScanner": true,
@@ -4470,8 +4470,8 @@
     "radius": 0.5,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 3,
-    "targetSearchRange": 35,
-    "targetSearchIntervalFrames": 15,
+    "targetSearchRange": 40,
+    "targetSearchIntervalFrames": 30,
     "forwardScanRange": 12,
     "forwardScanIntervalFrames": 2,
     "useWaveForwardScanner": true,
@@ -5443,7 +5443,7 @@
       "__expectedType__": "cc.Mesh"
     },
     "_shadowCastingMode": 0,
-    "_shadowReceivingMode": 1,
+    "_shadowReceivingMode": 0,
     "_shadowBias": 0,
     "_shadowNormalBias": 0,
     "_reflectionProbeId": -1,
@@ -5469,9 +5469,9 @@
     "_recieveShadow": false,
     "_lightmapSize": 64,
     "_useLightProbe": false,
-    "_bakeToLightProbe": true,
+    "_bakeToLightProbe": false,
     "_reflectionProbeType": 0,
-    "_bakeToReflectionProbe": true
+    "_bakeToReflectionProbe": false
   },
   {
     "__type__": "cc.Node",
