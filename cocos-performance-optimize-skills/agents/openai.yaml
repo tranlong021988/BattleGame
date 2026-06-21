@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cocos Performance Optimize Skills"
+  short_description: "Optimize Cocos Creator games for mobile performance."
+  default_prompt: "Use this skill to audit and optimize a Cocos Creator game for mobile performance."
