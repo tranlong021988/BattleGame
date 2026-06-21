@@ -691,3 +691,213 @@ Current caveats:
 - Same-lane `forward-passed-target-release` still exists. A wave can still enter freehunt after passing a same-lane target; that is a separate issue and was not changed in this patch.
 - Regroup still uses slot-based lane return, not lane-band return. A later UX fix may adjust `Unit.shouldReturnToLaneSlot()` / `Unit.updateForwardPrefVelocity()`.
 - `findNearestEnemyInCurrentLane()` remains unused in `GameManager`; it is legacy/dead code and was not touched in this patch.
+
+## Handoff 2026-06-21: performance audit, orbit tap, healthbar instancing, render budget
+
+### Current Status
+
+- Visual gameplay is currently acceptable enough for the user to move toward graphics/VFX/UI work.
+- The main risk is no longer basic wave AI correctness, but keeping frame budget stable when adding more visuals.
+- Recent Chrome trace reports show no clear memory leak:
+  - DOM nodes stayed stable.
+  - event listeners stayed stable.
+  - JS heap showed normal sawtooth allocation/GC behavior.
+- Orbit view is not a sustained performance problem in the latest traces. It had one worse spike, but average/p95/p99 were comparable or slightly better than top-down.
+
+### Source Changes Recently Confirmed
+
+#### `BattleSpatialGrid.ts`
+
+- Target-search worker now uses reusable typed arrays:
+  - `targetSnapshot: Float64Array`
+  - `packedRequestData: Float64Array`
+- `flushNearestWorkerRequests()` packs batch nearest-target requests into typed arrays before `postMessage`.
+- Worker result handling validates both requester and target by `lifeId`, so pooled/despawned units should not remain valid stale targets.
+- Main-thread fallback still exists if worker creation/postMessage fails.
+- Current profile result:
+  - `flushNearestWorkerRequests` is the largest project-specific main-thread item, but still small relative to the full 60s trace.
+  - Do not move it back to raw `number[]` unless there is a measured reason.
+
+#### `GameManager.ts`
+
+- Majority-lane regroup remains the active lane recovery rule:
+  - after freehunt/combat, wait until no unit is engaged and the wave has no valid target for `freeHuntNoTargetRecoveryFrames`;
+  - then choose lane by majority position of alive units;
+  - tie keeps current lane because the code only switches when another lane has strictly larger count.
+- `laneVoteCounts` is reused as a small buffer to avoid allocating a new array on every majority-lane vote.
+- `processForwardReleaseRecoveries()` iterates `forwardReleasedWaves.keys()` directly. Avoid reintroducing `Array.from(...)` in this hot-ish loop.
+- Hero unlock/freehunt remains intentional:
+  - when a team cannot spawn normal units anymore and has no alive normal units, hero can be released from steady;
+  - hero kills should not award CP.
+
+#### `Unit.ts`
+
+- Forward rotation was changed to follow movement intent (`agent.prefVel`) instead of tiny visual-position deltas.
+- Current forward path:
+  - set pref velocity;
+  - call `lookMoveIntentSmooth(deltaTime)`;
+  - call `sync(deltaTime, false)`.
+- `lookMoveIntentSmooth()` caches the last intended direction and stops rotating when:
+  - pref velocity is near zero;
+  - or visual yaw is within about `0.5` degree.
+- This was meant to reduce:
+  - units standing still but rotating back and forth;
+  - units looking one way while moving another way during forward/regroup transitions.
+- `returningToWaveLaneSlot` still uses lane-return facing logic, not full formation redesign.
+
+#### `BattleCinematicCameraController.ts`
+
+- Battlefield unit tap/click focus exists.
+- Implementation:
+  - listens to touch/mouse start/end;
+  - ignores drag by `unitTapMaxMovePixels`;
+  - projects screen point to battle plane;
+  - scans alive units from both teams and picks closest unit within `unitTapPickRadius` / unit radius;
+  - calls orbit focus on the picked unit.
+- This is not per-frame work. It only runs on tap/click, so current cost is acceptable.
+- It is not currently using spatial grid. That is fine for now because user input events are rare.
+- If unit count later grows much higher and tap picking becomes expensive, optimize by querying nearby grid cells around the projected tap point instead of scanning both alive arrays.
+
+#### `HealthBar3D.ts`, `HealthBar.effect`, `HealthBarMat.mtl`
+
+- Healthbar is set up for instancing.
+- `HealthBarMat.mtl` has `USE_INSTANCING: true`.
+- `HealthBar.effect` reads:
+  - `a_health_params`
+  - `a_bar_color`
+- `HealthBar3D` writes per-instance data via:
+  - `renderer.setInstancedAttribute('a_health_params', ...)`
+  - `renderer.setInstancedAttribute('a_bar_color', ...)`
+- Blue and Red prefabs both reference the same `HealthBarMat` material asset.
+- No source code currently calls `getMaterialInstance`, `setMaterial`, `setProperty`, or `customMaterial` for healthbars.
+- Recent fix:
+  - reused `healthParams` and `barColor` arrays instead of allocating new arrays;
+  - added `colorDirty`;
+  - reapplies color when bar becomes visible, fixing the case where some healthbars showed only background color without the colored HP fill.
+- Caveat:
+  - `renderer.enabled` is toggled when full HP / damaged. This can add/remove instances from the batch, but it is still better than rendering every full-health bar.
+
+### Latest Trace Comparison: top-down vs orbit
+
+Files compared:
+
+- `Trace-20260621T213922.json` = top-down.
+- `Trace-20260621T214149-orbit.json` = orbit.
+
+Main thread / RAF summary:
+
+| Metric | Top-down | Orbit |
+| --- | ---: | ---: |
+| `FireAnimationFrame` average | about `1.411ms` | about `1.375ms` |
+| p95 | about `3.673ms` | about `3.655ms` |
+| p99 | about `5.082ms` | about `4.614ms` |
+| max | about `9.541ms` | about `29.562ms` |
+| frames over `8.33ms` | `9` | `10` |
+| frames over `16.67ms` | `0` | `1` |
+
+Memory/counter summary:
+
+- Nodes stable in both reports.
+- Listeners stable in both reports.
+- Heap sawtooth is normal allocation + GC, not retained growth.
+- Orbit had lower heap p50/p95/max than top-down in this pair of traces, but one worse frame spike.
+
+Interpretation:
+
+- Orbit camera code is not the sustained bottleneck.
+- The single orbit spike should be watched, but not treated as proof that orbit is broken.
+- Rendering/engine work is more important than camera math:
+  - WebGL buffer/update calls;
+  - Cocos UBO/pass updates;
+  - instanced world matrix updates;
+  - material/render-state churn.
+
+### Performance Findings To Keep In Mind
+
+- RVO worker is currently acceptable.
+  - Hot worker function is `collectNeighbors`, as expected.
+  - It is off-main-thread and did not dominate the traces.
+- Target-search worker is currently acceptable.
+  - The worker scan functions are cheap.
+  - Main-thread request packing is visible but not currently dangerous.
+- The next likely performance risks are visual/render features:
+  - too many VFX nodes;
+  - unpooled particles;
+  - per-unit material instances;
+  - dynamic material property updates per frame;
+  - many transparent objects;
+  - shadows/lights on many units;
+  - healthbar or UI elements that accidentally stop batching.
+
+### What Worked
+
+- Keeping AI scans throttled:
+  - `attackCheckIntervalFrames`
+  - `targetSearchIntervalFrames`
+  - `forwardScanIntervalFrames`
+- Using the front-most wave scanner for forward scan instead of every unit scanning every frame.
+- Moving target search and RVO work to workers with main-thread fallback.
+- Using runtime per-frame wave cache instead of event/counter bookkeeping.
+- Majority-lane recovery removed several bad cases caused by last enemy/last engaged lane dragging the whole wave.
+- Healthbar instancing plus per-instance attributes is the right direction.
+- Unit tap orbit focus as event-only scan is acceptable; no need to over-optimize it yet.
+
+### What To Avoid
+
+- Do not create material instances per healthbar/unit just to change HP color or fill.
+  - Use instanced attributes for per-unit variation.
+- Do not call `material.setProperty(...)` per unit per frame.
+- Do not add permanent debug logging in `Unit.update`, target search, RVO, or recovery loops.
+- Do not reintroduce event/counter alive/engaged bookkeeping unless a new trace proves it helps; it was previously tested and not better.
+- Do not widen `targetSearchRange` / `forwardScanRange` casually.
+  - The battlefield is small (`x=-8..8`, `z=-21..21`), so large ranges quickly behave like whole-map scans.
+- Do not scan all units every frame for UI/minimap/camera helpers.
+  - Tap/click scan is fine because it is event-only.
+  - Realtime UI should use intervals, sampling, pooling, and cached wave data.
+- Do not replace worker paths with main-thread-only logic unless debugging a worker failure.
+- Do not start a large rewrite of regroup/lane logic while adding VFX unless there is a clear gameplay bug.
+
+### Recommended Direction
+
+#### For VFX/graphics
+
+- Pool VFX nodes and particles.
+- Prefer shared materials and instancing-friendly data.
+- Keep unit count in mind: target scale is roughly `500-600` units.
+- Avoid per-unit dynamic lights/shadows.
+- If using particles, keep lifetime/count short and test worst-case clashes, not only clean 1v1 cases.
+- Use Cocos/Chrome profiler after each visual feature, especially Draw Calls, GPU time, and RAF p95/p99.
+
+#### For healthbars
+
+- Keep the current instanced shader/material path.
+- If adding more healthbar states, add per-instance attributes instead of material instances.
+- Verify in Cocos profiler that many visible healthbars do not increase draw calls linearly.
+
+#### For wave/unit logic
+
+- Keep majority-lane recovery as the active baseline.
+- Preserve the invariant:
+  - if one unit in a wave engages, the whole wave should leave forward/regroup and enter combat/freehunt;
+  - regroup/forward only resumes when the wave has no engaged unit and no valid target for the configured recovery frames.
+- Same-lane `forward-passed-target-release` still exists. If user reports rear waves behind an ally frontline entering freehunt too early, revisit that rule specifically.
+- Avoid mixing new lane-transfer concepts with old pending-lane / enemy-lane / last-kill rules.
+
+#### For camera/orbit
+
+- Current unit tap-to-orbit is okay.
+- Keep it event-driven.
+- If optimizing later, spatial-grid pick around tap point is the natural next step, but only after measurement.
+
+### Quick Checklist For The Next Codex
+
+- Before changing logic, read:
+  - `GameManager.ts`
+  - `BattleWave.ts`
+  - `Unit.ts`
+  - `BattleSpatialGrid.ts`
+  - `HealthBar3D.ts`
+  - `BattleCinematicCameraController.ts`
+- If performance regresses after visual work, inspect render/material/VFX first before blaming AI.
+- If logic regresses, check whether a new change broke wave-wide state sync or majority-lane recovery.
+- Keep generated Cocos files in `library/` and `temp/` out of source reasoning unless the user explicitly asks about them.
