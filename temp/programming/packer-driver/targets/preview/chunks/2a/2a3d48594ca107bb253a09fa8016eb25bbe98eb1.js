@@ -255,6 +255,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamBPrefabMap = new Map();
           this.forwardReleasedWaves = new Map();
           this.laneVoteCounts = [];
+          this.tempSpawnPos = new Vec3();
+          this.centeredRowXBuffer = [];
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
           this.heroForwardUnlocked = [false, false];
@@ -1136,7 +1138,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var rowZOffset = row * this.spaceBetweenRow;
             var baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
             var z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
-            this.spawnUnitForWave(team, entry, new Vec3(x, 0, z), wave, laneId);
+            this.tempSpawnPos.set(x, 0, z);
+            this.spawnUnitForWave(team, entry, this.tempSpawnPos, wave, laneId);
           }
         }
 
@@ -1155,7 +1158,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               var rowZOffset = row * this.spaceBetweenRow;
               var baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
               var z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
-              this.spawnUnitForWave(team, entry, new Vec3(x, 0, z), wave, wave.laneId);
+              this.tempSpawnPos.set(x, 0, z);
+              this.spawnUnitForWave(team, entry, this.tempSpawnPos, wave, wave.laneId);
               spawned++;
             }
 
@@ -1237,7 +1241,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         buildCenteredRowXPositions(rowCount, rowIndex) {
-          var result = [];
+          var result = this.centeredRowXBuffer;
+          result.length = 0;
 
           if (rowCount <= 0) {
             return result;

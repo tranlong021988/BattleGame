@@ -23,9 +23,12 @@ export class BattleWave {
     private runtimeStateFrame = -1;
     private runtimeAliveCount = 0;
     private runtimeHasEngaged = false;
+    private runtimeTargetFrame = -1;
+    private runtimeHasValidTarget = false;
     private forwardScannerFrame = -1;
     private forwardScannerUnit: Unit | null = null;
     private noTargetSinceFrame = -1;
+    private aliveSortBuffer: Unit[] = [];
 
     constructor(
         id: number,
@@ -97,40 +100,39 @@ export class BattleWave {
             return null;
         }
 
-        const onForwardUnits: Unit[] = [];
-        const notBusyUnits: Unit[] = [];
-        const aliveUnits: Unit[] = [];
+        let best: Unit | null = null;
+        let bestPriority = -1;
+        let bestCount = 0;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
 
             if (!this.isUnitAlive(u)) continue;
 
-            aliveUnits.push(u);
+            const priority =
+                u.onForward
+                    ? 2
+                    : !u.onBusy
+                        ? 1
+                        : 0;
 
-            if (u.onForward) {
-                onForwardUnits.push(u);
+            if (priority > bestPriority) {
+                bestPriority = priority;
+                bestCount = 1;
+                best = u;
                 continue;
             }
 
-            if (!u.onBusy) {
-                notBusyUnits.push(u);
+            if (priority === bestPriority) {
+                bestCount++;
+
+                if (Math.random() * bestCount < 1) {
+                    best = u;
+                }
             }
         }
 
-        if (onForwardUnits.length > 0) {
-            return this.randomFromList(onForwardUnits);
-        }
-
-        if (notBusyUnits.length > 0) {
-            return this.randomFromList(notBusyUnits);
-        }
-
-        if (aliveUnits.length > 0) {
-            return this.randomFromList(aliveUnits);
-        }
-
-        return null;
+        return best;
     }
 
     getCounterCoverageRatio() {
@@ -212,6 +214,22 @@ export class BattleWave {
     }
 
     hasAnyValidTarget() {
+        return this.scanHasAnyValidTarget();
+    }
+
+    hasAnyValidTargetRuntime(frame: number) {
+        if (this.runtimeTargetFrame === frame) {
+            return this.runtimeHasValidTarget;
+        }
+
+        this.runtimeTargetFrame = frame;
+        this.runtimeHasValidTarget =
+            this.scanHasAnyValidTarget();
+
+        return this.runtimeHasValidTarget;
+    }
+
+    private scanHasAnyValidTarget() {
         if (this.released) {
             return false;
         }
@@ -273,7 +291,7 @@ export class BattleWave {
 
         if (
             this.hasEngagedRuntime(frame) ||
-            this.hasAnyValidTarget()
+            this.hasAnyValidTargetRuntime(frame)
         ) {
             this.noTargetSinceFrame = -1;
             return false;
@@ -474,7 +492,9 @@ export class BattleWave {
     }
 
     private getAliveUnitsSortedByX() {
-        const result: Unit[] = [];
+        const result = this.aliveSortBuffer;
+
+        result.length = 0;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -509,9 +529,12 @@ export class BattleWave {
         this.runtimeStateFrame = -1;
         this.runtimeAliveCount = 0;
         this.runtimeHasEngaged = false;
+        this.runtimeTargetFrame = -1;
+        this.runtimeHasValidTarget = false;
         this.forwardScannerFrame = -1;
         this.forwardScannerUnit = null;
         this.noTargetSinceFrame = -1;
+        this.aliveSortBuffer.length = 0;
         this.units.length = 0;
     }
 
@@ -598,16 +621,6 @@ export class BattleWave {
         }
 
         return best;
-    }
-
-    private randomFromList(list: Unit[]) {
-        if (list.length <= 0) return null;
-
-        const index = Math.floor(
-            Math.random() * list.length
-        );
-
-        return list[index];
     }
 
     private pickFrontMostForwardScanner() {

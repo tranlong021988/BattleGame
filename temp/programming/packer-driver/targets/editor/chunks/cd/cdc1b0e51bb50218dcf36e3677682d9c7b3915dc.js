@@ -42,6 +42,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.packedRequestData = new Float64Array(0);
           this.pendingNearestRequests = [];
           this.activeNearestRequests = new Map();
+          this.nearestRequestPool = [];
           this.flushScheduled = false;
         }
 
@@ -63,7 +64,9 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.workerReady = false;
           this.workerFailed = false;
           this.flushScheduled = false;
+          this.recycleNearestRequestList(this.pendingNearestRequests);
           this.pendingNearestRequests.length = 0;
+          this.recycleActiveNearestRequests();
           this.activeNearestRequests.clear();
           this.unitsById.clear();
           this.targetSnapshot = new Float64Array(0);
@@ -202,7 +205,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return this.findNearestEnemy(team, x, z, range);
         }
 
-        requestNearestEnemy(unit, team, x, z, radius, callback) {
+        requestNearestEnemy(unit, team, x, z, radius, callback, callbackToken = -1) {
           if (!this.canUseWorkerTargetQuery()) {
             return false;
           }
@@ -211,16 +214,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             return false;
           }
 
-          const request = {
-            requestId: this.nextRequestId++,
-            unit,
-            unitLifeId: unit.lifeId,
-            team,
-            x,
-            z,
-            radius,
-            callback
-          };
+          const request = this.getNearestRequest(unit, team, x, z, radius, callback, callbackToken);
           this.pendingNearestRequests.push(request);
 
           if (!this.flushScheduled) {
@@ -266,6 +260,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             const request = requests[i];
 
             if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              this.recycleNearestRequest(request);
               continue;
             }
 
@@ -310,20 +305,25 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             const request = this.activeNearestRequests.get(requestId);
             this.activeNearestRequests.delete(requestId);
             if (!request) continue;
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
 
             if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
-              request.callback(null);
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
             const target = this.unitsById.get(targetId);
 
             if (!target || !this.isValidTargetUnit(target, targetLifeId)) {
-              request.callback(null);
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
-            request.callback(target);
+            callback(target, callbackToken);
+            this.recycleNearestRequest(request);
           }
         }
 
@@ -333,14 +333,71 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
 
             if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
-              request.callback(null);
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
-            request.callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius));
+            callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
+            this.recycleNearestRequest(request);
           }
+        }
+
+        getNearestRequest(unit, team, x, z, radius, callback, callbackToken) {
+          const request = this.nearestRequestPool.pop() || {
+            requestId: 0,
+            unit: null,
+            unitLifeId: -1,
+            team: 0,
+            x: 0,
+            z: 0,
+            radius: 0,
+            callbackToken: -1,
+            callback: BattleSpatialGrid.noopNearestEnemyCallback
+          };
+          request.requestId = this.nextRequestId++;
+          request.unit = unit;
+          request.unitLifeId = unit.lifeId;
+          request.team = team;
+          request.x = x;
+          request.z = z;
+          request.radius = radius;
+          request.callbackToken = callbackToken;
+          request.callback = callback;
+          return request;
+        }
+
+        recycleNearestRequest(request) {
+          if (!request) return;
+          request.requestId = 0;
+          request.unit = null;
+          request.unitLifeId = -1;
+          request.team = 0;
+          request.x = 0;
+          request.z = 0;
+          request.radius = 0;
+          request.callbackToken = -1;
+          request.callback = BattleSpatialGrid.noopNearestEnemyCallback;
+
+          if (this.nearestRequestPool.length < 512) {
+            this.nearestRequestPool.push(request);
+          }
+        }
+
+        recycleNearestRequestList(requests) {
+          for (let i = 0; i < requests.length; i++) {
+            this.recycleNearestRequest(requests[i]);
+          }
+        }
+
+        recycleActiveNearestRequests() {
+          this.activeNearestRequests.forEach(request => {
+            this.recycleNearestRequest(request);
+          });
         }
 
         isValidRequestUnit(unit, lifeId = -1) {
@@ -760,6 +817,8 @@ self.postMessage({ type: 'ready' });
         }
 
       });
+
+      BattleSpatialGrid.noopNearestEnemyCallback = () => {};
 
       _cclegacy._RF.pop();
 

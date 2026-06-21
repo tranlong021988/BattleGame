@@ -201,6 +201,8 @@ export class TrueMiniMapPanel extends Component {
     private tempPosition = new Vec3();
     private tempWorldPosition = new Vec3();
     private tempMiniMapPosition = new Vec3();
+    private removeWaveIds: number[] = [];
+    private removeHeroTeams: number[] = [];
     private iconSeparationRecords: MiniMapSeparationRecord[] = [];
     private iconSeparationGrid: Map<string, number[]> = new Map();
     private iconSeparationGridKeys: string[] = [];
@@ -748,7 +750,10 @@ export class TrueMiniMapPanel extends Component {
 
     private updateTargetsAndState() {
 
-        const removeIds: number[] = [];
+        const removeIds =
+            this.removeWaveIds;
+
+        removeIds.length = 0;
 
         this.records.forEach(
             (record, waveId) => {
@@ -833,7 +838,10 @@ export class TrueMiniMapPanel extends Component {
 
     private updateHeroTargetsAndState() {
 
-        const removeTeams: number[] = [];
+        const removeTeams =
+            this.removeHeroTeams;
+
+        removeTeams.length = 0;
 
         this.heroRecords.forEach(
             (record, team) => {

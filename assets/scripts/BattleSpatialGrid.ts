@@ -1,19 +1,27 @@
 import { Unit } from './Unit';
 
-type NearestEnemyCallback = (target: Unit | null) => void;
+type NearestEnemyCallback = (
+    target: Unit | null,
+    token: number
+) => void;
 
 interface NearestEnemyRequest {
     requestId: number;
-    unit: Unit;
+    unit: Unit | null;
     unitLifeId: number;
     team: number;
     x: number;
     z: number;
     radius: number;
+    callbackToken: number;
     callback: NearestEnemyCallback;
 }
 
 export class BattleSpatialGrid {
+
+    private static readonly noopNearestEnemyCallback:
+        NearestEnemyCallback =
+            () => {};
 
     cellSize = 4;
     useWorkerTargetQuery = true;
@@ -38,6 +46,7 @@ export class BattleSpatialGrid {
     private packedRequestData: Float64Array = new Float64Array(0);
     private pendingNearestRequests: NearestEnemyRequest[] = [];
     private activeNearestRequests: Map<number, NearestEnemyRequest> = new Map();
+    private nearestRequestPool: NearestEnemyRequest[] = [];
     private flushScheduled = false;
 
     build(teamA: Unit[], teamB: Unit[]) {
@@ -59,7 +68,9 @@ export class BattleSpatialGrid {
         this.workerReady = false;
         this.workerFailed = false;
         this.flushScheduled = false;
+        this.recycleNearestRequestList(this.pendingNearestRequests);
         this.pendingNearestRequests.length = 0;
+        this.recycleActiveNearestRequests();
         this.activeNearestRequests.clear();
         this.unitsById.clear();
         this.targetSnapshot = new Float64Array(0);
@@ -344,7 +355,8 @@ export class BattleSpatialGrid {
         x: number,
         z: number,
         radius: number,
-        callback: NearestEnemyCallback
+        callback: NearestEnemyCallback,
+        callbackToken: number = -1
     ) {
         if (!this.canUseWorkerTargetQuery()) {
             return false;
@@ -354,16 +366,16 @@ export class BattleSpatialGrid {
             return false;
         }
 
-        const request: NearestEnemyRequest = {
-            requestId: this.nextRequestId++,
-            unit,
-            unitLifeId: unit.lifeId,
-            team,
-            x,
-            z,
-            radius,
-            callback,
-        };
+        const request =
+            this.getNearestRequest(
+                unit,
+                team,
+                x,
+                z,
+                radius,
+                callback,
+                callbackToken
+            );
 
         this.pendingNearestRequests.push(request);
 
@@ -433,6 +445,7 @@ export class BattleSpatialGrid {
                     request.unitLifeId
                 )
             ) {
+                this.recycleNearestRequest(request);
                 continue;
             }
 
@@ -494,13 +507,20 @@ export class BattleSpatialGrid {
 
             if (!request) continue;
 
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
+
             if (
                 !this.isValidRequestUnit(
                     request.unit,
                     request.unitLifeId
                 )
             ) {
-                request.callback(null);
+                callback(
+                    null,
+                    callbackToken
+                );
+                this.recycleNearestRequest(request);
                 continue;
             }
 
@@ -514,11 +534,19 @@ export class BattleSpatialGrid {
                     targetLifeId
                 )
             ) {
-                request.callback(null);
+                callback(
+                    null,
+                    callbackToken
+                );
+                this.recycleNearestRequest(request);
                 continue;
             }
 
-            request.callback(target);
+            callback(
+                target,
+                callbackToken
+            );
+            this.recycleNearestRequest(request);
         }
     }
 
@@ -530,6 +558,8 @@ export class BattleSpatialGrid {
 
         for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
 
             if (
                 !this.isValidRequestUnit(
@@ -537,19 +567,99 @@ export class BattleSpatialGrid {
                     request.unitLifeId
                 )
             ) {
-                request.callback(null);
+                callback(
+                    null,
+                    callbackToken
+                );
+                this.recycleNearestRequest(request);
                 continue;
             }
 
-            request.callback(
+            callback(
                 this.findNearestEnemy(
                     request.team,
                     request.x,
                     request.z,
                     request.radius
-                )
+                ),
+                callbackToken
             );
+            this.recycleNearestRequest(request);
         }
+    }
+
+    private getNearestRequest(
+        unit: Unit,
+        team: number,
+        x: number,
+        z: number,
+        radius: number,
+        callback: NearestEnemyCallback,
+        callbackToken: number
+    ): NearestEnemyRequest {
+        const request =
+            this.nearestRequestPool.pop() ||
+            {
+                requestId: 0,
+                unit: null,
+                unitLifeId: -1,
+                team: 0,
+                x: 0,
+                z: 0,
+                radius: 0,
+                callbackToken: -1,
+                callback:
+                    BattleSpatialGrid.noopNearestEnemyCallback,
+            };
+
+        request.requestId = this.nextRequestId++;
+        request.unit = unit;
+        request.unitLifeId = unit.lifeId;
+        request.team = team;
+        request.x = x;
+        request.z = z;
+        request.radius = radius;
+        request.callbackToken = callbackToken;
+        request.callback = callback;
+
+        return request;
+    }
+
+    private recycleNearestRequest(
+        request: NearestEnemyRequest | null
+    ) {
+        if (!request) return;
+
+        request.requestId = 0;
+        request.unit = null;
+        request.unitLifeId = -1;
+        request.team = 0;
+        request.x = 0;
+        request.z = 0;
+        request.radius = 0;
+        request.callbackToken = -1;
+        request.callback =
+            BattleSpatialGrid.noopNearestEnemyCallback;
+
+        if (this.nearestRequestPool.length < 512) {
+            this.nearestRequestPool.push(request);
+        }
+    }
+
+    private recycleNearestRequestList(
+        requests: NearestEnemyRequest[]
+    ) {
+        for (let i = 0; i < requests.length; i++) {
+            this.recycleNearestRequest(requests[i]);
+        }
+    }
+
+    private recycleActiveNearestRequests() {
+        this.activeNearestRequests.forEach(
+            (request) => {
+                this.recycleNearestRequest(request);
+            }
+        );
     }
 
     private isValidRequestUnit(

@@ -204,6 +204,8 @@ export class GameManager extends Component {
     private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private forwardReleasedWaves: Map<BattleWave, number> = new Map();
     private laneVoteCounts: number[] = [];
+    private tempSpawnPos = new Vec3();
+    private centeredRowXBuffer: number[] = [];
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
@@ -1519,10 +1521,12 @@ export class GameManager extends Component {
                     this.formationZNoise
                 );
 
+            this.tempSpawnPos.set(x, 0, z);
+
             this.spawnUnitForWave(
                 team,
                 entry,
-                new Vec3(x, 0, z),
+                this.tempSpawnPos,
                 wave,
                 laneId
             );
@@ -1582,10 +1586,12 @@ export class GameManager extends Component {
                         this.formationZNoise
                     );
 
+                this.tempSpawnPos.set(x, 0, z);
+
                 this.spawnUnitForWave(
                     team,
                     entry,
-                    new Vec3(x, 0, z),
+                    this.tempSpawnPos,
                     wave,
                     wave.laneId
                 );
@@ -1705,7 +1711,10 @@ export class GameManager extends Component {
         rowIndex: number
     ): number[] {
 
-        const result: number[] = [];
+        const result =
+            this.centeredRowXBuffer;
+
+        result.length = 0;
 
         if (rowCount <= 0) {
             return result;

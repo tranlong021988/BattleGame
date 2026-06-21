@@ -196,6 +196,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.tempPosition = new Vec3();
           this.tempWorldPosition = new Vec3();
           this.tempMiniMapPosition = new Vec3();
+          this.removeWaveIds = [];
+          this.removeHeroTeams = [];
           this.iconSeparationRecords = [];
           this.iconSeparationGrid = new Map();
           this.iconSeparationGridKeys = [];
@@ -483,7 +485,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         updateTargetsAndState() {
-          const removeIds = [];
+          const removeIds = this.removeWaveIds;
+          removeIds.length = 0;
           this.records.forEach((record, waveId) => {
             const wave = record.wave;
 
@@ -520,7 +523,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         updateHeroTargetsAndState() {
-          const removeTeams = [];
+          const removeTeams = this.removeHeroTeams;
+          removeTeams.length = 0;
           this.heroRecords.forEach((record, team) => {
             const hero = record.unit;
 

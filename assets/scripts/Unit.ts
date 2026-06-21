@@ -83,6 +83,40 @@ export class Unit extends Component {
     private forwardAdjacentTargetLifeId = -1;
     private nearestInRangeQueryToken = 0;
     private nearestEnemyQueryToken = 0;
+    private readonly onNearestInRangeQueryResult = (
+        target: Unit | null,
+        token: number
+    ) => {
+        if (token !== this.nearestInRangeQueryToken) {
+            return;
+        }
+
+        this.setCachedNearestInRangeTarget(
+            this.isValidEnemyWithinRange(
+                target,
+                this.attackRange
+            )
+                ? target
+                : null
+        );
+    };
+    private readonly onNearestEnemyQueryResult = (
+        target: Unit | null,
+        token: number
+    ) => {
+        if (token !== this.nearestEnemyQueryToken) {
+            return;
+        }
+
+        this.setCachedNearestEnemyTarget(
+            this.isValidEnemyWithinRange(
+                target,
+                this.targetSearchRange
+            )
+                ? target
+                : null
+        );
+    };
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
@@ -662,23 +696,8 @@ export class Unit extends Component {
             const queued =
                 this.queueNearestEnemyQuery(
                     this.attackRange,
-                    (target) => {
-                        if (
-                            queryToken !==
-                            this.nearestInRangeQueryToken
-                        ) {
-                            return;
-                        }
-
-                        this.setCachedNearestInRangeTarget(
-                            this.isValidEnemyWithinRange(
-                                target,
-                                this.attackRange
-                            )
-                                ? target
-                                : null
-                        );
-                    }
+                    this.onNearestInRangeQueryResult,
+                    queryToken
                 );
 
             if (!queued) {
@@ -712,23 +731,8 @@ export class Unit extends Component {
             const queued =
                 this.queueNearestEnemyQuery(
                     this.targetSearchRange,
-                    (target) => {
-                        if (
-                            queryToken !==
-                            this.nearestEnemyQueryToken
-                        ) {
-                            return;
-                        }
-
-                        this.setCachedNearestEnemyTarget(
-                            this.isValidEnemyWithinRange(
-                                target,
-                                this.targetSearchRange
-                            )
-                                ? target
-                                : null
-                        );
-                    }
+                    this.onNearestEnemyQueryResult,
+                    queryToken
                 );
 
             if (!queued) {
@@ -1117,7 +1121,11 @@ export class Unit extends Component {
 
     private queueNearestEnemyQuery(
         radius: number,
-        callback: (target: Unit | null) => void
+        callback: (
+            target: Unit | null,
+            token: number
+        ) => void,
+        callbackToken: number
     ) {
         if (!this.agent) return false;
 
@@ -1133,18 +1141,8 @@ export class Unit extends Component {
             this.agent.pos.x,
             this.agent.pos.z,
             radius,
-            (target) => {
-                if (!this.node.activeInHierarchy) {
-                    return;
-                }
-
-                if (!this.agent || this.props.isDead()) {
-                    callback(null);
-                    return;
-                }
-
-                callback(target);
-            }
+            callback,
+            callbackToken
         );
     }
 

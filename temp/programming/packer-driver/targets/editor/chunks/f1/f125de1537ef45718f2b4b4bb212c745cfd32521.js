@@ -43,9 +43,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.runtimeTargetFrame = -1;
+          this.runtimeHasValidTarget = false;
           this.forwardScannerFrame = -1;
           this.forwardScannerUnit = null;
           this.noTargetSinceFrame = -1;
+          this.aliveSortBuffer = [];
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -102,38 +105,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return null;
           }
 
-          const onForwardUnits = [];
-          const notBusyUnits = [];
-          const aliveUnits = [];
+          let best = null;
+          let bestPriority = -1;
+          let bestCount = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            aliveUnits.push(u);
+            const priority = u.onForward ? 2 : !u.onBusy ? 1 : 0;
 
-            if (u.onForward) {
-              onForwardUnits.push(u);
+            if (priority > bestPriority) {
+              bestPriority = priority;
+              bestCount = 1;
+              best = u;
               continue;
             }
 
-            if (!u.onBusy) {
-              notBusyUnits.push(u);
+            if (priority === bestPriority) {
+              bestCount++;
+
+              if (Math.random() * bestCount < 1) {
+                best = u;
+              }
             }
           }
 
-          if (onForwardUnits.length > 0) {
-            return this.randomFromList(onForwardUnits);
-          }
-
-          if (notBusyUnits.length > 0) {
-            return this.randomFromList(notBusyUnits);
-          }
-
-          if (aliveUnits.length > 0) {
-            return this.randomFromList(aliveUnits);
-          }
-
-          return null;
+          return best;
         }
 
         getCounterCoverageRatio() {
@@ -210,6 +207,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         hasAnyValidTarget() {
+          return this.scanHasAnyValidTarget();
+        }
+
+        hasAnyValidTargetRuntime(frame) {
+          if (this.runtimeTargetFrame === frame) {
+            return this.runtimeHasValidTarget;
+          }
+
+          this.runtimeTargetFrame = frame;
+          this.runtimeHasValidTarget = this.scanHasAnyValidTarget();
+          return this.runtimeHasValidTarget;
+        }
+
+        scanHasAnyValidTarget() {
           if (this.released) {
             return false;
           }
@@ -253,7 +264,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         shouldRecoverNoTarget(frame, delayFrames) {
           if (this.released) return false;
 
-          if (this.hasEngagedRuntime(frame) || this.hasAnyValidTarget()) {
+          if (this.hasEngagedRuntime(frame) || this.hasAnyValidTargetRuntime(frame)) {
             this.noTargetSinceFrame = -1;
             return false;
           }
@@ -389,7 +400,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getAliveUnitsSortedByX() {
-          const result = [];
+          const result = this.aliveSortBuffer;
+          result.length = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -420,9 +432,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.runtimeTargetFrame = -1;
+          this.runtimeHasValidTarget = false;
           this.forwardScannerFrame = -1;
           this.forwardScannerUnit = null;
           this.noTargetSinceFrame = -1;
+          this.aliveSortBuffer.length = 0;
           this.units.length = 0;
         }
 
@@ -491,12 +506,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return best;
-        }
-
-        randomFromList(list) {
-          if (list.length <= 0) return null;
-          const index = Math.floor(Math.random() * list.length);
-          return list[index];
         }
 
         pickFrontMostForwardScanner() {

@@ -901,3 +901,135 @@ Interpretation:
 - If performance regresses after visual work, inspect render/material/VFX first before blaming AI.
 - If logic regresses, check whether a new change broke wave-wide state sync or majority-lane recovery.
 - Keep generated Cocos files in `library/` and `temp/` out of source reasoning unless the user explicitly asks about them.
+
+## Handoff 2026-06-21 late: allocation cleanup and post-optimization trace
+
+### Code Changes Applied
+
+These changes are allocation/GC focused and should not change gameplay rules.
+
+#### `BattleSpatialGrid.ts`
+
+- Target-search worker request path now avoids repeated callback/request allocation:
+  - `NearestEnemyCallback` receives `(target, token)`.
+  - `NearestEnemyRequest` stores `callbackToken`.
+  - `BattleSpatialGrid` has `nearestRequestPool`.
+  - Requests are recycled after worker result, main-thread fallback result, invalid request, or destroy.
+- Recycle explicitly clears:
+  - `unit`
+  - `callback`
+  - `lifeId`
+  - numeric fields
+- This is important to avoid the request pool retaining despawned/pool-reused units.
+
+#### `Unit.ts`
+
+- Replaced per-query arrow callbacks in target search with stable callbacks:
+  - `onNearestInRangeQueryResult`
+  - `onNearestEnemyQueryResult`
+- Existing stale-result protection remains via query token.
+- This reduces closure allocation during `attackCheckIntervalFrames` and `targetSearchIntervalFrames` scans.
+
+#### `BattleWave.ts`
+
+- `getRandomPreferredAliveUnit()` no longer creates 3 temporary arrays.
+- It now uses one-pass reservoir sampling while preserving priority:
+  - `onForward` unit first;
+  - then not-busy unit;
+  - then any alive unit.
+- Removed dead helper `randomFromList()`.
+- `getAliveUnitsSortedByX()` reuses `aliveSortBuffer`.
+- `shouldRecoverNoTarget()` now uses `hasAnyValidTargetRuntime(frame)`, which caches target-existence scan per frame.
+
+#### `GameManager.ts`
+
+- Spawn formation now reuses:
+  - `tempSpawnPos`
+  - `centeredRowXBuffer`
+- This reduces `new Vec3(...)` and `number[]` allocation when spawning larger waves.
+
+#### `TrueMiniMapPanel.ts`
+
+- Reuses remove buffers:
+  - `removeWaveIds`
+  - `removeHeroTeams`
+- This matters only when minimap is enabled and update interval is frequent.
+
+### Post-Optimization Trace
+
+File user provided:
+
+- `Trace-20260621T233126.json`
+
+Important interpretation:
+
+- There is one very large `~332ms` spike at trace start.
+- That spike is caused by `CpuProfiler::StartProfiling`, so do not count it as a game bug.
+
+Main thread / RAF summary, ignoring the profiler-start spike:
+
+| Metric | Result |
+| --- | ---: |
+| `FireAnimationFrame` average | about `1.261ms` |
+| p50 | about `1.377ms` |
+| p90 | about `2.900ms` |
+| p95 | about `3.456ms` |
+| p99 | about `4.449ms` |
+| max without profiler spike | about `11.08ms` |
+| frames over `8.33ms` | `3` |
+| frames over `16.67ms` | `0` |
+
+Compared to the earlier top-down report:
+
+- RAF average improved from about `1.411ms` to about `1.261ms`.
+- p95 improved from about `3.673ms` to about `3.456ms`.
+- p99 improved from about `5.082ms` to about `4.449ms`.
+- Frames over `8.33ms` dropped from about `9` to about `3`.
+
+GC / memory:
+
+- `MinorGC` total is about `97ms`, lower than the earlier top-down report around `116ms`.
+- `MajorGC` total is about `114ms`, a bit higher than before.
+- JS heap max reached about `133MB`.
+- JS heap p95 reached about `111MB`.
+- Nodes and listeners returned to stable baseline:
+  - nodes returned to about `31,511`;
+  - listeners returned to about `119`;
+  - documents stayed `2`.
+- Conclusion: no DOM/listener leak visible. Heap still has large sawtooth allocation, but it does not look like retained growth from nodes/listeners.
+
+Project-side profile after optimization:
+
+- `BattleSpatialGrid.flushNearestWorkerRequests`: about `182ms / 64s`.
+  - This is still the largest project-side main-thread item, but it is stable and not currently dangerous.
+- `requestNearestEnemy`: only a few ms in samples.
+- `updateForwardPhase`, `queryEnemies`, `recoverWaveCombat`, `processForwardReleaseRecoveries`, `findSharedTargetForUnit`: all small.
+- `HealthBar3D.setInstancedAttribute`: about `0.7ms / trace`, negligible.
+- RVO worker:
+  - `collectNeighbors` remains the expected worker-side hot function.
+  - It is off-main-thread and acceptable.
+
+### Current Conclusion
+
+- The allocation cleanup appears to help frame consistency and MinorGC, but it does not remove heap sawtooth entirely.
+- Do not chase more micro-optimizations immediately unless a new trace shows a specific project function becoming hot.
+- The next likely bottleneck when adding visuals is still render/material/VFX, not wave AI.
+
+### What Not To Do Next
+
+- Do not rewrite target search again unless `flushNearestWorkerRequests` or worker scan becomes much hotter.
+- Do not replace worker RVO with main-thread RVO.
+- Do not optimize `ArmyBrain` arrays unless AI think interval is reduced drastically.
+- Do not change grid string keys to numeric keys without a dedicated trace and test pass; it is broader and can touch main/worker consistency.
+
+### Good Next Steps
+
+- Keep current optimization patch.
+- Run future traces after each visual/VFX feature.
+- Watch:
+  - RAF p95/p99;
+  - draw calls / GPU time;
+  - heap p95/max;
+  - node/listener counters;
+  - `flushNearestWorkerRequests`;
+  - Cocos render path functions such as `bufferData`, UBO updates, instanced matrix updates.

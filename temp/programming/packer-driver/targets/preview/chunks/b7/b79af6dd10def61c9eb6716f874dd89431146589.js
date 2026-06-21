@@ -133,6 +133,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.forwardAdjacentTargetLifeId = -1;
           this.nearestInRangeQueryToken = 0;
           this.nearestEnemyQueryToken = 0;
+
+          this.onNearestInRangeQueryResult = (target, token) => {
+            if (token !== this.nearestInRangeQueryToken) {
+              return;
+            }
+
+            this.setCachedNearestInRangeTarget(this.isValidEnemyWithinRange(target, this.attackRange) ? target : null);
+          };
+
+          this.onNearestEnemyQueryResult = (target, token) => {
+            if (token !== this.nearestEnemyQueryToken) {
+              return;
+            }
+
+            this.setCachedNearestEnemyTarget(this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null);
+          };
         }
 
         onLoad() {
@@ -648,13 +664,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         getNearestEnemyInAttackRangeThrottled() {
           if (this.shouldRunAttackCheck()) {
             var queryToken = ++this.nearestInRangeQueryToken;
-            var queued = this.queueNearestEnemyQuery(this.attackRange, target => {
-              if (queryToken !== this.nearestInRangeQueryToken) {
-                return;
-              }
-
-              this.setCachedNearestInRangeTarget(this.isValidEnemyWithinRange(target, this.attackRange) ? target : null);
-            });
+            var queued = this.queueNearestEnemyQuery(this.attackRange, this.onNearestInRangeQueryResult, queryToken);
 
             if (!queued) {
               this.setCachedNearestInRangeTarget(this.findNearestEnemyInAttackRange());
@@ -669,13 +679,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         getNearestEnemyThrottled() {
           if (this.shouldRunTargetSearch()) {
             var queryToken = ++this.nearestEnemyQueryToken;
-            var queued = this.queueNearestEnemyQuery(this.targetSearchRange, target => {
-              if (queryToken !== this.nearestEnemyQueryToken) {
-                return;
-              }
-
-              this.setCachedNearestEnemyTarget(this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null);
-            });
+            var queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
 
             if (!queued) {
               this.setCachedNearestEnemyTarget(this.findNearestEnemy());
@@ -952,7 +956,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        queueNearestEnemyQuery(radius, callback) {
+        queueNearestEnemyQuery(radius, callback, callbackToken) {
           if (!this.agent) return false;
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -962,18 +966,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
-          return gm.spatialGrid.requestNearestEnemy(this, this.team, this.agent.pos.x, this.agent.pos.z, radius, target => {
-            if (!this.node.activeInHierarchy) {
-              return;
-            }
-
-            if (!this.agent || this.props.isDead()) {
-              callback(null);
-              return;
-            }
-
-            callback(target);
-          });
+          return gm.spatialGrid.requestNearestEnemy(this, this.team, this.agent.pos.x, this.agent.pos.z, radius, callback, callbackToken);
         }
 
         findNearestEnemyInAttackRange() {
