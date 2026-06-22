@@ -31,6 +31,29 @@ Use this skill to audit and optimize Cocos Creator projects with a bias toward m
    - Performance changes must not silently alter AI, combat rules, target validity, pooling lifecycle, or visual expectations.
    - If logic is fragile, add guards and narrow tests/checks instead of a broad rewrite.
 
+## Coding Discipline Overlay
+
+Inspired by the public `CLAUDE.md` from `multica-ai/andrej-karpathy-skills`; use this as a general caution layer before changing code.
+
+- Think before coding:
+  - State assumptions when they matter.
+  - Surface tradeoffs instead of silently choosing a risky interpretation.
+  - Ask or pause when the request is genuinely ambiguous and the wrong assumption could cause churn.
+- Prefer simplicity:
+  - Write the minimum code that solves the measured problem.
+  - Avoid speculative abstractions, knobs, flexibility, or "future-proofing".
+  - If a fix grows large, re-check whether a smaller local change would preserve the same behavior.
+- Make surgical changes:
+  - Touch only files and lines tied to the user's request.
+  - Match existing project style and architecture.
+  - Mention unrelated dead code or risks instead of deleting/refactoring them casually.
+  - Remove only unused code created by the current change unless the user asks for cleanup.
+- Execute with clear success criteria:
+  - Define what "done" means before a multi-step fix.
+  - For bugs, reproduce or describe the failing flow, then verify the specific fix.
+  - For optimization, compare before/after traces or at least explain what was checked.
+  - Keep looping until the requested behavior is handled or a real blocker is found.
+
 ## Frame Budget Targets
 
 Use these as rough budgets, not laws:

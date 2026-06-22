@@ -2774,7 +2774,7 @@
     "maxRvoStepDeltaTime": 0.05,
     "visualSmooth": 16,
     "spatialGridCellSize": 4,
-    "spatialGridUpdateInterval": 3,
+    "spatialGridUpdateInterval": 8,
     "spatialGridUpdateFrameOffset": 1,
     "useWorkerSpatialTargetQuery": true,
     "teamAAliveLabel": null,

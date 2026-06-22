@@ -42,6 +42,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.packedRequestData = new Float64Array(0);
           this.pendingNearestRequests = [];
           this.activeNearestRequests = new Map();
+          this.nearestRequestPool = [];
           this.flushScheduled = false;
         }
 
@@ -63,7 +64,9 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.workerReady = false;
           this.workerFailed = false;
           this.flushScheduled = false;
+          this.recycleNearestRequestList(this.pendingNearestRequests);
           this.pendingNearestRequests.length = 0;
+          this.recycleActiveNearestRequests();
           this.activeNearestRequests.clear();
           this.unitsById.clear();
           this.targetSnapshot = new Float64Array(0);
@@ -91,7 +94,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             list.push(unit);
             var id = this.getUnitId(unit);
             this.unitsById.set(id, unit);
-            this.appendTargetSnapshot(id, team, unit.agent.pos.x, unit.agent.pos.z);
+            this.appendTargetSnapshot(id, unit.lifeId, team, unit.agent.pos.x, unit.agent.pos.z);
           }
         }
 
@@ -202,7 +205,11 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return this.findNearestEnemy(team, x, z, range);
         }
 
-        requestNearestEnemy(unit, team, x, z, radius, callback) {
+        requestNearestEnemy(unit, team, x, z, radius, callback, callbackToken) {
+          if (callbackToken === void 0) {
+            callbackToken = -1;
+          }
+
           if (!this.canUseWorkerTargetQuery()) {
             return false;
           }
@@ -211,15 +218,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             return false;
           }
 
-          var request = {
-            requestId: this.nextRequestId++,
-            unit,
-            team,
-            x,
-            z,
-            radius,
-            callback
-          };
+          var request = this.getNearestRequest(unit, team, x, z, radius, callback, callbackToken);
           this.pendingNearestRequests.push(request);
 
           if (!this.flushScheduled) {
@@ -264,7 +263,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           for (var i = 0; i < requests.length; i++) {
             var request = requests[i];
 
-            if (!this.isValidRequestUnit(request.unit)) {
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              this.recycleNearestRequest(request);
               continue;
             }
 
@@ -302,26 +302,32 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         applyWorkerResults(results) {
-          for (var i = 0; i < results.length; i += 2) {
+          for (var i = 0; i < results.length; i += 3) {
             var requestId = results[i];
             var targetId = results[i + 1];
+            var targetLifeId = results[i + 2];
             var request = this.activeNearestRequests.get(requestId);
             this.activeNearestRequests.delete(requestId);
             if (!request) continue;
+            var callback = request.callback;
+            var callbackToken = request.callbackToken;
 
-            if (!this.isValidRequestUnit(request.unit)) {
-              request.callback(null);
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
             var _target = this.unitsById.get(targetId);
 
-            if (!_target || !this.isValidTargetUnit(_target)) {
-              request.callback(null);
+            if (!_target || !this.isValidTargetUnit(_target, targetLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
-            request.callback(_target);
+            callback(_target, callbackToken);
+            this.recycleNearestRequest(request);
           }
         }
 
@@ -331,26 +337,92 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           for (var i = 0; i < requests.length; i++) {
             var request = requests[i];
+            var callback = request.callback;
+            var callbackToken = request.callbackToken;
 
-            if (!this.isValidRequestUnit(request.unit)) {
-              request.callback(null);
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
-            request.callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius));
+            callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
+            this.recycleNearestRequest(request);
           }
         }
 
-        isValidRequestUnit(unit) {
+        getNearestRequest(unit, team, x, z, radius, callback, callbackToken) {
+          var request = this.nearestRequestPool.pop() || {
+            requestId: 0,
+            unit: null,
+            unitLifeId: -1,
+            team: 0,
+            x: 0,
+            z: 0,
+            radius: 0,
+            callbackToken: -1,
+            callback: BattleSpatialGrid.noopNearestEnemyCallback
+          };
+          request.requestId = this.nextRequestId++;
+          request.unit = unit;
+          request.unitLifeId = unit.lifeId;
+          request.team = team;
+          request.x = x;
+          request.z = z;
+          request.radius = radius;
+          request.callbackToken = callbackToken;
+          request.callback = callback;
+          return request;
+        }
+
+        recycleNearestRequest(request) {
+          if (!request) return;
+          request.requestId = 0;
+          request.unit = null;
+          request.unitLifeId = -1;
+          request.team = 0;
+          request.x = 0;
+          request.z = 0;
+          request.radius = 0;
+          request.callbackToken = -1;
+          request.callback = BattleSpatialGrid.noopNearestEnemyCallback;
+
+          if (this.nearestRequestPool.length < 512) {
+            this.nearestRequestPool.push(request);
+          }
+        }
+
+        recycleNearestRequestList(requests) {
+          for (var i = 0; i < requests.length; i++) {
+            this.recycleNearestRequest(requests[i]);
+          }
+        }
+
+        recycleActiveNearestRequests() {
+          this.activeNearestRequests.forEach(request => {
+            this.recycleNearestRequest(request);
+          });
+        }
+
+        isValidRequestUnit(unit, lifeId) {
+          if (lifeId === void 0) {
+            lifeId = -1;
+          }
+
           if (!unit) return false;
+          if (lifeId >= 0 && unit.lifeId !== lifeId) return false;
           if (!unit.node.activeInHierarchy) return false;
           if (!unit.agent) return false;
           if (!unit.props || unit.props.isDead()) return false;
           return true;
         }
 
-        isValidTargetUnit(unit) {
-          return this.isValidRequestUnit(unit);
+        isValidTargetUnit(unit, lifeId) {
+          if (lifeId === void 0) {
+            lifeId = -1;
+          }
+
+          return this.isValidRequestUnit(unit, lifeId);
         }
 
         getUnitId(unit) {
@@ -364,11 +436,12 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return id;
         }
 
-        appendTargetSnapshot(id, team, x, z) {
-          this.ensureTargetSnapshotCapacity(this.targetSnapshotLength + 4);
+        appendTargetSnapshot(id, lifeId, team, x, z) {
+          this.ensureTargetSnapshotCapacity(this.targetSnapshotLength + 5);
           var data = this.targetSnapshot;
           var index = this.targetSnapshotLength;
           data[index++] = id;
+          data[index++] = lifeId;
           data[index++] = team;
           data[index++] = x;
           data[index++] = z;
@@ -452,7 +525,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         workerSource() {
-          return "\nfunction getKey(x, z) {\n    return x + '_' + z;\n}\n\nvar teamAGrid = Object.create(null);\nvar teamBGrid = Object.create(null);\nvar teamAGridKeys = [];\nvar teamBGridKeys = [];\nvar resultBuffer = new Int32Array(0);\nvar bestId = 0;\nvar bestDistSq = Infinity;\n\nfunction getCellMinDistanceSq(gx, gz, x, z, cellSize) {\n    return getRectMinDistanceSq(gx, gx, gz, gz, x, z, cellSize);\n}\n\nfunction getRectMinDistanceSq(minGx, maxGx, minGz, maxGz, x, z, cellSize) {\n    if (minGx > maxGx || minGz > maxGz) {\n        return Infinity;\n    }\n\n    var minX = minGx * cellSize;\n    var maxX = (maxGx + 1) * cellSize;\n    var minZ = minGz * cellSize;\n    var maxZ = (maxGz + 1) * cellSize;\n    var dx = 0;\n    var dz = 0;\n\n    if (x < minX) {\n        dx = minX - x;\n    } else if (x > maxX) {\n        dx = x - maxX;\n    }\n\n    if (z < minZ) {\n        dz = minZ - z;\n    } else if (z > maxZ) {\n        dz = z - maxZ;\n    }\n\n    return dx * dx + dz * dz;\n}\n\nfunction scanCell(grid, gx, gz, x, z, radiusSq) {\n    var list = grid[getKey(gx, gz)];\n\n    if (!list) return;\n\n    for (var i = 0; i < list.length; i += 4) {\n        var id = list[i];\n        var ux = list[i + 2];\n        var uz = list[i + 3];\n        var dx = ux - x;\n        var dz = uz - z;\n        var d = dx * dx + dz * dz;\n\n        if (d > radiusSq) continue;\n\n        if (d < bestDistSq) {\n            bestDistSq = d;\n            bestId = id;\n        }\n    }\n}\n\nfunction findNearest(grid, x, z, radius, cellSize) {\n    var cellRange = Math.ceil(radius / cellSize);\n    var cx = Math.floor(x / cellSize);\n    var cz = Math.floor(z / cellSize);\n    var radiusSq = radius * radius;\n    bestId = 0;\n    bestDistSq = Infinity;\n\n    for (var ring = 0; ring <= cellRange; ring++) {\n        var ringMinDistSq;\n\n        if (ring <= 0) {\n            ringMinDistSq = getCellMinDistanceSq(cx, cz, x, z, cellSize);\n        } else {\n            var minX = cx - ring;\n            var maxX = cx + ring;\n            var minZ = cz - ring;\n            var maxZ = cz + ring;\n\n            ringMinDistSq = Math.min(\n                getRectMinDistanceSq(minX, minX, minZ + 1, maxZ - 1, x, z, cellSize),\n                getRectMinDistanceSq(maxX, maxX, minZ + 1, maxZ - 1, x, z, cellSize),\n                getRectMinDistanceSq(minX, maxX, minZ, minZ, x, z, cellSize),\n                getRectMinDistanceSq(minX, maxX, maxZ, maxZ, x, z, cellSize)\n            );\n        }\n\n        if (ringMinDistSq > radiusSq) {\n            break;\n        }\n\n        if (bestId && ringMinDistSq > bestDistSq) {\n            break;\n        }\n\n        if (ring <= 0) {\n            scanCell(grid, cx, cz, x, z, radiusSq);\n            continue;\n        }\n\n        var left = cx - ring;\n        var right = cx + ring;\n        var bottom = cz - ring;\n        var top = cz + ring;\n\n        for (var gx = left; gx <= right; gx++) {\n            scanCell(grid, gx, bottom, x, z, radiusSq);\n            scanCell(grid, gx, top, x, z, radiusSq);\n        }\n\n        for (var gz = bottom + 1; gz <= top - 1; gz++) {\n            scanCell(grid, left, gz, x, z, radiusSq);\n            scanCell(grid, right, gz, x, z, radiusSq);\n        }\n    }\n\n    return bestId;\n}\n\nfunction clearGrid(grid, keys) {\n    for (var i = 0; i < keys.length; i++) {\n        var list = grid[keys[i]];\n\n        if (list) {\n            list.length = 0;\n        }\n    }\n\n    keys.length = 0;\n}\n\nfunction buildGrid(units, unitLength, team, cellSize, grid, keys) {\n    clearGrid(grid, keys);\n\n    for (var i = 0; i < unitLength; i += 4) {\n        if (units[i + 1] !== team) continue;\n\n        var x = units[i + 2];\n        var z = units[i + 3];\n        var gx = Math.floor(x / cellSize);\n        var gz = Math.floor(z / cellSize);\n        var key = getKey(gx, gz);\n        var list = grid[key];\n\n        if (!list) {\n            list = [];\n            grid[key] = list;\n        }\n\n        if (list.length <= 0) {\n            keys.push(key);\n        }\n\n        list.push(\n            units[i],\n            units[i + 1],\n            x,\n            z\n        );\n    }\n\n    return grid;\n}\n\nfunction ensureResultCapacity(length) {\n    if (resultBuffer.length >= length) {\n        return resultBuffer;\n    }\n\n    var capacity = Math.max(\n        length,\n        resultBuffer.length * 2,\n        64\n    );\n\n    resultBuffer = new Int32Array(capacity);\n\n    return resultBuffer;\n}\n\nself.onmessage = function(event) {\n    var data = event.data;\n\n    if (!data) return;\n\n    if (data.type === 'findNearestBatch') {\n        var units = data.units || [];\n        var unitLength = data.unitLength || units.length;\n        var requests = data.requests || [];\n        var requestLength = data.requestLength || requests.length;\n        var cellSize = Math.max(0.001, data.cellSize || 4);\n        var requestCount = Math.floor(requestLength / 5);\n        var teamA = buildGrid(\n            units,\n            unitLength,\n            0,\n            cellSize,\n            teamAGrid,\n            teamAGridKeys\n        );\n        var teamB = buildGrid(\n            units,\n            unitLength,\n            1,\n            cellSize,\n            teamBGrid,\n            teamBGridKeys\n        );\n        var results = ensureResultCapacity(\n            requestCount * 2\n        );\n        var resultLength = 0;\n\n        for (var i = 0; i < requestLength; i += 5) {\n            var requestId = requests[i];\n            var team = requests[i + 1];\n            var x = requests[i + 2];\n            var z = requests[i + 3];\n            var radius = requests[i + 4];\n            var grid = team === 0\n                ? teamB\n                : teamA;\n\n            results[resultLength++] = requestId;\n            results[resultLength++] =\n                findNearest(grid, x, z, radius, cellSize);\n        }\n\n        self.postMessage({\n            type: 'findNearestBatchResult',\n            seq: data.seq,\n            results: results.subarray(0, resultLength)\n        });\n    }\n};\n\nself.postMessage({ type: 'ready' });\n";
+          return "\nfunction getKey(x, z) {\n    return x + '_' + z;\n}\n\nvar teamAGrid = Object.create(null);\nvar teamBGrid = Object.create(null);\nvar teamAGridKeys = [];\nvar teamBGridKeys = [];\nvar resultBuffer = new Float64Array(0);\nvar bestId = 0;\nvar bestLifeId = 0;\nvar bestDistSq = Infinity;\n\nfunction getCellMinDistanceSq(gx, gz, x, z, cellSize) {\n    return getRectMinDistanceSq(gx, gx, gz, gz, x, z, cellSize);\n}\n\nfunction getRectMinDistanceSq(minGx, maxGx, minGz, maxGz, x, z, cellSize) {\n    if (minGx > maxGx || minGz > maxGz) {\n        return Infinity;\n    }\n\n    var minX = minGx * cellSize;\n    var maxX = (maxGx + 1) * cellSize;\n    var minZ = minGz * cellSize;\n    var maxZ = (maxGz + 1) * cellSize;\n    var dx = 0;\n    var dz = 0;\n\n    if (x < minX) {\n        dx = minX - x;\n    } else if (x > maxX) {\n        dx = x - maxX;\n    }\n\n    if (z < minZ) {\n        dz = minZ - z;\n    } else if (z > maxZ) {\n        dz = z - maxZ;\n    }\n\n    return dx * dx + dz * dz;\n}\n\nfunction scanCell(grid, gx, gz, x, z, radiusSq) {\n    var list = grid[getKey(gx, gz)];\n\n    if (!list) return;\n\n    for (var i = 0; i < list.length; i += 5) {\n        var id = list[i];\n        var lifeId = list[i + 1];\n        var ux = list[i + 3];\n        var uz = list[i + 4];\n        var dx = ux - x;\n        var dz = uz - z;\n        var d = dx * dx + dz * dz;\n\n        if (d > radiusSq) continue;\n\n        if (d < bestDistSq) {\n            bestDistSq = d;\n            bestId = id;\n            bestLifeId = lifeId;\n        }\n    }\n}\n\nfunction findNearest(grid, x, z, radius, cellSize) {\n    var cellRange = Math.ceil(radius / cellSize);\n    var cx = Math.floor(x / cellSize);\n    var cz = Math.floor(z / cellSize);\n    var radiusSq = radius * radius;\n    bestId = 0;\n    bestLifeId = 0;\n    bestDistSq = Infinity;\n\n    for (var ring = 0; ring <= cellRange; ring++) {\n        var ringMinDistSq;\n\n        if (ring <= 0) {\n            ringMinDistSq = getCellMinDistanceSq(cx, cz, x, z, cellSize);\n        } else {\n            var minX = cx - ring;\n            var maxX = cx + ring;\n            var minZ = cz - ring;\n            var maxZ = cz + ring;\n\n            ringMinDistSq = Math.min(\n                getRectMinDistanceSq(minX, minX, minZ + 1, maxZ - 1, x, z, cellSize),\n                getRectMinDistanceSq(maxX, maxX, minZ + 1, maxZ - 1, x, z, cellSize),\n                getRectMinDistanceSq(minX, maxX, minZ, minZ, x, z, cellSize),\n                getRectMinDistanceSq(minX, maxX, maxZ, maxZ, x, z, cellSize)\n            );\n        }\n\n        if (ringMinDistSq > radiusSq) {\n            break;\n        }\n\n        if (bestId && ringMinDistSq > bestDistSq) {\n            break;\n        }\n\n        if (ring <= 0) {\n            scanCell(grid, cx, cz, x, z, radiusSq);\n            continue;\n        }\n\n        var left = cx - ring;\n        var right = cx + ring;\n        var bottom = cz - ring;\n        var top = cz + ring;\n\n        for (var gx = left; gx <= right; gx++) {\n            scanCell(grid, gx, bottom, x, z, radiusSq);\n            scanCell(grid, gx, top, x, z, radiusSq);\n        }\n\n        for (var gz = bottom + 1; gz <= top - 1; gz++) {\n            scanCell(grid, left, gz, x, z, radiusSq);\n            scanCell(grid, right, gz, x, z, radiusSq);\n        }\n    }\n\n    return bestId;\n}\n\nfunction clearGrid(grid, keys) {\n    for (var i = 0; i < keys.length; i++) {\n        var list = grid[keys[i]];\n\n        if (list) {\n            list.length = 0;\n        }\n    }\n\n    keys.length = 0;\n}\n\nfunction buildGrid(units, unitLength, team, cellSize, grid, keys) {\n    clearGrid(grid, keys);\n\n    for (var i = 0; i < unitLength; i += 5) {\n        if (units[i + 2] !== team) continue;\n\n        var x = units[i + 3];\n        var z = units[i + 4];\n        var gx = Math.floor(x / cellSize);\n        var gz = Math.floor(z / cellSize);\n        var key = getKey(gx, gz);\n        var list = grid[key];\n\n        if (!list) {\n            list = [];\n            grid[key] = list;\n        }\n\n        if (list.length <= 0) {\n            keys.push(key);\n        }\n\n        list.push(\n            units[i],\n            units[i + 1],\n            units[i + 2],\n            x,\n            z\n        );\n    }\n\n    return grid;\n}\n\nfunction ensureResultCapacity(length) {\n    if (resultBuffer.length >= length) {\n        return resultBuffer;\n    }\n\n    var capacity = Math.max(\n        length,\n        resultBuffer.length * 2,\n        64\n    );\n\n    resultBuffer = new Float64Array(capacity);\n\n    return resultBuffer;\n}\n\nself.onmessage = function(event) {\n    var data = event.data;\n\n    if (!data) return;\n\n    if (data.type === 'findNearestBatch') {\n        var units = data.units || [];\n        var unitLength = data.unitLength || units.length;\n        var requests = data.requests || [];\n        var requestLength = data.requestLength || requests.length;\n        var cellSize = Math.max(0.001, data.cellSize || 4);\n        var requestCount = Math.floor(requestLength / 5);\n        var teamA = buildGrid(\n            units,\n            unitLength,\n            0,\n            cellSize,\n            teamAGrid,\n            teamAGridKeys\n        );\n        var teamB = buildGrid(\n            units,\n            unitLength,\n            1,\n            cellSize,\n            teamBGrid,\n            teamBGridKeys\n        );\n        var results = ensureResultCapacity(\n            requestCount * 3\n        );\n        var resultLength = 0;\n\n        for (var i = 0; i < requestLength; i += 5) {\n            var requestId = requests[i];\n            var team = requests[i + 1];\n            var x = requests[i + 2];\n            var z = requests[i + 3];\n            var radius = requests[i + 4];\n            var grid = team === 0\n                ? teamB\n                : teamA;\n\n            results[resultLength++] = requestId;\n            results[resultLength++] =\n                findNearest(grid, x, z, radius, cellSize);\n            results[resultLength++] = bestLifeId;\n        }\n\n        self.postMessage({\n            type: 'findNearestBatchResult',\n            seq: data.seq,\n            results: results.subarray(0, resultLength)\n        });\n    }\n};\n\nself.postMessage({ type: 'ready' });\n";
         }
 
         getRingMinDistanceSq(cx, cz, ring, x, z) {
@@ -507,6 +580,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
       });
+
+      BattleSpatialGrid.noopNearestEnemyCallback = () => {};
 
       _cclegacy._RF.pop();
 

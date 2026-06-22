@@ -38,16 +38,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.units = [];
           this.assignedCounterCount = 0;
           this.laneId = -1;
-          this.pendingLaneId = -1;
-          this.lastEngagedUnitLaneId = -1;
           this.combatModeActive = false;
           this.released = false;
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.runtimeTargetFrame = -1;
+          this.runtimeHasValidTarget = false;
           this.forwardScannerFrame = -1;
           this.forwardScannerUnit = null;
           this.noTargetSinceFrame = -1;
+          this.aliveSortBuffer = [];
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -104,38 +105,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return null;
           }
 
-          const onForwardUnits = [];
-          const notBusyUnits = [];
-          const aliveUnits = [];
+          let best = null;
+          let bestPriority = -1;
+          let bestCount = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            aliveUnits.push(u);
+            const priority = u.onForward ? 2 : !u.onBusy ? 1 : 0;
 
-            if (u.onForward) {
-              onForwardUnits.push(u);
+            if (priority > bestPriority) {
+              bestPriority = priority;
+              bestCount = 1;
+              best = u;
               continue;
             }
 
-            if (!u.onBusy) {
-              notBusyUnits.push(u);
+            if (priority === bestPriority) {
+              bestCount++;
+
+              if (Math.random() * bestCount < 1) {
+                best = u;
+              }
             }
           }
 
-          if (onForwardUnits.length > 0) {
-            return this.randomFromList(onForwardUnits);
-          }
-
-          if (notBusyUnits.length > 0) {
-            return this.randomFromList(notBusyUnits);
-          }
-
-          if (aliveUnits.length > 0) {
-            return this.randomFromList(aliveUnits);
-          }
-
-          return null;
+          return best;
         }
 
         getCounterCoverageRatio() {
@@ -212,6 +207,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         hasAnyValidTarget() {
+          return this.scanHasAnyValidTarget();
+        }
+
+        hasAnyValidTargetRuntime(frame) {
+          if (this.runtimeTargetFrame === frame) {
+            return this.runtimeHasValidTarget;
+          }
+
+          this.runtimeTargetFrame = frame;
+          this.runtimeHasValidTarget = this.scanHasAnyValidTarget();
+          return this.runtimeHasValidTarget;
+        }
+
+        scanHasAnyValidTarget() {
           if (this.released) {
             return false;
           }
@@ -219,7 +228,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            if (!this.isTargetValid(u.enemy)) continue;
+            if (!u.hasValidEnemyTarget()) continue;
             return true;
           }
 
@@ -237,8 +246,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             const ally = this.units[i];
             if (ally === requester) continue;
             if (!this.isUnitAlive(ally)) continue;
-            if (!this.isTargetValid(ally.enemy)) continue;
-            const target = ally.enemy;
+            const target = ally.getValidEnemyTarget();
+            if (!target) continue;
             const dx = target.agent.pos.x - requester.agent.pos.x;
             const dz = target.agent.pos.z - requester.agent.pos.z;
             const d = dx * dx + dz * dz;
@@ -255,7 +264,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         shouldRecoverNoTarget(frame, delayFrames) {
           if (this.released) return false;
 
-          if (this.hasEngagedRuntime(frame) || this.hasAnyValidTarget()) {
+          if (this.hasEngagedRuntime(frame) || this.hasAnyValidTargetRuntime(frame)) {
             this.noTargetSinceFrame = -1;
             return false;
           }
@@ -277,9 +286,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            if (!u.enemy) continue;
+            const target = u.getValidEnemyTarget();
+            if (!target) continue;
 
-            if (BattleWave.getWaveForUnit(u.enemy) === targetWave) {
+            if (BattleWave.getWaveForUnit(target) === targetWave) {
               return true;
             }
           }
@@ -294,8 +304,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
             if (!u.onBusy) continue;
-            if (!u.enemy) continue;
-            const enemyWave = BattleWave.getWaveForUnit(u.enemy);
+            const target = u.getValidEnemyTarget();
+            if (!target) continue;
+            const enemyWave = BattleWave.getWaveForUnit(target);
 
             if (enemyWave && enemyWave !== targetWave) {
               return true;
@@ -303,66 +314,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return false;
-        }
-
-        hasPendingLaneTransfer() {
-          if (this.released) {
-            return false;
-          }
-
-          return this.pendingLaneId >= 0;
-        }
-
-        noteEngagedUnitLane(laneId) {
-          if (this.released) return;
-          if (laneId < 0) return;
-          this.lastEngagedUnitLaneId = laneId;
-        }
-
-        hasLastEngagedUnitLane() {
-          if (this.released) {
-            return false;
-          }
-
-          return this.lastEngagedUnitLaneId >= 0;
-        }
-
-        preparePendingLaneFromLastEngagedUnit() {
-          if (this.released) {
-            return false;
-          }
-
-          if (!this.hasLastEngagedUnitLane()) {
-            return false;
-          }
-
-          this.pendingLaneId = this.lastEngagedUnitLaneId;
-          return true;
-        }
-
-        setPendingLaneId(laneId) {
-          if (this.released) return;
-          if (laneId < 0) return;
-          this.pendingLaneId = laneId;
-        }
-
-        tryApplyPendingLaneTransfer(formationWidth, unitSpacing, _skipEngagedCheck = false) {
-          if (this.released) {
-            return false;
-          }
-
-          if (!this.hasPendingLaneTransfer()) {
-            return false;
-          }
-
-          if (this.hasEngaged()) {
-            return false;
-          }
-
-          this.setLaneId(this.pendingLaneId, formationWidth, unitSpacing);
-          this.pendingLaneId = -1;
-          this.lastEngagedUnitLaneId = -1;
-          return this.resumeForward();
         }
 
         setLaneId(laneId, formationWidth = 1, unitSpacing = 1.5) {
@@ -381,7 +332,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.released) return false;
           if (this.hasEngaged()) return false;
           this.combatModeActive = false;
-          this.lastEngagedUnitLaneId = -1;
           this.noTargetSinceFrame = -1;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -409,8 +359,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         clearLaneControl() {
           if (this.released) return;
-          this.pendingLaneId = -1;
-          this.lastEngagedUnitLaneId = -1;
           this.combatModeActive = false;
           this.forwardScannerUnit = null;
           this.forwardScannerFrame = -1;
@@ -452,7 +400,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getAliveUnitsSortedByX() {
-          const result = [];
+          const result = this.aliveSortBuffer;
+          result.length = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -478,16 +427,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         releaseReferences() {
           this.released = true;
-          this.pendingLaneId = -1;
-          this.lastEngagedUnitLaneId = -1;
           this.combatModeActive = false;
           this.assignedCounterCount = 0;
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.runtimeTargetFrame = -1;
+          this.runtimeHasValidTarget = false;
           this.forwardScannerFrame = -1;
           this.forwardScannerUnit = null;
           this.noTargetSinceFrame = -1;
+          this.aliveSortBuffer.length = 0;
           this.units.length = 0;
         }
 
@@ -558,12 +508,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return best;
         }
 
-        randomFromList(list) {
-          if (list.length <= 0) return null;
-          const index = Math.floor(Math.random() * list.length);
-          return list[index];
-        }
-
         pickFrontMostForwardScanner() {
           this.forwardScannerUnit = null;
           let bestScore = -Infinity;
@@ -585,15 +529,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!unit.agent) return false;
           if (!unit.onForward) return false;
           if (unit.returningToWaveLaneSlot) return false;
-          return true;
-        }
-
-        isTargetValid(unit) {
-          if (!unit) return false;
-          if (!unit.node.activeInHierarchy) return false;
-          if (!unit.agent) return false;
-          if (!unit.props) return false;
-          if (unit.props.isDead()) return false;
           return true;
         }
 

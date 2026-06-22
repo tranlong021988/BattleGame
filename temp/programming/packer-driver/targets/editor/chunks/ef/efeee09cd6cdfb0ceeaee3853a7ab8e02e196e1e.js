@@ -93,10 +93,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.node.activeInHierarchy) return;
           if (this.props.isDead()) return;
           if (!this.unit.onBusy) return;
-          if (!this.unit.enemy) return;
-          if (!this.unit.enemy.node.activeInHierarchy) return;
-          if (!this.unit.enemy.props) return;
-          if (this.unit.enemy.props.isDead()) return;
+          const enemy = this.unit.getValidEnemyTarget();
+
+          if (!enemy) {
+            this.unit.clearEnemy();
+            return;
+          }
+
           this.attackTimer += deltaTime;
 
           if (this.attackTimer < this.nextAttackInterval) {
@@ -105,12 +108,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.attackTimer = 0;
           this.randomizeNextAttackInterval();
-          this.dealDamageToEnemy();
+          this.dealDamageToEnemy(enemy);
         }
 
-        dealDamageToEnemy() {
-          const enemy = this.unit.enemy;
-          if (!enemy || !enemy.props) return;
+        dealDamageToEnemy(enemy) {
           const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
@@ -131,7 +132,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             if (gm) {
               gm.reportKill(this.unit, enemy);
-              gm.onUnitKilled(this.unit, enemy);
               gm.despawnUnit(enemy);
             }
 

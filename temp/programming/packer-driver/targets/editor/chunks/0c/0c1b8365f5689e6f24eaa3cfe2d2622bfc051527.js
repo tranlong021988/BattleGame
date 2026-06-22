@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, input, Input, Quat, Vec3, BattleWave, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, geometry, input, Input, Quat, Vec3, BattleWave, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -39,6 +39,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _decorator = _cc._decorator;
       Camera = _cc.Camera;
       Component = _cc.Component;
+      geometry = _cc.geometry;
       input = _cc.input;
       Input = _cc.Input;
       Quat = _cc.Quat;
@@ -57,7 +58,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "1cbcdGjxwFMXJTanym+R192", "BattleCinematicCameraController", undefined);
 
-      __checkObsolete__(['_decorator', 'Camera', 'Component', 'EventMouse', 'EventTouch', 'input', 'Input', 'Node', 'Quat', 'Vec3']);
+      __checkObsolete__(['_decorator', 'Camera', 'Component', 'EventMouse', 'EventTouch', 'geometry', 'input', 'Input', 'Node', 'Quat', 'Vec3']);
 
       ({
         ccclass,
@@ -119,7 +120,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "uiTapSuppressDuration", _descriptor19, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor20, this);
+          _initializerDefineProperty(this, "enableBattlefieldUnitTapFocus", _descriptor20, this);
+
+          _initializerDefineProperty(this, "unitTapMaxMovePixels", _descriptor21, this);
+
+          _initializerDefineProperty(this, "unitTapPickRadius", _descriptor22, this);
+
+          _initializerDefineProperty(this, "unitTapPickPlaneY", _descriptor23, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor24, this);
 
           this.state = CinematicState.Idle;
           this.currentWave = null;
@@ -144,16 +153,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.uiTapSuppressTimer = 0;
           this.enterTimer = 0;
           this.returnTimer = 0;
+          this.touchTapStartX = 0;
+          this.touchTapStartY = 0;
+          this.hasTouchTapStart = false;
+          this.mouseTapStartX = 0;
+          this.mouseTapStartY = 0;
+          this.hasMouseTapStart = false;
+          this.unitTapRay = new geometry.Ray();
+          this.unitTapWorldPoint = new Vec3();
+          this.unitTapWorldPos = new Vec3();
         }
 
         onEnable() {
           input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+          input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+          input.on(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
           input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+          input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
         }
 
         onDisable() {
           input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+          input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+          input.off(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
           input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+          input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
         }
 
         start() {
@@ -501,6 +525,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         onTouchStart(event) {
+          this.hasTouchTapStart = false;
+
+          if (this.enableBattlefieldUnitTapFocus && this.state === CinematicState.Idle) {
+            const touches = event.getAllTouches();
+
+            if (touches.length <= 1) {
+              const p = event.getLocation();
+              this.touchTapStartX = p.x;
+              this.touchTapStartY = p.y;
+              this.hasTouchTapStart = true;
+            }
+          }
+
           if (!this.tapAnywhereToExit) return;
           if (this.state !== CinematicState.Orbit) return;
           if (this.exitTapTimer > 0) return;
@@ -508,12 +545,172 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.beginReturnToOriginal();
         }
 
+        onTouchEnd(event) {
+          if (!this.hasTouchTapStart) return;
+          this.hasTouchTapStart = false;
+          if (this.state !== CinematicState.Idle) return;
+          if (this.uiTapSuppressTimer > 0) return;
+          const touches = event.getAllTouches();
+          if (touches.length > 0) return;
+          const p = event.getLocation();
+
+          if (!this.isTapWithinMoveThreshold(this.touchTapStartX, this.touchTapStartY, p.x, p.y)) {
+            return;
+          }
+
+          this.tryFocusUnitAtScreenPoint(p.x, p.y);
+        }
+
+        onTouchCancel() {
+          this.hasTouchTapStart = false;
+        }
+
         onMouseDown(event) {
+          this.hasMouseTapStart = false;
+
+          if (this.enableBattlefieldUnitTapFocus && this.state === CinematicState.Idle && this.isPrimaryMouseButton(event)) {
+            const p = event.getLocation();
+            this.mouseTapStartX = p.x;
+            this.mouseTapStartY = p.y;
+            this.hasMouseTapStart = true;
+          }
+
           if (!this.tapAnywhereToExit) return;
           if (this.state !== CinematicState.Orbit) return;
           if (this.exitTapTimer > 0) return;
           if (this.uiTapSuppressTimer > 0) return;
           this.beginReturnToOriginal();
+        }
+
+        onMouseUp(event) {
+          if (!this.hasMouseTapStart) return;
+          this.hasMouseTapStart = false;
+          if (this.state !== CinematicState.Idle) return;
+          if (this.uiTapSuppressTimer > 0) return;
+          if (!this.isPrimaryMouseButton(event)) return;
+          const p = event.getLocation();
+
+          if (!this.isTapWithinMoveThreshold(this.mouseTapStartX, this.mouseTapStartY, p.x, p.y)) {
+            return;
+          }
+
+          this.tryFocusUnitAtScreenPoint(p.x, p.y);
+        }
+
+        tryFocusUnitAtScreenPoint(screenX, screenY) {
+          if (!this.enableBattlefieldUnitTapFocus) return;
+          if (this.state !== CinematicState.Idle) return;
+          const unit = this.pickAliveUnitAtScreenPoint(screenX, screenY);
+          if (!unit) return;
+          this.focusUnit(unit);
+        }
+
+        pickAliveUnitAtScreenPoint(screenX, screenY) {
+          if (!this.screenPointToBattlePlane(screenX, screenY, this.unitTapWorldPoint)) {
+            return null;
+          }
+
+          if (!this.gameManager && this.autoFindGameManager) {
+            this.gameManager = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance;
+          }
+
+          if (!this.gameManager) return null;
+          let bestUnit = null;
+          let bestDistanceSq = Number.POSITIVE_INFINITY;
+          const aResult = this.pickClosestAliveUnitInList(this.gameManager.getAliveUnits(0), this.unitTapWorldPoint.x, this.unitTapWorldPoint.z, bestDistanceSq);
+
+          if (aResult.unit) {
+            bestUnit = aResult.unit;
+            bestDistanceSq = aResult.distanceSq;
+          }
+
+          const bResult = this.pickClosestAliveUnitInList(this.gameManager.getAliveUnits(1), this.unitTapWorldPoint.x, this.unitTapWorldPoint.z, bestDistanceSq);
+
+          if (bResult.unit) {
+            bestUnit = bResult.unit;
+          }
+
+          return bestUnit;
+        }
+
+        pickClosestAliveUnitInList(units, x, z, maxDistanceSq) {
+          let bestUnit = null;
+          let bestDistanceSq = maxDistanceSq;
+
+          for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+            if (!this.isUnitAlive(unit)) continue;
+            const pos = unit.agent ? unit.agent.pos : null;
+            let ux = 0;
+            let uz = 0;
+
+            if (pos) {
+              ux = pos.x;
+              uz = pos.z;
+            } else {
+              unit.node.getWorldPosition(this.unitTapWorldPos);
+              ux = this.unitTapWorldPos.x;
+              uz = this.unitTapWorldPos.z;
+            }
+
+            const dx = ux - x;
+            const dz = uz - z;
+            const distanceSq = dx * dx + dz * dz;
+            const pickRadius = Math.max(this.unitTapPickRadius, unit.radius);
+            if (distanceSq > pickRadius * pickRadius) continue;
+            if (distanceSq >= bestDistanceSq) continue;
+            bestUnit = unit;
+            bestDistanceSq = distanceSq;
+          }
+
+          return {
+            unit: bestUnit,
+            distanceSq: bestDistanceSq
+          };
+        }
+
+        screenPointToBattlePlane(screenX, screenY, out) {
+          if (!this.mainCamera) return false;
+          const camera = this.mainCamera;
+          let ray = null;
+
+          if (typeof camera.screenPointToRay !== 'function') {
+            return false;
+          }
+
+          try {
+            ray = camera.screenPointToRay(screenX, screenY, this.unitTapRay) || this.unitTapRay;
+          } catch (e) {
+            ray = camera.screenPointToRay(this.unitTapRay, screenX, screenY) || this.unitTapRay;
+          }
+
+          const origin = ray.o || ray.origin;
+          const dir = ray.d || ray.direction;
+          if (!origin || !dir) return false;
+          if (Math.abs(dir.y) <= 0.00001) return false;
+          const t = (this.unitTapPickPlaneY - origin.y) / dir.y;
+          if (t < 0) return false;
+          out.set(origin.x + dir.x * t, this.unitTapPickPlaneY, origin.z + dir.z * t);
+          return true;
+        }
+
+        isTapWithinMoveThreshold(startX, startY, endX, endY) {
+          const dx = endX - startX;
+          const dy = endY - startY;
+          const threshold = Math.max(0, this.unitTapMaxMovePixels);
+          return dx * dx + dy * dy <= threshold * threshold;
+        }
+
+        isPrimaryMouseButton(event) {
+          const mouseEvent = event;
+
+          if (typeof mouseEvent.getButton !== 'function') {
+            return true;
+          }
+
+          return mouseEvent.getButton() === 0;
         }
 
         isUnitAlive(unit) {
@@ -671,7 +868,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 0.25;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "enableBattlefieldUnitTapFocus", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "unitTapMaxMovePixels", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 12;
+        }
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "unitTapPickRadius", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.85;
+        }
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "unitTapPickPlaneY", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0;
+        }
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

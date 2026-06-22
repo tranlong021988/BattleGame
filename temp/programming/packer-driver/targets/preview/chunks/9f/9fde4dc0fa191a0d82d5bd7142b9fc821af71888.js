@@ -41,6 +41,9 @@ System.register(["cc"], function (_export, _context) {
 
           this.renderer = null;
           this.currentRatio = 1;
+          this.healthParams = [1, 0, 0, 0];
+          this.barColor = [0, 1, 0, 1];
+          this.colorDirty = true;
         }
 
         onLoad() {
@@ -55,12 +58,13 @@ System.register(["cc"], function (_export, _context) {
 
         setHealthRatio(ratio) {
           this.currentRatio = Math.max(0, Math.min(1, ratio));
-          this.applyAll();
+          this.applyHealthParams();
         }
 
         setMainColor(color) {
           this.mainColor.set(color);
-          this.applyAll();
+          this.colorDirty = true;
+          this.applyColor();
         }
 
         getHealthRatio() {
@@ -69,10 +73,34 @@ System.register(["cc"], function (_export, _context) {
 
         applyAll() {
           if (!this.renderer) return;
+          this.applyHealthParams();
+          this.applyColor();
+        }
+
+        applyHealthParams() {
+          if (!this.renderer) return;
           var shouldShow = !this.hideWhenFull || this.currentRatio < 0.999;
+          var wasShowing = this.renderer.enabled;
           this.renderer.enabled = shouldShow;
-          this.renderer.setInstancedAttribute('a_health_params', [this.currentRatio, shouldShow ? 1 : 0, 0, 0]);
-          this.renderer.setInstancedAttribute('a_bar_color', [this.mainColor.r / 255, this.mainColor.g / 255, this.mainColor.b / 255, 1]);
+          this.healthParams[0] = this.currentRatio;
+          this.healthParams[1] = shouldShow ? 1 : 0;
+          this.healthParams[2] = 0;
+          this.healthParams[3] = 0;
+          this.renderer.setInstancedAttribute('a_health_params', this.healthParams);
+
+          if (shouldShow && (!wasShowing || this.colorDirty)) {
+            this.applyColor();
+          }
+        }
+
+        applyColor() {
+          if (!this.renderer) return;
+          this.barColor[0] = this.mainColor.r / 255;
+          this.barColor[1] = this.mainColor.g / 255;
+          this.barColor[2] = this.mainColor.b / 255;
+          this.barColor[3] = 1;
+          this.renderer.setInstancedAttribute('a_bar_color', this.barColor);
+          this.colorDirty = false;
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "hideWhenFull", [property], {

@@ -42,6 +42,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.packedRequestData = new Float64Array(0);
           this.pendingNearestRequests = [];
           this.activeNearestRequests = new Map();
+          this.nearestRequestPool = [];
           this.flushScheduled = false;
         }
 
@@ -63,7 +64,9 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.workerReady = false;
           this.workerFailed = false;
           this.flushScheduled = false;
+          this.recycleNearestRequestList(this.pendingNearestRequests);
           this.pendingNearestRequests.length = 0;
+          this.recycleActiveNearestRequests();
           this.activeNearestRequests.clear();
           this.unitsById.clear();
           this.targetSnapshot = new Float64Array(0);
@@ -91,7 +94,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             list.push(unit);
             const id = this.getUnitId(unit);
             this.unitsById.set(id, unit);
-            this.appendTargetSnapshot(id, team, unit.agent.pos.x, unit.agent.pos.z);
+            this.appendTargetSnapshot(id, unit.lifeId, team, unit.agent.pos.x, unit.agent.pos.z);
           }
         }
 
@@ -202,7 +205,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return this.findNearestEnemy(team, x, z, range);
         }
 
-        requestNearestEnemy(unit, team, x, z, radius, callback) {
+        requestNearestEnemy(unit, team, x, z, radius, callback, callbackToken = -1) {
           if (!this.canUseWorkerTargetQuery()) {
             return false;
           }
@@ -211,15 +214,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             return false;
           }
 
-          const request = {
-            requestId: this.nextRequestId++,
-            unit,
-            team,
-            x,
-            z,
-            radius,
-            callback
-          };
+          const request = this.getNearestRequest(unit, team, x, z, radius, callback, callbackToken);
           this.pendingNearestRequests.push(request);
 
           if (!this.flushScheduled) {
@@ -264,7 +259,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
 
-            if (!this.isValidRequestUnit(request.unit)) {
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              this.recycleNearestRequest(request);
               continue;
             }
 
@@ -302,26 +298,32 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         applyWorkerResults(results) {
-          for (let i = 0; i < results.length; i += 2) {
+          for (let i = 0; i < results.length; i += 3) {
             const requestId = results[i];
             const targetId = results[i + 1];
+            const targetLifeId = results[i + 2];
             const request = this.activeNearestRequests.get(requestId);
             this.activeNearestRequests.delete(requestId);
             if (!request) continue;
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
 
-            if (!this.isValidRequestUnit(request.unit)) {
-              request.callback(null);
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
             const target = this.unitsById.get(targetId);
 
-            if (!target || !this.isValidTargetUnit(target)) {
-              request.callback(null);
+            if (!target || !this.isValidTargetUnit(target, targetLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
-            request.callback(target);
+            callback(target, callbackToken);
+            this.recycleNearestRequest(request);
           }
         }
 
@@ -331,26 +333,84 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
 
-            if (!this.isValidRequestUnit(request.unit)) {
-              request.callback(null);
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
               continue;
             }
 
-            request.callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius));
+            callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
+            this.recycleNearestRequest(request);
           }
         }
 
-        isValidRequestUnit(unit) {
+        getNearestRequest(unit, team, x, z, radius, callback, callbackToken) {
+          const request = this.nearestRequestPool.pop() || {
+            requestId: 0,
+            unit: null,
+            unitLifeId: -1,
+            team: 0,
+            x: 0,
+            z: 0,
+            radius: 0,
+            callbackToken: -1,
+            callback: BattleSpatialGrid.noopNearestEnemyCallback
+          };
+          request.requestId = this.nextRequestId++;
+          request.unit = unit;
+          request.unitLifeId = unit.lifeId;
+          request.team = team;
+          request.x = x;
+          request.z = z;
+          request.radius = radius;
+          request.callbackToken = callbackToken;
+          request.callback = callback;
+          return request;
+        }
+
+        recycleNearestRequest(request) {
+          if (!request) return;
+          request.requestId = 0;
+          request.unit = null;
+          request.unitLifeId = -1;
+          request.team = 0;
+          request.x = 0;
+          request.z = 0;
+          request.radius = 0;
+          request.callbackToken = -1;
+          request.callback = BattleSpatialGrid.noopNearestEnemyCallback;
+
+          if (this.nearestRequestPool.length < 512) {
+            this.nearestRequestPool.push(request);
+          }
+        }
+
+        recycleNearestRequestList(requests) {
+          for (let i = 0; i < requests.length; i++) {
+            this.recycleNearestRequest(requests[i]);
+          }
+        }
+
+        recycleActiveNearestRequests() {
+          this.activeNearestRequests.forEach(request => {
+            this.recycleNearestRequest(request);
+          });
+        }
+
+        isValidRequestUnit(unit, lifeId = -1) {
           if (!unit) return false;
+          if (lifeId >= 0 && unit.lifeId !== lifeId) return false;
           if (!unit.node.activeInHierarchy) return false;
           if (!unit.agent) return false;
           if (!unit.props || unit.props.isDead()) return false;
           return true;
         }
 
-        isValidTargetUnit(unit) {
-          return this.isValidRequestUnit(unit);
+        isValidTargetUnit(unit, lifeId = -1) {
+          return this.isValidRequestUnit(unit, lifeId);
         }
 
         getUnitId(unit) {
@@ -364,11 +424,12 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           return id;
         }
 
-        appendTargetSnapshot(id, team, x, z) {
-          this.ensureTargetSnapshotCapacity(this.targetSnapshotLength + 4);
+        appendTargetSnapshot(id, lifeId, team, x, z) {
+          this.ensureTargetSnapshotCapacity(this.targetSnapshotLength + 5);
           const data = this.targetSnapshot;
           let index = this.targetSnapshotLength;
           data[index++] = id;
+          data[index++] = lifeId;
           data[index++] = team;
           data[index++] = x;
           data[index++] = z;
@@ -461,8 +522,9 @@ var teamAGrid = Object.create(null);
 var teamBGrid = Object.create(null);
 var teamAGridKeys = [];
 var teamBGridKeys = [];
-var resultBuffer = new Int32Array(0);
+var resultBuffer = new Float64Array(0);
 var bestId = 0;
+var bestLifeId = 0;
 var bestDistSq = Infinity;
 
 function getCellMinDistanceSq(gx, gz, x, z, cellSize) {
@@ -501,10 +563,11 @@ function scanCell(grid, gx, gz, x, z, radiusSq) {
 
     if (!list) return;
 
-    for (var i = 0; i < list.length; i += 4) {
+    for (var i = 0; i < list.length; i += 5) {
         var id = list[i];
-        var ux = list[i + 2];
-        var uz = list[i + 3];
+        var lifeId = list[i + 1];
+        var ux = list[i + 3];
+        var uz = list[i + 4];
         var dx = ux - x;
         var dz = uz - z;
         var d = dx * dx + dz * dz;
@@ -514,6 +577,7 @@ function scanCell(grid, gx, gz, x, z, radiusSq) {
         if (d < bestDistSq) {
             bestDistSq = d;
             bestId = id;
+            bestLifeId = lifeId;
         }
     }
 }
@@ -524,6 +588,7 @@ function findNearest(grid, x, z, radius, cellSize) {
     var cz = Math.floor(z / cellSize);
     var radiusSq = radius * radius;
     bestId = 0;
+    bestLifeId = 0;
     bestDistSq = Infinity;
 
     for (var ring = 0; ring <= cellRange; ring++) {
@@ -592,11 +657,11 @@ function clearGrid(grid, keys) {
 function buildGrid(units, unitLength, team, cellSize, grid, keys) {
     clearGrid(grid, keys);
 
-    for (var i = 0; i < unitLength; i += 4) {
-        if (units[i + 1] !== team) continue;
+    for (var i = 0; i < unitLength; i += 5) {
+        if (units[i + 2] !== team) continue;
 
-        var x = units[i + 2];
-        var z = units[i + 3];
+        var x = units[i + 3];
+        var z = units[i + 4];
         var gx = Math.floor(x / cellSize);
         var gz = Math.floor(z / cellSize);
         var key = getKey(gx, gz);
@@ -614,6 +679,7 @@ function buildGrid(units, unitLength, team, cellSize, grid, keys) {
         list.push(
             units[i],
             units[i + 1],
+            units[i + 2],
             x,
             z
         );
@@ -633,7 +699,7 @@ function ensureResultCapacity(length) {
         64
     );
 
-    resultBuffer = new Int32Array(capacity);
+    resultBuffer = new Float64Array(capacity);
 
     return resultBuffer;
 }
@@ -667,7 +733,7 @@ self.onmessage = function(event) {
             teamBGridKeys
         );
         var results = ensureResultCapacity(
-            requestCount * 2
+            requestCount * 3
         );
         var resultLength = 0;
 
@@ -684,6 +750,7 @@ self.onmessage = function(event) {
             results[resultLength++] = requestId;
             results[resultLength++] =
                 findNearest(grid, x, z, radius, cellSize);
+            results[resultLength++] = bestLifeId;
         }
 
         self.postMessage({
@@ -750,6 +817,8 @@ self.postMessage({ type: 'ready' });
         }
 
       });
+
+      BattleSpatialGrid.noopNearestEnemyCallback = () => {};
 
       _cclegacy._RF.pop();
 

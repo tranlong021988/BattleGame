@@ -105,6 +105,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.returningToWaveLaneSlot = false;
           this.sim = null;
           this.agent = null;
+          this.lifeId = 0;
           this.enemy = null;
           this.onBusy = false;
           this.updateOffset = 0;
@@ -114,14 +115,40 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.moveIntentFacingActive = true;
+          this.lastMoveIntentDir = {
+            x: 0,
+            z: 0
+          };
           this.tempPos = new Vec3();
           this.frameCounter = 0;
           this.cachedNearestInRange = null;
           this.cachedNearestEnemy = null;
           this.forwardLaneTarget = null;
           this.forwardAdjacentTarget = null;
+          this.enemyLifeId = -1;
+          this.cachedNearestInRangeLifeId = -1;
+          this.cachedNearestEnemyLifeId = -1;
+          this.forwardLaneTargetLifeId = -1;
+          this.forwardAdjacentTargetLifeId = -1;
           this.nearestInRangeQueryToken = 0;
           this.nearestEnemyQueryToken = 0;
+
+          this.onNearestInRangeQueryResult = (target, token) => {
+            if (token !== this.nearestInRangeQueryToken) {
+              return;
+            }
+
+            this.setCachedNearestInRangeTarget(this.isValidEnemyWithinRange(target, this.attackRange) ? target : null);
+          };
+
+          this.onNearestEnemyQueryResult = (target, token) => {
+            if (token !== this.nearestEnemyQueryToken) {
+              return;
+            }
+
+            this.setCachedNearestEnemyTarget(this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null);
+          };
         }
 
         onLoad() {
@@ -131,6 +158,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         init(sim, team, unitTypeName, forwardX, forwardZ) {
+          this.advanceLifeId();
           this.team = team;
           this.unitTypeName = unitTypeName;
           this.sim = sim; // Unit node chỉ handle position.
@@ -142,17 +170,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent = sim.addAgent(p.x, p.z);
           this.agent.maxSpeed = this.moveSpeed;
           this.agent.radius = this.radius;
-          this.enemy = null;
+          this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = !this.isSteady;
           this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
           this.frameCounter = this.updateOffset;
           this.invalidateNearestQueryResults();
-          this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (this.laneId < 0) {
             this.laneId = -1;
@@ -160,6 +185,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.resetMoveIntentFacing();
           this.applyRuntimeAgentData();
           this.applySteadyState();
         }
@@ -168,13 +194,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.isSteady = value;
           if (!this.agent) return;
           this.invalidateNearestQueryResults();
-          this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (value) {
-            this.enemy = null;
+            this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
             this.initialYaw = this.getVisualEulerY();
@@ -192,7 +215,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          this.enemy = null;
+          this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = useForwardPhase;
           this.agent.locked = false;
@@ -239,6 +262,54 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.nearestEnemyQueryToken++;
         }
 
+        advanceLifeId() {
+          this.lifeId++;
+
+          if (this.lifeId > Number.MAX_SAFE_INTEGER - 1) {
+            this.lifeId = 1;
+          }
+        }
+
+        setEnemyTarget(target) {
+          this.enemy = target;
+          this.enemyLifeId = target ? target.lifeId : -1;
+        }
+
+        setCachedNearestInRangeTarget(target) {
+          this.cachedNearestInRange = target;
+          this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
+        }
+
+        setCachedNearestEnemyTarget(target) {
+          this.cachedNearestEnemy = target;
+          this.cachedNearestEnemyLifeId = target ? target.lifeId : -1;
+        }
+
+        setForwardLaneTarget(target) {
+          this.forwardLaneTarget = target;
+          this.forwardLaneTargetLifeId = target ? target.lifeId : -1;
+        }
+
+        setForwardAdjacentTarget(target) {
+          this.forwardAdjacentTarget = target;
+          this.forwardAdjacentTargetLifeId = target ? target.lifeId : -1;
+        }
+
+        clearCachedTargets() {
+          this.setCachedNearestInRangeTarget(null);
+          this.setCachedNearestEnemyTarget(null);
+          this.setForwardLaneTarget(null);
+          this.setForwardAdjacentTarget(null);
+        }
+
+        getValidEnemyTarget() {
+          return this.isValidEnemy(this.enemy, this.enemyLifeId) ? this.enemy : null;
+        }
+
+        hasValidEnemyTarget() {
+          return !!this.getValidEnemyTarget();
+        }
+
         setForwardDir(x, z) {
           const len = Math.sqrt(x * x + z * z);
 
@@ -255,17 +326,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         resetForDespawn() {
-          this.enemy = null;
+          this.advanceLifeId();
+          this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = true;
           this.invalidateNearestQueryResults();
-          this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
           this.laneId = -1;
           this.forwardLaneOffsetX = 0;
           this.returningToWaveLaneSlot = false;
+          this.resetMoveIntentFacing();
 
           if (this.agent) {
             this.agent.locked = false;
@@ -283,17 +353,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         setEnemy(e) {
           if (this.onBusy) return;
           if (this.onForward) return;
-          this.enemy = e;
+          this.setEnemyTarget(e);
         }
 
         clearEnemy() {
-          this.enemy = null;
+          this.setEnemyTarget(null);
           this.onBusy = false;
           this.invalidateNearestQueryResults();
-          this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (this.agent) {
             this.agent.vel.x = 0;
@@ -313,13 +380,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.resetStableRotationPosition();
           this.targetSearchRange = Math.max(this.targetSearchRange, searchRange);
           this.invalidateNearestQueryResults();
-          this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (!this.onBusy) {
-            this.enemy = null;
+            this.setEnemyTarget(null);
           }
 
           if (this.agent) {
@@ -340,15 +404,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.laneId = laneId;
           this.forwardLaneOffsetX = laneOffsetX;
           this.returningToWaveLaneSlot = returnToSlot;
-          this.enemy = null;
+          this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = !returnToSlot;
           this.resetStableRotationPosition();
+          this.resetMoveIntentFacing();
           this.invalidateNearestQueryResults();
-          this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (this.agent) {
             this.agent.locked = false;
@@ -365,10 +427,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onForward = false;
           this.resetStableRotationPosition();
           this.invalidateNearestQueryResults();
-          this.cachedNearestEnemy = null;
-          this.cachedNearestInRange = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (this.agent) {
             this.agent.onForward = 0;
@@ -389,10 +448,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.invalidateNearestQueryResults();
-          this.cachedNearestEnemy = null;
-          this.cachedNearestInRange = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
+          this.clearCachedTargets();
 
           if (this.agent) {
             this.agent.onForward = 0;
@@ -409,7 +465,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.applyRuntimeAgentData();
 
           if (this.props && this.props.isDead()) {
-            this.enemy = null;
+            this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
             this.returningToWaveLaneSlot = false;
@@ -432,10 +488,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           if (this.onBusy) {
-            if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
+            const busyEnemy = this.getValidEnemyTarget();
+
+            if (!busyEnemy) {
               this.clearEnemy();
             } else {
-              this.lookAtTargetSmooth(this.enemy, deltaTime);
+              this.lookAtTargetSmooth(busyEnemy, deltaTime);
               this.sim.setPrefVelocity(this.agent, 0, 0);
               this.agent.vel.x = 0;
               this.agent.vel.z = 0;
@@ -459,12 +517,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.returningToWaveLaneSlot = false;
             this.onForward = false;
             this.agent.onForward = 0;
-            this.enemy = nearestInRange;
+            this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
             this.agent.locked = true;
-            this.cachedNearestEnemy = null;
-            this.cachedNearestInRange = null;
-            this.lookAtTargetSmooth(this.enemy, deltaTime);
+            this.setCachedNearestEnemyTarget(null);
+            this.setCachedNearestInRangeTarget(null);
+            this.lookAtTargetSmooth(nearestInRange, deltaTime);
             this.sim.setPrefVelocity(this.agent, 0, 0);
             this.agent.vel.x = 0;
             this.agent.vel.z = 0;
@@ -487,6 +545,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.onForward = true;
               this.agent.onForward = 0;
               this.resetStableRotationPosition();
+              this.resetMoveIntentFacing();
               this.sim.setPrefVelocity(this.agent, 0, 0);
               this.agent.vel.x = 0;
               this.agent.vel.z = 0;
@@ -511,31 +570,34 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (this.onForward) {
               this.agent.onForward = 1;
               this.updateForwardPrefVelocity();
-              this.sync(deltaTime, true);
+              this.lookMoveIntentSmooth(deltaTime);
+              this.sync(deltaTime, false);
               return;
             }
           }
 
           this.agent.onForward = 0;
 
-          if (!this.isValidEnemy(this.enemy)) {
-            this.enemy = this.getNearestEnemyThrottled();
+          if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(this.getNearestEnemyThrottled());
 
-            if (!this.isValidEnemy(this.enemy)) {
-              this.enemy = this.getSharedWaveTarget();
+            if (!this.hasValidEnemyTarget()) {
+              this.setEnemyTarget(this.getSharedWaveTarget());
             }
           }
 
-          if (this.enemy && this.enemy.agent) {
-            const dx = this.enemy.agent.pos.x - this.agent.pos.x;
-            const dz = this.enemy.agent.pos.z - this.agent.pos.z;
+          const enemy = this.getValidEnemyTarget();
+
+          if (enemy && enemy.agent) {
+            const dx = enemy.agent.pos.x - this.agent.pos.x;
+            const dz = enemy.agent.pos.z - this.agent.pos.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
               this.sim.setPrefVelocity(this.agent, dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
             }
 
-            this.lookAtTargetSmooth(this.enemy, deltaTime);
+            this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
           } else {
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -582,43 +644,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         getNearestEnemyInAttackRangeThrottled() {
           if (this.shouldRunAttackCheck()) {
             const queryToken = ++this.nearestInRangeQueryToken;
-            const queued = this.queueNearestEnemyQuery(this.attackRange, target => {
-              if (queryToken !== this.nearestInRangeQueryToken) {
-                return;
-              }
-
-              this.cachedNearestInRange = this.isValidEnemyWithinRange(target, this.attackRange) ? target : null;
-            });
+            const queued = this.queueNearestEnemyQuery(this.attackRange, this.onNearestInRangeQueryResult, queryToken);
 
             if (!queued) {
-              this.cachedNearestInRange = this.findNearestEnemyInAttackRange();
+              this.setCachedNearestInRangeTarget(this.findNearestEnemyInAttackRange());
             }
-          } else if (!this.isValidEnemy(this.cachedNearestInRange)) {
-            this.cachedNearestInRange = null;
+          } else if (!this.isValidEnemy(this.cachedNearestInRange, this.cachedNearestInRangeLifeId)) {
+            this.setCachedNearestInRangeTarget(null);
           }
 
-          return this.isValidEnemyWithinRange(this.cachedNearestInRange, this.attackRange) ? this.cachedNearestInRange : null;
+          return this.isValidEnemyWithinRange(this.cachedNearestInRange, this.attackRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
         }
 
         getNearestEnemyThrottled() {
           if (this.shouldRunTargetSearch()) {
             const queryToken = ++this.nearestEnemyQueryToken;
-            const queued = this.queueNearestEnemyQuery(this.targetSearchRange, target => {
-              if (queryToken !== this.nearestEnemyQueryToken) {
-                return;
-              }
-
-              this.cachedNearestEnemy = this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null;
-            });
+            const queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
 
             if (!queued) {
-              this.cachedNearestEnemy = this.findNearestEnemy();
+              this.setCachedNearestEnemyTarget(this.findNearestEnemy());
             }
-          } else if (!this.isValidEnemy(this.cachedNearestEnemy)) {
-            this.cachedNearestEnemy = null;
+          } else if (!this.isValidEnemy(this.cachedNearestEnemy, this.cachedNearestEnemyLifeId)) {
+            this.setCachedNearestEnemyTarget(null);
           }
 
-          return this.isValidEnemyWithinRange(this.cachedNearestEnemy, this.targetSearchRange) ? this.cachedNearestEnemy : null;
+          return this.isValidEnemyWithinRange(this.cachedNearestEnemy, this.targetSearchRange, this.cachedNearestEnemyLifeId) ? this.cachedNearestEnemy : null;
         }
 
         updateForwardPhase() {
@@ -634,13 +684,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (shouldScan) {
             nearestLaneEnemy = this.findNearestEnemyInSameLane();
-            this.forwardLaneTarget = nearestLaneEnemy;
+            this.setForwardLaneTarget(nearestLaneEnemy);
           }
 
           if (nearestLaneEnemy && nearestLaneEnemy.agent) {
             if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
-              this.forwardLaneTarget = null;
-              this.forwardAdjacentTarget = null;
+              this.setForwardLaneTarget(null);
+              this.setForwardAdjacentTarget(null);
 
               if (!this.releaseWaveForwardToFreeHunt(nearestLaneEnemy)) {
                 this.onForward = false;
@@ -654,13 +704,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (shouldScan) {
             nearestAdjacentLaneEnemy = this.findNearestEnemyInAdjacentLane(true);
-            this.forwardAdjacentTarget = nearestAdjacentLaneEnemy;
+            this.setForwardAdjacentTarget(nearestAdjacentLaneEnemy);
           }
 
           if (nearestAdjacentLaneEnemy) {
             if (this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)) {
-              this.forwardLaneTarget = null;
-              this.forwardAdjacentTarget = null;
+              this.setForwardLaneTarget(null);
+              this.setForwardAdjacentTarget(null);
 
               if (!this.releaseWaveForwardToFreeHunt(nearestAdjacentLaneEnemy)) {
                 this.onForward = false;
@@ -673,8 +723,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const enemyHero = this.getEnemyHero();
 
           if (enemyHero && this.isValidEnemy(enemyHero) && this.isSameOrAdjacentLane(enemyHero.laneId) && this.hasPassedTargetAlongForward(enemyHero)) {
-            this.forwardLaneTarget = null;
-            this.forwardAdjacentTarget = null;
+            this.setForwardLaneTarget(null);
+            this.setForwardAdjacentTarget(null);
 
             if (!this.releaseWaveForwardToFreeHunt(enemyHero)) {
               this.onForward = false;
@@ -781,8 +831,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const target = this.forwardLaneTarget;
           if (!target) return null;
 
-          if (!this.isValidEnemy(target) || target.laneId !== this.laneId) {
-            this.forwardLaneTarget = null;
+          if (!this.isValidEnemy(target, this.forwardLaneTargetLifeId) || target.laneId !== this.laneId) {
+            this.setForwardLaneTarget(null);
             return null;
           }
 
@@ -793,8 +843,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const target = this.forwardAdjacentTarget;
           if (!target) return null;
 
-          if (!this.isValidEnemy(target) || !this.isAdjacentLane(target.laneId)) {
-            this.forwardAdjacentTarget = null;
+          if (!this.isValidEnemy(target, this.forwardAdjacentTargetLifeId) || !this.isAdjacentLane(target.laneId)) {
+            this.setForwardAdjacentTarget(null);
             return null;
           }
 
@@ -877,12 +927,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         clearInvalidEnemy() {
-          if (!this.enemy || !this.enemy.node.activeInHierarchy || !this.enemy.agent || !this.enemy.props || this.enemy.props.isDead()) {
-            this.enemy = null;
+          if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(null);
           }
         }
 
-        queueNearestEnemyQuery(radius, callback) {
+        queueNearestEnemyQuery(radius, callback, callbackToken) {
           if (!this.agent) return false;
           const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -892,18 +942,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
-          return gm.spatialGrid.requestNearestEnemy(this, this.team, this.agent.pos.x, this.agent.pos.z, radius, target => {
-            if (!this.node.activeInHierarchy) {
-              return;
-            }
-
-            if (!this.agent || this.props.isDead()) {
-              callback(null);
-              return;
-            }
-
-            callback(target);
-          });
+          return gm.spatialGrid.requestNearestEnemy(this, this.team, this.agent.pos.x, this.agent.pos.z, radius, callback, callbackToken);
         }
 
         findNearestEnemyInAttackRange() {
@@ -959,6 +998,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         findNearestEnemyFallback() {
           if (!this.agent) return null;
+          const searchRangeSq = this.targetSearchRange * this.targetSearchRange;
           const enemies = this.getEnemyList();
           let best = null;
           let bestDistSq = Infinity;
@@ -969,6 +1009,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             const dx = e.agent.pos.x - this.agent.pos.x;
             const dz = e.agent.pos.z - this.agent.pos.z;
             const d = dx * dx + dz * dz;
+            if (d > searchRangeSq) continue;
 
             if (d < bestDistSq) {
               bestDistSq = d;
@@ -979,17 +1020,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return best;
         }
 
-        isValidEnemy(e) {
+        isValidEnemy(e, lifeId = -1) {
           if (!e || e === this) return false;
+          if (lifeId >= 0 && e.lifeId !== lifeId) return false;
           if (!e.node.activeInHierarchy) return false;
           if (!e.agent) return false;
           if (!e.props || e.props.isDead()) return false;
           return true;
         }
 
-        isValidEnemyWithinRange(e, range) {
+        isValidEnemyWithinRange(e, range, lifeId = -1) {
           if (!this.agent) return false;
-          if (!this.isValidEnemy(e)) return false;
+          if (!this.isValidEnemy(e, lifeId)) return false;
           const dx = e.agent.pos.x - this.agent.pos.x;
           const dz = e.agent.pos.z - this.agent.pos.z;
           return dx * dx + dz * dz <= range * range;
@@ -1032,6 +1074,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (dx * dx + dz * dz < 0.0001) return;
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           const currentY = this.getVisualEulerY();
+
+          if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
+            return;
+          }
+
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
         }
@@ -1057,12 +1104,46 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.lookDirectionSmooth(Math.sign(dx), 0, deltaTime);
         }
 
+        lookMoveIntentSmooth(deltaTime) {
+          if (!this.agent) return;
+          if (this.agent.locked) return;
+          const dx = this.agent.prefVel.x;
+          const dz = this.agent.prefVel.z;
+          const lenSq = dx * dx + dz * dz;
+
+          if (lenSq < 0.0001) {
+            this.lastMoveIntentDir.x = 0;
+            this.lastMoveIntentDir.z = 0;
+            this.moveIntentFacingActive = false;
+            return;
+          }
+
+          const invLen = 1 / Math.sqrt(lenSq);
+          const dirX = dx * invLen;
+          const dirZ = dz * invLen;
+
+          if (Math.abs(dirX - this.lastMoveIntentDir.x) > 0.001 || Math.abs(dirZ - this.lastMoveIntentDir.z) > 0.001) {
+            this.lastMoveIntentDir.x = dirX;
+            this.lastMoveIntentDir.z = dirZ;
+            this.moveIntentFacingActive = true;
+          }
+
+          if (!this.moveIntentFacingActive) return;
+          this.moveIntentFacingActive = this.lookDirectionSmooth(dirX, dirZ, deltaTime);
+        }
+
         lookDirectionSmooth(dx, dz, deltaTime) {
-          if (dx * dx + dz * dz < 0.0001) return;
+          if (dx * dx + dz * dz < 0.0001) return false;
           const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           const currentY = this.getVisualEulerY();
+
+          if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
+            return false;
+          }
+
           const newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
+          return true;
         }
 
         sync(deltaTime, rotateByVelocity) {
@@ -1107,6 +1188,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         setVisualYaw(y) {
+          this.moveIntentFacingActive = true;
           this.getVisualNode().setRotationFromEuler(0, y + this.visualYawOffset, 0);
         }
 
@@ -1116,11 +1198,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.lastStablePos.z = p.z;
         }
 
+        resetMoveIntentFacing() {
+          this.moveIntentFacingActive = true;
+          this.lastMoveIntentDir.x = 0;
+          this.lastMoveIntentDir.z = 0;
+        }
+
         lerpAngle(a, b, t) {
           let diff = (b - a) % 360;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
           return a + diff * t;
+        }
+
+        getAngleDeltaAbs(a, b) {
+          let diff = (b - a) % 360;
+          if (diff > 180) diff -= 360;
+          if (diff < -180) diff += 360;
+          return Math.abs(diff);
         }
 
       }, _class3.visualLerpT = 1, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "visualRoot", [_dec2], {
