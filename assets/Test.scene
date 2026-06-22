@@ -3745,8 +3745,8 @@
     "attackCheckIntervalFrames": 3,
     "targetSearchRange": 40,
     "targetSearchIntervalFrames": 30,
-    "forwardScanRange": 12,
-    "forwardScanIntervalFrames": 2,
+    "forwardScanRange": 8,
+    "forwardScanIntervalFrames": 15,
     "useWaveForwardScanner": true,
     "laneReturnTolerance": 0.35,
     "forwardDir": {
@@ -4472,8 +4472,8 @@
     "attackCheckIntervalFrames": 3,
     "targetSearchRange": 40,
     "targetSearchIntervalFrames": 30,
-    "forwardScanRange": 12,
-    "forwardScanIntervalFrames": 2,
+    "forwardScanRange": 8,
+    "forwardScanIntervalFrames": 15,
     "useWaveForwardScanner": true,
     "laneReturnTolerance": 0.35,
     "forwardDir": {

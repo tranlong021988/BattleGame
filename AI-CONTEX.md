@@ -647,6 +647,38 @@ Prefer a middle-ground design instead of pure lane-edge acceptance:
 
 Implementation should be small and localized, likely in `Unit.shouldReturnToLaneSlot()` / `Unit.updateForwardPrefVelocity()`. Do not remove `forwardLaneOffsetX` unless there is a larger formation redesign.
 
+## Handoff 2026-06-22: hero phase unlock guard
+
+Issue described by user:
+
+- Team A has only hero plus a few normal units.
+- Some B units fight A normal units while other B units attack hero A at the same time.
+- B kills all A normal units and then joins the fight against hero A.
+- Hero A kills all B normal units.
+- At that moment both teams have no normal units and cannot spawn more units, so both heroes should enter/freehunt phase.
+- Observed issue: both sides can stand still instead.
+
+Risk found in source:
+
+- `GameManager.tryUnlockHeroForward(team)` used to return early when `!hero.isSteady`.
+- That made hero unlock depend on the visual/stance state `isSteady`, not only on the actual phase state.
+- If a hero ever reached `isSteady = false` while `heroForwardUnlocked[team]` was still false, the team could never complete hero phase unlock.
+
+Fix:
+
+- `tryUnlockHeroForward(team)` now returns early only if `heroForwardUnlocked[team]` is already true.
+- It still requires:
+  - hero alive,
+  - team cannot afford any valid spawn entry,
+  - no alive non-hero units,
+  - no alive normal waves.
+- Then `unlockHeroForward(team, hero)` handles `setSteady(false, false)` and `enterFreeHuntMode(heroFreeHuntSearchRange)`.
+
+Design note:
+
+- Do not reintroduce `if (!hero.isSteady) return` in `tryUnlockHeroForward`.
+- `isSteady` is a unit stance/combat state. `heroForwardUnlocked` is the phase state.
+
 ## Handoff 2026-06-19: majority-only lane recovery
 
 User clarified the intended lane recovery rule:

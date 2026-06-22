@@ -804,7 +804,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (!hero!.isSteady) {
+        if (this.heroForwardUnlocked[team]) {
             return;
         }
 
