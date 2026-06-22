@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, unitTypeToName, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _crd, ccclass, property, ArmyBrainMode, ArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, unitTypeToName, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _crd, ccclass, property, ArmyBrainMode, ArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -69,7 +69,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _export("ArmyBrain", ArmyBrain = (_dec = ccclass('ArmyBrain'), _dec2 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
         error: Error()
-      }), GameManager) : GameManager), _dec(_class = (_class2 = class ArmyBrain extends Component {
+      }), GameManager) : GameManager), _dec3 = property({
+        displayName: 'Aggressive Forward Chance'
+      }), _dec4 = property({
+        displayName: 'Enable Aggressive Forward Log'
+      }), _dec(_class = (_class2 = class ArmyBrain extends Component {
         constructor() {
           super(...arguments);
 
@@ -107,15 +111,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "flankAggression", _descriptor17, this);
 
-          _initializerDefineProperty(this, "aiIntelligence", _descriptor18, this);
+          _initializerDefineProperty(this, "aggressiveForwardChance", _descriptor18, this);
 
-          _initializerDefineProperty(this, "spawnRandomIfNoThreat", _descriptor19, this);
+          _initializerDefineProperty(this, "aiIntelligence", _descriptor19, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor20, this);
+          _initializerDefineProperty(this, "spawnRandomIfNoThreat", _descriptor20, this);
 
-          _initializerDefineProperty(this, "enableStateLog", _descriptor21, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor21, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor22, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor22, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor23, this);
+
+          _initializerDefineProperty(this, "enableAggressiveForwardLog", _descriptor24, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -166,8 +174,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
           this.resolveMode(enemyWaves.length);
           this.stateLog("MODE=" + this.currentModeName + ", myWaves=" + this.getAliveWaveCount(this.team) + ", enemyWaves=" + enemyWaves.length + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", AI=" + this.getAIIntelligence().toFixed(2));
+          var lanePressure = this.buildLanePressureSnapshot();
 
           if (enemyWaves.length <= 0) {
+            if (this.trySpawnAggressiveForwardRaid(validEntries, lanePressure, 'No enemy wave')) {
+              return;
+            }
+
             if (this.spawnOpeningWaveIfNoEnemyWave) {
               this.spawnOpeningWave(validEntries);
               return;
@@ -180,9 +193,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          var targetWave = this.findTargetWave();
+          var raidDefenseWave = this.findRaidDefenseThreatWave();
+          var useRaidDefense = !!raidDefenseWave && Math.random() <= this.clamp(this.defenseModeChance, 0, 1);
+          var targetWave = useRaidDefense ? raidDefenseWave : this.findTargetWave();
 
           if (!targetWave) {
+            if (this.trySpawnAggressiveForwardRaid(validEntries, lanePressure, 'No valid target')) {
+              return;
+            }
+
             if (this.spawnRandomIfNoThreat) {
               this.spawnRandom(validEntries, 'No valid target');
             }
@@ -204,9 +223,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), unitTypeToName) : unitTypeToName)(targetWave.unitType) + ", selected=" + selectedEntry.name + "/" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
             error: Error()
           }), unitTypeToName) : unitTypeToName)(selectedEntry.unitType) + ", score=" + selectedCounterScore.toFixed(2) + ", isCounter=" + isRealCounter + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", cost=" + selectedEntry.combatPointCost + ", coverage=" + targetWave.getCounterCoverageRatio().toFixed(2) + ", lane=" + targetWave.laneId + ", engaged=" + targetWave.hasEngaged());
-          var lanePressure = this.buildLanePressureSnapshot();
-          var spawnLaneId = this.getCounterSpawnLaneId(targetWave, lanePressure);
-          this.debugLog("Counter spawn lane: targetLane=" + targetWave.laneId + ", spawnLane=" + spawnLaneId + ", sameLaneChance=" + this.counterSameLaneChance.toFixed(2));
+
+          if (!useRaidDefense && !isRealCounter && this.trySpawnAggressiveForwardRaid(validEntries, lanePressure, "Fallback/non-counter against wave=" + targetWave.id)) {
+            return;
+          }
+
+          var spawnLaneId = useRaidDefense ? this.getSafeTargetLaneId(targetWave) : this.getCounterSpawnLaneId(targetWave, lanePressure);
+          this.debugLog("Counter spawn lane: targetLane=" + targetWave.laneId + ", spawnLane=" + spawnLaneId + ", sameLaneChance=" + this.counterSameLaneChance.toFixed(2) + ", raidDefense=" + useRaidDefense);
           var spawned = this.gameManager.spawnWaveByEntry(this.team, selectedEntry, spawnLaneId);
 
           if (spawned) {
@@ -217,6 +240,94 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               this.debugLog("Spawned fallback/non-counter unit. No counter assignment added for wave=" + targetWave.id);
             }
           }
+        }
+
+        findRaidDefenseThreatWave() {
+          if (!this.gameManager) return null;
+          var enemyTeam = this.team === 0 ? 1 : 0;
+          var waves = this.gameManager.getWavesByTeam(enemyTeam);
+          var defendPoint = this.getDefendPoint();
+          var defendLane = this.getDefendLaneId();
+          var best = null;
+          var bestScore = -Infinity;
+
+          for (var i = 0; i < waves.length; i++) {
+            var wave = waves[i];
+            if (!this.isAliveThreatWave(wave)) continue;
+            if (!wave.hasAggressiveForward()) continue;
+            if (wave.laneId < 0) continue;
+            var laneId = this.gameManager.clampLaneId(wave.laneId);
+
+            if (Math.abs(laneId - defendLane) > 1) {
+              continue;
+            }
+
+            var distSq = wave.getClosestDistanceSqTo(defendPoint.x, defendPoint.z);
+            var dist = Math.sqrt(distSq);
+            var aliveRatio = wave.getAliveRatio();
+            var score = 0;
+            score += Math.max(0, 140 - dist);
+            score += aliveRatio * 60;
+
+            if (laneId === defendLane) {
+              score += 35;
+            }
+
+            if (!wave.isCounterCovered(this.attackCounterCoverageRatio)) {
+              score += 45;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              best = wave;
+            }
+          }
+
+          if (best) {
+            this.debugLog("Raid defense target: wave=" + best.id + ", lane=" + best.laneId + ", defenseChance=" + this.defenseModeChance.toFixed(2));
+          }
+
+          return best;
+        }
+
+        trySpawnAggressiveForwardRaid(validEntries, lanePressure, reason) {
+          if (!this.gameManager) return false;
+          if (!this.canSpawnMoreWave()) return false;
+          var chance = this.clamp(this.aggressiveForwardChance, 0, 1);
+
+          if (chance <= 0) {
+            return false;
+          }
+
+          var roll = Math.random();
+
+          if (roll > chance) {
+            return false;
+          }
+
+          var laneId = this.getAggressiveForwardRaidLane(lanePressure);
+
+          if (laneId < 0) {
+            this.aggressiveForwardLog(reason + ": no empty lane");
+            return false;
+          }
+
+          var entry = this.getFastestAffordableEntry(validEntries);
+
+          if (!entry) {
+            this.aggressiveForwardLog(reason + ": no affordable raid unit");
+            return false;
+          }
+
+          var spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, true);
+
+          if (!spawned) {
+            this.aggressiveForwardLog(reason + ": spawn failed for " + entry.name + " lane=" + laneId);
+            return false;
+          }
+
+          this.aggressiveForwardLog(reason + ": spawn " + entry.name + " lane=" + laneId + ", speed=" + entry.maxSpeed + ", cost=" + entry.combatPointCost + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)));
+          return true;
         }
 
         resolveMode(enemyAliveWaveCount) {
@@ -480,6 +591,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return best;
         }
 
+        getFastestAffordableEntry(entries) {
+          if (!this.gameManager) return null;
+          var best = null;
+          var bestSpeed = -Infinity;
+          var bestCost = Infinity;
+
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!this.isValidEntry(entry)) continue;
+
+            if (!this.gameManager.canAffordEntry(this.team, entry)) {
+              continue;
+            }
+
+            var speed = Math.max(0, entry.maxSpeed);
+            var cost = Math.max(0, entry.combatPointCost);
+
+            if (speed > bestSpeed + 0.0001 || Math.abs(speed - bestSpeed) <= 0.0001 && cost < bestCost) {
+              best = entry;
+              bestSpeed = speed;
+              bestCost = cost;
+            }
+          }
+
+          return best;
+        }
+
+        getAggressiveForwardRaidLane(lanePressure) {
+          if (!this.gameManager) return -1;
+          var laneCount = this.gameManager.getSafeLaneCount();
+          var bestLane = -1;
+          var bestScore = -Infinity;
+
+          for (var lane = 0; lane < laneCount; lane++) {
+            var info = lanePressure[lane];
+            if (!info) continue;
+            if (info.enemyCount > 0) continue;
+            if (info.allyCount > 0) continue;
+            var score = Math.random() * 0.001;
+            score -= info.allyDefense;
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestLane = lane;
+            }
+          }
+
+          return bestLane;
+        }
+
         canSpawnMoreWave() {
           if (!this.enableMaxAliveWaveLimit) {
             return true;
@@ -636,6 +797,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
         }
 
+        getDefendLaneId() {
+          if (!this.gameManager) {
+            return 0;
+          }
+
+          var hero = this.team === 0 ? this.gameManager.teamAHero : this.gameManager.teamBHero;
+
+          if (hero && hero.laneId >= 0) {
+            return this.gameManager.clampLaneId(hero.laneId);
+          }
+
+          return this.gameManager.clampLaneId(Math.floor(this.gameManager.getSafeLaneCount() / 2));
+        }
+
+        getSafeTargetLaneId(targetWave) {
+          if (!this.gameManager) {
+            return targetWave.laneId;
+          }
+
+          if (targetWave.laneId < 0) {
+            return this.getDefendLaneId();
+          }
+
+          return this.gameManager.clampLaneId(targetWave.laneId);
+        }
+
         getAIIntelligence() {
           return this.clamp(this.aiIntelligence, 0, 1);
         }
@@ -690,6 +877,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         debugLog(message) {
           if (!this.enableDebugLog) return;
           console.log("[ArmyBrain Debug T" + this.team + "] " + message);
+        }
+
+        aggressiveForwardLog(message) {
+          if (!this.enableAggressiveForwardLog) return;
+          console.log("[ArmyBrain AggressiveForward T" + this.team + "] " + message);
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "gameManager", [_dec2], {
@@ -811,35 +1003,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "aiIntelligence", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChance", [_dec3], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.25;
+        }
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "aiIntelligence", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.0;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "spawnRandomIfNoThreat", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "spawnRandomIfNoThreat", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "enableAggressiveForwardLog", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,

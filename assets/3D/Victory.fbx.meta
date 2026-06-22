@@ -7,15 +7,15 @@
     "__original-animation-0.bin"
   ],
   "subMetas": {
-    "41ac8": {
+    "c6e33": {
       "importer": "gltf-mesh",
-      "uuid": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@41ac8",
+      "uuid": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@c6e33",
       "displayName": "",
-      "id": "41ac8",
-      "name": "Cube.001.mesh",
+      "id": "c6e33",
+      "name": "Cube.002.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 3364
+        "triangleCount": 986
       },
       "ver": "1.1.1",
       "imported": true,
@@ -37,7 +37,7 @@
         "sample": 30,
         "span": {
           "from": 0,
-          "to": 2.200000047683716
+          "to": 2.2333333492279053
         },
         "events": [],
         "speed": 2
@@ -108,13 +108,13 @@
     "animationImportSettings": [
       {
         "name": "Scene",
-        "duration": 2.200000047683716,
+        "duration": 2.2333333492279053,
         "fps": 30,
         "splits": [
           {
             "name": "Scene",
             "from": 0,
-            "to": 2.200000047683716,
+            "to": 2.2333333492279053,
             "wrapMode": 2,
             "previousId": "cbc2b",
             "speed": 2
@@ -142,7 +142,7 @@
     },
     "assetFinder": {
       "meshes": [
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@41ac8"
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@c6e33"
       ],
       "skeletons": [
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@438fe"
@@ -162,7 +162,7 @@
       "overdraw": true
     },
     "meshSimplify": {
-      "enable": true,
+      "enable": false,
       "targetRatio": 0.5,
       "autoErrorRate": true,
       "errorRate": 0.15,

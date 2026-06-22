@@ -400,7 +400,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -348.963625,
-      "y": 567.1999999999999,
+      "y": 572.4,
       "z": 0
     },
     "_lrot": {
@@ -438,8 +438,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 71.71875,
-      "height": 50.4
+      "width": 78.75,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -477,8 +477,11 @@
     "_lineHeight": 40,
     "_overflow": 0,
     "_enableWrapText": false,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+      "__expectedType__": "cc.BitmapFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": false,
@@ -565,7 +568,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -348.963625,
-      "y": 600.3,
+      "y": 605.5,
       "z": 0
     },
     "_lrot": {
@@ -603,8 +606,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 63.3837890625,
-      "height": 50.4
+      "width": 78.75,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -642,8 +645,11 @@
     "_lineHeight": 40,
     "_overflow": 0,
     "_enableWrapText": false,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+      "__expectedType__": "cc.BitmapFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": false,
@@ -730,7 +736,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -348.963625,
-      "y": 494.604,
+      "y": 499.804,
       "z": 0
     },
     "_lrot": {
@@ -768,8 +774,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 71.71875,
-      "height": 50.4
+      "width": 78.75,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -807,8 +813,11 @@
     "_lineHeight": 40,
     "_overflow": 0,
     "_enableWrapText": false,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+      "__expectedType__": "cc.BitmapFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": false,
@@ -895,7 +904,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -348.963625,
-      "y": 530.0999999999999,
+      "y": 535.3,
       "z": 0
     },
     "_lrot": {
@@ -933,8 +942,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 63.3837890625,
-      "height": 50.4
+      "width": 78.75,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -972,8 +981,11 @@
     "_lineHeight": 40,
     "_overflow": 0,
     "_enableWrapText": false,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+      "__expectedType__": "cc.BitmapFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": false,
@@ -1060,7 +1072,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -348.963625,
-      "y": 421.1,
+      "y": 426.3,
       "z": 0
     },
     "_lrot": {
@@ -1098,8 +1110,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 71.71875,
-      "height": 50.4
+      "width": 78.75,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1137,8 +1149,11 @@
     "_lineHeight": 40,
     "_overflow": 0,
     "_enableWrapText": false,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+      "__expectedType__": "cc.BitmapFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": false,
@@ -1225,7 +1240,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -348.963625,
-      "y": 457.3,
+      "y": 462.5,
       "z": 0
     },
     "_lrot": {
@@ -1263,8 +1278,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 63.3837890625,
-      "height": 50.4
+      "width": 78.75,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1302,8 +1317,11 @@
     "_lineHeight": 40,
     "_overflow": 0,
     "_enableWrapText": false,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+      "__expectedType__": "cc.BitmapFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": false,
@@ -6373,7 +6391,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 238
@@ -6417,13 +6435,13 @@
     "node": {
       "__id__": 237
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "enableSpector": true,
     "showUIOnStart": true,
     "spyCanvasesOnStart": false,
     "captureOnStart": false,
-    "captureCommandCount": 1500,
+    "captureCommandCount": 3000,
     "autoDownloadCaptureJson": true,
     "exposeLastCaptureOnWindow": true,
     "captureFilePrefix": "spector-capture",

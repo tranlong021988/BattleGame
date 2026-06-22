@@ -458,6 +458,15 @@
         "chunks\\legacy\\output-standard.chunk",
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"
+      ],
+      "GAMERIA (1)\\GAMERIA.fnt": [
+        "GAMERIA (1)\\GAMERIA.png"
+      ],
+      "fonts\\GAMERIA (1)\\GAMERIA.fnt": [
+        "fonts\\GAMERIA (1)\\GAMERIA.png"
+      ],
+      "fonts\\GAMERIA\\GAMERIA.fnt": [
+        "fonts\\GAMERIA\\GAMERIA.png"
       ]
     },
     "uuid": {

@@ -105,6 +105,7 @@
     "url": "db://assets/Test.scene",
     "value": {
       "depends": [
+        "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
         "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941",
         "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
         "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
@@ -513,7 +514,7 @@
     "value": {
       "depends": [
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@3253f",
-        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@41ac8",
+        "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@c6e33",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@438fe",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@cbc2b"
       ]
@@ -1413,6 +1414,50 @@
   },
   "a2e2175b-341a-41e2-8435-28e81e38e4ca": {
     "url": "db://assets/scripts/spectorjs.d.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "14af58e2-d4f9-4cfa-9812-7b2f869bdd24": {
+    "url": "db://assets/fonts/GAMERIA/GAMERIA.fnt",
+    "value": {
+      "depends": [
+        "90799178-e90f-46fd-b904-8aa46d223010@f9941"
+      ]
+    },
+    "versionCode": 1
+  },
+  "90799178-e90f-46fd-b904-8aa46d223010": {
+    "url": "db://assets/fonts/GAMERIA/GAMERIA.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "b37c4486-3379-4b59-bbfe-f4367e693211": {
+    "url": "db://assets/fonts/GAMERIA",
+    "value": {},
+    "versionCode": 1
+  },
+  "90799178-e90f-46fd-b904-8aa46d223010@6c48a": {
+    "url": "db://assets/fonts/GAMERIA/GAMERIA.png@6c48a",
+    "value": {
+      "depends": [
+        "90799178-e90f-46fd-b904-8aa46d223010"
+      ]
+    },
+    "versionCode": 1
+  },
+  "90799178-e90f-46fd-b904-8aa46d223010@f9941": {
+    "url": "db://assets/fonts/GAMERIA/GAMERIA.png@f9941",
+    "value": {
+      "depends": [
+        "90799178-e90f-46fd-b904-8aa46d223010@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "a3bc559b-800c-4bf2-baf6-8b9a944d9fdd": {
+    "url": "db://assets/fonts",
     "value": {},
     "versionCode": 1
   }

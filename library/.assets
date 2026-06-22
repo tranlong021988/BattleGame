@@ -30,6 +30,8 @@
             "scripts\\ObstacleRect.ts",
             "scripts\\RandomAnimcationOffset.ts",
             "scripts\\SpawnBackPressureGate.ts",
+            "scripts\\SpectorDebugger.ts",
+            "scripts\\spectorjs.d.ts",
             "scripts\\TopDownCameraDrag.ts",
             "scripts\\TrueMiniMapPanel.ts",
             "scripts\\Unit.ts",
@@ -82,8 +84,10 @@
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico-small.png",
             "MiniMap\\images\\sword-ico.png",
-            "scripts\\SpectorDebugger.ts",
-            "scripts\\spectorjs.d.ts"
+            "fonts",
+            "fonts\\GAMERIA",
+            "fonts\\GAMERIA\\GAMERIA.fnt",
+            "fonts\\GAMERIA\\GAMERIA.png"
         ]
     }
 }

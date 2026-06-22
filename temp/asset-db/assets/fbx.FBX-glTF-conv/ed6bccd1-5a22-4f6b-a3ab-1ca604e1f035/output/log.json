@@ -5,11 +5,11 @@
   },
   {
     "level": 0,
-    "message": "Local time: [0.016667, 2.200000]"
+    "message": "Local time: [0.016667, 2.216667]"
   },
   {
     "level": 0,
-    "message": "Reference time: [0.016667, 2.200000]"
+    "message": "Reference time: [0.016667, 2.216667]"
   },
   {
     "level": 0,
@@ -17,6 +17,6 @@
   },
   {
     "level": 0,
-    "message": "Take Scene: 2.183333333333333s"
+    "message": "Take Scene: 2.2s"
   }
 ]

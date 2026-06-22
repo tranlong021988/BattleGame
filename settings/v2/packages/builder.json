@@ -5,7 +5,7 @@
       "a5jtFjn4lN6L4UalyaUqcd": {
         "id": "a5jtFjn4lN6L4UalyaUqcd",
         "name": "WebP",
-        "path": "D:\\Tools\\libwebp-1.6.0-windows-x64\\bin\\cwebp.exe",
+        "path": "F:\\WorkData\\Software\\libwebp-1.6.0-windows-x64\\bin\\cwebp.exe",
         "command": "[input] -q 75 -o [output]",
         "format": "webp",
         "overwrite": true

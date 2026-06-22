@@ -2,7 +2,7 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-06-22.
+Last updated: 2026-06-23.
 
 The user uses two Codex sessions on two machines. These sessions do not share chat memory. Before changing code, read this file and re-check the current source. Do not rely on older conversation memory if source has changed.
 
@@ -28,6 +28,7 @@ The user uses two Codex sessions on two machines. These sessions do not share ch
 - `assets/scripts/TrueMiniMapPanel.ts`: current minimap.
 - `assets/scripts/BattleInformationIconItem.ts`: still used by the current minimap icon visual. Do not delete casually.
 - `assets/scripts/SpectorDebugger.ts`: SpectorJS render capture helper added on 2026-06-22.
+- `cocos-performance-optimize-skills/SKILL.md`: project-local Cocos performance skill/playbook. Read it before doing broad optimization work.
 
 ## Current Gameplay Logic
 
@@ -227,13 +228,91 @@ Render knobs to consider later:
 - Keep VFX pooled and low-overdraw.
 - Avoid dynamic lights/shadows for many units.
 
+## Render And Asset Profiling Update On 2026-06-23
+
+Spector captures inspected:
+
+- `spector-capture-2026-06-22T16-44-19-471Z.json`
+- `spector-capture-2026-06-22T17-04-32-571Z.json`
+- `spector-capture-2026-06-22T17-07-59-969Z.json`
+- `spector-capture-2026-06-22T17-11-49-831Z.json`
+- `spector-capture-2026-06-22T17-22-06-903Z.json`
+
+Stable conclusions:
+
+- Instancing is working for unit bodies.
+- Healthbar rendering is instanced. Keep its material shared; do not create per-unit healthbar materials.
+- Recent captures show no `texSubImage2D`, `texImage2D`, `createTexture`, or `deleteTexture` churn during captured frames.
+- Bitmap font / stable UI text appears to have removed the earlier dynamic Label texture upload symptom in the inspected captures.
+- Draw calls remain stable and acceptable: latest 3000-command captures show `124` draw calls.
+- The Cocos profiler overlay is still visible in captures and accounts for repeated `drawElements(540)` calls. Disable profiler for final performance measurements.
+
+Mesh comparisons:
+
+- Old placeholder mesh: `10092 indices`, about `3364 triangles/unit`.
+- Reduced mesh capture `17-04-32`: `1476 indices`, about `492 triangles/unit`.
+- 3000-command capture `17-11-49`: `90834` captured triangles, unit body `1476 indices`, body instance sum `847`.
+- Latest 3000-command capture `17-22-06`: `158844` captured triangles, unit body `2958 indices`, about `986 triangles/unit`, body instance sum `753`.
+- Latest triangle increase came from heavier placeholder mesh, not more draw calls.
+
+Asset guidance:
+
+- Current unit model is temporary. Do not over-optimize final art decisions from the placeholder alone.
+- For crowd units, a practical mobile/web target is roughly `500-1000 triangles/unit`, with lower LODs if unit count rises.
+- Hero or close-up units can use a higher mesh budget than regular crowd units.
+- If 500-600 units become common, prefer LOD/crowd mesh strategy over micro-optimizing already-batched draw calls.
+
+MSAA state:
+
+- Spector still reports `contextAttributes.antialias = true` and `SAMPLES = 4` in the latest capture.
+- Current source now contains `settings/v2/packages/engine.json` macro config with `ENABLE_WEBGL_ANTIALIAS: false`, but the latest capture still showed MSAA on.
+- Do not assume MSAA is disabled until a rebuilt/recaptured Spector report shows:
+  - `contextAttributes.antialias = false`
+  - `SAMPLES = 0` or `SAMPLES = 1`
+- Setting antialias from a scene component is too late because WebGL context is created before scene scripts run.
+- If `contextAttributes.antialias = false` but `SAMPLES = 4` remains, check custom pipeline/render-target MSAA separately.
+
+Recommended pipeline for now:
+
+- Use `Render Pipeline (New)` with `Pipeline Name = Builtin`.
+- Keep `Post Process Module` disabled.
+- Avoid `Render Pipeline (Legacy)` unless a specific compatibility issue appears.
+- Avoid Bloom/HDR/SSAO/fullscreen post-process on the mobile/web baseline until measured affordable.
+
+Useful rule of thumb:
+
+- Spector is for render command/state diagnosis.
+- Chrome Performance / Cocos profiler is for frame time.
+- Never treat a 1500/3000-command Spector capture as exactly one frame; group by render cycles.
+
+## Project Local Performance Skill
+
+Added and tracked in git:
+
+- `cocos-performance-optimize-skills/SKILL.md`
+- `cocos-performance-optimize-skills/agents/openai.yaml`
+
+Purpose:
+
+- Preserve a reusable Cocos performance playbook for Codex sessions.
+- Covers measurement discipline, throttling/offsets, worker/grid usage, buffer reuse, instancing, UI text, assets, VFX, render profiling, and cautious optimization habits.
+
+Use it when:
+
+- Starting any broad performance pass.
+- Adding VFX, UI systems, model/animation changes, or new worker/grid logic.
+- Investigating frame time regressions.
+
+Do not treat it as permission for broad rewrites. It is a checklist/playbook; source behavior and measured traces still decide.
+
 ## Current Optimization Priority
 
 1. Keep current AI/worker/spatial-grid logic stable.
-2. For 300-unit target, investigate lower-poly unit mesh or LOD first.
-3. Then clean Label/debug UI texture churn.
-4. Add VFX slowly and profile after each visual feature.
-5. If GPU/pixel cost rises, test render scale/DPR/MSAA tiers.
+2. Keep using the project-local performance skill before broad optimization.
+3. For 300-unit and later 500-600-unit targets, prioritize final unit mesh budget and LOD/crowd strategy.
+4. Keep Label/UI text stable; only revisit UI texture churn if traces show it again.
+5. Add VFX slowly and profile after each visual feature.
+6. If GPU/pixel cost rises, test render scale/DPR/MSAA tiers.
 
 ## Minimap State
 
@@ -256,16 +335,26 @@ Render knobs to consider later:
 
 ## Current Uncommitted Work To Notice
 
-As of this handoff, recent source/package changes may include:
+As of this handoff, `git status --short --untracked-files=all` is noisy because of editor/build/model/font work.
 
-- `package.json`
-- `package-lock.json`
-- `assets/scripts/SpectorDebugger.ts`
-- `assets/scripts/SpectorDebugger.ts.meta`
-- `assets/scripts/spectorjs.d.ts`
-- `assets/scripts/spectorjs.d.ts.meta`
+Source-like changes to review carefully:
 
-There may also be Cocos-generated `library/` and `temp/` changes from editor/preview. Review before committing.
+- `assets/3D/Victory.fbx`
+- `assets/3D/Victory.fbx.meta`
+- `assets/Test.scene`
+- `settings/v2/packages/engine.json`
+- `settings/v2/packages/builder.json`
+- `profiles/v2/packages/builder.json`
+- `profiles/v2/packages/scene.json`
+- untracked bitmap font assets under `assets/fonts/GAMERIA/`
+
+Generated/noisy areas are also changed:
+
+- `build/web-mobile/`
+- `library/`
+- `temp/`
+
+Do not revert any of these blindly. Ask the user before cleanup, especially because this repo appears to track some Cocos generated files.
 
 ## Next Codex Startup Checklist
 
@@ -275,3 +364,4 @@ There may also be Cocos-generated `library/` and `temp/` changes from editor/pre
 4. If profiling render, use `SpectorDebugger` only temporarily and disable it afterward.
 5. If profiling CPU/frametime, use Chrome Performance traces and ignore profiler-start spikes.
 6. Keep gameplay invariants intact: one unit engage -> whole wave freehunt/combat; recovery only when wave is not engaged and has no valid target long enough.
+7. Before optimizing, read `cocos-performance-optimize-skills/SKILL.md` and keep changes surgical.
