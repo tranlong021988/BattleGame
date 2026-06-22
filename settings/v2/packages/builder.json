@@ -5,7 +5,7 @@
       "a5jtFjn4lN6L4UalyaUqcd": {
         "id": "a5jtFjn4lN6L4UalyaUqcd",
         "name": "WebP",
-        "path": "F:\\WorkData\\Software\\libwebp-1.6.0-windows-x64\\bin\\cwebp.exe",
+        "path": "D:\\Tools\\libwebp-1.6.0-windows-x64\\bin\\cwebp.exe",
         "command": "[input] -q 75 -o [output]",
         "format": "webp",
         "overwrite": true
@@ -16,12 +16,13 @@
         "name": "New Compress Config",
         "options": {
           "web": {
-            "webp": {
-              "quality": 75
+            "a5jtFjn4lN6L4UalyaUqcd": {
+              "quality": 70
             }
           }
         }
-      }
+      },
+      "1eMRJs9WNEe4vIzaxil0Km": null
     }
   }
 }
