@@ -34,6 +34,9 @@ export class Unit extends Component {
     @property({ displayName: 'Use Wave Front Scanner' })
     useWaveForwardScanner = true;
 
+    @property({ displayName: 'Aggressive Forward' })
+    aggressiveForward = false;
+
     @property laneReturnTolerance = 0.35;
 
     @property(Vec3)
@@ -331,6 +334,7 @@ export class Unit extends Component {
         this.laneId = -1;
         this.forwardLaneOffsetX = 0;
         this.returningToWaveLaneSlot = false;
+        this.aggressiveForward = false;
         this.resetMoveIntentFacing();
 
         if (this.agent) {
@@ -762,10 +766,11 @@ export class Unit extends Component {
         if (!this.agent) return;
 
         // Forward phase:
-        // 1. Scan enemies in the same lane and adjacent lanes.
-        // 2. If this unit has passed a valid target along forwardDir,
+        // 1. Scan enemies in the same lane.
+        // 2. Non-aggressive forward also scans adjacent-lane units.
+        // 3. If this unit has passed a valid target along forwardDir,
         //    release the wave to free hunt.
-        // 3. Enemy hero line can also release free hunt when it is in
+        // 4. Enemy hero line can also release free hunt when it is in
         //    the same or adjacent lane.
 
         const shouldScan =
@@ -797,31 +802,35 @@ export class Unit extends Component {
             }
         }
 
-        let nearestAdjacentLaneEnemy =
-            this.getForwardAdjacentTarget();
+        if (this.aggressiveForward) {
+            this.setForwardAdjacentTarget(null);
+        } else {
+            let nearestAdjacentLaneEnemy =
+                this.getForwardAdjacentTarget();
 
-        if (shouldScan) {
-            nearestAdjacentLaneEnemy =
-                this.findNearestEnemyInAdjacentLane(true);
-            this.setForwardAdjacentTarget(nearestAdjacentLaneEnemy);
-        }
+            if (shouldScan) {
+                nearestAdjacentLaneEnemy =
+                    this.findNearestEnemyInAdjacentLane(true);
+                this.setForwardAdjacentTarget(nearestAdjacentLaneEnemy);
+            }
 
-        if (nearestAdjacentLaneEnemy) {
-            if (
-                this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
-            ) {
-                this.setForwardLaneTarget(null);
-                this.setForwardAdjacentTarget(null);
-
+            if (nearestAdjacentLaneEnemy) {
                 if (
-                    !this.releaseWaveForwardToFreeHunt(
-                        nearestAdjacentLaneEnemy
-                    )
+                    this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
                 ) {
-                    this.onForward = false;
-                }
+                    this.setForwardLaneTarget(null);
+                    this.setForwardAdjacentTarget(null);
 
-                return;
+                    if (
+                        !this.releaseWaveForwardToFreeHunt(
+                            nearestAdjacentLaneEnemy
+                        )
+                    ) {
+                        this.onForward = false;
+                    }
+
+                    return;
+                }
             }
         }
 

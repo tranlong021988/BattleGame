@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 5213204.8948,
+      "mTimestamp": 30106018.1524,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -777,7 +777,7 @@
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/SpectorDebugger.ts",
           "resolved": "__unresolved_23",
           "loc": {
             "start": {
@@ -786,12 +786,12 @@
             },
             "end": {
               "line": 27,
-              "column": 79
+              "column": 77
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts",
           "resolved": "__unresolved_24",
           "loc": {
             "start": {
@@ -800,12 +800,12 @@
             },
             "end": {
               "line": 28,
-              "column": 78
+              "column": 79
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts",
           "resolved": "__unresolved_25",
           "loc": {
             "start": {
@@ -814,12 +814,12 @@
             },
             "end": {
               "line": 29,
-              "column": 66
+              "column": 78
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts",
           "resolved": "__unresolved_26",
           "loc": {
             "start": {
@@ -828,12 +828,12 @@
             },
             "end": {
               "line": 30,
-              "column": 74
+              "column": 66
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts",
           "resolved": "__unresolved_27",
           "loc": {
             "start": {
@@ -842,12 +842,12 @@
             },
             "end": {
               "line": 31,
-              "column": 71
+              "column": 74
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts",
           "resolved": "__unresolved_28",
           "loc": {
             "start": {
@@ -856,12 +856,12 @@
             },
             "end": {
               "line": 32,
-              "column": 73
+              "column": 71
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts",
           "resolved": "__unresolved_29",
           "loc": {
             "start": {
@@ -870,12 +870,12 @@
             },
             "end": {
               "line": 33,
-              "column": 69
+              "column": 73
             }
           }
         },
         {
-          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts",
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVO.ts",
           "resolved": "__unresolved_30",
           "loc": {
             "start": {
@@ -884,6 +884,20 @@
             },
             "end": {
               "line": 34,
+              "column": 69
+            }
+          }
+        },
+        {
+          "value": "file:///D:/Works/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts",
+          "resolved": "__unresolved_31",
+          "loc": {
+            "start": {
+              "line": 35,
+              "column": 7
+            },
+            "end": {
+              "line": 35,
               "column": 84
             }
           }
@@ -1049,6 +1063,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/SpectorDebugger.ts"
           },
           "messages": []
         },
@@ -3180,7 +3201,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1782103763210.6353,
+        "mtime": 1782119208083.0247,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -3693,7 +3714,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1782096662394.0747,
+        "mtime": 1782119411748.837,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -5764,7 +5785,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/ArmyBrain.ts": {
       "mTimestamp": {
-        "mtime": 1781605758000.805,
+        "mtime": 1782121823815.8743,
         "uuid": "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53"
       },
       "chunkId": "7046b8a2e081044834d35aee792adb3160853300",
@@ -5890,7 +5911,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1782096662393.0752,
+        "mtime": 1782120261507.0525,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -7523,6 +7544,201 @@
           "resolved": {
             "type": "module",
             "url": "file:///F:/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///D:/Works/Github/BattleGame/assets/scripts/SpectorDebugger.ts": {
+      "mTimestamp": {
+        "mtime": 1782128618346.8499,
+        "uuid": "87939c1f-6d4f-4b28-bf4f-2f4644884683"
+      },
+      "chunkId": "363837e4c6425e8b320d5631300b8ae21ca09c0c",
+      "imports": [
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc",
+          "loc": {
+            "start": {
+              "line": 1,
+              "column": 76
+            },
+            "end": {
+              "line": 1,
+              "column": 80
+            }
+          }
+        },
+        {
+          "value": "spectorjs",
+          "loc": {
+            "start": {
+              "line": 135,
+              "column": 52
+            },
+            "end": {
+              "line": 135,
+              "column": 63
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/node_modules/spectorjs/dist/spector.bundle.mjs?cjs=&original=.js"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///D:/Works/Github/BattleGame/node_modules/spectorjs/dist/spector.bundle.mjs?cjs=&original=.js": {
+      "mTimestamp": 1782127563262.2146,
+      "chunkId": "a3acaf8df73d71d3ba2592d9a38f2bacf4607231",
+      "imports": [
+        {
+          "value": "./spector.bundle.js",
+          "resolved": "__unresolved_0",
+          "loc": {
+            "start": {
+              "line": 2,
+              "column": 36
+            },
+            "end": {
+              "line": 2,
+              "column": 57
+            }
+          }
+        },
+        {
+          "value": "cce:/internal/ml/cjs-loader.mjs",
+          "resolved": "__unresolved_1",
+          "loc": {
+            "start": {
+              "line": 3,
+              "column": 19
+            },
+            "end": {
+              "line": 3,
+              "column": 52
+            }
+          }
+        },
+        {
+          "value": "./spector.bundle.js",
+          "resolved": "__unresolved_2",
+          "loc": {
+            "start": {
+              "line": 8,
+              "column": 14
+            },
+            "end": {
+              "line": 8,
+              "column": 35
+            }
+          }
+        },
+        {
+          "value": "./spector.bundle.js",
+          "resolved": "__unresolved_3",
+          "loc": {
+            "start": {
+              "line": 9,
+              "column": 29
+            },
+            "end": {
+              "line": 9,
+              "column": 50
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/node_modules/spectorjs/dist/spector.bundle.js"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/ml/cjs-loader.mjs"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/node_modules/spectorjs/dist/spector.bundle.js"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/node_modules/spectorjs/dist/spector.bundle.js"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///D:/Works/Github/BattleGame/node_modules/spectorjs/dist/spector.bundle.js": {
+      "mTimestamp": 1782127563262.2146,
+      "chunkId": "66a6b620b9a31292520c09f79c9b58d36a2f62d8",
+      "imports": [
+        {
+          "value": "cce:/internal/ml/cjs-loader.mjs",
+          "resolved": "__unresolved_0",
+          "loc": {
+            "start": {
+              "line": 1,
+              "column": 23
+            },
+            "end": {
+              "line": 1,
+              "column": 56
+            }
+          }
+        }
+      ],
+      "type": "commonjs",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/ml/cjs-loader.mjs"
           },
           "messages": []
         }

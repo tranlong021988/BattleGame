@@ -146,7 +146,8 @@
         "5bcc6ebe-ee05-46a8-81cd-54cc20e8cc30",
         "7735f014-d1bf-435b-9532-d99924f1ad9e",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
-        "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53"
+        "d53d3b41-f98f-4ff6-a30a-6761f3dc8d53",
+        "87939c1f-6d4f-4b28-bf4f-2f4644884683"
       ]
     },
     "versionCode": 2
@@ -1403,6 +1404,16 @@
         "139f9f81-b709-415e-82f1-1f05e89438ce@6c48a"
       ]
     },
+    "versionCode": 1
+  },
+  "87939c1f-6d4f-4b28-bf4f-2f4644884683": {
+    "url": "db://assets/scripts/SpectorDebugger.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "a2e2175b-341a-41e2-8435-28e81e38e4ca": {
+    "url": "db://assets/scripts/spectorjs.d.ts",
+    "value": {},
     "versionCode": 1
   }
 }

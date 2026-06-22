@@ -1056,24 +1056,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.rebuildSpatialGrid();
         }
 
-        spawnWaveByEntry(team, entry, laneId = -1) {
+        spawnWaveByEntry(team, entry, laneId = -1, aggressiveForward = false) {
           if (!entry || !entry.prefab) {
             return null;
           }
 
           const baseZ = team === 0 ? this.teamASpawnZ : this.teamBSpawnZ;
-          const wave = this.spawnEntryFormation(team, entry, baseZ, true, laneId);
+          const wave = this.spawnEntryFormation(team, entry, baseZ, true, laneId, aggressiveForward);
           this.rebuildSpatialGrid();
           return wave;
         }
 
-        spawnWaveByName(team, unitName, laneId = -1) {
+        spawnWaveByName(team, unitName, laneId = -1, aggressiveForward = false) {
           const entry = this.getTeamEntry(team, unitName);
           if (!entry) return null;
-          return this.spawnWaveByEntry(team, entry, laneId);
+          return this.spawnWaveByEntry(team, entry, laneId, aggressiveForward);
         }
 
-        spawnEntryFormation(team, entry, baseZ, spendCost, requestedLaneId = -1) {
+        spawnEntryFormation(team, entry, baseZ, spendCost, requestedLaneId = -1, aggressiveForward = false) {
           const count = Math.max(0, Math.floor(entry.unitCount));
 
           if (count <= 0) {
@@ -1094,9 +1094,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.waves.push(wave);
 
           if (this.enableLaneSpawn) {
-            this.spawnSquareFormationInLane(team, entry, baseZ, wave, laneId, count);
+            this.spawnSquareFormationInLane(team, entry, baseZ, wave, laneId, count, aggressiveForward);
           } else {
-            this.spawnCenteredRowsFormation(team, entry, baseZ, wave, count);
+            this.spawnCenteredRowsFormation(team, entry, baseZ, wave, count, aggressiveForward);
           }
 
           if (this.shouldForceTeamFreeHunt(team)) {
@@ -1106,7 +1106,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return wave;
         }
 
-        spawnSquareFormationInLane(team, entry, baseZ, wave, laneId, count) {
+        spawnSquareFormationInLane(team, entry, baseZ, wave, laneId, count, aggressiveForward = false) {
           const width = Math.max(1, Math.floor(this.squareFormationWidth));
           const laneCenterX = this.getLaneCenterX(laneId);
 
@@ -1119,11 +1119,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             const baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
             const z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
             this.tempSpawnPos.set(x, 0, z);
-            this.spawnUnitForWave(team, entry, this.tempSpawnPos, wave, laneId);
+            this.spawnUnitForWave(team, entry, this.tempSpawnPos, wave, laneId, aggressiveForward);
           }
         }
 
-        spawnCenteredRowsFormation(team, entry, baseZ, wave, count) {
+        spawnCenteredRowsFormation(team, entry, baseZ, wave, count, aggressiveForward = false) {
           const maxPerRow = Math.max(1, Math.floor(this.maxUnitPerRow));
           let spawned = 0;
           let row = 0;
@@ -1139,7 +1139,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               const baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
               const z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
               this.tempSpawnPos.set(x, 0, z);
-              this.spawnUnitForWave(team, entry, this.tempSpawnPos, wave, wave.laneId);
+              this.spawnUnitForWave(team, entry, this.tempSpawnPos, wave, wave.laneId, aggressiveForward);
               spawned++;
             }
 
@@ -1147,7 +1147,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        spawnUnitForWave(team, entry, pos, wave, laneId) {
+        spawnUnitForWave(team, entry, pos, wave, laneId, aggressiveForward = false) {
           let unit = null;
 
           if (team === 0) {
@@ -1158,6 +1158,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!unit) return;
           unit.laneId = laneId;
+          unit.aggressiveForward = aggressiveForward;
           unit.forwardLaneOffsetX = pos.x - this.getLaneCenterX(laneId);
           wave.addUnit(unit);
         }

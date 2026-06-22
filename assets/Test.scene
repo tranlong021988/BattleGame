@@ -69,12 +69,15 @@
       },
       {
         "__id__": 235
+      },
+      {
+        "__id__": 237
       }
     ],
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 237
+      "__id__": 239
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -105,7 +108,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 238
+      "__id__": 240
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -3748,6 +3751,7 @@
     "forwardScanRange": 8,
     "forwardScanIntervalFrames": 15,
     "useWaveForwardScanner": true,
+    "aggressiveForward": false,
     "laneReturnTolerance": 0.35,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -4475,6 +4479,7 @@
     "forwardScanRange": 8,
     "forwardScanIntervalFrames": 15,
     "useWaveForwardScanner": true,
+    "aggressiveForward": false,
     "laneReturnTolerance": 0.35,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -6267,11 +6272,13 @@
     "counterSameLaneChance": 0.75,
     "laneAwareness": 0.1,
     "flankAggression": 0.25,
+    "aggressiveForwardChance": 1,
     "aiIntelligence": 0,
     "spawnRandomIfNoThreat": true,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "enableStateLog": false,
     "enableDebugLog": false,
+    "enableAggressiveForwardLog": false,
     "_id": "8b7typUxFBD7+IiCLqavbl"
   },
   {
@@ -6348,12 +6355,81 @@
     "counterSameLaneChance": 0.75,
     "laneAwareness": 0.5,
     "flankAggression": 0.25,
+    "aggressiveForwardChance": 1,
     "aiIntelligence": 1,
     "spawnRandomIfNoThreat": true,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "enableStateLog": false,
     "enableDebugLog": false,
+    "enableAggressiveForwardLog": false,
     "_id": "4fwfKxselC06vULLcWgs9+"
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "SpectorDebugger",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 238
+      }
+    ],
+    "_prefab": null,
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 1073741824,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_id": "bbeX9TNylCZZgk7JJdEHrY"
+  },
+  {
+    "__type__": "87939wfbU9LKL9PL0ZEiEaD",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 237
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "enableSpector": true,
+    "showUIOnStart": true,
+    "spyCanvasesOnStart": false,
+    "captureOnStart": false,
+    "captureCommandCount": 1500,
+    "autoDownloadCaptureJson": true,
+    "exposeLastCaptureOnWindow": true,
+    "captureFilePrefix": "spector-capture",
+    "enableCaptureHotkey": true,
+    "enableLog": true,
+    "_id": "9epuY8TLVJyJv4KQVW578y"
   },
   {
     "__type__": "cc.PrefabInfo",
@@ -6380,28 +6456,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 239
-    },
-    "shadows": {
-      "__id__": 240
-    },
-    "_skybox": {
       "__id__": 241
     },
-    "fog": {
+    "shadows": {
       "__id__": 242
     },
-    "octree": {
+    "_skybox": {
       "__id__": 243
     },
-    "skin": {
+    "fog": {
       "__id__": 244
     },
-    "lightProbeInfo": {
+    "octree": {
       "__id__": 245
     },
-    "postSettings": {
+    "skin": {
       "__id__": 246
+    },
+    "lightProbeInfo": {
+      "__id__": 247
+    },
+    "postSettings": {
+      "__id__": 248
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

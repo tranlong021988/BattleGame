@@ -72,6 +72,9 @@ export class ArmyBrain extends Component {
     @property
     flankAggression = 0.25;
 
+    @property({ displayName: 'Aggressive Forward Chance' })
+    aggressiveForwardChance = 0.25;
+
     @property
     aiIntelligence = 1.0;
 
@@ -86,6 +89,9 @@ export class ArmyBrain extends Component {
 
     @property
     enableDebugLog = false;
+
+    @property({ displayName: 'Enable Aggressive Forward Log' })
+    enableAggressiveForwardLog = false;
 
     private timer = 0;
     private nextInterval = 3;
@@ -151,7 +157,20 @@ export class ArmyBrain extends Component {
             `MODE=${this.currentModeName}, myWaves=${this.getAliveWaveCount(this.team)}, enemyWaves=${enemyWaves.length}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, AI=${this.getAIIntelligence().toFixed(2)}`
         );
 
+        const lanePressure =
+            this.buildLanePressureSnapshot();
+
         if (enemyWaves.length <= 0) {
+            if (
+                this.trySpawnAggressiveForwardRaid(
+                    validEntries,
+                    lanePressure,
+                    'No enemy wave'
+                )
+            ) {
+                return;
+            }
+
             if (this.spawnOpeningWaveIfNoEnemyWave) {
                 this.spawnOpeningWave(validEntries);
                 return;
@@ -164,9 +183,32 @@ export class ArmyBrain extends Component {
             return;
         }
 
-        const targetWave = this.findTargetWave();
+        const raidDefenseWave =
+            this.findRaidDefenseThreatWave();
+
+        const useRaidDefense =
+            !!raidDefenseWave &&
+            Math.random() <= this.clamp(
+                this.defenseModeChance,
+                0,
+                1
+            );
+
+        const targetWave = useRaidDefense
+            ? raidDefenseWave
+            : this.findTargetWave();
 
         if (!targetWave) {
+            if (
+                this.trySpawnAggressiveForwardRaid(
+                    validEntries,
+                    lanePressure,
+                    'No valid target'
+                )
+            ) {
+                return;
+            }
+
             if (this.spawnRandomIfNoThreat) {
                 this.spawnRandom(validEntries, 'No valid target');
             }
@@ -196,16 +238,27 @@ export class ArmyBrain extends Component {
             `Decision: targetWave=${targetWave.id}, target=${unitTypeToName(targetWave.unitType)}, selected=${selectedEntry.name}/${unitTypeToName(selectedEntry.unitType)}, score=${selectedCounterScore.toFixed(2)}, isCounter=${isRealCounter}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, cost=${selectedEntry.combatPointCost}, coverage=${targetWave.getCounterCoverageRatio().toFixed(2)}, lane=${targetWave.laneId}, engaged=${targetWave.hasEngaged()}`
         );
 
-        const lanePressure =
-            this.buildLanePressureSnapshot();
+        if (
+            !useRaidDefense &&
+            !isRealCounter &&
+            this.trySpawnAggressiveForwardRaid(
+                validEntries,
+                lanePressure,
+                `Fallback/non-counter against wave=${targetWave.id}`
+            )
+        ) {
+            return;
+        }
 
-        const spawnLaneId = this.getCounterSpawnLaneId(
-            targetWave,
-            lanePressure
-        );
+        const spawnLaneId = useRaidDefense
+            ? this.getSafeTargetLaneId(targetWave)
+            : this.getCounterSpawnLaneId(
+                targetWave,
+                lanePressure
+            );
 
         this.debugLog(
-            `Counter spawn lane: targetLane=${targetWave.laneId}, spawnLane=${spawnLaneId}, sameLaneChance=${this.counterSameLaneChance.toFixed(2)}`
+            `Counter spawn lane: targetLane=${targetWave.laneId}, spawnLane=${spawnLaneId}, sameLaneChance=${this.counterSameLaneChance.toFixed(2)}, raidDefense=${useRaidDefense}`
         );
 
         const spawned = this.gameManager.spawnWaveByEntry(
@@ -227,6 +280,132 @@ export class ArmyBrain extends Component {
                 );
             }
         }
+    }
+
+    private findRaidDefenseThreatWave(): BattleWave | null {
+        if (!this.gameManager) return null;
+
+        const enemyTeam = this.team === 0 ? 1 : 0;
+        const waves = this.gameManager.getWavesByTeam(enemyTeam);
+        const defendPoint = this.getDefendPoint();
+        const defendLane = this.getDefendLaneId();
+
+        let best: BattleWave | null = null;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < waves.length; i++) {
+            const wave = waves[i];
+
+            if (!this.isAliveThreatWave(wave)) continue;
+            if (!wave!.hasAggressiveForward()) continue;
+            if (wave!.laneId < 0) continue;
+
+            const laneId =
+                this.gameManager.clampLaneId(wave!.laneId);
+
+            if (Math.abs(laneId - defendLane) > 1) {
+                continue;
+            }
+
+            const distSq = wave!.getClosestDistanceSqTo(
+                defendPoint.x,
+                defendPoint.z
+            );
+
+            const dist = Math.sqrt(distSq);
+            const aliveRatio = wave!.getAliveRatio();
+
+            let score = 0;
+
+            score += Math.max(0, 140 - dist);
+            score += aliveRatio * 60;
+
+            if (laneId === defendLane) {
+                score += 35;
+            }
+
+            if (!wave!.isCounterCovered(this.attackCounterCoverageRatio)) {
+                score += 45;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = wave!;
+            }
+        }
+
+        if (best) {
+            this.debugLog(
+                `Raid defense target: wave=${best.id}, lane=${best.laneId}, defenseChance=${this.defenseModeChance.toFixed(2)}`
+            );
+        }
+
+        return best;
+    }
+
+    private trySpawnAggressiveForwardRaid(
+        validEntries: UnitPrefabEntry[],
+        lanePressure: LanePressureInfo[],
+        reason: string
+    ) {
+        if (!this.gameManager) return false;
+        if (!this.canSpawnMoreWave()) return false;
+
+        const chance = this.clamp(
+            this.aggressiveForwardChance,
+            0,
+            1
+        );
+
+        if (chance <= 0) {
+            return false;
+        }
+
+        const roll = Math.random();
+
+        if (roll > chance) {
+            return false;
+        }
+
+        const laneId =
+            this.getAggressiveForwardRaidLane(lanePressure);
+
+        if (laneId < 0) {
+            this.aggressiveForwardLog(
+                `${reason}: no empty lane`
+            );
+            return false;
+        }
+
+        const entry =
+            this.getFastestAffordableEntry(validEntries);
+
+        if (!entry) {
+            this.aggressiveForwardLog(
+                `${reason}: no affordable raid unit`
+            );
+            return false;
+        }
+
+        const spawned = this.gameManager.spawnWaveByEntry(
+            this.team,
+            entry,
+            laneId,
+            true
+        );
+
+        if (!spawned) {
+            this.aggressiveForwardLog(
+                `${reason}: spawn failed for ${entry.name} lane=${laneId}`
+            );
+            return false;
+        }
+
+        this.aggressiveForwardLog(
+            `${reason}: spawn ${entry.name} lane=${laneId}, speed=${entry.maxSpeed}, cost=${entry.combatPointCost}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}`
+        );
+
+        return true;
     }
 
     private resolveMode(enemyAliveWaveCount: number) {
@@ -596,6 +775,86 @@ export class ArmyBrain extends Component {
         return best;
     }
 
+    private getFastestAffordableEntry(
+        entries: UnitPrefabEntry[]
+    ): UnitPrefabEntry | null {
+
+        if (!this.gameManager) return null;
+
+        let best: UnitPrefabEntry | null = null;
+        let bestSpeed = -Infinity;
+        let bestCost = Infinity;
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidEntry(entry)) continue;
+
+            if (
+                !this.gameManager.canAffordEntry(
+                    this.team,
+                    entry
+                )
+            ) {
+                continue;
+            }
+
+            const speed = Math.max(
+                0,
+                entry.maxSpeed
+            );
+
+            const cost = Math.max(
+                0,
+                entry.combatPointCost
+            );
+
+            if (
+                speed > bestSpeed + 0.0001 ||
+                (
+                    Math.abs(speed - bestSpeed) <= 0.0001 &&
+                    cost < bestCost
+                )
+            ) {
+                best = entry;
+                bestSpeed = speed;
+                bestCost = cost;
+            }
+        }
+
+        return best;
+    }
+
+    private getAggressiveForwardRaidLane(
+        lanePressure: LanePressureInfo[]
+    ) {
+        if (!this.gameManager) return -1;
+
+        const laneCount = this.gameManager.getSafeLaneCount();
+
+        let bestLane = -1;
+        let bestScore = -Infinity;
+
+        for (let lane = 0; lane < laneCount; lane++) {
+            const info = lanePressure[lane];
+
+            if (!info) continue;
+            if (info.enemyCount > 0) continue;
+            if (info.allyCount > 0) continue;
+
+            let score = Math.random() * 0.001;
+
+            score -= info.allyDefense;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestLane = lane;
+            }
+        }
+
+        return bestLane;
+    }
+
     private canSpawnMoreWave() {
         if (!this.enableMaxAliveWaveLimit) {
             return true;
@@ -836,6 +1095,41 @@ export class ArmyBrain extends Component {
         };
     }
 
+    private getDefendLaneId() {
+        if (!this.gameManager) {
+            return 0;
+        }
+
+        const hero =
+            this.team === 0
+                ? this.gameManager.teamAHero
+                : this.gameManager.teamBHero;
+
+        if (hero && hero.laneId >= 0) {
+            return this.gameManager.clampLaneId(hero.laneId);
+        }
+
+        return this.gameManager.clampLaneId(
+            Math.floor(
+                this.gameManager.getSafeLaneCount() / 2
+            )
+        );
+    }
+
+    private getSafeTargetLaneId(targetWave: BattleWave) {
+        if (!this.gameManager) {
+            return targetWave.laneId;
+        }
+
+        if (targetWave.laneId < 0) {
+            return this.getDefendLaneId();
+        }
+
+        return this.gameManager.clampLaneId(
+            targetWave.laneId
+        );
+    }
+
     private getAIIntelligence() {
         return this.clamp(
             this.aiIntelligence,
@@ -928,6 +1222,14 @@ export class ArmyBrain extends Component {
 
         console.log(
             `[ArmyBrain Debug T${this.team}] ${message}`
+        );
+    }
+
+    private aggressiveForwardLog(message: string) {
+        if (!this.enableAggressiveForwardLog) return;
+
+        console.log(
+            `[ArmyBrain AggressiveForward T${this.team}] ${message}`
         );
     }
 }

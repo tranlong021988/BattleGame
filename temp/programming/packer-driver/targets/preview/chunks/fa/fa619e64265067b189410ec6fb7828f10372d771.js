@@ -210,6 +210,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.runtimeHasEngaged;
         }
 
+        hasAggressiveForward() {
+          if (this.released) {
+            return false;
+          }
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.aggressiveForward) continue;
+            return true;
+          }
+
+          return false;
+        }
+
         hasAnyValidTarget() {
           return this.scanHasAnyValidTarget();
         }

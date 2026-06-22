@@ -1357,7 +1357,8 @@ export class GameManager extends Component {
     public spawnWaveByEntry(
         team: number,
         entry: UnitPrefabEntry,
-        laneId: number = -1
+        laneId: number = -1,
+        aggressiveForward: boolean = false
     ): BattleWave | null {
 
         if (!entry || !entry.prefab) {
@@ -1374,7 +1375,8 @@ export class GameManager extends Component {
             entry,
             baseZ,
             true,
-            laneId
+            laneId,
+            aggressiveForward
         );
 
         this.rebuildSpatialGrid();
@@ -1385,7 +1387,8 @@ export class GameManager extends Component {
     public spawnWaveByName(
         team: number,
         unitName: string,
-        laneId: number = -1
+        laneId: number = -1,
+        aggressiveForward: boolean = false
     ): BattleWave | null {
 
         const entry = this.getTeamEntry(
@@ -1398,7 +1401,8 @@ export class GameManager extends Component {
         return this.spawnWaveByEntry(
             team,
             entry,
-            laneId
+            laneId,
+            aggressiveForward
         );
     }
 
@@ -1407,7 +1411,8 @@ export class GameManager extends Component {
         entry: UnitPrefabEntry,
         baseZ: number,
         spendCost: boolean,
-        requestedLaneId: number = -1
+        requestedLaneId: number = -1,
+        aggressiveForward: boolean = false
     ): BattleWave | null {
 
         const count = Math.max(
@@ -1454,7 +1459,8 @@ export class GameManager extends Component {
                 baseZ,
                 wave,
                 laneId,
-                count
+                count,
+                aggressiveForward
             );
         } else {
             this.spawnCenteredRowsFormation(
@@ -1462,7 +1468,8 @@ export class GameManager extends Component {
                 entry,
                 baseZ,
                 wave,
-                count
+                count,
+                aggressiveForward
             );
         }
 
@@ -1479,7 +1486,8 @@ export class GameManager extends Component {
         baseZ: number,
         wave: BattleWave,
         laneId: number,
-        count: number
+        count: number,
+        aggressiveForward: boolean = false
     ) {
         const width = Math.max(
             1,
@@ -1528,7 +1536,8 @@ export class GameManager extends Component {
                 entry,
                 this.tempSpawnPos,
                 wave,
-                laneId
+                laneId,
+                aggressiveForward
             );
         }
     }
@@ -1538,7 +1547,8 @@ export class GameManager extends Component {
         entry: UnitPrefabEntry,
         baseZ: number,
         wave: BattleWave,
-        count: number
+        count: number,
+        aggressiveForward: boolean = false
     ) {
         const maxPerRow = Math.max(
             1,
@@ -1593,7 +1603,8 @@ export class GameManager extends Component {
                     entry,
                     this.tempSpawnPos,
                     wave,
-                    wave.laneId
+                    wave.laneId,
+                    aggressiveForward
                 );
 
                 spawned++;
@@ -1608,7 +1619,8 @@ export class GameManager extends Component {
         entry: UnitPrefabEntry,
         pos: Vec3,
         wave: BattleWave,
-        laneId: number
+        laneId: number,
+        aggressiveForward: boolean = false
     ) {
         let unit: Unit | null = null;
 
@@ -1627,6 +1639,7 @@ export class GameManager extends Component {
         if (!unit) return;
 
         unit.laneId = laneId;
+        unit.aggressiveForward = aggressiveForward;
         unit.forwardLaneOffsetX =
             pos.x - this.getLaneCenterX(laneId);
 

@@ -5,7 +5,8 @@
     "version": "3.8.8"
   },
   "devDependencies": {
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.3.0",
+    "spectorjs": "^0.9.30"
   },
   "scripts": {
     "deploy": "echo. > build/web-mobile/.nojekyll && gh-pages -d build/web-mobile"
