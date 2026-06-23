@@ -1460,5 +1460,210 @@
     "url": "db://assets/fonts",
     "value": {},
     "versionCode": 1
+  },
+  "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf": {
+    "url": "db://assets/shaders/VATCharacter.effect",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "39a704d2-1552-4a99-a64e-fc544f91895c": {
+    "url": "db://assets/scripts/VATCharacterPlayer.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "f40bc015-d7da-449b-a17c-623812e7a17a": {
+    "url": "db://assets/materials/VATCharacterMat.mtl",
+    "value": {
+      "depends": [
+        "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ea31709b-9a6d-4c93-9d86-6c337e85fa09": {
+    "url": "db://assets/3D/Girls",
+    "value": {},
+    "versionCode": 1
+  },
+  "aabcbef0-4f19-4b42-87b5-4488dc5a7d87": {
+    "url": "db://assets/3D/Girls/character_vat_vat_mesh.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "665c0eca-c994-43cf-b816-702ca57820e7": {
+    "url": "db://assets/3D/Girls/character_vat_vat.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "105e33f7-6dd4-4c27-9da4-16dc2040d739": {
+    "url": "db://assets/3D/Girls/character_vat_vat.json",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "665c0eca-c994-43cf-b816-702ca57820e7@6c48a": {
+    "url": "db://assets/3D/Girls/character_vat_vat.png@6c48a",
+    "value": {
+      "depends": [
+        "665c0eca-c994-43cf-b816-702ca57820e7"
+      ]
+    },
+    "versionCode": 1
+  },
+  "aabcbef0-4f19-4b42-87b5-4488dc5a7d87@dcdd8": {
+    "url": "db://assets/3D/Girls/character_vat_vat_mesh.fbx@dcdd8",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "aabcbef0-4f19-4b42-87b5-4488dc5a7d87@e736c": {
+    "url": "db://assets/3D/Girls/character_vat_vat_mesh.fbx@e736c",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "aabcbef0-4f19-4b42-87b5-4488dc5a7d87@092ce": {
+    "url": "db://assets/3D/Girls/character_vat_vat_mesh.fbx@092ce",
+    "value": {
+      "depends": [
+        "aabcbef0-4f19-4b42-87b5-4488dc5a7d87@e736c",
+        "aabcbef0-4f19-4b42-87b5-4488dc5a7d87@dcdd8"
+      ]
+    },
+    "versionCode": 1
+  },
+  "740217b2-dddc-45b2-803d-f622c5565075": {
+    "url": "db://assets/VATTest.scene",
+    "value": {
+      "depends": [
+        "aabcbef0-4f19-4b42-87b5-4488dc5a7d87@092ce",
+        "105e33f7-6dd4-4c27-9da4-16dc2040d739",
+        "665c0eca-c994-43cf-b816-702ca57820e7@6c48a",
+        "435f0621-1492-476d-b6de-d3e6714038fd@6c48a",
+        "241ca1f0-c5d6-42d4-b27d-2f27dcfd19f6",
+        "1733b1c4-d840-4ac3-be32-37e96c9fb89b@092ce",
+        "0ad254af-3a97-4a87-a660-7170296e0688",
+        "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9@6c48a",
+        "92a1bb72-eabe-4a85-b51b-57b4e81e7f86",
+        "d032ac98-05e1-4090-88bb-eb640dcb5fc1@b47c0",
+        "6f01cf7f-81bf-4a7e-bd5d-0afc19696480@b47c0"
+      ],
+      "dependScripts": [
+        "39a704d2-1552-4a99-a64e-fc544f91895c",
+        "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
+        "VA4c09e2-99ab-62a2-716b-6a6784bde9ed",
+        "e20b72e0-893e-4579-9e76-bf8b8dbf4567"
+      ]
+    },
+    "versionCode": 2
+  },
+  "241ca1f0-c5d6-42d4-b27d-2f27dcfd19f6": {
+    "url": "db://assets/3D/Girls/GirlsMat.mtl",
+    "value": {
+      "depends": [
+        "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf",
+        "435f0621-1492-476d-b6de-d3e6714038fd@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "435f0621-1492-476d-b6de-d3e6714038fd": {
+    "url": "db://assets/3D/Girls/RingGirl_Base_color.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "435f0621-1492-476d-b6de-d3e6714038fd@6c48a": {
+    "url": "db://assets/3D/Girls/RingGirl_Base_color.png@6c48a",
+    "value": {
+      "depends": [
+        "435f0621-1492-476d-b6de-d3e6714038fd"
+      ]
+    },
+    "versionCode": 1
+  },
+  "69b8e0ee-65b1-4ebc-83d3-7d591ba64478": {
+    "url": "db://assets/3D/Fighter",
+    "value": {},
+    "versionCode": 1
+  },
+  "1733b1c4-d840-4ac3-be32-37e96c9fb89b": {
+    "url": "db://assets/3D/Fighter/character_vat_vat_mesh.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9": {
+    "url": "db://assets/3D/Fighter/character_vat_vat.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "0ad254af-3a97-4a87-a660-7170296e0688": {
+    "url": "db://assets/3D/Fighter/character_vat_vat.json",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "1733b1c4-d840-4ac3-be32-37e96c9fb89b@dcdd8": {
+    "url": "db://assets/3D/Fighter/character_vat_vat_mesh.fbx@dcdd8",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "1733b1c4-d840-4ac3-be32-37e96c9fb89b@3253f": {
+    "url": "db://assets/3D/Fighter/character_vat_vat_mesh.fbx@3253f",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "1733b1c4-d840-4ac3-be32-37e96c9fb89b@092ce": {
+    "url": "db://assets/3D/Fighter/character_vat_vat_mesh.fbx@092ce",
+    "value": {
+      "depends": [
+        "1733b1c4-d840-4ac3-be32-37e96c9fb89b@3253f",
+        "1733b1c4-d840-4ac3-be32-37e96c9fb89b@dcdd8"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9@6c48a": {
+    "url": "db://assets/3D/Fighter/character_vat_vat.png@6c48a",
+    "value": {
+      "depends": [
+        "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9"
+      ]
+    },
+    "versionCode": 1
+  },
+  "92a1bb72-eabe-4a85-b51b-57b4e81e7f86": {
+    "url": "db://assets/3D/Fighter/FighterMat.mtl",
+    "value": {
+      "depends": [
+        "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf",
+        "01e8d4f8-e754-4cd6-a096-8831a456fa02@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e20b72e0-893e-4579-9e76-bf8b8dbf4567": {
+    "url": "db://assets/3D/Fighter/EventTest.ts",
+    "value": {},
+    "versionCode": 1
   }
 }

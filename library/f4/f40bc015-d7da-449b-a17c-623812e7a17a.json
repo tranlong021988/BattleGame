@@ -1,0 +1,92 @@
+{
+  "__type__": "cc.Material",
+  "_name": "VATCharacterMat",
+  "_objFlags": 0,
+  "__editorExtras__": {},
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 0,
+  "_defines": [
+    {
+      "USE_INSTANCING": true
+    }
+  ],
+  "_states": [
+    {
+      "rasterizerState": {},
+      "depthStencilState": {},
+      "blendState": {
+        "targets": [
+          {}
+        ]
+      }
+    }
+  ],
+  "_props": [
+    {
+      "vatInfo": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "vatBoundsMin": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "vatBoundsMax": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "vatPlayback": [
+        30,
+        0,
+        0,
+        0
+      ],
+      "vatOptions": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "vatBlendPlayback": [
+        30,
+        0,
+        0,
+        0
+      ],
+      "vatBlendOptions": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "tilingOffset": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "mainColor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "colorAdjust": [
+        1,
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

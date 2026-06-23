@@ -1,0 +1,191 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: vat-vs:vert
+      frag: vat-fs:frag
+      rasterizerState:
+        cullMode: none
+      properties:
+        mainTexture:
+          value: white
+          editor:
+            tooltip: Diffuse/albedo texture sampled by the unlit VAT shader.
+        vatTex:
+          value: white
+          editor:
+            tooltip: Position VAT texture exported by the Blender baker. Use nearest/clamp/no mipmap/no lossy compression.
+        vatInfo:
+          # x = vertexCount, y = frameCount, z = textureWidth, w = textureHeight
+          value: [1, 1, 1, 1]
+          editor:
+            tooltip: Baker metadata. x vertex count, y frame count, z texture width, w texture height.
+        vatBoundsMin:
+          value: [0, 0, 0, 0]
+          editor:
+            tooltip: Minimum baked local position used to decode VAT RGB back to mesh position.
+        vatBoundsMax:
+          value: [1, 1, 1, 0]
+          editor:
+            tooltip: Maximum baked local position used to decode VAT RGB back to mesh position.
+        vatPlayback:
+          # x = fps, y = startFrame, z = endFrame, w = timeOffset
+          value: [30, 0, 0, 0]
+          editor:
+            tooltip: Playback data. x fps, y start frame, z end frame, w time offset.
+        vatOptions:
+          # x = rowsPerFrame, y = reversePlayback, z = flipVatV, w = loop
+          value: [1, 0, 1, 1]
+          editor:
+            tooltip: VAT sampling options. x rows per frame, y reverse playback, z flip VAT V, w loop playback.
+        vatBlendPlayback:
+          # x = fps, y = startFrame, z = endFrame, w = timeOffset
+          value: [30, 0, 0, 0]
+          editor:
+            tooltip: Secondary clip playback data used only while blending. x fps, y start frame, z end frame, w time offset.
+        vatBlendOptions:
+          # x = blendWeight, y = reversePlayback, z = loop, w reserved
+          value: [0, 0, 1, 0]
+          editor:
+            tooltip: Secondary clip blend options. x blend weight 0-1, y reverse playback, z loop, w reserved.
+        tilingOffset:
+          value: [1, 1, 0, 0]
+          editor:
+            tooltip: Diffuse texture tiling and offset.
+        mainColor:
+          value: [1, 1, 1, 1]
+          linear: true
+          editor:
+            tooltip: Multiplies the diffuse texture color and alpha.
+        colorAdjust:
+          # x = brightness, y = saturation, z/w reserved
+          value: [1, 1, 0, 0]
+          editor:
+            tooltip: Linear-space unlit color adjustment. x brightness, y saturation, z/w reserved.
+}%
+
+CCProgram vat-vs %{
+  precision highp float;
+
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/decode-base>
+  #include <legacy/local-batch>
+
+  uniform sampler2D vatTex;
+
+  uniform VATInfo {
+    vec4 vatInfo;
+    vec4 vatBoundsMin;
+    vec4 vatBoundsMax;
+    vec4 vatPlayback;
+    vec4 vatOptions;
+    vec4 vatBlendPlayback;
+    vec4 vatBlendOptions;
+  };
+
+  uniform TexCoords {
+    vec4 tilingOffset;
+  };
+
+  in vec2 a_texCoord1;
+
+  #if USE_INSTANCING
+    in vec4 a_vat_playback;
+    in vec4 a_vat_options;
+    in vec4 a_vat_blend_playback;
+    in vec4 a_vat_blend_options;
+  #endif
+
+  out vec2 v_uv;
+
+  vec3 sampleVatPosition(float frame, float vertexIndex, vec4 options) {
+    float vertexCount = max(vatInfo.x, 1.0);
+    float texWidth = max(vatInfo.z, 1.0);
+    float texHeight = max(vatInfo.w, 1.0);
+    float rowsPerFrame = max(options.x, 1.0);
+    float rowInFrame = floor(vertexIndex / texWidth);
+    float col = mod(vertexIndex, texWidth);
+    float row = frame * rowsPerFrame + rowInFrame;
+    float u = (col + 0.5) / texWidth;
+    float v = (row + 0.5) / texHeight;
+    if (options.z > 0.5) {
+      v = 1.0 - v;
+    }
+    vec3 encoded = texture(vatTex, vec2(u, v)).rgb;
+    return mix(vatBoundsMin.xyz, vatBoundsMax.xyz, encoded);
+  }
+
+  float resolveVatFrame(vec4 playback, float reverseFlag, float loopFlag) {
+    float frameCount = max(vatInfo.y, 1.0);
+    float fps = max(playback.x, 0.0);
+    float startFrame = clamp(playback.y, 0.0, frameCount - 1.0);
+    float endFrame = clamp(playback.z, startFrame, frameCount - 1.0);
+    float clipFrameCount = max(endFrame - startFrame + 1.0, 1.0);
+    float rawFrame = floor(max((cc_time.x + playback.w) * fps, 0.0));
+    float localFrame = loopFlag > 0.5 ? mod(rawFrame, clipFrameCount) : min(rawFrame, clipFrameCount - 1.0);
+    return reverseFlag > 0.5 ? endFrame - localFrame : startFrame + localFrame;
+  }
+
+  vec4 vert () {
+    vec4 position;
+    CCVertInput(position);
+
+    float vertexCount = max(vatInfo.x, 1.0);
+    float vertexIndex = clamp(floor(a_texCoord1.x * vertexCount), 0.0, vertexCount - 1.0);
+
+    vec4 playback = vatPlayback;
+    vec4 options = vatOptions;
+    vec4 blendPlayback = vatBlendPlayback;
+    vec4 blendOptions = vatBlendOptions;
+
+    #if USE_INSTANCING
+      playback = a_vat_playback;
+      options = a_vat_options;
+      blendPlayback = a_vat_blend_playback;
+      blendOptions = a_vat_blend_options;
+    #endif
+
+    float frame = resolveVatFrame(playback, options.y, options.w);
+    vec3 vatPosition = sampleVatPosition(frame, vertexIndex, options);
+    float blendWeight = clamp(blendOptions.x, 0.0, 1.0);
+    if (blendWeight > 0.001) {
+      float blendFrame = resolveVatFrame(blendPlayback, blendOptions.y, blendOptions.z);
+      vatPosition = mix(vatPosition, sampleVatPosition(blendFrame, vertexIndex, options), blendWeight);
+    }
+
+    position.xyz = vatPosition;
+    position.w = 1.0;
+
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+
+    v_uv = a_texCoord * tilingOffset.xy + tilingOffset.zw;
+    return cc_matProj * (cc_matView * matWorld) * position;
+  }
+}%
+
+CCProgram vat-fs %{
+  precision highp float;
+
+  #include <legacy/output-standard>
+
+  in vec2 v_uv;
+  uniform sampler2D mainTexture;
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 colorAdjust;
+  };
+
+  vec4 frag () {
+    vec4 tex = texture(mainTexture, v_uv);
+    tex.rgb = SRGBToLinear(tex.rgb);
+    vec3 color = tex.rgb * mainColor.rgb;
+    float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color = mix(vec3(luma), color, max(colorAdjust.y, 0.0));
+    color *= colorAdjust.x;
+    vec4 o = vec4(color, tex.a * mainColor.a);
+    return CCFragOutput(o);
+  }
+}%

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "format": "BattleGameCharacterVAT",
+  "assetName": "character_vat",
+  "sourceObject": "Body.002",
+  "mesh": "character_vat_vat_mesh.fbx",
+  "positionTexture": "character_vat_vat.png",
+  "uvIndexChannel": "VAT_INDEX",
+  "vertexCount": 10008,
+  "frameCount": 36,
+  "textureWidth": 1024,
+  "textureHeight": 1024,
+  "rowsPerFrame": 10,
+  "preferSquareTexture": true,
+  "fps": 30,
+  "axisMode": "BLENDER",
+  "animationSource": "FRAME_RANGE",
+  "sourceStartFrame": 1,
+  "sourceEndFrame": 36,
+  "boundsMin": [
+    -0.4071933925151825,
+    0.00015457120025530457,
+    -0.5194157361984253
+  ],
+  "boundsMax": [
+    0.3837306499481201,
+    1.8991596698760986,
+    0.4939000606536865
+  ],
+  "animations": {
+    "frame_range": {
+      "startFrame": 0,
+      "endFrame": 35,
+      "fps": 30,
+      "loop": true,
+      "source": "FRAME_RANGE",
+      "sourceStartFrame": 1,
+      "sourceEndFrame": 36
+    }
+  },
+  "notes": [
+    "Import the PNG as a data texture: no sRGB/color correction, nearest filtering, clamp, no mipmap, no lossy compression.",
+    "Assign the exported mesh, VATCharacter.effect material, VAT PNG, and this JSON to VATCharacterPlayer.",
+    "The mesh uses a UV channel named VAT_INDEX to map each render vertex to VAT pixels."
+  ]
+}
