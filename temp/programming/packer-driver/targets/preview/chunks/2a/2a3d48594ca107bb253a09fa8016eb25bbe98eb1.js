@@ -532,24 +532,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var _i = 0; _i < wave.units.length; _i++) {
             var unit = wave.units[_i];
             if (!this.isAliveUnit(unit)) continue;
-            var laneId = this.getNearestLaneIdForX(unit.agent.pos.x);
+            var laneId = this.getNearestLaneIdForX(unit.node.worldPosition.x);
             counts[laneId]++;
             counted++;
           }
 
           if (counted <= 0) return -1;
-          var currentLane = wave.laneId >= 0 ? this.clampLaneId(wave.laneId) : -1;
-          var bestLane = currentLane >= 0 ? currentLane : 0;
-          var bestCount = counts[bestLane];
+          var bestCount = 0;
 
           for (var _i2 = 0; _i2 < laneCount; _i2++) {
             if (counts[_i2] > bestCount) {
               bestCount = counts[_i2];
-              bestLane = _i2;
             }
           }
 
-          return bestLane;
+          if (bestCount <= 0) return -1;
+          var tieCount = 0;
+
+          for (var _i3 = 0; _i3 < laneCount; _i3++) {
+            if (counts[_i3] === bestCount) {
+              tieCount++;
+            }
+          }
+
+          var pick = Math.floor(Math.random() * tieCount);
+
+          for (var _i4 = 0; _i4 < laneCount; _i4++) {
+            if (counts[_i4] !== bestCount) continue;
+
+            if (pick <= 0) {
+              return _i4;
+            }
+
+            pick--;
+          }
+
+          return -1;
         }
 
         regroupWaveByMajorityLane(wave) {
@@ -593,7 +611,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             if (!hero.onBusy && (hero.onForward || hero.returningToWaveLaneSlot || hero.laneId >= 0)) {
-              hero.enterFreeHuntMode(this.heroFreeHuntSearchRange);
+              hero.enterFreeHuntMode(this.getHeroPressureSearchRange());
             }
 
             return;
@@ -721,7 +739,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.heroForwardUnlocked[team] = true;
           hero.setSteady(false, false);
-          hero.enterFreeHuntMode(this.heroFreeHuntSearchRange);
+          hero.enterFreeHuntMode(this.getHeroPressureSearchRange());
           this.releaseEnemyNormalWavesToFreeHunt(team);
         }
 
@@ -740,7 +758,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         forceWaveToHeroPressureFreeHunt(wave) {
           this.forwardReleasedWaves.delete(wave);
           wave.clearLaneControl();
-          wave.releaseForwardToFreeHunt(this.heroFreeHuntSearchRange);
+          wave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange());
+        }
+
+        getHeroPressureSearchRange() {
+          var minZ = Math.min(this.battleMinZ, this.teamASpawnZ, this.teamBSpawnZ);
+          var maxZ = Math.max(this.battleMaxZ, this.teamASpawnZ, this.teamBSpawnZ);
+          var width = Math.max(0, this.battleMaxX - this.battleMinX);
+          var depth = Math.max(0, maxZ - minZ);
+          var diagonal = Math.sqrt(width * width + depth * depth);
+          return Math.max(this.heroFreeHuntSearchRange, diagonal + Math.max(4, this.spatialGridCellSize));
         }
 
         shouldForceTeamFreeHunt(team) {

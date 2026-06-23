@@ -2,7 +2,7 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-06-23.
+Last updated: 2026-06-24.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
@@ -45,6 +45,10 @@ Current source-verified recovery baseline:
 - Full square regroup was removed earlier.
 - Recovery currently uses `GameManager.regroupWaveByMajorityLane()`.
 - The lane chosen for recovery is the majority lane of alive units in that wave.
+- Lane vote is based on the unit's visible world X position: `unit.node.worldPosition.x`.
+- If multiple lanes tie for highest alive-unit count, randomly choose among the tied lanes only.
+- Do not prefer the previous `wave.laneId` on tie unless it is actually part of the tied vote result.
+- A lane with zero votes must never be selected.
 - If no lane can be resolved, the wave resumes forward.
 - A wave should recover only after it has no engaged units and no valid target for `freeHuntNoTargetRecoveryFrames`.
 
@@ -110,6 +114,61 @@ Hero is treated as a special mid-lane unit/wave conceptually, but still has spec
 Recent caution:
 
 - A previous hero-phase fix was suspected to affect frame time, but later profiling also showed browser/tab noise and render/GPU cost can dominate. Re-measure before blaming hero logic.
+- Hero-pressure freehunt search now uses `GameManager.getHeroPressureSearchRange()`, which covers the battlefield diagonal plus margin. This prevents newly spawned enemy waves from being forced out of forward and then standing idle because the fixed inspector `heroFreeHuntSearchRange` was too short.
+
+## Gameplay Fixes On 2026-06-24
+
+Source file touched:
+
+- `assets/scripts/GameManager.ts`
+
+Lane recovery fix:
+
+- Bug observed by user: after combat, a surviving unit/wave could regroup to an unrelated lane, for example a unit visually in right lane regrouping all the way to left.
+- Confirmed old source behavior: `getMajorityLaneIdForWave()` used `unit.agent.pos.x` and resolved ties by preferring current `wave.laneId`.
+- This was too easy to misread visually and also did not match the user's intended rule.
+- Current intended rule:
+  - after combat/freehunt,
+  - once no unit is busy and no target is in search range long enough,
+  - count all alive units by the lane they are visibly standing in,
+  - choose the lane with most alive units,
+  - if tied, random only among tied lanes.
+- Current implementation:
+  - uses `unit.node.worldPosition.x` for lane vote,
+  - computes max vote count,
+  - randomly selects among lanes whose count equals max,
+  - returns `-1` only when no alive unit contributed a vote.
+- Important invariant:
+  - do not add combat-anchor, enemy-lane, killer-lane, or previous-lane bias unless the user explicitly changes the rule.
+
+Hero-pressure spawn idle fix:
+
+- Bug observed by user: when the last non-hero unit of team B died and team A spawned a new wave at the same moment, the new A wave could stand still at spawn.
+- Likely source path:
+  - B loses last normal unit,
+  - B hero unlocks,
+  - enemy normal waves are forced into hero-pressure freehunt,
+  - a just-spawned A wave also hits `shouldForceTeamFreeHunt(team)` inside `spawnEntryFormation()`,
+  - forward is disabled,
+  - if fixed `heroFreeHuntSearchRange` cannot see hero/enemy from spawn, the wave has no target and appears idle.
+- Current implementation:
+  - added `getHeroPressureSearchRange()`,
+  - uses battlefield width/depth plus spawn Z extents to compute a range covering the whole battlefield,
+  - `recoverHeroWaveCombat()`, `unlockHeroForward()`, and `forceWaveToHeroPressureFreeHunt()` now use that range instead of the fixed inspector value directly.
+- This keeps the design intent of endgame pressure/freehunt, while avoiding spawned waves being kicked out of forward without a reachable target.
+
+Verification done:
+
+- `git diff --check -- assets/scripts/GameManager.ts` passed.
+- Cocos preview/runtime was not run from this Codex session. User should retest:
+  - combat ending with 1 surviving unit in a lane,
+  - tied lane vote cases,
+  - new wave spawning exactly as the enemy loses its last non-hero unit.
+
+Implementation caution:
+
+- There are many editor/generated dirty files under `build/`, `library/`, and `temp/`. Do not revert them blindly.
+- `assets/Test.scene`, `profiles/v2/packages/*`, and generated files may have user/editor changes unrelated to these two code fixes.
 
 ## Performance Systems
 

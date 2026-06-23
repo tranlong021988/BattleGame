@@ -594,7 +594,7 @@ export class GameManager extends Component {
 
             const laneId =
                 this.getNearestLaneIdForX(
-                    unit.agent!.pos.x
+                    unit.node.worldPosition.x
                 );
 
             counts[laneId]++;
@@ -603,25 +603,39 @@ export class GameManager extends Component {
 
         if (counted <= 0) return -1;
 
-        const currentLane =
-            wave.laneId >= 0
-                ? this.clampLaneId(wave.laneId)
-                : -1;
-
-        let bestLane =
-            currentLane >= 0
-                ? currentLane
-                : 0;
-        let bestCount = counts[bestLane];
+        let bestCount = 0;
 
         for (let i = 0; i < laneCount; i++) {
             if (counts[i] > bestCount) {
                 bestCount = counts[i];
-                bestLane = i;
             }
         }
 
-        return bestLane;
+        if (bestCount <= 0) return -1;
+
+        let tieCount = 0;
+
+        for (let i = 0; i < laneCount; i++) {
+            if (counts[i] === bestCount) {
+                tieCount++;
+            }
+        }
+
+        let pick = Math.floor(
+            Math.random() * tieCount
+        );
+
+        for (let i = 0; i < laneCount; i++) {
+            if (counts[i] !== bestCount) continue;
+
+            if (pick <= 0) {
+                return i;
+            }
+
+            pick--;
+        }
+
+        return -1;
     }
 
     private regroupWaveByMajorityLane(
@@ -696,7 +710,7 @@ export class GameManager extends Component {
                 )
             ) {
                 hero.enterFreeHuntMode(
-                    this.heroFreeHuntSearchRange
+                    this.getHeroPressureSearchRange()
                 );
             }
 
@@ -859,7 +873,7 @@ export class GameManager extends Component {
         this.heroForwardUnlocked[team] = true;
         hero.setSteady(false, false);
         hero.enterFreeHuntMode(
-            this.heroFreeHuntSearchRange
+            this.getHeroPressureSearchRange()
         );
         this.releaseEnemyNormalWavesToFreeHunt(team);
     }
@@ -888,7 +902,35 @@ export class GameManager extends Component {
 
         wave.clearLaneControl();
         wave.releaseForwardToFreeHunt(
-            this.heroFreeHuntSearchRange
+            this.getHeroPressureSearchRange()
+        );
+    }
+
+    private getHeroPressureSearchRange() {
+        const minZ = Math.min(
+            this.battleMinZ,
+            this.teamASpawnZ,
+            this.teamBSpawnZ
+        );
+        const maxZ = Math.max(
+            this.battleMaxZ,
+            this.teamASpawnZ,
+            this.teamBSpawnZ
+        );
+        const width = Math.max(
+            0,
+            this.battleMaxX - this.battleMinX
+        );
+        const depth = Math.max(
+            0,
+            maxZ - minZ
+        );
+        const diagonal =
+            Math.sqrt(width * width + depth * depth);
+
+        return Math.max(
+            this.heroFreeHuntSearchRange,
+            diagonal + Math.max(4, this.spatialGridCellSize)
         );
     }
 
