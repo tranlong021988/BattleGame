@@ -102,8 +102,12 @@
             "3D\\Fighter\\character_vat_vat.json",
             "3D\\Fighter\\character_vat_vat.png",
             "3D\\Fighter\\character_vat_vat_mesh.fbx",
-            "3D\\Fighter\\FighterMat.mtl",
-            "3D\\Fighter\\EventTest.ts"
+            "3D\\Fighter\\EventTest.ts",
+            "3D\\Fighter\\Fighter_vat.json",
+            "3D\\Fighter\\Fighter_vat.png",
+            "3D\\Fighter\\Fighter_vat_mesh.fbx",
+            "3D\\Fighter\\FighterBlueMat.mtl",
+            "3D\\Fighter\\FighterRedMat.mtl"
         ]
     }
 }

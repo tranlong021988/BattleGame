@@ -10,7 +10,7 @@ export class EventTest extends Component {
     }
 
    public JabEndCall(eventName: string, animationName: string, frame: number, customEventData?: string) {
-     console.log('VAT event', eventName, animationName, frame, customEventData);
+    // console.log('VAT event', eventName, animationName, frame, customEventData);
     }
 }
 

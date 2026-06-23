@@ -68,21 +68,21 @@
       "time": 1776667555102.3574
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1782114949634.1926,
+      "time": 1782214709069.917,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
       "time": 1776667555102.3574
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1782114950212.4844,
+      "time": 1782214709645.6494,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
       "time": 1782129997594.6794
     },
     "Test.scene": {
-      "time": 1782187985517.549,
+      "time": 1782215811815.8313,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -656,7 +656,7 @@
       "time": 1782187999980.322
     },
     "VATTest.scene": {
-      "time": 1782211404703.6233,
+      "time": 1782213713791.8918,
       "uuid": "740217b2-dddc-45b2-803d-f622c5565075"
     },
     "3D\\Girls\\GirlsMat.mtl.meta": {
@@ -677,7 +677,7 @@
       "time": 1782200048050.8125
     },
     "3D\\Fighter": {
-      "time": 1782208094553.4397,
+      "time": 1782214363771.8186,
       "uuid": "69b8e0ee-65b1-4ebc-83d3-7d591ba64478"
     },
     "3D\\Fighter\\character_vat_vat.json.meta": {
@@ -701,19 +701,47 @@
       "time": 1782209738182.1343,
       "uuid": "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9"
     },
-    "3D\\Fighter\\FighterMat.mtl.meta": {
-      "time": 1782200141944.0476
-    },
-    "3D\\Fighter\\FighterMat.mtl": {
-      "time": 1782210481754.4983,
-      "uuid": "92a1bb72-eabe-4a85-b51b-57b4e81e7f86"
-    },
     "3D\\Fighter\\EventTest.ts.meta": {
       "time": 1782208094560.4404
     },
     "3D\\Fighter\\EventTest.ts": {
-      "time": 1782209108823.1428,
+      "time": 1782214287192.6196,
       "uuid": "e20b72e0-893e-4579-9e76-bf8b8dbf4567"
+    },
+    "3D\\Fighter\\Fighter_vat.json.meta": {
+      "time": 1782213707409.3923
+    },
+    "3D\\Fighter\\Fighter_vat.png.meta": {
+      "time": 1782213707426.391
+    },
+    "3D\\Fighter\\Fighter_vat_mesh.fbx.meta": {
+      "time": 1782213707500.083
+    },
+    "3D\\Fighter\\Fighter_vat.json": {
+      "time": 1782213775639.6414,
+      "uuid": "945fbbd1-fbef-4a30-a614-34f6ec952238"
+    },
+    "3D\\Fighter\\Fighter_vat.png": {
+      "time": 1782213775621.648,
+      "uuid": "24ad421e-a918-4e03-90bd-d97d6ac43b72"
+    },
+    "3D\\Fighter\\Fighter_vat_mesh.fbx": {
+      "time": 1782213775638.648,
+      "uuid": "63641aa0-5365-4ccb-bac0-553779e72e2b"
+    },
+    "3D\\Fighter\\FighterBlueMat.mtl.meta": {
+      "time": 1782214348813.142
+    },
+    "3D\\Fighter\\FighterBlueMat.mtl": {
+      "time": 1782214388830.4678,
+      "uuid": "1a9392a1-fcc0-48df-8fb3-e844310224b2"
+    },
+    "3D\\Fighter\\FighterRedMat.mtl.meta": {
+      "time": 1782200141944.0476
+    },
+    "3D\\Fighter\\FighterRedMat.mtl": {
+      "time": 1782210481754.4983,
+      "uuid": "92a1bb72-eabe-4a85-b51b-57b4e81e7f86"
     }
   },
   "missing": {}

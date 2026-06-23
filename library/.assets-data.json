@@ -67,12 +67,19 @@
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
         "5f434786-d4f3-41f9-81b1-15a1fa9fd12b",
-        "1263d74c-8167-4928-91a6-4e2672411f47@fc873"
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
+        "1a9392a1-fcc0-48df-8fb3-e844310224b2",
+        "63641aa0-5365-4ccb-bac0-553779e72e2b@4450d",
+        "0ad254af-3a97-4a87-a660-7170296e0688",
+        "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9@6c48a"
       ],
       "dependScripts": [
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "6c024aa7-a229-41fd-8a4c-51ee2113e594",
+        "39a704d2-1552-4a99-a64e-fc544f91895c",
+        "VA4c09e2-99ab-62a2-716b-6a6784bde9ed",
+        "e20b72e0-893e-4579-9e76-bf8b8dbf4567",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "c92714ee-b02f-44a4-ac0b-25e52948a19f",
         "447a22c2-f685-4b14-bc2d-8d4b81383823"
@@ -88,12 +95,19 @@
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
         "5f434786-d4f3-41f9-81b1-15a1fa9fd12b",
-        "1263d74c-8167-4928-91a6-4e2672411f47@fc873"
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
+        "92a1bb72-eabe-4a85-b51b-57b4e81e7f86",
+        "63641aa0-5365-4ccb-bac0-553779e72e2b@4450d",
+        "0ad254af-3a97-4a87-a660-7170296e0688",
+        "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9@6c48a"
       ],
       "dependScripts": [
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
         "CC3eba29-7abb-723a-f7ab-ae275e2277e8",
         "6c024aa7-a229-41fd-8a4c-51ee2113e594",
+        "39a704d2-1552-4a99-a64e-fc544f91895c",
+        "VA4c09e2-99ab-62a2-716b-6a6784bde9ed",
+        "e20b72e0-893e-4579-9e76-bf8b8dbf4567",
         "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce",
         "c92714ee-b02f-44a4-ac0b-25e52948a19f",
         "447a22c2-f685-4b14-bc2d-8d4b81383823"
@@ -1652,7 +1666,7 @@
     "versionCode": 1
   },
   "92a1bb72-eabe-4a85-b51b-57b4e81e7f86": {
-    "url": "db://assets/3D/Fighter/FighterMat.mtl",
+    "url": "db://assets/3D/Fighter/FighterRedMat.mtl",
     "value": {
       "depends": [
         "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf",
@@ -1664,6 +1678,70 @@
   "e20b72e0-893e-4579-9e76-bf8b8dbf4567": {
     "url": "db://assets/3D/Fighter/EventTest.ts",
     "value": {},
+    "versionCode": 1
+  },
+  "63641aa0-5365-4ccb-bac0-553779e72e2b": {
+    "url": "db://assets/3D/Fighter/Fighter_vat_mesh.fbx",
+    "value": {},
+    "versionCode": 3
+  },
+  "24ad421e-a918-4e03-90bd-d97d6ac43b72": {
+    "url": "db://assets/3D/Fighter/Fighter_vat.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "945fbbd1-fbef-4a30-a614-34f6ec952238": {
+    "url": "db://assets/3D/Fighter/Fighter_vat.json",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "24ad421e-a918-4e03-90bd-d97d6ac43b72@6c48a": {
+    "url": "db://assets/3D/Fighter/Fighter_vat.png@6c48a",
+    "value": {
+      "depends": [
+        "24ad421e-a918-4e03-90bd-d97d6ac43b72"
+      ]
+    },
+    "versionCode": 1
+  },
+  "63641aa0-5365-4ccb-bac0-553779e72e2b@4450d": {
+    "url": "db://assets/3D/Fighter/Fighter_vat_mesh.fbx@4450d",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "63641aa0-5365-4ccb-bac0-553779e72e2b@3253f": {
+    "url": "db://assets/3D/Fighter/Fighter_vat_mesh.fbx@3253f",
+    "value": {
+      "depends": [
+        "f648964e-8d32-41fc-9ac9-7a1e714dd17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "63641aa0-5365-4ccb-bac0-553779e72e2b@07e35": {
+    "url": "db://assets/3D/Fighter/Fighter_vat_mesh.fbx@07e35",
+    "value": {
+      "depends": [
+        "63641aa0-5365-4ccb-bac0-553779e72e2b@3253f",
+        "63641aa0-5365-4ccb-bac0-553779e72e2b@4450d"
+      ]
+    },
+    "versionCode": 1
+  },
+  "1a9392a1-fcc0-48df-8fb3-e844310224b2": {
+    "url": "db://assets/3D/Fighter/FighterBlueMat.mtl",
+    "value": {
+      "depends": [
+        "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf",
+        "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b@6c48a"
+      ]
+    },
     "versionCode": 1
   }
 }

@@ -30,8 +30,7 @@ System.register(["cc"], function (_export, _context) {
           });
         }
 
-        JabEndCall(eventName, animationName, frame, customEventData) {
-          console.log('VAT event', eventName, animationName, frame, customEventData);
+        JabEndCall(eventName, animationName, frame, customEventData) {// console.log('VAT event', eventName, animationName, frame, customEventData);
         }
 
       }) || _class));

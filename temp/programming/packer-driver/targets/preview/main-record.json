@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 24920208.9766,
+      "mTimestamp": 28333690.3127,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -8035,7 +8035,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/3D/Fighter/EventTest.ts": {
       "mTimestamp": {
-        "mtime": 1782209108823.1428,
+        "mtime": 1782214287192.6196,
         "uuid": "e20b72e0-893e-4579-9e76-bf8b8dbf4567"
       },
       "chunkId": "d283c9d18ed75630c5f601d3a8975b54024043e3",

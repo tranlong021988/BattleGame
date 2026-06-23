@@ -26,22 +26,25 @@
       },
       {
         "__id__": 32
+      },
+      {
+        "__id__": 39
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 39
+        "__id__": 53
       },
       {
-        "__id__": 41
+        "__id__": 55
       },
       {
-        "__id__": 43
+        "__id__": 57
       }
     ],
     "_prefab": {
-      "__id__": 45
+      "__id__": 59
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -655,6 +658,252 @@
     "nestedPrefabInstanceRoots": null
   },
   {
+    "__type__": "cc.Node",
+    "_name": "FighterMesh",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__id__": 40
+      },
+      {
+        "__id__": 43
+      },
+      {
+        "__id__": 50
+      }
+    ],
+    "_prefab": {
+      "__id__": 52
+    },
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 1073741824,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "cc.MeshRenderer",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 39
+    },
+    "_enabled": false,
+    "__prefab": {
+      "__id__": 41
+    },
+    "_materials": [
+      {
+        "__uuid__": "1a9392a1-fcc0-48df-8fb3-e844310224b2",
+        "__expectedType__": "cc.Material"
+      }
+    ],
+    "_visFlags": 0,
+    "bakeSettings": {
+      "__id__": 42
+    },
+    "_mesh": {
+      "__uuid__": "63641aa0-5365-4ccb-bac0-553779e72e2b@4450d",
+      "__expectedType__": "cc.Mesh"
+    },
+    "_shadowCastingMode": 0,
+    "_shadowReceivingMode": 1,
+    "_shadowBias": 0,
+    "_shadowNormalBias": 0,
+    "_reflectionProbeId": -1,
+    "_reflectionProbeBlendId": -1,
+    "_reflectionProbeBlendWeight": 0,
+    "_enabledGlobalStandardSkinObject": false,
+    "_enableMorph": true,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "64GM5OFEtBuZ7Ioy1Zu/aB"
+  },
+  {
+    "__type__": "cc.ModelBakeSettings",
+    "texture": null,
+    "uvParam": {
+      "__type__": "cc.Vec4",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 0
+    },
+    "_bakeable": false,
+    "_castShadow": false,
+    "_receiveShadow": false,
+    "_recieveShadow": false,
+    "_lightmapSize": 64,
+    "_useLightProbe": false,
+    "_bakeToLightProbe": true,
+    "_reflectionProbeType": 0,
+    "_bakeToReflectionProbe": true
+  },
+  {
+    "__type__": "39a70TSFVJKmaZO/FRPkYlc",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {
+      "mountedRoot": null
+    },
+    "node": {
+      "__id__": 39
+    },
+    "_enabled": false,
+    "__prefab": {
+      "__id__": 44
+    },
+    "targetRenderer": null,
+    "metadata": {
+      "__uuid__": "0ad254af-3a97-4a87-a660-7170296e0688",
+      "__expectedType__": "cc.JsonAsset"
+    },
+    "vatTexture": {
+      "__uuid__": "ac4d1a78-5d17-4ce3-80ad-0e11d9c06dd9@6c48a",
+      "__expectedType__": "cc.Texture2D"
+    },
+    "mainTexture": null,
+    "animationName": "Origin",
+    "animationIndex": -1,
+    "blendToAnimationName": "",
+    "blendDuration": 0.15,
+    "animationSettings": [
+      {
+        "__id__": 45
+      },
+      {
+        "__id__": 46
+      },
+      {
+        "__id__": 47
+      }
+    ],
+    "frameEvents": [
+      {
+        "__id__": 48
+      }
+    ],
+    "finishedEvents": [],
+    "testCycleAnimations": true,
+    "testCycleSeconds": 3,
+    "speedScale": 1,
+    "timeOffset": 0,
+    "randomizeTimeOffset": true,
+    "reversePlayback": false,
+    "flipVatV": true,
+    "applyAllMaterialSlots": true,
+    "useInstancedPlayback": true,
+    "brightness": 1,
+    "saturation": 1,
+    "enableLog": false,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "3e7s6ykm5C3I/DWMbwl5FP"
+  },
+  {
+    "__type__": "VATAnimationSetting",
+    "animationName": "Origin",
+    "loop": true
+  },
+  {
+    "__type__": "VATAnimationSetting",
+    "animationName": "Jab",
+    "loop": true
+  },
+  {
+    "__type__": "VATAnimationSetting",
+    "animationName": "Death-Upercut",
+    "loop": true
+  },
+  {
+    "__type__": "VATAnimationFrameEvent",
+    "animationName": "Jab",
+    "frame": 30,
+    "eventName": "JabEndFrame",
+    "handlers": [
+      {
+        "__id__": 49
+      }
+    ]
+  },
+  {
+    "__type__": "cc.ClickEvent",
+    "target": {
+      "__id__": 39
+    },
+    "component": "",
+    "_componentId": "e20b7LgiT5FeZ52v4uNv0Vn",
+    "handler": "JabEndCall",
+    "customEventData": "this is a jab !!!"
+  },
+  {
+    "__type__": "e20b7LgiT5FeZ52v4uNv0Vn",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {
+      "mountedRoot": null
+    },
+    "node": {
+      "__id__": 39
+    },
+    "_enabled": false,
+    "__prefab": {
+      "__id__": 51
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "a8Fx7mPbVOeqxvjwkr2mXN"
+  },
+  {
+    "__type__": "cc.PrefabInfo",
+    "root": {
+      "__id__": 1
+    },
+    "asset": {
+      "__id__": 0
+    },
+    "fileId": "53p7pS98pB0LrNsUvdj9MF",
+    "instance": null,
+    "targetOverrides": null,
+    "nestedPrefabInstanceRoots": null
+  },
+  {
     "__type__": "6e964qkrR5F2YvWvH5N+eXO",
     "_name": "",
     "_objFlags": 0,
@@ -664,7 +913,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 40
+      "__id__": 54
     },
     "visualRoot": {
       "__id__": 7
@@ -682,6 +931,7 @@
     "forwardScanRange": 8,
     "forwardScanIntervalFrames": 20,
     "useWaveForwardScanner": true,
+    "aggressiveForward": false,
     "laneReturnTolerance": 0.35,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -712,7 +962,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 42
+      "__id__": 56
     },
     "unitType": 0,
     "maxHealth": 50,
@@ -737,7 +987,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 44
+      "__id__": 58
     },
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,

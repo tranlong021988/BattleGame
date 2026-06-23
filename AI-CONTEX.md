@@ -4,33 +4,33 @@ Handoff note for the other Codex instance working on `BattleGame`.
 
 Last updated: 2026-06-23.
 
-The user uses two Codex sessions on two machines. These sessions do not share chat memory. Before changing code, read this file and re-check the current source. Do not rely on older conversation memory if source has changed.
+The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
 ## Working Rules
 
 - Mobile browser performance is a core design constraint.
-- Prefer small, source-local changes. Avoid architecture growth unless a measured problem requires it.
+- Prefer small, source-local changes. Avoid growing architecture unless there is a measured reason.
 - Do not revert user/editor changes unless explicitly asked.
-- Do not leave permanent logs in hot paths. Debug logs must be behind inspector toggles such as `enableDebugLog`, `enableStateLog`, `enableAggressiveForwardLog`, or similar.
-- Use `rg` first for code search.
-- `package.json` currently has no clear typecheck/build script. Usually run `git diff --check`; Cocos Editor/preview is the practical compile check.
+- Do not leave permanent logs in hot paths. Debug logs must be behind inspector toggles.
+- Use `rg` first for source search.
+- `package.json` currently has no reliable typecheck/build script. Cocos Editor/preview is the practical compile check; `git diff --check` is still useful.
 - Cocos may generate noisy changes under `library/` and `temp/`. Do not treat those as source logic unless the user asks.
 
-## Important Files
+## Important Source Files
 
 - `assets/scripts/GameManager.ts`: battle orchestration, spawn, wave recovery, hero unlock, spatial grid rebuild, RVO step.
-- `assets/scripts/BattleWave.ts`: wave state, `laneId`, combat/freehunt state, runtime alive/target/engaged cache.
-- `assets/scripts/Unit.ts`: unit movement, forward/freehunt behavior, target search, engage, lane return.
+- `assets/scripts/BattleWave.ts`: wave state, laneId, aggressive-forward checks, runtime alive/engaged/target cache.
+- `assets/scripts/Unit.ts`: forward/freehunt behavior, target search, engage, lane return, aggressive forward.
 - `assets/scripts/UnitBehavior.ts`: attack interval, damage, kill callback.
 - `assets/scripts/BattleSpatialGrid.ts`: spatial grid, batched nearest-target worker, main-thread fallback.
 - `assets/scripts/rvo/RVOWorkerSimulator.ts`: RVO worker wrapper.
 - `assets/scripts/ArmyBrain.ts`: AI spawn/counter/lane/raid logic.
 - `assets/scripts/TrueMiniMapPanel.ts`: current minimap.
-- `assets/scripts/BattleInformationIconItem.ts`: still used by the current minimap icon visual. Do not delete casually.
-- `assets/scripts/SpectorDebugger.ts`: SpectorJS render capture helper added on 2026-06-22.
-- `cocos-performance-optimize-skills/SKILL.md`: project-local Cocos performance skill/playbook. Read it before doing broad optimization work.
+- `assets/scripts/BattleInformationIconItem.ts`: still used by minimap icon visuals. Do not delete casually.
+- `assets/scripts/SpectorDebugger.ts`: optional SpectorJS render capture helper.
+- `cocos-performance-optimize-skills/SKILL.md`: project-local Cocos performance playbook.
 
-## Current Gameplay Logic
+## Current Battle Logic Snapshot
 
 The game is a two-team lane battle with 3 lanes:
 
@@ -38,36 +38,37 @@ The game is a two-team lane battle with 3 lanes:
 - `1 = mid`
 - `2 = right`
 
-Waves spawn into a lane. Units inherit wave lane data and move forward, freehunt, or return to lane depending on wave state.
+Waves spawn into a lane. Units inherit wave lane data and move through forward, freehunt, and lane-return/recovery phases.
 
-Current recovery baseline:
+Current source-verified recovery baseline:
 
 - Full square regroup was removed earlier.
-- Current recovery uses lightweight lane/slot return.
-- After combat/freehunt recovery, lane is decided by majority position of alive units, not by enemy lane, target lane, or last kill.
-- `GameManager.regroupWaveByMajorityLane()` is the key recovery path.
+- Recovery currently uses `GameManager.regroupWaveByMajorityLane()`.
+- The lane chosen for recovery is the majority lane of alive units in that wave.
+- If no lane can be resolved, the wave resumes forward.
+- A wave should recover only after it has no engaged units and no valid target for `freeHuntNoTargetRecoveryFrames`.
 
 Important invariant:
 
 - If one unit in a wave engages, the whole wave must leave forward/regroup and enter combat/freehunt.
-- A wave should resume regroup/forward only when no unit is engaged and the wave has no valid target for `freeHuntNoTargetRecoveryFrames`.
+- Avoid adding exceptions where one unit remains in freehunt while the rest of the wave regroups.
 
 Current freehunt target behavior:
 
 - Each unit first tries to find its own target.
 - If it cannot find one, it may borrow a valid target from a teammate in the same wave.
-- Borrowed target sharing is intentionally secondary, to reduce all units piling into one target too aggressively.
+- Borrowing is secondary to reduce all units piling onto one target too early.
 
-Known intentionally removed ideas:
+Intentionally removed or avoided ideas:
 
 - Hard ban on backward chase. It caused units to stand still or fail to forward.
 - Lane decision from selected target. It caused target fixation and awkward lane changes.
 - Lane decision from last killed enemy. It caused adjacent waves to pass each other or units to run back to old lanes.
-- Persistent event/counter bookkeeping for alive/engaged state. It was tested and did not improve frametime; runtime per-frame cache is the current baseline.
+- Heavy event/counter bookkeeping for alive/engaged state. It was tested and did not improve frametime enough.
 
 ## Aggressive Forward Raid
 
-Added recently so lane choice matters more.
+Aggressive forward was added so lane choice matters more and fast units can raid empty lanes.
 
 Source state:
 
@@ -81,23 +82,23 @@ Behavior:
 
 - Normal waves use existing forward/freehunt rules.
 - Aggressive-forward waves ignore passed adjacent-lane enemy units during forward.
-- Same-lane enemies can still trigger normal release/freehunt.
-- Enemy hero can still trigger release/freehunt in same/adjacent lane.
+- Same-lane enemies can still release the wave into normal freehunt.
+- Enemy hero can still release freehunt when it is in the same or adjacent lane.
 - Actual attack-range engage still uses normal wave-wide combat.
-- Aggressive-forward flag persists after recovery/resume unless design changes later.
+- The aggressive-forward flag currently persists after recovery/resume.
 
 ArmyBrain raid rules:
 
-- Counter spawn remains priority.
-- Raid may happen when there is no valid target or selected spawn would be fallback/non-counter.
+- Counter spawn remains the main priority.
+- Raid may happen when there is no valid target or the selected spawn would be fallback/non-counter.
 - Raid lane must be empty at the ArmyBrain snapshot: no enemy wave and no ally wave counted in that lane.
-- Raid unit selection prefers highest `maxSpeed` among affordable entries; if too expensive, it naturally falls to next fastest affordable entry.
+- Raid unit selection prefers highest `maxSpeed` among affordable entries; if too expensive, it naturally falls to the next fastest affordable entry.
 - Raid defense reuses `defenseModeChance`; no extra defense knob was added.
 - If an enemy aggressive-forward wave threatens hero lane or adjacent hero lane, AI can override target selection to defend that raid.
 
 ## Hero Logic
 
-Hero is treated as a special one-unit wave in mid lane.
+Hero is treated as a special mid-lane unit/wave conceptually, but still has special rules in code.
 
 - Initially `isSteady = true`.
 - It can attack back in place if enemy enters range.
@@ -105,6 +106,10 @@ Hero is treated as a special one-unit wave in mid lane.
 - When one team hero unlocks, normal enemy waves are forced into freehunt pressure.
 - Enemy hero does not auto-unlock just because the other hero unlocked.
 - Hero kills do not award CP.
+
+Recent caution:
+
+- A previous hero-phase fix was suspected to affect frame time, but later profiling also showed browser/tab noise and render/GPU cost can dominate. Re-measure before blaming hero logic.
 
 ## Performance Systems
 
@@ -115,9 +120,7 @@ Currently active performance-oriented systems:
 - Spatial grid rebuild via `spatialGridUpdateInterval`.
 - `BattleSpatialGrid` batched nearest-target worker named `BattleSpatialGridTargetWorker`.
 - Main-thread fallback exists if worker creation or messaging fails.
-- Target worker currently uses reusable typed arrays:
-  - `targetSnapshot: Float64Array`
-  - `packedRequestData: Float64Array`
+- Target worker uses reusable typed arrays.
 - Unit target/attack scans are throttled:
   - `attackCheckIntervalFrames`
   - `targetSearchIntervalFrames`
@@ -125,13 +128,6 @@ Currently active performance-oriented systems:
 - Forward scanning uses wave/front-most scanner logic instead of every unit scanning every frame.
 - `BattleWave` has runtime per-frame cache for alive/engaged/valid-target scans.
 - Minimap uses pooling, interval updates, sampling, and grid-based icon separation.
-
-Current render-friendly implementation details:
-
-- `HealthBar3D` uses instanced attributes for per-unit health/color data.
-- Healthbar material should stay shared. Do not create one material instance per unit/healthbar.
-- If adding more healthbar states later, prefer more instanced attributes or compact per-instance data.
-- Battlefield unit tap/orbit focus is event-driven, not per-frame. It can scan alive units on tap/click; optimize with spatial grid only if measured as a problem.
 
 Avoid reintroducing:
 
@@ -141,227 +137,174 @@ Avoid reintroducing:
 - Unpooled request objects.
 - Per-unit material instances or per-frame material property writes.
 
-## SpectorJS Added On 2026-06-22
+## SpectorJS / Render Profiling
 
-Installed package:
+SpectorJS was added as an optional profiling helper.
 
-- `spectorjs@0.9.30` in `devDependencies`.
-
-Added files:
+Files:
 
 - `assets/scripts/SpectorDebugger.ts`
 - `assets/scripts/SpectorDebugger.ts.meta`
 - `assets/scripts/spectorjs.d.ts`
 - `assets/scripts/spectorjs.d.ts.meta`
 
-How to use:
+Use:
 
-- Add/enable `SpectorDebugger` on a debug node.
+- Add or enable `SpectorDebugger` on a debug node.
 - Tick `Enable Spector`.
 - Press `F8` in browser preview/build to capture.
-- `autoDownloadCaptureJson = true` downloads a file named like `spector-capture-...json`.
+- `autoDownloadCaptureJson = true` downloads `spector-capture-...json`.
 - Last capture is also exposed as `window.__battleGameSpectorCapture`.
 
-Implementation note:
+Notes:
 
 - The component uses `captureCanvas(canvas, captureCommandCount)` instead of `captureNextFrame(...)`.
-- Reason: Spector's next-frame capture relies on `requestAnimationFrame` hooks. Cocos may cache RAF before the scene component loads, causing "No frames detected".
-- The embedded Spector UI has no obvious export button in this project, so auto-download was added.
+- Reason: Cocos may cache `requestAnimationFrame` before Spector hooks it, causing "No frames detected".
 - Spector is heavy. Keep it disabled outside profiling sessions.
 
-## Render Profiling Findings On 2026-06-22
+Render conclusions from recent Spector captures:
 
-Files inspected:
+- Unit body instancing is working.
+- Healthbar rendering is instanced. Keep its material shared.
+- Draw calls are not the main issue right now.
+- Mesh/triangle cost is the strongest render-performance risk.
+- Old placeholder mesh was about `3364 triangles/unit`.
+- Reduced/test meshes were closer to `492-986 triangles/unit`.
+- For mobile/web crowd units, practical target is roughly `500-1000 triangles/unit`, with LOD if unit counts rise.
+- The Cocos profiler overlay adds its own draw calls; disable it for final measurements.
 
-- `spector-capture-2026-06-22T11-46-38-673Z.json`
-- `spector-capture-2026-06-22T11-55-02-938Z.json`
+## VAT Prototype Status
 
-Important capture caveat:
+VAT was explored on 2026-06-23 as an isolated experiment, not as the main battle pipeline.
 
-- Command capture can include multiple render passes/frames.
-- `Capture Command Count = 500` was cut at 500 commands.
-- `Capture Command Count = 1500` was also cut at 1500 commands and contained about 5 render cycles.
-- Do not treat total command/triangle count from a 1500-command capture as one frame. Group by render pass/frame.
+Files:
 
-Stable render facts from the captures:
+- `tools/blender/vat_character_baker.py`
+- `tools/blender/README_VAT_CHARACTER.md`
+- `assets/shaders/VATCharacter.effect`
+- `assets/shaders/VATCharacter.effect.meta`
+- `assets/scripts/VATCharacterPlayer.ts`
+- `assets/scripts/VATCharacterPlayer.ts.meta`
+- `assets/materials/VATCharacterMat.mtl`
+- `assets/materials/VATCharacterMat.mtl.meta`
 
-- Canvas: `828 x 1792`, client: `414 x 896`, so effective DPR is 2.
-- WebGL context reports `SAMPLES = 4`, so MSAA is active.
-- Draw calls are low and acceptable: about `11 draw calls/frame` in the 1500-command report.
-- Instancing is working. Unit body is drawn through `drawElementsInstanced`.
-- Unit mesh draw uses `10092 indices`, which equals `3364 triangles` per unit.
-- Estimated per-frame triangles in the 1500-command report: about `266k - 293k triangles`.
-- At 300 units, unit body alone can approach about `1M triangles/frame`. This is the main render/GPU risk.
+Blender baker capabilities:
 
-Mesh note:
+- Blender 4.x add-on: `BattleGame Character VAT Baker`.
+- Panel: `View3D > Sidebar > BattleGame VAT`.
+- Animation sources:
+  - `Frame Range`
+  - `All Actions`
+  - `NLA Strips`
+- NLA mode only bakes enabled/unmuted strips.
+- Each selected NLA strip is isolated while baking so enabled strips do not blend into each other.
+- Exports:
+  - `*_vat_mesh.fbx`
+  - `*_vat.png`
+  - `*_vat.json`
+- Mesh is triangulated and loop-expanded.
+- UV0 is preserved.
+- Second UV channel `VAT_INDEX` maps each expanded render vertex to VAT pixels.
+- Triangle-order guard was fixed to use the base mesh triangle order across frames.
+- `Prefer Square Texture`:
+  - ON: output is always `MaxTextureWidth x MaxTextureWidth`; bake errors if data does not fit.
+  - OFF: width is `MaxTextureWidth`, height grows as needed.
 
-- Cocos inspector showed about `7268 vertices`, `3364 triangles`.
-- Blender showed `1757 vertices`, `3364 triangles`.
-- This mismatch is expected: Cocos/GPU vertices are split by UV seams, split normals/hard edges, tangents, material/submesh/skinning attributes. Triangles match, so geometry count is not secretly increasing; GPU vertex count is inflated by render attributes.
+Cocos VAT runtime capabilities:
 
-Current render conclusion:
+- `VATCharacter.effect` is unlit and follows Cocos builtin-unlit color flow:
+  - sample main texture,
+  - `SRGBToLinear(tex.rgb)`,
+  - `CCFragOutput(o)`.
+- No fog. A fog attempt caused varying mismatch errors and was removed.
+- Supports `USE_INSTANCING`.
+- Shared material uniforms hold metadata/textures.
+- Per-unit playback uses instanced attributes when `useInstancedPlayback` is true:
+  - `a_vat_playback`
+  - `a_vat_options`
+  - `a_vat_blend_playback`
+  - `a_vat_blend_options`
+- Normal playback samples 1 VAT pose per vertex.
+- Blend samples 2 VAT poses per vertex.
+- `Flip Vat V` defaults ON.
+- `VATCharacterPlayer` supports:
+  - animation by name or index,
+  - blend to animation,
+  - loop/non-loop overrides,
+  - frame events,
+  - finished events,
+  - test cycling,
+  - same-node fallback for frame-event handlers.
 
-- Draw call count is not the main issue right now.
-- Mesh/triangle cost is the strongest current render-performance suspect.
-- Next render optimization should focus on lower-poly/LOD/VAT/crowd mesh strategy before micro-optimizing draw calls.
+VAT issues fixed during the experiment:
 
-Secondary render/UI findings:
+- Initial stuck/connected mesh result.
+- Animation playback reversed unless `Flip Vat V` was enabled.
+- Blender `no attribute 'vector'` issue.
+- Color space mismatch with Cocos unlit.
+- Fog varying mismatch.
+- NLA clips baking as blended/similar data.
+- `triangle order changed at frame 3`.
+- Animation name ignored in inspector.
+- Blend target starting at a random phase instead of clip start.
+- Frame events not calling when handler target was missing.
+- VAT instancing broken by material instances/per-renderer uniforms.
 
-- Captures show repeated `texSubImage2D`, `createTexture`, and `deleteTexture` from:
-  - `TextProcessing._uploadTexture`
-  - `DynamicAtlasTexture.drawTextureAt`
-- Likely source: changing system-font Labels such as kill/CP/debug stats.
-- Relevant code:
-  - `GameManager.refreshBattleStatsUI()`
-  - `SpawnBackPressureGate.updateDebugLabel()`
-  - `DebugStats` overlay if enabled
-- Recommendation:
-  - Only set `Label.string` when value actually changed.
-  - Throttle debug labels.
-  - Prefer bitmap font for frequently changing debug/UI numbers if this becomes visible in traces.
+## VAT Performance Decision
 
-Render knobs to consider later:
+User compared VAT against the existing animated GPU instancing path:
 
-- Lower-poly unit LOD for crowds.
-- Render scale / DPR quality tier.
-- Disable or reduce MSAA on low/mobile tier if acceptable.
-- Keep VFX pooled and low-overdraw.
-- Avoid dynamic lights/shadows for many units.
+- `C:/Users/CPU/Downloads/Trace-20260623T183448-VAT.json`
+- `C:/Users/CPU/Downloads/Trace-20260623T183837-GPUInstancing.json`
 
-## Render And Asset Profiling Update On 2026-06-23
+Measured summary:
 
-Spector captures inspected:
+- VAT `FireAnimationFrame`:
+  - avg `2.061 ms`
+  - p50 `1.808 ms`
+  - p95 `4.037 ms`
+  - p99 `6.196 ms`
+  - max `18.264 ms`
+- GPUInstancing `FireAnimationFrame`:
+  - avg `1.557 ms`
+  - p50 `1.336 ms`
+  - p95 `3.462 ms`
+  - p99 `4.855 ms`
+  - max `8.849 ms`
 
-- `spector-capture-2026-06-22T16-44-19-471Z.json`
-- `spector-capture-2026-06-22T17-04-32-571Z.json`
-- `spector-capture-2026-06-22T17-07-59-969Z.json`
-- `spector-capture-2026-06-22T17-11-49-831Z.json`
-- `spector-capture-2026-06-22T17-22-06-903Z.json`
+Important correction:
 
-Stable conclusions:
+- Do not compare VAT against a static mesh baseline.
+- The user's GPUInstancing trace was animated, not static.
 
-- Instancing is working for unit bodies.
-- Healthbar rendering is instanced. Keep its material shared; do not create per-unit healthbar materials.
-- Recent captures show no `texSubImage2D`, `texImage2D`, `createTexture`, or `deleteTexture` churn during captured frames.
-- Bitmap font / stable UI text appears to have removed the earlier dynamic Label texture upload symptom in the inspected captures.
-- Draw calls remain stable and acceptable: latest 3000-command captures show `124` draw calls.
-- The Cocos profiler overlay is still visible in captures and accounts for repeated `drawElements(540)` calls. Disable profiler for final performance measurements.
+Current decision:
 
-Mesh comparisons:
+- Stop pursuing VAT as the main battle solution for now.
+- Keep the VAT prototype as an experiment/reference.
+- Focus battle performance work on the existing animated GPU instancing/skinning path, mesh cost, animation LOD, material/drawcall hygiene, and texture memory.
 
-- Old placeholder mesh: `10092 indices`, about `3364 triangles/unit`.
-- Reduced mesh capture `17-04-32`: `1476 indices`, about `492 triangles/unit`.
-- 3000-command capture `17-11-49`: `90834` captured triangles, unit body `1476 indices`, body instance sum `847`.
-- Latest 3000-command capture `17-22-06`: `158844` captured triangles, unit body `2958 indices`, about `986 triangles/unit`, body instance sum `753`.
-- Latest triangle increase came from heavier placeholder mesh, not more draw calls.
+If VAT is revisited later:
 
-Asset guidance:
+- Verify instancing in Spector.
+- Do not use per-unit material instances.
+- Consider reducing VAT vertex count caused by loop-expanded mesh.
+- Consider precision limits from 8-bit PNG; close clothing/skin overlap can happen.
+- Compare against the real animated GPU instancing path, not static mesh.
 
-- Current unit model is temporary. Do not over-optimize final art decisions from the placeholder alone.
-- For crowd units, a practical mobile/web target is roughly `500-1000 triangles/unit`, with lower LODs if unit count rises.
-- Hero or close-up units can use a higher mesh budget than regular crowd units.
-- If 500-600 units become common, prefer LOD/crowd mesh strategy over micro-optimizing already-batched draw calls.
+## Current Next Best Direction
 
-MSAA state:
+For the next session, unless the user changes direction:
 
-- Spector still reports `contextAttributes.antialias = true` and `SAMPLES = 4` in the latest capture.
-- Current source now contains `settings/v2/packages/engine.json` macro config with `ENABLE_WEBGL_ANTIALIAS: false`, but the latest capture still showed MSAA on.
-- Do not assume MSAA is disabled until a rebuilt/recaptured Spector report shows:
-  - `contextAttributes.antialias = false`
-  - `SAMPLES = 0` or `SAMPLES = 1`
-- Setting antialias from a scene component is too late because WebGL context is created before scene scripts run.
-- If `contextAttributes.antialias = false` but `SAMPLES = 4` remains, check custom pipeline/render-target MSAA separately.
+- Do not integrate VAT into battle.
+- Continue testing the current gameplay state.
+- Investigate mesh/animation performance on the existing pipeline.
+- Keep unit mesh budgets realistic for mobile web.
+- Use Chrome Performance for frame time and Spector for render commands/state.
+- Disable Cocos profiler overlay when collecting final performance captures.
 
-Recommended pipeline for now:
+## Collaboration Notes
 
-- Use `Render Pipeline (New)` with `Pipeline Name = Builtin`.
-- Keep `Post Process Module` disabled.
-- Avoid `Render Pipeline (Legacy)` unless a specific compatibility issue appears.
-- Avoid Bloom/HDR/SSAO/fullscreen post-process on the mobile/web baseline until measured affordable.
-
-Useful rule of thumb:
-
-- Spector is for render command/state diagnosis.
-- Chrome Performance / Cocos profiler is for frame time.
-- Never treat a 1500/3000-command Spector capture as exactly one frame; group by render cycles.
-
-## Project Local Performance Skill
-
-Added and tracked in git:
-
-- `cocos-performance-optimize-skills/SKILL.md`
-- `cocos-performance-optimize-skills/agents/openai.yaml`
-
-Purpose:
-
-- Preserve a reusable Cocos performance playbook for Codex sessions.
-- Covers measurement discipline, throttling/offsets, worker/grid usage, buffer reuse, instancing, UI text, assets, VFX, render profiling, and cautious optimization habits.
-
-Use it when:
-
-- Starting any broad performance pass.
-- Adding VFX, UI systems, model/animation changes, or new worker/grid logic.
-- Investigating frame time regressions.
-
-Do not treat it as permission for broad rewrites. It is a checklist/playbook; source behavior and measured traces still decide.
-
-## Current Optimization Priority
-
-1. Keep current AI/worker/spatial-grid logic stable.
-2. Keep using the project-local performance skill before broad optimization.
-3. For 300-unit and later 500-600-unit targets, prioritize final unit mesh budget and LOD/crowd strategy.
-4. Keep Label/UI text stable; only revisit UI texture churn if traces show it again.
-5. Add VFX slowly and profile after each visual feature.
-6. If GPU/pixel cost rises, test render scale/DPR/MSAA tiers.
-
-## Minimap State
-
-- Old `BattleInformationPanel.ts` was removed earlier.
-- Current minimap is `TrueMiniMapPanel.ts`.
-- It uses wave icons by unit type, pooling, update intervals, smooth damp, flashing for engaged waves, and scale-in/scale-out tweens.
-- `BattleInformationIconItem.ts` is still used by minimap icon visuals.
-- Do not delete it just because the old panel was removed.
-
-## What To Avoid Next
-
-- Do not restart old lane experiments unless there is a concrete bug:
-  - no hard backward-chase ban,
-  - no lane from selected target,
-  - no lane from last killed enemy,
-  - no persistent alive/engaged event counters.
-- Do not blame AI first for future visual regressions. After the latest work, render/mesh/VFX/UI are more likely than wave AI.
-- Do not add many ArmyBrain knobs unless the user explicitly wants that tradeoff.
-- Do not use Spector captures as frametime measurement. Use Chrome Performance or Cocos profiler for time; use Spector for render command/state diagnosis.
-
-## Current Uncommitted Work To Notice
-
-As of this handoff, `git status --short --untracked-files=all` is noisy because of editor/build/model/font work.
-
-Source-like changes to review carefully:
-
-- `assets/3D/Victory.fbx`
-- `assets/3D/Victory.fbx.meta`
-- `assets/Test.scene`
-- `settings/v2/packages/engine.json`
-- `settings/v2/packages/builder.json`
-- `profiles/v2/packages/builder.json`
-- `profiles/v2/packages/scene.json`
-- untracked bitmap font assets under `assets/fonts/GAMERIA/`
-
-Generated/noisy areas are also changed:
-
-- `build/web-mobile/`
-- `library/`
-- `temp/`
-
-Do not revert any of these blindly. Ask the user before cleanup, especially because this repo appears to track some Cocos generated files.
-
-## Next Codex Startup Checklist
-
-1. Read this file.
-2. Run `git status --short`.
-3. Re-check current source with `rg` before making assumptions.
-4. If profiling render, use `SpectorDebugger` only temporarily and disable it afterward.
-5. If profiling CPU/frametime, use Chrome Performance traces and ignore profiler-start spikes.
-6. Keep gameplay invariants intact: one unit engage -> whole wave freehunt/combat; recovery only when wave is not engaged and has no valid target long enough.
-7. Before optimizing, read `cocos-performance-optimize-skills/SKILL.md` and keep changes surgical.
+- The user may switch between the office Codex and home Codex.
+- Always assume the other Codex may have changed source since this file was written.
+- Re-read actual files before editing battle logic.
+- Ask the user before broad reversions or deleting experimental files.

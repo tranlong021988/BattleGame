@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "format": "BattleGameCharacterVAT",
+  "assetName": "Fighter",
+  "sourceObject": "Fighter.Body.low_Baked.001",
+  "mesh": "Fighter_vat_mesh.fbx",
+  "positionTexture": "Fighter_vat.png",
+  "uvIndexChannel": "VAT_INDEX",
+  "vertexCount": 10092,
+  "frameCount": 421,
+  "textureWidth": 2048,
+  "textureHeight": 2105,
+  "rowsPerFrame": 5,
+  "preferSquareTexture": false,
+  "fps": 60,
+  "axisMode": "BLENDER",
+  "animationSource": "NLA_STRIPS",
+  "sourceStartFrame": 1,
+  "sourceEndFrame": 30,
+  "boundsMin": [
+    -0.9143415093421936,
+    -0.0827459841966629,
+    -2.1597225666046143
+  ],
+  "boundsMax": [
+    1.116950273513794,
+    2.082357406616211,
+    1.5737411975860596
+  ],
+  "animations": {
+    "Cross": {
+      "startFrame": 0,
+      "endFrame": 106,
+      "fps": 60,
+      "loop": true,
+      "source": "NLA_STRIP",
+      "sourceStartFrame": 1,
+      "sourceEndFrame": 107
+    },
+    "Jab": {
+      "startFrame": 107,
+      "endFrame": 191,
+      "fps": 60,
+      "loop": true,
+      "source": "NLA_STRIP",
+      "sourceStartFrame": 1,
+      "sourceEndFrame": 85
+    },
+    "Death-Upercut": {
+      "startFrame": 192,
+      "endFrame": 320,
+      "fps": 60,
+      "loop": true,
+      "source": "NLA_STRIP",
+      "sourceStartFrame": 1,
+      "sourceEndFrame": 129
+    },
+    "Origin": {
+      "startFrame": 321,
+      "endFrame": 420,
+      "fps": 60,
+      "loop": true,
+      "source": "NLA_STRIP",
+      "sourceStartFrame": 0,
+      "sourceEndFrame": 99
+    }
+  },
+  "notes": [
+    "Import the PNG as a data texture: no sRGB/color correction, nearest filtering, clamp, no mipmap, no lossy compression.",
+    "Assign the exported mesh, VATCharacter.effect material, VAT PNG, and this JSON to VATCharacterPlayer.",
+    "The mesh uses a UV channel named VAT_INDEX to map each render vertex to VAT pixels."
+  ]
+}
