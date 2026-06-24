@@ -1863,6 +1863,7 @@ export class GameManager extends Component {
             0,
             this.node,
             entry.maxSpeed,
+            entry.attackRange,
             entry.health,
             entry.damage,
             entry.defense
@@ -1905,6 +1906,7 @@ export class GameManager extends Component {
             1,
             this.node,
             entry.maxSpeed,
+            entry.attackRange,
             entry.health,
             entry.damage,
             entry.defense

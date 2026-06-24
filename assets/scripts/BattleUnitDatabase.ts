@@ -25,6 +25,9 @@ export class UnitPrefabEntry {
     maxSpeed: number = 2;
 
     @property
+    attackRange: number = 1.2;
+
+    @property
     health: number = 30;
 
     @property
