@@ -176,9 +176,6 @@ export class GameManager extends Component {
     squareFormationWidth = 4;
 
     @property
-    freeHuntNoTargetRecoveryFrames = 8;
-
-    @property
     heroFreeHuntSearchRange = 80;
 
     private spawnWaveTimer = 0;
@@ -202,7 +199,6 @@ export class GameManager extends Component {
 
     private teamAPrefabMap: Map<string, UnitPrefabEntry> = new Map();
     private teamBPrefabMap: Map<string, UnitPrefabEntry> = new Map();
-    private forwardReleasedWaves: Map<BattleWave, number> = new Map();
     private laneVoteCounts: number[] = [];
     private tempSpawnPos = new Vec3();
     private centeredRowXBuffer: number[] = [];
@@ -218,7 +214,6 @@ export class GameManager extends Component {
 
         this.waves.length = 0;
         this.nextWaveId = 1;
-        this.forwardReleasedWaves.clear();
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
         this.heroForwardUnlocked[0] = false;
@@ -324,7 +319,6 @@ export class GameManager extends Component {
         }
 
         this.waves.length = 0;
-        this.forwardReleasedWaves.clear();
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
         this.heroForwardUnlocked[0] = false;
@@ -401,8 +395,7 @@ export class GameManager extends Component {
             this.updateAutoSpawn(deltaTime);
         }
 
-        this.processWaveCombatRecoveries();
-        this.processForwardReleaseRecoveries();
+        this.processDynamicWaveLanes();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
     }
@@ -482,7 +475,6 @@ export class GameManager extends Component {
         if (wave.isDead()) return;
 
         wave.enterCombatMode();
-        this.forwardReleasedWaves.delete(wave);
 
         const enemyWave =
             BattleWave.getWaveForUnit(enemy);
@@ -496,7 +488,6 @@ export class GameManager extends Component {
         }
 
         enemyWave.enterCombatMode();
-        this.forwardReleasedWaves.delete(enemyWave);
     }
 
     public onWaveForwardPassedAdjacentTarget(
@@ -515,7 +506,6 @@ export class GameManager extends Component {
         }
 
         wave.releaseForwardToFreeHunt();
-        this.forwardReleasedWaves.set(wave, this.frame);
 
         const targetWave =
             BattleWave.getWaveForUnit(target);
@@ -531,10 +521,6 @@ export class GameManager extends Component {
             this.waves.indexOf(targetWave) >= 0
         ) {
             targetWave.releaseForwardToFreeHunt();
-            this.forwardReleasedWaves.set(
-                targetWave,
-                this.frame
-            );
         }
 
         return true;
@@ -586,19 +572,23 @@ export class GameManager extends Component {
         }
 
         let counted = 0;
+        let sumX = 0;
 
         for (let i = 0; i < wave.units.length; i++) {
             const unit = wave.units[i];
 
             if (!this.isAliveUnit(unit)) continue;
 
+            const unitX =
+                unit.node.worldPosition.x;
             const laneId =
                 this.getNearestLaneIdForX(
-                    unit.node.worldPosition.x
+                    unitX
                 );
 
             counts[laneId]++;
             counted++;
+            sumX += unitX;
         }
 
         if (counted <= 0) return -1;
@@ -613,52 +603,36 @@ export class GameManager extends Component {
 
         if (bestCount <= 0) return -1;
 
-        let tieCount = 0;
+        const currentLane =
+            wave.laneId >= 0
+                ? this.clampLaneId(wave.laneId)
+                : -1;
 
-        for (let i = 0; i < laneCount; i++) {
-            if (counts[i] === bestCount) {
-                tieCount++;
-            }
+        if (
+            currentLane >= 0 &&
+            counts[currentLane] === bestCount
+        ) {
+            return currentLane;
         }
 
-        let pick = Math.floor(
-            Math.random() * tieCount
-        );
+        const averageX = sumX / counted;
+        let bestLane = -1;
+        let bestCenterDistance = Infinity;
 
         for (let i = 0; i < laneCount; i++) {
             if (counts[i] !== bestCount) continue;
 
-            if (pick <= 0) {
-                return i;
+            const centerDistance = Math.abs(
+                averageX - this.getLaneCenterX(i)
+            );
+
+            if (centerDistance < bestCenterDistance) {
+                bestCenterDistance = centerDistance;
+                bestLane = i;
             }
-
-            pick--;
         }
 
-        return -1;
-    }
-
-    private regroupWaveByMajorityLane(
-        wave: BattleWave | null
-    ) {
-        if (!wave) return false;
-
-        const laneId =
-            this.getMajorityLaneIdForWave(wave);
-
-        if (laneId < 0) {
-            wave.resumeForward();
-            return false;
-        }
-
-        wave.setLaneId(
-            laneId,
-            this.squareFormationWidth,
-            this.spaceBetweenUnit
-        );
-        wave.resumeForward();
-
-        return true;
+        return bestLane;
     }
 
     private areSameOrAdjacentLanes(
@@ -671,119 +645,49 @@ export class GameManager extends Component {
         return Math.abs(laneA - laneB) <= 1;
     }
 
-    private processWaveCombatRecoveries() {
+    private processDynamicWaveLanes() {
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
 
-            this.recoverWaveCombat(wave);
+            this.refreshDynamicLaneForWave(wave);
         }
 
-        this.recoverHeroWaveCombat(
-            this.teamAHeroWave,
-            this.teamAHero
+        this.refreshDynamicLaneForWave(
+            this.teamAHeroWave
         );
-        this.recoverHeroWaveCombat(
-            this.teamBHeroWave,
-            this.teamBHero
+        this.refreshDynamicLaneForWave(
+            this.teamBHeroWave
         );
     }
 
-    private recoverHeroWaveCombat(
-        wave: BattleWave | null,
-        hero: Unit | null
-    ) {
-        if (!hero || hero.isSteady) {
-            return;
-        }
-
-        if (this.heroForwardUnlocked[hero.team]) {
-            if (wave) {
-                wave.clearLaneControl();
-            }
-
-            if (
-                !hero.onBusy &&
-                (
-                    hero.onForward ||
-                    hero.returningToWaveLaneSlot ||
-                    hero.laneId >= 0
-                )
-            ) {
-                hero.enterFreeHuntMode(
-                    this.getHeroPressureSearchRange()
-                );
-            }
-
-            return;
-        }
-
-        this.recoverWaveCombat(wave);
-    }
-
-    private recoverWaveCombat(
+    private refreshDynamicLaneForWave(
         wave: BattleWave | null
     ) {
         if (!wave) return;
         if (wave.isDeadRuntime(this.frame)) return;
-        if (!wave.combatModeActive) return;
 
-        if (this.shouldForceTeamFreeHunt(wave.team)) {
-            this.forceWaveToHeroPressureFreeHunt(wave);
-            return;
-        }
+        const interval =
+            wave.getTargetSearchIntervalFrames();
 
-        if (wave.hasEngagedRuntime(this.frame)) {
-            return;
-        }
-
+        // Lane is strategic metadata only. Stagger updates by wave
+        // so dispersed waves do not all vote on the same frame.
         if (
-            !wave.shouldRecoverNoTarget(
-                this.frame,
-                this.freeHuntNoTargetRecoveryFrames
+            !this.shouldRunFrameInterval(
+                interval,
+                wave.id
             )
         ) {
             return;
         }
 
-        this.regroupWaveByMajorityLane(wave);
-    }
+        const laneId =
+            this.getMajorityLaneIdForWave(wave);
 
-    private processForwardReleaseRecoveries() {
-        if (this.forwardReleasedWaves.size <= 0) {
-            return;
-        }
-
-        for (const wave of this.forwardReleasedWaves.keys()) {
-            if (!wave || wave.isDeadRuntime(this.frame)) {
-                this.forwardReleasedWaves.delete(wave);
-                continue;
-            }
-
-            if (this.shouldForceTeamFreeHunt(wave.team)) {
-                this.forceWaveToHeroPressureFreeHunt(wave);
-                continue;
-            }
-
-            if (wave.combatModeActive) {
-                this.forwardReleasedWaves.delete(wave);
-                continue;
-            }
-
-            if (wave.hasEngagedRuntime(this.frame)) {
-                continue;
-            }
-
-            if (
-                !wave.shouldRecoverNoTarget(
-                    this.frame,
-                    this.freeHuntNoTargetRecoveryFrames
-                )
-            ) {
-                continue;
-            }
-
-            this.regroupWaveByMajorityLane(wave);
-            this.forwardReleasedWaves.delete(wave);
+        if (
+            laneId >= 0 &&
+            laneId !== wave.laneId
+        ) {
+            wave.setLaneId(laneId);
         }
     }
 
@@ -793,7 +697,6 @@ export class GameManager extends Component {
 
             if (!wave || !wave.isDeadRuntime(this.frame)) continue;
 
-            this.forwardReleasedWaves.delete(wave);
             wave.releaseReferences();
             this.waves.splice(i, 1);
         }
@@ -861,13 +764,7 @@ export class GameManager extends Component {
         }
 
         if (heroWave) {
-            heroWave.clearLaneControl();
-            heroWave.setLaneId(
-                laneId,
-                this.squareFormationWidth,
-                this.spaceBetweenUnit
-            );
-            this.forwardReleasedWaves.delete(heroWave);
+            heroWave.setLaneId(laneId);
         }
 
         this.heroForwardUnlocked[team] = true;
@@ -898,9 +795,6 @@ export class GameManager extends Component {
     private forceWaveToHeroPressureFreeHunt(
         wave: BattleWave
     ) {
-        this.forwardReleasedWaves.delete(wave);
-
-        wave.clearLaneControl();
         wave.releaseForwardToFreeHunt(
             this.getHeroPressureSearchRange()
         );
@@ -1682,8 +1576,6 @@ export class GameManager extends Component {
 
         unit.laneId = laneId;
         unit.aggressiveForward = aggressiveForward;
-        unit.forwardLaneOffsetX =
-            pos.x - this.getLaneCenterX(laneId);
 
         wave.addUnit(unit);
     }
@@ -2219,10 +2111,6 @@ export class GameManager extends Component {
         }
 
         hero.laneId = laneId;
-        hero.forwardLaneOffsetX =
-            hero.agent
-                ? hero.agent.pos.x - this.getLaneCenterX(laneId)
-                : 0;
 
         const wave = new BattleWave(
             this.nextWaveId++,

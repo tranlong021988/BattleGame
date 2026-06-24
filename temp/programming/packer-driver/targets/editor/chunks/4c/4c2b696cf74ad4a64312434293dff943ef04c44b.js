@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, Label, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _class3, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, Label, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _class3, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -235,15 +235,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "squareFormationWidth", _descriptor42, this);
 
-          _initializerDefineProperty(this, "freeHuntNoTargetRecoveryFrames", _descriptor43, this);
-
-          _initializerDefineProperty(this, "heroFreeHuntSearchRange", _descriptor44, this);
+          _initializerDefineProperty(this, "heroFreeHuntSearchRange", _descriptor43, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor45, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor44, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor46, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor45, this);
 
           this.sim = null;
           this.teamA = [];
@@ -253,7 +251,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.spawner = void 0;
           this.teamAPrefabMap = new Map();
           this.teamBPrefabMap = new Map();
-          this.forwardReleasedWaves = new Map();
           this.laneVoteCounts = [];
           this.tempSpawnPos = new Vec3();
           this.centeredRowXBuffer = [];
@@ -268,7 +265,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamB.length = 0;
           this.waves.length = 0;
           this.nextWaveId = 1;
-          this.forwardReleasedWaves.clear();
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
           this.heroForwardUnlocked[0] = false;
@@ -345,7 +341,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.waves.length = 0;
-          this.forwardReleasedWaves.clear();
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
           this.heroForwardUnlocked[0] = false;
@@ -401,8 +396,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.updateAutoSpawn(deltaTime);
           }
 
-          this.processWaveCombatRecoveries();
-          this.processForwardReleaseRecoveries();
+          this.processDynamicWaveLanes();
           this.pruneDeadWaves();
           this.processHeroForwardUnlock();
         }
@@ -452,7 +446,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!wave) return;
           if (wave.isDead()) return;
           wave.enterCombatMode();
-          this.forwardReleasedWaves.delete(wave);
           const enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(enemy);
@@ -462,7 +455,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           enemyWave.enterCombatMode();
-          this.forwardReleasedWaves.delete(enemyWave);
         }
 
         onWaveForwardPassedAdjacentTarget(unit, target) {
@@ -478,14 +470,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           wave.releaseForwardToFreeHunt();
-          this.forwardReleasedWaves.set(wave, this.frame);
           const targetWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(target);
 
           if (targetWave && targetWave !== wave && !targetWave.isDead() && this.areSameOrAdjacentLanes(wave.laneId, targetWave.laneId) && this.waves.indexOf(targetWave) >= 0) {
             targetWave.releaseForwardToFreeHunt();
-            this.forwardReleasedWaves.set(targetWave, this.frame);
           }
 
           return true;
@@ -520,13 +510,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           let counted = 0;
+          let sumX = 0;
 
           for (let i = 0; i < wave.units.length; i++) {
             const unit = wave.units[i];
             if (!this.isAliveUnit(unit)) continue;
-            const laneId = this.getNearestLaneIdForX(unit.node.worldPosition.x);
+            const unitX = unit.node.worldPosition.x;
+            const laneId = this.getNearestLaneIdForX(unitX);
             counts[laneId]++;
             counted++;
+            sumX += unitX;
           }
 
           if (counted <= 0) return -1;
@@ -539,41 +532,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (bestCount <= 0) return -1;
-          let tieCount = 0;
+          const currentLane = wave.laneId >= 0 ? this.clampLaneId(wave.laneId) : -1;
 
-          for (let i = 0; i < laneCount; i++) {
-            if (counts[i] === bestCount) {
-              tieCount++;
-            }
+          if (currentLane >= 0 && counts[currentLane] === bestCount) {
+            return currentLane;
           }
 
-          let pick = Math.floor(Math.random() * tieCount);
+          const averageX = sumX / counted;
+          let bestLane = -1;
+          let bestCenterDistance = Infinity;
 
           for (let i = 0; i < laneCount; i++) {
             if (counts[i] !== bestCount) continue;
+            const centerDistance = Math.abs(averageX - this.getLaneCenterX(i));
 
-            if (pick <= 0) {
-              return i;
+            if (centerDistance < bestCenterDistance) {
+              bestCenterDistance = centerDistance;
+              bestLane = i;
             }
-
-            pick--;
           }
 
-          return -1;
-        }
-
-        regroupWaveByMajorityLane(wave) {
-          if (!wave) return false;
-          const laneId = this.getMajorityLaneIdForWave(wave);
-
-          if (laneId < 0) {
-            wave.resumeForward();
-            return false;
-          }
-
-          wave.setLaneId(laneId, this.squareFormationWidth, this.spaceBetweenUnit);
-          wave.resumeForward();
-          return true;
+          return bestLane;
         }
 
         areSameOrAdjacentLanes(laneA, laneB) {
@@ -582,88 +561,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return Math.abs(laneA - laneB) <= 1;
         }
 
-        processWaveCombatRecoveries() {
+        processDynamicWaveLanes() {
           for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
-            this.recoverWaveCombat(wave);
+            this.refreshDynamicLaneForWave(wave);
           }
 
-          this.recoverHeroWaveCombat(this.teamAHeroWave, this.teamAHero);
-          this.recoverHeroWaveCombat(this.teamBHeroWave, this.teamBHero);
+          this.refreshDynamicLaneForWave(this.teamAHeroWave);
+          this.refreshDynamicLaneForWave(this.teamBHeroWave);
         }
 
-        recoverHeroWaveCombat(wave, hero) {
-          if (!hero || hero.isSteady) {
-            return;
-          }
-
-          if (this.heroForwardUnlocked[hero.team]) {
-            if (wave) {
-              wave.clearLaneControl();
-            }
-
-            if (!hero.onBusy && (hero.onForward || hero.returningToWaveLaneSlot || hero.laneId >= 0)) {
-              hero.enterFreeHuntMode(this.getHeroPressureSearchRange());
-            }
-
-            return;
-          }
-
-          this.recoverWaveCombat(wave);
-        }
-
-        recoverWaveCombat(wave) {
+        refreshDynamicLaneForWave(wave) {
           if (!wave) return;
           if (wave.isDeadRuntime(this.frame)) return;
-          if (!wave.combatModeActive) return;
+          const interval = wave.getTargetSearchIntervalFrames(); // Lane is strategic metadata only. Stagger updates by wave
+          // so dispersed waves do not all vote on the same frame.
 
-          if (this.shouldForceTeamFreeHunt(wave.team)) {
-            this.forceWaveToHeroPressureFreeHunt(wave);
+          if (!this.shouldRunFrameInterval(interval, wave.id)) {
             return;
           }
 
-          if (wave.hasEngagedRuntime(this.frame)) {
-            return;
-          }
+          const laneId = this.getMajorityLaneIdForWave(wave);
 
-          if (!wave.shouldRecoverNoTarget(this.frame, this.freeHuntNoTargetRecoveryFrames)) {
-            return;
-          }
-
-          this.regroupWaveByMajorityLane(wave);
-        }
-
-        processForwardReleaseRecoveries() {
-          if (this.forwardReleasedWaves.size <= 0) {
-            return;
-          }
-
-          for (const wave of this.forwardReleasedWaves.keys()) {
-            if (!wave || wave.isDeadRuntime(this.frame)) {
-              this.forwardReleasedWaves.delete(wave);
-              continue;
-            }
-
-            if (this.shouldForceTeamFreeHunt(wave.team)) {
-              this.forceWaveToHeroPressureFreeHunt(wave);
-              continue;
-            }
-
-            if (wave.combatModeActive) {
-              this.forwardReleasedWaves.delete(wave);
-              continue;
-            }
-
-            if (wave.hasEngagedRuntime(this.frame)) {
-              continue;
-            }
-
-            if (!wave.shouldRecoverNoTarget(this.frame, this.freeHuntNoTargetRecoveryFrames)) {
-              continue;
-            }
-
-            this.regroupWaveByMajorityLane(wave);
-            this.forwardReleasedWaves.delete(wave);
+          if (laneId >= 0 && laneId !== wave.laneId) {
+            wave.setLaneId(laneId);
           }
         }
 
@@ -671,7 +592,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (let i = this.waves.length - 1; i >= 0; i--) {
             const wave = this.waves[i];
             if (!wave || !wave.isDeadRuntime(this.frame)) continue;
-            this.forwardReleasedWaves.delete(wave);
             wave.releaseReferences();
             this.waves.splice(i, 1);
           }
@@ -724,9 +644,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (heroWave) {
-            heroWave.clearLaneControl();
-            heroWave.setLaneId(laneId, this.squareFormationWidth, this.spaceBetweenUnit);
-            this.forwardReleasedWaves.delete(heroWave);
+            heroWave.setLaneId(laneId);
           }
 
           this.heroForwardUnlocked[team] = true;
@@ -748,8 +666,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         forceWaveToHeroPressureFreeHunt(wave) {
-          this.forwardReleasedWaves.delete(wave);
-          wave.clearLaneControl();
           wave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange());
         }
 
@@ -1186,7 +1102,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!unit) return;
           unit.laneId = laneId;
           unit.aggressiveForward = aggressiveForward;
-          unit.forwardLaneOffsetX = pos.x - this.getLaneCenterX(laneId);
           wave.addUnit(unit);
         }
 
@@ -1556,7 +1471,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           hero.laneId = laneId;
-          hero.forwardLaneOffsetX = hero.agent ? hero.agent.pos.x - this.getLaneCenterX(laneId) : 0;
           const wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave)(this.nextWaveId++, team, unitTypeName, unitType || (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
@@ -1915,28 +1829,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 4;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "freeHuntNoTargetRecoveryFrames", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 8;
-        }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "heroFreeHuntSearchRange", [property], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "heroFreeHuntSearchRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 80;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -13,15 +13,29 @@ The user runs two Codex sessions on different machines. These sessions do not sh
 - Do not revert user/editor changes unless explicitly asked.
 - Do not leave permanent logs in hot paths. Debug logs must be behind inspector toggles.
 - Use `rg` first for source search.
-- `package.json` currently has no reliable typecheck/build script. Cocos Editor/preview is the practical compile check; `git diff --check` is still useful.
+- `package.json` currently has no reliable typecheck/build script. TypeScript can be checked with the TypeScript compiler bundled with Cocos Creator by adding `--skipLibCheck --module ESNext`; Cocos Preview is still required for gameplay/visual verification.
+- Project and Cocos installation paths differ between the office and home machines. Resolve paths from the current workspace/environment; never hardcode `D:\Works\Github\BattleGame` into source or shared scripts.
 - Cocos may generate noisy changes under `library/` and `temp/`. Do not treat those as source logic unless the user asks.
+
+## Current Worktree Status
+
+- Current HEAD while writing this handoff: `f49c42cb backup`.
+- Permanent-freehunt, dynamic-lane, and retaliation work is currently uncommitted.
+- Expected source changes:
+  - `AI-CONTEX.md`
+  - `assets/scripts/BattleWave.ts`
+  - `assets/scripts/GameManager.ts`
+  - `assets/scripts/Unit.ts`
+  - `assets/scripts/UnitBehavior.ts`
+- Per-unit `attackRange` database/spawn plumbing is already present in HEAD.
+- Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
 
 ## Important Source Files
 
-- `assets/scripts/GameManager.ts`: battle orchestration, spawn, wave recovery, hero unlock, spatial grid rebuild, RVO step.
-- `assets/scripts/BattleWave.ts`: wave state, laneId, aggressive-forward checks, runtime alive/engaged/target cache.
-- `assets/scripts/Unit.ts`: forward/freehunt behavior, target search, engage, lane return, aggressive forward.
-- `assets/scripts/UnitBehavior.ts`: attack interval, damage, kill callback.
+- `assets/scripts/GameManager.ts`: battle orchestration, spawn, dynamic wave lane, hero unlock, spatial grid rebuild, RVO step.
+- `assets/scripts/BattleWave.ts`: wave state, dynamic laneId synchronization, aggressive-forward checks, runtime alive/engaged cache.
+- `assets/scripts/Unit.ts`: initial forward/aggressive-forward, permanent freehunt, target search, engage, retaliation targeting.
+- `assets/scripts/UnitBehavior.ts`: attack interval, damage, retaliation notification, kill callback.
 - `assets/scripts/BattleSpatialGrid.ts`: spatial grid, batched nearest-target worker, main-thread fallback.
 - `assets/scripts/rvo/RVOWorkerSimulator.ts`: RVO worker wrapper.
 - `assets/scripts/ArmyBrain.ts`: AI spawn/counter/lane/raid logic.
@@ -38,30 +52,89 @@ The game is a two-team lane battle with 3 lanes:
 - `1 = mid`
 - `2 = right`
 
-Waves spawn into a lane. Units inherit wave lane data and move through forward, freehunt, and lane-return/recovery phases.
+Waves spawn into a lane and begin in initial forward or aggressive-forward mode.
 
-Current source-verified recovery baseline:
+Current source-verified state flow:
 
-- Full square regroup was removed earlier.
-- Recovery currently uses `GameManager.regroupWaveByMajorityLane()`.
-- The lane chosen for recovery is the majority lane of alive units in that wave.
-- Lane vote is based on the unit's visible world X position: `unit.node.worldPosition.x`.
-- If multiple lanes tie for highest alive-unit count, randomly choose among the tied lanes only.
-- Do not prefer the previous `wave.laneId` on tie unless it is actually part of the tied vote result.
-- A lane with zero votes must never be selected.
-- If no lane can be resolved, the wave resumes forward.
-- A wave should recover only after it has no engaged units and no valid target for `freeHuntNoTargetRecoveryFrames`.
+```text
+Spawn -> Forward/Aggressive Forward
+      -> pass a valid same/adjacent-lane enemy, or any unit engages/is engaged
+      -> permanent Free Hunt
+```
+
+- There is no regroup, lane-return, recovery timeout, or return to normal/aggressive forward.
+- `freeHuntNoTargetRecoveryFrames`, wave recovery maps, formation-slot return, and related runtime logic were removed.
+- In permanent freehunt:
+  - a unit with a valid target chases it;
+  - a unit without a valid target first performs its own throttled nearest-enemy search;
+  - only when its own search has no result does it borrow a valid target from a teammate;
+  - if the wave has no available target, units keep moving straight along their original `forwardDir`;
+  - this straight movement does not set `onForward`, does not run forward scan, and does not restore aggressive-forward behavior.
 
 Important invariant:
 
-- If one unit in a wave engages, the whole wave must leave forward/regroup and enter combat/freehunt.
-- Avoid adding exceptions where one unit remains in freehunt while the rest of the wave regroups.
+- If one unit in a wave engages, both involved waves leave initial forward and enter permanent freehunt.
+- `aggressiveForward` is cleared when a wave enters freehunt/combat.
+- Do not reintroduce per-unit exceptions that leave part of a wave in initial forward after engagement.
 
 Current freehunt target behavior:
 
-- Each unit first tries to find its own target.
-- If it cannot find one, it may borrow a valid target from a teammate in the same wave.
+- Each unit first tries to find its own nearest target on its staggered `targetSearchIntervalFrames`.
+- If its own search has no result, it may borrow a valid target from a teammate in the same wave.
 - Borrowing is secondary to reduce all units piling onto one target too early.
+- Because unit search frames are staggered, units that have not reached their own search tick may temporarily borrow the target found by an earlier teammate. This can still create some focus-fire behavior, but every unit retains the opportunity to perform its own search.
+- Existing valid targets remain valid outside `targetSearchRange` until the target dies/despawns.
+- Retaliation rule:
+  - after damage is applied, a defender that is not `onBusy` replaces its current chase target with the attacker;
+  - retaliation ignores `targetSearchRange`, so melee units can chase ranged attackers that fired from outside normal search range;
+  - an already engaged (`onBusy`) defender never switches target;
+  - the first valid retaliation attacker is retained until it dies/despawns or the defender enters actual attack-range engagement, preventing target oscillation from alternating ranged hits;
+  - `GameManager.onWaveCombatStarted()` is called as a guard so both involved waves are in permanent freehunt.
+
+Retaliation implementation details:
+
+- `UnitBehavior.dealDamageToEnemy()` applies damage first.
+- If the defender survives, it calls `enemy.reactToAttacker(this.unit)`.
+- A killing hit does not assign retaliation because the defender is immediately reported/despawned.
+- `Unit.reactToAttacker()` refuses to switch when the defender is already `onBusy`.
+- A retaliation target is stored with both object reference and `lifeId`; pooled reuse or despawn invalidates it safely.
+- Normal `setEnemyTarget()` clears retaliation ownership, so actual attack-range engagement or later normal target selection returns to ordinary target behavior.
+- `UnitProps.takeDamage()` remains a simple health operation and does not depend on `Unit`; attacker awareness stays in combat behavior.
+
+Retaliation visual examples:
+
+```text
+Sword A chasing Sword B, not yet engaged
+Archer B hits Sword A from mid
+=> Sword A changes target to Archer B and chases it even outside search range
+```
+
+```text
+Sword A is already in melee with Sword B
+Archer B hits Sword A
+=> Sword A keeps fighting Sword B; no target switch
+```
+
+```text
+Two archers alternately hit Sword A before melee engage
+=> first valid retaliation attacker remains the target; later hits do not cause oscillation
+```
+
+Dynamic lane behavior:
+
+- Lane no longer controls regroup or freehunt movement; it is strategic metadata for ArmyBrain and lane-aware initial forward scans.
+- `GameManager.processDynamicWaveLanes()` updates each wave on the same cadence as that wave's cached `targetSearchIntervalFrames`.
+- Updates are staggered by `wave.id` so all waves do not vote on the same frame.
+- Lane vote counts alive units by visible `unit.node.worldPosition.x`.
+- The lane with the highest unit count becomes `wave.laneId`, and that laneId is synchronized to every alive member.
+- On a tie, keep the current lane if it is one of the tied winners; otherwise choose the tied lane whose center is closest to average wave X.
+- Dynamic lane stays on the main thread. The vote is a small O(units-in-wave) scan at a throttled interval; worker snapshot/message cost would be larger and introduces stale results.
+
+Per-unit attack range:
+
+- `UnitPrefabEntry.attackRange` now exists in `BattleUnitDatabase`.
+- `GameManager -> UnitSpawner -> Unit.attackRange` assigns it on every spawn, including pooled reuse.
+- `targetSearchRange` remains shared through the Unit prefab.
 
 Intentionally removed or avoided ideas:
 
@@ -89,7 +162,7 @@ Behavior:
 - Same-lane enemies can still release the wave into normal freehunt.
 - Enemy hero can still release freehunt when it is in the same or adjacent lane.
 - Actual attack-range engage still uses normal wave-wide combat.
-- The aggressive-forward flag currently persists after recovery/resume.
+- Once the wave passes/engages an enemy and enters freehunt, aggressive forward ends permanently for that wave.
 
 ArmyBrain raid rules:
 
@@ -116,30 +189,7 @@ Recent caution:
 - A previous hero-phase fix was suspected to affect frame time, but later profiling also showed browser/tab noise and render/GPU cost can dominate. Re-measure before blaming hero logic.
 - Hero-pressure freehunt search now uses `GameManager.getHeroPressureSearchRange()`, which covers the battlefield diagonal plus margin. This prevents newly spawned enemy waves from being forced out of forward and then standing idle because the fixed inspector `heroFreeHuntSearchRange` was too short.
 
-## Gameplay Fixes On 2026-06-24
-
-Source file touched:
-
-- `assets/scripts/GameManager.ts`
-
-Lane recovery fix:
-
-- Bug observed by user: after combat, a surviving unit/wave could regroup to an unrelated lane, for example a unit visually in right lane regrouping all the way to left.
-- Confirmed old source behavior: `getMajorityLaneIdForWave()` used `unit.agent.pos.x` and resolved ties by preferring current `wave.laneId`.
-- This was too easy to misread visually and also did not match the user's intended rule.
-- Current intended rule:
-  - after combat/freehunt,
-  - once no unit is busy and no target is in search range long enough,
-  - count all alive units by the lane they are visibly standing in,
-  - choose the lane with most alive units,
-  - if tied, random only among tied lanes.
-- Current implementation:
-  - uses `unit.node.worldPosition.x` for lane vote,
-  - computes max vote count,
-  - randomly selects among lanes whose count equals max,
-  - returns `-1` only when no alive unit contributed a vote.
-- Important invariant:
-  - do not add combat-anchor, enemy-lane, killer-lane, or previous-lane bias unless the user explicitly changes the rule.
+## Gameplay Notes On 2026-06-24
 
 Hero-pressure spawn idle fix:
 
@@ -154,21 +204,31 @@ Hero-pressure spawn idle fix:
 - Current implementation:
   - added `getHeroPressureSearchRange()`,
   - uses battlefield width/depth plus spawn Z extents to compute a range covering the whole battlefield,
-  - `recoverHeroWaveCombat()`, `unlockHeroForward()`, and `forceWaveToHeroPressureFreeHunt()` now use that range instead of the fixed inspector value directly.
+  - `unlockHeroForward()` and `forceWaveToHeroPressureFreeHunt()` use that range instead of the fixed inspector value directly.
 - This keeps the design intent of endgame pressure/freehunt, while avoiding spawned waves being kicked out of forward without a reachable target.
 
 Verification done:
 
-- `git diff --check -- assets/scripts/GameManager.ts` passed.
-- Cocos preview/runtime was not run from this Codex session. User should retest:
-  - combat ending with 1 surviving unit in a lane,
-  - tied lane vote cases,
-  - new wave spawning exactly as the enemy loses its last non-hero unit.
+- Cocos-bundled TypeScript check with `--skipLibCheck --module ESNext` passed after permanent-freehunt, dynamic-lane, and retaliation changes.
+- `git diff --check` passed for touched TypeScript files.
+- Cocos preview/runtime was not run from this Codex session.
+- Required gameplay retest:
+  - normal forward passes same/adjacent wave and never regroups;
+  - aggressive forward ignores adjacent units but ends permanently on same-lane pass or engage;
+  - ranged engage makes both waves freehunt;
+  - all targets disappear and surviving units continue straight rather than stopping/regrouping;
+  - dynamic lane follows majority position without tie flicker;
+  - ArmyBrain counter/raid lane selection still looks reasonable with dispersed waves;
+  - ranged attacker outside melee search range pulls a non-busy defender away from its old chase target;
+  - already-busy melee defenders ignore ranged retaliation;
+  - alternating ranged attackers do not make a defender rapidly switch targets;
+  - retaliation target death/despawn returns the defender to ordinary self-search/share-target behavior.
 
 Implementation caution:
 
 - There are many editor/generated dirty files under `build/`, `library/`, and `temp/`. Do not revert them blindly.
-- `assets/Test.scene`, `profiles/v2/packages/*`, and generated files may have user/editor changes unrelated to these two code fixes.
+- Scene, profile, build, library, and temp files may contain user/editor changes unrelated to the current gameplay work.
+- Do not discard the current uncommitted gameplay changes unless the user explicitly asks to reverse them.
 
 ## Performance Systems
 
@@ -178,20 +238,49 @@ Currently active performance-oriented systems:
 - RVO step throttled by `GameManager.updateInterval`.
 - Spatial grid rebuild via `spatialGridUpdateInterval`.
 - `BattleSpatialGrid` batched nearest-target worker named `BattleSpatialGridTargetWorker`.
-- Main-thread fallback exists if worker creation or messaging fails.
+- The target-query worker has a main-thread fallback if worker creation, posting, or runtime messaging fails.
 - Target worker uses reusable typed arrays.
+- Both target-query and RVO workers are asynchronous:
+  - main thread packs data and calls `postMessage`;
+  - it does not block waiting for results;
+  - results are applied later in `worker.onmessage`.
+- RVO uses a `pending` guard. If the previous worker step is unfinished, the next requested RVO step is skipped rather than blocking the main thread.
+- Target queries are batched in a Promise microtask, posted together, and delivered later through stored callbacks/query tokens.
+- RVO only selects the main-thread simulator when Worker support is unavailable during simulator creation. A runtime RVO worker error currently logs and clears `pending`; it does not automatically replace itself with `RVOSimulator`.
 - Unit target/attack scans are throttled:
   - `attackCheckIntervalFrames`
   - `targetSearchIntervalFrames`
   - forward scan intervals
 - Forward scanning uses wave/front-most scanner logic instead of every unit scanning every frame.
-- `BattleWave` has runtime per-frame cache for alive/engaged/valid-target scans.
+- `BattleWave` has runtime per-frame cache for alive/engaged scans.
+- Dynamic lane voting is wave-level, throttled by cached target-search interval, and frame-staggered.
 - Minimap uses pooling, interval updates, sampling, and grid-based icon separation.
+
+Latest performance trace:
+
+- File: `C:/Users/CPU/Downloads/Trace-20260624T173811.json.gz`
+- Duration: about `86.7 s`, DevTools iPhone XR emulation.
+- `FireAnimationFrame` excluding profiler-start artifact:
+  - avg `1.886 ms`
+  - p50 `1.382 ms`
+  - p95 `4.012 ms`
+  - p99 `6.093 ms`
+  - max `10.568 ms`
+  - 6 of 5177 frames over `8.33 ms`
+  - 0 frames over `16.67 ms`
+- Dynamic lane cost was negligible across the whole trace:
+  - `processDynamicWaveLanes`: about `0.02 ms` self time total;
+  - `refreshDynamicLaneForWave`: about `1.04 ms` self time total;
+  - `getMajorityLaneIdForWave`: about `0.92 ms` self time total.
+- Do not move dynamic lane voting to a worker based on current evidence.
+- Largest game-code self-time remained `BattleSpatialGrid.flushNearestWorkerRequests`, mainly main-thread request packing/posting.
+- Workers were mostly idle; no evidence that permanent freehunt or dynamic lane caused a major CPU regression.
+- Main-thread GC was somewhat stronger than the good June 22 baseline, but still produced no frame over `16.67 ms`; continue monitoring rather than changing architecture from this one trace.
 
 Avoid reintroducing:
 
 - Full-unit scans in hot loops.
-- `Array.from(...)` in repeated recovery loops.
+- Per-unit dynamic-lane scans; vote once per wave per interval.
 - Per-query closure allocation in target search.
 - Unpooled request objects.
 - Per-unit material instances or per-frame material property writes.
@@ -354,8 +443,9 @@ If VAT is revisited later:
 
 For the next session, unless the user changes direction:
 
+- Test permanent-freehunt, dynamic-lane, and retaliation behavior before adding more battle logic.
+- Do not optimize or move dynamic lane to a worker without a new trace proving it is material.
 - Do not integrate VAT into battle.
-- Continue testing the current gameplay state.
 - Investigate mesh/animation performance on the existing pipeline.
 - Keep unit mesh budgets realistic for mobile web.
 - Use Chrome Performance for frame time and Spector for render commands/state.

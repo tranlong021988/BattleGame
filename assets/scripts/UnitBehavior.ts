@@ -81,6 +81,10 @@ export class UnitBehavior extends Component {
 
         enemy.props.takeDamage(finalDamage);
 
+        if (!enemy.props.isDead()) {
+            enemy.reactToAttacker(this.unit);
+        }
+
         if (enemy.props.isDead()) {
             const gm =
                 this.gameManager ||

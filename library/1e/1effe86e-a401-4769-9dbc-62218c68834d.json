@@ -2313,7 +2313,7 @@
         "__id__": 63
       }
     ],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 65
@@ -2328,8 +2328,8 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 154.92999674646168,
-      "y": 65,
+      "x": 360,
+      "y": 280.868,
       "z": 0
     },
     "_lrot": {
@@ -2418,12 +2418,12 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 410.14000650707663,
-      "height": -230
+      "width": 100,
+      "height": 300
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 0.5,
+      "x": 1,
       "y": 0.5
     },
     "_id": "5ad32EfWZKSZsahWpLDFs2"
@@ -2479,10 +2479,10 @@
     "__prefab": null,
     "_alignFlags": 45,
     "_target": null,
-    "_left": 1,
-    "_right": 1,
-    "_top": 1,
-    "_bottom": 1,
+    "_left": 0,
+    "_right": 0,
+    "_top": 0,
+    "_bottom": 0,
     "_horizontalCenter": 0,
     "_verticalCenter": 0,
     "_isAbsLeft": false,
@@ -2494,7 +2494,7 @@
     "_originalWidth": 100,
     "_originalHeight": 10,
     "_alignMode": 2,
-    "_lockFlags": 45,
+    "_lockFlags": 0,
     "_id": "a3vIFgnsNJjKrQ9vRgVv2k"
   },
   {
@@ -2643,12 +2643,12 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": -410.14000650707663,
-      "height": 230
+      "width": 100,
+      "height": 300
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 0.5,
+      "x": 1,
       "y": 0.5
     },
     "_id": "0eowGWK3tFKohysoj5fiDh"
@@ -2661,7 +2661,7 @@
     "node": {
       "__id__": 56
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": null,
     "gameManager": {
       "__id__": 67
@@ -2723,7 +2723,7 @@
     "autoFindGameManager": true,
     "disableIconRootLayout": true,
     "worldToMiniMapScale": 10,
-    "fixedMapHeight": 230,
+    "fixedMapHeight": 300,
     "updateInterval": 0.1,
     "smoothDampTime": 0.12,
     "tweenScaleDuration": 0.15,
@@ -2840,7 +2840,6 @@
     "defaultSpawnLane": 1,
     "autoSpawnRandomLane": true,
     "squareFormationWidth": 4,
-    "freeHuntNoTargetRecoveryFrames": 32,
     "heroFreeHuntSearchRange": 35,
     "circleObstacles": [],
     "rectObstacles": [],
@@ -3773,7 +3772,6 @@
     "forwardScanIntervalFrames": 15,
     "useWaveForwardScanner": true,
     "aggressiveForward": false,
-    "laneReturnTolerance": 0.35,
     "forwardDir": {
       "__type__": "cc.Vec3",
       "x": 0,
@@ -4501,7 +4499,6 @@
     "forwardScanIntervalFrames": 15,
     "useWaveForwardScanner": true,
     "aggressiveForward": false,
-    "laneReturnTolerance": 0.35,
     "forwardDir": {
       "__type__": "cc.Vec3",
       "x": 0,
@@ -5237,24 +5234,24 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "_alignFlags": 44,
+    "_alignFlags": 36,
     "_target": null,
-    "_left": 720,
-    "_right": 0.5696388979264954,
+    "_left": 1,
+    "_right": 0,
     "_top": 0,
-    "_bottom": 0,
+    "_bottom": 1.011203125,
     "_horizontalCenter": 0,
     "_verticalCenter": 0,
-    "_isAbsLeft": true,
+    "_isAbsLeft": false,
     "_isAbsRight": false,
     "_isAbsTop": true,
-    "_isAbsBottom": true,
+    "_isAbsBottom": false,
     "_isAbsHorizontalCenter": true,
     "_isAbsVerticalCenter": false,
     "_originalWidth": 100,
     "_originalHeight": 0,
     "_alignMode": 1,
-    "_lockFlags": 6,
+    "_lockFlags": 38,
     "_id": "39ZIhQBQJFd6gNOtxAGqKK"
   },
   {
@@ -5317,7 +5314,7 @@
     "node": {
       "__id__": 32
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "_resizeMode": 0,
     "_layoutType": 1,

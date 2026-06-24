@@ -37,8 +37,6 @@ export class Unit extends Component {
     @property({ displayName: 'Aggressive Forward' })
     aggressiveForward = false;
 
-    @property laneReturnTolerance = 0.35;
-
     @property(Vec3)
     forwardDir = new Vec3(0, 0, 1);
 
@@ -55,8 +53,6 @@ export class Unit extends Component {
     unitTypeName = '';
     isHero = false;
     laneId = -1;
-    forwardLaneOffsetX = 0;
-    returningToWaveLaneSlot = false;
 
     sim: any = null;
     agent: any = null;
@@ -84,6 +80,8 @@ export class Unit extends Component {
     private cachedNearestEnemyLifeId = -1;
     private forwardLaneTargetLifeId = -1;
     private forwardAdjacentTargetLifeId = -1;
+    private retaliationTarget: Unit | null = null;
+    private retaliationTargetLifeId = -1;
     private nearestInRangeQueryToken = 0;
     private nearestEnemyQueryToken = 0;
     private readonly onNearestInRangeQueryResult = (
@@ -220,11 +218,7 @@ export class Unit extends Component {
         if (!this.agent) return;
 
         this.agent.team = this.team;
-        this.agent.onForward =
-            this.onForward &&
-            !this.returningToWaveLaneSlot
-                ? 1
-                : 0;
+        this.agent.onForward = this.onForward ? 1 : 0;
 
         this.agent.forwardX = this.forwardDir.x;
         this.agent.forwardZ = this.forwardDir.z;
@@ -269,6 +263,15 @@ export class Unit extends Component {
     private setEnemyTarget(target: Unit | null) {
         this.enemy = target;
         this.enemyLifeId = target ? target.lifeId : -1;
+        this.retaliationTarget = null;
+        this.retaliationTargetLifeId = -1;
+    }
+
+    private setRetaliationTarget(target: Unit) {
+        this.enemy = target;
+        this.enemyLifeId = target.lifeId;
+        this.retaliationTarget = target;
+        this.retaliationTargetLifeId = target.lifeId;
     }
 
     private setCachedNearestInRangeTarget(target: Unit | null) {
@@ -308,6 +311,39 @@ export class Unit extends Component {
         return !!this.getValidEnemyTarget();
     }
 
+    public reactToAttacker(attacker: Unit | null) {
+        if (this.onBusy) return false;
+        if (!this.isValidEnemy(attacker)) return false;
+
+        const currentTarget =
+            this.getValidEnemyTarget();
+
+        if (
+            currentTarget &&
+            currentTarget ===
+                this.retaliationTarget &&
+            currentTarget.lifeId ===
+                this.retaliationTargetLifeId
+        ) {
+            return false;
+        }
+
+        const gm = GameManager.instance;
+
+        if (gm) {
+            gm.onWaveCombatStarted(
+                this,
+                attacker
+            );
+        }
+
+        this.setRetaliationTarget(attacker!);
+        this.setCachedNearestEnemyTarget(null);
+        this.setCachedNearestInRangeTarget(null);
+
+        return true;
+    }
+
     private setForwardDir(x: number, z: number) {
         const len = Math.sqrt(x * x + z * z);
 
@@ -332,8 +368,6 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.laneId = -1;
-        this.forwardLaneOffsetX = 0;
-        this.returningToWaveLaneSlot = false;
         this.aggressiveForward = false;
         this.resetMoveIntentFacing();
 
@@ -378,9 +412,7 @@ export class Unit extends Component {
     ) {
         this.isSteady = false;
         this.onForward = false;
-        this.returningToWaveLaneSlot = false;
-        this.laneId = -1;
-        this.forwardLaneOffsetX = 0;
+        this.aggressiveForward = false;
         this.resetStableRotationPosition();
         this.targetSearchRange = Math.max(
             this.targetSearchRange,
@@ -407,38 +439,9 @@ export class Unit extends Component {
         }
     }
 
-    setWaveForwardLane(
-        laneId: number,
-        laneOffsetX: number = this.forwardLaneOffsetX,
-        returnToSlot: boolean = true
-    ) {
-        if (this.isSteady) return;
-
-        this.laneId = laneId;
-        this.forwardLaneOffsetX = laneOffsetX;
-        this.returningToWaveLaneSlot = returnToSlot;
-        this.setEnemyTarget(null);
-        this.onBusy = false;
-        this.onForward = !returnToSlot;
-        this.resetStableRotationPosition();
-        this.resetMoveIntentFacing();
-
-        this.invalidateNearestQueryResults();
-        this.clearCachedTargets();
-
-        if (this.agent) {
-            this.agent.locked = false;
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
-            this.agent.prefVel.x = 0;
-            this.agent.prefVel.z = 0;
-            this.agent.onForward = returnToSlot ? 0 : 1;
-        }
-    }
-
     enterWaveCombatMode() {
-        this.returningToWaveLaneSlot = false;
         this.onForward = false;
+        this.aggressiveForward = false;
         this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
@@ -456,8 +459,8 @@ export class Unit extends Component {
     enterWaveFreeHuntMode(
         searchRange: number = 0
     ) {
-        this.returningToWaveLaneSlot = false;
         this.onForward = false;
+        this.aggressiveForward = false;
         this.resetStableRotationPosition();
 
         if (searchRange > 0) {
@@ -489,7 +492,6 @@ export class Unit extends Component {
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
-            this.returningToWaveLaneSlot = false;
             this.agent.onForward = 0;
             this.agent.locked = true;
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -539,7 +541,6 @@ export class Unit extends Component {
                 );
             }
 
-            this.returningToWaveLaneSlot = false;
             this.onForward = false;
             this.agent.onForward = 0;
 
@@ -569,31 +570,6 @@ export class Unit extends Component {
 
             this.sync(deltaTime, false);
             return;
-        }
-
-        if (this.returningToWaveLaneSlot) {
-            if (!this.shouldReturnToLaneSlot()) {
-                this.returningToWaveLaneSlot = false;
-                this.onForward = true;
-                this.agent.onForward = 0;
-                this.resetStableRotationPosition();
-                this.resetMoveIntentFacing();
-
-                this.sim.setPrefVelocity(this.agent, 0, 0);
-                this.agent.vel.x = 0;
-                this.agent.vel.z = 0;
-                this.lookForwardSmooth(deltaTime);
-                this.sync(deltaTime, false);
-                return;
-            } else {
-                this.onForward = false;
-                this.agent.onForward = 0;
-
-                this.updateForwardPrefVelocity();
-                this.lookReturnToLaneSmooth(deltaTime);
-                this.sync(deltaTime, false);
-                return;
-            }
         }
 
         if (this.onForward) {
@@ -645,8 +621,11 @@ export class Unit extends Component {
             this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
         } else {
-            this.sim.setPrefVelocity(this.agent, 0, 0);
-            this.sync(deltaTime, true);
+            // Free hunt never restores lane control. Keep advancing
+            // without enabling forward scan or aggressive forward.
+            this.updateForwardPrefVelocity();
+            this.lookMoveIntentSmooth(deltaTime);
+            this.sync(deltaTime, false);
         }
     }
 
@@ -868,67 +847,14 @@ export class Unit extends Component {
         );
     }
 
-    private shouldReturnToLaneSlot() {
-        if (!this.agent) return false;
-
-        const laneTargetX = this.getCurrentLaneTargetX();
-
-        if (
-            !this.returningToWaveLaneSlot ||
-            laneTargetX === null
-        ) {
-            return false;
-        }
-
-        const tolerance = Math.max(
-            0.01,
-            this.laneReturnTolerance
-        );
-
-        return Math.abs(
-            laneTargetX - this.agent.pos.x
-        ) > tolerance;
-    }
-
     private updateForwardPrefVelocity() {
         if (!this.agent) return;
-
-        const laneTargetX = this.getCurrentLaneTargetX();
-
-        if (
-            this.returningToWaveLaneSlot &&
-            laneTargetX !== null
-        ) {
-            const dx = laneTargetX - this.agent.pos.x;
-
-            if (this.shouldReturnToLaneSlot()) {
-                this.sim.setPrefVelocity(
-                    this.agent,
-                    Math.sign(dx) * this.agent.maxSpeed,
-                    0
-                );
-
-                return;
-            }
-        }
 
         this.sim.setPrefVelocity(
             this.agent,
             this.forwardDir.x * this.agent.maxSpeed,
             this.forwardDir.z * this.agent.maxSpeed
         );
-    }
-
-    private getCurrentLaneTargetX(): number | null {
-        if (this.laneId < 0) return null;
-
-        const gm = GameManager.instance;
-
-        if (!gm || !gm.enableLaneSpawn) {
-            return null;
-        }
-
-        return gm.getLaneCenterX(this.laneId) + this.forwardLaneOffsetX;
     }
 
     private hasPassedTargetAlongForward(target: Unit): boolean {
@@ -1356,20 +1282,6 @@ export class Unit extends Component {
         const dz = this.forwardDir.z;
 
         this.lookDirectionSmooth(dx, dz, deltaTime);
-    }
-
-    private lookReturnToLaneSmooth(deltaTime: number) {
-        if (!this.agent) return;
-
-        const laneTargetX = this.getCurrentLaneTargetX();
-
-        if (laneTargetX === null) return;
-
-        const dx = laneTargetX - this.agent.pos.x;
-
-        if (Math.abs(dx) <= this.laneReturnTolerance) return;
-
-        this.lookDirectionSmooth(Math.sign(dx), 0, deltaTime);
     }
 
     private lookMoveIntentSmooth(deltaTime: number) {
