@@ -29,11 +29,6 @@ export class Unit extends Component {
     @property targetSearchRange = 60;
     @property targetSearchIntervalFrames = 6;
 
-    @property forwardScanRange = 12;
-    @property forwardScanIntervalFrames = 2;
-    @property({ displayName: 'Use Wave Front Scanner' })
-    useWaveForwardScanner = true;
-
     @property({ displayName: 'Aggressive Forward' })
     aggressiveForward = false;
 
@@ -73,15 +68,13 @@ export class Unit extends Component {
     private frameCounter = 0;
     private cachedNearestInRange: Unit | null = null;
     private cachedNearestEnemy: Unit | null = null;
-    private forwardLaneTarget: Unit | null = null;
-    private forwardAdjacentTarget: Unit | null = null;
     private enemyLifeId = -1;
     private cachedNearestInRangeLifeId = -1;
     private cachedNearestEnemyLifeId = -1;
-    private forwardLaneTargetLifeId = -1;
-    private forwardAdjacentTargetLifeId = -1;
     private retaliationTarget: Unit | null = null;
     private retaliationTargetLifeId = -1;
+    private targetSearchPending = false;
+    private targetSearchConfirmedNoTarget = false;
     private nearestInRangeQueryToken = 0;
     private nearestEnemyQueryToken = 0;
     private readonly onNearestInRangeQueryResult = (
@@ -109,7 +102,7 @@ export class Unit extends Component {
             return;
         }
 
-        this.setCachedNearestEnemyTarget(
+        this.completeTargetSearch(
             this.isValidEnemyWithinRange(
                 target,
                 this.targetSearchRange
@@ -250,6 +243,8 @@ export class Unit extends Component {
     private invalidateNearestQueryResults() {
         this.nearestInRangeQueryToken++;
         this.nearestEnemyQueryToken++;
+        this.targetSearchPending = false;
+        this.targetSearchConfirmedNoTarget = false;
     }
 
     private advanceLifeId() {
@@ -265,6 +260,10 @@ export class Unit extends Component {
         this.enemyLifeId = target ? target.lifeId : -1;
         this.retaliationTarget = null;
         this.retaliationTargetLifeId = -1;
+
+        if (target) {
+            this.targetSearchConfirmedNoTarget = false;
+        }
     }
 
     private setRetaliationTarget(target: Unit) {
@@ -272,6 +271,7 @@ export class Unit extends Component {
         this.enemyLifeId = target.lifeId;
         this.retaliationTarget = target;
         this.retaliationTargetLifeId = target.lifeId;
+        this.targetSearchConfirmedNoTarget = false;
     }
 
     private setCachedNearestInRangeTarget(target: Unit | null) {
@@ -284,21 +284,15 @@ export class Unit extends Component {
         this.cachedNearestEnemyLifeId = target ? target.lifeId : -1;
     }
 
-    private setForwardLaneTarget(target: Unit | null) {
-        this.forwardLaneTarget = target;
-        this.forwardLaneTargetLifeId = target ? target.lifeId : -1;
-    }
-
-    private setForwardAdjacentTarget(target: Unit | null) {
-        this.forwardAdjacentTarget = target;
-        this.forwardAdjacentTargetLifeId = target ? target.lifeId : -1;
+    private completeTargetSearch(target: Unit | null) {
+        this.targetSearchPending = false;
+        this.setCachedNearestEnemyTarget(target);
+        this.targetSearchConfirmedNoTarget = !target;
     }
 
     private clearCachedTargets() {
         this.setCachedNearestInRangeTarget(null);
         this.setCachedNearestEnemyTarget(null);
-        this.setForwardLaneTarget(null);
-        this.setForwardAdjacentTarget(null);
     }
 
     public getValidEnemyTarget(): Unit | null {
@@ -309,6 +303,96 @@ export class Unit extends Component {
 
     public hasValidEnemyTarget() {
         return !!this.getValidEnemyTarget();
+    }
+
+    public hasConfirmedNoTargetSearch() {
+        if (this.targetSearchPending) return false;
+        if (this.hasValidEnemyTarget()) return false;
+
+        return this.targetSearchConfirmedNoTarget;
+    }
+
+    public setWaveSearchTarget(target: Unit | null) {
+        if (!this.isValidEnemy(target)) return false;
+
+        this.setEnemyTarget(target);
+        return true;
+    }
+
+    public findForwardSearchTarget(
+        aggressiveForward: boolean
+    ): Unit | null {
+        if (!this.agent) return null;
+
+        if (!aggressiveForward) {
+            const gm = GameManager.instance;
+
+            if (gm && gm.spatialGrid) {
+                return gm.spatialGrid.findNearestEnemy(
+                    this.team,
+                    this.agent.pos.x,
+                    this.agent.pos.z,
+                    this.targetSearchRange
+                );
+            }
+
+            return this.findNearestEnemyFallback();
+        }
+
+        if (this.laneId < 0) return null;
+
+        const enemies =
+            this.getNearbyEnemyList(
+                this.targetSearchRange
+            );
+        const maxRangeSq =
+            this.targetSearchRange *
+            this.targetSearchRange;
+
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+
+            if (!this.isValidEnemy(enemy)) continue;
+            if (enemy.laneId !== this.laneId) continue;
+
+            const dx =
+                enemy.agent!.pos.x - this.agent.pos.x;
+            const dz =
+                enemy.agent!.pos.z - this.agent.pos.z;
+            const distanceSq = dx * dx + dz * dz;
+
+            if (distanceSq > maxRangeSq) continue;
+
+            if (distanceSq < bestDistSq) {
+                bestDistSq = distanceSq;
+                best = enemy;
+            }
+        }
+
+        return best;
+    }
+
+    public hasReachedEnemyHeroLine() {
+        const enemyHero = this.getEnemyHero();
+
+        if (!this.isValidEnemy(enemyHero)) {
+            return false;
+        }
+
+        return this.hasPassedTargetAlongForward(
+            enemyHero!
+        );
+    }
+
+    public getEnemyHeroTarget() {
+        const enemyHero = this.getEnemyHero();
+
+        return this.isValidEnemy(enemyHero)
+            ? enemyHero
+            : null;
     }
 
     public reactToAttacker(attacker: Unit | null) {
@@ -441,7 +525,6 @@ export class Unit extends Component {
 
     enterWaveCombatMode() {
         this.onForward = false;
-        this.aggressiveForward = false;
         this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
@@ -460,7 +543,6 @@ export class Unit extends Component {
         searchRange: number = 0
     ) {
         this.onForward = false;
-        this.aggressiveForward = false;
         this.resetStableRotationPosition();
 
         if (searchRange > 0) {
@@ -479,6 +561,31 @@ export class Unit extends Component {
             if (!this.onBusy) {
                 this.agent.locked = this.isSteady;
             }
+        }
+    }
+
+    enterWaveForwardMode(
+        aggressiveForward: boolean
+    ) {
+        if (this.isSteady) return;
+
+        this.setEnemyTarget(null);
+        this.onBusy = false;
+        this.onForward = true;
+        this.aggressiveForward = aggressiveForward;
+        this.resetStableRotationPosition();
+        this.resetMoveIntentFacing();
+
+        this.invalidateNearestQueryResults();
+        this.clearCachedTargets();
+
+        if (this.agent) {
+            this.agent.locked = false;
+            this.agent.onForward = 1;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
         }
     }
 
@@ -573,19 +680,13 @@ export class Unit extends Component {
         }
 
         if (this.onForward) {
-            if (this.canRunForwardScanForWave()) {
-                this.updateForwardPhase();
-            }
+            this.agent.onForward = 1;
 
-            if (this.onForward) {
-                this.agent.onForward = 1;
+            this.updateForwardPrefVelocity();
+            this.lookMoveIntentSmooth(deltaTime);
 
-                this.updateForwardPrefVelocity();
-                this.lookMoveIntentSmooth(deltaTime);
-
-                this.sync(deltaTime, false);
-                return;
-            }
+            this.sync(deltaTime, false);
+            return;
         }
 
         this.agent.onForward = 0;
@@ -621,11 +722,10 @@ export class Unit extends Component {
             this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
         } else {
-            // Free hunt never restores lane control. Keep advancing
-            // without enabling forward scan or aggressive forward.
-            this.updateForwardPrefVelocity();
-            this.lookMoveIntentSmooth(deltaTime);
-            this.sync(deltaTime, false);
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, true);
         }
     }
 
@@ -637,23 +737,6 @@ export class Unit extends Component {
     private shouldRunTargetSearch(): boolean {
         const interval = Math.max(1, Math.floor(this.targetSearchIntervalFrames));
         return this.frameCounter % interval === 0;
-    }
-
-    private shouldRunForwardScan(): boolean {
-        const interval = Math.max(1, Math.floor(this.forwardScanIntervalFrames));
-        return this.frameCounter % interval === 0;
-    }
-
-    private canRunForwardScanForWave() {
-        if (!this.useWaveForwardScanner) {
-            return true;
-        }
-
-        const gm = GameManager.instance;
-
-        if (!gm) return true;
-
-        return gm.canUnitRunWaveForwardScan(this);
     }
 
     private getSharedWaveTarget() {
@@ -711,6 +794,9 @@ export class Unit extends Component {
             const queryToken =
                 ++this.nearestEnemyQueryToken;
 
+            this.targetSearchPending = true;
+            this.targetSearchConfirmedNoTarget = false;
+
             const queued =
                 this.queueNearestEnemyQuery(
                     this.targetSearchRange,
@@ -719,7 +805,7 @@ export class Unit extends Component {
                 );
 
             if (!queued) {
-                this.setCachedNearestEnemyTarget(
+                this.completeTargetSearch(
                     this.findNearestEnemy()
                 );
             }
@@ -739,112 +825,6 @@ export class Unit extends Component {
         )
             ? this.cachedNearestEnemy
             : null;
-    }
-
-    private updateForwardPhase() {
-        if (!this.agent) return;
-
-        // Forward phase:
-        // 1. Scan enemies in the same lane.
-        // 2. Non-aggressive forward also scans adjacent-lane units.
-        // 3. If this unit has passed a valid target along forwardDir,
-        //    release the wave to free hunt.
-        // 4. Enemy hero line can also release free hunt when it is in
-        //    the same or adjacent lane.
-
-        const shouldScan =
-            this.shouldRunForwardScan();
-
-        let nearestLaneEnemy =
-            this.getForwardLaneTarget();
-
-        if (shouldScan) {
-            nearestLaneEnemy =
-                this.findNearestEnemyInSameLane();
-            this.setForwardLaneTarget(nearestLaneEnemy);
-        }
-
-        if (nearestLaneEnemy && nearestLaneEnemy.agent) {
-            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
-                this.setForwardLaneTarget(null);
-                this.setForwardAdjacentTarget(null);
-
-                if (
-                    !this.releaseWaveForwardToFreeHunt(
-                        nearestLaneEnemy
-                    )
-                ) {
-                    this.onForward = false;
-                }
-
-                return;
-            }
-        }
-
-        if (this.aggressiveForward) {
-            this.setForwardAdjacentTarget(null);
-        } else {
-            let nearestAdjacentLaneEnemy =
-                this.getForwardAdjacentTarget();
-
-            if (shouldScan) {
-                nearestAdjacentLaneEnemy =
-                    this.findNearestEnemyInAdjacentLane(true);
-                this.setForwardAdjacentTarget(nearestAdjacentLaneEnemy);
-            }
-
-            if (nearestAdjacentLaneEnemy) {
-                if (
-                    this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)
-                ) {
-                    this.setForwardLaneTarget(null);
-                    this.setForwardAdjacentTarget(null);
-
-                    if (
-                        !this.releaseWaveForwardToFreeHunt(
-                            nearestAdjacentLaneEnemy
-                        )
-                    ) {
-                        this.onForward = false;
-                    }
-
-                    return;
-                }
-            }
-        }
-
-        const enemyHero = this.getEnemyHero();
-
-        if (
-            enemyHero &&
-            this.isValidEnemy(enemyHero) &&
-            this.isSameOrAdjacentLane(enemyHero.laneId) &&
-            this.hasPassedTargetAlongForward(enemyHero)
-        ) {
-            this.setForwardLaneTarget(null);
-            this.setForwardAdjacentTarget(null);
-
-            if (
-                !this.releaseWaveForwardToFreeHunt(
-                    enemyHero
-                )
-            ) {
-                this.onForward = false;
-            }
-
-            return;
-        }
-    }
-
-    private releaseWaveForwardToFreeHunt(target: Unit) {
-        const gm = GameManager.instance;
-
-        if (!gm) return false;
-
-        return gm.onWaveForwardPassedAdjacentTarget(
-            this,
-            target
-        );
     }
 
     private updateForwardPrefVelocity() {
@@ -887,155 +867,6 @@ export class Unit extends Component {
         }
 
         return false;
-    }
-
-    private isTargetAheadAlongForward(target: Unit): boolean {
-        if (!this.agent || !target || !target.agent) return false;
-
-        if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
-            const dz = target.agent.pos.z - this.agent.pos.z;
-
-            return this.forwardDir.z >= 0
-                ? dz >= 0
-                : dz <= 0;
-        }
-
-        const dx = target.agent.pos.x - this.agent.pos.x;
-
-        return this.forwardDir.x >= 0
-            ? dx >= 0
-            : dx <= 0;
-    }
-
-    private getForwardLaneTarget(): Unit | null {
-        const target = this.forwardLaneTarget;
-
-        if (!target) return null;
-
-        if (
-            !this.isValidEnemy(
-                target,
-                this.forwardLaneTargetLifeId
-            ) ||
-            target.laneId !== this.laneId
-        ) {
-            this.setForwardLaneTarget(null);
-            return null;
-        }
-
-        return target;
-    }
-
-    private getForwardAdjacentTarget(): Unit | null {
-        const target = this.forwardAdjacentTarget;
-
-        if (!target) return null;
-
-        if (
-            !this.isValidEnemy(
-                target,
-                this.forwardAdjacentTargetLifeId
-            ) ||
-            !this.isAdjacentLane(target.laneId)
-        ) {
-            this.setForwardAdjacentTarget(null);
-            return null;
-        }
-
-        return target;
-    }
-
-    private findNearestEnemyInSameLane(): Unit | null {
-        if (!this.agent) return null;
-        if (this.laneId < 0) return this.getNearestEnemyThrottled();
-
-        const scanRange =
-            this.getForwardScanRange();
-
-        const enemies =
-            this.getNearbyEnemyList(scanRange);
-
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        const maxRangeSq =
-            scanRange *
-            scanRange;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-
-            if (!this.isValidEnemy(e)) continue;
-            if (e.laneId !== this.laneId) continue;
-
-            const dx = e.agent!.pos.x - this.agent.pos.x;
-            const dz = e.agent!.pos.z - this.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d > maxRangeSq) continue;
-
-            if (d < bestDistSq) {
-                bestDistSq = d;
-                best = e;
-            }
-        }
-
-        return best;
-    }
-
-    private findNearestEnemyInAdjacentLane(
-        onlyAhead: boolean = false
-    ): Unit | null {
-        if (!this.agent) return null;
-        if (this.laneId < 0) return null;
-
-        const scanRange =
-            this.getForwardScanRange();
-
-        const enemies =
-            this.getNearbyEnemyList(scanRange);
-
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        const maxRangeSq =
-            scanRange *
-            scanRange;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-
-            if (!this.isValidEnemy(e)) continue;
-            if (!this.isAdjacentLane(e.laneId)) continue;
-            if (onlyAhead && !this.isTargetAheadAlongForward(e)) continue;
-
-            const dx = e.agent!.pos.x - this.agent.pos.x;
-            const dz = e.agent!.pos.z - this.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d > maxRangeSq) continue;
-
-            if (d < bestDistSq) {
-                bestDistSq = d;
-                best = e;
-            }
-        }
-
-        return best;
-    }
-
-    private isAdjacentLane(otherLaneId: number): boolean {
-        if (this.laneId < 0) return false;
-        if (otherLaneId < 0) return false;
-
-        return Math.abs(otherLaneId - this.laneId) === 1;
-    }
-
-    private isSameOrAdjacentLane(otherLaneId: number): boolean {
-        if (this.laneId < 0) return false;
-        if (otherLaneId < 0) return false;
-
-        return Math.abs(otherLaneId - this.laneId) <= 1;
     }
 
     private getEnemyHero(): Unit | null {
@@ -1213,14 +1044,6 @@ export class Unit extends Component {
         return this.team === 0
             ? gm.teamB
             : gm.teamA;
-    }
-
-    private getForwardScanRange() {
-        if (this.forwardScanRange > 0) {
-            return this.forwardScanRange;
-        }
-
-        return this.targetSearchRange;
     }
 
     private getNearbyEnemyList(radius: number) {

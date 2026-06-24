@@ -38,17 +38,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.units = [];
           this.assignedCounterCount = 0;
           this.laneId = -1;
-          this.combatModeActive = false;
           this.released = false;
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
-          this.runtimeTargetFrame = -1;
-          this.runtimeHasValidTarget = false;
-          this.forwardScannerFrame = -1;
+          this.targetSearchIntervalFrames = 1;
+          this.forwardModeActive = true;
+          this.freeHuntActive = false;
+          this.permanentFreeHunt = false;
+          this.aggressiveForwardMode = false;
           this.forwardScannerUnit = null;
-          this.noTargetSinceFrame = -1;
-          this.aliveSortBuffer = [];
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -64,6 +63,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           BattleWave.unitWaveObjectMap.set(unit, this);
 
           if (this.units.indexOf(unit) < 0) {
+            if (this.units.length <= 0) {
+              this.targetSearchIntervalFrames = Math.max(1, Math.floor(unit.targetSearchIntervalFrames));
+            }
+
+            if (unit.aggressiveForward) {
+              this.aggressiveForwardMode = true;
+            }
+
             this.units.push(unit);
           }
         }
@@ -207,47 +214,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         hasAggressiveForward() {
-          if (this.released) {
-            return false;
-          }
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.aggressiveForward) continue;
-            return true;
-          }
-
-          return false;
-        }
-
-        hasAnyValidTarget() {
-          return this.scanHasAnyValidTarget();
-        }
-
-        hasAnyValidTargetRuntime(frame) {
-          if (this.runtimeTargetFrame === frame) {
-            return this.runtimeHasValidTarget;
-          }
-
-          this.runtimeTargetFrame = frame;
-          this.runtimeHasValidTarget = this.scanHasAnyValidTarget();
-          return this.runtimeHasValidTarget;
-        }
-
-        scanHasAnyValidTarget() {
-          if (this.released) {
-            return false;
-          }
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.hasValidEnemyTarget()) continue;
-            return true;
-          }
-
-          return false;
+          return !this.released && this.aggressiveForwardMode;
         }
 
         findSharedTargetForUnit(requester) {
@@ -276,65 +243,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return best;
         }
 
-        shouldRecoverNoTarget(frame, delayFrames) {
-          if (this.released) return false;
-
-          if (this.hasEngagedRuntime(frame) || this.hasAnyValidTargetRuntime(frame)) {
-            this.noTargetSinceFrame = -1;
-            return false;
-          }
-
-          if (this.noTargetSinceFrame < 0) {
-            this.noTargetSinceFrame = frame;
-            return false;
-          }
-
-          const delay = Math.max(0, Math.floor(delayFrames));
-          return frame - this.noTargetSinceFrame >= delay;
-        }
-
-        isTargetingWave(targetWave) {
-          if (this.released) return false;
-          if (!targetWave) return false;
-          if (targetWave === this) return false;
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            const target = u.getValidEnemyTarget();
-            if (!target) continue;
-
-            if (BattleWave.getWaveForUnit(target) === targetWave) {
-              return true;
-            }
-          }
-
-          return false;
-        }
-
-        isEngagedWithOtherWave(targetWave) {
-          if (this.released) return false;
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.onBusy) continue;
-            const target = u.getValidEnemyTarget();
-            if (!target) continue;
-            const enemyWave = BattleWave.getWaveForUnit(target);
-
-            if (enemyWave && enemyWave !== targetWave) {
-              return true;
-            }
-          }
-
-          return false;
-        }
-
-        setLaneId(laneId, formationWidth = 1, unitSpacing = 1.5) {
+        setLaneId(laneId) {
           if (this.released) return;
           this.laneId = laneId;
-          this.assignLaneOffsets(formationWidth, unitSpacing);
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -343,27 +254,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        resumeForward() {
-          if (this.released) return false;
-          if (this.hasEngaged()) return false;
-          this.combatModeActive = false;
-          this.noTargetSinceFrame = -1;
+        releaseForwardToFreeHunt(searchRange = 0, permanent = false) {
+          if (this.released) return;
 
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            u.setWaveForwardLane(this.laneId, u.forwardLaneOffsetX);
+          if (permanent) {
+            this.permanentFreeHunt = true;
           }
 
-          return true;
-        }
+          if (this.freeHuntActive && searchRange <= 0) {
+            return;
+          }
 
-        releaseForwardToFreeHunt(searchRange = 0) {
-          if (this.released) return;
-          this.combatModeActive = false;
+          this.forwardModeActive = false;
+          this.freeHuntActive = true;
           this.forwardScannerUnit = null;
-          this.forwardScannerFrame = -1;
-          this.noTargetSinceFrame = -1;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -372,18 +276,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        clearLaneControl() {
-          if (this.released) return;
-          this.combatModeActive = false;
-          this.forwardScannerUnit = null;
-          this.forwardScannerFrame = -1;
-          this.noTargetSinceFrame = -1;
-        }
-
         enterCombatMode() {
           if (this.released) return;
-          this.combatModeActive = true;
-          this.noTargetSinceFrame = -1;
+          if (this.freeHuntActive) return;
+          this.forwardModeActive = false;
+          this.freeHuntActive = true;
+          this.forwardScannerUnit = null;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -392,44 +290,76 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        captureCurrentLaneOffsets(laneCenterX) {
+        getTargetSearchIntervalFrames() {
+          return this.targetSearchIntervalFrames;
+        }
+
+        isForwardMode() {
+          return !this.released && this.forwardModeActive;
+        }
+
+        isAggressiveForwardMode() {
+          return !this.released && this.aggressiveForwardMode;
+        }
+
+        getForwardScanner(refresh = false) {
+          if (!this.isForwardMode()) {
+            return null;
+          }
+
+          if (!refresh && this.isForwardScannerEligible(this.forwardScannerUnit)) {
+            return this.forwardScannerUnit;
+          }
+
+          let best = null;
+          let bestScore = -Infinity;
+
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            if (!u.agent) continue;
-            u.forwardLaneOffsetX = u.agent.pos.x - laneCenterX;
+            if (!u.onForward) continue;
+            const score = u.agent.pos.x * u.forwardDir.x + u.agent.pos.z * u.forwardDir.z;
+
+            if (score > bestScore) {
+              bestScore = score;
+              best = u;
+            }
           }
+
+          this.forwardScannerUnit = best;
+          return this.forwardScannerUnit;
         }
 
-        assignLaneOffsets(formationWidth, unitSpacing) {
-          const aliveUnits = this.getAliveUnitsSortedByX();
-          const count = aliveUnits.length;
-          if (count <= 0) return;
-          const columns = Math.max(1, Math.min(Math.floor(formationWidth), count));
-          const spacing = Math.max(0.01, unitSpacing);
-
-          for (let i = 0; i < count; i++) {
-            const col = Math.min(columns - 1, Math.floor(i * columns / count));
-            aliveUnits[i].forwardLaneOffsetX = (col - (columns - 1) * 0.5) * spacing;
-          }
-        }
-
-        getAliveUnitsSortedByX() {
-          const result = this.aliveSortBuffer;
-          result.length = 0;
+        tryResumeForward() {
+          if (this.released) return false;
+          if (!this.freeHuntActive) return false;
+          if (this.permanentFreeHunt) return false;
+          let aliveCount = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            result.push(u);
+            aliveCount++;
+            if (u.onBusy) return false;
+            if (u.hasValidEnemyTarget()) return false;
+
+            if (!u.hasConfirmedNoTargetSearch()) {
+              return false;
+            }
           }
 
-          result.sort((a, b) => {
-            const ax = a.agent ? a.agent.pos.x : 0;
-            const bx = b.agent ? b.agent.pos.x : 0;
-            return ax - bx;
-          });
-          return result;
+          if (aliveCount <= 0) return false;
+          this.forwardModeActive = true;
+          this.freeHuntActive = false;
+          this.forwardScannerUnit = null;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            u.enterWaveForwardMode(this.aggressiveForwardMode);
+          }
+
+          return true;
         }
 
         isDead() {
@@ -442,65 +372,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         releaseReferences() {
           this.released = true;
-          this.combatModeActive = false;
           this.assignedCounterCount = 0;
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
-          this.runtimeTargetFrame = -1;
-          this.runtimeHasValidTarget = false;
-          this.forwardScannerFrame = -1;
+          this.targetSearchIntervalFrames = 1;
+          this.forwardModeActive = false;
+          this.freeHuntActive = false;
+          this.permanentFreeHunt = false;
+          this.aggressiveForwardMode = false;
           this.forwardScannerUnit = null;
-          this.noTargetSinceFrame = -1;
-          this.aliveSortBuffer.length = 0;
           this.units.length = 0;
-        }
-
-        canUnitRunForwardScan(unit, frame) {
-          if (this.released) return true;
-          if (!this.isUnitAlive(unit)) return false;
-          const shouldPick = !this.isForwardScannerEligible(this.forwardScannerUnit) || this.forwardScannerFrame !== frame;
-
-          if (shouldPick) {
-            this.pickFrontMostForwardScanner();
-            this.forwardScannerFrame = frame;
-          }
-
-          return this.forwardScannerUnit === unit;
-        }
-
-        getAverageX() {
-          if (this.released) return 0;
-          let sum = 0;
-          let count = 0;
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.agent) continue;
-            sum += u.agent.pos.x;
-            count++;
-          }
-
-          if (count <= 0) return 0;
-          return sum / count;
-        }
-
-        getAverageZ() {
-          if (this.released) return 0;
-          let sum = 0;
-          let count = 0;
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.agent) continue;
-            sum += u.agent.pos.z;
-            count++;
-          }
-
-          if (count <= 0) return 0;
-          return sum / count;
         }
 
         getClosestDistanceSqTo(x, z) {
@@ -523,30 +405,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return best;
         }
 
-        pickFrontMostForwardScanner() {
-          this.forwardScannerUnit = null;
-          let bestScore = -Infinity;
-
-          for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-            if (!this.isForwardScannerEligible(u)) continue;
-            const score = u.agent.pos.x * u.forwardDir.x + u.agent.pos.z * u.forwardDir.z;
-
-            if (score > bestScore) {
-              bestScore = score;
-              this.forwardScannerUnit = u;
-            }
-          }
-        }
-
-        isForwardScannerEligible(unit) {
-          if (!this.isUnitAlive(unit)) return false;
-          if (!unit.agent) return false;
-          if (!unit.onForward) return false;
-          if (unit.returningToWaveLaneSlot) return false;
-          return true;
-        }
-
         isUnitAlive(unit) {
           if (this.released) return false;
           if (!unit) return false;
@@ -561,6 +419,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!unit.props) return false;
           if (unit.props.isDead()) return false;
           return true;
+        }
+
+        isForwardScannerEligible(unit) {
+          if (!this.isUnitAlive(unit)) return false;
+          return !!unit.onForward;
         }
 
         static getWaveForUnit(unit) {

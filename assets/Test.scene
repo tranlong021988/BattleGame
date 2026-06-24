@@ -2313,7 +2313,7 @@
         "__id__": 63
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 65
@@ -2661,7 +2661,7 @@
     "node": {
       "__id__": 56
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "gameManager": {
       "__id__": 67
@@ -3768,9 +3768,6 @@
     "attackCheckIntervalFrames": 3,
     "targetSearchRange": 40,
     "targetSearchIntervalFrames": 30,
-    "forwardScanRange": 8,
-    "forwardScanIntervalFrames": 15,
-    "useWaveForwardScanner": true,
     "aggressiveForward": false,
     "forwardDir": {
       "__type__": "cc.Vec3",
@@ -4495,9 +4492,6 @@
     "attackCheckIntervalFrames": 3,
     "targetSearchRange": 40,
     "targetSearchIntervalFrames": 30,
-    "forwardScanRange": 8,
-    "forwardScanIntervalFrames": 15,
-    "useWaveForwardScanner": true,
     "aggressiveForward": false,
     "forwardDir": {
       "__type__": "cc.Vec3",

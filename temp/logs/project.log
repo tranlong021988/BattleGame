@@ -1,13 +1,29 @@
-6-24-2026 18:24:16 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
-6-24-2026 18:24:16 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
-6-24-2026 18:24:16 - log: Request namespace: device-list
-6-24-2026 18:24:22 - log: [Scene] meshopt wasm decoder initialized
-6-24-2026 18:24:22 - log: [Scene] [box2d]:box2d wasm lib loaded.
-6-24-2026 18:24:22 - log: [Scene] [bullet]:bullet wasm lib loaded.
-6-24-2026 18:24:22 - log: [Scene] [PHYSICS]: using builtin.
-6-24-2026 18:24:22 - log: [Scene] Cocos Creator v3.8.8
-6-24-2026 18:24:22 - log: [Scene] Using custom pipeline: Builtin
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:24:56 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
+6-25-2026 00:24:57 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
+6-25-2026 00:24:57 - log: Request namespace: device-list
+6-25-2026 00:25:36 - error: [Assets] color doesn't allow set 1.Error: color doesn't allow set 1.
+    at getGfxAttributeName (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\pp-geometry.ccc:1:10615)
+    at interleaveVertices (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\gltf-converter.ccc:1:52812)
+    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\gltf-converter.ccc:1:6376
+    at Array.map (<anonymous>)
+    at GltfConverter.createMesh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\gltf-converter.ccc:1:6305)
+    at import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\mesh.ccc:1:1133)
+    at CustomImporter.import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\manager\asset-handler-manager.ccc:1:1249)
+6-25-2026 00:25:36 - warn: [Assets] Attribute a_joints has different format from origin, quantization may not work.Warn: [Assets] Attribute a_joints has different format from origin, quantization may not work.
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at quantizeSize (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\meshOptimizer.ccc:1:16035)
+    at quantizeMesh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\meshOptimizer.ccc:1:16611)
+    at compressMesh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\meshOptimizer.ccc:1:11757)
+    at import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\mesh.ccc:1:3447)
+    at CustomImporter.import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\manager\asset-handler-manager.ccc:1:1249)
+6-25-2026 00:25:38 - log: [Scene] meshopt wasm decoder initialized
+6-25-2026 00:25:38 - log: [Scene] [bullet]:bullet wasm lib loaded.
+6-25-2026 00:25:38 - log: [Scene] [box2d]:box2d wasm lib loaded.
+6-25-2026 00:25:38 - log: [Scene] [PHYSICS]: using builtin.
+6-25-2026 00:25:38 - log: [Scene] Cocos Creator v3.8.8
+6-25-2026 00:25:39 - log: [Scene] Using custom pipeline: Builtin
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -31,7 +47,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -57,7 +73,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -81,7 +97,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -107,7 +123,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -131,7 +147,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -157,7 +173,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -181,7 +197,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:24:23 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-25-2026 00:25:41 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -207,6 +223,10 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-24-2026 18:34:52 - error: Load current scene data failed!(start_scene = current_scene)Error: Load current scene data failed!(start_scene = current_scene)
-    at Object.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\preview\dist\contributions\server.ccc:1:2224)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\server\dist\express.ccc:1:3313
+6-25-2026 01:19:41 - warn: Object has been destroyedTypeError: Object has been destroyed
+    at WebContents._.send (node:electron/js2c/browser_init:2:74130)
+    at WindowSender.immediately (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-base-ipc\dist\sender.ccc:1:2082)
+    at Immediate._onImmediate (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-base-ipc\dist\sender.ccc:1:2008)
+    at processImmediate (node:internal/timers:478:21)
+6-25-2026 01:19:42 - log: waiting the ready of builder worker...
+6-25-2026 01:19:42 - log: waiting the ready of builder worker...

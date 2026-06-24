@@ -125,6 +125,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           enemy.props.takeDamage(finalDamage);
 
+          if (!enemy.props.isDead()) {
+            enemy.reactToAttacker(this.unit);
+          }
+
           if (enemy.props.isDead()) {
             const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
               error: Error()

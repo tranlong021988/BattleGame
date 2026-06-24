@@ -22,9 +22,12 @@ export class BattleWave {
     private runtimeStateFrame = -1;
     private runtimeAliveCount = 0;
     private runtimeHasEngaged = false;
-    private forwardScannerFrame = -1;
-    private forwardScannerUnit: Unit | null = null;
     private targetSearchIntervalFrames = 1;
+    private forwardModeActive = true;
+    private freeHuntActive = false;
+    private permanentFreeHunt = false;
+    private aggressiveForwardMode = false;
+    private forwardScannerUnit: Unit | null = null;
 
     constructor(
         id: number,
@@ -58,6 +61,10 @@ export class BattleWave {
                             unit.targetSearchIntervalFrames
                         )
                     );
+            }
+
+            if (unit.aggressiveForward) {
+                this.aggressiveForwardMode = true;
             }
 
             this.units.push(unit);
@@ -220,20 +227,8 @@ export class BattleWave {
     }
 
     hasAggressiveForward() {
-        if (this.released) {
-            return false;
-        }
-
-        for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.aggressiveForward) continue;
-
-            return true;
-        }
-
-        return false;
+        return !this.released &&
+            this.aggressiveForwardMode;
     }
 
     findSharedTargetForUnit(
@@ -288,12 +283,25 @@ export class BattleWave {
     }
 
     releaseForwardToFreeHunt(
-        searchRange: number = 0
+        searchRange: number = 0,
+        permanent: boolean = false
     ) {
         if (this.released) return;
 
+        if (permanent) {
+            this.permanentFreeHunt = true;
+        }
+
+        if (
+            this.freeHuntActive &&
+            searchRange <= 0
+        ) {
+            return;
+        }
+
+        this.forwardModeActive = false;
+        this.freeHuntActive = true;
         this.forwardScannerUnit = null;
-        this.forwardScannerFrame = -1;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -308,9 +316,11 @@ export class BattleWave {
 
     enterCombatMode() {
         if (this.released) return;
+        if (this.freeHuntActive) return;
 
+        this.forwardModeActive = false;
+        this.freeHuntActive = true;
         this.forwardScannerUnit = null;
-        this.forwardScannerFrame = -1;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -323,6 +333,95 @@ export class BattleWave {
 
     getTargetSearchIntervalFrames() {
         return this.targetSearchIntervalFrames;
+    }
+
+    isForwardMode() {
+        return !this.released &&
+            this.forwardModeActive;
+    }
+
+    isAggressiveForwardMode() {
+        return !this.released &&
+            this.aggressiveForwardMode;
+    }
+
+    getForwardScanner(
+        refresh: boolean = false
+    ): Unit | null {
+        if (!this.isForwardMode()) {
+            return null;
+        }
+
+        if (
+            !refresh &&
+            this.isForwardScannerEligible(
+                this.forwardScannerUnit
+            )
+        ) {
+            return this.forwardScannerUnit;
+        }
+
+        let best: Unit | null = null;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+            if (!u.onForward) continue;
+
+            const score =
+                u.agent!.pos.x * u.forwardDir.x +
+                u.agent!.pos.z * u.forwardDir.z;
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = u;
+            }
+        }
+
+        this.forwardScannerUnit = best;
+        return this.forwardScannerUnit;
+    }
+
+    tryResumeForward() {
+        if (this.released) return false;
+        if (!this.freeHuntActive) return false;
+        if (this.permanentFreeHunt) return false;
+
+        let aliveCount = 0;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            aliveCount++;
+
+            if (u.onBusy) return false;
+            if (u.hasValidEnemyTarget()) return false;
+            if (!u.hasConfirmedNoTargetSearch()) {
+                return false;
+            }
+        }
+
+        if (aliveCount <= 0) return false;
+
+        this.forwardModeActive = true;
+        this.freeHuntActive = false;
+        this.forwardScannerUnit = null;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            u.enterWaveForwardMode(
+                this.aggressiveForwardMode
+            );
+        }
+
+        return true;
     }
 
     isDead() {
@@ -339,71 +438,13 @@ export class BattleWave {
         this.runtimeStateFrame = -1;
         this.runtimeAliveCount = 0;
         this.runtimeHasEngaged = false;
-        this.forwardScannerFrame = -1;
-        this.forwardScannerUnit = null;
         this.targetSearchIntervalFrames = 1;
+        this.forwardModeActive = false;
+        this.freeHuntActive = false;
+        this.permanentFreeHunt = false;
+        this.aggressiveForwardMode = false;
+        this.forwardScannerUnit = null;
         this.units.length = 0;
-    }
-
-    canUnitRunForwardScan(
-        unit: Unit | null,
-        frame: number
-    ) {
-        if (this.released) return true;
-        if (!this.isUnitAlive(unit)) return false;
-
-        const shouldPick =
-            !this.isForwardScannerEligible(this.forwardScannerUnit) ||
-            this.forwardScannerFrame !== frame;
-
-        if (shouldPick) {
-            this.pickFrontMostForwardScanner();
-            this.forwardScannerFrame = frame;
-        }
-
-        return this.forwardScannerUnit === unit;
-    }
-
-    getAverageX() {
-        if (this.released) return 0;
-
-        let sum = 0;
-        let count = 0;
-
-        for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.agent) continue;
-
-            sum += u.agent.pos.x;
-            count++;
-        }
-
-        if (count <= 0) return 0;
-
-        return sum / count;
-    }
-
-    getAverageZ() {
-        if (this.released) return 0;
-
-        let sum = 0;
-        let count = 0;
-
-        for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-
-            if (!this.isUnitAlive(u)) continue;
-            if (!u.agent) continue;
-
-            sum += u.agent.pos.z;
-            count++;
-        }
-
-        if (count <= 0) return 0;
-
-        return sum / count;
     }
 
     getClosestDistanceSqTo(x: number, z: number) {
@@ -430,35 +471,6 @@ export class BattleWave {
         return best;
     }
 
-    private pickFrontMostForwardScanner() {
-        this.forwardScannerUnit = null;
-
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-
-            if (!this.isForwardScannerEligible(u)) continue;
-
-            const score =
-                u.agent!.pos.x * u.forwardDir.x +
-                u.agent!.pos.z * u.forwardDir.z;
-
-            if (score > bestScore) {
-                bestScore = score;
-                this.forwardScannerUnit = u;
-            }
-        }
-    }
-
-    private isForwardScannerEligible(unit: Unit | null) {
-        if (!this.isUnitAlive(unit)) return false;
-        if (!unit.agent) return false;
-        if (!unit.onForward) return false;
-
-        return true;
-    }
-
     private isUnitAlive(unit: Unit | null) {
         if (this.released) return false;
         if (!unit) return false;
@@ -475,6 +487,14 @@ export class BattleWave {
         if (unit.props.isDead()) return false;
 
         return true;
+    }
+
+    private isForwardScannerEligible(
+        unit: Unit | null
+    ) {
+        if (!this.isUnitAlive(unit)) return false;
+
+        return !!unit!.onForward;
     }
 
     static getWaveForUnit(unit: Unit | null): BattleWave | null {

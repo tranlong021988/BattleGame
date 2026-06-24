@@ -396,6 +396,8 @@ export class GameManager extends Component {
         }
 
         this.processDynamicWaveLanes();
+        this.processWaveForwardSearches();
+        this.processWaveForwardRecoveries();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
     }
@@ -490,7 +492,7 @@ export class GameManager extends Component {
         enemyWave.enterCombatMode();
     }
 
-    public onWaveForwardPassedAdjacentTarget(
+    public onWaveForwardTargetFound(
         unit: Unit | null,
         target: Unit | null
     ) {
@@ -501,43 +503,11 @@ export class GameManager extends Component {
 
         if (!wave) return false;
         if (wave.isDead()) return false;
-        if (!this.areSameOrAdjacentLanes(wave.laneId, target.laneId)) {
-            return false;
-        }
 
         wave.releaseForwardToFreeHunt();
-
-        const targetWave =
-            BattleWave.getWaveForUnit(target);
-
-        if (
-            targetWave &&
-            targetWave !== wave &&
-            !targetWave.isDead() &&
-            this.areSameOrAdjacentLanes(
-                wave.laneId,
-                targetWave.laneId
-            ) &&
-            this.waves.indexOf(targetWave) >= 0
-        ) {
-            targetWave.releaseForwardToFreeHunt();
-        }
+        unit.setWaveSearchTarget(target);
 
         return true;
-    }
-
-    public canUnitRunWaveForwardScan(unit: Unit | null) {
-        if (!unit) return true;
-
-        const wave =
-            BattleWave.getWaveForUnit(unit);
-
-        if (!wave) return true;
-
-        return wave.canUnitRunForwardScan(
-            unit,
-            this.frame
-        );
     }
 
     public findSharedWaveTargetForUnit(
@@ -635,16 +605,6 @@ export class GameManager extends Component {
         return bestLane;
     }
 
-    private areSameOrAdjacentLanes(
-        laneA: number,
-        laneB: number
-    ) {
-        if (laneA < 0) return false;
-        if (laneB < 0) return false;
-
-        return Math.abs(laneA - laneB) <= 1;
-    }
-
     private processDynamicWaveLanes() {
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
@@ -658,6 +618,78 @@ export class GameManager extends Component {
         this.refreshDynamicLaneForWave(
             this.teamBHeroWave
         );
+    }
+
+    private processWaveForwardSearches() {
+        for (let i = 0; i < this.waves.length; i++) {
+            this.searchForwardWaveTarget(
+                this.waves[i]
+            );
+        }
+    }
+
+    private searchForwardWaveTarget(
+        wave: BattleWave | null
+    ) {
+        if (!wave) return;
+        if (!wave.isForwardMode()) return;
+        if (wave.isDeadRuntime(this.frame)) return;
+
+        let scanner =
+            wave.getForwardScanner();
+
+        if (!scanner) return;
+
+        if (scanner.hasReachedEnemyHeroLine()) {
+            const heroTarget =
+                scanner.getEnemyHeroTarget();
+
+            if (heroTarget) {
+                this.onWaveForwardTargetFound(
+                    scanner,
+                    heroTarget
+                );
+            }
+
+            return;
+        }
+
+        if (
+            !this.shouldRunFrameInterval(
+                wave.getTargetSearchIntervalFrames(),
+                wave.id
+            )
+        ) {
+            return;
+        }
+
+        scanner = wave.getForwardScanner(true);
+
+        if (!scanner) return;
+
+        const target =
+            scanner.findForwardSearchTarget(
+                wave.isAggressiveForwardMode()
+            );
+
+        if (target) {
+            this.onWaveForwardTargetFound(
+                scanner,
+                target
+            );
+        }
+    }
+
+    private processWaveForwardRecoveries() {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+                continue;
+            }
+
+            wave.tryResumeForward();
+        }
     }
 
     private refreshDynamicLaneForWave(
@@ -769,9 +801,18 @@ export class GameManager extends Component {
 
         this.heroForwardUnlocked[team] = true;
         hero.setSteady(false, false);
-        hero.enterFreeHuntMode(
-            this.getHeroPressureSearchRange()
-        );
+
+        if (heroWave) {
+            heroWave.releaseForwardToFreeHunt(
+                this.getHeroPressureSearchRange(),
+                true
+            );
+        } else {
+            hero.enterFreeHuntMode(
+                this.getHeroPressureSearchRange()
+            );
+        }
+
         this.releaseEnemyNormalWavesToFreeHunt(team);
     }
 
@@ -796,7 +837,8 @@ export class GameManager extends Component {
         wave: BattleWave
     ) {
         wave.releaseForwardToFreeHunt(
-            this.getHeroPressureSearchRange()
+            this.getHeroPressureSearchRange(),
+            true
         );
     }
 
@@ -893,42 +935,6 @@ export class GameManager extends Component {
         }
 
         return false;
-    }
-
-    private findNearestEnemyInCurrentLane(
-        wave: BattleWave
-    ): Unit | null {
-        if (!wave) return null;
-        if (wave.laneId < 0) return null;
-
-        const enemies =
-            wave.team === 0
-                ? this.teamB
-                : this.teamA;
-
-        const x = wave.getAverageX();
-        const z = wave.getAverageZ();
-
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const enemy = enemies[i];
-
-            if (!this.isAliveUnit(enemy)) continue;
-            if (enemy.laneId !== wave.laneId) continue;
-
-            const dx = enemy.agent!.pos.x - x;
-            const dz = enemy.agent!.pos.z - z;
-            const d = dx * dx + dz * dz;
-
-            if (d < bestDistSq) {
-                bestDistSq = d;
-                best = enemy;
-            }
-        }
-
-        return best;
     }
 
     private isAliveUnit(unit: Unit | null) {

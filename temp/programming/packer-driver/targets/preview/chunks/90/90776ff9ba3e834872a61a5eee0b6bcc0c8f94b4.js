@@ -103,7 +103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, health, damage, defense) {
+        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, attackRange, health, damage, defense) {
           var node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -123,6 +123,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), UnitBehavior) : UnitBehavior);
           unit.moveSpeed = maxSpeed;
+          unit.attackRange = Math.max(0, attackRange);
           props.unitType = unitType;
           props.maxHealth = health;
           props.damage = damage;

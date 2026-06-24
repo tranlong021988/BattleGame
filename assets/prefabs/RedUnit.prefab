@@ -915,11 +915,7 @@
     "attackCheckIntervalFrames": 10,
     "targetSearchRange": 6,
     "targetSearchIntervalFrames": 20,
-    "forwardScanRange": 8,
-    "forwardScanIntervalFrames": 20,
-    "useWaveForwardScanner": true,
     "aggressiveForward": false,
-    "laneReturnTolerance": 0.35,
     "forwardDir": {
       "__type__": "cc.Vec3",
       "x": 0,
