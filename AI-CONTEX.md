@@ -2,7 +2,7 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-06-25.
+Last updated: 2026-06-26.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
@@ -19,20 +19,24 @@ The user runs two Codex sessions on different machines. These sessions do not sh
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `9525ce21 change logic`.
+- Current HEAD while writing this handoff: `19c57732 update`.
 - Current gameplay/performance changes are uncommitted and actively being tested.
 - Expected code/handoff changes:
   - `AI-CONTEX.md`
-  - `assets/scripts/BattleUnitDatabase.ts`
-  - `assets/scripts/GameManager.ts`
+  - `assets/scripts/BattleSpatialGrid.ts`
   - `assets/scripts/Unit.ts`
-  - `assets/scripts/UnitBehavior.ts`
-  - `assets/scripts/UnitSpawner.ts`
+  - `assets/scripts/rvo/RVO.ts`
+  - `assets/scripts/rvo/RVOWorkerSimulator.ts`
+  - `assets/scripts/PlayerArmyController.ts`
+  - `assets/scripts/PlayerArmyController.ts.meta`
+  - `cocos-performance-optimize-skills/SKILL.md`
 - Current uncommitted code work includes:
-  - attack-range checks moved from the target worker to the main-thread Spatial Grid;
-  - freehunt target acquisition changed to borrow a teammate target first, then self-search only when no teammate target exists;
-  - periodic re-targeting while already chasing was tested and removed;
-  - per-unit-type `attackIntervalMin` and `attackIntervalMax` added to `UnitPrefabEntry`.
+  - target-worker timeout and complete main-thread fallback;
+  - RVO-worker startup/runtime timeout and complete main-thread fallback;
+  - worker/fallback RVO behavior synchronized;
+  - reusable Spatial Grid/RVO cell arrays and cached grid keys;
+  - stricter enemy-team validation and removal of an unnecessary full-team target-search fallback;
+  - initial `PlayerArmyController` component for manual team-A spawning.
 - `assets/Test.scene`, both unit prefabs, UI images/textures, and other asset files also contain user/Cocos Editor changes. Do not overwrite, revert, stage, or reinterpret them as part of the gameplay patch without checking first.
 - The user is actively testing the current target/attack changes. Do not alter their rules from memory or from older commits without first reading the current source and confirming the intended behavior.
 - Cocos Editor has also generated many unrelated dirty files under `library/`, `profiles/`, and `temp/`. Do not revert, stage, or interpret those as gameplay source changes.
@@ -332,6 +336,13 @@ Implementation caution:
 
 Currently active performance-oriented systems:
 
+Trace-review rule confirmed by the user on 2026-06-26:
+
+- Every Chrome Performance trace review must inspect the main thread, RVO worker, and target worker separately.
+- For each worker, report CPU activity, message cadence, heap baseline/peak/end, GC cadence and pauses, and whether fallback activated.
+- Do not infer mobile-browser safety from V8 desktop GC alone.
+- When worker or fallback logic changes, verify behavioral equivalence as well as performance.
+
 - RVO worker via `RVOWorkerSimulator`.
 - RVO step throttled by `GameManager.updateInterval`.
 - Spatial grid rebuild via `spatialGridUpdateInterval`.
@@ -344,7 +355,11 @@ Currently active performance-oriented systems:
   - results are applied later in `worker.onmessage`.
 - RVO uses a `pending` guard. If the previous worker step is unfinished, the next requested RVO step is skipped rather than blocking the main thread.
 - Target queries are batched in a Promise microtask, posted together, and delivered later through stored callbacks/query tokens.
-- RVO only selects the main-thread simulator when Worker support is unavailable during simulator creation. A runtime RVO worker error currently logs and clears `pending`; it does not automatically replace itself with `RVOSimulator`.
+- RVO now has a runtime main-thread fallback:
+  - failure to become ready within 2 seconds activates `RVOSimulator`;
+  - a pending step that receives no result within 2 seconds activates fallback;
+  - `postMessage` failure and `worker.onerror` activate fallback;
+  - fallback reuses the current agent and obstacle arrays instead of respawning units.
 - Unit target/attack scans are throttled:
   - `attackCheckIntervalFrames`
   - `targetSearchIntervalFrames`
@@ -358,7 +373,7 @@ Currently active performance-oriented systems:
 - Dynamic lane voting is wave-level, throttled by cached target-search interval, and frame-staggered.
 - Minimap uses pooling, interval updates, sampling, and grid-based icon separation.
 
-Latest performance trace:
+Earlier quantified performance baseline:
 
 - File: `C:/Users/CPU/Downloads/Trace-20260625T135614.json.gz`
 - Duration: about `56.6 s`, DevTools iPhone XR emulation.
@@ -384,6 +399,15 @@ Latest performance trace:
   - verify that the post-GC floor plateaus during a longer run with stable/decreasing unit count.
 - Target Worker is now mostly idle. Do not remove it yet; long-range self-search and hero-pressure search still use it.
 - Do not move dynamic lane voting to a worker based on current evidence.
+
+Newer trace supplied on 2026-06-26:
+
+- `C:/Users/tranl/Downloads/Trace-20260626T010441.json.gz`
+- It was collected for the worker-memory/fallback review described in the
+  June 26 section below.
+- Do not use the June 25 numbers above as the final post-worker-change result.
+- Future comparisons must include main thread, RVO worker, target worker, GC
+  floors, message cadence, and fallback activation.
 
 Avoid reintroducing:
 
@@ -553,10 +577,437 @@ If VAT is revisited later:
 - Consider precision limits from 8-bit PNG; close clothing/skin overlap can happen.
 - Compare against the real animated GPU instancing path, not static mesh.
 
+## Gameplay And Worker Work On 2026-06-26
+
+This section records the non-UI work completed on the same day as the
+`PlayerArmyController` work. Do not assume the June 26 session only changed
+the bottom UI.
+
+Latest supplied trace for this work:
+
+```text
+C:/Users/tranl/Downloads/Trace-20260626T010441.json.gz
+```
+
+The user explicitly requires future trace reviews to inspect both workers as
+first-class runtime systems, not only the main thread.
+
+### Target Spatial Grid And Target Worker
+
+Changed file:
+
+- `assets/scripts/BattleSpatialGrid.ts`
+
+Implemented:
+
+- Main-thread grid cells are now retained and reused.
+  - Only cells used by the previous build are cleared.
+  - `Map.clear()` plus fresh per-cell arrays are no longer required on every
+    grid rebuild.
+- Grid coordinate strings are cached by integer X/Z cell coordinate.
+  - The same optimization exists inside the target-worker source.
+  - This reduces repeated string construction such as `"x_z"` during grid
+    builds and queries.
+- Target-worker requests now have a 2-second response timeout.
+- Worker failure handling is centralized.
+- The following failures permanently disable the target worker for the
+  current `BattleSpatialGrid` instance:
+  - synchronous `postMessage` failure;
+  - `worker.onerror`;
+  - worker response timeout.
+- On failure:
+  - the worker is terminated;
+  - both already-posted active requests and not-yet-posted pending requests
+    are completed synchronously through `findNearestEnemy()` on the
+    main-thread Spatial Grid;
+  - request object pooling, callback tokens, requester `lifeId`, and target
+    validity checks remain active.
+- Timeout state is cleaned during `destroy()`.
+- Grid maps, cached key rows, active-cell lists, unit lookup maps, request
+  state, and typed-array references are explicitly released during
+  `destroy()`.
+
+Important behavior:
+
+- Target-worker failure must not leave a unit's async target state permanently
+  pending.
+- Fallback produces a target/no-target callback for every valid outstanding
+  request.
+- After the target worker is marked failed, later target searches use the
+  existing main-thread path; the worker is not repeatedly recreated.
+
+### Unit Target Validation
+
+Changed file:
+
+- `assets/scripts/Unit.ts`
+
+Implemented:
+
+- `isValidEnemy()` now explicitly rejects a unit whose `team` equals the
+  requester team.
+- When a valid Spatial Grid exists, `findNearestEnemy()` returns the grid
+  result directly, including `null`.
+- It no longer performs an O(enemy-team-size) fallback scan merely because
+  the grid returned no target.
+- The full-team fallback remains available only when the Spatial Grid itself
+  is unavailable.
+
+Reason:
+
+- A legitimate `null` grid result means no enemy is in range; it is not a
+  signal that the grid failed.
+- Falling through on every no-target result defeats the purpose of the grid
+  and is especially costly when many units search during sparse/endgame
+  situations.
+
+### RVO Main-Thread Simulator Optimization
+
+Changed file:
+
+- `assets/scripts/rvo/RVO.ts`
+
+Implemented:
+
+- Added the same runtime movement fields used by worker agents:
+  - team and forward state;
+  - forward direction;
+  - ally-overtake settings and seed.
+- Added cached grid coordinate strings.
+- Grid cell arrays are reused through an active-cell list instead of clearing
+  and rebuilding all cell storage every RVO grid build.
+- Neighbor collection reuses one scratch array.
+- Neighbor sorting uses one stable reusable comparator instead of allocating
+  per-neighbor `{ agent, distSq }` records and temporary output arrays.
+- `for...of` loops in hot RVO paths were replaced with indexed loops.
+- Main-thread fallback now includes ally-overtake behavior.
+- Hard separation now applies:
+  - half overlap to each agent when both can move;
+  - full overlap correction to the movable agent when the other is locked.
+- Added `destroy()` cleanup for agents, obstacles, cells, key caches, and
+  scratch state.
+
+Do not remove these fields as “worker-only” fields. They are required so a
+live `RVOWorkerAgent[]` can be handed to `RVOSimulator` without recreating the
+agents when runtime fallback activates.
+
+### RVO Worker Runtime Fallback
+
+Changed file:
+
+- `assets/scripts/rvo/RVOWorkerSimulator.ts`
+
+Implemented:
+
+- Added a complete runtime fallback to `RVOSimulator`.
+- Fallback activates when:
+  - the worker does not send `ready` within 2 seconds;
+  - a submitted step remains pending for 2 seconds;
+  - posting a step throws;
+  - `worker.onerror` fires.
+- On fallback activation:
+  - the failed worker is terminated;
+  - ready/pending timestamps are cleared;
+  - current agents and obstacles are shared with the main-thread simulator;
+  - battlefield bounds and RVO tuning are copied;
+  - the current frame can continue by stepping the fallback immediately.
+- The wrapper continues synchronizing these tuning properties before each
+  fallback step:
+  - `cellSize`;
+  - `timeStep`;
+  - minimum/maximum step delta;
+  - `obstacleSolveIterations`.
+- `destroy()` now destroys the fallback and releases agents, obstacles,
+  maps, typed arrays, and worker state.
+
+### Worker And Fallback RVO Parity
+
+The RVO worker source was updated together with `RVOSimulator` so movement
+does not silently change when fallback activates.
+
+Synchronized behavior now includes:
+
+- agent-agent velocity avoidance;
+- circle and rectangle obstacle velocity avoidance;
+- physical obstacle push-out after movement;
+- configurable obstacle solve iteration count;
+- ally overtaking;
+- battlefield bounds;
+- hard separation behavior for movable versus locked agents;
+- maximum-speed clamping.
+
+Worker-side allocation reductions:
+
+- grid cells are reused through an active-cell list;
+- grid coordinate keys are cached;
+- the neighbor comparator is reused;
+- the existing neighbor scratch buffer and agent cache remain reused.
+
+This parity is a project rule:
+
+- Any future RVO movement change must be applied to both
+  `RVOWorkerSimulator.workerSource()` and `RVOSimulator`.
+- Test both normal worker execution and forced fallback after movement
+  changes.
+- A fallback that merely avoids a crash but produces different movement is
+  not considered correct.
+
+### Memory Interpretation And Remaining Checks
+
+- Reused cell arrays and cached keys intentionally retain their peak capacity.
+  This trades repeated allocation/GC for bounded resident memory.
+- Worker `agentCache` and typed-array capacities may also retain the highest
+  unit count reached.
+- A sawtooth heap is not itself a leak if the post-GC floor stabilizes after
+  unit count and battlefield occupancy stop growing.
+- Cached grid keys can grow with newly visited cell coordinates. Battlefield
+  bounds should keep this finite in the current game.
+- Still perform a longer real-mobile/browser run with stable or declining
+  unit count and verify:
+  - main-thread post-GC floor;
+  - RVO-worker post-GC floor;
+  - target-worker post-GC floor;
+  - no unexpected fallback activation;
+  - worker and fallback movement remain visually equivalent.
+
+### Performance Skill Update
+
+Changed file:
+
+- `cocos-performance-optimize-skills/SKILL.md`
+
+Added a permanent trace-review rule:
+
+- identify and inspect every active worker separately;
+- report worker CPU and message cadence;
+- report heap min/max/end and post-GC trend;
+- report Minor/Major GC count and pause cost;
+- report timeout/error/fallback activation;
+- compare worker and fallback behavior whenever either implementation changes.
+
+### Verification Status
+
+- TypeScript passes with the Cocos-bundled compiler using:
+
+```text
+tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
+```
+
+- The normal compiler invocation still encounters existing Cocos 3.8.8
+  declaration issues and the existing `SpectorDebugger` module-setting issue.
+- Do not claim full runtime parity from static inspection alone.
+- Gameplay testing should include ordinary dense combat, obstacles, locked
+  combatants, ally overtaking, worker startup failure, runtime worker failure,
+  and target-worker timeout recovery.
+
+## Player Bottom UI / Manual Army Control
+
+Work started on 2026-06-26 to replace `ArmyBrain` for team A with
+player-controlled spawning through the bottom UI.
+
+### Intended UI Structure
+
+The current `ui-bottom` hierarchy in `assets/Test.scene` is intended as a
+persistent battle control panel:
+
+- `lanes-picker`
+  - contains `left-picker`, `mid-picker`, and `right-picker`;
+  - each picker contains a child node named `selected`;
+  - exactly one `selected` node should be active at a time.
+- `unit-icon-container`
+  - contains one icon per spawnable unit type;
+  - tapping an icon should immediately spawn one wave of that type in the
+    currently selected lane.
+- `skill-icon-container`
+  - exists visually but is explicitly out of scope for the current work.
+- `true-mini-map`
+  - is still part of the bottom UI hierarchy but is currently inactive.
+
+The default player faction is team A (`team = 0`). Team B remains controlled
+by its existing AI unless changed separately.
+
+### Component Added
+
+Files:
+
+- `assets/scripts/PlayerArmyController.ts`
+- `assets/scripts/PlayerArmyController.ts.meta`
+
+`PlayerArmyController` is deliberately a thin UI-to-gameplay adapter. It does
+not reimplement spawning, CP checks, formation creation, pooling, or wave
+behavior.
+
+Inspector properties:
+
+- `gameManager`
+  - direct reference to the scene `GameManager`;
+  - if left empty at runtime, the component falls back to
+    `GameManager.instance`.
+- `team`
+  - defaults to `0`;
+  - current intended use is team A.
+- `defaultLane`
+  - enum: `Left`, `Mid`, or `Right`;
+  - defaults to `Mid`.
+- `leftSelected`
+- `midSelected`
+- `rightSelected`
+  - these must reference the three child nodes named `selected`, not the
+    picker root nodes.
+
+Internal lane mapping:
+
+- `Left = 0`
+- `Mid = 1`
+- `Right = 2`
+
+This assumes the current three-lane battlefield setup.
+
+### Lane Selection Behavior
+
+Public Inspector callback:
+
+```text
+selectLane(event, laneData)
+```
+
+Accepted `CustomEventData` values:
+
+- `left` or `0`
+- `mid`, `middle`, or `1`
+- `right` or `2`
+
+When a lane is selected:
+
+- the component stores that lane in `selectedLaneId`;
+- the corresponding `selected` node is activated;
+- the other two `selected` nodes are deactivated.
+
+`onLoad()` applies `defaultLane`, so the visual selection and stored lane are
+synchronized when the component starts.
+
+Recommended lane Button setup:
+
+| Picker | Handler | CustomEventData |
+| --- | --- | --- |
+| `left-picker` | `selectLane` | `left` |
+| `mid-picker` | `selectLane` | `mid` |
+| `right-picker` | `selectLane` | `right` |
+
+For every Click Event:
+
+- Target must be the node carrying `PlayerArmyController`.
+- Component must be `PlayerArmyController`.
+
+### Unit Icon Spawn Behavior
+
+Public Inspector callback:
+
+```text
+spawnUnit(event, unitName)
+```
+
+Each unit icon needs a `Button` and a Click Event:
+
+- Target: node carrying `PlayerArmyController`.
+- Component: `PlayerArmyController`.
+- Handler: `spawnUnit`.
+- `CustomEventData`: exact `UnitPrefabEntry.name` from
+  `BattleUnitDatabase.teamAUnits`.
+
+Example:
+
+```text
+BattleUnitDatabase entry name: LightSword
+Button CustomEventData:         LightSword
+```
+
+Important:
+
+- Matching is case-sensitive because `BattleUnitDatabase.getEntry()` uses
+  exact string equality.
+- The icon node name is not read and has no effect on spawning.
+- Renaming an icon node to `LightSword` is not sufficient; the Button's
+  `CustomEventData` must contain `LightSword`.
+- Tapping a unit icon is an immediate spawn command. There is no persistent
+  selected-unit state and no unit-icon `selected` visual behavior yet.
+- The current call is:
+
+```text
+GameManager.spawnWaveByName(team, unitName, selectedLaneId)
+```
+
+- `aggressiveForward` is not passed, so it uses the existing API default
+  `false`.
+- `GameManager` remains responsible for:
+  - finding the database entry;
+  - checking and spending CP;
+  - creating the wave and formation;
+  - using the existing pool/spawner;
+  - rebuilding the Spatial Grid.
+- If the name does not exist, CP is insufficient, or the entry cannot spawn,
+  no wave is created. The current UI does not yet show a failure/disabled
+  state.
+
+### Scene Setup Still Required
+
+The component file has been implemented, but this handoff does not claim that
+the scene wiring is complete.
+
+Required Inspector work:
+
+1. Add `PlayerArmyController` to `ui-bottom` or another persistent UI node.
+2. Assign `GameManager`.
+3. Assign the three lane `selected` child nodes.
+4. Add/configure Buttons and Click Events for all three lane pickers.
+5. Add/configure Buttons and Click Events for each unit icon.
+6. Disable `ArmyBrainA` when manual control is enabled.
+
+At the time of this handoff:
+
+- `ArmyBrainA` is still serialized as active and enabled in
+  `assets/Test.scene`.
+- If it remains enabled, team A can receive both player spawn commands and AI
+  spawn commands.
+- Do not remove or broadly rewrite `ArmyBrain`; team B still needs it and the
+  user may want to switch control modes later.
+- No automatic ArmyBrain enable/disable logic was added.
+- No changes were made to `GameManager`, `BattleUnitDatabase`, wave logic,
+  workers, Spatial Grid, CP, or pooling for this feature.
+- The skill UI has not been implemented.
+
+### Verification
+
+- The new component passes the project TypeScript check when using:
+
+```text
+tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
+```
+
+- The plain project TypeScript command currently reports pre-existing Cocos
+  3.8.8 engine declaration issues and the existing `SpectorDebugger` dynamic
+  import/module configuration issue.
+- Runtime Button wiring and actual spawning still require testing in the Cocos
+  scene after the Inspector setup above.
+
 ## Current Next Best Direction
 
 For the next session, unless the user changes direction:
 
+- Complete and test the `PlayerArmyController` Inspector wiring before adding
+  more bottom-UI behavior.
+- Confirm that `ArmyBrainA` is disabled during manual-control tests.
+- Test lane highlight exclusivity, exact database-name matching, insufficient
+  CP behavior, and repeated icon taps.
+- Keep skills out of scope until the user explicitly resumes that part.
+- Run a longer post-change trace and inspect main, RVO worker, and target
+  worker heaps separately.
+- Force RVO worker startup/runtime failure at least once and compare fallback
+  movement against normal worker movement.
+- Force target-worker failure/timeout and verify every pending unit query
+  completes through the main-thread grid instead of remaining pending.
+- Keep worker and fallback RVO behavior synchronized in every future movement
+  change.
 - Verify per-unit-type attack intervals in the BattleUnitDatabase, especially ranged units that previously attacked at the shared `0.4-0.45 s` cadence.
 - Continue visual testing of borrow-first target sharing, ranged retaliation, target despawn recovery, and whole-wave return to forward.
 - Prefer gameplay verification over further target-worker optimization: current target-worker traffic is already negligible.

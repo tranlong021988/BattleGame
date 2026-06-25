@@ -13,6 +13,19 @@ export class RVOAgent {
 
     locked = false;
 
+    team = -1;
+    onForward = 0;
+
+    forwardX = 0;
+    forwardZ = 1;
+
+    enableAllyOvertake = 0;
+    overtakeLookAhead = 2.2;
+    overtakeSideRange = 1.2;
+    overtakeSideStrength = 0.75;
+    overtakeSpeedDiff = 0.15;
+    overtakeSeed = 1;
+
     gridX = 0;
     gridZ = 0;
 
@@ -41,6 +54,27 @@ export class RVOSimulator {
     rectObs: RectObstacle[] = [];
 
     grid: Map<string, RVOAgent[]> = new Map();
+    private gridKeyRows: Map<number, Map<number, string>> =
+        new Map();
+    private activeGridCells: RVOAgent[][] = [];
+    private neighborScratch: RVOAgent[] = [];
+    private currentNeighborAgent: RVOAgent | null = null;
+    private readonly compareNeighbors = (
+        a: RVOAgent,
+        b: RVOAgent
+    ) => {
+        const current = this.currentNeighborAgent;
+
+        if (!current) return 0;
+
+        const dxA = a.pos.x - current.pos.x;
+        const dzA = a.pos.z - current.pos.z;
+        const dxB = b.pos.x - current.pos.x;
+        const dzB = b.pos.z - current.pos.z;
+
+        return dxA * dxA + dzA * dzA -
+            (dxB * dxB + dzB * dzB);
+    };
 
     cellSize = 2.2;
     timeStep = 1 / 60;
@@ -64,6 +98,17 @@ export class RVOSimulator {
         this.maxX = maxX;
         this.minZ = minZ;
         this.maxZ = maxZ;
+    }
+
+    destroy() {
+        this.agents.length = 0;
+        this.circleObs.length = 0;
+        this.rectObs.length = 0;
+        this.activeGridCells.length = 0;
+        this.neighborScratch.length = 0;
+        this.currentNeighborAgent = null;
+        this.grid.clear();
+        this.gridKeyRows.clear();
     }
 
     addAgent(x: number, z: number) {
@@ -121,37 +166,74 @@ export class RVOSimulator {
     }
 
     private buildGrid() {
-        this.grid.clear();
+        for (let i = 0; i < this.activeGridCells.length; i++) {
+            this.activeGridCells[i].length = 0;
+        }
 
-        for (let a of this.agents) {
+        this.activeGridCells.length = 0;
+
+        for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
             const gx = Math.floor(a.pos.x / this.cellSize);
             const gz = Math.floor(a.pos.z / this.cellSize);
 
             a.gridX = gx;
             a.gridZ = gz;
 
-            const key = gx + "_" + gz;
+            const key = this.getGridKey(gx, gz);
 
-            if (!this.grid.has(key)) {
-                this.grid.set(key, []);
+            let cell = this.grid.get(key);
+
+            if (!cell) {
+                cell = [];
+                this.grid.set(key, cell);
             }
 
-            this.grid.get(key)!.push(a);
+            if (cell.length <= 0) {
+                this.activeGridCells.push(cell);
+            }
+
+            cell.push(a);
         }
     }
 
+    private getGridKey(gx: number, gz: number) {
+        let row = this.gridKeyRows.get(gx);
+
+        if (!row) {
+            row = new Map<number, string>();
+            this.gridKeyRows.set(gx, row);
+        }
+
+        let key = row.get(gz);
+
+        if (!key) {
+            key = gx + "_" + gz;
+            row.set(gz, key);
+        }
+
+        return key;
+    }
+
     getNeighbors(a: RVOAgent) {
-        const result: { agent: RVOAgent; distSq: number }[] = [];
+        const result = this.neighborScratch;
+        result.length = 0;
+
         const maxDistSq = a.neighborDist * a.neighborDist;
 
         for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
-                const key = (a.gridX + x) + "_" + (a.gridZ + z);
+                const key = this.getGridKey(
+                    a.gridX + x,
+                    a.gridZ + z
+                );
                 const cell = this.grid.get(key);
 
                 if (!cell) continue;
 
-                for (let other of cell) {
+                for (let i = 0; i < cell.length; i++) {
+                    const other = cell[i];
+
                     if (other === a) continue;
 
                     const dx = other.pos.x - a.pos.x;
@@ -160,24 +242,106 @@ export class RVOSimulator {
 
                     if (distSq > maxDistSq) continue;
 
-                    result.push({
-                        agent: other,
-                        distSq
-                    });
+                    result.push(other);
                 }
             }
         }
 
-        result.sort((a, b) => a.distSq - b.distSq);
+        this.currentNeighborAgent = a;
+        result.sort(this.compareNeighbors);
+        this.currentNeighborAgent = null;
 
-        const out: RVOAgent[] = [];
-        const count = Math.min(a.maxNeighbors, result.length);
-
-        for (let i = 0; i < count; i++) {
-            out.push(result[i].agent);
+        if (result.length > a.maxNeighbors) {
+            result.length = a.maxNeighbors;
         }
 
-        return out;
+        return result;
+    }
+
+    private applyAllyOvertake(a: RVOAgent) {
+        if (!a.enableAllyOvertake) return;
+        if (a.locked) return;
+        if (a.onForward !== 1) return;
+
+        let best: RVOAgent | null = null;
+        let bestForwardDist = Infinity;
+
+        for (let i = 0; i < this.agents.length; i++) {
+            const b = this.agents[i];
+
+            if (b === a) continue;
+            if (b.locked) continue;
+            if (b.team !== a.team) continue;
+            if (b.onForward !== 1) continue;
+            if (
+                a.maxSpeed <=
+                b.maxSpeed + a.overtakeSpeedDiff
+            ) {
+                continue;
+            }
+
+            const dx = b.pos.x - a.pos.x;
+            const dz = b.pos.z - a.pos.z;
+            const forwardDist =
+                dx * a.forwardX +
+                dz * a.forwardZ;
+
+            if (forwardDist <= 0) continue;
+            if (forwardDist > a.overtakeLookAhead) continue;
+
+            const sideDist =
+                dx * a.forwardZ -
+                dz * a.forwardX;
+
+            if (
+                Math.abs(sideDist) >
+                a.overtakeSideRange
+            ) {
+                continue;
+            }
+
+            if (forwardDist < bestForwardDist) {
+                bestForwardDist = forwardDist;
+                best = b;
+            }
+        }
+
+        if (!best) return;
+
+        const dx = a.pos.x - best.pos.x;
+        const dz = a.pos.z - best.pos.z;
+        let side =
+            dx * a.forwardZ -
+            dz * a.forwardX;
+
+        if (Math.abs(side) > 0.05) {
+            side = side >= 0 ? 1 : -1;
+        } else {
+            side = a.overtakeSeed >= 0 ? 1 : -1;
+        }
+
+        a.vel.x +=
+            a.forwardZ *
+            side *
+            a.maxSpeed *
+            a.overtakeSideStrength;
+        a.vel.z +=
+            -a.forwardX *
+            side *
+            a.maxSpeed *
+            a.overtakeSideStrength;
+
+        const speed = Math.sqrt(
+            a.vel.x * a.vel.x +
+            a.vel.z * a.vel.z
+        );
+
+        if (speed > a.maxSpeed) {
+            a.vel.x =
+                (a.vel.x / speed) * a.maxSpeed;
+            a.vel.z =
+                (a.vel.z / speed) * a.maxSpeed;
+        }
     }
 
     // =========================================================
@@ -285,12 +449,18 @@ export class RVOSimulator {
     }
 
     private pushAgentOutOfObstacles(a: RVOAgent) {
-        for (let ob of this.circleObs) {
-            this.pushAgentOutOfCircle(a, ob);
+        for (let i = 0; i < this.circleObs.length; i++) {
+            this.pushAgentOutOfCircle(
+                a,
+                this.circleObs[i]
+            );
         }
 
-        for (let ob of this.rectObs) {
-            this.pushAgentOutOfRect(a, ob);
+        for (let i = 0; i < this.rectObs.length; i++) {
+            this.pushAgentOutOfRect(
+                a,
+                this.rectObs[i]
+            );
         }
     }
 
@@ -314,7 +484,9 @@ export class RVOSimulator {
         this.buildGrid();
 
         // ===== VELOCITY =====
-        for (let a of this.agents) {
+        for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
+
             if (a.locked) continue;
 
             let vx = a.prefVel.x;
@@ -323,7 +495,8 @@ export class RVOSimulator {
             const neighbors = this.getNeighbors(a);
 
             // ===== agent-agent avoidance =====
-            for (let b of neighbors) {
+            for (let j = 0; j < neighbors.length; j++) {
+                const b = neighbors[j];
                 const dx = a.pos.x - b.pos.x;
                 const dz = a.pos.z - b.pos.z;
 
@@ -353,7 +526,8 @@ export class RVOSimulator {
             }
 
             // ===== circle obstacle velocity avoidance =====
-            for (let ob of this.circleObs) {
+            for (let j = 0; j < this.circleObs.length; j++) {
+                const ob = this.circleObs[j];
                 const dx = a.pos.x - ob.x;
                 const dz = a.pos.z - ob.z;
 
@@ -377,7 +551,8 @@ export class RVOSimulator {
             }
 
             // ===== rect obstacle velocity avoidance =====
-            for (let ob of this.rectObs) {
+            for (let j = 0; j < this.rectObs.length; j++) {
+                const ob = this.rectObs[j];
                 const dx = a.pos.x - ob.x;
                 const dz = a.pos.z - ob.z;
 
@@ -458,6 +633,14 @@ export class RVOSimulator {
                 }
             }
 
+            a.vel.x = vx;
+            a.vel.z = vz;
+
+            this.applyAllyOvertake(a);
+
+            vx = a.vel.x;
+            vz = a.vel.z;
+
             const speed = Math.sqrt(vx * vx + vz * vz);
 
             if (speed > a.maxSpeed) {
@@ -470,7 +653,9 @@ export class RVOSimulator {
         }
 
         // ===== MOVE =====
-        for (let a of this.agents) {
+        for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
+
             if (!a.locked) {
                 a.pos.x += a.vel.x * dt;
                 a.pos.z += a.vel.z * dt;
@@ -487,10 +672,12 @@ export class RVOSimulator {
         this.buildGrid();
 
         // ===== HARD SEPARATION: AGENT-AGENT =====
-        for (let a of this.agents) {
+        for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
             const neighbors = this.getNeighbors(a); 
 
-            for (let b of neighbors) {
+            for (let j = 0; j < neighbors.length; j++) {
+                const b = neighbors[j];
                 const dx = b.pos.x - a.pos.x;
                 const dz = b.pos.z - a.pos.z;
 
@@ -501,17 +688,26 @@ export class RVOSimulator {
 
                 if (distSq < minDist * minDist) {
                     const dist = Math.sqrt(distSq);
-                    const overlap = (minDist - dist) * 0.5;
+                    const overlap = minDist - dist;
 
                     const nx = dx / dist;
                     const nz = dz / dist;
 
-                    if (!a.locked) {
+                    const aMovable = !a.locked;
+                    const bMovable = !b.locked;
+
+                    if (aMovable && bMovable) {
+                        const half = overlap * 0.5;
+
+                        a.pos.x -= nx * half;
+                        a.pos.z -= nz * half;
+
+                        b.pos.x += nx * half;
+                        b.pos.z += nz * half;
+                    } else if (aMovable && !bMovable) {
                         a.pos.x -= nx * overlap;
                         a.pos.z -= nz * overlap;
-                    }
-
-                    if (!b.locked) {
+                    } else if (!aMovable && bMovable) {
                         b.pos.x += nx * overlap;
                         b.pos.z += nz * overlap;
                     }
@@ -522,7 +718,9 @@ export class RVOSimulator {
         // ===== HARD SEPARATION: OBSTACLE AGAIN =====
         // Sau agent-agent separation, agent có thể bị đẩy lấn vào obstacle,
         // nên cần solve obstacle thêm lần nữa.
-        for (let a of this.agents) {
+        for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
+
             if (a.locked) continue;
 
             for (let i = 0; i < this.obstacleSolveIterations; i++) {

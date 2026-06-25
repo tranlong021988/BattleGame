@@ -1,3 +1,5 @@
+import { RVOSimulator } from './RVO';
+
 export class RVOWorkerAgent {
 
     id = 0;
@@ -27,6 +29,9 @@ export class RVOWorkerAgent {
     overtakeSpeedDiff = 0.15;
     overtakeSeed = 1;
 
+    gridX = 0;
+    gridZ = 0;
+
     constructor(id: number, x: number, z: number) {
         this.id = id;
         this.pos.x = x;
@@ -47,6 +52,8 @@ type RectObstacle = {
 
 export class RVOWorkerSimulator {
 
+    private static readonly workerResponseTimeoutMs = 2000;
+
     agents: RVOWorkerAgent[] = [];
 
     circleObs: CircleObstacle[] = [];
@@ -56,6 +63,7 @@ export class RVOWorkerSimulator {
     timeStep = 1 / 60;
     minStepDeltaTime = 1 / 120;
     maxStepDeltaTime = 1 / 20;
+    obstacleSolveIterations = 3;
 
     useBounds = false;
     minX = -99999;
@@ -65,7 +73,10 @@ export class RVOWorkerSimulator {
 
     private worker: Worker | null = null;
     private workerReady = false;
+    private workerCreatedAtMs = 0;
     private pending = false;
+    private pendingSinceMs = 0;
+    private fallbackSimulator: RVOSimulator | null = null;
 
     private nextAgentId = 1;
     private agentMap: Map<number, RVOWorkerAgent> = new Map();
@@ -90,16 +101,25 @@ export class RVOWorkerSimulator {
     }
 
     destroy() {
+        if (this.fallbackSimulator) {
+            this.fallbackSimulator.destroy();
+            this.fallbackSimulator = null;
+        }
+
         if (this.worker) {
             this.worker.terminate();
             this.worker = null;
         }
 
         this.workerReady = false;
+        this.workerCreatedAtMs = 0;
         this.pending = false;
+        this.pendingSinceMs = 0;
 
         this.agentMap.clear();
         this.agents.length = 0;
+        this.circleObs.length = 0;
+        this.rectObs.length = 0;
 
         this.idsBuffer = null;
         this.floatsBuffer = null;
@@ -113,6 +133,15 @@ export class RVOWorkerSimulator {
         this.maxX = maxX;
         this.minZ = minZ;
         this.maxZ = maxZ;
+
+        if (this.fallbackSimulator) {
+            this.fallbackSimulator.setBattlefield(
+                minX,
+                maxX,
+                minZ,
+                maxZ
+            );
+        }
     }
 
     addAgent(x: number, z: number) {
@@ -173,8 +202,53 @@ export class RVOWorkerSimulator {
     }
 
     step(deltaTime?: number) {
-        if (!this.worker || !this.workerReady) return false;
-        if (this.pending) return false;
+        if (this.fallbackSimulator) {
+            this.fallbackSimulator.cellSize =
+                this.cellSize;
+            this.fallbackSimulator.timeStep =
+                this.timeStep;
+            this.fallbackSimulator.minStepDeltaTime =
+                this.minStepDeltaTime;
+            this.fallbackSimulator.maxStepDeltaTime =
+                this.maxStepDeltaTime;
+            this.fallbackSimulator.obstacleSolveIterations =
+                this.obstacleSolveIterations;
+
+            return this.fallbackSimulator.step(deltaTime);
+        }
+
+        if (!this.worker) return false;
+
+        if (!this.workerReady) {
+            if (
+                Date.now() - this.workerCreatedAtMs >=
+                RVOWorkerSimulator.workerResponseTimeoutMs
+            ) {
+                this.activateMainThreadFallback();
+
+                return this.fallbackSimulator
+                    ? this.fallbackSimulator.step(deltaTime)
+                    : false;
+            }
+
+            return false;
+        }
+
+        if (this.pending) {
+            if (
+                Date.now() - this.pendingSinceMs >=
+                RVOWorkerSimulator.workerResponseTimeoutMs
+            ) {
+                this.activateMainThreadFallback();
+
+                return this.fallbackSimulator
+                    ? this.fallbackSimulator.step(deltaTime)
+                    : false;
+            }
+
+            return false;
+        }
+
         if (this.agents.length <= 0) return false;
 
         const safeDeltaTime = this.getSafeDeltaTime(deltaTime);
@@ -227,29 +301,42 @@ export class RVOWorkerSimulator {
         }
 
         this.pending = true;
+        this.pendingSinceMs = Date.now();
         this.sequence++;
 
-        this.worker.postMessage({
-            type: 'step',
-            sequence: this.sequence,
-            ids,
-            floats,
-            ints,
-            count,
+        try {
+            this.worker.postMessage({
+                type: 'step',
+                sequence: this.sequence,
+                ids,
+                floats,
+                ints,
+                count,
 
-            cellSize: this.cellSize,
-            timeStep: safeDeltaTime,
+                cellSize: this.cellSize,
+                timeStep: safeDeltaTime,
+                obstacleSolveIterations:
+                    this.obstacleSolveIterations,
 
-            useBounds: this.useBounds ? 1 : 0,
-            minX: this.minX,
-            maxX: this.maxX,
-            minZ: this.minZ,
-            maxZ: this.maxZ
-        }, [
-            ids.buffer,
-            floats.buffer,
-            ints.buffer
-        ]);
+                useBounds: this.useBounds ? 1 : 0,
+                minX: this.minX,
+                maxX: this.maxX,
+                minZ: this.minZ,
+                maxZ: this.maxZ
+            }, [
+                ids.buffer,
+                floats.buffer,
+                ints.buffer
+            ]);
+        } catch (err) {
+            this.pending = false;
+            this.pendingSinceMs = 0;
+            this.activateMainThreadFallback();
+
+            return this.fallbackSimulator
+                ? this.fallbackSimulator.step(deltaTime)
+                : false;
+        }
 
         // Sau transfer, buffer bị detach.
         // Sẽ được gán lại khi Worker trả kết quả.
@@ -333,6 +420,7 @@ export class RVOWorkerSimulator {
             url,
             'RVOWorkerSimulator'
         );
+        this.workerCreatedAtMs = Date.now();
 
         URL.revokeObjectURL(url);
 
@@ -343,6 +431,7 @@ export class RVOWorkerSimulator {
 
             if (data.type === 'ready') {
                 this.workerReady = true;
+                this.workerCreatedAtMs = 0;
 
                 if (this.obstacleDirty) {
                     this.sendObstaclesToWorker();
@@ -353,6 +442,7 @@ export class RVOWorkerSimulator {
 
             if (data.type === 'result') {
                 this.pending = false;
+                this.pendingSinceMs = 0;
 
                 this.idsBuffer = data.ids;
                 this.floatsBuffer = data.floats;
@@ -367,9 +457,51 @@ export class RVOWorkerSimulator {
         };
 
         this.worker.onerror = (err) => {
-            console.error('[RVOWorkerSimulator] Worker error:', err);
-            this.pending = false;
+            console.warn(
+                '[RVOWorkerSimulator] Worker failed; using main-thread fallback.',
+                err
+            );
+            this.activateMainThreadFallback();
         };
+    }
+
+    private activateMainThreadFallback() {
+        if (this.fallbackSimulator) return;
+
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+        }
+
+        this.workerReady = false;
+        this.workerCreatedAtMs = 0;
+        this.pending = false;
+        this.pendingSinceMs = 0;
+
+        const fallback = new RVOSimulator();
+
+        fallback.agents = this.agents;
+        fallback.circleObs = this.circleObs;
+        fallback.rectObs = this.rectObs;
+        fallback.cellSize = this.cellSize;
+        fallback.timeStep = this.timeStep;
+        fallback.minStepDeltaTime =
+            this.minStepDeltaTime;
+        fallback.maxStepDeltaTime =
+            this.maxStepDeltaTime;
+        fallback.obstacleSolveIterations =
+            this.obstacleSolveIterations;
+
+        if (this.useBounds) {
+            fallback.setBattlefield(
+                this.minX,
+                this.maxX,
+                this.minZ,
+                this.maxZ
+            );
+        }
+
+        this.fallbackSimulator = fallback;
     }
 
     private createNamedWorker(url: string, name: string) {
@@ -403,6 +535,8 @@ export class RVOWorkerSimulator {
     private static workerSource() {
         return `
 const grid = new Map();
+const activeGridCells = [];
+const gridKeyRows = new Map();
 
 let circleData = new Float32Array(0);
 let rectData = new Float32Array(0);
@@ -414,7 +548,21 @@ function clamp(v, min, max) {
 }
 
 function key(gx, gz) {
-    return gx + "_" + gz;
+    let row = gridKeyRows.get(gx);
+
+    if (!row) {
+        row = new Map();
+        gridKeyRows.set(gx, row);
+    }
+
+    let result = row.get(gz);
+
+    if (!result) {
+        result = gx + "_" + gz;
+        row.set(gz, result);
+    }
+
+    return result;
 }
 
 function getAgentFromCache(index) {
@@ -511,7 +659,11 @@ function buildAgents(ids, floats, ints, count) {
 }
 
 function buildGrid(agents, count, cellSize) {
-    grid.clear();
+    for (let i = 0; i < activeGridCells.length; i++) {
+        activeGridCells[i].length = 0;
+    }
+
+    activeGridCells.length = 0;
 
     for (let i = 0; i < count; i++) {
         const a = agents[i];
@@ -525,6 +677,10 @@ function buildGrid(agents, count, cellSize) {
         if (!cell) {
             cell = [];
             grid.set(k, cell);
+        }
+
+        if (cell.length <= 0) {
+            activeGridCells.push(cell);
         }
 
         cell.push(a);
@@ -558,17 +714,7 @@ function collectNeighbors(a, result, cellSize) {
         }
     }
 
-    result.sort((a, b) => {
-        const dxA = a.x - currentNeighborAgent.x;
-        const dzA = a.z - currentNeighborAgent.z;
-        const dA = dxA * dxA + dzA * dzA;
-
-        const dxB = b.x - currentNeighborAgent.x;
-        const dzB = b.z - currentNeighborAgent.z;
-        const dB = dxB * dxB + dzB * dzB;
-
-        return dA - dB;
-    });
+    result.sort(compareNeighbors);
 
     if (result.length > a.maxNeighbors) {
         result.length = a.maxNeighbors;
@@ -577,6 +723,16 @@ function collectNeighbors(a, result, cellSize) {
 
 let currentNeighborAgent = null;
 const neighborScratch = [];
+
+function compareNeighbors(a, b) {
+    const dxA = a.x - currentNeighborAgent.x;
+    const dzA = a.z - currentNeighborAgent.z;
+    const dxB = b.x - currentNeighborAgent.x;
+    const dzB = b.z - currentNeighborAgent.z;
+
+    return dxA * dxA + dzA * dzA -
+        (dxB * dxB + dzB * dzB);
+}
 
 function pushAgentOutOfCircle(a, k) {
     const ox = circleData[k + 0];
@@ -687,6 +843,106 @@ function pushAgentOutOfObstacles(a) {
     for (let i = 0; i < rectData.length; i += 6) {
         pushAgentOutOfRect(a, i);
     }
+}
+
+function applyObstacleVelocityAvoidance(a) {
+    let vx = a.vx;
+    let vz = a.vz;
+
+    for (let i = 0; i < circleData.length; i += 3) {
+        const dx = a.x - circleData[i + 0];
+        const dz = a.z - circleData[i + 1];
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const minDist = a.radius + circleData[i + 2];
+
+        if (dist >= minDist || dist <= 0.0001) continue;
+
+        const nx = dx / dist;
+        const nz = dz / dist;
+
+        vx += nx * (minDist - dist) * 2;
+        vz += nz * (minDist - dist) * 2;
+
+        const dot = vx * nx + vz * nz;
+
+        if (dot < 0) {
+            vx -= nx * dot;
+            vz -= nz * dot;
+        }
+    }
+
+    for (let i = 0; i < rectData.length; i += 6) {
+        const dx = a.x - rectData[i + 0];
+        const dz = a.z - rectData[i + 1];
+        const hx = rectData[i + 2];
+        const hz = rectData[i + 3];
+        const cos = rectData[i + 4];
+        const sin = rectData[i + 5];
+        const lx = dx * cos + dz * sin;
+        const lz = -dx * sin + dz * cos;
+        const px = clamp(lx, -hx, hx);
+        const pz = clamp(lz, -hz, hz);
+        const ox = lx - px;
+        const oz = lz - pz;
+        const distSq = ox * ox + oz * oz;
+
+        let nxL = 0;
+        let nzL = 0;
+        let push = 0;
+
+        if (distSq > 1e-8) {
+            if (distSq >= a.radius * a.radius) continue;
+
+            const dist = Math.sqrt(distSq);
+            nxL = ox / dist;
+            nzL = oz / dist;
+            push = a.radius - dist;
+        } else {
+            const dLeft = lx + hx;
+            const dRight = hx - lx;
+            const dBottom = lz + hz;
+            const dTop = hz - lz;
+            let minD = dLeft;
+
+            nxL = -1;
+
+            if (dRight < minD) {
+                minD = dRight;
+                nxL = 1;
+                nzL = 0;
+            }
+
+            if (dBottom < minD) {
+                minD = dBottom;
+                nxL = 0;
+                nzL = -1;
+            }
+
+            if (dTop < minD) {
+                minD = dTop;
+                nxL = 0;
+                nzL = 1;
+            }
+
+            push = a.radius + minD;
+        }
+
+        const nx = nxL * cos - nzL * sin;
+        const nz = nxL * sin + nzL * cos;
+
+        vx += nx * push * 2;
+        vz += nz * push * 2;
+
+        const dot = vx * nx + vz * nz;
+
+        if (dot < 0) {
+            vx -= nx * dot;
+            vz -= nz * dot;
+        }
+    }
+
+    a.vx = vx;
+    a.vz = vz;
 }
 
 function applyAllyOvertake(a, agents, count) {
@@ -811,6 +1067,7 @@ function applyVelocityAvoidance(agents, count, data) {
         a.vx = vx;
         a.vz = vz;
 
+        applyObstacleVelocityAvoidance(a);
         applyAllyOvertake(a, agents, count);
 
         const speed = Math.sqrt(a.vx * a.vx + a.vz * a.vz);
@@ -825,6 +1082,11 @@ function applyVelocityAvoidance(agents, count, data) {
 }
 
 function moveAgents(agents, count, data) {
+    const obstacleIterations = Math.max(
+        0,
+        Math.floor(data.obstacleSolveIterations || 0)
+    );
+
     for (let i = 0; i < count; i++) {
         const a = agents[i];
 
@@ -832,7 +1094,7 @@ function moveAgents(agents, count, data) {
             a.x += a.vx * data.timeStep;
             a.z += a.vz * data.timeStep;
 
-            for (let k = 0; k < 3; k++) {
+            for (let k = 0; k < obstacleIterations; k++) {
                 pushAgentOutOfObstacles(a);
             }
         }
@@ -896,12 +1158,17 @@ function hardSeparateAgents(agents, count, data) {
 }
 
 function solveObstaclesAgain(agents, count, data) {
+    const obstacleIterations = Math.max(
+        0,
+        Math.floor(data.obstacleSolveIterations || 0)
+    );
+
     for (let i = 0; i < count; i++) {
         const a = agents[i];
 
         if (a.locked) continue;
 
-        for (let k = 0; k < 3; k++) {
+        for (let k = 0; k < obstacleIterations; k++) {
             pushAgentOutOfObstacles(a);
         }
 

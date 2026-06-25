@@ -77,6 +77,13 @@ When reading a Chrome trace:
 - Compare `FireAnimationFrame` avg, p95, p99, max, frames over 8.33 ms, and frames over 16.67 ms.
 - Separate game code from engine/render code. If WebGL buffer/UBO/render functions dominate, CPU AI may not be the bottleneck.
 - If worker cost appears high, verify whether it is on the main thread or worker thread.
+- Always audit every active worker separately, even when main-thread frame time is healthy:
+  - identify each worker by its sampled functions;
+  - report CPU busy time and message cadence;
+  - report heap min/max/end and post-GC baseline trend;
+  - report Minor/Major GC count, total time, and maximum pause;
+  - verify whether timeout, error, or main-thread fallback paths activated;
+  - compare worker and fallback behavior when either implementation changed.
 
 ## CPU And Simulation
 

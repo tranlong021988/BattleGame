@@ -19,6 +19,7 @@ interface NearestEnemyRequest {
 
 export class BattleSpatialGrid {
 
+    private static readonly workerResponseTimeoutMs = 2000;
     private static readonly noopNearestEnemyCallback:
         NearestEnemyCallback =
             () => {};
@@ -28,6 +29,10 @@ export class BattleSpatialGrid {
 
     private teamAGrid: Map<string, Unit[]> = new Map();
     private teamBGrid: Map<string, Unit[]> = new Map();
+    private gridKeyRows: Map<number, Map<number, string>> =
+        new Map();
+    private teamAActiveCells: Unit[][] = [];
+    private teamBActiveCells: Unit[][] = [];
 
     private tempResult: Unit[] = [];
     private nearestSearchBest: Unit | null = null;
@@ -48,18 +53,33 @@ export class BattleSpatialGrid {
     private activeNearestRequests: Map<number, NearestEnemyRequest> = new Map();
     private nearestRequestPool: NearestEnemyRequest[] = [];
     private flushScheduled = false;
+    private workerResponseTimeout: ReturnType<typeof setTimeout> | null = null;
+    private workerResponseTimeoutSeq = 0;
+    private lastCompletedWorkerSeq = 0;
 
     build(teamA: Unit[], teamB: Unit[]) {
-        this.teamAGrid.clear();
-        this.teamBGrid.clear();
+        this.clearActiveGridCells(this.teamAActiveCells);
+        this.clearActiveGridCells(this.teamBActiveCells);
         this.unitsById.clear();
         this.targetSnapshotLength = 0;
 
-        this.fillGrid(this.teamAGrid, teamA, 0);
-        this.fillGrid(this.teamBGrid, teamB, 1);
+        this.fillGrid(
+            this.teamAGrid,
+            this.teamAActiveCells,
+            teamA,
+            0
+        );
+        this.fillGrid(
+            this.teamBGrid,
+            this.teamBActiveCells,
+            teamB,
+            1
+        );
     }
 
     destroy() {
+        this.clearWorkerResponseTimeout();
+
         if (this.worker) {
             this.worker.terminate();
             this.worker = null;
@@ -72,6 +92,11 @@ export class BattleSpatialGrid {
         this.pendingNearestRequests.length = 0;
         this.recycleActiveNearestRequests();
         this.activeNearestRequests.clear();
+        this.teamAGrid.clear();
+        this.teamBGrid.clear();
+        this.gridKeyRows.clear();
+        this.teamAActiveCells.length = 0;
+        this.teamBActiveCells.length = 0;
         this.unitsById.clear();
         this.targetSnapshot = new Float64Array(0);
         this.targetSnapshotLength = 0;
@@ -80,6 +105,7 @@ export class BattleSpatialGrid {
 
     private fillGrid(
         grid: Map<string, Unit[]>,
+        activeCells: Unit[][],
         units: Unit[],
         team: number
     ) {
@@ -101,6 +127,10 @@ export class BattleSpatialGrid {
             if (!list) {
                 list = [];
                 grid.set(key, list);
+            }
+
+            if (list.length <= 0) {
+                activeCells.push(list);
             }
 
             list.push(unit);
@@ -392,7 +422,21 @@ export class BattleSpatialGrid {
     }
 
     private getKey(x: number, z: number) {
-        return `${x}_${z}`;
+        let row = this.gridKeyRows.get(x);
+
+        if (!row) {
+            row = new Map<number, string>();
+            this.gridKeyRows.set(x, row);
+        }
+
+        let key = row.get(z);
+
+        if (!key) {
+            key = `${x}_${z}`;
+            row.set(z, key);
+        }
+
+        return key;
     }
 
     private canUseWorkerTargetQuery() {
@@ -479,20 +523,30 @@ export class BattleSpatialGrid {
             );
 
         try {
+            const seq = ++this.workerSeq;
+
             this.worker.postMessage({
                 type: 'findNearestBatch',
-                seq: ++this.workerSeq,
+                seq,
                 cellSize: this.cellSize,
                 units: unitData,
                 unitLength,
                 requests: requestData,
                 requestLength: packedLength,
             });
+
+            this.armWorkerResponseTimeout(seq);
         } catch (err) {
-            this.workerFailed = true;
-            this.workerReady = false;
-            this.completeActiveRequestsOnMainThread();
+            this.failWorkerAndCompleteRequests();
         }
+    }
+
+    private clearActiveGridCells(activeCells: Unit[][]) {
+        for (let i = 0; i < activeCells.length; i++) {
+            activeCells[i].length = 0;
+        }
+
+        activeCells.length = 0;
     }
 
     private applyWorkerResults(results: ArrayLike<number>) {
@@ -586,6 +640,104 @@ export class BattleSpatialGrid {
             );
             this.recycleNearestRequest(request);
         }
+    }
+
+    private completePendingRequestsOnMainThread() {
+        const requests = this.pendingNearestRequests;
+
+        this.pendingNearestRequests = [];
+
+        for (let i = 0; i < requests.length; i++) {
+            const request = requests[i];
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
+
+            if (
+                !this.isValidRequestUnit(
+                    request.unit,
+                    request.unitLifeId
+                )
+            ) {
+                callback(
+                    null,
+                    callbackToken
+                );
+                this.recycleNearestRequest(request);
+                continue;
+            }
+
+            callback(
+                this.findNearestEnemy(
+                    request.team,
+                    request.x,
+                    request.z,
+                    request.radius
+                ),
+                callbackToken
+            );
+            this.recycleNearestRequest(request);
+        }
+    }
+
+    private armWorkerResponseTimeout(seq: number) {
+        if (this.workerResponseTimeout !== null) {
+            return;
+        }
+
+        this.workerResponseTimeoutSeq = seq;
+        this.workerResponseTimeout = setTimeout(() => {
+            this.workerResponseTimeout = null;
+
+            if (
+                this.lastCompletedWorkerSeq >=
+                this.workerResponseTimeoutSeq
+            ) {
+                return;
+            }
+
+            this.failWorkerAndCompleteRequests();
+        }, BattleSpatialGrid.workerResponseTimeoutMs);
+    }
+
+    private completeWorkerBatch(seq: number) {
+        this.lastCompletedWorkerSeq = Math.max(
+            this.lastCompletedWorkerSeq,
+            seq
+        );
+
+        if (
+            this.workerResponseTimeout !== null &&
+            seq >= this.workerResponseTimeoutSeq
+        ) {
+            this.clearWorkerResponseTimeout();
+        }
+
+        if (this.activeNearestRequests.size > 0) {
+            this.armWorkerResponseTimeout(seq + 1);
+        }
+    }
+
+    private clearWorkerResponseTimeout() {
+        if (this.workerResponseTimeout !== null) {
+            clearTimeout(this.workerResponseTimeout);
+            this.workerResponseTimeout = null;
+        }
+
+        this.workerResponseTimeoutSeq = 0;
+    }
+
+    private failWorkerAndCompleteRequests() {
+        this.clearWorkerResponseTimeout();
+        this.workerFailed = true;
+        this.workerReady = false;
+
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+        }
+
+        this.completeActiveRequestsOnMainThread();
+        this.completePendingRequestsOnMainThread();
     }
 
     private getNearestRequest(
@@ -790,19 +942,12 @@ export class BattleSpatialGrid {
 
                 if (data.type === 'findNearestBatchResult') {
                     this.applyWorkerResults(data.results || []);
+                    this.completeWorkerBatch(data.seq || 0);
                 }
             };
 
             this.worker.onerror = () => {
-                this.workerFailed = true;
-                this.workerReady = false;
-
-                if (this.worker) {
-                    this.worker.terminate();
-                    this.worker = null;
-                }
-
-                this.completeActiveRequestsOnMainThread();
+                this.failWorkerAndCompleteRequests();
             };
         } catch (err) {
             this.workerFailed = true;
@@ -821,8 +966,24 @@ export class BattleSpatialGrid {
 
     private workerSource() {
         return `
+var gridKeyRows = Object.create(null);
+
 function getKey(x, z) {
-    return x + '_' + z;
+    var row = gridKeyRows[x];
+
+    if (!row) {
+        row = Object.create(null);
+        gridKeyRows[x] = row;
+    }
+
+    var result = row[z];
+
+    if (!result) {
+        result = x + '_' + z;
+        row[z] = result;
+    }
+
+    return result;
 }
 
 var teamAGrid = Object.create(null);

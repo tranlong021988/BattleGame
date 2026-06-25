@@ -895,14 +895,12 @@ export class Unit extends Component {
         const gm = GameManager.instance;
 
         if (gm && gm.spatialGrid) {
-            const result = gm.spatialGrid.findNearestEnemy(
+            return gm.spatialGrid.findNearestEnemy(
                 this.team,
                 this.agent.pos.x,
                 this.agent.pos.z,
                 this.targetSearchRange
             );
-
-            if (result) return result;
         }
 
         return this.findNearestEnemyFallback();
@@ -972,6 +970,7 @@ export class Unit extends Component {
         lifeId: number = -1
     ): boolean {
         if (!e || e === this) return false;
+        if (e.team === this.team) return false;
         if (lifeId >= 0 && e.lifeId !== lifeId) return false;
         if (!e.node.activeInHierarchy) return false;
         if (!e.agent) return false;

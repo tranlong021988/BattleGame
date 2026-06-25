@@ -115,31 +115,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.tempPos = new Vec3();
           this.frameCounter = 0;
           this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
           this.enemyLifeId = -1;
           this.cachedNearestInRangeLifeId = -1;
-          this.cachedNearestEnemyLifeId = -1;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
-          this.nearestInRangeQueryToken = 0;
           this.nearestEnemyQueryToken = 0;
-
-          this.onNearestInRangeQueryResult = (target, token) => {
-            if (token !== this.nearestInRangeQueryToken) {
-              return;
-            }
-
-            this.setCachedNearestInRangeTarget(this.isValidEnemyWithinRange(target, this.attackRange) ? target : null);
-          };
 
           this.onNearestEnemyQueryResult = (target, token) => {
             if (token !== this.nearestEnemyQueryToken) {
               return;
             }
 
-            this.completeTargetSearch(this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null);
+            const validTarget = this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null;
+            this.completeTargetSearch(validTarget);
+
+            if (!this.hasValidEnemyTarget()) {
+              this.setEnemyTarget(validTarget);
+            }
           };
         }
 
@@ -250,7 +244,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         invalidateNearestQueryResults() {
-          this.nearestInRangeQueryToken++;
           this.nearestEnemyQueryToken++;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
@@ -288,20 +281,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
         }
 
-        setCachedNearestEnemyTarget(target) {
-          this.cachedNearestEnemy = target;
-          this.cachedNearestEnemyLifeId = target ? target.lifeId : -1;
-        }
-
         completeTargetSearch(target) {
           this.targetSearchPending = false;
-          this.setCachedNearestEnemyTarget(target);
-          this.targetSearchConfirmedNoTarget = !target;
+          this.targetSearchConfirmedNoTarget = !target && !this.hasValidEnemyTarget();
         }
 
         clearCachedTargets() {
           this.setCachedNearestInRangeTarget(null);
-          this.setCachedNearestEnemyTarget(null);
         }
 
         getValidEnemyTarget() {
@@ -393,10 +379,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (gm) {
             gm.onWaveCombatStarted(this, attacker);
-          }
+          } // A result requested before retaliation must not replace the
+          // attacker when the worker responds later.
 
+
+          this.nearestEnemyQueryToken++;
+          this.targetSearchPending = false;
+          this.targetSearchConfirmedNoTarget = false;
           this.setRetaliationTarget(attacker);
-          this.setCachedNearestEnemyTarget(null);
           this.setCachedNearestInRangeTarget(null);
           return true;
         }
@@ -602,7 +592,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
             this.agent.locked = true;
-            this.setCachedNearestEnemyTarget(null);
             this.setCachedNearestInRangeTarget(null);
             this.lookAtTargetSmooth(nearestInRange, deltaTime);
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -632,10 +621,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent.onForward = 0;
 
           if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(this.getNearestEnemyThrottled());
+            this.setEnemyTarget(this.getSharedWaveTarget());
 
             if (!this.hasValidEnemyTarget()) {
-              this.setEnemyTarget(this.getSharedWaveTarget());
+              this.refreshNearestEnemyTargetThrottled();
             }
           }
 
@@ -681,12 +670,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         getNearestEnemyInAttackRangeThrottled() {
           if (this.shouldRunAttackCheck()) {
-            const queryToken = ++this.nearestInRangeQueryToken;
-            const queued = this.queueNearestEnemyQuery(this.attackRange, this.onNearestInRangeQueryResult, queryToken);
-
-            if (!queued) {
-              this.setCachedNearestInRangeTarget(this.findNearestEnemyInAttackRange());
-            }
+            this.setCachedNearestInRangeTarget(this.findNearestEnemyInAttackRange());
           } else if (!this.isValidEnemy(this.cachedNearestInRange, this.cachedNearestInRangeLifeId)) {
             this.setCachedNearestInRangeTarget(null);
           }
@@ -694,21 +678,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.isValidEnemyWithinRange(this.cachedNearestInRange, this.attackRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
         }
 
-        getNearestEnemyThrottled() {
-          if (this.shouldRunTargetSearch()) {
-            const queryToken = ++this.nearestEnemyQueryToken;
-            this.targetSearchPending = true;
-            this.targetSearchConfirmedNoTarget = false;
-            const queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
-
-            if (!queued) {
-              this.completeTargetSearch(this.findNearestEnemy());
-            }
-          } else if (!this.isValidEnemy(this.cachedNearestEnemy, this.cachedNearestEnemyLifeId)) {
-            this.setCachedNearestEnemyTarget(null);
+        refreshNearestEnemyTargetThrottled() {
+          if (!this.shouldRunTargetSearch()) {
+            return;
           }
 
-          return this.isValidEnemyWithinRange(this.cachedNearestEnemy, this.targetSearchRange, this.cachedNearestEnemyLifeId) ? this.cachedNearestEnemy : null;
+          const queryToken = ++this.nearestEnemyQueryToken;
+          this.targetSearchPending = true;
+          this.targetSearchConfirmedNoTarget = false;
+          const queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
+          if (queued) return;
+          const target = this.findNearestEnemy();
+          this.completeTargetSearch(target);
+
+          if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(target);
+          }
         }
 
         updateForwardPrefVelocity() {
@@ -782,8 +767,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (gm && gm.spatialGrid) {
-            const result = gm.spatialGrid.findNearestEnemyInRange(this.team, this.agent.pos.x, this.agent.pos.z, this.attackRange);
-            if (result) return result;
+            return gm.spatialGrid.findNearestEnemyInRange(this.team, this.agent.pos.x, this.agent.pos.z, this.attackRange);
           }
 
           return this.findNearestEnemyInAttackRangeFallback();
@@ -796,8 +780,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (gm && gm.spatialGrid) {
-            const result = gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
-            if (result) return result;
+            return gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
           }
 
           return this.findNearestEnemyFallback();
@@ -852,6 +835,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         isValidEnemy(e, lifeId = -1) {
           if (!e || e === this) return false;
+          if (e.team === this.team) return false;
           if (lifeId >= 0 && e.lifeId !== lifeId) return false;
           if (!e.node.activeInHierarchy) return false;
           if (!e.agent) return false;

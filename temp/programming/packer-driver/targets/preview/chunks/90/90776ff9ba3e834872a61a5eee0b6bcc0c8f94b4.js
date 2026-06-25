@@ -103,7 +103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, attackRange, health, damage, defense) {
+        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, attackRange, attackIntervalMin, attackIntervalMax, health, damage, defense) {
           var node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -135,6 +135,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           unit.init(this.sim, team, unitTypeName, forwardX, forwardZ);
 
           if (behavior) {
+            behavior.configureAttackInterval(attackIntervalMin, attackIntervalMax);
             behavior.resetForSpawn();
           }
 
