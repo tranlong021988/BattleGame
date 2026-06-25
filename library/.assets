@@ -107,7 +107,11 @@
             "MiniMap\\images\\spear-ico-small.png",
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico-small.png",
-            "MiniMap\\images\\sword-ico.png"
+            "MiniMap\\images\\sword-ico.png",
+            "MiniMap\\images\\forward-ico.png",
+            "MiniMap\\images\\forward-ico-selected.png",
+            "textures\\DongSonPattern.png",
+            "textures\\TrongDongPattern.psd"
         ]
     }
 }

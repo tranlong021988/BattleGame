@@ -913,8 +913,8 @@
     "radius": 0.5,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 10,
-    "targetSearchRange": 6,
-    "targetSearchIntervalFrames": 20,
+    "targetSearchRange": 5,
+    "targetSearchIntervalFrames": 30,
     "aggressiveForward": false,
     "forwardDir": {
       "__type__": "cc.Vec3",

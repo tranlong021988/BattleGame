@@ -120,13 +120,16 @@
     "value": {
       "depends": [
         "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
+        "68304913-7932-4cd0-9112-80d3454d1186@f9941",
+        "ee792f48-45b0-4754-a307-2807c196b156@f9941",
+        "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
+        "87c7bea4-faed-46d2-b01d-8d3f4dfb4666",
         "09612976-b88c-46e6-a717-93a8a38611bc@f9941",
         "028193d4-783a-4d77-a304-630e5f21fe8a@f9941",
         "f8ea029f-b400-4410-89a7-57f8577e8acb@f9941",
         "fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8@f9941",
         "3a5d4f88-4bcb-4a6f-8344-53c625b3eeae@f9941",
         "d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab@f9941",
-        "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
         "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
         "8e39c061-d956-43ce-ad16-db3efa6f7be1",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
@@ -144,6 +147,7 @@
         "b178349e-82da-4293-8dcd-3b05942bc79d@f9941",
         "f4904146-35a2-41bf-8f22-cd622c2f0852@f9941",
         "23926ca3-e531-4d19-8249-ca0aa068dbc1@f9941",
+        "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84@f9941",
         "817257f8-8eda-4313-a407-8ae5d0e791b0",
         "620b6bf3-0369-4560-837f-2a2c00b73c26",
         "837662e8-92db-4dea-820d-eafbe218fe17",
@@ -1745,6 +1749,97 @@
       "depends": [
         "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf",
         "ee9b7a14-8fc0-446c-a8af-a1ab6c223a8b@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ee792f48-45b0-4754-a307-2807c196b156": {
+    "url": "db://assets/MiniMap/images/forward-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "ee792f48-45b0-4754-a307-2807c196b156@6c48a": {
+    "url": "db://assets/MiniMap/images/forward-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "ee792f48-45b0-4754-a307-2807c196b156"
+      ]
+    },
+    "versionCode": 1
+  },
+  "ee792f48-45b0-4754-a307-2807c196b156@f9941": {
+    "url": "db://assets/MiniMap/images/forward-ico.png@f9941",
+    "value": {
+      "depends": [
+        "ee792f48-45b0-4754-a307-2807c196b156@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "68304913-7932-4cd0-9112-80d3454d1186": {
+    "url": "db://assets/MiniMap/images/forward-ico-selected.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "68304913-7932-4cd0-9112-80d3454d1186@6c48a": {
+    "url": "db://assets/MiniMap/images/forward-ico-selected.png@6c48a",
+    "value": {
+      "depends": [
+        "68304913-7932-4cd0-9112-80d3454d1186"
+      ]
+    },
+    "versionCode": 1
+  },
+  "68304913-7932-4cd0-9112-80d3454d1186@f9941": {
+    "url": "db://assets/MiniMap/images/forward-ico-selected.png@f9941",
+    "value": {
+      "depends": [
+        "68304913-7932-4cd0-9112-80d3454d1186@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84": {
+    "url": "db://assets/textures/DongSonPattern.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84@6c48a": {
+    "url": "db://assets/textures/DongSonPattern.png@6c48a",
+    "value": {
+      "depends": [
+        "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84"
+      ]
+    },
+    "versionCode": 1
+  },
+  "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84@f9941": {
+    "url": "db://assets/textures/DongSonPattern.png@f9941",
+    "value": {
+      "depends": [
+        "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "241e78e3-db86-48e1-9a9b-e866a13fca72": {
+    "url": "db://assets/textures/TrongDongPattern.psd",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "241e78e3-db86-48e1-9a9b-e866a13fca72@6c48a": {
+    "url": "db://assets/textures/TrongDongPattern.psd@6c48a",
+    "value": {
+      "depends": [
+        "241e78e3-db86-48e1-9a9b-e866a13fca72"
       ]
     },
     "versionCode": 1

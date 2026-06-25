@@ -28,6 +28,12 @@ export class UnitPrefabEntry {
     attackRange: number = 1.2;
 
     @property
+    attackIntervalMin: number = 0.4;
+
+    @property
+    attackIntervalMax: number = 0.45;
+
+    @property
     health: number = 30;
 
     @property

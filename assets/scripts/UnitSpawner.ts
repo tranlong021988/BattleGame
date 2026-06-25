@@ -74,6 +74,8 @@ export class UnitSpawner extends Component {
         parent: Node,
         maxSpeed: number,
         attackRange: number,
+        attackIntervalMin: number,
+        attackIntervalMax: number,
         health: number,
         damage: number,
         defense: number
@@ -108,6 +110,10 @@ export class UnitSpawner extends Component {
         unit.init(this.sim, team, unitTypeName, forwardX, forwardZ);
 
         if (behavior) {
+            behavior.configureAttackInterval(
+                attackIntervalMin,
+                attackIntervalMax
+            );
             behavior.resetForSpawn();
         }
 

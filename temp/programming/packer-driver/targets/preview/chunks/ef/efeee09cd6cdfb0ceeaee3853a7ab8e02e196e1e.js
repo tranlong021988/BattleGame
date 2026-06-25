@@ -84,6 +84,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.randomizeNextAttackInterval();
         }
 
+        configureAttackInterval(minInterval, maxInterval) {
+          this.attackIntervalMin = Math.max(0.05, minInterval);
+          this.attackIntervalMax = Math.max(this.attackIntervalMin, maxInterval);
+        }
+
         resetForDespawn() {
           this.attackTimer = 0;
         }

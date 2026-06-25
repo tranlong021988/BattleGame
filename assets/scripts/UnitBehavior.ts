@@ -33,6 +33,19 @@ export class UnitBehavior extends Component {
         this.randomizeNextAttackInterval();
     }
 
+    configureAttackInterval(
+        minInterval: number,
+        maxInterval: number
+    ) {
+        this.attackIntervalMin =
+            Math.max(0.05, minInterval);
+        this.attackIntervalMax =
+            Math.max(
+                this.attackIntervalMin,
+                maxInterval
+            );
+    }
+
     resetForDespawn() {
         this.attackTimer = 0;
     }

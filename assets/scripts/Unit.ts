@@ -67,33 +67,13 @@ export class Unit extends Component {
 
     private frameCounter = 0;
     private cachedNearestInRange: Unit | null = null;
-    private cachedNearestEnemy: Unit | null = null;
     private enemyLifeId = -1;
     private cachedNearestInRangeLifeId = -1;
-    private cachedNearestEnemyLifeId = -1;
     private retaliationTarget: Unit | null = null;
     private retaliationTargetLifeId = -1;
     private targetSearchPending = false;
     private targetSearchConfirmedNoTarget = false;
-    private nearestInRangeQueryToken = 0;
     private nearestEnemyQueryToken = 0;
-    private readonly onNearestInRangeQueryResult = (
-        target: Unit | null,
-        token: number
-    ) => {
-        if (token !== this.nearestInRangeQueryToken) {
-            return;
-        }
-
-        this.setCachedNearestInRangeTarget(
-            this.isValidEnemyWithinRange(
-                target,
-                this.attackRange
-            )
-                ? target
-                : null
-        );
-    };
     private readonly onNearestEnemyQueryResult = (
         target: Unit | null,
         token: number
@@ -102,14 +82,19 @@ export class Unit extends Component {
             return;
         }
 
-        this.completeTargetSearch(
+        const validTarget =
             this.isValidEnemyWithinRange(
                 target,
                 this.targetSearchRange
             )
                 ? target
-                : null
-        );
+                : null;
+
+        this.completeTargetSearch(validTarget);
+
+        if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(validTarget);
+        }
     };
 
     onLoad() {
@@ -241,7 +226,6 @@ export class Unit extends Component {
     }
 
     private invalidateNearestQueryResults() {
-        this.nearestInRangeQueryToken++;
         this.nearestEnemyQueryToken++;
         this.targetSearchPending = false;
         this.targetSearchConfirmedNoTarget = false;
@@ -279,20 +263,15 @@ export class Unit extends Component {
         this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
     }
 
-    private setCachedNearestEnemyTarget(target: Unit | null) {
-        this.cachedNearestEnemy = target;
-        this.cachedNearestEnemyLifeId = target ? target.lifeId : -1;
-    }
-
     private completeTargetSearch(target: Unit | null) {
         this.targetSearchPending = false;
-        this.setCachedNearestEnemyTarget(target);
-        this.targetSearchConfirmedNoTarget = !target;
+        this.targetSearchConfirmedNoTarget =
+            !target &&
+            !this.hasValidEnemyTarget();
     }
 
     private clearCachedTargets() {
         this.setCachedNearestInRangeTarget(null);
-        this.setCachedNearestEnemyTarget(null);
     }
 
     public getValidEnemyTarget(): Unit | null {
@@ -421,8 +400,12 @@ export class Unit extends Component {
             );
         }
 
+        // A result requested before retaliation must not replace the
+        // attacker when the worker responds later.
+        this.nearestEnemyQueryToken++;
+        this.targetSearchPending = false;
+        this.targetSearchConfirmedNoTarget = false;
         this.setRetaliationTarget(attacker!);
-        this.setCachedNearestEnemyTarget(null);
         this.setCachedNearestInRangeTarget(null);
 
         return true;
@@ -655,7 +638,6 @@ export class Unit extends Component {
             this.onBusy = true;
             this.agent.locked = true;
 
-            this.setCachedNearestEnemyTarget(null);
             this.setCachedNearestInRangeTarget(null);
 
             this.lookAtTargetSmooth(nearestInRange, deltaTime);
@@ -693,13 +675,11 @@ export class Unit extends Component {
 
         if (!this.hasValidEnemyTarget()) {
             this.setEnemyTarget(
-                this.getNearestEnemyThrottled()
+                this.getSharedWaveTarget()
             );
 
             if (!this.hasValidEnemyTarget()) {
-                this.setEnemyTarget(
-                    this.getSharedWaveTarget()
-                );
+                this.refreshNearestEnemyTargetThrottled();
             }
         }
 
@@ -756,21 +736,9 @@ export class Unit extends Component {
 
     private getNearestEnemyInAttackRangeThrottled(): Unit | null {
         if (this.shouldRunAttackCheck()) {
-            const queryToken =
-                ++this.nearestInRangeQueryToken;
-
-            const queued =
-                this.queueNearestEnemyQuery(
-                    this.attackRange,
-                    this.onNearestInRangeQueryResult,
-                    queryToken
-                );
-
-            if (!queued) {
-                this.setCachedNearestInRangeTarget(
-                    this.findNearestEnemyInAttackRange()
-                );
-            }
+            this.setCachedNearestInRangeTarget(
+                this.findNearestEnemyInAttackRange()
+            );
         } else if (
             !this.isValidEnemy(
                 this.cachedNearestInRange,
@@ -789,42 +757,34 @@ export class Unit extends Component {
             : null;
     }
 
-    private getNearestEnemyThrottled(): Unit | null {
-        if (this.shouldRunTargetSearch()) {
-            const queryToken =
-                ++this.nearestEnemyQueryToken;
-
-            this.targetSearchPending = true;
-            this.targetSearchConfirmedNoTarget = false;
-
-            const queued =
-                this.queueNearestEnemyQuery(
-                    this.targetSearchRange,
-                    this.onNearestEnemyQueryResult,
-                    queryToken
-                );
-
-            if (!queued) {
-                this.completeTargetSearch(
-                    this.findNearestEnemy()
-                );
-            }
-        } else if (
-            !this.isValidEnemy(
-                this.cachedNearestEnemy,
-                this.cachedNearestEnemyLifeId
-            )
-        ) {
-            this.setCachedNearestEnemyTarget(null);
+    private refreshNearestEnemyTargetThrottled() {
+        if (!this.shouldRunTargetSearch()) {
+            return;
         }
 
-        return this.isValidEnemyWithinRange(
-            this.cachedNearestEnemy,
-            this.targetSearchRange,
-            this.cachedNearestEnemyLifeId
-        )
-            ? this.cachedNearestEnemy
-            : null;
+        const queryToken =
+            ++this.nearestEnemyQueryToken;
+
+        this.targetSearchPending = true;
+        this.targetSearchConfirmedNoTarget = false;
+
+        const queued =
+            this.queueNearestEnemyQuery(
+                this.targetSearchRange,
+                this.onNearestEnemyQueryResult,
+                queryToken
+            );
+
+        if (queued) return;
+
+        const target =
+            this.findNearestEnemy();
+
+        this.completeTargetSearch(target);
+
+        if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(target);
+        }
     }
 
     private updateForwardPrefVelocity() {
@@ -918,14 +878,12 @@ export class Unit extends Component {
         const gm = GameManager.instance;
 
         if (gm && gm.spatialGrid) {
-            const result = gm.spatialGrid.findNearestEnemyInRange(
+            return gm.spatialGrid.findNearestEnemyInRange(
                 this.team,
                 this.agent.pos.x,
                 this.agent.pos.z,
                 this.attackRange
             );
-
-            if (result) return result;
         }
 
         return this.findNearestEnemyInAttackRangeFallback();

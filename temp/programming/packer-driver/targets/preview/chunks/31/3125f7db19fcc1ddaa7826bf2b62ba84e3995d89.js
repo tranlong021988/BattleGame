@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _class3, _crd, ccclass, property, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -46,10 +46,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       } = _decorator);
 
       _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Node), _dec3 = property({
-        displayName: 'Use Wave Front Scanner'
-      }), _dec4 = property({
         displayName: 'Aggressive Forward'
-      }), _dec5 = property(Vec3), _dec(_class = (_class2 = (_class3 = class Unit extends Component {
+      }), _dec4 = property(Vec3), _dec(_class = (_class2 = (_class3 = class Unit extends Component {
         constructor() {
           super(...arguments);
 
@@ -75,29 +73,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor11, this);
 
-          _initializerDefineProperty(this, "forwardScanRange", _descriptor12, this);
+          _initializerDefineProperty(this, "aggressiveForward", _descriptor12, this);
 
-          _initializerDefineProperty(this, "forwardScanIntervalFrames", _descriptor13, this);
+          _initializerDefineProperty(this, "forwardDir", _descriptor13, this);
 
-          _initializerDefineProperty(this, "useWaveForwardScanner", _descriptor14, this);
+          _initializerDefineProperty(this, "onForward", _descriptor14, this);
 
-          _initializerDefineProperty(this, "aggressiveForward", _descriptor15, this);
+          _initializerDefineProperty(this, "isSteady", _descriptor15, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor16, this);
+          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor16, this);
 
-          _initializerDefineProperty(this, "onForward", _descriptor17, this);
+          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor17, this);
 
-          _initializerDefineProperty(this, "isSteady", _descriptor18, this);
+          _initializerDefineProperty(this, "overtakeSideRange", _descriptor18, this);
 
-          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor19, this);
+          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor19, this);
 
-          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor20, this);
-
-          _initializerDefineProperty(this, "overtakeSideRange", _descriptor21, this);
-
-          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor22, this);
-
-          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor23, this);
+          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor20, this);
 
           this.team = 0;
           this.unitTypeName = '';
@@ -123,33 +115,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.tempPos = new Vec3();
           this.frameCounter = 0;
           this.cachedNearestInRange = null;
-          this.cachedNearestEnemy = null;
-          this.forwardLaneTarget = null;
-          this.forwardAdjacentTarget = null;
           this.enemyLifeId = -1;
           this.cachedNearestInRangeLifeId = -1;
-          this.cachedNearestEnemyLifeId = -1;
-          this.forwardLaneTargetLifeId = -1;
-          this.forwardAdjacentTargetLifeId = -1;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
-          this.nearestInRangeQueryToken = 0;
+          this.targetSearchPending = false;
+          this.targetSearchConfirmedNoTarget = false;
           this.nearestEnemyQueryToken = 0;
-
-          this.onNearestInRangeQueryResult = (target, token) => {
-            if (token !== this.nearestInRangeQueryToken) {
-              return;
-            }
-
-            this.setCachedNearestInRangeTarget(this.isValidEnemyWithinRange(target, this.attackRange) ? target : null);
-          };
 
           this.onNearestEnemyQueryResult = (target, token) => {
             if (token !== this.nearestEnemyQueryToken) {
               return;
             }
 
-            this.setCachedNearestEnemyTarget(this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null);
+            var validTarget = this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null;
+            this.completeTargetSearch(validTarget);
+
+            if (!this.hasValidEnemyTarget()) {
+              this.setEnemyTarget(validTarget);
+            }
           };
         }
 
@@ -264,8 +248,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         invalidateNearestQueryResults() {
-          this.nearestInRangeQueryToken++;
           this.nearestEnemyQueryToken++;
+          this.targetSearchPending = false;
+          this.targetSearchConfirmedNoTarget = false;
         }
 
         advanceLifeId() {
@@ -281,6 +266,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.enemyLifeId = target ? target.lifeId : -1;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
+
+          if (target) {
+            this.targetSearchConfirmedNoTarget = false;
+          }
         }
 
         setRetaliationTarget(target) {
@@ -288,6 +277,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.enemyLifeId = target.lifeId;
           this.retaliationTarget = target;
           this.retaliationTargetLifeId = target.lifeId;
+          this.targetSearchConfirmedNoTarget = false;
         }
 
         setCachedNearestInRangeTarget(target) {
@@ -295,26 +285,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
         }
 
-        setCachedNearestEnemyTarget(target) {
-          this.cachedNearestEnemy = target;
-          this.cachedNearestEnemyLifeId = target ? target.lifeId : -1;
-        }
-
-        setForwardLaneTarget(target) {
-          this.forwardLaneTarget = target;
-          this.forwardLaneTargetLifeId = target ? target.lifeId : -1;
-        }
-
-        setForwardAdjacentTarget(target) {
-          this.forwardAdjacentTarget = target;
-          this.forwardAdjacentTargetLifeId = target ? target.lifeId : -1;
+        completeTargetSearch(target) {
+          this.targetSearchPending = false;
+          this.targetSearchConfirmedNoTarget = !target && !this.hasValidEnemyTarget();
         }
 
         clearCachedTargets() {
           this.setCachedNearestInRangeTarget(null);
-          this.setCachedNearestEnemyTarget(null);
-          this.setForwardLaneTarget(null);
-          this.setForwardAdjacentTarget(null);
         }
 
         getValidEnemyTarget() {
@@ -323,6 +300,72 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         hasValidEnemyTarget() {
           return !!this.getValidEnemyTarget();
+        }
+
+        hasConfirmedNoTargetSearch() {
+          if (this.targetSearchPending) return false;
+          if (this.hasValidEnemyTarget()) return false;
+          return this.targetSearchConfirmedNoTarget;
+        }
+
+        setWaveSearchTarget(target) {
+          if (!this.isValidEnemy(target)) return false;
+          this.setEnemyTarget(target);
+          return true;
+        }
+
+        findForwardSearchTarget(aggressiveForward) {
+          if (!this.agent) return null;
+
+          if (!aggressiveForward) {
+            var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance;
+
+            if (gm && gm.spatialGrid) {
+              return gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
+            }
+
+            return this.findNearestEnemyFallback();
+          }
+
+          if (this.laneId < 0) return null;
+          var enemies = this.getNearbyEnemyList(this.targetSearchRange);
+          var maxRangeSq = this.targetSearchRange * this.targetSearchRange;
+          var best = null;
+          var bestDistSq = Infinity;
+
+          for (var i = 0; i < enemies.length; i++) {
+            var enemy = enemies[i];
+            if (!this.isValidEnemy(enemy)) continue;
+            if (enemy.laneId !== this.laneId) continue;
+            var dx = enemy.agent.pos.x - this.agent.pos.x;
+            var dz = enemy.agent.pos.z - this.agent.pos.z;
+            var distanceSq = dx * dx + dz * dz;
+            if (distanceSq > maxRangeSq) continue;
+
+            if (distanceSq < bestDistSq) {
+              bestDistSq = distanceSq;
+              best = enemy;
+            }
+          }
+
+          return best;
+        }
+
+        hasReachedEnemyHeroLine() {
+          var enemyHero = this.getEnemyHero();
+
+          if (!this.isValidEnemy(enemyHero)) {
+            return false;
+          }
+
+          return this.hasPassedTargetAlongForward(enemyHero);
+        }
+
+        getEnemyHeroTarget() {
+          var enemyHero = this.getEnemyHero();
+          return this.isValidEnemy(enemyHero) ? enemyHero : null;
         }
 
         reactToAttacker(attacker) {
@@ -340,10 +383,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (gm) {
             gm.onWaveCombatStarted(this, attacker);
-          }
+          } // A result requested before retaliation must not replace the
+          // attacker when the worker responds later.
 
+
+          this.nearestEnemyQueryToken++;
+          this.targetSearchPending = false;
+          this.targetSearchConfirmedNoTarget = false;
           this.setRetaliationTarget(attacker);
-          this.setCachedNearestEnemyTarget(null);
           this.setCachedNearestInRangeTarget(null);
           return true;
         }
@@ -440,7 +487,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         enterWaveCombatMode() {
           this.onForward = false;
-          this.aggressiveForward = false;
           this.resetStableRotationPosition();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -460,7 +506,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.onForward = false;
-          this.aggressiveForward = false;
           this.resetStableRotationPosition();
 
           if (searchRange > 0) {
@@ -476,6 +521,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!this.onBusy) {
               this.agent.locked = this.isSteady;
             }
+          }
+        }
+
+        enterWaveForwardMode(aggressiveForward) {
+          if (this.isSteady) return;
+          this.setEnemyTarget(null);
+          this.onBusy = false;
+          this.onForward = true;
+          this.aggressiveForward = aggressiveForward;
+          this.resetStableRotationPosition();
+          this.resetMoveIntentFacing();
+          this.invalidateNearestQueryResults();
+          this.clearCachedTargets();
+
+          if (this.agent) {
+            this.agent.locked = false;
+            this.agent.onForward = 1;
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.agent.prefVel.x = 0;
+            this.agent.prefVel.z = 0;
           }
         }
 
@@ -538,7 +604,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
             this.agent.locked = true;
-            this.setCachedNearestEnemyTarget(null);
             this.setCachedNearestInRangeTarget(null);
             this.lookAtTargetSmooth(nearestInRange, deltaTime);
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -558,26 +623,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           if (this.onForward) {
-            if (this.canRunForwardScanForWave()) {
-              this.updateForwardPhase();
-            }
-
-            if (this.onForward) {
-              this.agent.onForward = 1;
-              this.updateForwardPrefVelocity();
-              this.lookMoveIntentSmooth(deltaTime);
-              this.sync(deltaTime, false);
-              return;
-            }
+            this.agent.onForward = 1;
+            this.updateForwardPrefVelocity();
+            this.lookMoveIntentSmooth(deltaTime);
+            this.sync(deltaTime, false);
+            return;
           }
 
           this.agent.onForward = 0;
 
           if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(this.getNearestEnemyThrottled());
+            this.setEnemyTarget(this.getSharedWaveTarget());
 
             if (!this.hasValidEnemyTarget()) {
-              this.setEnemyTarget(this.getSharedWaveTarget());
+              this.refreshNearestEnemyTargetThrottled();
             }
           }
 
@@ -595,11 +654,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
           } else {
-            // Free hunt never restores lane control. Keep advancing
-            // without enabling forward scan or aggressive forward.
-            this.updateForwardPrefVelocity();
-            this.lookMoveIntentSmooth(deltaTime);
-            this.sync(deltaTime, false);
+            this.sim.setPrefVelocity(this.agent, 0, 0);
+            this.agent.vel.x = 0;
+            this.agent.vel.z = 0;
+            this.sync(deltaTime, true);
           }
         }
 
@@ -613,23 +671,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.frameCounter % interval === 0;
         }
 
-        shouldRunForwardScan() {
-          var interval = Math.max(1, Math.floor(this.forwardScanIntervalFrames));
-          return this.frameCounter % interval === 0;
-        }
-
-        canRunForwardScanForWave() {
-          if (!this.useWaveForwardScanner) {
-            return true;
-          }
-
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          if (!gm) return true;
-          return gm.canUnitRunWaveForwardScan(this);
-        }
-
         getSharedWaveTarget() {
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -641,12 +682,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         getNearestEnemyInAttackRangeThrottled() {
           if (this.shouldRunAttackCheck()) {
-            var queryToken = ++this.nearestInRangeQueryToken;
-            var queued = this.queueNearestEnemyQuery(this.attackRange, this.onNearestInRangeQueryResult, queryToken);
-
-            if (!queued) {
-              this.setCachedNearestInRangeTarget(this.findNearestEnemyInAttackRange());
-            }
+            this.setCachedNearestInRangeTarget(this.findNearestEnemyInAttackRange());
           } else if (!this.isValidEnemy(this.cachedNearestInRange, this.cachedNearestInRangeLifeId)) {
             this.setCachedNearestInRangeTarget(null);
           }
@@ -654,95 +690,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.isValidEnemyWithinRange(this.cachedNearestInRange, this.attackRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
         }
 
-        getNearestEnemyThrottled() {
-          if (this.shouldRunTargetSearch()) {
-            var queryToken = ++this.nearestEnemyQueryToken;
-            var queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
-
-            if (!queued) {
-              this.setCachedNearestEnemyTarget(this.findNearestEnemy());
-            }
-          } else if (!this.isValidEnemy(this.cachedNearestEnemy, this.cachedNearestEnemyLifeId)) {
-            this.setCachedNearestEnemyTarget(null);
-          }
-
-          return this.isValidEnemyWithinRange(this.cachedNearestEnemy, this.targetSearchRange, this.cachedNearestEnemyLifeId) ? this.cachedNearestEnemy : null;
-        }
-
-        updateForwardPhase() {
-          if (!this.agent) return; // Forward phase:
-          // 1. Scan enemies in the same lane.
-          // 2. Non-aggressive forward also scans adjacent-lane units.
-          // 3. If this unit has passed a valid target along forwardDir,
-          //    release the wave to free hunt.
-          // 4. Enemy hero line can also release free hunt when it is in
-          //    the same or adjacent lane.
-
-          var shouldScan = this.shouldRunForwardScan();
-          var nearestLaneEnemy = this.getForwardLaneTarget();
-
-          if (shouldScan) {
-            nearestLaneEnemy = this.findNearestEnemyInSameLane();
-            this.setForwardLaneTarget(nearestLaneEnemy);
-          }
-
-          if (nearestLaneEnemy && nearestLaneEnemy.agent) {
-            if (this.hasPassedTargetAlongForward(nearestLaneEnemy)) {
-              this.setForwardLaneTarget(null);
-              this.setForwardAdjacentTarget(null);
-
-              if (!this.releaseWaveForwardToFreeHunt(nearestLaneEnemy)) {
-                this.onForward = false;
-              }
-
-              return;
-            }
-          }
-
-          if (this.aggressiveForward) {
-            this.setForwardAdjacentTarget(null);
-          } else {
-            var nearestAdjacentLaneEnemy = this.getForwardAdjacentTarget();
-
-            if (shouldScan) {
-              nearestAdjacentLaneEnemy = this.findNearestEnemyInAdjacentLane(true);
-              this.setForwardAdjacentTarget(nearestAdjacentLaneEnemy);
-            }
-
-            if (nearestAdjacentLaneEnemy) {
-              if (this.hasPassedTargetAlongForward(nearestAdjacentLaneEnemy)) {
-                this.setForwardLaneTarget(null);
-                this.setForwardAdjacentTarget(null);
-
-                if (!this.releaseWaveForwardToFreeHunt(nearestAdjacentLaneEnemy)) {
-                  this.onForward = false;
-                }
-
-                return;
-              }
-            }
-          }
-
-          var enemyHero = this.getEnemyHero();
-
-          if (enemyHero && this.isValidEnemy(enemyHero) && this.isSameOrAdjacentLane(enemyHero.laneId) && this.hasPassedTargetAlongForward(enemyHero)) {
-            this.setForwardLaneTarget(null);
-            this.setForwardAdjacentTarget(null);
-
-            if (!this.releaseWaveForwardToFreeHunt(enemyHero)) {
-              this.onForward = false;
-            }
-
+        refreshNearestEnemyTargetThrottled() {
+          if (!this.shouldRunTargetSearch()) {
             return;
           }
-        }
 
-        releaseWaveForwardToFreeHunt(target) {
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          if (!gm) return false;
-          return gm.onWaveForwardPassedAdjacentTarget(this, target);
+          var queryToken = ++this.nearestEnemyQueryToken;
+          this.targetSearchPending = true;
+          this.targetSearchConfirmedNoTarget = false;
+          var queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
+          if (queued) return;
+          var target = this.findNearestEnemy();
+          this.completeTargetSearch(target);
+
+          if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(target);
+          }
         }
 
         updateForwardPrefVelocity() {
@@ -782,113 +745,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return false;
         }
 
-        isTargetAheadAlongForward(target) {
-          if (!this.agent || !target || !target.agent) return false;
-
-          if (Math.abs(this.forwardDir.z) >= Math.abs(this.forwardDir.x)) {
-            var dz = target.agent.pos.z - this.agent.pos.z;
-            return this.forwardDir.z >= 0 ? dz >= 0 : dz <= 0;
-          }
-
-          var dx = target.agent.pos.x - this.agent.pos.x;
-          return this.forwardDir.x >= 0 ? dx >= 0 : dx <= 0;
-        }
-
-        getForwardLaneTarget() {
-          var target = this.forwardLaneTarget;
-          if (!target) return null;
-
-          if (!this.isValidEnemy(target, this.forwardLaneTargetLifeId) || target.laneId !== this.laneId) {
-            this.setForwardLaneTarget(null);
-            return null;
-          }
-
-          return target;
-        }
-
-        getForwardAdjacentTarget() {
-          var target = this.forwardAdjacentTarget;
-          if (!target) return null;
-
-          if (!this.isValidEnemy(target, this.forwardAdjacentTargetLifeId) || !this.isAdjacentLane(target.laneId)) {
-            this.setForwardAdjacentTarget(null);
-            return null;
-          }
-
-          return target;
-        }
-
-        findNearestEnemyInSameLane() {
-          if (!this.agent) return null;
-          if (this.laneId < 0) return this.getNearestEnemyThrottled();
-          var scanRange = this.getForwardScanRange();
-          var enemies = this.getNearbyEnemyList(scanRange);
-          var best = null;
-          var bestDistSq = Infinity;
-          var maxRangeSq = scanRange * scanRange;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var e = enemies[i];
-            if (!this.isValidEnemy(e)) continue;
-            if (e.laneId !== this.laneId) continue;
-            var dx = e.agent.pos.x - this.agent.pos.x;
-            var dz = e.agent.pos.z - this.agent.pos.z;
-            var d = dx * dx + dz * dz;
-            if (d > maxRangeSq) continue;
-
-            if (d < bestDistSq) {
-              bestDistSq = d;
-              best = e;
-            }
-          }
-
-          return best;
-        }
-
-        findNearestEnemyInAdjacentLane(onlyAhead) {
-          if (onlyAhead === void 0) {
-            onlyAhead = false;
-          }
-
-          if (!this.agent) return null;
-          if (this.laneId < 0) return null;
-          var scanRange = this.getForwardScanRange();
-          var enemies = this.getNearbyEnemyList(scanRange);
-          var best = null;
-          var bestDistSq = Infinity;
-          var maxRangeSq = scanRange * scanRange;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var e = enemies[i];
-            if (!this.isValidEnemy(e)) continue;
-            if (!this.isAdjacentLane(e.laneId)) continue;
-            if (onlyAhead && !this.isTargetAheadAlongForward(e)) continue;
-            var dx = e.agent.pos.x - this.agent.pos.x;
-            var dz = e.agent.pos.z - this.agent.pos.z;
-            var d = dx * dx + dz * dz;
-            if (d > maxRangeSq) continue;
-
-            if (d < bestDistSq) {
-              bestDistSq = d;
-              best = e;
-            }
-          }
-
-          return best;
-        }
-
-        isAdjacentLane(otherLaneId) {
-          if (this.laneId < 0) return false;
-          if (otherLaneId < 0) return false;
-          return Math.abs(otherLaneId - this.laneId) === 1;
-        }
-
-        isSameOrAdjacentLane(otherLaneId) {
-          if (this.laneId < 0) return false;
-          if (otherLaneId < 0) return false;
-          return Math.abs(otherLaneId - this.laneId) <= 1;
-        }
-
         getEnemyHero() {
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -923,8 +779,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (gm && gm.spatialGrid) {
-            var result = gm.spatialGrid.findNearestEnemyInRange(this.team, this.agent.pos.x, this.agent.pos.z, this.attackRange);
-            if (result) return result;
+            return gm.spatialGrid.findNearestEnemyInRange(this.team, this.agent.pos.x, this.agent.pos.z, this.attackRange);
           }
 
           return this.findNearestEnemyInAttackRangeFallback();
@@ -1022,14 +877,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           if (!gm) return [];
           return this.team === 0 ? gm.teamB : gm.teamA;
-        }
-
-        getForwardScanRange() {
-          if (this.forwardScanRange > 0) {
-            return this.forwardScanRange;
-          }
-
-          return this.targetSearchRange;
         }
 
         getNearbyEnemyList(radius) {
@@ -1265,84 +1112,63 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 6;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "forwardScanRange", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 12;
-        }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "forwardScanIntervalFrames", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 2;
-        }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "useWaveForwardScanner", [_dec3], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return true;
-        }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForward", [_dec4], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForward", [_dec3], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec5], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new Vec3(0, 0, 1);
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2.2;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.2;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.75;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

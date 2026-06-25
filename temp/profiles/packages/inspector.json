@@ -126,5 +126,21 @@
       "mipfilter": "none",
       "wrapMode": "Clamp"
     }
+  },
+  "ee792f48-45b0-4754-a307-2807c196b156@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
+  },
+  "68304913-7932-4cd0-9112-80d3454d1186@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
+  },
+  "f656da13-0dfe-4bf9-bdc6-2c0c39a61a84@6c48a": {
+    "texture": {
+      "mipfilter": "none",
+      "wrapMode": "Repeat"
+    }
   }
 }

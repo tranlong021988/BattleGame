@@ -397,6 +397,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.processDynamicWaveLanes();
+          this.processWaveForwardSearches();
+          this.processWaveForwardRecoveries();
           this.pruneDeadWaves();
           this.processHeroForwardUnlock();
         }
@@ -465,37 +467,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           enemyWave.enterCombatMode();
         }
 
-        onWaveForwardPassedAdjacentTarget(unit, target) {
+        onWaveForwardTargetFound(unit, target) {
           if (!unit || !target) return false;
           var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return false;
           if (wave.isDead()) return false;
-
-          if (!this.areSameOrAdjacentLanes(wave.laneId, target.laneId)) {
-            return false;
-          }
-
           wave.releaseForwardToFreeHunt();
-          var targetWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
-            error: Error()
-          }), BattleWave) : BattleWave).getWaveForUnit(target);
-
-          if (targetWave && targetWave !== wave && !targetWave.isDead() && this.areSameOrAdjacentLanes(wave.laneId, targetWave.laneId) && this.waves.indexOf(targetWave) >= 0) {
-            targetWave.releaseForwardToFreeHunt();
-          }
-
+          unit.setWaveSearchTarget(target);
           return true;
-        }
-
-        canUnitRunWaveForwardScan(unit) {
-          if (!unit) return true;
-          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
-            error: Error()
-          }), BattleWave) : BattleWave).getWaveForUnit(unit);
-          if (!wave) return true;
-          return wave.canUnitRunForwardScan(unit, this.frame);
         }
 
         findSharedWaveTargetForUnit(unit) {
@@ -563,12 +544,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return bestLane;
         }
 
-        areSameOrAdjacentLanes(laneA, laneB) {
-          if (laneA < 0) return false;
-          if (laneB < 0) return false;
-          return Math.abs(laneA - laneB) <= 1;
-        }
-
         processDynamicWaveLanes() {
           for (var i = 0; i < this.waves.length; i++) {
             var wave = this.waves[i];
@@ -577,6 +552,54 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.refreshDynamicLaneForWave(this.teamAHeroWave);
           this.refreshDynamicLaneForWave(this.teamBHeroWave);
+        }
+
+        processWaveForwardSearches() {
+          for (var i = 0; i < this.waves.length; i++) {
+            this.searchForwardWaveTarget(this.waves[i]);
+          }
+        }
+
+        searchForwardWaveTarget(wave) {
+          if (!wave) return;
+          if (!wave.isForwardMode()) return;
+          if (wave.isDeadRuntime(this.frame)) return;
+          var scanner = wave.getForwardScanner();
+          if (!scanner) return;
+
+          if (scanner.hasReachedEnemyHeroLine()) {
+            var heroTarget = scanner.getEnemyHeroTarget();
+
+            if (heroTarget) {
+              this.onWaveForwardTargetFound(scanner, heroTarget);
+            }
+
+            return;
+          }
+
+          if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
+            return;
+          }
+
+          scanner = wave.getForwardScanner(true);
+          if (!scanner) return;
+          var target = scanner.findForwardSearchTarget(wave.isAggressiveForwardMode());
+
+          if (target) {
+            this.onWaveForwardTargetFound(scanner, target);
+          }
+        }
+
+        processWaveForwardRecoveries() {
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+              continue;
+            }
+
+            wave.tryResumeForward();
+          }
         }
 
         refreshDynamicLaneForWave(wave) {
@@ -657,7 +680,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.heroForwardUnlocked[team] = true;
           hero.setSteady(false, false);
-          hero.enterFreeHuntMode(this.getHeroPressureSearchRange());
+
+          if (heroWave) {
+            heroWave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange(), true);
+          } else {
+            hero.enterFreeHuntMode(this.getHeroPressureSearchRange());
+          }
+
           this.releaseEnemyNormalWavesToFreeHunt(team);
         }
 
@@ -674,7 +703,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         forceWaveToHeroPressureFreeHunt(wave) {
-          wave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange());
+          wave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange(), true);
         }
 
         getHeroPressureSearchRange() {
@@ -738,32 +767,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return false;
-        }
-
-        findNearestEnemyInCurrentLane(wave) {
-          if (!wave) return null;
-          if (wave.laneId < 0) return null;
-          var enemies = wave.team === 0 ? this.teamB : this.teamA;
-          var x = wave.getAverageX();
-          var z = wave.getAverageZ();
-          var best = null;
-          var bestDistSq = Infinity;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var enemy = enemies[i];
-            if (!this.isAliveUnit(enemy)) continue;
-            if (enemy.laneId !== wave.laneId) continue;
-            var dx = enemy.agent.pos.x - x;
-            var dz = enemy.agent.pos.z - z;
-            var d = dx * dx + dz * dz;
-
-            if (d < bestDistSq) {
-              bestDistSq = d;
-              best = enemy;
-            }
-          }
-
-          return best;
         }
 
         isAliveUnit(unit) {
@@ -1262,7 +1265,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 0, this.node, entry.maxSpeed, entry.attackRange, entry.health, entry.damage, entry.defense);
+          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 0, this.node, entry.maxSpeed, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
 
           if (this.teamA.indexOf(unit) < 0) {
             this.teamA.push(unit);
@@ -1288,7 +1291,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 1, this.node, entry.maxSpeed, entry.attackRange, entry.health, entry.damage, entry.defense);
+          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 1, this.node, entry.maxSpeed, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
 
           if (this.teamB.indexOf(unit) < 0) {
             this.teamB.push(unit);

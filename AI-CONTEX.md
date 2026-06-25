@@ -19,18 +19,22 @@ The user runs two Codex sessions on different machines. These sessions do not sh
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `d28e489c update new logic`.
-- Wave-wide forward/freehunt recovery changes are currently uncommitted.
-- Expected source changes:
+- Current HEAD while writing this handoff: `9525ce21 change logic`.
+- Current gameplay/performance changes are uncommitted and actively being tested.
+- Expected code/handoff changes:
   - `AI-CONTEX.md`
-  - `assets/Test.scene`
-  - `assets/prefabs/BlueUnit.prefab`
-  - `assets/prefabs/RedUnit.prefab`
-  - `assets/scripts/BattleWave.ts`
+  - `assets/scripts/BattleUnitDatabase.ts`
   - `assets/scripts/GameManager.ts`
   - `assets/scripts/Unit.ts`
-- Per-unit `attackRange` database/spawn plumbing is already present in HEAD.
-- The user is actively testing the current uncommitted wave-state rewrite. Do not alter its rules from memory or from older commits without first reading the current source and confirming the intended behavior.
+  - `assets/scripts/UnitBehavior.ts`
+  - `assets/scripts/UnitSpawner.ts`
+- Current uncommitted code work includes:
+  - attack-range checks moved from the target worker to the main-thread Spatial Grid;
+  - freehunt target acquisition changed to borrow a teammate target first, then self-search only when no teammate target exists;
+  - periodic re-targeting while already chasing was tested and removed;
+  - per-unit-type `attackIntervalMin` and `attackIntervalMax` added to `UnitPrefabEntry`.
+- `assets/Test.scene`, both unit prefabs, UI images/textures, and other asset files also contain user/Cocos Editor changes. Do not overwrite, revert, stage, or reinterpret them as part of the gameplay patch without checking first.
+- The user is actively testing the current target/attack changes. Do not alter their rules from memory or from older commits without first reading the current source and confirming the intended behavior.
 - Cocos Editor has also generated many unrelated dirty files under `library/`, `profiles/`, and `temp/`. Do not revert, stage, or interpret those as gameplay source changes.
 - Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
 
@@ -100,10 +104,9 @@ This flow is the current canonical rule set. Older notes or commits describing p
 
 - In freehunt:
   - a unit with a valid target chases it;
-  - a unit without a valid target checks its own throttled nearest-enemy result;
-  - if no self target is available at that moment, it may borrow a valid target from a teammate;
-  - because target-search frames are staggered, a unit can borrow a teammate target before its own next scheduled search tick;
-  - once a borrowed target is valid, the unit keeps it and does not run a replacement self-search until that target dies/despawns/becomes invalid;
+  - a unit without a valid target first borrows a valid target from a teammate when available;
+  - only when no teammate target is available does it run its own search on `targetSearchIntervalFrames`;
+  - once a valid borrowed, retaliation, or self-searched target is assigned, the unit keeps chasing it until it becomes invalid or combat logic replaces it;
   - a unit with no current target waits instead of moving forward alone;
   - async worker search is tracked as pending and cannot be mistaken for a completed no-target result.
 - Shared-target behavior is intentionally also a natural regroup mechanism:
@@ -134,7 +137,7 @@ This flow is the current canonical rule set. Older notes or commits describing p
   - if the defender is not `onBusy`, it replaces its current chase target with the attacker;
   - retaliation may select an attacker outside normal `targetSearchRange`;
   - if already `onBusy`, the defender keeps fighting its current target;
-  - the first still-valid retaliation target is retained to prevent target oscillation from alternating ranged hits.
+  - repeated ranged hits do not oscillate the retaliation target while that target remains valid.
 - Retaliation also clears stale no-target confirmation, so the defender must search again before its wave can recover to forward.
 
 Retaliation implementation details:
@@ -188,6 +191,10 @@ Per-unit attack range:
 - `UnitPrefabEntry.attackRange` now exists in `BattleUnitDatabase`.
 - `GameManager -> UnitSpawner -> Unit.attackRange` assigns it on every spawn, including pooled reuse.
 - `targetSearchRange` remains shared through the Unit prefab.
+- `UnitPrefabEntry.attackIntervalMin` and `attackIntervalMax` configure normal-unit attack cadence per troop type.
+- `GameManager -> UnitSpawner -> UnitBehavior` assigns both intervals before `resetForSpawn()`, including pooled reuse.
+- Database defaults are currently `0.4-0.45 s`, matching the normal-unit prefab values used before this change.
+- Hero attack intervals remain on the hero's `UnitBehavior` component because heroes are not spawned from `UnitPrefabEntry`.
 
 Intentionally removed or avoided ideas:
 
@@ -290,10 +297,10 @@ Hero-pressure spawn idle fix:
 
 Verification done:
 
-- Cocos-bundled TypeScript check with `--skipLibCheck --module ESNext` passed after the wave-wide rewrite.
+- Cocos-bundled TypeScript check with `--skipLibCheck --module ESNext` passed after the latest target, attack-check, and attack-interval changes.
 - Scene and prefab JSON parsing passed after legacy serialized fields were removed.
 - `git diff --check` passed.
-- Cocos preview/runtime was not run from this Codex session.
+- The user has run repeated Cocos/browser gameplay tests and supplied Chrome traces. The latest attack-interval database change still needs inspector/gameplay verification.
 - Required gameplay retest:
   - normal forward front scanner finds an enemy in range and releases the whole wave;
   - normal forward does not depend on laneId or passed-target position;
@@ -318,8 +325,8 @@ User test status:
 Implementation caution:
 
 - There are many editor/generated dirty files under `build/`, `library/`, and `temp/`. Do not revert them blindly.
-- Scene, profile, build, library, and temp files may contain user/editor changes unrelated to the current gameplay work.
-- Do not discard the current uncommitted wave-state changes unless the user explicitly asks to reverse them.
+- Scene, prefab, UI asset, profile, build, library, and temp files may contain user/editor changes unrelated to the current gameplay work.
+- Do not discard the current uncommitted target/attack changes unless the user explicitly asks to reverse them.
 
 ## Performance Systems
 
@@ -341,6 +348,8 @@ Currently active performance-oriented systems:
 - Unit target/attack scans are throttled:
   - `attackCheckIntervalFrames`
   - `targetSearchIntervalFrames`
+- Attack-range checks run directly against the main-thread Spatial Grid on their throttled ticks; they do not create target-worker requests.
+- Long-range target searches still use the batched target worker with main-thread fallback.
 - Forward target search reuses the wave's `targetSearchIntervalFrames`; the old separate forward-scan interval was removed.
 - Forward target search uses one cached/front-most scanner per wave instead of every unit scanning.
 - Hero-line checks use the cached scanner every frame, avoiding an O(units-in-wave) front scan each frame.
@@ -351,44 +360,30 @@ Currently active performance-oriented systems:
 
 Latest performance trace:
 
-- File: `C:/Users/tranl/Downloads/Trace-20260625T004132.json.gz`
-- Duration: about `68.0 s`, DevTools iPhone SE emulation.
-- `FireAnimationFrame` excluding profiler-start artifact:
-  - avg `1.150 ms`
-  - p50 `1.289 ms`
-  - p95 `3.242 ms`
-  - p99 `4.111 ms`
-  - max `11.323 ms`
-  - 5 of 8117 frames over `8.33 ms`
+- File: `C:/Users/CPU/Downloads/Trace-20260625T135614.json.gz`
+- Duration: about `56.6 s`, DevTools iPhone XR emulation.
+- `FireAnimationFrame`:
+  - avg `1.650 ms`
+  - p50 `1.342 ms`
+  - p95 `3.792 ms`
+  - p99 `5.090 ms`
+  - max `12.265 ms`
+  - 2 of 3370 frames over `8.33 ms`
   - 0 frames over `16.67 ms`
-- Compared with the June 21 iPhone SE trace:
-  - avg improved from about `1.261 ms`;
-  - p95 improved from about `3.456 ms`;
-  - p99 improved from about `4.449 ms`;
-  - both traces had zero frames over `16.67 ms`.
-- New wave-state logic cost was negligible across the whole trace:
-  - `searchForwardWaveTarget`: about `1.48 ms` self time total;
-  - `processWaveForwardSearches`: about `0.11 ms` total;
-  - `processWaveForwardRecoveries`: about `0.20 ms` total;
-  - `tryResumeForward`: about `0.26 ms` total;
-  - `getForwardScanner`: about `0.28 ms` total;
-  - `findForwardSearchTarget`: about `0.12 ms` total.
-- Dynamic lane remained negligible:
-  - `refreshDynamicLaneForWave`: about `2.21 ms` self time total;
-  - `getMajorityLaneIdForWave`: about `0.71 ms` total;
-  - `processDynamicWaveLanes`: about `0.20 ms` total.
+- Current target acquisition is borrow-first and does not periodically self-search while a valid target is already assigned.
+- Target-worker batch rate is about `1.94 batches/s`; `flushNearestWorkerRequests` is roughly `0.001 ms/frame`.
+- The discarded periodic re-target experiment produced about `32.3 target batches/s` and raised average frame time to about `1.672 ms`; do not restore it casually.
+- Before attack-range checks were moved to the main-thread grid, attack and target queries together produced about `54 target batches/s`.
+- Direct main-thread attack-range Spatial Grid queries are cheap in current traces and removed about `95%` of target-worker batches compared with the old mixed attack/target worker path.
+- The latest trace had a heavier scene/node peak than the lightest comparison trace, so its `1.650 ms` average should not be attributed entirely to target logic.
+- Main heap ended near `68 MB`; node and listener counts returned to baseline. No obvious main-thread memory leak was found.
+- RVO worker heap shows a rising sawtooth while peak unit count/cache capacity grows:
+  - post-Minor-GC heap roughly `0.61 -> 1.77 MB`;
+  - pre-GC peak roughly `3.45 MB`;
+  - this matches reusable `agentCache`/buffer growth and temporary grid allocations, not a confirmed leak;
+  - verify that the post-GC floor plateaus during a longer run with stable/decreasing unit count.
+- Target Worker is now mostly idle. Do not remove it yet; long-range self-search and hero-pressure search still use it.
 - Do not move dynamic lane voting to a worker based on current evidence.
-- Largest game-code hotspot remained `BattleSpatialGrid.flushNearestWorkerRequests`, mainly main-thread packing plus structured-clone `postMessage`.
-- Target-worker messaging averaged roughly `0.18 ms` per RAF and did not create a frame-budget problem.
-- Both workers were mostly idle:
-  - RVO worker CPU was roughly `0.3%` of its profiled duration;
-  - target worker CPU was roughly `0.2%`.
-- Memory showed no obvious leak:
-  - JS heap about `49.3-106.3 MB`, ending near `66.3 MB`;
-  - nodes stayed `39823-39830`;
-  - listeners stayed `119-132` and ended at `119`;
-  - no frame exceeded `16.67 ms`.
-- Spawn/activation/material setup caused most rare `8-11 ms` frames. Watch this area when heavier final models and VFX are added.
 
 Avoid reintroducing:
 
@@ -562,8 +557,11 @@ If VAT is revisited later:
 
 For the next session, unless the user changes direction:
 
-- Test the new wave-wide forward/freehunt recovery, aggressive resume, hero line, dynamic lane, and retaliation behavior before adding more battle logic.
-- Prefer gameplay verification over further optimization: the latest trace shows the new state logic is not a performance bottleneck.
+- Verify per-unit-type attack intervals in the BattleUnitDatabase, especially ranged units that previously attacked at the shared `0.4-0.45 s` cadence.
+- Continue visual testing of borrow-first target sharing, ranged retaliation, target despawn recovery, and whole-wave return to forward.
+- Prefer gameplay verification over further target-worker optimization: current target-worker traffic is already negligible.
+- Do not restore periodic target re-evaluation while chasing unless the gameplay benefit clearly justifies the measured worker/message increase.
+- Keep attack-range checks on the main-thread Spatial Grid unless a new trace shows a regression.
 - Do not optimize or move dynamic lane to a worker without a new trace proving it is material.
 - Do not implement transferable/double-buffer target-worker messaging yet; it is a possible future optimization, but current frame budget does not justify the complexity.
 - Do not integrate VAT into battle.
