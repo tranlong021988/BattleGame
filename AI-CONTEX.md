@@ -6,6 +6,13 @@ Last updated: 2026-06-26.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
+Latest office-Codex source check for the lane-picker/UI controller change:
+
+- Current HEAD while checking: `a3c3ed42 update`.
+- This session intentionally changed `assets/scripts/PlayerArmyController.ts`.
+- No scene/prefab wiring was changed in this patch. The user should wire the new Inspector fields in Cocos Editor.
+- Older "Current Worktree Status" bullets below may describe a previous handoff state. Re-run `git status --short` before editing.
+
 ## Working Rules
 
 - Mobile browser performance is a core design constraint.
@@ -371,7 +378,15 @@ Trace-review rule confirmed by the user on 2026-06-26:
 - Normal-forward scanner queries Spatial Grid directly and only uses a full-team fallback when the grid is unavailable.
 - `BattleWave` has runtime per-frame cache for alive/engaged scans.
 - Dynamic lane voting is wave-level, throttled by cached target-search interval, and frame-staggered.
-- Minimap uses pooling, interval updates, sampling, and grid-based icon separation.
+- Minimap is expected to be enabled again. `TrueMiniMapPanel` uses pooling, interval updates, wave-position sampling, and grid-based icon separation.
+- Latest minimap pass on 2026-06-26:
+  - avoided repeated `setContentSize`/anchor writes when map/root size has not changed;
+  - skipped alive-ratio UI resize unless the displayed ratio actually changes;
+  - skipped minimap icon `setPosition` once an icon is already visually at its target;
+  - flash color is updated only for engaged icons, and idle icons are reset only on engaged -> idle transition;
+  - per-frame minimap loops were flattened away from `Map.forEach` callbacks;
+  - overlap grid keys are numeric instead of string keys to reduce interval allocation;
+  - behavior should remain identical except for sub-pixel icon settle tolerance.
 
 Earlier quantified performance baseline:
 
@@ -821,7 +836,8 @@ persistent battle control panel:
 - `skill-icon-container`
   - exists visually but is explicitly out of scope for the current work.
 - `true-mini-map`
-  - is still part of the bottom UI hierarchy but is currently inactive.
+  - is part of the bottom UI hierarchy and is expected to be enabled again.
+  - It is driven by `TrueMiniMapPanel`; avoid adding per-icon/per-unit hot UI logic around it.
 
 The default player faction is team A (`team = 0`). Team B remains controlled
 by its existing AI unless changed separately.
@@ -837,6 +853,24 @@ Files:
 not reimplement spawning, CP checks, formation creation, pooling, or wave
 behavior.
 
+Update on 2026-06-26:
+
+- The component now owns the lane-picker and unit-icon tap binding from its Inspector data.
+- Do not require manual Button Click Events on every picker/icon.
+- The component listens to `TOUCH_END` on the configured nodes at runtime.
+- Lane picker visual selection uses the child node named `selected`; the picker nodes themselves should stay white. The active `selected` node blinks by tweening `UIOpacity`.
+- If old Button Click Events on those same nodes target this `PlayerArmyController` and handler `spawnUnit` or `selectLane`, the component removes those managed runtime click events to avoid double spawn/double selection.
+- The old public `selectLane(event, laneData)` and `spawnUnit(event, unitName)` methods remain for compatibility, but the preferred setup is now the Inspector binding list.
+- The component also owns a player spawn cooldown and optional power-bar indicator.
+- Cooldown starts only after `GameManager.spawnWaveByName(...)` returns a real wave. Failed spawns from missing entry/insufficient CP do not start cooldown.
+- Player spawning now also has `enableMaxAliveWaveLimit` and `maxAliveWaves`, mirroring the AI-side alive-wave cap.
+- The alive-wave cap is checked before calling `spawnWaveByName`; hitting the cap logs a warning and does not start cooldown.
+- During cooldown, tapping a unit icon does not spawn and logs a warning for now.
+- Lane picker root sprites are tinted by selected state:
+  - selected lane = white tint;
+  - unselected lanes = 50% gray/dim tint.
+- Unit icon root sprites are tinted white when ready and 50% gray/dim during cooldown.
+
 Inspector properties:
 
 - `gameManager`
@@ -849,11 +883,23 @@ Inspector properties:
 - `defaultLane`
   - enum: `Left`, `Mid`, or `Right`;
   - defaults to `Mid`.
-- `leftSelected`
-- `midSelected`
-- `rightSelected`
-  - these must reference the three child nodes named `selected`, not the
-    picker root nodes.
+- `leftPicker`
+- `midPicker`
+- `rightPicker`
+  - these must reference the picker root nodes, not the `selected` child nodes.
+  - Each picker root is expected to contain one child node named `selected`.
+  - The controller toggles those `selected` child nodes automatically.
+- `unitIcons`
+  - array of `{ node, unitName }` bindings.
+  - `node` is the tappable icon node.
+  - `unitName` must exactly match `UnitPrefabEntry.name` in `BattleUnitDatabase`, for example `light_sword`.
+- `powerBarContainer`
+  - optional root node for the cooldown bar.
+  - If left empty, the component tries to find a child named `power-bar-container` under its own node.
+  - The container should have a child node named exactly `bar`.
+- `coolDownDuration`
+  - defaults to `3`.
+  - Controls how long the player must wait after a successful manual wave spawn.
 
 Internal lane mapping:
 
@@ -880,46 +926,31 @@ Accepted `CustomEventData` values:
 When a lane is selected:
 
 - the component stores that lane in `selectedLaneId`;
-- the corresponding `selected` node is activated;
-- the other two `selected` nodes are deactivated.
+- the corresponding picker's child node named `selected` is activated;
+- the other two picker `selected` children are deactivated.
 
 `onLoad()` applies `defaultLane`, so the visual selection and stored lane are
 synchronized when the component starts.
 
-Recommended lane Button setup:
+Preferred lane picker setup:
 
-| Picker | Handler | CustomEventData |
-| --- | --- | --- |
-| `left-picker` | `selectLane` | `left` |
-| `mid-picker` | `selectLane` | `mid` |
-| `right-picker` | `selectLane` | `right` |
-
-For every Click Event:
-
-- Target must be the node carrying `PlayerArmyController`.
-- Component must be `PlayerArmyController`.
+- Assign `left-picker`, `mid-picker`, and `right-picker` to `leftPicker`, `midPicker`, and `rightPicker`.
+- Do not add manual Button Click Events for lane selection unless intentionally testing legacy behavior.
+- The child node must be named exactly `selected`, because the controller resolves it by name.
 
 ### Unit Icon Spawn Behavior
 
-Public Inspector callback:
+Preferred icon setup:
 
-```text
-spawnUnit(event, unitName)
-```
-
-Each unit icon needs a `Button` and a Click Event:
-
-- Target: node carrying `PlayerArmyController`.
-- Component: `PlayerArmyController`.
-- Handler: `spawnUnit`.
-- `CustomEventData`: exact `UnitPrefabEntry.name` from
-  `BattleUnitDatabase.teamAUnits`.
+- Add one `unitIcons` entry per tappable unit icon.
+- Assign the icon node to `node`.
+- Set `unitName` to the exact `UnitPrefabEntry.name` from `BattleUnitDatabase.teamAUnits`.
 
 Example:
 
 ```text
 BattleUnitDatabase entry name: LightSword
-Button CustomEventData:         LightSword
+unitIcons[i].unitName:          LightSword
 ```
 
 Important:
@@ -927,10 +958,14 @@ Important:
 - Matching is case-sensitive because `BattleUnitDatabase.getEntry()` uses
   exact string equality.
 - The icon node name is not read and has no effect on spawning.
-- Renaming an icon node to `LightSword` is not sufficient; the Button's
-  `CustomEventData` must contain `LightSword`.
+- Renaming an icon node to `LightSword` is not sufficient; `unitIcons[i].unitName`
+  must contain `LightSword`.
 - Tapping a unit icon is an immediate spawn command. There is no persistent
   selected-unit state and no unit-icon `selected` visual behavior yet.
+- If cooldown is active, tapping a unit icon logs a warning and does not spawn.
+- After a successful spawn, cooldown starts and the `bar` content width fills from `0` to its cached initial width over `coolDownDuration`.
+- During cooldown, unit icons are dimmed. When cooldown reaches zero, icons return to white.
+- Picker/icon tinting expects a `Sprite` on the configured root node. If art is moved to a child node, either move the binding to that child or update `PlayerArmyController.setNodeTint()`.
 - The current call is:
 
 ```text
@@ -952,23 +987,23 @@ GameManager.spawnWaveByName(team, unitName, selectedLaneId)
 ### Scene Setup Still Required
 
 The component file has been implemented, but this handoff does not claim that
-the scene wiring is complete.
+the scene wiring is complete after the latest controller change.
 
 Required Inspector work:
 
-1. Add `PlayerArmyController` to `ui-bottom` or another persistent UI node.
+1. Add or keep `PlayerArmyController` on `ui-bottom` or another persistent UI node.
 2. Assign `GameManager`.
-3. Assign the three lane `selected` child nodes.
-4. Add/configure Buttons and Click Events for all three lane pickers.
-5. Add/configure Buttons and Click Events for each unit icon.
-6. Disable `ArmyBrainA` when manual control is enabled.
+3. Assign the three picker root nodes to `leftPicker`, `midPicker`, and `rightPicker`.
+4. Ensure each picker root has a child node named exactly `selected`.
+5. Fill `unitIcons` with `{ node, unitName }` entries for every tappable unit icon.
+6. Remove or ignore old manual Button Click Events for picker/icon nodes; the component binds touch input itself.
+7. Disable `ArmyBrainA` when manual control is enabled.
 
 At the time of this handoff:
 
-- `ArmyBrainA` is still serialized as active and enabled in
-  `assets/Test.scene`.
-- If it remains enabled, team A can receive both player spawn commands and AI
-  spawn commands.
+- `assets/Test.scene` should be rechecked in the editor because source has changed since previous handoffs.
+- In the office source check after this update, `ArmyBrainA` was serialized with its component disabled and `GameManager.enableAutoSpawn` was false.
+- If `ArmyBrainA` is enabled later, team A can receive both player spawn commands and AI spawn commands.
 - Do not remove or broadly rewrite `ArmyBrain`; team B still needs it and the
   user may want to switch control modes later.
 - No automatic ArmyBrain enable/disable logic was added.

@@ -33,6 +33,7 @@
             "scripts\\Obstacle.ts",
             "scripts\\ObstacleCircle.ts",
             "scripts\\ObstacleRect.ts",
+            "scripts\\PlayerArmyController.ts",
             "scripts\\RandomAnimcationOffset.ts",
             "scripts\\SpawnBackPressureGate.ts",
             "scripts\\SpectorDebugger.ts",
@@ -111,8 +112,7 @@
             "MiniMap\\images\\spear-ico-small.png",
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico-small.png",
-            "MiniMap\\images\\sword-ico.png",
-            "scripts\\PlayerArmyController.ts"
+            "MiniMap\\images\\sword-ico.png"
         ]
     }
 }

@@ -37,6 +37,16 @@ System.register(["cc"], function (_export, _context) {
           this.neighborDist = 2.4;
           this.maxNeighbors = 8;
           this.locked = false;
+          this.team = -1;
+          this.onForward = 0;
+          this.forwardX = 0;
+          this.forwardZ = 1;
+          this.enableAllyOvertake = 0;
+          this.overtakeLookAhead = 2.2;
+          this.overtakeSideRange = 1.2;
+          this.overtakeSideStrength = 0.75;
+          this.overtakeSpeedDiff = 0.15;
+          this.overtakeSeed = 1;
           this.gridX = 0;
           this.gridZ = 0;
           this.pos.x = x;
@@ -51,6 +61,21 @@ System.register(["cc"], function (_export, _context) {
           this.circleObs = [];
           this.rectObs = [];
           this.grid = new Map();
+          this.gridKeyRows = new Map();
+          this.activeGridCells = [];
+          this.neighborScratch = [];
+          this.currentNeighborAgent = null;
+
+          this.compareNeighbors = (a, b) => {
+            var current = this.currentNeighborAgent;
+            if (!current) return 0;
+            var dxA = a.pos.x - current.pos.x;
+            var dzA = a.pos.z - current.pos.z;
+            var dxB = b.pos.x - current.pos.x;
+            var dzB = b.pos.z - current.pos.z;
+            return dxA * dxA + dzA * dzA - (dxB * dxB + dzB * dzB);
+          };
+
           this.cellSize = 2.2;
           this.timeStep = 1 / 60;
           this.minStepDeltaTime = 1 / 120;
@@ -72,6 +97,17 @@ System.register(["cc"], function (_export, _context) {
           this.maxX = maxX;
           this.minZ = minZ;
           this.maxZ = maxZ;
+        }
+
+        destroy() {
+          this.agents.length = 0;
+          this.circleObs.length = 0;
+          this.rectObs.length = 0;
+          this.activeGridCells.length = 0;
+          this.neighborScratch.length = 0;
+          this.currentNeighborAgent = null;
+          this.grid.clear();
+          this.gridKeyRows.clear();
         }
 
         addAgent(x, z) {
@@ -125,56 +161,142 @@ System.register(["cc"], function (_export, _context) {
         }
 
         buildGrid() {
-          this.grid.clear();
+          for (var i = 0; i < this.activeGridCells.length; i++) {
+            this.activeGridCells[i].length = 0;
+          }
 
-          for (var a of this.agents) {
+          this.activeGridCells.length = 0;
+
+          for (var _i = 0; _i < this.agents.length; _i++) {
+            var a = this.agents[_i];
             var gx = Math.floor(a.pos.x / this.cellSize);
             var gz = Math.floor(a.pos.z / this.cellSize);
             a.gridX = gx;
             a.gridZ = gz;
-            var key = gx + "_" + gz;
+            var key = this.getGridKey(gx, gz);
+            var cell = this.grid.get(key);
 
-            if (!this.grid.has(key)) {
-              this.grid.set(key, []);
+            if (!cell) {
+              cell = [];
+              this.grid.set(key, cell);
             }
 
-            this.grid.get(key).push(a);
+            if (cell.length <= 0) {
+              this.activeGridCells.push(cell);
+            }
+
+            cell.push(a);
           }
         }
 
+        getGridKey(gx, gz) {
+          var row = this.gridKeyRows.get(gx);
+
+          if (!row) {
+            row = new Map();
+            this.gridKeyRows.set(gx, row);
+          }
+
+          var key = row.get(gz);
+
+          if (!key) {
+            key = gx + "_" + gz;
+            row.set(gz, key);
+          }
+
+          return key;
+        }
+
         getNeighbors(a) {
-          var result = [];
+          var result = this.neighborScratch;
+          result.length = 0;
           var maxDistSq = a.neighborDist * a.neighborDist;
 
           for (var x = -1; x <= 1; x++) {
             for (var z = -1; z <= 1; z++) {
-              var key = a.gridX + x + "_" + (a.gridZ + z);
+              var key = this.getGridKey(a.gridX + x, a.gridZ + z);
               var cell = this.grid.get(key);
               if (!cell) continue;
 
-              for (var other of cell) {
+              for (var i = 0; i < cell.length; i++) {
+                var other = cell[i];
                 if (other === a) continue;
                 var dx = other.pos.x - a.pos.x;
                 var dz = other.pos.z - a.pos.z;
                 var distSq = dx * dx + dz * dz;
                 if (distSq > maxDistSq) continue;
-                result.push({
-                  agent: other,
-                  distSq
-                });
+                result.push(other);
               }
             }
           }
 
-          result.sort((a, b) => a.distSq - b.distSq);
-          var out = [];
-          var count = Math.min(a.maxNeighbors, result.length);
+          this.currentNeighborAgent = a;
+          result.sort(this.compareNeighbors);
+          this.currentNeighborAgent = null;
 
-          for (var i = 0; i < count; i++) {
-            out.push(result[i].agent);
+          if (result.length > a.maxNeighbors) {
+            result.length = a.maxNeighbors;
           }
 
-          return out;
+          return result;
+        }
+
+        applyAllyOvertake(a) {
+          if (!a.enableAllyOvertake) return;
+          if (a.locked) return;
+          if (a.onForward !== 1) return;
+          var best = null;
+          var bestForwardDist = Infinity;
+
+          for (var i = 0; i < this.agents.length; i++) {
+            var b = this.agents[i];
+            if (b === a) continue;
+            if (b.locked) continue;
+            if (b.team !== a.team) continue;
+            if (b.onForward !== 1) continue;
+
+            if (a.maxSpeed <= b.maxSpeed + a.overtakeSpeedDiff) {
+              continue;
+            }
+
+            var _dx = b.pos.x - a.pos.x;
+
+            var _dz = b.pos.z - a.pos.z;
+
+            var forwardDist = _dx * a.forwardX + _dz * a.forwardZ;
+            if (forwardDist <= 0) continue;
+            if (forwardDist > a.overtakeLookAhead) continue;
+            var sideDist = _dx * a.forwardZ - _dz * a.forwardX;
+
+            if (Math.abs(sideDist) > a.overtakeSideRange) {
+              continue;
+            }
+
+            if (forwardDist < bestForwardDist) {
+              bestForwardDist = forwardDist;
+              best = b;
+            }
+          }
+
+          if (!best) return;
+          var dx = a.pos.x - best.pos.x;
+          var dz = a.pos.z - best.pos.z;
+          var side = dx * a.forwardZ - dz * a.forwardX;
+
+          if (Math.abs(side) > 0.05) {
+            side = side >= 0 ? 1 : -1;
+          } else {
+            side = a.overtakeSeed >= 0 ? 1 : -1;
+          }
+
+          a.vel.x += a.forwardZ * side * a.maxSpeed * a.overtakeSideStrength;
+          a.vel.z += -a.forwardX * side * a.maxSpeed * a.overtakeSideStrength;
+          var speed = Math.sqrt(a.vel.x * a.vel.x + a.vel.z * a.vel.z);
+
+          if (speed > a.maxSpeed) {
+            a.vel.x = a.vel.x / speed * a.maxSpeed;
+            a.vel.z = a.vel.z / speed * a.maxSpeed;
+          }
         } // =========================================================
         // HARD COLLISION: CIRCLE OBSTACLE
         // =========================================================
@@ -266,12 +388,12 @@ System.register(["cc"], function (_export, _context) {
         }
 
         pushAgentOutOfObstacles(a) {
-          for (var ob of this.circleObs) {
-            this.pushAgentOutOfCircle(a, ob);
+          for (var i = 0; i < this.circleObs.length; i++) {
+            this.pushAgentOutOfCircle(a, this.circleObs[i]);
           }
 
-          for (var _ob of this.rectObs) {
-            this.pushAgentOutOfRect(a, _ob);
+          for (var _i2 = 0; _i2 < this.rectObs.length; _i2++) {
+            this.pushAgentOutOfRect(a, this.rectObs[_i2]);
           }
         }
 
@@ -285,13 +407,15 @@ System.register(["cc"], function (_export, _context) {
           var dt = this.getSafeDeltaTime(deltaTime);
           this.buildGrid(); // ===== VELOCITY =====
 
-          for (var a of this.agents) {
+          for (var i = 0; i < this.agents.length; i++) {
+            var a = this.agents[i];
             if (a.locked) continue;
             var vx = a.prefVel.x;
             var vz = a.prefVel.z;
             var neighbors = this.getNeighbors(a); // ===== agent-agent avoidance =====
 
-            for (var b of neighbors) {
+            for (var j = 0; j < neighbors.length; j++) {
+              var b = neighbors[j];
               var dx = a.pos.x - b.pos.x;
               var dz = a.pos.z - b.pos.z;
               var distSq = dx * dx + dz * dz;
@@ -315,19 +439,21 @@ System.register(["cc"], function (_export, _context) {
             } // ===== circle obstacle velocity avoidance =====
 
 
-            for (var ob of this.circleObs) {
-              var _dx = a.pos.x - ob.x;
+            for (var _j = 0; _j < this.circleObs.length; _j++) {
+              var ob = this.circleObs[_j];
 
-              var _dz = a.pos.z - ob.z;
+              var _dx2 = a.pos.x - ob.x;
 
-              var _dist = Math.sqrt(_dx * _dx + _dz * _dz);
+              var _dz2 = a.pos.z - ob.z;
+
+              var _dist = Math.sqrt(_dx2 * _dx2 + _dz2 * _dz2);
 
               var _minDist = a.radius + ob.r;
 
               if (_dist < _minDist && _dist > 0.0001) {
-                var _nx = _dx / _dist;
+                var _nx = _dx2 / _dist;
 
-                var _nz = _dz / _dist;
+                var _nz = _dz2 / _dist;
 
                 vx += _nx * (_minDist - _dist) * 2;
                 vz += _nz * (_minDist - _dist) * 2;
@@ -342,15 +468,17 @@ System.register(["cc"], function (_export, _context) {
             } // ===== rect obstacle velocity avoidance =====
 
 
-            for (var _ob2 of this.rectObs) {
-              var _dx2 = a.pos.x - _ob2.x;
+            for (var _j2 = 0; _j2 < this.rectObs.length; _j2++) {
+              var _ob = this.rectObs[_j2];
 
-              var _dz2 = a.pos.z - _ob2.z;
+              var _dx3 = a.pos.x - _ob.x;
 
-              var lx = _dx2 * _ob2.cos + _dz2 * _ob2.sin;
-              var lz = -_dx2 * _ob2.sin + _dz2 * _ob2.cos;
-              var px = this.clamp(lx, -_ob2.hx, _ob2.hx);
-              var pz = this.clamp(lz, -_ob2.hz, _ob2.hz);
+              var _dz3 = a.pos.z - _ob.z;
+
+              var lx = _dx3 * _ob.cos + _dz3 * _ob.sin;
+              var lz = -_dx3 * _ob.sin + _dz3 * _ob.cos;
+              var px = this.clamp(lx, -_ob.hx, _ob.hx);
+              var pz = this.clamp(lz, -_ob.hz, _ob.hz);
               var ox = lx - px;
               var oz = lz - pz;
 
@@ -364,9 +492,9 @@ System.register(["cc"], function (_export, _context) {
                   var nxL = ox / _dist2;
                   var nzL = oz / _dist2;
 
-                  var _nx2 = nxL * _ob2.cos - nzL * _ob2.sin;
+                  var _nx2 = nxL * _ob.cos - nzL * _ob.sin;
 
-                  var _nz2 = nxL * _ob2.sin + nzL * _ob2.cos;
+                  var _nz2 = nxL * _ob.sin + nzL * _ob.cos;
 
                   vx += _nx2 * (a.radius - _dist2) * 2;
                   vz += _nz2 * (a.radius - _dist2) * 2;
@@ -380,10 +508,10 @@ System.register(["cc"], function (_export, _context) {
                 }
               } // Agent center đã ở trong rect
               else {
-                var dLeft = lx + _ob2.hx;
-                var dRight = _ob2.hx - lx;
-                var dBottom = lz + _ob2.hz;
-                var dTop = _ob2.hz - lz;
+                var dLeft = lx + _ob.hx;
+                var dRight = _ob.hx - lx;
+                var dBottom = lz + _ob.hz;
+                var dTop = _ob.hz - lz;
 
                 var _nxL = -1;
 
@@ -408,9 +536,9 @@ System.register(["cc"], function (_export, _context) {
                   _nzL = 1;
                 }
 
-                var _nx3 = _nxL * _ob2.cos - _nzL * _ob2.sin;
+                var _nx3 = _nxL * _ob.cos - _nzL * _ob.sin;
 
-                var _nz3 = _nxL * _ob2.sin + _nzL * _ob2.cos;
+                var _nz3 = _nxL * _ob.sin + _nzL * _ob.cos;
 
                 vx += _nx3 * (a.radius + minD) * 2;
                 vz += _nz3 * (a.radius + minD) * 2;
@@ -424,6 +552,11 @@ System.register(["cc"], function (_export, _context) {
               }
             }
 
+            a.vel.x = vx;
+            a.vel.z = vz;
+            this.applyAllyOvertake(a);
+            vx = a.vel.x;
+            vz = a.vel.z;
             var speed = Math.sqrt(vx * vx + vz * vz);
 
             if (speed > a.maxSpeed) {
@@ -436,12 +569,14 @@ System.register(["cc"], function (_export, _context) {
           } // ===== MOVE =====
 
 
-          for (var _a of this.agents) {
+          for (var _i3 = 0; _i3 < this.agents.length; _i3++) {
+            var _a = this.agents[_i3];
+
             if (!_a.locked) {
               _a.pos.x += _a.vel.x * dt;
               _a.pos.z += _a.vel.z * dt; // Chống xuyên obstacle sau khi di chuyển.
 
-              for (var i = 0; i < this.obstacleSolveIterations; i++) {
+              for (var _i4 = 0; _i4 < this.obstacleSolveIterations; _i4++) {
                 this.pushAgentOutOfObstacles(_a);
               }
             }
@@ -451,15 +586,19 @@ System.register(["cc"], function (_export, _context) {
 
           this.buildGrid(); // ===== HARD SEPARATION: AGENT-AGENT =====
 
-          for (var _a2 of this.agents) {
+          for (var _i5 = 0; _i5 < this.agents.length; _i5++) {
+            var _a2 = this.agents[_i5];
+
             var _neighbors = this.getNeighbors(_a2);
 
-            for (var _b of _neighbors) {
-              var _dx3 = _b.pos.x - _a2.pos.x;
+            for (var _j3 = 0; _j3 < _neighbors.length; _j3++) {
+              var _b = _neighbors[_j3];
 
-              var _dz3 = _b.pos.z - _a2.pos.z;
+              var _dx4 = _b.pos.x - _a2.pos.x;
 
-              var _distSq2 = _dx3 * _dx3 + _dz3 * _dz3;
+              var _dz4 = _b.pos.z - _a2.pos.z;
+
+              var _distSq2 = _dx4 * _dx4 + _dz4 * _dz4;
 
               var _minDist2 = _a2.radius + _b.radius;
 
@@ -468,18 +607,25 @@ System.register(["cc"], function (_export, _context) {
               if (_distSq2 < _minDist2 * _minDist2) {
                 var _dist3 = Math.sqrt(_distSq2);
 
-                var overlap = (_minDist2 - _dist3) * 0.5;
+                var overlap = _minDist2 - _dist3;
 
-                var _nx4 = _dx3 / _dist3;
+                var _nx4 = _dx4 / _dist3;
 
-                var _nz4 = _dz3 / _dist3;
+                var _nz4 = _dz4 / _dist3;
 
-                if (!_a2.locked) {
+                var aMovable = !_a2.locked;
+                var bMovable = !_b.locked;
+
+                if (aMovable && bMovable) {
+                  var half = overlap * 0.5;
+                  _a2.pos.x -= _nx4 * half;
+                  _a2.pos.z -= _nz4 * half;
+                  _b.pos.x += _nx4 * half;
+                  _b.pos.z += _nz4 * half;
+                } else if (aMovable && !bMovable) {
                   _a2.pos.x -= _nx4 * overlap;
                   _a2.pos.z -= _nz4 * overlap;
-                }
-
-                if (!_b.locked) {
+                } else if (!aMovable && bMovable) {
                   _b.pos.x += _nx4 * overlap;
                   _b.pos.z += _nz4 * overlap;
                 }
@@ -490,10 +636,11 @@ System.register(["cc"], function (_export, _context) {
           // nên cần solve obstacle thêm lần nữa.
 
 
-          for (var _a3 of this.agents) {
+          for (var _i6 = 0; _i6 < this.agents.length; _i6++) {
+            var _a3 = this.agents[_i6];
             if (_a3.locked) continue;
 
-            for (var _i = 0; _i < this.obstacleSolveIterations; _i++) {
+            for (var _i7 = 0; _i7 < this.obstacleSolveIterations; _i7++) {
               this.pushAgentOutOfObstacles(_a3);
             }
 

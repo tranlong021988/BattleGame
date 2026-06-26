@@ -37,6 +37,16 @@ System.register(["cc"], function (_export, _context) {
           this.neighborDist = 2.4;
           this.maxNeighbors = 8;
           this.locked = false;
+          this.team = -1;
+          this.onForward = 0;
+          this.forwardX = 0;
+          this.forwardZ = 1;
+          this.enableAllyOvertake = 0;
+          this.overtakeLookAhead = 2.2;
+          this.overtakeSideRange = 1.2;
+          this.overtakeSideStrength = 0.75;
+          this.overtakeSpeedDiff = 0.15;
+          this.overtakeSeed = 1;
           this.gridX = 0;
           this.gridZ = 0;
           this.pos.x = x;
@@ -51,6 +61,21 @@ System.register(["cc"], function (_export, _context) {
           this.circleObs = [];
           this.rectObs = [];
           this.grid = new Map();
+          this.gridKeyRows = new Map();
+          this.activeGridCells = [];
+          this.neighborScratch = [];
+          this.currentNeighborAgent = null;
+
+          this.compareNeighbors = (a, b) => {
+            const current = this.currentNeighborAgent;
+            if (!current) return 0;
+            const dxA = a.pos.x - current.pos.x;
+            const dzA = a.pos.z - current.pos.z;
+            const dxB = b.pos.x - current.pos.x;
+            const dzB = b.pos.z - current.pos.z;
+            return dxA * dxA + dzA * dzA - (dxB * dxB + dzB * dzB);
+          };
+
           this.cellSize = 2.2;
           this.timeStep = 1 / 60;
           this.minStepDeltaTime = 1 / 120;
@@ -72,6 +97,17 @@ System.register(["cc"], function (_export, _context) {
           this.maxX = maxX;
           this.minZ = minZ;
           this.maxZ = maxZ;
+        }
+
+        destroy() {
+          this.agents.length = 0;
+          this.circleObs.length = 0;
+          this.rectObs.length = 0;
+          this.activeGridCells.length = 0;
+          this.neighborScratch.length = 0;
+          this.currentNeighborAgent = null;
+          this.grid.clear();
+          this.gridKeyRows.clear();
         }
 
         addAgent(x, z) {
@@ -125,56 +161,140 @@ System.register(["cc"], function (_export, _context) {
         }
 
         buildGrid() {
-          this.grid.clear();
+          for (let i = 0; i < this.activeGridCells.length; i++) {
+            this.activeGridCells[i].length = 0;
+          }
 
-          for (let a of this.agents) {
+          this.activeGridCells.length = 0;
+
+          for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
             const gx = Math.floor(a.pos.x / this.cellSize);
             const gz = Math.floor(a.pos.z / this.cellSize);
             a.gridX = gx;
             a.gridZ = gz;
-            const key = gx + "_" + gz;
+            const key = this.getGridKey(gx, gz);
+            let cell = this.grid.get(key);
 
-            if (!this.grid.has(key)) {
-              this.grid.set(key, []);
+            if (!cell) {
+              cell = [];
+              this.grid.set(key, cell);
             }
 
-            this.grid.get(key).push(a);
+            if (cell.length <= 0) {
+              this.activeGridCells.push(cell);
+            }
+
+            cell.push(a);
           }
         }
 
+        getGridKey(gx, gz) {
+          let row = this.gridKeyRows.get(gx);
+
+          if (!row) {
+            row = new Map();
+            this.gridKeyRows.set(gx, row);
+          }
+
+          let key = row.get(gz);
+
+          if (!key) {
+            key = gx + "_" + gz;
+            row.set(gz, key);
+          }
+
+          return key;
+        }
+
         getNeighbors(a) {
-          const result = [];
+          const result = this.neighborScratch;
+          result.length = 0;
           const maxDistSq = a.neighborDist * a.neighborDist;
 
           for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
-              const key = a.gridX + x + "_" + (a.gridZ + z);
+              const key = this.getGridKey(a.gridX + x, a.gridZ + z);
               const cell = this.grid.get(key);
               if (!cell) continue;
 
-              for (let other of cell) {
+              for (let i = 0; i < cell.length; i++) {
+                const other = cell[i];
                 if (other === a) continue;
                 const dx = other.pos.x - a.pos.x;
                 const dz = other.pos.z - a.pos.z;
                 const distSq = dx * dx + dz * dz;
                 if (distSq > maxDistSq) continue;
-                result.push({
-                  agent: other,
-                  distSq
-                });
+                result.push(other);
               }
             }
           }
 
-          result.sort((a, b) => a.distSq - b.distSq);
-          const out = [];
-          const count = Math.min(a.maxNeighbors, result.length);
+          this.currentNeighborAgent = a;
+          result.sort(this.compareNeighbors);
+          this.currentNeighborAgent = null;
 
-          for (let i = 0; i < count; i++) {
-            out.push(result[i].agent);
+          if (result.length > a.maxNeighbors) {
+            result.length = a.maxNeighbors;
           }
 
-          return out;
+          return result;
+        }
+
+        applyAllyOvertake(a) {
+          if (!a.enableAllyOvertake) return;
+          if (a.locked) return;
+          if (a.onForward !== 1) return;
+          let best = null;
+          let bestForwardDist = Infinity;
+
+          for (let i = 0; i < this.agents.length; i++) {
+            const b = this.agents[i];
+            if (b === a) continue;
+            if (b.locked) continue;
+            if (b.team !== a.team) continue;
+            if (b.onForward !== 1) continue;
+
+            if (a.maxSpeed <= b.maxSpeed + a.overtakeSpeedDiff) {
+              continue;
+            }
+
+            const dx = b.pos.x - a.pos.x;
+            const dz = b.pos.z - a.pos.z;
+            const forwardDist = dx * a.forwardX + dz * a.forwardZ;
+            if (forwardDist <= 0) continue;
+            if (forwardDist > a.overtakeLookAhead) continue;
+            const sideDist = dx * a.forwardZ - dz * a.forwardX;
+
+            if (Math.abs(sideDist) > a.overtakeSideRange) {
+              continue;
+            }
+
+            if (forwardDist < bestForwardDist) {
+              bestForwardDist = forwardDist;
+              best = b;
+            }
+          }
+
+          if (!best) return;
+          const dx = a.pos.x - best.pos.x;
+          const dz = a.pos.z - best.pos.z;
+          let side = dx * a.forwardZ - dz * a.forwardX;
+
+          if (Math.abs(side) > 0.05) {
+            side = side >= 0 ? 1 : -1;
+          } else {
+            side = a.overtakeSeed >= 0 ? 1 : -1;
+          }
+
+          a.vel.x += a.forwardZ * side * a.maxSpeed * a.overtakeSideStrength;
+          a.vel.z += -a.forwardX * side * a.maxSpeed * a.overtakeSideStrength;
+          const speed = Math.sqrt(a.vel.x * a.vel.x + a.vel.z * a.vel.z);
+
+          if (speed > a.maxSpeed) {
+            a.vel.x = a.vel.x / speed * a.maxSpeed;
+            a.vel.z = a.vel.z / speed * a.maxSpeed;
+          }
         } // =========================================================
         // HARD COLLISION: CIRCLE OBSTACLE
         // =========================================================
@@ -266,12 +386,12 @@ System.register(["cc"], function (_export, _context) {
         }
 
         pushAgentOutOfObstacles(a) {
-          for (let ob of this.circleObs) {
-            this.pushAgentOutOfCircle(a, ob);
+          for (let i = 0; i < this.circleObs.length; i++) {
+            this.pushAgentOutOfCircle(a, this.circleObs[i]);
           }
 
-          for (let ob of this.rectObs) {
-            this.pushAgentOutOfRect(a, ob);
+          for (let i = 0; i < this.rectObs.length; i++) {
+            this.pushAgentOutOfRect(a, this.rectObs[i]);
           }
         }
 
@@ -285,13 +405,15 @@ System.register(["cc"], function (_export, _context) {
           const dt = this.getSafeDeltaTime(deltaTime);
           this.buildGrid(); // ===== VELOCITY =====
 
-          for (let a of this.agents) {
+          for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
             if (a.locked) continue;
             let vx = a.prefVel.x;
             let vz = a.prefVel.z;
             const neighbors = this.getNeighbors(a); // ===== agent-agent avoidance =====
 
-            for (let b of neighbors) {
+            for (let j = 0; j < neighbors.length; j++) {
+              const b = neighbors[j];
               const dx = a.pos.x - b.pos.x;
               const dz = a.pos.z - b.pos.z;
               const distSq = dx * dx + dz * dz;
@@ -315,7 +437,8 @@ System.register(["cc"], function (_export, _context) {
             } // ===== circle obstacle velocity avoidance =====
 
 
-            for (let ob of this.circleObs) {
+            for (let j = 0; j < this.circleObs.length; j++) {
+              const ob = this.circleObs[j];
               const dx = a.pos.x - ob.x;
               const dz = a.pos.z - ob.z;
               const dist = Math.sqrt(dx * dx + dz * dz);
@@ -336,7 +459,8 @@ System.register(["cc"], function (_export, _context) {
             } // ===== rect obstacle velocity avoidance =====
 
 
-            for (let ob of this.rectObs) {
+            for (let j = 0; j < this.rectObs.length; j++) {
+              const ob = this.rectObs[j];
               const dx = a.pos.x - ob.x;
               const dz = a.pos.z - ob.z;
               const lx = dx * ob.cos + dz * ob.sin;
@@ -404,6 +528,11 @@ System.register(["cc"], function (_export, _context) {
               }
             }
 
+            a.vel.x = vx;
+            a.vel.z = vz;
+            this.applyAllyOvertake(a);
+            vx = a.vel.x;
+            vz = a.vel.z;
             const speed = Math.sqrt(vx * vx + vz * vz);
 
             if (speed > a.maxSpeed) {
@@ -416,7 +545,9 @@ System.register(["cc"], function (_export, _context) {
           } // ===== MOVE =====
 
 
-          for (let a of this.agents) {
+          for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
+
             if (!a.locked) {
               a.pos.x += a.vel.x * dt;
               a.pos.z += a.vel.z * dt; // Chống xuyên obstacle sau khi di chuyển.
@@ -431,10 +562,12 @@ System.register(["cc"], function (_export, _context) {
 
           this.buildGrid(); // ===== HARD SEPARATION: AGENT-AGENT =====
 
-          for (let a of this.agents) {
+          for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
             const neighbors = this.getNeighbors(a);
 
-            for (let b of neighbors) {
+            for (let j = 0; j < neighbors.length; j++) {
+              const b = neighbors[j];
               const dx = b.pos.x - a.pos.x;
               const dz = b.pos.z - a.pos.z;
               const distSq = dx * dx + dz * dz;
@@ -443,16 +576,22 @@ System.register(["cc"], function (_export, _context) {
 
               if (distSq < minDist * minDist) {
                 const dist = Math.sqrt(distSq);
-                const overlap = (minDist - dist) * 0.5;
+                const overlap = minDist - dist;
                 const nx = dx / dist;
                 const nz = dz / dist;
+                const aMovable = !a.locked;
+                const bMovable = !b.locked;
 
-                if (!a.locked) {
+                if (aMovable && bMovable) {
+                  const half = overlap * 0.5;
+                  a.pos.x -= nx * half;
+                  a.pos.z -= nz * half;
+                  b.pos.x += nx * half;
+                  b.pos.z += nz * half;
+                } else if (aMovable && !bMovable) {
                   a.pos.x -= nx * overlap;
                   a.pos.z -= nz * overlap;
-                }
-
-                if (!b.locked) {
+                } else if (!aMovable && bMovable) {
                   b.pos.x += nx * overlap;
                   b.pos.z += nz * overlap;
                 }
@@ -463,7 +602,8 @@ System.register(["cc"], function (_export, _context) {
           // nên cần solve obstacle thêm lần nữa.
 
 
-          for (let a of this.agents) {
+          for (let i = 0; i < this.agents.length; i++) {
+            const a = this.agents[i];
             if (a.locked) continue;
 
             for (let i = 0; i < this.obstacleSolveIterations; i++) {

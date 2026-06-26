@@ -43,7 +43,9 @@ type MiniMapWaveRecord = {
     targetPosition: Vec3;
     velocity: Vec3;
     aliveRatio: number;
+    displayedAliveRatio: number;
     engaged: boolean;
+    visualEngaged: boolean;
     removing: boolean;
 };
 
@@ -57,7 +59,9 @@ type MiniMapHeroRecord = {
     targetPosition: Vec3;
     velocity: Vec3;
     aliveRatio: number;
+    displayedAliveRatio: number;
     engaged: boolean;
+    visualEngaged: boolean;
     removing: boolean;
 };
 
@@ -204,8 +208,8 @@ export class TrueMiniMapPanel extends Component {
     private removeWaveIds: number[] = [];
     private removeHeroTeams: number[] = [];
     private iconSeparationRecords: MiniMapSeparationRecord[] = [];
-    private iconSeparationGrid: Map<string, number[]> = new Map();
-    private iconSeparationGridKeys: string[] = [];
+    private iconSeparationGrid: Map<number, number[]> = new Map();
+    private iconSeparationGridKeys: number[] = [];
     private tempWaveScan: MiniMapWaveScan = {
         aliveCount: 0,
         aliveRatio: 0,
@@ -213,6 +217,9 @@ export class TrueMiniMapPanel extends Component {
         dead: true,
         hasPosition: false,
     };
+    private readonly tweenScaleOne = new Vec3(1, 1, 1);
+    private readonly tweenScaleZero = new Vec3(0, 0, 1);
+    private readonly iconPositionStopDistanceSq = 0.0001;
 
     start() {
 
@@ -393,18 +400,35 @@ export class TrueMiniMapPanel extends Component {
             ui =
                 node.addComponent(
                     UITransform
-                );
+            );
         }
 
-        ui.setContentSize(
-            width,
-            height
-        );
+        const size =
+            ui.contentSize;
 
-        ui.setAnchorPoint(
-            0.5,
-            0.5
-        );
+        if (
+            Math.abs(size.width - width) >
+            0.001 ||
+            Math.abs(size.height - height) >
+            0.001
+        ) {
+            ui.setContentSize(
+                width,
+                height
+            );
+        }
+
+        if (
+            Math.abs(ui.anchorX - 0.5) >
+            0.001 ||
+            Math.abs(ui.anchorY - 0.5) >
+            0.001
+        ) {
+            ui.setAnchorPoint(
+                0.5,
+                0.5
+            );
+        }
     }
 
     private syncWithBattleWaves() {
@@ -539,10 +563,13 @@ export class TrueMiniMapPanel extends Component {
         node.setScale(0, 0, 1);
         node.active = true;
 
-        item.setAliveRatio(
+        const displayedAliveRatio =
             this.showAliveRatio
                 ? aliveRatio
-                : 1
+                : 1;
+
+        item.setAliveRatio(
+            displayedAliveRatio
         );
 
         item.updateEngageVisual(
@@ -560,7 +587,9 @@ export class TrueMiniMapPanel extends Component {
             targetPosition: target.clone(),
             velocity: new Vec3(),
             aliveRatio,
+            displayedAliveRatio,
             engaged,
+            visualEngaged: engaged,
             removing: false,
         };
 
@@ -572,7 +601,7 @@ export class TrueMiniMapPanel extends Component {
         tween(node)
             .to(
                 this.getSafeTweenDuration(),
-                { scale: new Vec3(1, 1, 1) }
+                { scale: this.tweenScaleOne }
             )
             .start();
 
@@ -706,10 +735,13 @@ export class TrueMiniMapPanel extends Component {
                 ? hero.props.getHealthRatio()
                 : 1;
 
-        item.setAliveRatio(
+        const displayedAliveRatio =
             this.showAliveRatio
                 ? aliveRatio
-                : 1
+                : 1;
+
+        item.setAliveRatio(
+            displayedAliveRatio
         );
 
         item.updateEngageVisual(
@@ -727,7 +759,9 @@ export class TrueMiniMapPanel extends Component {
             targetPosition: target.clone(),
             velocity: new Vec3(),
             aliveRatio,
+            displayedAliveRatio,
             engaged: hero.onBusy,
+            visualEngaged: hero.onBusy,
             removing: false,
         };
 
@@ -739,7 +773,7 @@ export class TrueMiniMapPanel extends Component {
         tween(node)
             .to(
                 this.getSafeTweenDuration(),
-                { scale: new Vec3(1, 1, 1) }
+                { scale: this.tweenScaleOne }
             )
             .start();
 
@@ -814,11 +848,24 @@ export class TrueMiniMapPanel extends Component {
                     record.rawPosition
                 );
 
-                record.item.setAliveRatio(
+                const displayedAliveRatio =
                     this.showAliveRatio
                         ? record.aliveRatio
-                        : 1
-                );
+                        : 1;
+
+                if (
+                    Math.abs(
+                        record.displayedAliveRatio -
+                        displayedAliveRatio
+                    ) > 0.001
+                ) {
+                    record.displayedAliveRatio =
+                        displayedAliveRatio;
+
+                    record.item.setAliveRatio(
+                        displayedAliveRatio
+                    );
+                }
             }
         );
 
@@ -878,11 +925,24 @@ export class TrueMiniMapPanel extends Component {
                     record.rawPosition
                 );
 
-                record.item.setAliveRatio(
+                const displayedAliveRatio =
                     this.showAliveRatio
                         ? record.aliveRatio
-                        : 1
-                );
+                        : 1;
+
+                if (
+                    Math.abs(
+                        record.displayedAliveRatio -
+                        displayedAliveRatio
+                    ) > 0.001
+                ) {
+                    record.displayedAliveRatio =
+                        displayedAliveRatio;
+
+                    record.item.setAliveRatio(
+                        displayedAliveRatio
+                    );
+                }
             }
         );
 
@@ -901,94 +961,102 @@ export class TrueMiniMapPanel extends Component {
         deltaTime: number
     ) {
 
-        this.records.forEach(
-            (record) => {
+        for (const record of this.records.values()) {
 
-                if (record.removing) {
-                    return;
-                }
+            if (record.removing) {
+                continue;
+            }
 
-                if (
-                    this.smoothDampTime <=
+            this.updateIconNodePosition(
+                record,
+                deltaTime
+            );
+        }
+
+        for (const record of this.heroRecords.values()) {
+
+            if (record.removing) {
+                continue;
+            }
+
+            this.updateIconNodePosition(
+                record,
+                deltaTime
+            );
+        }
+    }
+
+    private updateIconNodePosition(
+        record: {
+            node: Node;
+            targetPosition: Vec3;
+            velocity: Vec3;
+        },
+        deltaTime: number
+    ) {
+
+        const current =
+            record.node.position;
+
+        const dx =
+            record.targetPosition.x -
+            current.x;
+
+        const dy =
+            record.targetPosition.y -
+            current.y;
+
+        if (
+            dx * dx + dy * dy <=
+            this.iconPositionStopDistanceSq
+        ) {
+            if (
+                Math.abs(record.velocity.x) >
+                0.0001 ||
+                Math.abs(record.velocity.y) >
+                0.0001
+            ) {
+                record.velocity.set(
+                    0,
+                    0,
                     0
-                ) {
-                    record.node.setPosition(
-                        record.targetPosition
-                    );
-
-                    return;
-                }
-
-                const current =
-                    record.node.position;
-
-                this.tempPosition.set(
-                    this.smoothDamp(
-                        current.x,
-                        record.targetPosition.x,
-                        'x',
-                        record,
-                        deltaTime
-                    ),
-                    this.smoothDamp(
-                        current.y,
-                        record.targetPosition.y,
-                        'y',
-                        record,
-                        deltaTime
-                    ),
-                    0
-                );
-
-                record.node.setPosition(
-                    this.tempPosition
                 );
             }
+
+            return;
+        }
+
+        if (
+            this.smoothDampTime <=
+            0
+        ) {
+            record.node.setPosition(
+                record.targetPosition
+            );
+
+            return;
+        }
+
+        this.tempPosition.set(
+            this.smoothDamp(
+                current.x,
+                record.targetPosition.x,
+                'x',
+                record,
+                deltaTime
+            ),
+            this.smoothDamp(
+                current.y,
+                record.targetPosition.y,
+                'y',
+                record,
+                deltaTime
+            ),
+            0
         );
 
-        this.heroRecords.forEach(
-            (record) => {
-
-                if (record.removing) {
-                    return;
-                }
-
-                if (
-                    this.smoothDampTime <=
-                    0
-                ) {
-                    record.node.setPosition(
-                        record.targetPosition
-                    );
-
-                    return;
-                }
-
-                const current =
-                    record.node.position;
-
-                this.tempPosition.set(
-                    this.smoothDamp(
-                        current.x,
-                        record.targetPosition.x,
-                        'x',
-                        record,
-                        deltaTime
-                    ),
-                    this.smoothDamp(
-                        current.y,
-                        record.targetPosition.y,
-                        'y',
-                        record,
-                        deltaTime
-                    ),
-                    0
-                );
-
-                record.node.setPosition(
-                    this.tempPosition
-                );
-            }
+        record.node.setPosition(
+            this.tempPosition
         );
     }
 
@@ -1200,7 +1268,12 @@ export class TrueMiniMapPanel extends Component {
         x: number,
         y: number
     ) {
-        return `${x}_${y}`;
+        return (
+            (x + 32768) *
+            65536 +
+            y +
+            32768
+        );
     }
 
     private clampSeparatedIconTargets(
@@ -1491,33 +1564,59 @@ export class TrueMiniMapPanel extends Component {
 
     private updateFlashOnly() {
 
-        this.records.forEach(
-            (record) => {
+        for (const record of this.records.values()) {
 
-                if (record.removing) {
-                    return;
+            if (record.removing) {
+                continue;
+            }
+
+            if (!record.engaged) {
+                if (record.visualEngaged) {
+                    record.item.updateEngageVisual(
+                        false,
+                        this.time
+                    );
+
+                    record.visualEngaged = false;
                 }
 
-                record.item.updateEngageVisual(
-                    record.engaged,
-                    this.time
-                );
+                continue;
             }
-        );
 
-        this.heroRecords.forEach(
-            (record) => {
+            record.item.updateEngageVisual(
+                true,
+                this.time
+            );
 
-                if (record.removing) {
-                    return;
+            record.visualEngaged = true;
+        }
+
+        for (const record of this.heroRecords.values()) {
+
+            if (record.removing) {
+                continue;
+            }
+
+            if (!record.engaged) {
+                if (record.visualEngaged) {
+                    record.item.updateEngageVisual(
+                        false,
+                        this.time
+                    );
+
+                    record.visualEngaged = false;
                 }
 
-                record.item.updateEngageVisual(
-                    record.engaged,
-                    this.time
-                );
+                continue;
             }
-        );
+
+            record.item.updateEngageVisual(
+                true,
+                this.time
+            );
+
+            record.visualEngaged = true;
+        }
     }
 
     private releaseIcon(
@@ -1558,7 +1657,7 @@ export class TrueMiniMapPanel extends Component {
         tween(record.node)
             .to(
                 this.getSafeTweenDuration(),
-                { scale: new Vec3(0, 0, 1) }
+                { scale: this.tweenScaleZero }
             )
             .call(() => {
                 this.records.delete(
@@ -1608,7 +1707,7 @@ export class TrueMiniMapPanel extends Component {
         tween(record.node)
             .to(
                 this.getSafeTweenDuration(),
-                { scale: new Vec3(0, 0, 1) }
+                { scale: this.tweenScaleZero }
             )
             .call(() => {
                 this.heroRecords.delete(team);

@@ -26,6 +26,9 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.useWorkerTargetQuery = true;
           this.teamAGrid = new Map();
           this.teamBGrid = new Map();
+          this.gridKeyRows = new Map();
+          this.teamAActiveCells = [];
+          this.teamBActiveCells = [];
           this.tempResult = [];
           this.nearestSearchBest = null;
           this.nearestSearchBestDistSq = Infinity;
@@ -44,18 +47,23 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.activeNearestRequests = new Map();
           this.nearestRequestPool = [];
           this.flushScheduled = false;
+          this.workerResponseTimeout = null;
+          this.workerResponseTimeoutSeq = 0;
+          this.lastCompletedWorkerSeq = 0;
         }
 
         build(teamA, teamB) {
-          this.teamAGrid.clear();
-          this.teamBGrid.clear();
+          this.clearActiveGridCells(this.teamAActiveCells);
+          this.clearActiveGridCells(this.teamBActiveCells);
           this.unitsById.clear();
           this.targetSnapshotLength = 0;
-          this.fillGrid(this.teamAGrid, teamA, 0);
-          this.fillGrid(this.teamBGrid, teamB, 1);
+          this.fillGrid(this.teamAGrid, this.teamAActiveCells, teamA, 0);
+          this.fillGrid(this.teamBGrid, this.teamBActiveCells, teamB, 1);
         }
 
         destroy() {
+          this.clearWorkerResponseTimeout();
+
           if (this.worker) {
             this.worker.terminate();
             this.worker = null;
@@ -68,13 +76,18 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.pendingNearestRequests.length = 0;
           this.recycleActiveNearestRequests();
           this.activeNearestRequests.clear();
+          this.teamAGrid.clear();
+          this.teamBGrid.clear();
+          this.gridKeyRows.clear();
+          this.teamAActiveCells.length = 0;
+          this.teamBActiveCells.length = 0;
           this.unitsById.clear();
           this.targetSnapshot = new Float64Array(0);
           this.targetSnapshotLength = 0;
           this.packedRequestData = new Float64Array(0);
         }
 
-        fillGrid(grid, units, team) {
+        fillGrid(grid, activeCells, units, team) {
           for (let i = 0; i < units.length; i++) {
             const unit = units[i];
             if (!unit) continue;
@@ -89,6 +102,10 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             if (!list) {
               list = [];
               grid.set(key, list);
+            }
+
+            if (list.length <= 0) {
+              activeCells.push(list);
             }
 
             list.push(unit);
@@ -229,7 +246,21 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         getKey(x, z) {
-          return `${x}_${z}`;
+          let row = this.gridKeyRows.get(x);
+
+          if (!row) {
+            row = new Map();
+            this.gridKeyRows.set(x, row);
+          }
+
+          let key = row.get(z);
+
+          if (!key) {
+            key = `${x}_${z}`;
+            row.set(z, key);
+          }
+
+          return key;
         }
 
         canUseWorkerTargetQuery() {
@@ -281,20 +312,28 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           const requestData = packedRequests.subarray(0, packedLength);
 
           try {
+            const seq = ++this.workerSeq;
             this.worker.postMessage({
               type: 'findNearestBatch',
-              seq: ++this.workerSeq,
+              seq,
               cellSize: this.cellSize,
               units: unitData,
               unitLength,
               requests: requestData,
               requestLength: packedLength
             });
+            this.armWorkerResponseTimeout(seq);
           } catch (err) {
-            this.workerFailed = true;
-            this.workerReady = false;
-            this.completeActiveRequestsOnMainThread();
+            this.failWorkerAndCompleteRequests();
           }
+        }
+
+        clearActiveGridCells(activeCells) {
+          for (let i = 0; i < activeCells.length; i++) {
+            activeCells[i].length = 0;
+          }
+
+          activeCells.length = 0;
         }
 
         applyWorkerResults(results) {
@@ -345,6 +384,78 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
             this.recycleNearestRequest(request);
           }
+        }
+
+        completePendingRequestsOnMainThread() {
+          const requests = this.pendingNearestRequests;
+          this.pendingNearestRequests = [];
+
+          for (let i = 0; i < requests.length; i++) {
+            const request = requests[i];
+            const callback = request.callback;
+            const callbackToken = request.callbackToken;
+
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
+              continue;
+            }
+
+            callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
+            this.recycleNearestRequest(request);
+          }
+        }
+
+        armWorkerResponseTimeout(seq) {
+          if (this.workerResponseTimeout !== null) {
+            return;
+          }
+
+          this.workerResponseTimeoutSeq = seq;
+          this.workerResponseTimeout = setTimeout(() => {
+            this.workerResponseTimeout = null;
+
+            if (this.lastCompletedWorkerSeq >= this.workerResponseTimeoutSeq) {
+              return;
+            }
+
+            this.failWorkerAndCompleteRequests();
+          }, BattleSpatialGrid.workerResponseTimeoutMs);
+        }
+
+        completeWorkerBatch(seq) {
+          this.lastCompletedWorkerSeq = Math.max(this.lastCompletedWorkerSeq, seq);
+
+          if (this.workerResponseTimeout !== null && seq >= this.workerResponseTimeoutSeq) {
+            this.clearWorkerResponseTimeout();
+          }
+
+          if (this.activeNearestRequests.size > 0) {
+            this.armWorkerResponseTimeout(seq + 1);
+          }
+        }
+
+        clearWorkerResponseTimeout() {
+          if (this.workerResponseTimeout !== null) {
+            clearTimeout(this.workerResponseTimeout);
+            this.workerResponseTimeout = null;
+          }
+
+          this.workerResponseTimeoutSeq = 0;
+        }
+
+        failWorkerAndCompleteRequests() {
+          this.clearWorkerResponseTimeout();
+          this.workerFailed = true;
+          this.workerReady = false;
+
+          if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+          }
+
+          this.completeActiveRequestsOnMainThread();
+          this.completePendingRequestsOnMainThread();
         }
 
         getNearestRequest(unit, team, x, z, radius, callback, callbackToken) {
@@ -481,19 +592,12 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
               if (data.type === 'findNearestBatchResult') {
                 this.applyWorkerResults(data.results || []);
+                this.completeWorkerBatch(data.seq || 0);
               }
             };
 
             this.worker.onerror = () => {
-              this.workerFailed = true;
-              this.workerReady = false;
-
-              if (this.worker) {
-                this.worker.terminate();
-                this.worker = null;
-              }
-
-              this.completeActiveRequestsOnMainThread();
+              this.failWorkerAndCompleteRequests();
             };
           } catch (err) {
             this.workerFailed = true;
@@ -514,8 +618,24 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
         workerSource() {
           return `
+var gridKeyRows = Object.create(null);
+
 function getKey(x, z) {
-    return x + '_' + z;
+    var row = gridKeyRows[x];
+
+    if (!row) {
+        row = Object.create(null);
+        gridKeyRows[x] = row;
+    }
+
+    var result = row[z];
+
+    if (!result) {
+        result = x + '_' + z;
+        row[z] = result;
+    }
+
+    return result;
 }
 
 var teamAGrid = Object.create(null);
@@ -817,6 +937,8 @@ self.postMessage({ type: 'ready' });
         }
 
       });
+
+      BattleSpatialGrid.workerResponseTimeoutMs = 2000;
 
       BattleSpatialGrid.noopNearestEnemyCallback = () => {};
 

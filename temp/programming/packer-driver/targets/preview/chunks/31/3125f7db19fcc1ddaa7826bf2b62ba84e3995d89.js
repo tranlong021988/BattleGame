@@ -792,8 +792,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (gm && gm.spatialGrid) {
-            var result = gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
-            if (result) return result;
+            return gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
           }
 
           return this.findNearestEnemyFallback();
@@ -852,6 +851,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           if (!e || e === this) return false;
+          if (e.team === this.team) return false;
           if (lifeId >= 0 && e.lifeId !== lifeId) return false;
           if (!e.node.activeInHierarchy) return false;
           if (!e.agent) return false;
