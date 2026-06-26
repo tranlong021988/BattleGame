@@ -6,12 +6,18 @@ Last updated: 2026-06-26.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest office-Codex source check for the lane-picker/UI controller change:
+Latest office-Codex source check for the June 26 UI/minimap work:
 
-- Current HEAD while checking: `a3c3ed42 update`.
-- This session intentionally changed `assets/scripts/PlayerArmyController.ts`.
-- No scene/prefab wiring was changed in this patch. The user should wire the new Inspector fields in Cocos Editor.
-- Older "Current Worktree Status" bullets below may describe a previous handoff state. Re-run `git status --short` before editing.
+- Current HEAD while checking: `647132bb`.
+- Source logic files are clean against HEAD at the time of this note.
+- Dirty files currently seen are Cocos/editor generated files under `library/` and `temp/asset-db/`; do not treat them as gameplay changes unless the user asks.
+- June 26 work that is now present in source:
+  - minimap hot-path optimization in `TrueMiniMapPanel`;
+  - `PlayerArmyController` inspector-driven lane picker and unit icon binding;
+  - player spawn cooldown and power-bar fill;
+  - player max-alive-wave limit;
+  - selected-lane highlight by blinking the `selected` child node with `UIOpacity` tween.
+- No scene/prefab wiring was intentionally changed by Codex in these patches. The user should wire or verify Inspector fields in Cocos Editor.
 
 ## Working Rules
 
@@ -26,27 +32,13 @@ Latest office-Codex source check for the lane-picker/UI controller change:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `19c57732 update`.
-- Current gameplay/performance changes are uncommitted and actively being tested.
-- Expected code/handoff changes:
-  - `AI-CONTEX.md`
-  - `assets/scripts/BattleSpatialGrid.ts`
-  - `assets/scripts/Unit.ts`
-  - `assets/scripts/rvo/RVO.ts`
-  - `assets/scripts/rvo/RVOWorkerSimulator.ts`
-  - `assets/scripts/PlayerArmyController.ts`
-  - `assets/scripts/PlayerArmyController.ts.meta`
-  - `cocos-performance-optimize-skills/SKILL.md`
-- Current uncommitted code work includes:
-  - target-worker timeout and complete main-thread fallback;
-  - RVO-worker startup/runtime timeout and complete main-thread fallback;
-  - worker/fallback RVO behavior synchronized;
-  - reusable Spatial Grid/RVO cell arrays and cached grid keys;
-  - stricter enemy-team validation and removal of an unnecessary full-team target-search fallback;
-  - initial `PlayerArmyController` component for manual team-A spawning.
-- `assets/Test.scene`, both unit prefabs, UI images/textures, and other asset files also contain user/Cocos Editor changes. Do not overwrite, revert, stage, or reinterpret them as part of the gameplay patch without checking first.
-- The user is actively testing the current target/attack changes. Do not alter their rules from memory or from older commits without first reading the current source and confirming the intended behavior.
-- Cocos Editor has also generated many unrelated dirty files under `library/`, `profiles/`, and `temp/`. Do not revert, stage, or interpret those as gameplay source changes.
+- Current HEAD while writing this handoff: `647132bb`.
+- Source logic files were clean before this handoff refresh.
+- Dirty files observed at that point:
+  - `library/.assets-info.json`;
+  - deleted/generated `temp/asset-db/.../release.json`;
+  - generated `temp/asset-db` thumbnails/directories/logs.
+- These look like Cocos Editor/generated artifacts, not Codex-authored gameplay/UI changes.
 - Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
 
 ## Important Source Files
@@ -866,9 +858,7 @@ Update on 2026-06-26:
 - Player spawning now also has `enableMaxAliveWaveLimit` and `maxAliveWaves`, mirroring the AI-side alive-wave cap.
 - The alive-wave cap is checked before calling `spawnWaveByName`; hitting the cap logs a warning and does not start cooldown.
 - During cooldown, tapping a unit icon does not spawn and logs a warning for now.
-- Lane picker root sprites are tinted by selected state:
-  - selected lane = white tint;
-  - unselected lanes = 50% gray/dim tint.
+- Lane picker root sprites should stay white; selection is shown by the blinking `selected` child node.
 - Unit icon root sprites are tinted white when ready and 50% gray/dim during cooldown.
 
 Inspector properties:
@@ -900,6 +890,18 @@ Inspector properties:
 - `coolDownDuration`
   - defaults to `3`.
   - Controls how long the player must wait after a successful manual wave spawn.
+- `enableMaxAliveWaveLimit`
+  - defaults to enabled.
+  - Blocks manual spawning when the player's alive wave count reaches `maxAliveWaves`.
+- `maxAliveWaves`
+  - defaults to `7`.
+  - Counts alive waves for the configured `team`.
+- `selectedBlinkMinOpacity`
+  - defaults to `80`.
+  - Lowest alpha reached by the selected-lane highlight pulse.
+- `selectedBlinkDuration`
+  - defaults to `0.45`.
+  - Time for one fade direction of the selected-lane highlight pulse.
 
 Internal lane mapping:
 
@@ -928,6 +930,8 @@ When a lane is selected:
 - the component stores that lane in `selectedLaneId`;
 - the corresponding picker's child node named `selected` is activated;
 - the other two picker `selected` children are deactivated.
+- the active `selected` child gets a repeating `UIOpacity` tween between full alpha and `selectedBlinkMinOpacity`.
+- old blink tweens are stopped when lane changes or the controller is disabled.
 
 `onLoad()` applies `defaultLane`, so the visual selection and stored lane are
 synchronized when the component starts.
@@ -965,7 +969,8 @@ Important:
 - If cooldown is active, tapping a unit icon logs a warning and does not spawn.
 - After a successful spawn, cooldown starts and the `bar` content width fills from `0` to its cached initial width over `coolDownDuration`.
 - During cooldown, unit icons are dimmed. When cooldown reaches zero, icons return to white.
-- Picker/icon tinting expects a `Sprite` on the configured root node. If art is moved to a child node, either move the binding to that child or update `PlayerArmyController.setNodeTint()`.
+- Unit-icon cooldown tinting expects a `Sprite` on the configured icon root node. If art is moved to a child node, either bind that child or update `PlayerArmyController.setNodeTint()`.
+- The max-alive-wave cap is checked before `spawnWaveByName`; blocked attempts do not spend CP and do not start cooldown.
 - The current call is:
 
 ```text
