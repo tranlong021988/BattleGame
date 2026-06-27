@@ -47,6 +47,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
+          this.initialForwardSearchLocked = true;
           this.forwardScannerUnit = null;
           this.id = id;
           this.team = team;
@@ -256,6 +257,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         releaseForwardToFreeHunt(searchRange = 0, permanent = false) {
           if (this.released) return;
+          this.initialForwardSearchLocked = false;
 
           if (permanent) {
             this.permanentFreeHunt = true;
@@ -278,6 +280,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         enterCombatMode() {
           if (this.released) return;
+          this.initialForwardSearchLocked = false;
           if (this.freeHuntActive) return;
           this.forwardModeActive = false;
           this.freeHuntActive = true;
@@ -300,6 +303,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         isAggressiveForwardMode() {
           return !this.released && this.aggressiveForwardMode;
+        }
+
+        isInitialForwardSearchLocked() {
+          return !this.released && this.initialForwardSearchLocked;
         }
 
         getForwardScanner(refresh = false) {
@@ -349,6 +356,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           if (aliveCount <= 0) return false;
+          this.initialForwardSearchLocked = false;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.forwardScannerUnit = null;
@@ -381,6 +389,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
+          this.initialForwardSearchLocked = true;
           this.forwardScannerUnit = null;
           this.units.length = 0;
         }

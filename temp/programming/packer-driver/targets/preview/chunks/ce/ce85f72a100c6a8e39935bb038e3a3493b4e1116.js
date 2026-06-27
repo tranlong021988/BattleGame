@@ -208,6 +208,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             dead: true,
             hasPosition: false
           };
+          this.tweenScaleOne = new Vec3(1, 1, 1);
+          this.tweenScaleZero = new Vec3(0, 0, 1);
+          this.iconPositionStopDistanceSq = 0.0001;
         }
 
         start() {
@@ -306,8 +309,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             ui = node.addComponent(UITransform);
           }
 
-          ui.setContentSize(width, height);
-          ui.setAnchorPoint(0.5, 0.5);
+          var size = ui.contentSize;
+
+          if (Math.abs(size.width - width) > 0.001 || Math.abs(size.height - height) > 0.001) {
+            ui.setContentSize(width, height);
+          }
+
+          if (Math.abs(ui.anchorX - 0.5) > 0.001 || Math.abs(ui.anchorY - 0.5) > 0.001) {
+            ui.setAnchorPoint(0.5, 0.5);
+          }
         }
 
         syncWithBattleWaves() {
@@ -378,7 +388,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           node.setPosition(target);
           node.setScale(0, 0, 1);
           node.active = true;
-          item.setAliveRatio(this.showAliveRatio ? aliveRatio : 1);
+          var displayedAliveRatio = this.showAliveRatio ? aliveRatio : 1;
+          item.setAliveRatio(displayedAliveRatio);
           item.updateEngageVisual(engaged, this.time);
           var record = {
             team: wave.team,
@@ -390,12 +401,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetPosition: target.clone(),
             velocity: new Vec3(),
             aliveRatio,
+            displayedAliveRatio,
             engaged,
+            visualEngaged: engaged,
             removing: false
           };
           this.records.set(wave.id, record);
           tween(node).to(this.getSafeTweenDuration(), {
-            scale: new Vec3(1, 1, 1)
+            scale: this.tweenScaleOne
           }).start();
           this.log("Create mini-map icon wave=" + wave.id);
         }
@@ -462,7 +475,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           node.setScale(0, 0, 1);
           node.active = true;
           var aliveRatio = hero.props ? hero.props.getHealthRatio() : 1;
-          item.setAliveRatio(this.showAliveRatio ? aliveRatio : 1);
+          var displayedAliveRatio = this.showAliveRatio ? aliveRatio : 1;
+          item.setAliveRatio(displayedAliveRatio);
           item.updateEngageVisual(hero.onBusy, this.time);
           var record = {
             team,
@@ -474,12 +488,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetPosition: target.clone(),
             velocity: new Vec3(),
             aliveRatio,
+            displayedAliveRatio,
             engaged: hero.onBusy,
+            visualEngaged: hero.onBusy,
             removing: false
           };
           this.heroRecords.set(team, record);
           tween(node).to(this.getSafeTweenDuration(), {
-            scale: new Vec3(1, 1, 1)
+            scale: this.tweenScaleOne
           }).start();
           this.log("Create mini-map hero icon team=" + team);
         }
@@ -511,7 +527,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             record.targetPosition.set(record.rawPosition);
-            record.item.setAliveRatio(this.showAliveRatio ? record.aliveRatio : 1);
+            var displayedAliveRatio = this.showAliveRatio ? record.aliveRatio : 1;
+
+            if (Math.abs(record.displayedAliveRatio - displayedAliveRatio) > 0.001) {
+              record.displayedAliveRatio = displayedAliveRatio;
+              record.item.setAliveRatio(displayedAliveRatio);
+            }
           });
 
           for (var i = 0; i < removeIds.length; i++) {
@@ -538,7 +559,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.tempWorldPosition.set(hero.agent.pos.x, 0, hero.agent.pos.z);
             record.rawPosition.set(this.getMiniMapPositionFromWorldPosition(this.tempWorldPosition));
             record.targetPosition.set(record.rawPosition);
-            record.item.setAliveRatio(this.showAliveRatio ? record.aliveRatio : 1);
+            var displayedAliveRatio = this.showAliveRatio ? record.aliveRatio : 1;
+
+            if (Math.abs(record.displayedAliveRatio - displayedAliveRatio) > 0.001) {
+              record.displayedAliveRatio = displayedAliveRatio;
+              record.item.setAliveRatio(displayedAliveRatio);
+            }
           });
 
           for (var i = 0; i < removeTeams.length; i++) {
@@ -547,34 +573,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         updateIconPositions(deltaTime) {
-          this.records.forEach(record => {
+          for (var record of this.records.values()) {
             if (record.removing) {
-              return;
+              continue;
             }
 
-            if (this.smoothDampTime <= 0) {
-              record.node.setPosition(record.targetPosition);
-              return;
+            this.updateIconNodePosition(record, deltaTime);
+          }
+
+          for (var _record of this.heroRecords.values()) {
+            if (_record.removing) {
+              continue;
             }
 
-            var current = record.node.position;
-            this.tempPosition.set(this.smoothDamp(current.x, record.targetPosition.x, 'x', record, deltaTime), this.smoothDamp(current.y, record.targetPosition.y, 'y', record, deltaTime), 0);
-            record.node.setPosition(this.tempPosition);
-          });
-          this.heroRecords.forEach(record => {
-            if (record.removing) {
-              return;
+            this.updateIconNodePosition(_record, deltaTime);
+          }
+        }
+
+        updateIconNodePosition(record, deltaTime) {
+          var current = record.node.position;
+          var dx = record.targetPosition.x - current.x;
+          var dy = record.targetPosition.y - current.y;
+
+          if (dx * dx + dy * dy <= this.iconPositionStopDistanceSq) {
+            if (Math.abs(record.velocity.x) > 0.0001 || Math.abs(record.velocity.y) > 0.0001) {
+              record.velocity.set(0, 0, 0);
             }
 
-            if (this.smoothDampTime <= 0) {
-              record.node.setPosition(record.targetPosition);
-              return;
-            }
+            return;
+          }
 
-            var current = record.node.position;
-            this.tempPosition.set(this.smoothDamp(current.x, record.targetPosition.x, 'x', record, deltaTime), this.smoothDamp(current.y, record.targetPosition.y, 'y', record, deltaTime), 0);
-            record.node.setPosition(this.tempPosition);
-          });
+          if (this.smoothDampTime <= 0) {
+            record.node.setPosition(record.targetPosition);
+            return;
+          }
+
+          this.tempPosition.set(this.smoothDamp(current.x, record.targetPosition.x, 'x', record, deltaTime), this.smoothDamp(current.y, record.targetPosition.y, 'y', record, deltaTime), 0);
+          record.node.setPosition(this.tempPosition);
         }
 
         resolveIconOverlaps() {
@@ -677,7 +712,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getIconSeparationKey(x, y) {
-          return x + "_" + y;
+          return (x + 32768) * 65536 + y + 32768;
         }
 
         clampSeparatedIconTargets(records) {
@@ -782,20 +817,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         updateFlashOnly() {
-          this.records.forEach(record => {
+          for (var record of this.records.values()) {
             if (record.removing) {
-              return;
+              continue;
             }
 
-            record.item.updateEngageVisual(record.engaged, this.time);
-          });
-          this.heroRecords.forEach(record => {
-            if (record.removing) {
-              return;
+            if (!record.engaged) {
+              if (record.visualEngaged) {
+                record.item.updateEngageVisual(false, this.time);
+                record.visualEngaged = false;
+              }
+
+              continue;
             }
 
-            record.item.updateEngageVisual(record.engaged, this.time);
-          });
+            record.item.updateEngageVisual(true, this.time);
+            record.visualEngaged = true;
+          }
+
+          for (var _record2 of this.heroRecords.values()) {
+            if (_record2.removing) {
+              continue;
+            }
+
+            if (!_record2.engaged) {
+              if (_record2.visualEngaged) {
+                _record2.item.updateEngageVisual(false, this.time);
+
+                _record2.visualEngaged = false;
+              }
+
+              continue;
+            }
+
+            _record2.item.updateEngageVisual(true, this.time);
+
+            _record2.visualEngaged = true;
+          }
         }
 
         releaseIcon(waveId) {
@@ -815,7 +873,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.clearIconEvents(record.node);
           Tween.stopAllByTarget(record.node);
           tween(record.node).to(this.getSafeTweenDuration(), {
-            scale: new Vec3(0, 0, 1)
+            scale: this.tweenScaleZero
           }).call(() => {
             this.records.delete(waveId);
             this.recycleIcon(record);
@@ -839,7 +897,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.clearIconEvents(record.node);
           Tween.stopAllByTarget(record.node);
           tween(record.node).to(this.getSafeTweenDuration(), {
-            scale: new Vec3(0, 0, 1)
+            scale: this.tweenScaleZero
           }).call(() => {
             this.heroRecords.delete(team);
             this.recycleIcon(record);
@@ -1418,7 +1476,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 1;
+          return 0;
         }
       }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
         configurable: true,

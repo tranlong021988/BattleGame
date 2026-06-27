@@ -181,7 +181,7 @@ export class TrueMiniMapPanel extends Component {
     maxPositionSampleUnits = 8;
 
     @property
-    freezeDyingWavePositionAliveCount = 1;
+    freezeDyingWavePositionAliveCount = 0;
 
     @property
     enableIconClickFocus = true;

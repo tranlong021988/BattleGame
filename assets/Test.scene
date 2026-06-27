@@ -1975,7 +1975,7 @@
     "invertZAxis": false,
     "showAliveRatio": false,
     "maxPositionSampleUnits": 6,
-    "freezeDyingWavePositionAliveCount": 1,
+    "freezeDyingWavePositionAliveCount": 0,
     "enableIconClickFocus": true,
     "enableDebugLog": false,
     "_id": "f5bBNCuKdCtaIXN6cRaUFg"
@@ -2296,8 +2296,9 @@
     },
     "unitType": 0,
     "maxSpeed": 5,
-    "health": 1000,
-    "damage": 100,
+    "guardDistance": 6,
+    "health": 500,
+    "damage": 50,
     "defense": 5,
     "combatPointBountyValue": 1
   },
@@ -2985,6 +2986,8 @@
     },
     "onForward": false,
     "isSteady": true,
+    "heroGuardDistance": 5,
+    "heroGuardReturnTolerance": 0.08,
     "enableAllyOvertake": true,
     "overtakeLookAhead": 2,
     "overtakeSideRange": 1,
@@ -3033,8 +3036,9 @@
     },
     "unitType": 0,
     "maxSpeed": 5,
-    "health": 1000,
-    "damage": 100,
+    "guardDistance": 6,
+    "health": 500,
+    "damage": 50,
     "defense": 5,
     "combatPointBountyValue": 1
   },
@@ -3709,6 +3713,8 @@
     },
     "onForward": false,
     "isSteady": true,
+    "heroGuardDistance": 5,
+    "heroGuardReturnTolerance": 0.08,
     "enableAllyOvertake": true,
     "overtakeLookAhead": 2,
     "overtakeSideRange": 1,
@@ -3764,7 +3770,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 110,
-    "damage": 10,
+    "damage": 5,
     "defense": 2,
     "combatPointCost": 10
   },
@@ -3783,7 +3789,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 95,
-    "damage": 9,
+    "damage": 4.5,
     "defense": 1,
     "combatPointCost": 10
   },
@@ -3802,7 +3808,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 130,
-    "damage": 11,
+    "damage": 5.5,
     "defense": 0,
     "combatPointCost": 13
   },
@@ -3821,7 +3827,7 @@
     "attackIntervalMin": 0.8,
     "attackIntervalMax": 0.85,
     "health": 75,
-    "damage": 8,
+    "damage": 4,
     "defense": 0,
     "combatPointCost": 11
   },
@@ -3840,7 +3846,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 120,
-    "damage": 12,
+    "damage": 6,
     "defense": 1,
     "combatPointCost": 12
   },
@@ -3859,7 +3865,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 110,
-    "damage": 10,
+    "damage": 5,
     "defense": 2,
     "combatPointCost": 10
   },
@@ -3878,7 +3884,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 95,
-    "damage": 9,
+    "damage": 4.5,
     "defense": 1,
     "combatPointCost": 10
   },
@@ -3897,7 +3903,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 130,
-    "damage": 11,
+    "damage": 5.5,
     "defense": 0,
     "combatPointCost": 13
   },
@@ -3916,7 +3922,7 @@
     "attackIntervalMin": 0.8,
     "attackIntervalMax": 0.85,
     "health": 75,
-    "damage": 8,
+    "damage": 4,
     "defense": 0,
     "combatPointCost": 11
   },
@@ -3935,7 +3941,7 @@
     "attackIntervalMin": 0.4,
     "attackIntervalMax": 0.45,
     "health": 120,
-    "damage": 12,
+    "damage": 6,
     "defense": 1,
     "combatPointCost": 12
   },
@@ -7312,7 +7318,7 @@
     },
     "coolDownDuration": 1,
     "enableMaxAliveWaveLimit": true,
-    "maxAliveWaves": 7,
+    "maxAliveWaves": 10,
     "selectedBlinkMinOpacity": 80,
     "selectedBlinkDuration": 0.3,
     "_id": "ccslZYCYBJsaaieBc9PDHm"
@@ -8304,7 +8310,7 @@
     "maxSpawnInterval": 2,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
-    "maxAliveWaves": 7,
+    "maxAliveWaves": 10,
     "defenseWaveThreshold": 2,
     "attackModeChance": 0.5,
     "defenseModeChance": 0.5,

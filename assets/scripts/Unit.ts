@@ -38,6 +38,12 @@ export class Unit extends Component {
     @property onForward = true;
     @property isSteady = false;
 
+    @property({ displayName: 'Hero Guard Distance' })
+    heroGuardDistance = 0;
+
+    @property({ displayName: 'Hero Guard Return Tolerance' })
+    heroGuardReturnTolerance = 0.08;
+
     @property enableAllyOvertake = true;
     @property overtakeLookAhead = 2.2;
     @property overtakeSideRange = 1.2;
@@ -59,6 +65,8 @@ export class Unit extends Component {
 
     props!: UnitProps;
     private initialYaw = 0;
+    private heroGuardHomeX = 0;
+    private heroGuardHomeZ = 0;
 
     private lastStablePos = { x: 0, z: 0 };
     private moveIntentFacingActive = true;
@@ -120,6 +128,8 @@ export class Unit extends Component {
         const p = this.node.worldPosition;
 
         this.initialYaw = this.getVisualEulerY();
+        this.heroGuardHomeX = p.x;
+        this.heroGuardHomeZ = p.z;
 
         this.agent = sim.addAgent(p.x, p.z);
         this.agent.maxSpeed = this.moveSpeed;
@@ -163,6 +173,11 @@ export class Unit extends Component {
             this.onForward = false;
 
             this.initialYaw = this.getVisualEulerY();
+
+            if (this.isHero) {
+                this.heroGuardHomeX = this.agent.pos.x;
+                this.heroGuardHomeZ = this.agent.pos.z;
+            }
 
             this.agent.locked = true;
             this.agent.vel.x = 0;
@@ -591,6 +606,10 @@ export class Unit extends Component {
             return;
         }
 
+        if (this.updateSteadyHeroGuard(deltaTime)) {
+            return;
+        }
+
         if (this.isSteady) {
             this.agent.locked = true;
             this.sim.setPrefVelocity(this.agent, 0, 0);
@@ -795,6 +814,202 @@ export class Unit extends Component {
             this.forwardDir.x * this.agent.maxSpeed,
             this.forwardDir.z * this.agent.maxSpeed
         );
+    }
+
+    private updateSteadyHeroGuard(deltaTime: number) {
+        if (!this.isHero) return false;
+        if (!this.isSteady) return false;
+        if (!this.agent) return false;
+        if (this.heroGuardDistance <= 0) return false;
+
+        let target =
+            this.getValidEnemyTarget();
+
+        if (
+            !this.isEnemyInsideHeroGuardZone(target)
+        ) {
+            target =
+                this.findNearestEnemyInHeroGuardZone();
+        }
+
+        if (target) {
+            this.onForward = false;
+            this.agent.onForward = 0;
+
+            if (
+                this.getValidEnemyTarget() !== target
+            ) {
+                this.setEnemyTarget(target);
+                this.onBusy = false;
+            }
+
+            if (
+                this.isValidEnemyWithinRange(
+                    target,
+                    this.attackRange
+                )
+            ) {
+                if (!this.onBusy) {
+                    const gm = GameManager.instance;
+
+                    if (gm) {
+                        gm.onWaveCombatStarted(
+                            this,
+                            target
+                        );
+                    }
+                }
+
+                this.setEnemyTarget(target);
+                this.onBusy = true;
+                this.agent.locked = true;
+                this.sim.setPrefVelocity(this.agent, 0, 0);
+                this.agent.vel.x = 0;
+                this.agent.vel.z = 0;
+                this.lookAtTargetSmooth(
+                    target,
+                    deltaTime
+                );
+                this.sync(deltaTime, false);
+                return true;
+            }
+
+            this.onBusy = false;
+            this.agent.locked = false;
+
+            const dx =
+                target.agent!.pos.x -
+                this.agent.pos.x;
+            const dz =
+                target.agent!.pos.z -
+                this.agent.pos.z;
+            const dist =
+                Math.sqrt(dx * dx + dz * dz);
+
+            if (dist > 0.0001) {
+                this.sim.setPrefVelocity(
+                    this.agent,
+                    dx / dist * this.agent.maxSpeed,
+                    dz / dist * this.agent.maxSpeed
+                );
+            }
+
+            this.lookAtTargetSmooth(
+                target,
+                deltaTime
+            );
+            this.sync(deltaTime, false);
+            return true;
+        }
+
+        this.setEnemyTarget(null);
+        this.onBusy = false;
+        this.onForward = false;
+        this.agent.onForward = 0;
+
+        const dx =
+            this.heroGuardHomeX -
+            this.agent.pos.x;
+        const dz =
+            this.heroGuardHomeZ -
+            this.agent.pos.z;
+        const distSq =
+            dx * dx + dz * dz;
+        const tolerance =
+            Math.max(
+                0.001,
+                this.heroGuardReturnTolerance
+            );
+
+        if (distSq > tolerance * tolerance) {
+            this.agent.locked = false;
+
+            const dist =
+                Math.sqrt(distSq);
+
+            this.sim.setPrefVelocity(
+                this.agent,
+                dx / dist * this.agent.maxSpeed,
+                dz / dist * this.agent.maxSpeed
+            );
+            this.lookMoveIntentSmooth(deltaTime);
+            this.sync(deltaTime, false);
+            return true;
+        }
+
+        this.agent.locked = true;
+        this.sim.setPrefVelocity(this.agent, 0, 0);
+        this.agent.vel.x = 0;
+        this.agent.vel.z = 0;
+        this.returnToInitialYawSmooth(deltaTime);
+        this.sync(deltaTime, false);
+        return true;
+    }
+
+    private findNearestEnemyInHeroGuardZone() {
+        if (!this.agent) return null;
+
+        const gm = GameManager.instance;
+
+        const enemies =
+            gm && gm.spatialGrid
+                ? gm.spatialGrid.queryEnemies(
+                    this.team,
+                    this.heroGuardHomeX,
+                    this.heroGuardHomeZ,
+                    this.heroGuardDistance
+                )
+                : this.getEnemyList();
+
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+
+            if (
+                !this.isEnemyInsideHeroGuardZone(
+                    enemy
+                )
+            ) {
+                continue;
+            }
+
+            const dx =
+                enemy.agent!.pos.x -
+                this.agent.pos.x;
+            const dz =
+                enemy.agent!.pos.z -
+                this.agent.pos.z;
+            const d =
+                dx * dx + dz * dz;
+
+            if (d < bestDistSq) {
+                bestDistSq = d;
+                best = enemy;
+            }
+        }
+
+        return best;
+    }
+
+    private isEnemyInsideHeroGuardZone(
+        enemy: Unit | null
+    ) {
+        if (!this.isValidEnemy(enemy)) {
+            return false;
+        }
+
+        const dx =
+            enemy!.agent!.pos.x -
+            this.heroGuardHomeX;
+        const dz =
+            enemy!.agent!.pos.z -
+            this.heroGuardHomeZ;
+
+        return dx * dx + dz * dz <=
+            this.heroGuardDistance *
+            this.heroGuardDistance;
     }
 
     private hasPassedTargetAlongForward(target: Unit): boolean {

@@ -69,11 +69,13 @@ Waves spawn into a lane and begin in initial forward or aggressive-forward mode.
 
 ```text
 Spawn -> Forward/Aggressive Forward
+      -> any unit enters attack-range engagement/is attacked
+      -> whole-wave Free Hunt
+      -> every alive unit finishes a no-target search and nobody is busy
+      -> whole-wave Forward/Aggressive Forward with front-scanner search enabled
       -> front scanner finds an eligible enemy, hero line is reached,
          or any unit enters attack-range engagement/is attacked
       -> whole-wave Free Hunt
-      -> every alive unit finishes a no-target search and nobody is busy
-      -> whole-wave Forward/Aggressive Forward
 ```
 
 This flow is the current canonical rule set. Older notes or commits describing passed-target release, regroup-to-lane, per-unit forward recovery, or permanent normal freehunt are obsolete.
@@ -90,6 +92,9 @@ This flow is the current canonical rule set. Older notes or commits describing p
 ### Normal Forward
 
 - During normal forward:
+  - initial forward immediately after spawn has forward target search locked;
+  - while this initial lock is active, the wave keeps moving forward and only attack-range contact or retaliation can release it to whole-wave freehunt/combat;
+  - after the wave has entered freehunt/combat once and later recovers, forward target search is enabled normally;
   - only the current front-most alive unit scans for a target;
   - front-most means the alive forward unit whose position is furthest along its own `forwardDir`;
   - for the current Z-axis battlefield, team A effectively selects the greatest forward Z and team B the smallest forward Z;
@@ -102,6 +107,7 @@ This flow is the current canonical rule set. Older notes or commits describing p
   - the cached front scanner checks the enemy hero line every frame;
   - reaching/passing the enemy hero position along `forwardDir` releases the whole wave into freehunt;
   - hero-line detection does not depend on laneId.
+  - the initial forward search lock does not suppress hero-line detection; this prevents a newly spawned wave from marching past the enemy hero line forever when it is not close enough to trigger attack-range contact.
 
 ### Free Hunt Targeting
 
@@ -243,7 +249,14 @@ ArmyBrain raid rules:
 Hero is treated as a special mid-lane unit/wave conceptually, but still has special rules in code.
 
 - Initially `isSteady = true`.
-- It can attack back in place if enemy enters range.
+- Before final hero-pressure phase, steady heroes now have a local guard zone:
+  - `HeroEntry.guardDistance` is assigned to `Unit.heroGuardDistance` during hero registration;
+  - the guard zone is centered on the hero's initial/home position, not the hero's current position;
+  - while steady, if any valid enemy enters this guard zone, the hero can chase/fight only inside that zone;
+  - if the current target leaves the guard zone and no other enemy remains in the zone, the hero drops the target, walks back home using normal movement/maxSpeed/RVO, then faces its initial yaw again;
+  - if another enemy enters the guard zone while the hero is returning, the hero immediately resumes local guard pursuit;
+  - guard-zone behavior is separate from final hero-pressure freehunt and does not unlock global map pursuit.
+- It can still attack back in place if enemy enters normal attack range.
 - It unlocks/freehunts when its team cannot spawn normal units anymore and has no alive normal units/waves.
 - When one team hero unlocks, normal enemy waves are forced into freehunt pressure.
 - Enemy hero does not auto-unlock just because the other hero unlocked.
@@ -277,7 +290,7 @@ Wave-wide forward/freehunt rewrite:
 Clarifications confirmed with the user on 2026-06-25:
 
 - No extra no-target grace period is wanted. `targetSearchIntervalFrames` is intentionally large enough to provide the desired cadence.
-- Initial forward and recovered forward both use the front scanner. Recovered forward does not keep per-unit target scanning.
+- Initial forward immediately after spawn does not use the front scanner. Recovered forward after the first freehunt/combat does use the front scanner. Recovered forward does not keep per-unit target scanning.
 - Shared-target convergence is an intended natural regroup behavior.
 - `laneId` remains dynamic ArmyBrain input and is not an absolute movement restriction.
 - The old forward-scan/passed-target mechanism is intentionally removed and must not be restored.
@@ -305,10 +318,12 @@ Verification done:
 - `git diff --check` passed.
 - The user has run repeated Cocos/browser gameplay tests and supplied Chrome traces. The latest attack-interval database change still needs inspector/gameplay verification.
 - Required gameplay retest:
-  - normal forward front scanner finds an enemy in range and releases the whole wave;
+  - initial spawned forward does not release from front-scanner search before first contact/retaliation;
+  - initial spawned forward still releases when it reaches/passes the enemy hero line;
+  - recovered normal forward front scanner finds an enemy in range and releases the whole wave;
   - normal forward does not depend on laneId or passed-target position;
   - aggressive forward ignores adjacent-lane search targets;
-  - aggressive forward reacts to same-lane targets, direct attack-range contact, retaliation, and hero line;
+  - recovered aggressive forward reacts to same-lane targets, direct attack-range contact, retaliation, and hero line;
   - aggressive wave resumes aggressive-forward after all alive members confirm no target;
   - ranged engage makes both waves freehunt;
   - no unit forwards alone while another member still has a target or pending search;

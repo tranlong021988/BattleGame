@@ -62,6 +62,9 @@ export class HeroEntry {
     maxSpeed: number = 0;
 
     @property
+    guardDistance: number = 6;
+
+    @property
     health: number = 500;
 
     @property

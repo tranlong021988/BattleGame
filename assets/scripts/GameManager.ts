@@ -654,6 +654,8 @@ export class GameManager extends Component {
             return;
         }
 
+        if (wave.isInitialForwardSearchLocked()) return;
+
         if (
             !this.shouldRunFrameInterval(
                 wave.getTargetSearchIntervalFrames(),
@@ -2060,6 +2062,7 @@ export class GameManager extends Component {
             team === 0 ? 1 : -1;
 
         hero.moveSpeed = heroEntry.maxSpeed;
+        hero.heroGuardDistance = heroEntry.guardDistance;
         hero.isSteady = true;
 
         hero.init(

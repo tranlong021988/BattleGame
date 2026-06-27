@@ -577,6 +577,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
+          if (wave.isInitialForwardSearchLocked()) return;
+
           if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
             return;
           }
@@ -1492,6 +1494,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var forwardX = 0;
           var forwardZ = team === 0 ? 1 : -1;
           hero.moveSpeed = heroEntry.maxSpeed;
+          hero.heroGuardDistance = heroEntry.guardDistance;
           hero.isSteady = true;
           hero.init(this.sim, team, unitTypeName, forwardX, forwardZ);
           this.registerHeroWave(hero, team, unitTypeName, heroEntry.unitType);
