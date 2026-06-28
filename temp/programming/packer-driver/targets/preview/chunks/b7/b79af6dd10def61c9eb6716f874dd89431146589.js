@@ -386,6 +386,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.isValidEnemy(enemyHero) ? enemyHero : null;
         }
 
+        hasPassedForwardTarget(target) {
+          return this.hasPassedTargetAlongForward(target);
+        }
+
         reactToAttacker(attacker) {
           if (this.onBusy) return false;
           if (!this.isValidEnemy(attacker)) return false;

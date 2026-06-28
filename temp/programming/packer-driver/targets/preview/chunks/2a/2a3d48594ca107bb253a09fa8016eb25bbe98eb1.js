@@ -577,7 +577,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (wave.isInitialForwardSearchLocked()) return;
+          if (wave.isAggressiveForwardMode()) return;
 
           if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
             return;
@@ -585,11 +585,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           scanner = wave.getForwardScanner(true);
           if (!scanner) return;
-          var target = scanner.findForwardSearchTarget(wave.isAggressiveForwardMode());
+          var target = scanner.findForwardSearchTarget(false);
 
-          if (target) {
+          if (target && this.shouldReleaseNormalForwardTarget(scanner, target)) {
             this.onWaveForwardTargetFound(scanner, target);
           }
+        }
+
+        shouldReleaseNormalForwardTarget(scanner, target) {
+          if (!scanner || !target) return false;
+          if (scanner.laneId < 0) return false;
+          if (target.laneId < 0) return false;
+          var scannerLane = this.clampLaneId(scanner.laneId);
+          var targetLane = this.clampLaneId(target.laneId);
+
+          if (Math.abs(scannerLane - targetLane) !== 1) {
+            return false;
+          }
+
+          return scanner.hasPassedForwardTarget(target);
         }
 
         processWaveForwardRecoveries() {

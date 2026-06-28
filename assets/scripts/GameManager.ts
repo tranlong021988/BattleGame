@@ -654,7 +654,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (wave.isInitialForwardSearchLocked()) return;
+        if (wave.isAggressiveForwardMode()) return;
 
         if (
             !this.shouldRunFrameInterval(
@@ -671,15 +671,48 @@ export class GameManager extends Component {
 
         const target =
             scanner.findForwardSearchTarget(
-                wave.isAggressiveForwardMode()
+                false
             );
 
-        if (target) {
+        if (
+            target &&
+            this.shouldReleaseNormalForwardTarget(
+                scanner,
+                target
+            )
+        ) {
             this.onWaveForwardTargetFound(
                 scanner,
                 target
             );
         }
+    }
+
+    private shouldReleaseNormalForwardTarget(
+        scanner: Unit,
+        target: Unit
+    ) {
+        if (!scanner || !target) return false;
+        if (scanner.laneId < 0) return false;
+        if (target.laneId < 0) return false;
+
+        const scannerLane =
+            this.clampLaneId(scanner.laneId);
+        const targetLane =
+            this.clampLaneId(target.laneId);
+
+        if (
+            Math.abs(
+                scannerLane -
+                targetLane
+            ) !== 1
+        ) {
+            return false;
+        }
+
+        return scanner.hasPassedForwardTarget(
+            target
+        );
     }
 
     private processWaveForwardRecoveries() {

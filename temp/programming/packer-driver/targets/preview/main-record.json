@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 17619.8936,
+      "mTimestamp": 16358.9662,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 25604.6815,
+      "mTimestamp": 27009.7419,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1757,7 +1757,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1782581211995,
+      "mTimestamp": 1782668551592,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -2467,7 +2467,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1782497380936.428,
+        "mtime": 1782668153626.674,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "2a3d48594ca107bb253a09fa8016eb25bbe98eb1",
@@ -2980,7 +2980,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1782497372584.1582,
+        "mtime": 1782668142322.6538,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "b79af6dd10def61c9eb6716f874dd89431146589",
@@ -5466,7 +5466,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1782581211995,
+      "mTimestamp": 1782668551592,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -5732,7 +5732,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1782495712074.5007,
+        "mtime": 1782668133592.521,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "f125de1537ef45718f2b4b4bb212c745cfd32521",
@@ -8276,7 +8276,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/PlayerArmyController.ts": {
       "mTimestamp": {
-        "mtime": 1782484660950.7556,
+        "mtime": 1782668481859.465,
         "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
       },
       "chunkId": "eda245de96c070b06a601d49d9c9fcb6d664fcb2",

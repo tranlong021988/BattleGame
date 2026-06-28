@@ -73,6 +73,9 @@ export class PlayerArmyController extends Component {
     @property({ min: 0 })
     coolDownDuration = 3;
 
+    @property({ min: 0 })
+    doubleTapWindow = 0.25;
+
     @property
     enableMaxAliveWaveLimit = true;
 
@@ -92,6 +95,9 @@ export class PlayerArmyController extends Component {
     private powerBarMaxWidth = 0;
     private powerBarHeight = 0;
     private unitIconsDimmed = true;
+    private pendingUnitTapName = '';
+    private pendingUnitTapTimer = 0;
+    private pendingUnitTapLaneId = PlayerLane.Mid;
 
     onLoad() {
         this.cachePowerBar();
@@ -109,21 +115,24 @@ export class PlayerArmyController extends Component {
     onDisable() {
         this.unregisterInput();
         this.stopSelectedBlink();
+        this.clearPendingUnitTap();
     }
 
     update(deltaTime: number) {
-        if (this.coolDownTimer <= 0) return;
+        if (this.coolDownTimer > 0) {
+            this.coolDownTimer = Math.max(
+                0,
+                this.coolDownTimer - deltaTime
+            );
 
-        this.coolDownTimer = Math.max(
-            0,
-            this.coolDownTimer - deltaTime
-        );
+            this.updatePowerBar();
 
-        this.updatePowerBar();
-
-        if (this.coolDownTimer <= 0) {
-            this.updateUnitIconTint(false);
+            if (this.coolDownTimer <= 0) {
+                this.updateUnitIconTint(false);
+            }
         }
+
+        this.updatePendingUnitTap(deltaTime);
     }
 
     public selectLane(
@@ -147,7 +156,7 @@ export class PlayerArmyController extends Component {
         _event: Event,
         unitName: string
     ) {
-        this.spawnByName(unitName ?? '');
+        this.spawnByName(unitName ?? '', false);
     }
 
     public setSelectedLane(laneId: number) {
@@ -310,10 +319,95 @@ export class PlayerArmyController extends Component {
             return;
         }
 
-        this.spawnByName(unitName);
+        this.handleUnitIconTap(unitName);
     }
 
-    private spawnByName(unitName: string) {
+    private handleUnitIconTap(unitName: string) {
+        if (this.isCoolingDown()) {
+            this.clearPendingUnitTap();
+            this.spawnByName(unitName, false);
+            return;
+        }
+
+        const window =
+            Math.max(0, this.doubleTapWindow);
+
+        if (window <= 0) {
+            this.spawnByName(unitName, false);
+            return;
+        }
+
+        if (
+            this.pendingUnitTapTimer > 0 &&
+            this.pendingUnitTapName === unitName
+        ) {
+            const laneId =
+                this.pendingUnitTapLaneId;
+
+            this.clearPendingUnitTap();
+            this.spawnByName(
+                unitName,
+                true,
+                laneId
+            );
+            return;
+        }
+
+        if (this.pendingUnitTapTimer > 0) {
+            this.flushPendingUnitTap();
+
+            if (this.isCoolingDown()) {
+                return;
+            }
+        }
+
+        this.pendingUnitTapName = unitName;
+        this.pendingUnitTapTimer = window;
+        this.pendingUnitTapLaneId =
+            this.selectedLaneId;
+    }
+
+    private updatePendingUnitTap(deltaTime: number) {
+        if (this.pendingUnitTapTimer <= 0) return;
+
+        this.pendingUnitTapTimer = Math.max(
+            0,
+            this.pendingUnitTapTimer - deltaTime
+        );
+
+        if (this.pendingUnitTapTimer > 0) return;
+
+        this.flushPendingUnitTap();
+    }
+
+    private flushPendingUnitTap() {
+        const unitName = this.pendingUnitTapName;
+        const laneId =
+            this.pendingUnitTapLaneId;
+
+        this.clearPendingUnitTap();
+
+        if (!unitName) return;
+
+        this.spawnByName(
+            unitName,
+            false,
+            laneId
+        );
+    }
+
+    private clearPendingUnitTap() {
+        this.pendingUnitTapName = '';
+        this.pendingUnitTapTimer = 0;
+        this.pendingUnitTapLaneId =
+            this.selectedLaneId;
+    }
+
+    private spawnByName(
+        unitName: string,
+        aggressiveForward: boolean,
+        laneId: number = this.selectedLaneId
+    ) {
         if (this.isCoolingDown()) {
             console.warn(
                 `[PlayerArmyController] Spawn is cooling down: ${this.coolDownTimer.toFixed(2)}s remaining.`
@@ -352,7 +446,8 @@ export class PlayerArmyController extends Component {
             manager.spawnWaveByName(
                 this.team,
                 safeUnitName,
-                this.selectedLaneId
+                laneId,
+                aggressiveForward
             );
 
         if (!wave) return;

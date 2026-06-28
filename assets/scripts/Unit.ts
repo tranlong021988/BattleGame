@@ -389,6 +389,10 @@ export class Unit extends Component {
             : null;
     }
 
+    public hasPassedForwardTarget(target: Unit) {
+        return this.hasPassedTargetAlongForward(target);
+    }
+
     public reactToAttacker(attacker: Unit | null) {
         if (this.onBusy) return false;
         if (!this.isValidEnemy(attacker)) return false;

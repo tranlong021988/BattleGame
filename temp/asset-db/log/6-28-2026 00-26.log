@@ -725,3 +725,10 @@
 6-28-2026 00:30:04-debug: Stop record console. {file(F:\Github\BattleGame\temp\builder\log\web-mobile5-14-2026 23-41.log)}
 6-28-2026 00:30:41-debug: %cImport%c: F:\Github\BattleGame\assets\Test.scenebackground: #aaff85; color: #000;color: #000;
 6-28-2026 00:30:41-debug: asset-db:reimport-asset1effe86e-a401-4769-9dbc-62218c68834d (33ms)
+6-28-2026 00:31:35-debug: refresh db internal success
+6-28-2026 00:31:35-debug: refresh db assets success
+6-28-2026 00:31:35-debug: Run asset db hook engine-extends:afterRefresh ...
+6-28-2026 00:31:35-debug: Run asset db hook engine-extends:afterRefresh success!
+6-28-2026 00:31:35-debug: asset-db:refresh-all-database (102ms)
+6-28-2026 00:31:35-debug: asset-db:worker-effect-data-processing (1ms)
+6-28-2026 00:31:35-debug: asset-db-hook-engine-extends-afterRefresh (2ms)

@@ -7317,6 +7317,7 @@
       "__id__": 203
     },
     "coolDownDuration": 1,
+    "doubleTapWindow": 0.25,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 10,
     "selectedBlinkMinOpacity": 80,

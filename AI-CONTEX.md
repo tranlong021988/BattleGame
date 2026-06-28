@@ -2,7 +2,7 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-06-26.
+Last updated: 2026-06-29.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
@@ -33,13 +33,216 @@ Latest office-Codex source check for the June 26 UI/minimap work:
 ## Current Worktree Status
 
 - Current HEAD while writing this handoff: `647132bb`.
-- Source logic files were clean before this handoff refresh.
-- Dirty files observed at that point:
-  - `library/.assets-info.json`;
-  - deleted/generated `temp/asset-db/.../release.json`;
-  - generated `temp/asset-db` thumbnails/directories/logs.
-- These look like Cocos Editor/generated artifacts, not Codex-authored gameplay/UI changes.
+- Source logic files are no longer clean after the June 29 home-Codex work.
+- Expected source/doc dirty files from this handoff update:
+  - `AI-CONTEX.md`;
+  - `assets/scripts/BattleWave.ts`;
+  - `assets/scripts/GameManager.ts`;
+  - `assets/scripts/PlayerArmyController.ts`;
+  - `assets/scripts/Unit.ts`.
+- Other dirty files currently observed but not authored as gameplay logic in
+  this update:
+  - `profiles/v2/packages/scene.json`;
+  - `temp/asset-db/log/6-28-2026 00-26.log`;
+  - deleted/generated `temp/startup.json`.
+- Treat `profiles/` and `temp/` changes as editor/generated unless the user
+  explicitly asks to inspect them.
 - Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
+
+## Home Codex Update On 2026-06-29
+
+This section summarizes the work done after the user explicitly asked the
+home-machine Codex to receive and continue from the other Codex handoff.
+
+### Source Review And Scope
+
+- Re-read the current source and this handoff before changing gameplay logic.
+- Kept the work surgical:
+  - no broad reverse;
+  - no worker rewrite;
+  - no minimap rewrite;
+  - no ArmyBrain rewrite;
+  - no changes to RVO/grid algorithms.
+- Existing generated/editor dirty files were left alone.
+
+### Forward/Freehunt Rule Reconciliation
+
+Files changed:
+
+- `assets/scripts/BattleWave.ts`
+- `assets/scripts/GameManager.ts`
+- `assets/scripts/Unit.ts`
+
+Implemented current canonical behavior:
+
+- Removed the temporary `initialForwardSearchLocked` concept.
+  - Normal forward now uses the front scanner immediately after spawn and
+    after recoverable freehunt/combat recovery.
+  - Seeing a target is not enough to release the wave.
+- Normal forward:
+  - uses one cached front-most alive unit as scanner;
+  - scanner refresh remains throttled by the wave's
+    `targetSearchIntervalFrames`;
+  - adjacent-lane target release happens only after the scanner has passed
+    that target along `forwardDir`;
+  - same-lane targets do not release through scanner visibility;
+  - same-lane combat starts through the universal attack-range trigger.
+- Aggressive forward:
+  - does not use scanner-based release;
+  - does not freehunt merely because an adjacent-lane enemy is visible;
+  - still freehunts through attack-range contact, retaliation, hero line, and
+    final hero-pressure logic.
+- Universal rule preserved:
+  - if any alive unit detects a valid enemy inside `attackRange` on its
+    `attackCheckIntervalFrames`, both involved waves enter whole-wave
+    freehunt/combat.
+- `Unit.hasPassedForwardTarget(target)` was added as a narrow public wrapper
+  around the existing forward-axis pass check so `GameManager` does not need
+  to duplicate movement math.
+
+Intent:
+
+- Normal forward should avoid early diagonal lane drift just because a nearby
+  adjacent-lane enemy is inside search range.
+- Normal forward should still react naturally after the wave visually passes
+  an adjacent-lane enemy.
+- Aggressive forward should remain disciplined and lane-committed until real
+  contact/retaliation/hero-line pressure.
+
+### Player Bottom UI Update
+
+File changed:
+
+- `assets/scripts/PlayerArmyController.ts`
+
+Implemented:
+
+- Single tap/click on a unit icon spawns a normal-forward wave.
+- Double tap/click on the same unit icon inside `doubleTapWindow` spawns an
+  aggressive-forward wave.
+- `doubleTapWindow` defaults to `0.25`.
+- The first tap is held briefly until the double-tap window expires. This
+  prevents spawning a normal wave first and immediately putting the controller
+  on cooldown before the second tap can request aggressive forward.
+- The pending tap stores the selected lane at tap time, so changing lane during
+  the short double-tap window does not move the pending spawn to a different
+  lane.
+- Pending tap state is cleared when the controller is disabled.
+- Existing public inspector method `spawnUnit(event, unitName)` remains
+  compatible and spawns normal-forward.
+
+Important UX implication:
+
+- Single tap now has a small delay equal to `doubleTapWindow`.
+- If that feels too sluggish in testing, reduce `doubleTapWindow`; do not
+  spawn immediately on the first tap unless the user accepts that double-tap
+  aggressive may be blocked by cooldown.
+
+### Hero Guard And Hero Pressure State
+
+These features are present in current source and were checked/documented
+during this handoff period:
+
+- `BattleUnitDatabase.HeroEntry.guardDistance` exists.
+- `GameManager` assigns `hero.heroGuardDistance` during hero registration.
+- Before final hero-pressure phase, a steady hero can locally guard around its
+  home position instead of standing still as an archer target.
+- Hero guard is local:
+  - chase/fight only inside the guard zone;
+  - return home and face initial yaw when the zone is clear.
+- Final hero-pressure still remains the intentional permanent-freehunt
+  exception.
+- Hero-pressure search uses `GameManager.getHeroPressureSearchRange()` so a
+  newly forced enemy wave does not stand idle because the old fixed range was
+  too short.
+
+### Minimap State
+
+Current source still contains the minimap dying-wave freeze knob:
+
+- `TrueMiniMapPanel.freezeDyingWavePositionAliveCount = 0`
+
+Current understanding:
+
+- This avoids keeping dying wave icons visually stuck too long when alive
+  count reaches zero.
+- The minimap is not the current active focus; do not rewrite it while working
+  on wave/hero gameplay unless the user explicitly returns to minimap issues.
+
+### Performance Trace Review
+
+Latest supplied trace reviewed:
+
+```text
+C:/Users/tranl/Downloads/Trace-20260629T005226.json.gz
+```
+
+Compared against:
+
+```text
+C:/Users/tranl/Downloads/Trace-20260627T002809.json.gz
+```
+
+Key numbers from the June 29 trace:
+
+- `FireAnimationFrame` after excluding profiler-start outlier:
+  - avg `1.492 ms`;
+  - p50 `1.352 ms`;
+  - p95 `3.900 ms`;
+  - p99 `4.721 ms`;
+  - max `15.901 ms`;
+  - frames over `8.33 ms`: `10`;
+  - frames over `16.67 ms`: `0`.
+- Main JS heap:
+  - min `48.1 MB`;
+  - max `100.9 MB`;
+  - last `86.4 MB`.
+- DOM/listener counters:
+  - documents stable at `2`;
+  - nodes roughly stable around `42644-42660`;
+  - listeners returned from `130` to `119`.
+- RVO worker:
+  - `RunTask` avg `0.478 ms`;
+  - p95 `0.891 ms`;
+  - max `7.304 ms`;
+  - heap `0.5-2.8 MB`, last `2.2 MB`.
+- Target-search worker:
+  - only `69` post messages over about `92.8 s`;
+  - `HandlePostMessage` avg `0.288 ms`;
+  - max `0.749 ms`;
+  - heap `0.46-1.05 MB`.
+
+Interpretation:
+
+- Performance is still within a good desktop trace budget.
+- The June 29 run is slightly heavier than June 27, but not a red flag:
+  - RAF avg went from about `1.21 ms` to `1.49 ms`;
+  - p95 went from about `3.59 ms` to `3.90 ms`;
+  - p99 remained close.
+- Worker cost is not the bottleneck.
+- Do not move RVO/target workers back to main thread based on this trace.
+- The next likely risk area is render/UI/material/VFX, not AI target search.
+
+### Verification Done
+
+- TypeScript check passed with the Cocos-bundled compiler:
+
+```text
+tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
+```
+
+- `git diff --check` passed for:
+  - `AI-CONTEX.md`;
+  - `assets/scripts/BattleWave.ts`;
+  - `assets/scripts/GameManager.ts`;
+  - `assets/scripts/PlayerArmyController.ts`;
+  - `assets/scripts/Unit.ts`.
+
+Runtime status:
+
+- The user supplied a post-change Chrome trace and it looked healthy.
+- Full gameplay behavior still needs Cocos visual testing for the latest
+  forward/aggressive-forward rule reconciliation.
 
 ## Important Source Files
 
@@ -63,51 +266,59 @@ The game is a two-team lane battle with 3 lanes:
 - `1 = mid`
 - `2 = right`
 
-Waves spawn into a lane and begin in initial forward or aggressive-forward mode.
+Waves spawn into a lane and begin in normal forward or aggressive-forward mode.
 
 ### Canonical Wave State Flow
 
 ```text
-Spawn -> Forward/Aggressive Forward
+Spawn -> Normal Forward/Aggressive Forward
       -> any unit enters attack-range engagement/is attacked
       -> whole-wave Free Hunt
       -> every alive unit finishes a no-target search and nobody is busy
-      -> whole-wave Forward/Aggressive Forward with front-scanner search enabled
-      -> front scanner finds an eligible enemy, hero line is reached,
+      -> whole-wave Normal Forward/Aggressive Forward
+      -> normal front scanner passes an adjacent-lane target, hero line is reached,
          or any unit enters attack-range engagement/is attacked
       -> whole-wave Free Hunt
 ```
 
-This flow is the current canonical rule set. Older notes or commits describing passed-target release, regroup-to-lane, per-unit forward recovery, or permanent normal freehunt are obsolete.
+This flow is the current canonical rule set. Older notes or commits describing initial forward search locks, regroup-to-lane, per-unit forward recovery, or permanent normal freehunt are obsolete. Adjacent-lane passed-target release is active again, but only for normal forward and only after the front scanner has passed the adjacent-lane target.
 
 ### Wave-Wide Invariants
 
-- There is no regroup, formation-slot return, lane-return movement, passed-target rule, or explicit grace timer.
+- There is no regroup, formation-slot return, lane-return movement, or explicit grace timer.
 - `Forward`, `Aggressive Forward`, and normal `Free Hunt` are wave-wide states.
 - A unit is not allowed to continue forward alone while its wave remains in freehunt.
 - A unit without a target waits during freehunt; it does not advance independently along `forwardDir`.
 - If any alive member remains `onBusy`, owns a valid target, or has a target query still pending/not yet confirmed empty, the wave cannot resume forward.
 - Normal freehunt is recoverable. Hero-pressure freehunt is the only intentional permanent-freehunt mode.
+- Attack-range contact is the universal hard trigger: if any alive unit detects a valid enemy inside `attackRange` on its `attackCheckIntervalFrames`, both involved waves enter freehunt/combat together.
 
 ### Normal Forward
 
 - During normal forward:
-  - initial forward immediately after spawn has forward target search locked;
-  - while this initial lock is active, the wave keeps moving forward and only attack-range contact or retaliation can release it to whole-wave freehunt/combat;
-  - after the wave has entered freehunt/combat once and later recovers, forward target search is enabled normally;
+  - this applies both immediately after spawn and after freehunt/combat recovery;
   - only the current front-most alive unit scans for a target;
   - front-most means the alive forward unit whose position is furthest along its own `forwardDir`;
   - for the current Z-axis battlefield, team A effectively selects the greatest forward Z and team B the smallest forward Z;
   - the scanner is cached and refreshed on the wave's staggered `targetSearchIntervalFrames`;
   - search uses `targetSearchRange` and Spatial Grid when available;
-  - `laneId` does not filter normal-forward target search;
-  - if the scanner finds an eligible enemy, the scanner's whole wave enters freehunt immediately;
+  - finding a target does not automatically release the wave;
+  - if the scanner's current target is in an adjacent lane, the whole wave enters freehunt only after the scanner has passed that target along `forwardDir`;
+  - same-lane targets do not release through scanner search; they release through normal attack-range contact;
   - the target wave does not enter freehunt merely because it was seen. It reacts through its own scan, attack-range contact, or retaliation.
 - Hero-line detection is separate from normal target search:
   - the cached front scanner checks the enemy hero line every frame;
   - reaching/passing the enemy hero position along `forwardDir` releases the whole wave into freehunt;
   - hero-line detection does not depend on laneId.
-  - the initial forward search lock does not suppress hero-line detection; this prevents a newly spawned wave from marching past the enemy hero line forever when it is not close enough to trigger attack-range contact.
+
+### Aggressive Forward
+
+- During aggressive forward:
+  - the wave still moves straight by `forwardDir`;
+  - it does not use the normal adjacent-lane passed-target scanner release;
+  - it does not release merely because a scanner sees an enemy;
+  - it still enters whole-wave freehunt/combat from attack-range contact, retaliation, and hero-line detection;
+  - after recoverable freehunt finishes with no target, it resumes aggressive forward rather than becoming normal forward.
 
 ### Free Hunt Targeting
 
@@ -226,9 +437,9 @@ Source state:
 
 Behavior:
 
-- Normal forward scans for the nearest enemy in `targetSearchRange` without lane filtering.
-- Aggressive-forward scans only enemies whose current wave lane matches its own lane.
-- Adjacent-lane enemies inside search range are ignored by aggressive-forward.
+- Normal forward uses a front scanner, but scanner results only release the wave when the target is in an adjacent lane and the scanner has already passed it along `forwardDir`.
+- Aggressive-forward does not use scanner-based release.
+- Adjacent-lane enemies inside search range are ignored by aggressive-forward unless they enter attack range or attack first.
 - Actual attack-range engage still uses normal wave-wide combat.
 - Being attacked still triggers retaliation and wave-wide freehunt.
 - Reaching/passing the enemy hero's Z line triggers freehunt regardless of lane.
@@ -290,10 +501,15 @@ Wave-wide forward/freehunt rewrite:
 Clarifications confirmed with the user on 2026-06-25:
 
 - No extra no-target grace period is wanted. `targetSearchIntervalFrames` is intentionally large enough to provide the desired cadence.
-- Initial forward immediately after spawn does not use the front scanner. Recovered forward after the first freehunt/combat does use the front scanner. Recovered forward does not keep per-unit target scanning.
+- Historical note: initial forward search lock was used briefly and then removed on 2026-06-29. Do not reintroduce it.
+- Normal forward now uses the front scanner immediately after spawn and after recovery, but scanner visibility alone does not freehunt.
+- Recovered forward does not keep per-unit target scanning.
+- Normal forward scanner release is limited to adjacent-lane targets that the scanner has already passed.
+- Same-lane targets release through attack-range contact, not through scanner visibility.
+- Aggressive forward does not use scanner release.
 - Shared-target convergence is an intended natural regroup behavior.
 - `laneId` remains dynamic ArmyBrain input and is not an absolute movement restriction.
-- The old forward-scan/passed-target mechanism is intentionally removed and must not be restored.
+- The old broad "scanner finds anything -> freehunt" mechanism is intentionally removed and must not be restored.
 
 Hero-pressure spawn idle fix:
 
@@ -318,12 +534,11 @@ Verification done:
 - `git diff --check` passed.
 - The user has run repeated Cocos/browser gameplay tests and supplied Chrome traces. The latest attack-interval database change still needs inspector/gameplay verification.
 - Required gameplay retest:
-  - initial spawned forward does not release from front-scanner search before first contact/retaliation;
-  - initial spawned forward still releases when it reaches/passes the enemy hero line;
-  - recovered normal forward front scanner finds an enemy in range and releases the whole wave;
-  - normal forward does not depend on laneId or passed-target position;
-  - aggressive forward ignores adjacent-lane search targets;
-  - recovered aggressive forward reacts to same-lane targets, direct attack-range contact, retaliation, and hero line;
+  - normal forward after spawn uses the front scanner but does not freehunt merely because an enemy enters search range;
+  - normal forward releases the whole wave only when the scanner passes an adjacent-lane target;
+  - same-lane enemies release through attack-range contact, not search visibility;
+  - aggressive forward ignores scanner search release completely;
+  - both normal and aggressive forward still release when any unit detects an enemy in attack range, when attacked, or when reaching/passing enemy hero line;
   - aggressive wave resumes aggressive-forward after all alive members confirm no target;
   - ranged engage makes both waves freehunt;
   - no unit forwards alone while another member still has a target or pending search;
@@ -905,6 +1120,9 @@ Inspector properties:
 - `coolDownDuration`
   - defaults to `3`.
   - Controls how long the player must wait after a successful manual wave spawn.
+- `doubleTapWindow`
+  - defaults to `0.25`.
+  - Controls the maximum delay between two taps on the same unit icon to spawn an aggressive-forward wave.
 - `enableMaxAliveWaveLimit`
   - defaults to enabled.
   - Blocks manual spawning when the player's alive wave count reaches `maxAliveWaves`.
@@ -979,8 +1197,11 @@ Important:
 - The icon node name is not read and has no effect on spawning.
 - Renaming an icon node to `LightSword` is not sufficient; `unitIcons[i].unitName`
   must contain `LightSword`.
-- Tapping a unit icon is an immediate spawn command. There is no persistent
-  selected-unit state and no unit-icon `selected` visual behavior yet.
+- Tapping a unit icon once spawns a normal-forward wave.
+- Double tapping/clicking the same unit icon inside `doubleTapWindow` spawns an aggressive-forward wave.
+- The first tap is held briefly until `doubleTapWindow` expires, so a double tap can be recognized without spawning a normal wave first and putting the controller on cooldown.
+- The pending tap stores the lane selected at tap time, so changing lane during the short double-tap window does not move that already-issued spawn command to another lane.
+- There is no persistent selected-unit state and no unit-icon `selected` visual behavior yet.
 - If cooldown is active, tapping a unit icon logs a warning and does not spawn.
 - After a successful spawn, cooldown starts and the `bar` content width fills from `0` to its cached initial width over `coolDownDuration`.
 - During cooldown, unit icons are dimmed. When cooldown reaches zero, icons return to white.
@@ -989,11 +1210,11 @@ Important:
 - The current call is:
 
 ```text
-GameManager.spawnWaveByName(team, unitName, selectedLaneId)
+GameManager.spawnWaveByName(team, unitName, selectedLaneId, aggressiveForward)
 ```
 
-- `aggressiveForward` is not passed, so it uses the existing API default
-  `false`.
+- `aggressiveForward = false` for single tap.
+- `aggressiveForward = true` for double tap/click.
 - `GameManager` remains responsible for:
   - finding the database entry;
   - checking and spending CP;
@@ -1027,8 +1248,12 @@ At the time of this handoff:
 - Do not remove or broadly rewrite `ArmyBrain`; team B still needs it and the
   user may want to switch control modes later.
 - No automatic ArmyBrain enable/disable logic was added.
-- No changes were made to `GameManager`, `BattleUnitDatabase`, wave logic,
-  workers, Spatial Grid, CP, or pooling for this feature.
+- The original June 26 `PlayerArmyController` patch did not change
+  `GameManager`, wave logic, workers, Spatial Grid, CP, or pooling.
+- The later June 29 home-Codex work did change `GameManager`,
+  `BattleWave`, `Unit`, and `PlayerArmyController` for the final
+  forward/freehunt and single/double-tap aggressive-forward rules. See
+  `Home Codex Update On 2026-06-29` above.
 - The skill UI has not been implemented.
 
 ### Verification
@@ -1049,6 +1274,20 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
 
 For the next session, unless the user changes direction:
 
+- Visually test the June 29 forward/freehunt reconciliation in Cocos before
+  adding more battle logic:
+  - normal forward does not freehunt just because an adjacent-lane enemy enters
+    search range;
+  - normal forward releases only after the front scanner passes an
+    adjacent-lane target;
+  - same-lane contact releases through attack range;
+  - aggressive forward does not release from scanner visibility;
+  - both modes still release wave-wide from attack-range contact, retaliation,
+    and hero-line reach/pass.
+- Test `PlayerArmyController` single tap versus double tap:
+  - single tap spawns normal forward after the short `doubleTapWindow`;
+  - double tap spawns aggressive forward;
+  - changing lane during the double-tap window does not move the pending spawn.
 - Complete and test the `PlayerArmyController` Inspector wiring before adding
   more bottom-UI behavior.
 - Confirm that `ArmyBrainA` is disabled during manual-control tests.

@@ -27,7 +27,6 @@ export class BattleWave {
     private freeHuntActive = false;
     private permanentFreeHunt = false;
     private aggressiveForwardMode = false;
-    private initialForwardSearchLocked = true;
     private forwardScannerUnit: Unit | null = null;
 
     constructor(
@@ -289,8 +288,6 @@ export class BattleWave {
     ) {
         if (this.released) return;
 
-        this.initialForwardSearchLocked = false;
-
         if (permanent) {
             this.permanentFreeHunt = true;
         }
@@ -320,8 +317,6 @@ export class BattleWave {
     enterCombatMode() {
         if (this.released) return;
 
-        this.initialForwardSearchLocked = false;
-
         if (this.freeHuntActive) return;
 
         this.forwardModeActive = false;
@@ -349,11 +344,6 @@ export class BattleWave {
     isAggressiveForwardMode() {
         return !this.released &&
             this.aggressiveForwardMode;
-    }
-
-    isInitialForwardSearchLocked() {
-        return !this.released &&
-            this.initialForwardSearchLocked;
     }
 
     getForwardScanner(
@@ -418,7 +408,6 @@ export class BattleWave {
 
         if (aliveCount <= 0) return false;
 
-        this.initialForwardSearchLocked = false;
         this.forwardModeActive = true;
         this.freeHuntActive = false;
         this.forwardScannerUnit = null;
@@ -455,7 +444,6 @@ export class BattleWave {
         this.freeHuntActive = false;
         this.permanentFreeHunt = false;
         this.aggressiveForwardMode = false;
-        this.initialForwardSearchLocked = true;
         this.forwardScannerUnit = null;
         this.units.length = 0;
     }
