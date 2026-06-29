@@ -1,3 +1,4 @@
+import { Node, Tween, Vec3, tween } from 'cc';
 import { Unit } from './Unit';
 import { UnitType } from './BattleTypes';
 
@@ -28,6 +29,11 @@ export class BattleWave {
     private permanentFreeHunt = false;
     private aggressiveForwardMode = false;
     private forwardScannerUnit: Unit | null = null;
+    private representativeUnit: Unit | null = null;
+    private waveBannerNode: Node | null = null;
+    private waveBannerRecycle:
+        ((node: Node) => void) | null = null;
+    private waveBannerTweenDuration = 0.2;
 
     constructor(
         id: number,
@@ -106,6 +112,122 @@ export class BattleWave {
 
     getRandomAliveUnit(): Unit | null {
         return this.getRandomPreferredAliveUnit();
+    }
+
+    getRepresentativeUnit(): Unit | null {
+        if (
+            this.isUnitAlive(
+                this.representativeUnit
+            )
+        ) {
+            return this.representativeUnit;
+        }
+
+        this.representativeUnit =
+            this.pickRepresentativeUnit();
+
+        return this.representativeUnit;
+    }
+
+    setWaveBanner(
+        node: Node | null,
+        recycle: ((node: Node) => void) | null,
+        tweenDuration: number
+    ) {
+        this.releaseWaveBanner();
+
+        if (!node) return;
+
+        this.waveBannerNode = node;
+        this.waveBannerRecycle = recycle;
+        this.waveBannerTweenDuration = Math.max(
+            0,
+            tweenDuration
+        );
+        node.active = true;
+
+        this.refreshWaveBanner(true);
+    }
+
+    refreshWaveBanner(force: boolean = false) {
+        const banner =
+            this.waveBannerNode;
+
+        if (!banner) return false;
+
+        const holder =
+            this.getRepresentativeUnit();
+
+        if (!holder) {
+            this.releaseWaveBanner();
+            return false;
+        }
+
+        if (
+            !force &&
+            banner.parent === holder.node
+        ) {
+            return true;
+        }
+
+        Tween.stopAllByTarget(banner);
+
+        const hasParent =
+            !!banner.parent;
+
+        if (!hasParent) {
+            banner.setParent(holder.node);
+            banner.setPosition(0, 0, 0);
+            return true;
+        }
+
+        banner.setParent(null, true);
+        banner.setParent(holder.node, true);
+
+        if (this.waveBannerTweenDuration <= 0) {
+            banner.setPosition(0, 0, 0);
+            return true;
+        }
+
+        tween(banner)
+            .to(
+                this.waveBannerTweenDuration,
+                { position: new Vec3(0, 0, 0) }
+            )
+            .start();
+
+        return true;
+    }
+
+    releaseWaveBanner() {
+        const banner =
+            this.waveBannerNode;
+
+        if (!banner) {
+            this.waveBannerRecycle = null;
+            return;
+        }
+
+        if (!banner.isValid) {
+            this.waveBannerNode = null;
+            this.waveBannerRecycle = null;
+            return;
+        }
+
+        Tween.stopAllByTarget(banner);
+        banner.setParent(null, true);
+
+        const recycle =
+            this.waveBannerRecycle;
+
+        this.waveBannerNode = null;
+        this.waveBannerRecycle = null;
+
+        if (recycle) {
+            recycle(banner);
+        } else if (banner.isValid) {
+            banner.destroy();
+        }
     }
 
     getRandomPreferredAliveUnit(): Unit | null {
@@ -459,6 +581,8 @@ export class BattleWave {
     }
 
     releaseReferences() {
+        this.releaseWaveBanner();
+
         this.released = true;
         this.assignedCounterCount = 0;
         this.runtimeStateFrame = -1;
@@ -470,6 +594,7 @@ export class BattleWave {
         this.permanentFreeHunt = false;
         this.aggressiveForwardMode = false;
         this.forwardScannerUnit = null;
+        this.representativeUnit = null;
         this.units.length = 0;
     }
 
@@ -521,6 +646,58 @@ export class BattleWave {
         if (!this.isUnitAlive(unit)) return false;
 
         return !!unit!.onForward;
+    }
+
+    private pickRepresentativeUnit() {
+        if (this.released) return null;
+
+        if (
+            !this.representativeUnit &&
+            this.isForwardMode()
+        ) {
+            const scanner =
+                this.getForwardScanner(true);
+
+            if (this.isUnitAlive(scanner)) {
+                return scanner;
+            }
+        }
+
+        let aliveCount = 0;
+        let sumX = 0;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            aliveCount++;
+            sumX += u.agent!.pos.x;
+        }
+
+        if (aliveCount <= 0) return null;
+
+        const averageX = sumX / aliveCount;
+        let best: Unit | null = null;
+        let bestDistance = Infinity;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            const distance =
+                Math.abs(
+                    u.agent!.pos.x - averageX
+                );
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = u;
+            }
+        }
+
+        return best;
     }
 
     static getWaveForUnit(unit: Unit | null): BattleWave | null {

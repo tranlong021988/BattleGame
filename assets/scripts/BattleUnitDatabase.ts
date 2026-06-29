@@ -12,6 +12,9 @@ export class UnitPrefabEntry {
     @property(Prefab)
     prefab: Prefab | null = null;
 
+    @property(Prefab)
+    waveBannerPrefab: Prefab | null = null;
+
     @property({ type: UnitType })
     unitType: UnitType = UnitType.LightSword;
 

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Prefab, UnitType, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _dec4, _dec5, _dec6, _class4, _class5, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _dec7, _dec8, _dec9, _dec10, _dec11, _class7, _class8, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _crd, ccclass, property, UnitPrefabEntry, HeroEntry, BattleUnitDatabase;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Prefab, UnitType, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _dec5, _dec6, _dec7, _class4, _class5, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _dec8, _dec9, _dec10, _dec11, _dec12, _class7, _class8, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _crd, ccclass, property, UnitPrefabEntry, HeroEntry, BattleUnitDatabase;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -39,7 +39,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         property
       } = _decorator);
 
-      _export("UnitPrefabEntry", UnitPrefabEntry = (_dec = ccclass('UnitPrefabEntry'), _dec2 = property(Prefab), _dec3 = property({
+      _export("UnitPrefabEntry", UnitPrefabEntry = (_dec = ccclass('UnitPrefabEntry'), _dec2 = property(Prefab), _dec3 = property(Prefab), _dec4 = property({
         type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
           error: Error()
         }), UnitType) : UnitType
@@ -49,27 +49,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "prefab", _descriptor2, this);
 
-          _initializerDefineProperty(this, "unitType", _descriptor3, this);
+          _initializerDefineProperty(this, "waveBannerPrefab", _descriptor3, this);
 
-          _initializerDefineProperty(this, "unitCount", _descriptor4, this);
+          _initializerDefineProperty(this, "unitType", _descriptor4, this);
 
-          _initializerDefineProperty(this, "prewarmCount", _descriptor5, this);
+          _initializerDefineProperty(this, "unitCount", _descriptor5, this);
 
-          _initializerDefineProperty(this, "maxSpeed", _descriptor6, this);
+          _initializerDefineProperty(this, "prewarmCount", _descriptor6, this);
 
-          _initializerDefineProperty(this, "attackRange", _descriptor7, this);
+          _initializerDefineProperty(this, "maxSpeed", _descriptor7, this);
 
-          _initializerDefineProperty(this, "attackIntervalMin", _descriptor8, this);
+          _initializerDefineProperty(this, "attackRange", _descriptor8, this);
 
-          _initializerDefineProperty(this, "attackIntervalMax", _descriptor9, this);
+          _initializerDefineProperty(this, "attackIntervalMin", _descriptor9, this);
 
-          _initializerDefineProperty(this, "health", _descriptor10, this);
+          _initializerDefineProperty(this, "attackIntervalMax", _descriptor10, this);
 
-          _initializerDefineProperty(this, "damage", _descriptor11, this);
+          _initializerDefineProperty(this, "health", _descriptor11, this);
 
-          _initializerDefineProperty(this, "defense", _descriptor12, this);
+          _initializerDefineProperty(this, "damage", _descriptor12, this);
 
-          _initializerDefineProperty(this, "combatPointCost", _descriptor13, this);
+          _initializerDefineProperty(this, "defense", _descriptor13, this);
+
+          _initializerDefineProperty(this, "combatPointCost", _descriptor14, this);
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "name", [property], {
@@ -86,7 +88,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         initializer: function () {
           return null;
         }
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec3], {
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerPrefab", [_dec3], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
+        }
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -95,70 +104,70 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).LightSword;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "unitCount", [property], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "unitCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "prewarmCount", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "prewarmCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "maxSpeed", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "maxSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "attackRange", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "attackRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.2;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMin", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.4;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMax", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.45;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "health", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "health", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 30;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 5;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "combatPointCost", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "combatPointCost", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -167,46 +176,46 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
       })), _class2)) || _class));
 
-      _export("HeroEntry", HeroEntry = (_dec4 = ccclass('HeroEntry'), _dec5 = property(Node), _dec6 = property({
+      _export("HeroEntry", HeroEntry = (_dec5 = ccclass('HeroEntry'), _dec6 = property(Node), _dec7 = property({
         type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
           error: Error()
         }), UnitType) : UnitType
-      }), _dec4(_class4 = (_class5 = class HeroEntry {
+      }), _dec5(_class4 = (_class5 = class HeroEntry {
         constructor() {
-          _initializerDefineProperty(this, "name", _descriptor14, this);
+          _initializerDefineProperty(this, "name", _descriptor15, this);
 
-          _initializerDefineProperty(this, "heroNode", _descriptor15, this);
+          _initializerDefineProperty(this, "heroNode", _descriptor16, this);
 
-          _initializerDefineProperty(this, "unitType", _descriptor16, this);
+          _initializerDefineProperty(this, "unitType", _descriptor17, this);
 
-          _initializerDefineProperty(this, "maxSpeed", _descriptor17, this);
+          _initializerDefineProperty(this, "maxSpeed", _descriptor18, this);
 
-          _initializerDefineProperty(this, "guardDistance", _descriptor18, this);
+          _initializerDefineProperty(this, "guardDistance", _descriptor19, this);
 
-          _initializerDefineProperty(this, "health", _descriptor19, this);
+          _initializerDefineProperty(this, "health", _descriptor20, this);
 
-          _initializerDefineProperty(this, "damage", _descriptor20, this);
+          _initializerDefineProperty(this, "damage", _descriptor21, this);
 
-          _initializerDefineProperty(this, "defense", _descriptor21, this);
+          _initializerDefineProperty(this, "defense", _descriptor22, this);
 
-          _initializerDefineProperty(this, "combatPointBountyValue", _descriptor22, this);
+          _initializerDefineProperty(this, "combatPointBountyValue", _descriptor23, this);
         }
 
-      }, (_descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "name", [property], {
+      }, (_descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "name", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 'hero';
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "heroNode", [_dec5], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "heroNode", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return null;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "unitType", [_dec6], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "unitType", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -215,42 +224,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitType) : UnitType).LightSword;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "maxSpeed", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "maxSpeed", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "guardDistance", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "guardDistance", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 6;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "health", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "health", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 500;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "damage", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "damage", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 10;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "defense", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "defense", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "combatPointBountyValue", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "combatPointBountyValue", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -259,31 +268,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
       })), _class5)) || _class4));
 
-      _export("BattleUnitDatabase", BattleUnitDatabase = (_dec7 = ccclass('BattleUnitDatabase'), _dec8 = property(HeroEntry), _dec9 = property(HeroEntry), _dec10 = property({
+      _export("BattleUnitDatabase", BattleUnitDatabase = (_dec8 = ccclass('BattleUnitDatabase'), _dec9 = property(HeroEntry), _dec10 = property(HeroEntry), _dec11 = property({
         type: [UnitPrefabEntry]
-      }), _dec11 = property({
+      }), _dec12 = property({
         type: [UnitPrefabEntry]
-      }), _dec7(_class7 = (_class8 = class BattleUnitDatabase extends Component {
+      }), _dec8(_class7 = (_class8 = class BattleUnitDatabase extends Component {
         constructor(...args) {
           super(...args);
 
-          _initializerDefineProperty(this, "enableCombatPoint", _descriptor23, this);
+          _initializerDefineProperty(this, "enableCombatPoint", _descriptor24, this);
 
-          _initializerDefineProperty(this, "teamAInitialCombatPoint", _descriptor24, this);
+          _initializerDefineProperty(this, "teamAInitialCombatPoint", _descriptor25, this);
 
-          _initializerDefineProperty(this, "teamBInitialCombatPoint", _descriptor25, this);
+          _initializerDefineProperty(this, "teamBInitialCombatPoint", _descriptor26, this);
 
-          _initializerDefineProperty(this, "killRewardCostWeight", _descriptor26, this);
+          _initializerDefineProperty(this, "killRewardCostWeight", _descriptor27, this);
 
-          _initializerDefineProperty(this, "counterKillRewardCostWeight", _descriptor27, this);
+          _initializerDefineProperty(this, "counterKillRewardCostWeight", _descriptor28, this);
 
-          _initializerDefineProperty(this, "teamAHero", _descriptor28, this);
+          _initializerDefineProperty(this, "teamAHero", _descriptor29, this);
 
-          _initializerDefineProperty(this, "teamBHero", _descriptor29, this);
+          _initializerDefineProperty(this, "teamBHero", _descriptor30, this);
 
-          _initializerDefineProperty(this, "teamAUnits", _descriptor30, this);
+          _initializerDefineProperty(this, "teamAUnits", _descriptor31, this);
 
-          _initializerDefineProperty(this, "teamBUnits", _descriptor31, this);
+          _initializerDefineProperty(this, "teamBUnits", _descriptor32, this);
         }
 
         getTeamEntries(team) {
@@ -324,63 +333,63 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return reward;
         }
 
-      }, (_descriptor23 = _applyDecoratedDescriptor(_class8.prototype, "enableCombatPoint", [property], {
+      }, (_descriptor24 = _applyDecoratedDescriptor(_class8.prototype, "enableCombatPoint", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class8.prototype, "teamAInitialCombatPoint", [property], {
+      }), _descriptor25 = _applyDecoratedDescriptor(_class8.prototype, "teamAInitialCombatPoint", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 100;
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class8.prototype, "teamBInitialCombatPoint", [property], {
+      }), _descriptor26 = _applyDecoratedDescriptor(_class8.prototype, "teamBInitialCombatPoint", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 100;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class8.prototype, "killRewardCostWeight", [property], {
+      }), _descriptor27 = _applyDecoratedDescriptor(_class8.prototype, "killRewardCostWeight", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.0;
         }
-      }), _descriptor27 = _applyDecoratedDescriptor(_class8.prototype, "counterKillRewardCostWeight", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class8.prototype, "counterKillRewardCostWeight", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.15;
         }
-      }), _descriptor28 = _applyDecoratedDescriptor(_class8.prototype, "teamAHero", [_dec8], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class8.prototype, "teamAHero", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new HeroEntry();
         }
-      }), _descriptor29 = _applyDecoratedDescriptor(_class8.prototype, "teamBHero", [_dec9], {
+      }), _descriptor30 = _applyDecoratedDescriptor(_class8.prototype, "teamBHero", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return new HeroEntry();
         }
-      }), _descriptor30 = _applyDecoratedDescriptor(_class8.prototype, "teamAUnits", [_dec10], {
+      }), _descriptor31 = _applyDecoratedDescriptor(_class8.prototype, "teamAUnits", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor31 = _applyDecoratedDescriptor(_class8.prototype, "teamBUnits", [_dec11], {
+      }), _descriptor32 = _applyDecoratedDescriptor(_class8.prototype, "teamBUnits", [_dec12], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -1,4 +1,12 @@
-import { _decorator, Component, Vec3, Label } from 'cc';
+import {
+    _decorator,
+    Component,
+    Vec3,
+    Label,
+    Prefab,
+    Node,
+    instantiate,
+} from 'cc';
 
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
@@ -175,6 +183,9 @@ export class GameManager extends Component {
     @property
     squareFormationWidth = 4;
 
+    @property
+    waveBannerTweenDuration = 0.2;
+
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -202,6 +213,7 @@ export class GameManager extends Component {
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
+    private waveBannerPools: Map<Prefab, Node[]> = new Map();
 
     start() {
         GameManager.instance = this;
@@ -326,6 +338,7 @@ export class GameManager extends Component {
 
         this.teamAPrefabMap.clear();
         this.teamBPrefabMap.clear();
+        this.clearWaveBannerPools();
 
         this.spatialGrid.destroy();
         this.spatialGrid.build([], []);
@@ -395,6 +408,7 @@ export class GameManager extends Component {
         this.processDynamicWaveLanes();
         this.processWaveForwardSearches();
         this.processWaveForwardRecoveries();
+        this.processWaveBanners();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
     }
@@ -724,6 +738,18 @@ export class GameManager extends Component {
         }
     }
 
+    private processWaveBanners() {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+                continue;
+            }
+
+            wave.refreshWaveBanner();
+        }
+    }
+
     private refreshDynamicLaneForWave(
         wave: BattleWave | null
     ) {
@@ -1036,6 +1062,13 @@ export class GameManager extends Component {
     }
 
     private notifyUnitWillDespawn(unit: Unit) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (wave) {
+            wave.refreshWaveBanner();
+        }
+
         const anyController = this.cinematicController as any;
 
         if (
@@ -1391,7 +1424,99 @@ export class GameManager extends Component {
             );
         }
 
+        this.assignWaveBanner(
+            wave,
+            entry.waveBannerPrefab
+        );
+
         return wave;
+    }
+
+    private assignWaveBanner(
+        wave: BattleWave,
+        prefab: Prefab | null
+    ) {
+        if (!prefab) return;
+        if (!wave) return;
+        if (wave.getAliveCount() <= 0) return;
+
+        const node =
+            this.acquireWaveBanner(prefab);
+
+        if (!node) return;
+
+        wave.setWaveBanner(
+            node,
+            (bannerNode: Node) => {
+                this.recycleWaveBanner(
+                    prefab,
+                    bannerNode
+                );
+            },
+            this.waveBannerTweenDuration
+        );
+    }
+
+    private acquireWaveBanner(
+        prefab: Prefab
+    ): Node | null {
+        const pool =
+            this.getWaveBannerPool(prefab);
+
+        const node =
+            pool.length > 0
+                ? pool.pop()!
+                : instantiate(prefab);
+
+        node.active = true;
+        return node;
+    }
+
+    private recycleWaveBanner(
+        prefab: Prefab,
+        node: Node
+    ) {
+        if (!node || !node.isValid) return;
+
+        node.active = false;
+        node.setParent(null);
+
+        const pool =
+            this.getWaveBannerPool(prefab);
+
+        if (pool.indexOf(node) < 0) {
+            pool.push(node);
+        }
+    }
+
+    private getWaveBannerPool(
+        prefab: Prefab
+    ) {
+        let pool =
+            this.waveBannerPools.get(prefab);
+
+        if (!pool) {
+            pool = [];
+            this.waveBannerPools.set(prefab, pool);
+        }
+
+        return pool;
+    }
+
+    private clearWaveBannerPools() {
+        this.waveBannerPools.forEach((pool) => {
+            for (let i = 0; i < pool.length; i++) {
+                const node = pool[i];
+
+                if (node && node.isValid) {
+                    node.destroy();
+                }
+            }
+
+            pool.length = 0;
+        });
+
+        this.waveBannerPools.clear();
     }
 
     private spawnSquareFormationInLane(

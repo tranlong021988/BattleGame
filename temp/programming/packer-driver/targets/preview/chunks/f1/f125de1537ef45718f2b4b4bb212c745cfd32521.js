@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, UnitType, BattleWave, _crd;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, Tween, Vec3, tween, UnitType, BattleWave, _crd;
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
@@ -18,6 +18,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       _reporterNs = _unresolved_;
     }, function (_cc) {
       _cclegacy = _cc.cclegacy;
+      __checkObsolete__ = _cc.__checkObsolete__;
+      __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
+      Tween = _cc.Tween;
+      Vec3 = _cc.Vec3;
+      tween = _cc.tween;
     }, function (_unresolved_2) {
       UnitType = _unresolved_2.UnitType;
     }],
@@ -25,6 +30,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       _crd = true;
 
       _cclegacy._RF.push({}, "2d08duCH6RMR4qPFCZCa+i3", "BattleWave", undefined);
+
+      __checkObsolete__(['Node', 'Tween', 'Vec3', 'tween']);
 
       _export("BattleWave", BattleWave = class BattleWave {
         constructor(id, team, unitName, unitType, totalCount, laneId) {
@@ -52,6 +59,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
           this.forwardScannerUnit = null;
+          this.representativeUnit = null;
+          this.waveBannerNode = null;
+          this.waveBannerRecycle = null;
+          this.waveBannerTweenDuration = 0.2;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -109,6 +120,93 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         getRandomAliveUnit() {
           return this.getRandomPreferredAliveUnit();
+        }
+
+        getRepresentativeUnit() {
+          if (this.isUnitAlive(this.representativeUnit)) {
+            return this.representativeUnit;
+          }
+
+          this.representativeUnit = this.pickRepresentativeUnit();
+          return this.representativeUnit;
+        }
+
+        setWaveBanner(node, recycle, tweenDuration) {
+          this.releaseWaveBanner();
+          if (!node) return;
+          this.waveBannerNode = node;
+          this.waveBannerRecycle = recycle;
+          this.waveBannerTweenDuration = Math.max(0, tweenDuration);
+          node.active = true;
+          this.refreshWaveBanner(true);
+        }
+
+        refreshWaveBanner(force) {
+          if (force === void 0) {
+            force = false;
+          }
+
+          var banner = this.waveBannerNode;
+          if (!banner) return false;
+          var holder = this.getRepresentativeUnit();
+
+          if (!holder) {
+            this.releaseWaveBanner();
+            return false;
+          }
+
+          if (!force && banner.parent === holder.node) {
+            return true;
+          }
+
+          Tween.stopAllByTarget(banner);
+          var hasParent = !!banner.parent;
+
+          if (!hasParent) {
+            banner.setParent(holder.node);
+            banner.setPosition(0, 0, 0);
+            return true;
+          }
+
+          banner.setParent(null, true);
+          banner.setParent(holder.node, true);
+
+          if (this.waveBannerTweenDuration <= 0) {
+            banner.setPosition(0, 0, 0);
+            return true;
+          }
+
+          tween(banner).to(this.waveBannerTweenDuration, {
+            position: new Vec3(0, 0, 0)
+          }).start();
+          return true;
+        }
+
+        releaseWaveBanner() {
+          var banner = this.waveBannerNode;
+
+          if (!banner) {
+            this.waveBannerRecycle = null;
+            return;
+          }
+
+          if (!banner.isValid) {
+            this.waveBannerNode = null;
+            this.waveBannerRecycle = null;
+            return;
+          }
+
+          Tween.stopAllByTarget(banner);
+          banner.setParent(null, true);
+          var recycle = this.waveBannerRecycle;
+          this.waveBannerNode = null;
+          this.waveBannerRecycle = null;
+
+          if (recycle) {
+            recycle(banner);
+          } else if (banner.isValid) {
+            banner.destroy();
+          }
         }
 
         getRandomPreferredAliveUnit() {
@@ -302,6 +400,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
+        forceForwardMode() {
+          if (this.released) return false;
+          var aliveCount = 0;
+          this.forwardModeActive = true;
+          this.freeHuntActive = false;
+          this.permanentFreeHunt = false;
+          this.forwardScannerUnit = null;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            aliveCount++;
+            u.enterWaveForwardMode(this.aggressiveForwardMode);
+          }
+
+          return aliveCount > 0;
+        }
+
         getTargetSearchIntervalFrames() {
           return this.targetSearchIntervalFrames;
         }
@@ -388,6 +504,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         releaseReferences() {
+          this.releaseWaveBanner();
           this.released = true;
           this.assignedCounterCount = 0;
           this.runtimeStateFrame = -1;
@@ -399,6 +516,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
           this.forwardScannerUnit = null;
+          this.representativeUnit = null;
           this.units.length = 0;
         }
 
@@ -441,6 +559,46 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         isForwardScannerEligible(unit) {
           if (!this.isUnitAlive(unit)) return false;
           return !!unit.onForward;
+        }
+
+        pickRepresentativeUnit() {
+          if (this.released) return null;
+
+          if (!this.representativeUnit && this.isForwardMode()) {
+            var scanner = this.getForwardScanner(true);
+
+            if (this.isUnitAlive(scanner)) {
+              return scanner;
+            }
+          }
+
+          var aliveCount = 0;
+          var sumX = 0;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            aliveCount++;
+            sumX += u.agent.pos.x;
+          }
+
+          if (aliveCount <= 0) return null;
+          var averageX = sumX / aliveCount;
+          var best = null;
+          var bestDistance = Infinity;
+
+          for (var _i2 = 0; _i2 < this.units.length; _i2++) {
+            var _u2 = this.units[_i2];
+            if (!this.isUnitAlive(_u2)) continue;
+            var distance = Math.abs(_u2.agent.pos.x - averageX);
+
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              best = _u2;
+            }
+          }
+
+          return best;
         }
 
         static getWaveForUnit(unit) {

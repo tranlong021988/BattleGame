@@ -2,18 +2,20 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-06-29.
+Last updated: 2026-06-30.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest office-Codex source check after the June 29 home-Codex work:
+Latest source check after the June 30 home-Codex wave-banner work:
 
-- Current HEAD while checking: `6b3481be`.
-- Source logic files are dirty after the latest office-Codex hero-phase update.
+- Current HEAD while checking: `cf809f37`.
+- Source logic files are dirty after the latest home-Codex wave-banner update.
 - Expected dirty source/doc files from this update:
   - `AI-CONTEX.md`;
+  - `assets/scripts/BattleUnitDatabase.ts`;
   - `assets/scripts/BattleWave.ts`;
-  - `assets/scripts/GameManager.ts`.
+  - `assets/scripts/GameManager.ts`;
+  - `assets/scripts/TrueMiniMapPanel.ts`.
 - June 26 office work that is now present in source:
   - minimap hot-path optimization in `TrueMiniMapPanel`;
   - `PlayerArmyController` inspector-driven lane picker and unit icon binding;
@@ -33,6 +35,14 @@ Latest office-Codex source check after the June 29 home-Codex work:
   - unlocked hero is treated as a normal mid-lane wave with one unit and enters normal forward;
   - existing enemy waves are forced back to their normal/aggressive forward mode instead of being forced to chase the hero;
   - `GameManager.heroFreeHuntSearchRange` and related hero-pressure search helpers were removed.
+- June 30 home work now present in source:
+  - each `UnitPrefabEntry` has a `waveBannerPrefab` slot;
+  - `BattleWave` owns one stable representative/holder unit and one optional wave-banner node;
+  - wave banners are pooled by `GameManager`;
+  - initial banner holder is the wave front scanner when available;
+  - if the holder dies, the banner detaches, reparents to the new holder while preserving world position, then tweens to local `(0, 0, 0)`;
+  - if no holder remains, the banner returns to pool;
+  - `TrueMiniMapPanel` now uses `BattleWave.getRepresentativeUnit()` before falling back to old sampled averaging.
 - No scene/prefab wiring was intentionally changed by Codex in these patches. The user should wire or verify Inspector fields in Cocos Editor.
 
 ## Working Rules
@@ -48,11 +58,13 @@ Latest office-Codex source check after the June 29 home-Codex work:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `6b3481be`.
-- Expected dirty source/doc files from the current office update:
+- Current HEAD while writing this handoff: `cf809f37`.
+- Expected dirty source/doc files from the current home wave-banner update:
   - `AI-CONTEX.md`;
+  - `assets/scripts/BattleUnitDatabase.ts`;
   - `assets/scripts/BattleWave.ts`;
-  - `assets/scripts/GameManager.ts`.
+  - `assets/scripts/GameManager.ts`;
+  - `assets/scripts/TrueMiniMapPanel.ts`.
 - Git may print `C:\Users\CPU/.config/git/ignore: Permission denied`; this is a local git-config warning, not a project source change.
 - If future `profiles/`, `library/`, or `temp/` changes appear, treat them as Cocos/editor generated unless the user explicitly asks to inspect them.
 - Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
@@ -177,62 +189,156 @@ Current understanding:
 
 - This avoids keeping dying wave icons visually stuck too long when alive
   count reaches zero.
-- The minimap is not the current active focus; do not rewrite it while working
-  on wave/hero gameplay unless the user explicitly returns to minimap issues.
+- `TrueMiniMapPanel` now uses `BattleWave.getRepresentativeUnit()` first for
+  wave icon position, then falls back to the older sampled-average path only
+  when no representative is available.
+- Avoid broader minimap rewrites unless the user explicitly returns to
+  minimap issues.
+
+### Wave Banner And Representative Holder
+
+Files changed on 2026-06-30:
+
+- `assets/scripts/BattleUnitDatabase.ts`
+- `assets/scripts/BattleWave.ts`
+- `assets/scripts/GameManager.ts`
+- `assets/scripts/TrueMiniMapPanel.ts`
+
+Implemented:
+
+- `UnitPrefabEntry.waveBannerPrefab` was added.
+  - This is the Inspector slot where the user assigns the banner prefab for
+    each unit type.
+  - Runtime creates/pools `Node` instances from this prefab; do not assign a
+    live scene node here.
+- `BattleWave` now owns:
+  - `representativeUnit`;
+  - `waveBannerNode`;
+  - a recycle callback supplied by `GameManager`.
+- Representative selection:
+  - if there is no representative yet and the wave is in forward mode, the
+    initial holder is the current front scanner;
+  - while the representative remains alive and still belongs to the wave, it
+    is kept stable;
+  - when the holder dies/invalidates, the wave picks a new alive unit closest
+    to average X of all alive units in the wave.
+- Banner attach behavior:
+  - initial attach goes straight under the holder at local `(0, 0, 0)`;
+  - holder switch stops any previous banner tween;
+  - banner detaches from the old parent while preserving world transform;
+  - banner reparents to the new holder while preserving world transform;
+  - banner tweens back to local `(0, 0, 0)` under the new holder.
+- Banner cleanup:
+  - if no holder remains, the banner is released to pool;
+  - `BattleWave.releaseReferences()` also releases any banner;
+  - `GameManager.onDestroy()` clears pooled banner nodes.
+- `GameManager.notifyUnitWillDespawn()` refreshes the wave banner before a
+  unit node is deactivated and returned to the unit pool. This avoids a banner
+  staying under an inactive pooled holder until the next frame.
+- `GameManager.waveBannerTweenDuration` controls the holder-switch tween
+  duration and defaults to `0.2`.
+
+Important behavior:
+
+- Banner lifecycle belongs to `BattleWave`, not to `Unit`.
+- Unit pooling must not carry a banner into a reused unit.
+- The banner pool is separate from the unit pool.
+- Current implementation uses holder local `(0, 0, 0)`. If unit roots are at
+  the feet, add an explicit banner anchor/socket or offset later instead of
+  hardcoding per-prefab hacks in wave logic.
 
 ### Performance Trace Review
 
 Latest supplied trace reviewed:
 
 ```text
-C:/Users/tranl/Downloads/Trace-20260629T005226.json.gz
+C:/Users/tranl/Downloads/Trace-20260630T011000.json
 ```
 
 Compared against:
 
 ```text
-C:/Users/tranl/Downloads/Trace-20260627T002809.json.gz
+C:/Users/tranl/Downloads/Trace-20260629T005226.json.gz
 ```
 
-Key numbers from the June 29 trace:
+Key numbers from the June 30 trace:
 
 - `FireAnimationFrame` after excluding profiler-start outlier:
-  - avg `1.492 ms`;
-  - p50 `1.352 ms`;
-  - p95 `3.900 ms`;
-  - p99 `4.721 ms`;
-  - max `15.901 ms`;
-  - frames over `8.33 ms`: `10`;
+  - count `12022`;
+  - avg `1.180 ms`;
+  - p50 `1.146 ms`;
+  - p90 `3.052 ms`;
+  - p95 `3.488 ms`;
+  - p99 `4.221 ms`;
+  - max `12.296 ms`;
+  - frames over `8.33 ms`: `5`;
   - frames over `16.67 ms`: `0`.
 - Main JS heap:
   - min `48.1 MB`;
-  - max `100.9 MB`;
-  - last `86.4 MB`.
+  - max `98.6 MB`;
+  - last `67.5 MB`;
+  - post-GC baseline is not drifting upward in this trace.
 - DOM/listener counters:
   - documents stable at `2`;
-  - nodes roughly stable around `42644-42660`;
-  - listeners returned from `130` to `119`.
+  - DOM nodes stable at about `42644`;
+  - listeners went from `130` back to `119`.
 - RVO worker:
-  - `RunTask` avg `0.478 ms`;
-  - p95 `0.891 ms`;
-  - max `7.304 ms`;
-  - heap `0.5-2.8 MB`, last `2.2 MB`.
+  - `RunTask` count `3330`;
+  - avg `0.352 ms`;
+  - p50 `0.307 ms`;
+  - p95 `0.793 ms`;
+  - p99 `1.007 ms`;
+  - max `4.935 ms`;
+  - heap roughly `0.6-2.8 MB`, last about `2.5 MB`.
 - Target-search worker:
-  - only `69` post messages over about `92.8 s`;
-  - `HandlePostMessage` avg `0.288 ms`;
-  - max `0.749 ms`;
-  - heap `0.46-1.05 MB`.
+  - still very light;
+  - `RunTask` count `274`, avg `0.120 ms`, max `4.110 ms`;
+  - only `36` `HandlePostMessage` calls, avg `0.276 ms`, max `1.128 ms`;
+  - no worker GC events recorded;
+  - heap about `0.5-0.8 MB`.
+- Wave banner samples:
+  - `processWaveBanners` sampled around `0.4 ms` total over the whole trace;
+  - `refreshWaveBanner` sampled around `0.2 ms` total;
+  - tween cost was negligible.
 
 Interpretation:
 
-- Performance is still within a good desktop trace budget.
-- The June 29 run is slightly heavier than June 27, but not a red flag:
-  - RAF avg went from about `1.21 ms` to `1.49 ms`;
-  - p95 went from about `3.59 ms` to `3.90 ms`;
-  - p99 remained close.
+- Performance is healthier than the June 29 trace:
+  - RAF avg improved from about `1.49 ms` to `1.18 ms`;
+  - p95 improved from about `3.90 ms` to `3.49 ms`;
+  - p99 improved from about `4.72 ms` to `4.22 ms`;
+  - no frame exceeded `16.67 ms` after excluding profiler-start outliers.
 - Worker cost is not the bottleneck.
 - Do not move RVO/target workers back to main thread based on this trace.
-- The next likely risk area is render/UI/material/VFX, not AI target search.
+- The newly added wave banner / representative holder path does not show up
+  as a frame-time regression in this trace.
+- The current recurring cost center is still engine/render/browser work:
+  WebGL buffer/state work, per-pass updates, mesh vertex filling, materials,
+  UI, VFX, and animation will matter more than target-search worker traffic.
+- Native builds may reduce browser/WebGL overhead and scheduling variance, but
+  they will not remove intrinsic costs such as high mesh vertices, draw calls,
+  material switches, overdraw, animation, VFX, UI layout, allocations, or broad
+  gameplay scans.
+
+O(n^2) / scan-wide clarification:
+
+- In the normal path, current battle logic is mostly grid-backed or
+  wave-throttled, not pure O(n^2).
+- Target-worker failure falls back to the main-thread Spatial Grid. This is
+  still acceptable if the grid exists and is current.
+- The dangerous fallback is when the Spatial Grid is unavailable or stale and
+  code falls back to scanning whole enemy lists.
+- RVO worker failure moves RVO cost back to the main thread, but current RVO
+  fallback still uses grid-style neighbor filtering. It is not automatically a
+  full O(n^2) pass, though dense cells can become locally expensive.
+- Dynamic lane voting is O(units in wave), throttled by the wave's staggered
+  target-search cadence. Do not move it to a worker without a trace proving it
+  matters.
+- Representative-holder re-pick is O(alive units in wave) and event-like,
+  usually only when the current holder dies or becomes invalid.
+- Minimap wave position now reads one representative holder per wave. If icon
+  separation grows to many icons, pairwise anti-overlap may become the minimap
+  cost to watch.
 
 ### Verification Done
 
@@ -244,16 +350,18 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
 
 - `git diff --check` passed for:
   - `AI-CONTEX.md`;
+  - `assets/scripts/BattleUnitDatabase.ts`;
   - `assets/scripts/BattleWave.ts`;
   - `assets/scripts/GameManager.ts`;
-  - `assets/scripts/PlayerArmyController.ts`;
-  - `assets/scripts/Unit.ts`.
+  - `assets/scripts/TrueMiniMapPanel.ts`.
 
 Runtime status:
 
-- The user supplied a post-change Chrome trace and it looked healthy.
-- Full gameplay behavior still needs Cocos visual testing for the latest
-  forward/aggressive-forward rule reconciliation.
+- The user supplied a post-banner Chrome trace
+  `Trace-20260630T011000.json`; it looked healthy and better than the June 29
+  trace.
+- Full gameplay behavior still needs Cocos visual testing with actual
+  `waveBannerPrefab` assignments and real banner art/VFX.
 
 ## Important Source Files
 
@@ -555,16 +663,16 @@ Hero-phase rewrite after later office discussion:
 - If a wave has no target during freehunt and is waiting for its search tick,
   that temporary wait is accepted behavior, not a bug.
 
-### Planned Wave Banner / Representative Unit Design
+### Implemented Wave Banner / Representative Unit Design
 
-This is a design decision from the latest office discussion. It has not been
-implemented yet. The user plans to ask another Codex session to implement it.
+This design is now implemented in the June 30 home-Codex source. Do not treat
+it as pending work or re-implement it from scratch.
 
 Goal:
 
-- Add a wave-level representative unit, tentatively named
-  `bannerUnit`, `representativeUnit`, or similar.
-- This unit is the visual anchor for:
+- Each wave owns a wave-level representative unit through
+  `BattleWave.getRepresentativeUnit()`.
+- This representative is the visual anchor for:
   - the banner/army emblem shown above the wave on the main battlefield;
   - the minimap icon position when the minimap panel is enabled.
 - Do not keep minimap position logic separate from battlefield banner logic.
@@ -596,7 +704,7 @@ Important separation of concerns:
   - only re-pick when the current holder dies, despawns, leaves the wave, or is
     otherwise invalid.
 
-Proposed selection rules:
+Implemented selection rules:
 
 1. On wave spawn / first forward scanner availability:
    - set `bannerUnit` to the current front scanner if valid.
@@ -626,22 +734,19 @@ Performance intent:
 - The re-pick cost is O(alive units in wave), which is acceptable because it is
   event-like and wave-local.
 - Avoid sorting/median unless testing proves average X gives poor visuals.
-- Minimap update then becomes O(waves) for wave positions by reading one
+- Minimap update is O(waves) for wave positions by reading one
   representative unit per wave, instead of sampling several units per wave.
 
-Implementation hints:
+Implementation status:
 
-- Best home is likely `BattleWave`, not `TrueMiniMapPanel`.
-- Add a method such as `getRepresentativeUnit()` or
-  `getBannerUnit()` that validates/re-picks internally.
-- Minimap should use this method for wave position; if it returns null, fall
-  back to the current sampled-average logic for safety.
-- Main battlefield banner/emblem system should also use this method.
+- Implemented in `BattleWave` on 2026-06-30.
+- `BattleWave.getRepresentativeUnit()` validates/re-picks internally.
+- `TrueMiniMapPanel` now uses this method for wave position; if it returns
+  null, it falls back to the current sampled-average logic for safety.
+- Main battlefield wave banner uses the same representative holder.
 - Hero wave has one unit, so representative selection is trivial.
-- Be careful with pooled units: validation must reject units no longer mapped
-  to that wave. Existing `BattleWave.isUnitAlive(...)` already has the right
-  shape but is private; implementation should reuse equivalent checks or expose
-  a narrow safe helper.
+- Pooled-unit safety is handled by `BattleWave.isUnitAlive(...)`, which checks
+  wave mapping, node activity, agent, props, and dead state.
 
 Verification done:
 
@@ -1410,12 +1515,16 @@ For the next session, unless the user changes direction:
     hero through full-map freehunt;
   - newly spawned waves after hero unlock should still begin in their normal or
     aggressive forward mode.
-- If hero phase looks acceptable, implement the planned wave
-  banner/representative unit design in `BattleWave`:
-  - initial holder from front scanner;
-  - stable holder while valid;
-  - re-pick by average X of alive units when holder dies;
-  - use the same representative for minimap icon position and main-map banner.
+- Test the implemented wave banner / representative holder behavior with real
+  `waveBannerPrefab` assignments in `BattleUnitDatabase`:
+  - initial banner attaches to the front scanner / first representative;
+  - when the holder dies, banner detaches from old holder, keeps world
+    position, reparents to the new holder, then tweens back to local
+    `(0, 0, 0)`;
+  - when no holder remains, the banner returns to its own pool;
+  - pooled unit reuse must never carry an old banner;
+  - minimap icon position should follow the same representative holder as the
+    battlefield banner.
 - Test `PlayerArmyController` single tap versus double tap:
   - single tap spawns normal forward after the short `doubleTapWindow`;
   - double tap spawns aggressive forward;

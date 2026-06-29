@@ -2048,6 +2048,7 @@
     "defaultSpawnLane": 1,
     "autoSpawnRandomLane": true,
     "squareFormationWidth": 4,
+    "waveBannerTweenDuration": 0.2,
     "circleObstacles": [],
     "rectObstacles": [],
     "_id": "004sPmq3RGdpm7Bhn+wfGg"
@@ -3761,6 +3762,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 0,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3780,6 +3782,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 2,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3799,6 +3802,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 4,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3818,6 +3822,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 6,
     "unitCount": 4,
     "prewarmCount": 20,
@@ -3837,6 +3842,7 @@
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 8,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3856,6 +3862,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 0,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3875,6 +3882,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 2,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3894,6 +3902,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 4,
     "unitCount": 8,
     "prewarmCount": 20,
@@ -3913,6 +3922,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 6,
     "unitCount": 4,
     "prewarmCount": 20,
@@ -3932,6 +3942,7 @@
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerPrefab": null,
     "unitType": 8,
     "unitCount": 8,
     "prewarmCount": 20,

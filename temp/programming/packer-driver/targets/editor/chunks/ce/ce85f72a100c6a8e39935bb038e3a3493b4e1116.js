@@ -991,6 +991,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             scan.aliveRatio = aliveCount / wave.totalCount;
           }
 
+          const representative = wave.getRepresentativeUnit();
+
+          if (representative && (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(representative) === wave && representative.node.activeInHierarchy && representative.props && !representative.props.isDead() && representative.agent) {
+            out.set(representative.agent.pos.x, 0, representative.agent.pos.z);
+            scan.hasPosition = true;
+            return scan;
+          }
+
           let sumX = 0;
           let sumZ = 0;
           let sampleCount = 0;
