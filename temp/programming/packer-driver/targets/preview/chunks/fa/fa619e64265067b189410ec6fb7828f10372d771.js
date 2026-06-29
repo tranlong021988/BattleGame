@@ -302,6 +302,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
+        forceForwardMode() {
+          if (this.released) return false;
+          var aliveCount = 0;
+          this.forwardModeActive = true;
+          this.freeHuntActive = false;
+          this.permanentFreeHunt = false;
+          this.forwardScannerUnit = null;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            aliveCount++;
+            u.enterWaveForwardMode(this.aggressiveForwardMode);
+          }
+
+          return aliveCount > 0;
+        }
+
         getTargetSearchIntervalFrames() {
           return this.targetSearchIntervalFrames;
         }

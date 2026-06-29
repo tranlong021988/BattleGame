@@ -6,17 +6,33 @@ Last updated: 2026-06-29.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest office-Codex source check for the June 26 UI/minimap work:
+Latest office-Codex source check after the June 29 home-Codex work:
 
-- Current HEAD while checking: `647132bb`.
-- Source logic files are clean against HEAD at the time of this note.
-- Dirty files currently seen are Cocos/editor generated files under `library/` and `temp/asset-db/`; do not treat them as gameplay changes unless the user asks.
-- June 26 work that is now present in source:
+- Current HEAD while checking: `6b3481be`.
+- Source logic files are dirty after the latest office-Codex hero-phase update.
+- Expected dirty source/doc files from this update:
+  - `AI-CONTEX.md`;
+  - `assets/scripts/BattleWave.ts`;
+  - `assets/scripts/GameManager.ts`.
+- June 26 office work that is now present in source:
   - minimap hot-path optimization in `TrueMiniMapPanel`;
   - `PlayerArmyController` inspector-driven lane picker and unit icon binding;
   - player spawn cooldown and power-bar fill;
   - player max-alive-wave limit;
   - selected-lane highlight by blinking the `selected` child node with `UIOpacity` tween.
+- June 29 home work that is now present in source:
+  - normal forward scanner releases only after passing adjacent-lane target;
+  - same-lane combat still starts through attack-range contact;
+  - aggressive forward ignores scanner release and stays lane-committed until real contact, retaliation, or hero line;
+  - player unit icon single tap spawns normal forward after `doubleTapWindow`;
+  - player unit icon double tap spawns aggressive forward;
+  - hero guard distance is wired from `BattleUnitDatabase.HeroEntry.guardDistance`;
+  - minimap dying-wave freeze default is `0`.
+- June 29 office follow-up now present in the working tree:
+  - hero phase no longer forces hero or enemy waves into full-map/permanent freehunt;
+  - unlocked hero is treated as a normal mid-lane wave with one unit and enters normal forward;
+  - existing enemy waves are forced back to their normal/aggressive forward mode instead of being forced to chase the hero;
+  - `GameManager.heroFreeHuntSearchRange` and related hero-pressure search helpers were removed.
 - No scene/prefab wiring was intentionally changed by Codex in these patches. The user should wire or verify Inspector fields in Cocos Editor.
 
 ## Working Rules
@@ -32,21 +48,13 @@ Latest office-Codex source check for the June 26 UI/minimap work:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `647132bb`.
-- Source logic files are no longer clean after the June 29 home-Codex work.
-- Expected source/doc dirty files from this handoff update:
+- Current HEAD while writing this handoff: `6b3481be`.
+- Expected dirty source/doc files from the current office update:
   - `AI-CONTEX.md`;
   - `assets/scripts/BattleWave.ts`;
-  - `assets/scripts/GameManager.ts`;
-  - `assets/scripts/PlayerArmyController.ts`;
-  - `assets/scripts/Unit.ts`.
-- Other dirty files currently observed but not authored as gameplay logic in
-  this update:
-  - `profiles/v2/packages/scene.json`;
-  - `temp/asset-db/log/6-28-2026 00-26.log`;
-  - deleted/generated `temp/startup.json`.
-- Treat `profiles/` and `temp/` changes as editor/generated unless the user
-  explicitly asks to inspect them.
+  - `assets/scripts/GameManager.ts`.
+- Git may print `C:\Users\CPU/.config/git/ignore: Permission denied`; this is a local git-config warning, not a project source change.
+- If future `profiles/`, `library/`, or `temp/` changes appear, treat them as Cocos/editor generated unless the user explicitly asks to inspect them.
 - Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
 
 ## Home Codex Update On 2026-06-29
@@ -90,8 +98,7 @@ Implemented current canonical behavior:
 - Aggressive forward:
   - does not use scanner-based release;
   - does not freehunt merely because an adjacent-lane enemy is visible;
-  - still freehunts through attack-range contact, retaliation, hero line, and
-    final hero-pressure logic.
+  - still freehunts through attack-range contact, retaliation, and hero line.
 - Universal rule preserved:
   - if any alive unit detects a valid enemy inside `attackRange` on its
     `attackCheckIntervalFrames`, both involved waves enter whole-wave
@@ -138,23 +145,27 @@ Important UX implication:
   spawn immediately on the first tap unless the user accepts that double-tap
   aggressive may be blocked by cooldown.
 
-### Hero Guard And Hero Pressure State
+### Hero Guard And Hero Phase State
 
 These features are present in current source and were checked/documented
 during this handoff period:
 
 - `BattleUnitDatabase.HeroEntry.guardDistance` exists.
 - `GameManager` assigns `hero.heroGuardDistance` during hero registration.
-- Before final hero-pressure phase, a steady hero can locally guard around its
+- Before hero phase, a steady hero can locally guard around its
   home position instead of standing still as an archer target.
 - Hero guard is local:
   - chase/fight only inside the guard zone;
   - return home and face initial yaw when the zone is clear.
-- Final hero-pressure still remains the intentional permanent-freehunt
-  exception.
-- Hero-pressure search uses `GameManager.getHeroPressureSearchRange()` so a
-  newly forced enemy wave does not stand idle because the old fixed range was
-  too short.
+- Hero phase no longer creates a permanent/freehunt-all-map exception.
+- When hero phase unlocks, the hero stops being steady and enters normal
+  forward as a one-unit mid-lane wave.
+- Existing enemy waves are forced back to their own forward mode:
+  - normal waves return to normal forward;
+  - aggressive waves return to aggressive forward.
+- From there, hero and enemy waves use the same forward/freehunt rules as
+  ordinary waves: same-lane contact through attack range, adjacent-lane
+  release only after normal-front-scanner pass, and hero-line release.
 
 ### Minimap State
 
@@ -288,9 +299,14 @@ This flow is the current canonical rule set. Older notes or commits describing i
 - There is no regroup, formation-slot return, lane-return movement, or explicit grace timer.
 - `Forward`, `Aggressive Forward`, and normal `Free Hunt` are wave-wide states.
 - A unit is not allowed to continue forward alone while its wave remains in freehunt.
-- A unit without a target waits during freehunt; it does not advance independently along `forwardDir`.
+- A unit without a target does not advance independently along `forwardDir`.
+- During freehunt, a no-target unit first borrows a valid teammate target;
+  if nobody in the wave has a target, it searches on its target-search tick.
+- Temporary waiting for the next target-search tick is valid design cadence and
+  should not be treated as a bug by itself.
 - If any alive member remains `onBusy`, owns a valid target, or has a target query still pending/not yet confirmed empty, the wave cannot resume forward.
-- Normal freehunt is recoverable. Hero-pressure freehunt is the only intentional permanent-freehunt mode.
+- Normal freehunt is recoverable. There is currently no intended permanent
+  hero-pressure freehunt path.
 - Attack-range contact is the universal hard trigger: if any alive unit detects a valid enemy inside `attackRange` on its `attackCheckIntervalFrames`, both involved waves enter freehunt/combat together.
 
 ### Normal Forward
@@ -457,30 +473,41 @@ ArmyBrain raid rules:
 
 ## Hero Logic
 
-Hero is treated as a special mid-lane unit/wave conceptually, but still has special rules in code.
+Hero is treated as a special mid-lane unit/wave conceptually, but should use
+ordinary forward/freehunt rules once hero phase unlocks.
 
 - Initially `isSteady = true`.
-- Before final hero-pressure phase, steady heroes now have a local guard zone:
+- Before hero phase, steady heroes have a local guard zone:
   - `HeroEntry.guardDistance` is assigned to `Unit.heroGuardDistance` during hero registration;
   - the guard zone is centered on the hero's initial/home position, not the hero's current position;
   - while steady, if any valid enemy enters this guard zone, the hero can chase/fight only inside that zone;
   - if the current target leaves the guard zone and no other enemy remains in the zone, the hero drops the target, walks back home using normal movement/maxSpeed/RVO, then faces its initial yaw again;
   - if another enemy enters the guard zone while the hero is returning, the hero immediately resumes local guard pursuit;
-  - guard-zone behavior is separate from final hero-pressure freehunt and does not unlock global map pursuit.
+  - guard-zone behavior is separate from hero phase and does not unlock global map pursuit.
 - It can still attack back in place if enemy enters normal attack range.
-- It unlocks/freehunts when its team cannot spawn normal units anymore and has no alive normal units/waves.
-- When one team hero unlocks, normal enemy waves are forced into freehunt pressure.
+- It unlocks when its team cannot spawn normal units anymore and has no alive normal units/waves.
+- On unlock:
+  - the hero is registered into `GameManager.waves` if needed;
+  - `hero.setSteady(false, true)` makes it enter forward;
+  - the hero wave runs `BattleWave.forceForwardMode()`;
+  - enemy waves run `BattleWave.forceForwardMode()` instead of being forced into freehunt.
+- `BattleWave.forceForwardMode()` clears freehunt/permanent state and calls
+  `Unit.enterWaveForwardMode(...)` on alive units, preserving each wave's
+  aggressive-forward trait.
 - Enemy hero does not auto-unlock just because the other hero unlocked.
 - Hero kills do not award CP.
-- Hero-pressure behavior intentionally bypasses normal no-target recovery:
-  - unlocked hero freehunts across the battlefield;
-  - enemy normal waves are forced into permanent hero-pressure freehunt;
-  - newly spawned enemy waves are also immediately forced into this mode while the opposing hero remains unlocked.
+- There is no hero-pressure all-map target search now.
+- Newly spawned waves after an opposing hero unlock are no longer kicked out of
+  forward by `spawnEntryFormation()`.
+- Hero freehunt is recoverable under the same wave rules unless combat/targets
+  keep it active.
 
 Recent caution:
 
 - A previous hero-phase fix was suspected to affect frame time, but later profiling also showed browser/tab noise and render/GPU cost can dominate. Re-measure before blaming hero logic.
-- Hero-pressure freehunt search now uses `GameManager.getHeroPressureSearchRange()`, which covers the battlefield diagonal plus margin. This prevents newly spawned enemy waves from being forced out of forward and then standing idle because the fixed inspector `heroFreeHuntSearchRange` was too short.
+- Old notes about `GameManager.getHeroPressureSearchRange()` and inspector
+  `heroFreeHuntSearchRange` are obsolete; those paths were removed when hero
+  phase changed to normal-wave forward behavior.
 
 ## Gameplay Notes On 2026-06-24 And 2026-06-25
 
@@ -511,21 +538,110 @@ Clarifications confirmed with the user on 2026-06-25:
 - `laneId` remains dynamic ArmyBrain input and is not an absolute movement restriction.
 - The old broad "scanner finds anything -> freehunt" mechanism is intentionally removed and must not be restored.
 
-Hero-pressure spawn idle fix:
+Hero-phase rewrite after later office discussion:
 
-- Bug observed by user: when the last non-hero unit of team B died and team A spawned a new wave at the same moment, the new A wave could stand still at spawn.
-- Likely source path:
-  - B loses last normal unit,
-  - B hero unlocks,
-  - enemy normal waves are forced into hero-pressure freehunt,
-  - a just-spawned A wave also hits `shouldForceTeamFreeHunt(team)` inside `spawnEntryFormation()`,
-  - forward is disabled,
-  - if fixed `heroFreeHuntSearchRange` cannot see hero/enemy from spawn, the wave has no target and appears idle.
-- Current implementation:
-  - added `getHeroPressureSearchRange()`,
-  - uses battlefield width/depth plus spawn Z extents to compute a range covering the whole battlefield,
-  - `unlockHeroForward()` and `forceWaveToHeroPressureFreeHunt()` use that range instead of the fixed inspector value directly.
-- This keeps the design intent of endgame pressure/freehunt, while avoiding spawned waves being kicked out of forward without a reachable target.
+- Old design:
+  - a hero unlock forced the hero and enemy waves into permanent/full-map
+    freehunt;
+  - newly spawned waves could also be kicked out of forward by hero-pressure
+    logic.
+- New design:
+  - hero phase is not a global freehunt switch;
+  - unlocked hero behaves like a one-unit mid-lane wave in normal forward;
+  - enemy waves are returned to forward/aggressive-forward and only freehunt
+    when ordinary rules trigger;
+  - `shouldForceTeamFreeHunt()`, `forceWaveToHeroPressureFreeHunt()`,
+    `getHeroPressureSearchRange()`, and `heroFreeHuntSearchRange` were removed.
+- If a wave has no target during freehunt and is waiting for its search tick,
+  that temporary wait is accepted behavior, not a bug.
+
+### Planned Wave Banner / Representative Unit Design
+
+This is a design decision from the latest office discussion. It has not been
+implemented yet. The user plans to ask another Codex session to implement it.
+
+Goal:
+
+- Add a wave-level representative unit, tentatively named
+  `bannerUnit`, `representativeUnit`, or similar.
+- This unit is the visual anchor for:
+  - the banner/army emblem shown above the wave on the main battlefield;
+  - the minimap icon position when the minimap panel is enabled.
+- Do not keep minimap position logic separate from battlefield banner logic.
+  Both should read the same wave-level representative unit so the main map and
+  minimap agree.
+
+Reasoning:
+
+- Current minimap uses sampled/average wave position. This is useful as a
+  center-of-mass estimate, but on the main map a banner at an average point can
+  appear to float between units, especially during melee spread.
+- A banner attached to a real unit feels more like a disciplined army with a
+  flag bearer.
+- The initial front scanner is usually the unit leading the formation, often
+  gets the first target, and often becomes the unit whose target is borrowed by
+  teammates. Visually, this makes it a good first banner holder.
+
+Important separation of concerns:
+
+- Do not make the gameplay scanner and visual banner holder the exact same
+  always-refreshing concept.
+- Forward scanner remains gameplay logic:
+  - selected/cached by `BattleWave.getForwardScanner()`;
+  - refreshed on `targetSearchIntervalFrames` when target search runs;
+  - can change for gameplay correctness.
+- Banner/representative unit should be visually stable:
+  - choose from scanner initially;
+  - keep the same holder while alive/valid;
+  - only re-pick when the current holder dies, despawns, leaves the wave, or is
+    otherwise invalid.
+
+Proposed selection rules:
+
+1. On wave spawn / first forward scanner availability:
+   - set `bannerUnit` to the current front scanner if valid.
+   - If no scanner exists yet, fall back to a valid alive unit from the wave.
+2. While `bannerUnit` is valid:
+   - keep it; do not swap every scan interval.
+3. When `bannerUnit` becomes invalid/dead:
+   - scan alive units in the wave;
+   - compute average X of alive unit positions;
+   - choose the alive unit whose X is closest to that average X.
+4. Tie-breakers, if needed:
+   - prefer a unit with a valid target;
+   - then prefer a unit currently on forward;
+   - then prefer the unit further along `forwardDir`.
+
+Why average X, not lane center:
+
+- During combat, units often spread horizontally.
+- The user wants the new flag bearer to move toward the visual center of the
+  living formation after the original holder dies.
+- Use the center of the actual alive units, not the configured lane center,
+  because a wave may be fighting away from its nominal lane.
+
+Performance intent:
+
+- Re-pick only when the current holder is invalid/dead, not every frame.
+- The re-pick cost is O(alive units in wave), which is acceptable because it is
+  event-like and wave-local.
+- Avoid sorting/median unless testing proves average X gives poor visuals.
+- Minimap update then becomes O(waves) for wave positions by reading one
+  representative unit per wave, instead of sampling several units per wave.
+
+Implementation hints:
+
+- Best home is likely `BattleWave`, not `TrueMiniMapPanel`.
+- Add a method such as `getRepresentativeUnit()` or
+  `getBannerUnit()` that validates/re-picks internally.
+- Minimap should use this method for wave position; if it returns null, fall
+  back to the current sampled-average logic for safety.
+- Main battlefield banner/emblem system should also use this method.
+- Hero wave has one unit, so representative selection is trivial.
+- Be careful with pooled units: validation must reject units no longer mapped
+  to that wave. Existing `BattleWave.isUnitAlive(...)` already has the right
+  shape but is private; implementation should reuse equivalent checks or expose
+  a narrow safe helper.
 
 Verification done:
 
@@ -543,6 +659,10 @@ Verification done:
   - ranged engage makes both waves freehunt;
   - no unit forwards alone while another member still has a target or pending search;
   - all targets disappear, all searches complete, and the whole wave resumes forward together;
+  - freehunt waiting for a target-search tick is acceptable cadence, not a bug;
+  - hero phase unlock makes the hero move forward as a one-unit mid-lane wave;
+  - enemy waves are not globally forced to chase the unlocked hero;
+  - enemy waves in hero phase return to normal/aggressive forward and only freehunt through ordinary triggers;
   - dynamic lane follows majority position without tie flicker;
   - ArmyBrain counter/raid lane selection still looks reasonable with dispersed waves;
   - ranged attacker outside melee search range pulls a non-busy defender away from its old chase target;
@@ -634,7 +754,7 @@ Earlier quantified performance baseline:
   - pre-GC peak roughly `3.45 MB`;
   - this matches reusable `agentCache`/buffer growth and temporary grid allocations, not a confirmed leak;
   - verify that the post-GC floor plateaus during a longer run with stable/decreasing unit count.
-- Target Worker is now mostly idle. Do not remove it yet; long-range self-search and hero-pressure search still use it.
+- Target Worker is now mostly idle. Do not remove it yet; long-range self-search still uses it.
 - Do not move dynamic lane voting to a worker based on current evidence.
 
 Newer trace supplied on 2026-06-26:
@@ -1284,6 +1404,18 @@ For the next session, unless the user changes direction:
   - aggressive forward does not release from scanner visibility;
   - both modes still release wave-wide from attack-range contact, retaliation,
     and hero-line reach/pass.
+- Visually test the latest hero-phase rewrite:
+  - unlocked hero should behave like a normal one-unit mid-lane forward wave;
+  - existing enemy waves should return to normal/aggressive forward, not chase
+    hero through full-map freehunt;
+  - newly spawned waves after hero unlock should still begin in their normal or
+    aggressive forward mode.
+- If hero phase looks acceptable, implement the planned wave
+  banner/representative unit design in `BattleWave`:
+  - initial holder from front scanner;
+  - stable holder while valid;
+  - re-pick by average X of alive units when holder dies;
+  - use the same representative for minimap icon position and main-map banner.
 - Test `PlayerArmyController` single tap versus double tap:
   - single tap spawns normal forward after the short `doubleTapWindow`;
   - double tap spawns aggressive forward;

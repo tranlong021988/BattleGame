@@ -1,13 +1,62 @@
-6-29-2026 00:42:30 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
-6-29-2026 00:42:31 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
-6-29-2026 00:42:32 - log: Request namespace: device-list
-6-29-2026 00:42:58 - log: [Scene] meshopt wasm decoder initialized
-6-29-2026 00:42:58 - log: [Scene] [box2d]:box2d wasm lib loaded.
-6-29-2026 00:42:58 - log: [Scene] [bullet]:bullet wasm lib loaded.
-6-29-2026 00:42:58 - log: [Scene] [PHYSICS]: using builtin.
-6-29-2026 00:42:59 - log: [Scene] Cocos Creator v3.8.8
-6-29-2026 00:43:00 - log: [Scene] Using custom pipeline: Builtin
-6-29-2026 00:43:01 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:27 - log: Load engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine
+6-29-2026 13:51:27 - log: Register native engine in C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\native
+6-29-2026 13:51:28 - log: Request namespace: device-list
+6-29-2026 13:51:35 - warn: Request timeout, aborting...
+6-29-2026 13:51:35 - warn: Failed to connect to login server: socket hang up
+6-29-2026 13:51:50 - error: [Programming] {hidden(::PackerDriver::)} Error: EPERM: operation not permitted, rename 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json.tmp' -> 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json', stack: Error: EPERM: operation not permitted, rename 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json.tmp' -> 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json'
+    at Object.renameSync (node:fs:1030:11)
+    at QuickPack.build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@cocos\creator-programming-quick-pack\lib\quick-pack.js:82:32)
+    at async PackTarget.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:3:3675)
+    at async PackTarget.build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:3:3628)
+    at async PackerDriver._startBuildIteration (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:2:554)
+    at async PackerDriver.pullAssetDb (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:1:6587)
+    at async C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:2885
+    at async packer-driver/start (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:3315)Error: [Programming] {hidden(::PackerDriver::)} Error: EPERM: operation not permitted, rename 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json.tmp' -> 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json', stack: Error: EPERM: operation not permitted, rename 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json.tmp' -> 'D:\Works\Github\BattleGame\temp\programming\packer-driver\targets\preview\main-record.json'
+    at async PackTarget.build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:3:3628)
+    at async PackerDriver._startBuildIteration (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:2:554)
+    at async PackerDriver.pullAssetDb (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:1:6587)
+    at async C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:2885
+    at async packer-driver/start (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:3315)
+    at Logger._logHandler (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-worker\static\script.ccc:1:523)
+    at Logger.record (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-logger\lib\renderer.ccc:1:458)
+    at console.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@base\electron-logger\lib\renderer.ccc:1:1414)
+    at console.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\build\cjs\utils-hoist\instrument\console.js:38:14)
+    at PackerDriverLogger.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\logger.ccc:1:1102)
+    at PackTarget.build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:3:3820)
+    at async PackerDriver._startBuildIteration (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:2:554)
+    at async PackerDriver.pullAssetDb (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:1:6587)
+    at async C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:2885
+    at async packer-driver/start (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:3315)
+6-29-2026 13:51:50 - warn: [Programming] Cannot get build result from quick pack.Warn: [Programming] Cannot get build result from quick pack.
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\build\cjs\utils-hoist\instrument\console.js:38:14)
+    at PackTarget.build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:3:4118)
+    at async PackerDriver._startBuildIteration (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:2:554)
+    at async PackerDriver.pullAssetDb (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\packer-driver\packer-driver.ccc:1:6587)
+    at async C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:2885
+    at async packer-driver/start (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\programming\dist\worker\messages.ccc:1:3315)
+6-29-2026 13:51:53 - error: [Assets] color doesn't allow set 1.Error: color doesn't allow set 1.
+    at getGfxAttributeName (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\pp-geometry.ccc:1:10615)
+    at interleaveVertices (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\gltf-converter.ccc:1:52812)
+    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\gltf-converter.ccc:1:6376
+    at Array.map (<anonymous>)
+    at GltfConverter.createMesh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\utils\gltf-converter.ccc:1:6305)
+    at import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\mesh.ccc:1:1133)
+    at CustomImporter.import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\manager\asset-handler-manager.ccc:1:1249)
+6-29-2026 13:51:53 - warn: [Assets] Attribute a_joints has different format from origin, quantization may not work.Warn: [Assets] Attribute a_joints has different format from origin, quantization may not work.
+    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
+    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
+    at quantizeSize (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\meshOptimizer.ccc:1:16035)
+    at quantizeMesh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\meshOptimizer.ccc:1:16611)
+    at compressMesh (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\meshOptimizer.ccc:1:11757)
+    at import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\modules\engine-extensions\extensions\engine-extends\dist\handler\assets\gltf\mesh.ccc:1:3447)
+    at CustomImporter.import (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\manager\asset-handler-manager.ccc:1:1249)
+6-29-2026 13:51:54 - log: [Scene] meshopt wasm decoder initialized
+6-29-2026 13:51:54 - log: [Scene] [bullet]:bullet wasm lib loaded.
+6-29-2026 13:51:54 - log: [Scene] [box2d]:box2d wasm lib loaded.
+6-29-2026 13:51:54 - log: [Scene] [PHYSICS]: using builtin.
+6-29-2026 13:51:54 - log: [Scene] Cocos Creator v3.8.8
+6-29-2026 13:51:55 - log: [Scene] Using custom pipeline: Builtin
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -31,7 +80,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'BlueUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -57,7 +106,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -81,7 +130,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'RedUnit/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -107,7 +156,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -131,7 +180,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroRed/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -157,7 +206,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -181,7 +230,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 00:43:02 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
+6-29-2026 13:51:56 - warn: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.Error: [Scene] Instancing/Batching enabled for non-baked skinning model or used AnimationController 'HeroBlue/Victory/Fighter.Body.low_Baked.001', this may result in unexpected rendering artifacts. Consider turning it off in the material if you do not intend to do this.
     at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
     at warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:162864:12)
     at warnID (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:163052:5)
@@ -207,253 +256,7 @@
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:141562:9)
     at eval (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\bin\.cache\dev\editor\bundled\index.js:167821:9)
     at sentryWrapped (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\browser\src\helpers.ts:116:17)
-6-29-2026 01:01:22 - error: [Assets] [buildScriptCommand][BABEL] Note: The code generator has deoptimised the styling of C:\ProgramData\cocos\editors\Creator\3.8.8\file:\F:\Github\BattleGame\node_modules\spectorjs\dist\spector.bundle.js as it exceeds the max of 500KB.
-Error: [Assets] [buildScriptCommand][BABEL] Note: The code generator has deoptimised the styling of C:\ProgramData\cocos\editors\Creator\3.8.8\file:\F:\Github\BattleGame\node_modules\spectorjs\dist\spector.bundle.js as it exceeds the max of 500KB.
-
-    at console.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1536)
-    at NewConsole.error (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2258)
-    at Socket.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\worker-pools\sub-process-manager.ccc:1:2820)
-    at Socket.emit (node:events:519:28)
-    at addChunk (node:internal/streams/readable:559:12)
-    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
-    at Socket.Readable.push (node:internal/streams/readable:390:5)
-    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
-6-29-2026 01:01:22 - warn: [Assets] [buildScriptCommand][[Build.Script.Rollup]] Circular dependency: file:///F:/Github/BattleGame/assets/scripts/GameManager.ts -> file:///F:/Github/BattleGame/assets/scripts/Unit.ts -> file:///F:/Github/BattleGame/assets/scripts/GameManager.ts
-[warning][[Build.Script.Rollup]] Circular dependency: file:///F:/Github/BattleGame/assets/scripts/GameManager.ts -> file:///F:/Github/BattleGame/assets/scripts/UnitSpawner.ts -> file:///F:/Github/BattleGame/assets/scripts/UnitBehavior.ts -> file:///F:/Github/BattleGame/assets/scripts/GameManager.ts
-Warn: [Assets] [buildScriptCommand][[Build.Script.Rollup]] Circular dependency: file:///F:/Github/BattleGame/assets/scripts/GameManager.ts -> file:///F:/Github/BattleGame/assets/scripts/Unit.ts -> file:///F:/Github/BattleGame/assets/scripts/GameManager.ts
-[warning][[Build.Script.Rollup]] Circular dependency: file:///F:/Github/BattleGame/assets/scripts/GameManager.ts -> file:///F:/Github/BattleGame/assets/scripts/UnitSpawner.ts -> file:///F:/Github/BattleGame/assets/scripts/UnitBehavior.ts -> file:///F:/Github/BattleGame/assets/scripts/GameManager.ts
-
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at Socket.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\worker-pools\sub-process-manager.ccc:1:2763)
-    at Socket.emit (node:events:519:28)
-    at addChunk (node:internal/streams/readable:559:12)
-    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
-    at Socket.Readable.push (node:internal/streams/readable:390:5)
-    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(028193d4-783a-4d77-a304-630e5f21fe8a)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(028193d4-783a-4d77-a304-630e5f21fe8a)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(09612976-b88c-46e6-a717-93a8a38611bc)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(09612976-b88c-46e6-a717-93a8a38611bc)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(3a5d4f88-4bcb-4a6f-8344-53c625b3eeae)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(3a5d4f88-4bcb-4a6f-8344-53c625b3eeae)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(d3b0ac81-82b7-4a4b-9c35-2d7b74f50fab)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(f8ea029f-b400-4410-89a7-57f8577e8acb)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(f8ea029f-b400-4410-89a7-57f8577e8acb)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(fbb6323d-4ef9-410b-b2ac-b7fff6ddb1a8)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(68304913-7932-4cd0-9112-80d3454d1186)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(68304913-7932-4cd0-9112-80d3454d1186)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(ee792f48-45b0-4754-a307-2807c196b156)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(ee792f48-45b0-4754-a307-2807c196b156)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(139f9f81-b709-415e-82f1-1f05e89438ce)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(139f9f81-b709-415e-82f1-1f05e89438ce)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(23926ca3-e531-4d19-8249-ca0aa068dbc1)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(23926ca3-e531-4d19-8249-ca0aa068dbc1)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(b178349e-82da-4293-8dcd-3b05942bc79d)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(b178349e-82da-4293-8dcd-3b05942bc79d)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(c513c3d6-bb46-4592-8efd-b8d73c099863)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(c513c3d6-bb46-4592-8efd-b8d73c099863)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
-6-29-2026 01:01:29 - warn: [Assets] The Image asset({asset(f4904146-35a2-41bf-8f22-cd622c2f0852)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.Warn: [Assets] The Image asset({asset(f4904146-35a2-41bf-8f22-cd622c2f0852)}) in the atlas has been directly used by other asset ({asset(1effe86e-a401-4769-9dbc-62218c68834d)}). The original asset and the new combined image asset will be generated at the same time. We recommended you to move the current image asset out of the folder of atlas.
-    at console.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\@sentry\core\src\utils-hoist\instrument\console.ts:40:14)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\asset-db\dist\worker\console.ccc:1:1637)
-    at NewConsole.warn (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\console.ccc:1:2358)
-    at sortBundleInPac (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\pac.ccc:1:1111)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14860
-    at Array.map (<anonymous>)
-    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:14816
-    at async Promise.all (index 0)
-    at BundleManager.packImage (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:13939)
-    at BundleManager.buildAsset (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\asset-handler\bundle\index.ccc:1:4769)
-    at BuildTask.handle (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\tasks\build-task\asset.ccc:1:246)
-    at BuildTask.runBuildTask (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:13628)
-    at BuildTask.run (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\builder\index.ccc:1:4505)
-    at build (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\index.ccc:1:4763)
-    at Ipc.<anonymous> (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\builtin\builder\dist\worker\msg-util.ccc:1:210)
+6-29-2026 14:08:53 - error: [[Facet.reload]] lock failed: Error: Lock file is already being held, stack: Error: Lock file is already being held
+    at C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\proper-lockfile\lib\lockfile.js:68:47
+    at callback (C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar\node_modules\graceful-fs\polyfills.js:306:20)
+    at FSReqCallback.oncomplete (node:fs:198:5), count: 1

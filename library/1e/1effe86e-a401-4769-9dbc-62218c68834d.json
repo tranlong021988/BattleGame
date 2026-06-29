@@ -2048,7 +2048,6 @@
     "defaultSpawnLane": 1,
     "autoSpawnRandomLane": true,
     "squareFormationWidth": 4,
-    "heroFreeHuntSearchRange": 35,
     "circleObstacles": [],
     "rectObstacles": [],
     "_id": "004sPmq3RGdpm7Bhn+wfGg"

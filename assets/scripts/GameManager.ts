@@ -175,9 +175,6 @@ export class GameManager extends Component {
     @property
     squareFormationWidth = 4;
 
-    @property
-    heroFreeHuntSearchRange = 80;
-
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -835,23 +832,17 @@ export class GameManager extends Component {
         }
 
         this.heroForwardUnlocked[team] = true;
-        hero.setSteady(false, false);
+        hero.setSteady(false, true);
 
         if (heroWave) {
-            heroWave.releaseForwardToFreeHunt(
-                this.getHeroPressureSearchRange(),
-                true
-            );
-        } else {
-            hero.enterFreeHuntMode(
-                this.getHeroPressureSearchRange()
-            );
+            this.ensureBattleWaveRegistered(heroWave);
+            heroWave.forceForwardMode();
         }
 
-        this.releaseEnemyNormalWavesToFreeHunt(team);
+        this.forceEnemyWavesToForward(team);
     }
 
-    private releaseEnemyNormalWavesToFreeHunt(
+    private forceEnemyWavesToForward(
         heroTeam: number
     ) {
         const enemyTeam =
@@ -864,58 +855,8 @@ export class GameManager extends Component {
             if (wave.team !== enemyTeam) continue;
             if (wave.isDead()) continue;
 
-            this.forceWaveToHeroPressureFreeHunt(wave);
+            wave.forceForwardMode();
         }
-    }
-
-    private forceWaveToHeroPressureFreeHunt(
-        wave: BattleWave
-    ) {
-        wave.releaseForwardToFreeHunt(
-            this.getHeroPressureSearchRange(),
-            true
-        );
-    }
-
-    private getHeroPressureSearchRange() {
-        const minZ = Math.min(
-            this.battleMinZ,
-            this.teamASpawnZ,
-            this.teamBSpawnZ
-        );
-        const maxZ = Math.max(
-            this.battleMaxZ,
-            this.teamASpawnZ,
-            this.teamBSpawnZ
-        );
-        const width = Math.max(
-            0,
-            this.battleMaxX - this.battleMinX
-        );
-        const depth = Math.max(
-            0,
-            maxZ - minZ
-        );
-        const diagonal =
-            Math.sqrt(width * width + depth * depth);
-
-        return Math.max(
-            this.heroFreeHuntSearchRange,
-            diagonal + Math.max(4, this.spatialGridCellSize)
-        );
-    }
-
-    private shouldForceTeamFreeHunt(
-        team: number
-    ) {
-        if (team !== 0 && team !== 1) {
-            return false;
-        }
-
-        const enemyTeam =
-            team === 0 ? 1 : 0;
-
-        return this.heroForwardUnlocked[enemyTeam];
     }
 
     private hasAliveNonHeroUnit(team: number) {
@@ -1450,10 +1391,6 @@ export class GameManager extends Component {
             );
         }
 
-        if (this.shouldForceTeamFreeHunt(team)) {
-            this.forceWaveToHeroPressureFreeHunt(wave);
-        }
-
         return wave;
     }
 
@@ -1953,6 +1890,9 @@ export class GameManager extends Component {
         if (team === 0) {
 
             if (this.teamAHeroWave) {
+                this.removeBattleWaveReference(
+                    this.teamAHeroWave
+                );
                 this.teamAHeroWave.releaseReferences();
                 this.teamAHeroWave = null;
             }
@@ -1978,6 +1918,9 @@ export class GameManager extends Component {
         } else {
 
             if (this.teamBHeroWave) {
+                this.removeBattleWaveReference(
+                    this.teamBHeroWave
+                );
                 this.teamBHeroWave.releaseReferences();
                 this.teamBHeroWave = null;
             }
@@ -2153,6 +2096,9 @@ export class GameManager extends Component {
                 : this.teamBHeroWave;
 
         if (previousWave) {
+            this.removeBattleWaveReference(
+                previousWave
+            );
             previousWave.releaseReferences();
         }
 
@@ -2174,6 +2120,29 @@ export class GameManager extends Component {
         } else {
             this.teamBHeroWave = wave;
         }
+    }
+
+    private ensureBattleWaveRegistered(
+        wave: BattleWave
+    ) {
+        if (this.waves.indexOf(wave) >= 0) {
+            return;
+        }
+
+        this.waves.push(wave);
+    }
+
+    private removeBattleWaveReference(
+        wave: BattleWave
+    ) {
+        const index =
+            this.waves.indexOf(wave);
+
+        if (index < 0) {
+            return;
+        }
+
+        this.waves.splice(index, 1);
     }
 
     private getHeroLaneId() {

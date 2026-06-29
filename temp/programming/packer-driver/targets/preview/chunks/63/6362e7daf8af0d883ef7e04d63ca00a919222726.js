@@ -1476,7 +1476,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 1;
+          return 0;
         }
       }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "enableIconClickFocus", [property], {
         configurable: true,

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Button, Color, Component, Enum, Node, Sprite, Tween, tween, UIOpacity, UITransform, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _class6, _crd, ccclass, property, PlayerLane, PlayerUnitIconBinding, PlayerArmyController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Button, Color, Component, Enum, Node, Sprite, Tween, tween, UIOpacity, UITransform, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _class6, _crd, ccclass, property, PlayerLane, PlayerUnitIconBinding, PlayerArmyController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -93,11 +93,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       }), _dec12 = property(Node), _dec13 = property({
         min: 0
       }), _dec14 = property({
-        min: 1
+        min: 0
       }), _dec15 = property({
+        min: 1
+      }), _dec16 = property({
         min: 0,
         max: 255
-      }), _dec16 = property({
+      }), _dec17 = property({
         min: 0.01
       }), _dec4(_class4 = (_class5 = (_class6 = class PlayerArmyController extends Component {
         constructor() {
@@ -121,13 +123,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "coolDownDuration", _descriptor11, this);
 
-          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor12, this);
+          _initializerDefineProperty(this, "doubleTapWindow", _descriptor12, this);
 
-          _initializerDefineProperty(this, "maxAliveWaves", _descriptor13, this);
+          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor13, this);
 
-          _initializerDefineProperty(this, "selectedBlinkMinOpacity", _descriptor14, this);
+          _initializerDefineProperty(this, "maxAliveWaves", _descriptor14, this);
 
-          _initializerDefineProperty(this, "selectedBlinkDuration", _descriptor15, this);
+          _initializerDefineProperty(this, "selectedBlinkMinOpacity", _descriptor15, this);
+
+          _initializerDefineProperty(this, "selectedBlinkDuration", _descriptor16, this);
 
           this.selectedLaneId = PlayerLane.Mid;
           this.coolDownTimer = 0;
@@ -136,6 +140,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.powerBarMaxWidth = 0;
           this.powerBarHeight = 0;
           this.unitIconsDimmed = true;
+          this.pendingUnitTapName = '';
+          this.pendingUnitTapTimer = 0;
+          this.pendingUnitTapLaneId = PlayerLane.Mid;
         }
 
         onLoad() {
@@ -154,16 +161,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         onDisable() {
           this.unregisterInput();
           this.stopSelectedBlink();
+          this.clearPendingUnitTap();
         }
 
         update(deltaTime) {
-          if (this.coolDownTimer <= 0) return;
-          this.coolDownTimer = Math.max(0, this.coolDownTimer - deltaTime);
-          this.updatePowerBar();
+          if (this.coolDownTimer > 0) {
+            this.coolDownTimer = Math.max(0, this.coolDownTimer - deltaTime);
+            this.updatePowerBar();
 
-          if (this.coolDownTimer <= 0) {
-            this.updateUnitIconTint(false);
+            if (this.coolDownTimer <= 0) {
+              this.updateUnitIconTint(false);
+            }
           }
+
+          this.updatePendingUnitTap(deltaTime);
         }
 
         selectLane(_event, laneData) {
@@ -178,7 +189,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         spawnUnit(_event, unitName) {
-          this.spawnByName(unitName != null ? unitName : '');
+          this.spawnByName(unitName != null ? unitName : '', false);
         }
 
         setSelectedLane(laneId) {
@@ -284,11 +295,70 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
-          this.spawnByName(unitName);
+          this.handleUnitIconTap(unitName);
         }
 
-        spawnByName(unitName) {
+        handleUnitIconTap(unitName) {
+          if (this.isCoolingDown()) {
+            this.clearPendingUnitTap();
+            this.spawnByName(unitName, false);
+            return;
+          }
+
+          var window = Math.max(0, this.doubleTapWindow);
+
+          if (window <= 0) {
+            this.spawnByName(unitName, false);
+            return;
+          }
+
+          if (this.pendingUnitTapTimer > 0 && this.pendingUnitTapName === unitName) {
+            var laneId = this.pendingUnitTapLaneId;
+            this.clearPendingUnitTap();
+            this.spawnByName(unitName, true, laneId);
+            return;
+          }
+
+          if (this.pendingUnitTapTimer > 0) {
+            this.flushPendingUnitTap();
+
+            if (this.isCoolingDown()) {
+              return;
+            }
+          }
+
+          this.pendingUnitTapName = unitName;
+          this.pendingUnitTapTimer = window;
+          this.pendingUnitTapLaneId = this.selectedLaneId;
+        }
+
+        updatePendingUnitTap(deltaTime) {
+          if (this.pendingUnitTapTimer <= 0) return;
+          this.pendingUnitTapTimer = Math.max(0, this.pendingUnitTapTimer - deltaTime);
+          if (this.pendingUnitTapTimer > 0) return;
+          this.flushPendingUnitTap();
+        }
+
+        flushPendingUnitTap() {
+          var unitName = this.pendingUnitTapName;
+          var laneId = this.pendingUnitTapLaneId;
+          this.clearPendingUnitTap();
+          if (!unitName) return;
+          this.spawnByName(unitName, false, laneId);
+        }
+
+        clearPendingUnitTap() {
+          this.pendingUnitTapName = '';
+          this.pendingUnitTapTimer = 0;
+          this.pendingUnitTapLaneId = this.selectedLaneId;
+        }
+
+        spawnByName(unitName, aggressiveForward, laneId) {
           var _this$gameManager;
+
+          if (laneId === void 0) {
+            laneId = this.selectedLaneId;
+          }
 
           if (this.isCoolingDown()) {
             console.warn("[PlayerArmyController] Spawn is cooling down: " + this.coolDownTimer.toFixed(2) + "s remaining.");
@@ -316,7 +386,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
-          var wave = manager.spawnWaveByName(this.team, safeUnitName, this.selectedLaneId);
+          var wave = manager.spawnWaveByName(this.team, safeUnitName, laneId, aggressiveForward);
           if (!wave) return;
           this.startCoolDown();
         }
@@ -569,28 +639,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "enableMaxAliveWaveLimit", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "doubleTapWindow", [_dec14], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.25;
+        }
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "enableMaxAliveWaveLimit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWaves", [_dec14], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWaves", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 7;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "selectedBlinkMinOpacity", [_dec15], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "selectedBlinkMinOpacity", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 80;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "selectedBlinkDuration", [_dec16], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "selectedBlinkDuration", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, Label, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _class3, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, Label, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _class3, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -235,13 +235,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "squareFormationWidth", _descriptor42, this);
 
-          _initializerDefineProperty(this, "heroFreeHuntSearchRange", _descriptor43, this);
-
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor44, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor43, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor45, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor44, this);
 
           this.sim = null;
           this.teamA = [];
@@ -569,17 +567,33 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
+          if (wave.isAggressiveForwardMode()) return;
+
           if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
             return;
           }
 
           scanner = wave.getForwardScanner(true);
           if (!scanner) return;
-          const target = scanner.findForwardSearchTarget(wave.isAggressiveForwardMode());
+          const target = scanner.findForwardSearchTarget(false);
 
-          if (target) {
+          if (target && this.shouldReleaseNormalForwardTarget(scanner, target)) {
             this.onWaveForwardTargetFound(scanner, target);
           }
+        }
+
+        shouldReleaseNormalForwardTarget(scanner, target) {
+          if (!scanner || !target) return false;
+          if (scanner.laneId < 0) return false;
+          if (target.laneId < 0) return false;
+          const scannerLane = this.clampLaneId(scanner.laneId);
+          const targetLane = this.clampLaneId(target.laneId);
+
+          if (Math.abs(scannerLane - targetLane) !== 1) {
+            return false;
+          }
+
+          return scanner.hasPassedForwardTarget(target);
         }
 
         processWaveForwardRecoveries() {
@@ -671,18 +685,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.heroForwardUnlocked[team] = true;
-          hero.setSteady(false, false);
+          hero.setSteady(false, true);
 
           if (heroWave) {
-            heroWave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange(), true);
-          } else {
-            hero.enterFreeHuntMode(this.getHeroPressureSearchRange());
+            this.ensureBattleWaveRegistered(heroWave);
+            heroWave.forceForwardMode();
           }
 
-          this.releaseEnemyNormalWavesToFreeHunt(team);
+          this.forceEnemyWavesToForward(team);
         }
 
-        releaseEnemyNormalWavesToFreeHunt(heroTeam) {
+        forceEnemyWavesToForward(heroTeam) {
           const enemyTeam = heroTeam === 0 ? 1 : 0;
 
           for (let i = 0; i < this.waves.length; i++) {
@@ -690,30 +703,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!wave) continue;
             if (wave.team !== enemyTeam) continue;
             if (wave.isDead()) continue;
-            this.forceWaveToHeroPressureFreeHunt(wave);
+            wave.forceForwardMode();
           }
-        }
-
-        forceWaveToHeroPressureFreeHunt(wave) {
-          wave.releaseForwardToFreeHunt(this.getHeroPressureSearchRange(), true);
-        }
-
-        getHeroPressureSearchRange() {
-          const minZ = Math.min(this.battleMinZ, this.teamASpawnZ, this.teamBSpawnZ);
-          const maxZ = Math.max(this.battleMaxZ, this.teamASpawnZ, this.teamBSpawnZ);
-          const width = Math.max(0, this.battleMaxX - this.battleMinX);
-          const depth = Math.max(0, maxZ - minZ);
-          const diagonal = Math.sqrt(width * width + depth * depth);
-          return Math.max(this.heroFreeHuntSearchRange, diagonal + Math.max(4, this.spatialGridCellSize));
-        }
-
-        shouldForceTeamFreeHunt(team) {
-          if (team !== 0 && team !== 1) {
-            return false;
-          }
-
-          const enemyTeam = team === 0 ? 1 : 0;
-          return this.heroForwardUnlocked[enemyTeam];
         }
 
         hasAliveNonHeroUnit(team) {
@@ -1045,10 +1036,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.spawnCenteredRowsFormation(team, entry, baseZ, wave, count, aggressiveForward);
           }
 
-          if (this.shouldForceTeamFreeHunt(team)) {
-            this.forceWaveToHeroPressureFreeHunt(wave);
-          }
-
           return wave;
         }
 
@@ -1329,6 +1316,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (team === 0) {
             if (this.teamAHeroWave) {
+              this.removeBattleWaveReference(this.teamAHeroWave);
               this.teamAHeroWave.releaseReferences();
               this.teamAHeroWave = null;
             }
@@ -1351,6 +1339,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           } else {
             if (this.teamBHeroWave) {
+              this.removeBattleWaveReference(this.teamBHeroWave);
               this.teamBHeroWave.releaseReferences();
               this.teamBHeroWave = null;
             }
@@ -1444,6 +1433,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const forwardX = 0;
           const forwardZ = team === 0 ? 1 : -1;
           hero.moveSpeed = heroEntry.maxSpeed;
+          hero.heroGuardDistance = heroEntry.guardDistance;
           hero.isSteady = true;
           hero.init(this.sim, team, unitTypeName, forwardX, forwardZ);
           this.registerHeroWave(hero, team, unitTypeName, heroEntry.unitType);
@@ -1470,6 +1460,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const previousWave = team === 0 ? this.teamAHeroWave : this.teamBHeroWave;
 
           if (previousWave) {
+            this.removeBattleWaveReference(previousWave);
             previousWave.releaseReferences();
           }
 
@@ -1486,6 +1477,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           } else {
             this.teamBHeroWave = wave;
           }
+        }
+
+        ensureBattleWaveRegistered(wave) {
+          if (this.waves.indexOf(wave) >= 0) {
+            return;
+          }
+
+          this.waves.push(wave);
+        }
+
+        removeBattleWaveReference(wave) {
+          const index = this.waves.indexOf(wave);
+
+          if (index < 0) {
+            return;
+          }
+
+          this.waves.splice(index, 1);
         }
 
         getHeroLaneId() {
@@ -1832,21 +1841,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 4;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "heroFreeHuntSearchRange", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 80;
-        }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
