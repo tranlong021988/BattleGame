@@ -33,6 +33,8 @@ export class BattleWave {
     private waveBannerNode: Node | null = null;
     private waveBannerRecycle:
         ((node: Node) => void) | null = null;
+    private waveBannerOnAttached:
+        ((node: Node) => void) | null = null;
     private waveBannerTweenDuration = 0.2;
 
     constructor(
@@ -132,7 +134,8 @@ export class BattleWave {
     setWaveBanner(
         node: Node | null,
         recycle: ((node: Node) => void) | null,
-        tweenDuration: number
+        tweenDuration: number,
+        onAttached: ((node: Node) => void) | null = null
     ) {
         this.releaseWaveBanner();
 
@@ -140,6 +143,7 @@ export class BattleWave {
 
         this.waveBannerNode = node;
         this.waveBannerRecycle = recycle;
+        this.waveBannerOnAttached = onAttached;
         this.waveBannerTweenDuration = Math.max(
             0,
             tweenDuration
@@ -182,11 +186,13 @@ export class BattleWave {
         if (!hasParent) {
             banner.setParent(holder.node);
             banner.setPosition(0, 0, 0);
+            this.notifyWaveBannerAttached(banner);
             return true;
         }
 
         banner.setParent(null, true);
         banner.setParent(holder.node, true);
+        this.notifyWaveBannerAttached(banner);
 
         if (this.waveBannerTweenDuration <= 0) {
             banner.setPosition(0, 0, 0);
@@ -201,6 +207,17 @@ export class BattleWave {
             .start();
 
         return true;
+    }
+
+    private notifyWaveBannerAttached(
+        banner: Node
+    ) {
+        const onAttached =
+            this.waveBannerOnAttached;
+
+        if (onAttached) {
+            onAttached(banner);
+        }
     }
 
     handleUnitWillDespawn(unit: Unit | null) {
@@ -231,12 +248,14 @@ export class BattleWave {
 
         if (!banner) {
             this.waveBannerRecycle = null;
+            this.waveBannerOnAttached = null;
             return;
         }
 
         if (!banner.isValid) {
             this.waveBannerNode = null;
             this.waveBannerRecycle = null;
+            this.waveBannerOnAttached = null;
             return;
         }
 
@@ -248,6 +267,7 @@ export class BattleWave {
 
         this.waveBannerNode = null;
         this.waveBannerRecycle = null;
+        this.waveBannerOnAttached = null;
 
         if (recycle) {
             recycle(banner);
@@ -679,21 +699,9 @@ export class BattleWave {
     ) {
         if (this.released) return null;
 
-        if (
-            !excludedUnit &&
-            !this.representativeUnit &&
-            this.isForwardMode()
-        ) {
-            const scanner =
-                this.getForwardScanner(true);
-
-            if (this.isUnitAlive(scanner)) {
-                return scanner;
-            }
-        }
-
         let aliveCount = 0;
         let sumX = 0;
+        let sumZ = 0;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -703,11 +711,13 @@ export class BattleWave {
 
             aliveCount++;
             sumX += u.agent!.pos.x;
+            sumZ += u.agent!.pos.z;
         }
 
         if (aliveCount <= 0) return null;
 
         const averageX = sumX / aliveCount;
+        const averageZ = sumZ / aliveCount;
         let best: Unit | null = null;
         let bestDistance = Infinity;
 
@@ -718,8 +728,15 @@ export class BattleWave {
             if (!this.isUnitAlive(u)) continue;
 
             const distance =
-                Math.abs(
+                (
                     u.agent!.pos.x - averageX
+                ) * (
+                    u.agent!.pos.x - averageX
+                ) +
+                (
+                    u.agent!.pos.z - averageZ
+                ) * (
+                    u.agent!.pos.z - averageZ
                 );
 
             if (distance < bestDistance) {

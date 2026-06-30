@@ -58,6 +58,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.representativeUnit = null;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
+          this.waveBannerOnAttached = null;
           this.waveBannerTweenDuration = 0.2;
           this.id = id;
           this.team = team;
@@ -127,11 +128,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.representativeUnit;
         }
 
-        setWaveBanner(node, recycle, tweenDuration) {
+        setWaveBanner(node, recycle, tweenDuration, onAttached = null) {
           this.releaseWaveBanner();
           if (!node) return;
           this.waveBannerNode = node;
           this.waveBannerRecycle = recycle;
+          this.waveBannerOnAttached = onAttached;
           this.waveBannerTweenDuration = Math.max(0, tweenDuration);
           node.active = true;
           this.refreshWaveBanner(true);
@@ -143,6 +145,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           const holder = this.getRepresentativeUnit();
 
           if (!holder) {
+            if (this.getAliveCount() > 0) {
+              return false;
+            }
+
             this.releaseWaveBanner();
             return false;
           }
@@ -157,11 +163,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!hasParent) {
             banner.setParent(holder.node);
             banner.setPosition(0, 0, 0);
+            this.notifyWaveBannerAttached(banner);
             return true;
           }
 
           banner.setParent(null, true);
           banner.setParent(holder.node, true);
+          this.notifyWaveBannerAttached(banner);
 
           if (this.waveBannerTweenDuration <= 0) {
             banner.setPosition(0, 0, 0);
@@ -174,17 +182,45 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return true;
         }
 
+        notifyWaveBannerAttached(banner) {
+          const onAttached = this.waveBannerOnAttached;
+
+          if (onAttached) {
+            onAttached(banner);
+          }
+        }
+
+        handleUnitWillDespawn(unit) {
+          if (!unit) return;
+          if (!this.waveBannerNode) return;
+
+          if (this.representativeUnit !== unit && this.waveBannerNode.parent !== unit.node) {
+            return;
+          }
+
+          this.representativeUnit = this.pickRepresentativeUnit(unit);
+
+          if (!this.representativeUnit) {
+            this.releaseWaveBanner();
+            return;
+          }
+
+          this.refreshWaveBanner(true);
+        }
+
         releaseWaveBanner() {
           const banner = this.waveBannerNode;
 
           if (!banner) {
             this.waveBannerRecycle = null;
+            this.waveBannerOnAttached = null;
             return;
           }
 
           if (!banner.isValid) {
             this.waveBannerNode = null;
             this.waveBannerRecycle = null;
+            this.waveBannerOnAttached = null;
             return;
           }
 
@@ -193,6 +229,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           const recycle = this.waveBannerRecycle;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
+          this.waveBannerOnAttached = null;
 
           if (recycle) {
             recycle(banner);
@@ -540,36 +577,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return !!unit.onForward;
         }
 
-        pickRepresentativeUnit() {
+        pickRepresentativeUnit(excludedUnit = null) {
           if (this.released) return null;
-
-          if (!this.representativeUnit && this.isForwardMode()) {
-            const scanner = this.getForwardScanner(true);
-
-            if (this.isUnitAlive(scanner)) {
-              return scanner;
-            }
-          }
-
           let aliveCount = 0;
           let sumX = 0;
+          let sumZ = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
+            if (u === excludedUnit) continue;
             if (!this.isUnitAlive(u)) continue;
             aliveCount++;
             sumX += u.agent.pos.x;
+            sumZ += u.agent.pos.z;
           }
 
           if (aliveCount <= 0) return null;
           const averageX = sumX / aliveCount;
+          const averageZ = sumZ / aliveCount;
           let best = null;
           let bestDistance = Infinity;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
+            if (u === excludedUnit) continue;
             if (!this.isUnitAlive(u)) continue;
-            const distance = Math.abs(u.agent.pos.x - averageX);
+            const distance = (u.agent.pos.x - averageX) * (u.agent.pos.x - averageX) + (u.agent.pos.z - averageZ) * (u.agent.pos.z - averageZ);
 
             if (distance < bestDistance) {
               bestDistance = distance;

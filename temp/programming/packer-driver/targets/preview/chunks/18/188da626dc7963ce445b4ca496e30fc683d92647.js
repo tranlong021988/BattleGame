@@ -122,7 +122,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), CounterSettings) : CounterSettings).instance;
           var finalDamage = this.props.damage;
 
-          if (counter) {
+          if (counter && !this.unit.isHero && !enemy.isHero) {
             finalDamage = counter.calculateDamage(this.props, enemy.props);
           } else {
             finalDamage = Math.max(1, this.props.damage - enemy.props.defense);

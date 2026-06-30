@@ -204,7 +204,6 @@ export class GameManager extends Component {
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
     private waveBannerPools: Map<Prefab, Node[]> = new Map();
-    private readonly waveBannerBackgroundParams = [0, 0, 0, 1];
     private readonly fallbackTeamABannerColor = new Color(0, 70, 255, 255);
     private readonly fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
 
@@ -709,12 +708,13 @@ export class GameManager extends Component {
         const targetLane =
             this.clampLaneId(target.laneId);
 
-        if (
+        const laneDistance =
             Math.abs(
                 scannerLane -
                 targetLane
-            ) !== 1
-        ) {
+            );
+
+        if (laneDistance > 1) {
             return false;
         }
 
@@ -1455,7 +1455,13 @@ export class GameManager extends Component {
                     bannerNode
                 );
             },
-            this.waveBannerTweenDuration
+            this.waveBannerTweenDuration,
+            (bannerNode: Node) => {
+                this.applyWaveBannerAppearance(
+                    bannerNode,
+                    wave.team
+                );
+            }
         );
     }
 
@@ -1466,13 +1472,12 @@ export class GameManager extends Component {
         const color =
             this.getWaveBannerBackgroundColor(team);
 
-        const params =
-            this.waveBannerBackgroundParams;
-
-        params[0] = color.r / 255;
-        params[1] = color.g / 255;
-        params[2] = color.b / 255;
-        params[3] = color.a / 255;
+        const params = [
+            color.r / 255,
+            color.g / 255,
+            color.b / 255,
+            color.a / 255
+        ];
 
         const renderers =
             node.getComponentsInChildren(MeshRenderer);

@@ -8,7 +8,7 @@ CCEffect %{
         cullMode: none
       depthStencilState:
         depthTest: true
-        depthWrite: false
+        depthWrite: true
       blendState:
         targets:
         - blend: true
@@ -21,6 +21,10 @@ CCEffect %{
           value: white
           editor:
             tooltip: Billboard texture. Alpha controls transparency.
+        tilingOffset:
+          value: [1, 1, 0, 0]
+          editor:
+            tooltip: Main texture center-pivot scale and offset. xy = centered UV scale, zw = offset.
         tintColor:
           value: [1, 1, 1, 1]
           linear: true
@@ -32,7 +36,11 @@ CCEffect %{
           linear: true
           editor:
             type: color
-            tooltip: Shared material background fallback. Transparent texture pixels are composited over this color. For per-object color, use a_billboard_bg_color via BillboardTint3D.
+            tooltip: Shared material background fallback. Transparent texture pixels are composited over this color. Runtime team color can override this with a_billboard_bg_color.
+        alphaThreshold:
+          value: 0.01
+          editor:
+            tooltip: Fragments below this alpha are discarded before depth write, preventing transparent quad areas from blocking objects behind them.
 }%
 
 CCProgram billboard-vs %{
@@ -52,8 +60,10 @@ CCProgram billboard-vs %{
   #endif
 
   uniform Constant {
+    vec4 tilingOffset;
     vec4 tintColor;
     vec4 backgroundColor;
+    float alphaThreshold;
   };
 
   vec4 vert () {
@@ -76,12 +86,19 @@ CCProgram billboard-vs %{
     viewPos.x += localPos.x * scaleX;
     viewPos.y += localPos.y * scaleY;
 
-    v_uv = a_texCoord;
+    v_uv =
+      (a_texCoord - vec2(0.5, 0.5)) *
+      tilingOffset.xy +
+      vec2(0.5, 0.5) +
+      tilingOffset.zw;
 
     v_tint = tintColor;
 
     #if USE_INSTANCING
-      v_background = a_billboard_bg_color;
+      vec4 instancedBackground = a_billboard_bg_color;
+      v_background = instancedBackground.a > 0.001
+        ? instancedBackground
+        : backgroundColor;
     #else
       v_background = backgroundColor;
     #endif
@@ -100,6 +117,12 @@ CCProgram billboard-fs %{
   in vec4 v_background;
 
   uniform sampler2D mainTexture;
+  uniform Constant {
+    vec4 tilingOffset;
+    vec4 tintColor;
+    vec4 backgroundColor;
+    float alphaThreshold;
+  };
 
   vec4 frag () {
     vec4 foreground = texture(mainTexture, v_uv) * v_tint;
@@ -116,6 +139,10 @@ CCProgram billboard-fs %{
       ) / max(outAlpha, 0.0001);
 
     vec4 color = vec4(outRgb, outAlpha);
+    if (color.a <= alphaThreshold) {
+      discard;
+    }
+
     return CCFragOutput(color);
   }
 }%

@@ -1,6 +1,6 @@
 {
   "__type__": "cc.Material",
-  "_name": "Banner_LightArcher",
+  "_name": "",
   "_objFlags": 0,
   "__editorExtras__": {},
   "_native": "",
@@ -31,18 +31,18 @@
         "__uuid__": "f4904146-35a2-41bf-8f22-cd622c2f0852@6c48a",
         "__expectedType__": "cc.Texture2D"
       },
+      "tilingOffset": {
+        "__type__": "cc.Vec4",
+        "x": 1.2,
+        "y": 1.2,
+        "z": 0,
+        "w": 0
+      },
       "backgroundColor": {
         "__type__": "cc.Color",
         "r": 13,
         "g": 0,
         "b": 109,
-        "a": 255
-      },
-      "tintColor": {
-        "__type__": "cc.Color",
-        "r": 255,
-        "g": 255,
-        "b": 255,
         "a": 255
       }
     }

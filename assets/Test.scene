@@ -75,15 +75,12 @@
       },
       {
         "__id__": 297
-      },
-      {
-        "__id__": 299
       }
     ],
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 307
+      "__id__": 299
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -114,7 +111,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 308
+      "__id__": 300
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -2133,7 +2130,7 @@
     "teamAWaveBannerBackgroundColor": {
       "__type__": "cc.Color",
       "r": 0,
-      "g": 70,
+      "g": 0,
       "b": 255,
       "a": 255
     },
@@ -8629,7 +8626,7 @@
     "node": {
       "__id__": 297
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "totalLevels": 300,
     "currentLevel": 300,
@@ -8642,125 +8639,14 @@
         "__id__": 292
       }
     ],
-    "allowCP": true,
-    "allowAI": true,
-    "allowLane": true,
-    "allowSameLane": true,
-    "allowInterval": true,
-    "allowMaxWave": true,
+    "allowCP": false,
+    "allowAI": false,
+    "allowLane": false,
+    "allowSameLane": false,
+    "allowInterval": false,
+    "allowMaxWave": false,
     "allowAggressive": true,
     "_id": "a8WHRaLlVJzLB+E7XR9qFu"
-  },
-  {
-    "__type__": "cc.Node",
-    "_objFlags": 0,
-    "_parent": {
-      "__id__": 1
-    },
-    "_prefab": {
-      "__id__": 300
-    },
-    "__editorExtras__": {}
-  },
-  {
-    "__type__": "cc.PrefabInfo",
-    "root": {
-      "__id__": 299
-    },
-    "asset": {
-      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
-      "__expectedType__": "cc.Prefab"
-    },
-    "fileId": "72ix+2CKFOmqgwlXgBH2xq",
-    "instance": {
-      "__id__": 301
-    },
-    "targetOverrides": null,
-    "nestedPrefabInstanceRoots": null
-  },
-  {
-    "__type__": "cc.PrefabInstance",
-    "fileId": "a2Ny8zvYdGLLRYHSnuAC4+",
-    "prefabRootNode": null,
-    "mountedChildren": [],
-    "mountedComponents": [],
-    "propertyOverrides": [
-      {
-        "__id__": 302
-      },
-      {
-        "__id__": 304
-      },
-      {
-        "__id__": 305
-      },
-      {
-        "__id__": 306
-      }
-    ],
-    "removedComponents": []
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 303
-    },
-    "propertyPath": [
-      "_name"
-    ],
-    "value": "Banner"
-  },
-  {
-    "__type__": "cc.TargetInfo",
-    "localID": [
-      "72ix+2CKFOmqgwlXgBH2xq"
-    ]
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 303
-    },
-    "propertyPath": [
-      "_lpos"
-    ],
-    "value": {
-      "__type__": "cc.Vec3",
-      "x": -5.465,
-      "y": 0,
-      "z": 0
-    }
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 303
-    },
-    "propertyPath": [
-      "_lrot"
-    ],
-    "value": {
-      "__type__": "cc.Quat",
-      "x": 0,
-      "y": 0,
-      "z": 0,
-      "w": 1
-    }
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 303
-    },
-    "propertyPath": [
-      "_euler"
-    ],
-    "value": {
-      "__type__": "cc.Vec3",
-      "x": 0,
-      "y": 0,
-      "z": 0
-    }
   },
   {
     "__type__": "cc.PrefabInfo",
@@ -8781,37 +8667,34 @@
       },
       {
         "__id__": 61
-      },
-      {
-        "__id__": 299
       }
     ]
   },
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 309
+      "__id__": 301
     },
     "shadows": {
-      "__id__": 310
+      "__id__": 302
     },
     "_skybox": {
-      "__id__": 311
+      "__id__": 303
     },
     "fog": {
-      "__id__": 312
+      "__id__": 304
     },
     "octree": {
-      "__id__": 313
+      "__id__": 305
     },
     "skin": {
-      "__id__": 314
+      "__id__": 306
     },
     "lightProbeInfo": {
-      "__id__": 315
+      "__id__": 307
     },
     "postSettings": {
-      "__id__": 316
+      "__id__": 308
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

@@ -31,6 +31,13 @@
         "__uuid__": "b178349e-82da-4293-8dcd-3b05942bc79d@6c48a",
         "__expectedType__": "cc.Texture2D"
       },
+      "tilingOffset": {
+        "__type__": "cc.Vec4",
+        "x": 1.2,
+        "y": 1.2,
+        "z": 0,
+        "w": 0
+      },
       "backgroundColor": {
         "__type__": "cc.Color",
         "r": 13,

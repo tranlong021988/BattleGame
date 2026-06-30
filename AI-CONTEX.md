@@ -6,20 +6,24 @@ Last updated: 2026-06-30.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest office source check after the June 30 home-Codex wave-banner work:
+Latest local source check after the June 30 home-Codex wave-banner work:
 
-- Current HEAD while checking: `3a8d5ece`.
-- `git status --short` showed no tracked source changes on this machine.
-- `git diff --name-only` was empty.
+- Current HEAD while checking on the home machine: `1d3d9064`.
+- `git status --short` is dirty because the user has been testing in Cocos
+  Editor and because the wave-banner work intentionally changed source,
+  scene/prefab/material assets, and generated Cocos cache files.
+- Treat `library/`, `temp/`, and `profiles/` changes as editor-generated
+  unless the user explicitly asks to inspect or clean them.
 - June 26 office work that is now present in source:
   - minimap hot-path optimization in `TrueMiniMapPanel`;
   - `PlayerArmyController` inspector-driven lane picker and unit icon binding;
   - player spawn cooldown and power-bar fill;
   - player max-alive-wave limit;
   - selected-lane highlight by blinking the `selected` child node with `UIOpacity` tween.
-- June 29 home work that is now present in source:
-  - normal forward scanner releases only after passing adjacent-lane target;
-  - same-lane combat still starts through attack-range contact;
+- June 29 home work, with June 30 follow-up, that is now present in source:
+  - normal forward scanner releases only after passing a same-lane or
+    adjacent-lane target;
+  - same-lane combat can still start earlier through attack-range contact;
   - aggressive forward ignores scanner release and stays lane-committed until real contact, retaliation, or hero line;
   - player unit icon single tap spawns normal forward after `doubleTapWindow`;
   - player unit icon double tap spawns aggressive forward;
@@ -34,10 +38,17 @@ Latest office source check after the June 30 home-Codex wave-banner work:
   - each `UnitPrefabEntry` has a `waveBannerPrefab` slot;
   - `BattleWave` owns one stable representative/holder unit and one optional wave-banner node;
   - wave banners are pooled by `GameManager`;
-  - initial banner holder is the wave front scanner when available;
+  - banner holder is selected as the alive unit closest to the wave's current
+    alive-unit centroid and then kept stable while alive/valid;
   - if the holder dies, the banner detaches, reparents to the new holder while preserving world position, then tweens to local `(0, 0, 0)`;
   - if no holder remains, the banner returns to pool;
-  - `TrueMiniMapPanel` now uses `BattleWave.getRepresentativeUnit()` before falling back to old sampled averaging.
+  - `TrueMiniMapPanel` now uses `BattleWave.getRepresentativeUnit()` before falling back to old sampled averaging;
+  - per-unit-type banner prefabs/materials were created and assigned in
+    `assets/Test.scene`;
+  - `UnlitBillboard.effect` supports centered `tilingOffset`, material icon
+    tint, instanced background color fallback, alpha discard, and depth write;
+  - banner materials keep `USE_INSTANCING` enabled and set `tilingOffset` to
+    `[1.2, 1.2, 0, 0]`.
 - June 30 office follow-up now present in source:
   - hero waves are skipped by `TrueMiniMapPanel`'s normal wave-icon path, so hero minimap display comes only from the hero-icon path;
   - hero-vs-anything damage ignores `CounterSettings`, and kills involving a hero are no longer counted as counter kills;
@@ -47,7 +58,10 @@ Latest office source check after the June 30 home-Codex wave-banner work:
   - `LevelSettings` component was added as an optional campaign difficulty scaler;
   - if enabled, `LevelSettings` applies a normalized level curve to the selected team only: initial CP, ArmyBrain AI, lane awareness, same-lane counter chance, spawn interval, max alive waves, and aggressive-forward chance;
   - if the component is disabled or not present, existing `GameManager`/`ArmyBrain` logic is unchanged.
-- No scene/prefab wiring was intentionally changed by Codex in these patches. The user should wire or verify Inspector fields in Cocos Editor.
+- Earlier office patches did not intentionally wire scene/prefab fields, but
+  the later home banner work did intentionally update banner prefabs,
+  materials, minimap icon assets, and `assets/Test.scene` banner assignments.
+  Always re-check current Inspector wiring in Cocos before changing these.
 
 ## Working Rules
 
@@ -62,17 +76,23 @@ Latest office source check after the June 30 home-Codex wave-banner work:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `3a8d5ece`.
-- Before the June 30 office follow-up, only this handoff file was locally dirty from the previous refresh.
-- After the June 30 office follow-up, expected edited files are:
+- Current HEAD while writing this handoff on the home machine: `1d3d9064`.
+- Git may require `git -c safe.directory=F:/Github/BattleGame ...` on this
+  machine because Windows user ownership differs from the repo owner.
+- Expected dirty source/asset files from the recent home work include:
   - `AI-CONTEX.md`;
-  - `assets/scripts/TrueMiniMapPanel.ts`;
-  - `assets/scripts/UnitBehavior.ts`;
-  - `assets/scripts/GameManager.ts`.
-  - `assets/scripts/BattleUnitDatabase.ts`.
-- Git may print `C:\Users\CPU/.config/git/ignore: Permission denied`; this is a local git-config warning, not a project source change.
-- If future `profiles/`, `library/`, or `temp/` changes appear, treat them as Cocos/editor generated unless the user explicitly asks to inspect them.
-- Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
+  - `assets/Test.scene`;
+  - `assets/scripts/BattleWave.ts`;
+  - `assets/scripts/GameManager.ts`;
+  - `assets/shaders/UnlitBillboard.effect`;
+  - `assets/materials/Banner*.mtl`;
+  - `assets/prefabs/Banner*.prefab`;
+  - `assets/MiniMap/images/*-ico-small.png` and matching `.meta` files.
+- There are also many dirty Cocos-generated files under `library/`, `temp/`,
+  and `profiles/`. Do not delete or revert these casually; they may reflect
+  the user's open-editor/test state and are not source logic.
+- Run `git status --short` before editing because the user may commit, reverse,
+  or continue testing from the other machine.
 
 ## Home Codex Update On 2026-06-29
 
@@ -108,10 +128,10 @@ Implemented current canonical behavior:
   - uses one cached front-most alive unit as scanner;
   - scanner refresh remains throttled by the wave's
     `targetSearchIntervalFrames`;
-  - adjacent-lane target release happens only after the scanner has passed
-    that target along `forwardDir`;
-  - same-lane targets do not release through scanner visibility;
-  - same-lane combat starts through the universal attack-range trigger.
+  - same-lane and adjacent-lane target release happens only after the scanner
+    has passed that target along `forwardDir`;
+  - same-lane combat can also start earlier through the universal attack-range
+    trigger.
 - Aggressive forward:
   - does not use scanner-based release;
   - does not freehunt merely because an adjacent-lane enemy is visible;
@@ -129,7 +149,7 @@ Intent:
 - Normal forward should avoid early diagonal lane drift just because a nearby
   adjacent-lane enemy is inside search range.
 - Normal forward should still react naturally after the wave visually passes
-  an adjacent-lane enemy.
+  a same-lane or adjacent-lane enemy.
 - Aggressive forward should remain disciplined and lane-committed until real
   contact/retaliation/hero-line pressure.
 
@@ -181,7 +201,7 @@ during this handoff period:
   - normal waves return to normal forward;
   - aggressive waves return to aggressive forward.
 - From there, hero and enemy waves use the same forward/freehunt rules as
-  ordinary waves: same-lane contact through attack range, adjacent-lane
+  ordinary waves: same-lane attack-range contact, same-lane/adjacent-lane
   release only after normal-front-scanner pass, and hero-line release.
 
 ### Minimap State
@@ -221,12 +241,12 @@ Implemented:
   - `waveBannerNode`;
   - a recycle callback supplied by `GameManager`.
 - Representative selection:
-  - if there is no representative yet and the wave is in forward mode, the
-    initial holder is the current front scanner;
+  - if there is no representative yet, the wave picks the alive unit closest to
+    the wave's current alive-unit centroid;
   - while the representative remains alive and still belongs to the wave, it
     is kept stable;
   - when the holder dies/invalidates, the wave picks a new alive unit closest
-    to average X of all alive units in the wave.
+    to the current alive-unit centroid.
 - Banner attach behavior:
   - initial attach goes straight under the holder at local `(0, 0, 0)`;
   - holder switch stops any previous banner tween;
@@ -365,8 +385,90 @@ Runtime status:
 - The user supplied a post-banner Chrome trace
   `Trace-20260630T011000.json`; it looked healthy and better than the June 29
   trace.
-- Full gameplay behavior still needs Cocos visual testing with actual
-  `waveBannerPrefab` assignments and real banner art/VFX.
+- At that time, full gameplay behavior still needed Cocos visual testing with
+  real banner art/VFX; later user testing confirmed banners are visible and
+  the mixed missing-background issue appears resolved.
+
+Additional traces reviewed after the later forward/banner/shader follow-up:
+
+```text
+C:/Users/tranl/Downloads/Trace-20260630T213901.json
+C:/Users/tranl/Downloads/Trace-20260630T215026.json
+```
+
+`Trace-20260630T213901.json`:
+
+- Trace span by RAF: about `65.09 s`.
+- `FireAnimationFrame`:
+  - count `7811`;
+  - avg `1.163 ms`;
+  - p90 `2.502 ms`;
+  - p95 `2.938 ms`;
+  - p99 `4.009 ms`;
+  - max `20.776 ms`;
+  - frames over `8.33 ms`: `4`;
+  - frames over `16.67 ms`: `1`.
+- Main `MinorGC`/`MajorGC`:
+  - count `103`;
+  - total `166.362 ms`;
+  - avg `1.615 ms`;
+  - max `12.552 ms`;
+  - no GC over `16.67 ms`.
+- RVO worker-like dedicated worker:
+  - `RunTask` avg `0.462 ms`;
+  - p95 `0.853 ms`;
+  - p99 `1.210 ms`;
+  - max `3.083 ms`;
+  - no worker task over `8.33 ms`.
+- Target-search worker-like dedicated worker:
+  - `RunTask` avg `0.140 ms`;
+  - p95 `0.323 ms`;
+  - max `3.406 ms`.
+
+`Trace-20260630T215026.json`:
+
+- Trace span by RAF: about `90.995 s`.
+- `FireAnimationFrame`:
+  - count `10919`;
+  - avg `1.168 ms`;
+  - p90 `2.576 ms`;
+  - p95 `3.046 ms`;
+  - p99 `4.069 ms`;
+  - max `14.330 ms`;
+  - frames over `8.33 ms`: `2`;
+  - frames over `16.67 ms`: `0`.
+- Main `MinorGC`/`MajorGC`:
+  - count `117`;
+  - total `257.376 ms`;
+  - avg `2.200 ms`;
+  - max `13.724 ms`;
+  - no GC over `16.67 ms`.
+- RVO worker-like dedicated worker:
+  - `RunTask` avg `0.411 ms`;
+  - p95 `0.776 ms`;
+  - p99 `1.038 ms`;
+  - max `5.108 ms`;
+  - no worker task over `8.33 ms`.
+- Target-search worker-like dedicated worker:
+  - `RunTask` avg `0.119 ms`;
+  - p95 `0.278 ms`;
+  - max `2.951 ms`.
+
+Interpretation of these later traces:
+
+- The latest forward/freehunt and banner logic does not show as a main-thread
+  performance regression.
+- `processWaveForwardSearches`, `searchForwardWaveTarget`,
+  `shouldReleaseNormalForwardTarget`, `processWaveBanners`, and
+  `refreshWaveBanner` appear as small samples, not bottlenecks.
+- The recurring worker cost to watch is still RVO worker data prep/solve work
+  such as `buildAgents`, `buildGrid`, `pushAgentOutOfObstacles`, and
+  `writeResultToFloats`.
+- Target-search worker traffic remains negligible.
+- These two latest traces did not include JS heap / DOM node / listener
+  counters, so do not make new memory-leak claims from them alone.
+- Keep RVO and target workers enabled for now; do not move them back to main
+  thread based on these captures.
 
 ## Important Source Files
 
@@ -400,12 +502,12 @@ Spawn -> Normal Forward/Aggressive Forward
       -> whole-wave Free Hunt
       -> every alive unit finishes a no-target search and nobody is busy
       -> whole-wave Normal Forward/Aggressive Forward
-      -> normal front scanner passes an adjacent-lane target, hero line is reached,
+      -> normal front scanner passes a same-lane/adjacent-lane target, hero line is reached,
          or any unit enters attack-range engagement/is attacked
       -> whole-wave Free Hunt
 ```
 
-This flow is the current canonical rule set. Older notes or commits describing initial forward search locks, regroup-to-lane, per-unit forward recovery, or permanent normal freehunt are obsolete. Adjacent-lane passed-target release is active again, but only for normal forward and only after the front scanner has passed the adjacent-lane target.
+This flow is the current canonical rule set. Older notes or commits describing initial forward search locks, regroup-to-lane, per-unit forward recovery, or permanent normal freehunt are obsolete. Same-lane/adjacent-lane passed-target release is active again, but only for normal forward and only after the front scanner has passed the target.
 
 ### Wave-Wide Invariants
 
@@ -432,8 +534,8 @@ This flow is the current canonical rule set. Older notes or commits describing i
   - the scanner is cached and refreshed on the wave's staggered `targetSearchIntervalFrames`;
   - search uses `targetSearchRange` and Spatial Grid when available;
   - finding a target does not automatically release the wave;
-  - if the scanner's current target is in an adjacent lane, the whole wave enters freehunt only after the scanner has passed that target along `forwardDir`;
-  - same-lane targets do not release through scanner search; they release through normal attack-range contact;
+  - if the scanner's current target is in the same lane or an adjacent lane, the whole wave enters freehunt only after the scanner has passed that target along `forwardDir`;
+  - same-lane targets can also release earlier through normal attack-range contact;
   - the target wave does not enter freehunt merely because it was seen. It reacts through its own scan, attack-range contact, or retaliation.
 - Hero-line detection is separate from normal target search:
   - the cached front scanner checks the enemy hero line every frame;
@@ -444,7 +546,7 @@ This flow is the current canonical rule set. Older notes or commits describing i
 
 - During aggressive forward:
   - the wave still moves straight by `forwardDir`;
-  - it does not use the normal adjacent-lane passed-target scanner release;
+  - it does not use the normal same-lane/adjacent-lane passed-target scanner release;
   - it does not release merely because a scanner sees an enemy;
   - it still enters whole-wave freehunt/combat from attack-range contact, retaliation, and hero-line detection;
   - after recoverable freehunt finishes with no target, it resumes aggressive forward rather than becoming normal forward.
@@ -566,7 +668,7 @@ Source state:
 
 Behavior:
 
-- Normal forward uses a front scanner, but scanner results only release the wave when the target is in an adjacent lane and the scanner has already passed it along `forwardDir`.
+- Normal forward uses a front scanner, but scanner results only release the wave when the target is in the same lane or an adjacent lane and the scanner has already passed it along `forwardDir`.
 - Aggressive-forward does not use scanner-based release.
 - Adjacent-lane enemies inside search range are ignored by aggressive-forward unless they enter attack range or attack first.
 - Actual attack-range engage still uses normal wave-wide combat.
@@ -626,7 +728,9 @@ Recent caution:
 
 Wave-wide forward/freehunt rewrite:
 
-- Removed the old same/adjacent-lane passed-target release rule.
+- Removed the old broad same/adjacent-lane passed-target release rule during
+  the June 24/25 rewrite. Current June 30 behavior reintroduced a narrower
+  normal-forward scanner pass rule for same-lane and adjacent-lane targets.
 - Removed serialized `forwardScanRange`, `forwardScanIntervalFrames`, and `useWaveForwardScanner` fields from unit scene/prefabs.
 - Removed stale serialized `laneReturnTolerance` from unit prefabs.
 - `GameManager.processWaveForwardSearches()` now coordinates one front scanner per forward wave.
@@ -644,8 +748,8 @@ Clarifications confirmed with the user on 2026-06-25:
 - Historical note: initial forward search lock was used briefly and then removed on 2026-06-29. Do not reintroduce it.
 - Normal forward now uses the front scanner immediately after spawn and after recovery, but scanner visibility alone does not freehunt.
 - Recovered forward does not keep per-unit target scanning.
-- Normal forward scanner release is limited to adjacent-lane targets that the scanner has already passed.
-- Same-lane targets release through attack-range contact, not through scanner visibility.
+- Normal forward scanner release is limited to same-lane or adjacent-lane targets that the scanner has already passed.
+- Same-lane targets may also release through attack-range contact before the pass check.
 - Aggressive forward does not use scanner release.
 - Shared-target convergence is an intended natural regroup behavior.
 - `laneId` remains dynamic ArmyBrain input and is not an absolute movement restriction.
@@ -691,9 +795,9 @@ Reasoning:
   appear to float between units, especially during melee spread.
 - A banner attached to a real unit feels more like a disciplined army with a
   flag bearer.
-- The initial front scanner is usually the unit leading the formation, often
-  gets the first target, and often becomes the unit whose target is borrowed by
-  teammates. Visually, this makes it a good first banner holder.
+- The banner holder is now selected near the visual center of the living
+  formation, not from the front scanner. This avoids the banner sticking to the
+  leading edge of a long or crowded wave.
 
 Important separation of concerns:
 
@@ -704,34 +808,35 @@ Important separation of concerns:
   - refreshed on `targetSearchIntervalFrames` when target search runs;
   - can change for gameplay correctness.
 - Banner/representative unit should be visually stable:
-  - choose from scanner initially;
+  - choose from alive-unit centroid initially;
   - keep the same holder while alive/valid;
   - only re-pick when the current holder dies, despawns, leaves the wave, or is
     otherwise invalid.
 
 Implemented selection rules:
 
-1. On wave spawn / first forward scanner availability:
-   - set `bannerUnit` to the current front scanner if valid.
-   - If no scanner exists yet, fall back to a valid alive unit from the wave.
+1. On wave spawn / first representative request:
+   - scan alive units in the wave;
+   - compute the alive-unit centroid from current X/Z positions;
+   - choose the alive unit closest to that centroid.
 2. While `bannerUnit` is valid:
    - keep it; do not swap every scan interval.
 3. When `bannerUnit` becomes invalid/dead:
    - scan alive units in the wave;
-   - compute average X of alive unit positions;
-   - choose the alive unit whose X is closest to that average X.
+   - compute the alive-unit centroid from current X/Z positions;
+   - choose the alive unit closest to that centroid.
 4. Tie-breakers:
    - The design discussion suggested preferring a unit with a valid target,
      then a unit currently on forward, then the unit further along
      `forwardDir`.
    - Current source does not implement those tie-breakers yet; it simply keeps
-     the first alive unit found with the smallest distance to average X.
+     the first alive unit found with the smallest squared distance to centroid.
    - Add tie-breakers only if visual testing shows banner handoff picking an
      awkward holder.
 
-Why average X, not lane center:
+Why centroid, not lane center:
 
-- During combat, units often spread horizontally.
+- During combat, units often spread horizontally and vertically.
 - The user wants the new flag bearer to move toward the visual center of the
   living formation after the original holder dies.
 - Use the center of the actual alive units, not the configured lane center,
@@ -742,7 +847,7 @@ Performance intent:
 - Re-pick only when the current holder is invalid/dead, not every frame.
 - The re-pick cost is O(alive units in wave), which is acceptable because it is
   event-like and wave-local.
-- Avoid sorting/median unless testing proves average X gives poor visuals.
+- Avoid sorting/median unless testing proves centroid gives poor visuals.
 - Minimap update is O(waves) for wave positions by reading one
   representative unit per wave, instead of sampling several units per wave.
 
@@ -765,8 +870,8 @@ Verification done:
 - The user has run repeated Cocos/browser gameplay tests and supplied Chrome traces. The latest attack-interval database change still needs inspector/gameplay verification.
 - Required gameplay retest:
   - normal forward after spawn uses the front scanner but does not freehunt merely because an enemy enters search range;
-  - normal forward releases the whole wave only when the scanner passes an adjacent-lane target;
-  - same-lane enemies release through attack-range contact, not search visibility;
+  - normal forward releases the whole wave only when the scanner passes a same-lane or adjacent-lane target;
+  - same-lane enemies can also release earlier through attack-range contact;
   - aggressive forward ignores scanner search release completely;
   - both normal and aggressive forward still release when any unit detects an enemy in attack range, when attacked, or when reaching/passing enemy hero line;
   - aggressive wave resumes aggressive-forward after all alive members confirm no target;
@@ -1547,24 +1652,76 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
     when no holder is found while the wave still has alive units; this lets a
     later tick retry instead of prematurely returning the banner to the pool.
 
-### Current Banner Issue To Continue
+### Current Banner Status
 
-- Latest user test: banners are now visible.
-- Remaining issue: some banners render normally, but some lose the background
-  color behind the icon.
-- Likely area to inspect next:
-  - `a_billboard_bg_color` may not be applied to every `MeshRenderer` instance
-    after pooling/reparenting or material/shader reimport.
-  - Because `USE_INSTANCING` is enabled, if `a_billboard_bg_color` is missing
-    for a renderer, the shader currently has no material fallback for
-    background in the instancing branch.
-  - Consider making `UnlitBillboard.effect` resilient by detecting an unset
-    instanced background, or make `GameManager.applyWaveBannerAppearance()` run
-    again after `wave.setWaveBanner()`/parent changes if Cocos drops instanced
-    attributes when pooled or reparented.
-- Do not remove `USE_INSTANCING` lightly: it is needed so one unit-type banner
-  prefab can be shared by team A and team B with only background color changing
-  per instance.
+- Latest user test after the fallback/reapply fix: banners are visible and the
+  mixed missing-background issue appears resolved.
+- The important runtime fixes are now:
+  - `UnlitBillboard.effect` falls back to material `backgroundColor` when
+    `USE_INSTANCING` is enabled but `a_billboard_bg_color.a` is effectively 0;
+  - `BattleWave.setWaveBanner(...)` accepts an attach callback;
+  - `GameManager.assignWaveBanner()` reapplies banner background color after
+    the banner is attached or reparented to a holder;
+  - `GameManager.applyWaveBannerAppearance()` uses a local color array instead
+    of a reused class-level array, so renderer instances do not share a mutable
+    params reference.
+- Billboard/material tuning now present:
+  - `UnlitBillboard.effect` exposes `tilingOffset` for banner main texture UV
+    adjustment: `xy = centered UV scale around (0.5, 0.5)`, `zw = offset`;
+  - all `Banner*.prefab` files keep node scale at `(1, 1, 1)`;
+  - all `Banner*.mtl` materials set `tilingOffset` to `[1.2, 1.2, 0, 0]`,
+    which zooms/crops the main texture around the center without scaling the
+    banner node;
+  - `UnlitBillboard.effect` writes depth and discards fragments below
+    `alphaThreshold` before depth write, so overlapping banners sort by depth
+    more reliably without transparent quad corners blocking the scene.
+- Keep `USE_INSTANCING` enabled on `Banner*.mtl` materials. It allows one
+  unit-type banner prefab/material to be shared by both teams while the
+  background color changes per instance.
+- If background loss ever reappears:
+  - first confirm that every runtime banner `MeshRenderer` has the
+    `UnlitBillboard` material with `USE_INSTANCING` enabled and material
+    `backgroundColor.a > 0`;
+  - then check for stale Cocos imported shader/material cache under
+    `library/`.
+
+## June 30 - Source Cleanup / Handoff Refresh
+
+- Home Codex re-read current source, current handoff, and recent trace results
+  before updating this file.
+- No active runtime gameplay source was deleted during this cleanup pass
+  because the currently dirty gameplay changes are still tied to active
+  gameplay/visual behavior:
+  - forward scanner release for same-lane/adjacent-lane pass;
+  - wave representative/holder and banner pooling;
+  - banner shader/material fallback, centered UV scale, depth write, and alpha
+    discard;
+  - minimap reading representative unit before sampled-average fallback.
+- One obsolete source helper was removed:
+  - `assets/scripts/BillboardTint3D.ts`;
+  - `assets/scripts/BillboardTint3D.ts.meta`.
+- Reason:
+  - no `assets/Test.scene` or `assets/prefabs` reference was found;
+  - the script still wrote `a_billboard_tint`, but `UnlitBillboard.effect` no
+    longer reads that instanced tint attribute;
+  - runtime banner team color is now handled directly by
+    `GameManager.applyWaveBannerAppearance()` through
+    `a_billboard_bg_color`.
+- `UnlitBillboard.effect` tooltip was updated so it no longer mentions the
+  removed `BillboardTint3D` component.
+- `rg` confirmed no live gameplay source still uses the old serialized
+  `forwardScanRange`, `forwardScanIntervalFrames`, or
+  `useWaveForwardScanner` fields.
+- Existing `console.log` calls found in source are behind inspector/debug
+  toggles or belong to optional tooling/prototypes such as `SpectorDebugger`
+  and `VATCharacterPlayer`; do not remove them as part of wave/banner cleanup
+  unless the user asks for a dedicated release-log cleanup pass.
+- Do not delete `SpectorDebugger` or `spectorjs.d.ts`: Spector is intentionally
+  kept as an optional render-capture helper, and recent performance traces were
+  collected with the helper disabled.
+- Do not clean `library/`, `temp/`, or `profiles/` just because they are dirty.
+  Cocos regenerated many of these while the user tested the banner/logic
+  changes.
 
 ## Current Next Best Direction
 
@@ -1574,9 +1731,9 @@ For the next session, unless the user changes direction:
   adding more battle logic:
   - normal forward does not freehunt just because an adjacent-lane enemy enters
     search range;
-  - normal forward releases only after the front scanner passes an
+  - normal forward releases only after the front scanner passes a same-lane or
     adjacent-lane target;
-  - same-lane contact releases through attack range;
+  - same-lane contact can still release earlier through attack range;
   - aggressive forward does not release from scanner visibility;
   - both modes still release wave-wide from attack-range contact, retaliation,
     and hero-line reach/pass.
@@ -1588,7 +1745,7 @@ For the next session, unless the user changes direction:
     aggressive forward mode.
 - Test the implemented wave banner / representative holder behavior with real
   `waveBannerPrefab` assignments in `BattleUnitDatabase`:
-  - initial banner attaches to the front scanner / first representative;
+  - initial banner attaches to the alive unit closest to the wave centroid;
   - when the holder dies, banner detaches from old holder, keeps world
     position, reparents to the new holder, then tweens back to local
     `(0, 0, 0)`;
@@ -1606,8 +1763,10 @@ For the next session, unless the user changes direction:
 - Test lane highlight exclusivity, exact database-name matching, insufficient
   CP behavior, and repeated icon taps.
 - Keep skills out of scope until the user explicitly resumes that part.
-- Run a longer post-change trace and inspect main, RVO worker, and target
-  worker heaps separately.
+- For future performance checks, keep inspecting main, RVO worker, and
+  target-search worker separately. Include JS heap / DOM node / listener
+  counters when possible because the two latest traces did not contain those
+  memory tracks.
 - Force RVO worker startup/runtime failure at least once and compare fallback
   movement against normal worker movement.
 - Force target-worker failure/timeout and verify every pending unit query
