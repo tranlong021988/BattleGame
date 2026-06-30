@@ -80,7 +80,11 @@ export class UnitBehavior extends Component {
 
         let finalDamage = this.props.damage;
 
-        if (counter) {
+        if (
+            counter &&
+            !this.unit.isHero &&
+            !enemy.isHero
+        ) {
             finalDamage = counter.calculateDamage(
                 this.props,
                 enemy.props

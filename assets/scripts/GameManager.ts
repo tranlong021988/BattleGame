@@ -1,11 +1,13 @@
 import {
     _decorator,
+    Color,
     Component,
     Vec3,
     Label,
     Prefab,
     Node,
     instantiate,
+    MeshRenderer,
 } from 'cc';
 
 import { Unit } from './Unit';
@@ -154,15 +156,6 @@ export class GameManager extends Component {
     teamBSpawnZ = 20;
 
     @property
-    maxUnitPerRow = 8;
-
-    @property
-    spaceBetweenUnit = 1.5;
-
-    @property
-    spaceBetweenRow = 1.5;
-
-    @property
     formationZNoise = 0.25;
 
     @property
@@ -179,9 +172,6 @@ export class GameManager extends Component {
 
     @property
     autoSpawnRandomLane = true;
-
-    @property
-    squareFormationWidth = 4;
 
     @property
     waveBannerTweenDuration = 0.2;
@@ -214,6 +204,9 @@ export class GameManager extends Component {
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
     private waveBannerPools: Map<Prefab, Node[]> = new Map();
+    private readonly waveBannerBackgroundParams = [0, 0, 0, 1];
+    private readonly fallbackTeamABannerColor = new Color(0, 70, 255, 255);
+    private readonly fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
 
     start() {
         GameManager.instance = this;
@@ -446,7 +439,11 @@ export class GameManager extends Component {
 
         let isCounterKill = false;
 
-        if (counter) {
+        if (
+            counter &&
+            !killer.isHero &&
+            !victim.isHero
+        ) {
             const damageMul = counter.getDamageMultiplier(
                 killer.props.unitType,
                 victim.props.unitType
@@ -1066,7 +1063,7 @@ export class GameManager extends Component {
             BattleWave.getWaveForUnit(unit);
 
         if (wave) {
-            wave.refreshWaveBanner();
+            wave.handleUnitWillDespawn(unit);
         }
 
         const anyController = this.cinematicController as any;
@@ -1445,6 +1442,11 @@ export class GameManager extends Component {
 
         if (!node) return;
 
+        this.applyWaveBannerAppearance(
+            node,
+            wave.team
+        );
+
         wave.setWaveBanner(
             node,
             (bannerNode: Node) => {
@@ -1455,6 +1457,46 @@ export class GameManager extends Component {
             },
             this.waveBannerTweenDuration
         );
+    }
+
+    private applyWaveBannerAppearance(
+        node: Node,
+        team: number
+    ) {
+        const color =
+            this.getWaveBannerBackgroundColor(team);
+
+        const params =
+            this.waveBannerBackgroundParams;
+
+        params[0] = color.r / 255;
+        params[1] = color.g / 255;
+        params[2] = color.b / 255;
+        params[3] = color.a / 255;
+
+        const renderers =
+            node.getComponentsInChildren(MeshRenderer);
+
+        for (let i = 0; i < renderers.length; i++) {
+            renderers[i].setInstancedAttribute(
+                'a_billboard_bg_color',
+                params
+            );
+        }
+    }
+
+    private getWaveBannerBackgroundColor(
+        team: number
+    ): Color {
+        if (this.unitDatabase) {
+            return team === 0
+                ? this.unitDatabase.teamAWaveBannerBackgroundColor
+                : this.unitDatabase.teamBWaveBannerBackgroundColor;
+        }
+
+        return team === 0
+            ? this.fallbackTeamABannerColor
+            : this.fallbackTeamBBannerColor;
     }
 
     private acquireWaveBanner(
@@ -1530,8 +1572,18 @@ export class GameManager extends Component {
     ) {
         const width = Math.max(
             1,
-            Math.floor(this.squareFormationWidth)
+            Math.floor(entry.squareFormationWidth)
         );
+        const unitSpacing =
+            Math.max(
+                0,
+                entry.spaceBetweenUnit
+            );
+        const rowSpacing =
+            Math.max(
+                0,
+                entry.spaceBetweenRow
+            );
 
         const laneCenterX =
             this.getLaneCenterX(laneId);
@@ -1551,10 +1603,10 @@ export class GameManager extends Component {
                     col -
                     (rowCount - 1) * 0.5
                 ) *
-                this.spaceBetweenUnit;
+                unitSpacing;
 
             const rowZOffset =
-                row * this.spaceBetweenRow;
+                row * rowSpacing;
 
             const baseUnitZ =
                 team === 0
@@ -1591,8 +1643,18 @@ export class GameManager extends Component {
     ) {
         const maxPerRow = Math.max(
             1,
-            Math.floor(this.maxUnitPerRow)
+            Math.floor(entry.maxUnitPerRow)
         );
+        const rowSpacing =
+            Math.max(
+                0,
+                entry.spaceBetweenRow
+            );
+        const unitSpacing =
+            Math.max(
+                0,
+                entry.spaceBetweenUnit
+            );
 
         let spawned = 0;
         let row = 0;
@@ -1609,7 +1671,8 @@ export class GameManager extends Component {
             const rowXPositions =
                 this.buildCenteredRowXPositions(
                     rowCount,
-                    row
+                    row,
+                    unitSpacing
                 );
 
             for (
@@ -1621,7 +1684,7 @@ export class GameManager extends Component {
                 const x = rowXPositions[col];
 
                 const rowZOffset =
-                    row * this.spaceBetweenRow;
+                    row * rowSpacing;
 
                 const baseUnitZ =
                     team === 0
@@ -1758,7 +1821,8 @@ export class GameManager extends Component {
 
     private buildCenteredRowXPositions(
         rowCount: number,
-        rowIndex: number
+        rowIndex: number,
+        unitSpacing: number
     ): number[] {
 
         const result =
@@ -1788,7 +1852,7 @@ export class GameManager extends Component {
                         col -
                         (rowCount - 1) * 0.5
                     ) *
-                    this.spaceBetweenUnit;
+                    unitSpacing;
 
                 result.push(x);
             }
@@ -1807,11 +1871,11 @@ export class GameManager extends Component {
 
             const leftX =
                 -gapHalf -
-                pairIndex * this.spaceBetweenUnit;
+                pairIndex * unitSpacing;
 
             const rightX =
                 gapHalf +
-                pairIndex * this.spaceBetweenUnit;
+                pairIndex * unitSpacing;
 
             if (startRightSide) {
 

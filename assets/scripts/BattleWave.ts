@@ -159,6 +159,10 @@ export class BattleWave {
             this.getRepresentativeUnit();
 
         if (!holder) {
+            if (this.getAliveCount() > 0) {
+                return false;
+            }
+
             this.releaseWaveBanner();
             return false;
         }
@@ -197,6 +201,28 @@ export class BattleWave {
             .start();
 
         return true;
+    }
+
+    handleUnitWillDespawn(unit: Unit | null) {
+        if (!unit) return;
+        if (!this.waveBannerNode) return;
+
+        if (
+            this.representativeUnit !== unit &&
+            this.waveBannerNode.parent !== unit.node
+        ) {
+            return;
+        }
+
+        this.representativeUnit =
+            this.pickRepresentativeUnit(unit);
+
+        if (!this.representativeUnit) {
+            this.releaseWaveBanner();
+            return;
+        }
+
+        this.refreshWaveBanner(true);
     }
 
     releaseWaveBanner() {
@@ -648,10 +674,13 @@ export class BattleWave {
         return !!unit!.onForward;
     }
 
-    private pickRepresentativeUnit() {
+    private pickRepresentativeUnit(
+        excludedUnit: Unit | null = null
+    ) {
         if (this.released) return null;
 
         if (
+            !excludedUnit &&
             !this.representativeUnit &&
             this.isForwardMode()
         ) {
@@ -669,6 +698,7 @@ export class BattleWave {
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
 
+            if (u === excludedUnit) continue;
             if (!this.isUnitAlive(u)) continue;
 
             aliveCount++;
@@ -684,6 +714,7 @@ export class BattleWave {
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
 
+            if (u === excludedUnit) continue;
             if (!this.isUnitAlive(u)) continue;
 
             const distance =

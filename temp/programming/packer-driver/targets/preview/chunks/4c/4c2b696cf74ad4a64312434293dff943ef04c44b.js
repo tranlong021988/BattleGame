@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Vec3, Label, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _class3, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _class3, _crd, ccclass, property, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -77,9 +77,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       __checkObsolete__ = _cc.__checkObsolete__;
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
+      Color = _cc.Color;
       Component = _cc.Component;
       Vec3 = _cc.Vec3;
       Label = _cc.Label;
+      instantiate = _cc.instantiate;
+      MeshRenderer = _cc.MeshRenderer;
     }, function (_unresolved_2) {
       Unit = _unresolved_2.Unit;
     }, function (_unresolved_3) {
@@ -114,7 +117,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'Vec3', 'Label']);
+      __checkObsolete__(['_decorator', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer']);
 
       ({
         ccclass,
@@ -215,31 +218,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "teamBSpawnZ", _descriptor32, this);
 
-          _initializerDefineProperty(this, "maxUnitPerRow", _descriptor33, this);
+          _initializerDefineProperty(this, "formationZNoise", _descriptor33, this);
 
-          _initializerDefineProperty(this, "spaceBetweenUnit", _descriptor34, this);
+          _initializerDefineProperty(this, "centerGapWidth", _descriptor34, this);
 
-          _initializerDefineProperty(this, "spaceBetweenRow", _descriptor35, this);
+          _initializerDefineProperty(this, "enableLaneSpawn", _descriptor35, this);
 
-          _initializerDefineProperty(this, "formationZNoise", _descriptor36, this);
+          _initializerDefineProperty(this, "laneCount", _descriptor36, this);
 
-          _initializerDefineProperty(this, "centerGapWidth", _descriptor37, this);
+          _initializerDefineProperty(this, "defaultSpawnLane", _descriptor37, this);
 
-          _initializerDefineProperty(this, "enableLaneSpawn", _descriptor38, this);
+          _initializerDefineProperty(this, "autoSpawnRandomLane", _descriptor38, this);
 
-          _initializerDefineProperty(this, "laneCount", _descriptor39, this);
-
-          _initializerDefineProperty(this, "defaultSpawnLane", _descriptor40, this);
-
-          _initializerDefineProperty(this, "autoSpawnRandomLane", _descriptor41, this);
-
-          _initializerDefineProperty(this, "squareFormationWidth", _descriptor42, this);
+          _initializerDefineProperty(this, "waveBannerTweenDuration", _descriptor39, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor43, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor40, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor44, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor41, this);
 
           this.sim = null;
           this.teamA = [];
@@ -255,6 +252,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
           this.heroForwardUnlocked = [false, false];
+          this.waveBannerPools = new Map();
+          this.waveBannerBackgroundParams = [0, 0, 0, 1];
+          this.fallbackTeamABannerColor = new Color(0, 70, 255, 255);
+          this.fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
         }
 
         start() {
@@ -347,6 +348,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamB.length = 0;
           this.teamAPrefabMap.clear();
           this.teamBPrefabMap.clear();
+          this.clearWaveBannerPools();
           this.spatialGrid.destroy();
           this.spatialGrid.build([], []);
           this.sim = null;
@@ -397,6 +399,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.processDynamicWaveLanes();
           this.processWaveForwardSearches();
           this.processWaveForwardRecoveries();
+          this.processWaveBanners();
           this.pruneDeadWaves();
           this.processHeroForwardUnlock();
         }
@@ -426,7 +429,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), CounterSettings) : CounterSettings).instance;
           var isCounterKill = false;
 
-          if (counter) {
+          if (counter && !killer.isHero && !victim.isHero) {
             var damageMul = counter.getDamageMultiplier(killer.props.unitType, victim.props.unitType);
             var receivedMul = counter.getReceivedDamageMultiplier(killer.props.unitType, victim.props.unitType);
             isCounterKill = damageMul > 1.0001 || receivedMul < 0.9999;
@@ -613,6 +616,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             wave.tryResumeForward();
+          }
+        }
+
+        processWaveBanners() {
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+              continue;
+            }
+
+            wave.refreshWaveBanner();
           }
         }
 
@@ -841,6 +856,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         notifyUnitWillDespawn(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+
+          if (wave) {
+            wave.handleUnitWillDespawn(unit);
+          }
+
           var anyController = this.cinematicController;
 
           if (anyController && typeof anyController.onUnitWillDespawn === 'function') {
@@ -1068,7 +1091,86 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.spawnCenteredRowsFormation(team, entry, baseZ, wave, count, aggressiveForward);
           }
 
+          this.assignWaveBanner(wave, entry.waveBannerPrefab);
           return wave;
+        }
+
+        assignWaveBanner(wave, prefab) {
+          if (!prefab) return;
+          if (!wave) return;
+          if (wave.getAliveCount() <= 0) return;
+          var node = this.acquireWaveBanner(prefab);
+          if (!node) return;
+          this.applyWaveBannerAppearance(node, wave.team);
+          wave.setWaveBanner(node, bannerNode => {
+            this.recycleWaveBanner(prefab, bannerNode);
+          }, this.waveBannerTweenDuration);
+        }
+
+        applyWaveBannerAppearance(node, team) {
+          var color = this.getWaveBannerBackgroundColor(team);
+          var params = this.waveBannerBackgroundParams;
+          params[0] = color.r / 255;
+          params[1] = color.g / 255;
+          params[2] = color.b / 255;
+          params[3] = color.a / 255;
+          var renderers = node.getComponentsInChildren(MeshRenderer);
+
+          for (var i = 0; i < renderers.length; i++) {
+            renderers[i].setInstancedAttribute('a_billboard_bg_color', params);
+          }
+        }
+
+        getWaveBannerBackgroundColor(team) {
+          if (this.unitDatabase) {
+            return team === 0 ? this.unitDatabase.teamAWaveBannerBackgroundColor : this.unitDatabase.teamBWaveBannerBackgroundColor;
+          }
+
+          return team === 0 ? this.fallbackTeamABannerColor : this.fallbackTeamBBannerColor;
+        }
+
+        acquireWaveBanner(prefab) {
+          var pool = this.getWaveBannerPool(prefab);
+          var node = pool.length > 0 ? pool.pop() : instantiate(prefab);
+          node.active = true;
+          return node;
+        }
+
+        recycleWaveBanner(prefab, node) {
+          if (!node || !node.isValid) return;
+          node.active = false;
+          node.setParent(null);
+          var pool = this.getWaveBannerPool(prefab);
+
+          if (pool.indexOf(node) < 0) {
+            pool.push(node);
+          }
+        }
+
+        getWaveBannerPool(prefab) {
+          var pool = this.waveBannerPools.get(prefab);
+
+          if (!pool) {
+            pool = [];
+            this.waveBannerPools.set(prefab, pool);
+          }
+
+          return pool;
+        }
+
+        clearWaveBannerPools() {
+          this.waveBannerPools.forEach(pool => {
+            for (var i = 0; i < pool.length; i++) {
+              var node = pool[i];
+
+              if (node && node.isValid) {
+                node.destroy();
+              }
+            }
+
+            pool.length = 0;
+          });
+          this.waveBannerPools.clear();
         }
 
         spawnSquareFormationInLane(team, entry, baseZ, wave, laneId, count, aggressiveForward) {
@@ -1076,15 +1178,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             aggressiveForward = false;
           }
 
-          var width = Math.max(1, Math.floor(this.squareFormationWidth));
+          var width = Math.max(1, Math.floor(entry.squareFormationWidth));
+          var unitSpacing = Math.max(0, entry.spaceBetweenUnit);
+          var rowSpacing = Math.max(0, entry.spaceBetweenRow);
           var laneCenterX = this.getLaneCenterX(laneId);
 
           for (var i = 0; i < count; i++) {
             var row = Math.floor(i / width);
             var col = i % width;
             var rowCount = Math.min(width, count - row * width);
-            var x = laneCenterX + (col - (rowCount - 1) * 0.5) * this.spaceBetweenUnit;
-            var rowZOffset = row * this.spaceBetweenRow;
+            var x = laneCenterX + (col - (rowCount - 1) * 0.5) * unitSpacing;
+            var rowZOffset = row * rowSpacing;
             var baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
             var z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
             this.tempSpawnPos.set(x, 0, z);
@@ -1097,18 +1201,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             aggressiveForward = false;
           }
 
-          var maxPerRow = Math.max(1, Math.floor(this.maxUnitPerRow));
+          var maxPerRow = Math.max(1, Math.floor(entry.maxUnitPerRow));
+          var rowSpacing = Math.max(0, entry.spaceBetweenRow);
+          var unitSpacing = Math.max(0, entry.spaceBetweenUnit);
           var spawned = 0;
           var row = 0;
 
           while (spawned < count) {
             var remaining = count - spawned;
             var rowCount = Math.min(maxPerRow, remaining);
-            var rowXPositions = this.buildCenteredRowXPositions(rowCount, row);
+            var rowXPositions = this.buildCenteredRowXPositions(rowCount, row, unitSpacing);
 
             for (var col = 0; col < rowCount; col++) {
               var x = rowXPositions[col];
-              var rowZOffset = row * this.spaceBetweenRow;
+              var rowZOffset = row * rowSpacing;
               var baseUnitZ = team === 0 ? baseZ - rowZOffset : baseZ + rowZOffset;
               var z = baseUnitZ + this.randomRange(-this.formationZNoise, this.formationZNoise);
               this.tempSpawnPos.set(x, 0, z);
@@ -1197,7 +1303,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return bestLane;
         }
 
-        buildCenteredRowXPositions(rowCount, rowIndex) {
+        buildCenteredRowXPositions(rowCount, rowIndex, unitSpacing) {
           var result = this.centeredRowXBuffer;
           result.length = 0;
 
@@ -1209,7 +1315,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (gap <= 0) {
             for (var col = 0; col < rowCount; col++) {
-              var x = (col - (rowCount - 1) * 0.5) * this.spaceBetweenUnit;
+              var x = (col - (rowCount - 1) * 0.5) * unitSpacing;
               result.push(x);
             }
 
@@ -1221,8 +1327,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var startRightSide = rowIndex % 2 === 1;
 
           while (result.length < rowCount) {
-            var leftX = -gapHalf - pairIndex * this.spaceBetweenUnit;
-            var rightX = gapHalf + pairIndex * this.spaceBetweenUnit;
+            var leftX = -gapHalf - pairIndex * unitSpacing;
+            var rightX = gapHalf + pairIndex * unitSpacing;
 
             if (startRightSide) {
               result.push(rightX);
@@ -1819,84 +1925,63 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor33 = _applyDecoratedDescriptor(_class2.prototype, "maxUnitPerRow", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 8;
-        }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class2.prototype, "spaceBetweenUnit", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.5;
-        }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class2.prototype, "spaceBetweenRow", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.5;
-        }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class2.prototype, "formationZNoise", [property], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class2.prototype, "formationZNoise", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class2.prototype, "centerGapWidth", [property], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class2.prototype, "centerGapWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class2.prototype, "enableLaneSpawn", [property], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class2.prototype, "enableLaneSpawn", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class2.prototype, "laneCount", [property], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class2.prototype, "laneCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class2.prototype, "defaultSpawnLane", [property], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class2.prototype, "defaultSpawnLane", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class2.prototype, "autoSpawnRandomLane", [property], {
+      }), _descriptor38 = _applyDecoratedDescriptor(_class2.prototype, "autoSpawnRandomLane", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class2.prototype, "squareFormationWidth", [property], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerTweenDuration", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 4;
+          return 0.2;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,

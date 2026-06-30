@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Prefab } from 'cc';
+import { _decorator, Color, Component, Node, Prefab } from 'cc';
 import { UnitType } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
@@ -20,6 +20,18 @@ export class UnitPrefabEntry {
 
     @property
     unitCount: number = 1;
+
+    @property
+    maxUnitPerRow: number = 8;
+
+    @property
+    squareFormationWidth: number = 4;
+
+    @property
+    spaceBetweenUnit: number = 1.5;
+
+    @property
+    spaceBetweenRow: number = 1.5;
 
     @property
     prewarmCount: number = 0;
@@ -97,6 +109,12 @@ export class BattleUnitDatabase extends Component {
 
     @property
     counterKillRewardCostWeight = 0.15;
+
+    @property(Color)
+    teamAWaveBannerBackgroundColor: Color = new Color(0, 70, 255, 255);
+
+    @property(Color)
+    teamBWaveBannerBackgroundColor: Color = new Color(255, 0, 0, 255);
 
     @property(HeroEntry)
     teamAHero: HeroEntry = new HeroEntry();

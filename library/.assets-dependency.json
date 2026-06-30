@@ -511,6 +511,50 @@
       ],
       "fonts\\GAMERIA\\GAMERIA.fnt": [
         "fonts\\GAMERIA\\GAMERIA.png"
+      ],
+      "shaders\\UnlitBillboard.effect": [
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\billboard-vs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\input.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode-base.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\common-define.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\data\\unpack.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\morph.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\morph-animation.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-morph.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\skinning.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-skinning.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\skinning-animation-lbs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-global.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\local-batch.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local-batched.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\world-transform.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\billboard-fs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\output-standard.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\aces.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\gamma.chunk",
+        "chunks\\billboard-vs.chunk",
+        "chunks\\legacy\\input.chunk",
+        "chunks\\legacy\\decode.chunk",
+        "chunks\\legacy\\decode-base.chunk",
+        "chunks\\common\\common-define.chunk",
+        "chunks\\common\\data\\unpack.chunk",
+        "chunks\\legacy\\morph.chunk",
+        "chunks\\builtin\\functionalities\\morph-animation.chunk",
+        "chunks\\builtin\\uniforms\\cc-morph.chunk",
+        "chunks\\legacy\\skinning.chunk",
+        "chunks\\builtin\\uniforms\\cc-skinning.chunk",
+        "chunks\\builtin\\functionalities\\skinning-animation-lbs.chunk",
+        "chunks\\builtin\\uniforms\\cc-global.chunk",
+        "chunks\\legacy\\local-batch.chunk",
+        "chunks\\builtin\\uniforms\\cc-local-batched.chunk",
+        "chunks\\builtin\\uniforms\\cc-local.chunk",
+        "chunks\\builtin\\functionalities\\world-transform.chunk",
+        "chunks\\billboard-fs.chunk",
+        "chunks\\legacy\\output-standard.chunk",
+        "chunks\\common\\color\\aces.chunk",
+        "chunks\\common\\color\\gamma.chunk"
       ]
     },
     "uuid": {
@@ -585,6 +629,25 @@
       ],
       "3D\\Fighter\\FighterRedMat.mtl": [
         "ce12cd7d-3b03-48c2-9f70-cacff3fd9bcf"
+      ],
+      "materials\\Banner.mtl": [
+        "c8f66d17-351a-48da-a12c-0212d28575c4",
+        "06f2f072-60e0-4a08-8020-76c24d5c553a"
+      ],
+      "materials\\Banner_LightArcher.mtl": [
+        "06f2f072-60e0-4a08-8020-76c24d5c553a"
+      ],
+      "materials\\Banner_LightCavalry.mtl": [
+        "06f2f072-60e0-4a08-8020-76c24d5c553a"
+      ],
+      "materials\\Banner_LightMace.mtl": [
+        "06f2f072-60e0-4a08-8020-76c24d5c553a"
+      ],
+      "materials\\Banner_LightSpear.mtl": [
+        "06f2f072-60e0-4a08-8020-76c24d5c553a"
+      ],
+      "materials\\Banner_LightSword.mtl": [
+        "06f2f072-60e0-4a08-8020-76c24d5c553a"
       ]
     }
   },

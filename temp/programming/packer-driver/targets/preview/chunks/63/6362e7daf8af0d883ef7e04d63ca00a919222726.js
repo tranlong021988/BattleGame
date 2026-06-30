@@ -330,6 +330,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var i = 0; i < waves.length; i++) {
             var wave = waves[i];
             if (!wave) continue;
+            if (this.isHeroWave(wave)) continue;
 
             if (this.records.has(wave.id)) {
               continue;
@@ -506,7 +507,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.records.forEach((record, waveId) => {
             var wave = record.wave;
 
-            if (!wave) {
+            if (!wave || this.isHeroWave(wave)) {
               removeIds.push(waveId);
               return;
             }
@@ -993,6 +994,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             scan.aliveRatio = aliveCount / wave.totalCount;
           }
 
+          var representative = wave.getRepresentativeUnit();
+
+          if (representative && (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(representative) === wave && representative.node.activeInHierarchy && representative.props && !representative.props.isDead() && representative.agent) {
+            out.set(representative.agent.pos.x, 0, representative.agent.pos.z);
+            scan.hasPosition = true;
+            return scan;
+          }
+
           var sumX = 0;
           var sumZ = 0;
           var sampleCount = 0;
@@ -1029,6 +1040,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           out.set(sumX / sampleCount, 0, sumZ / sampleCount);
           scan.hasPosition = true;
           return scan;
+        }
+
+        isHeroWave(wave) {
+          if (!wave) return false;
+          var units = wave.units;
+
+          for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+
+            if (unit && unit.isHero) {
+              return true;
+            }
+          }
+
+          return false;
         }
 
         scanFullWavePositionForMiniMap(wave, out) {

@@ -449,6 +449,7 @@ export class TrueMiniMapPanel extends Component {
             const wave = waves[i];
 
             if (!wave) continue;
+            if (this.isHeroWave(wave)) continue;
 
             if (
                 this.records.has(
@@ -795,7 +796,10 @@ export class TrueMiniMapPanel extends Component {
                 const wave =
                     record.wave;
 
-                if (!wave) {
+                if (
+                    !wave ||
+                    this.isHeroWave(wave)
+                ) {
                     removeIds.push(
                         waveId
                     );
@@ -1987,6 +1991,24 @@ export class TrueMiniMapPanel extends Component {
         scan.hasPosition = true;
 
         return scan;
+    }
+
+    private isHeroWave(
+        wave: BattleWave | null
+    ) {
+        if (!wave) return false;
+
+        const units = wave.units;
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (unit && unit.isHero) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private scanFullWavePositionForMiniMap(

@@ -6,16 +6,11 @@ Last updated: 2026-06-30.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest source check after the June 30 home-Codex wave-banner work:
+Latest office source check after the June 30 home-Codex wave-banner work:
 
-- Current HEAD while checking: `cf809f37`.
-- Source logic files are dirty after the latest home-Codex wave-banner update.
-- Expected dirty source/doc files from this update:
-  - `AI-CONTEX.md`;
-  - `assets/scripts/BattleUnitDatabase.ts`;
-  - `assets/scripts/BattleWave.ts`;
-  - `assets/scripts/GameManager.ts`;
-  - `assets/scripts/TrueMiniMapPanel.ts`.
+- Current HEAD while checking: `3a8d5ece`.
+- `git status --short` showed no tracked source changes on this machine.
+- `git diff --name-only` was empty.
 - June 26 office work that is now present in source:
   - minimap hot-path optimization in `TrueMiniMapPanel`;
   - `PlayerArmyController` inspector-driven lane picker and unit icon binding;
@@ -43,6 +38,15 @@ Latest source check after the June 30 home-Codex wave-banner work:
   - if the holder dies, the banner detaches, reparents to the new holder while preserving world position, then tweens to local `(0, 0, 0)`;
   - if no holder remains, the banner returns to pool;
   - `TrueMiniMapPanel` now uses `BattleWave.getRepresentativeUnit()` before falling back to old sampled averaging.
+- June 30 office follow-up now present in source:
+  - hero waves are skipped by `TrueMiniMapPanel`'s normal wave-icon path, so hero minimap display comes only from the hero-icon path;
+  - hero-vs-anything damage ignores `CounterSettings`, and kills involving a hero are no longer counted as counter kills;
+  - hero still uses `Unit`/`UnitBehavior` for movement and attacking, but should be treated as a special entity rather than a troop type for minimap and counter-rule purposes.
+  - formation spacing/count knobs were moved from `GameManager` to each `BattleUnitDatabase.UnitPrefabEntry`: `maxUnitPerRow`, `squareFormationWidth`, `spaceBetweenUnit`, and `spaceBetweenRow`;
+  - `GameManager` now reads those formation values from the unit entry when spawning both lane-square and centered-row formations.
+  - `LevelSettings` component was added as an optional campaign difficulty scaler;
+  - if enabled, `LevelSettings` applies a normalized level curve to the selected team only: initial CP, ArmyBrain AI, lane awareness, same-lane counter chance, spawn interval, max alive waves, and aggressive-forward chance;
+  - if the component is disabled or not present, existing `GameManager`/`ArmyBrain` logic is unchanged.
 - No scene/prefab wiring was intentionally changed by Codex in these patches. The user should wire or verify Inspector fields in Cocos Editor.
 
 ## Working Rules
@@ -58,13 +62,14 @@ Latest source check after the June 30 home-Codex wave-banner work:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff: `cf809f37`.
-- Expected dirty source/doc files from the current home wave-banner update:
+- Current HEAD while writing this handoff: `3a8d5ece`.
+- Before the June 30 office follow-up, only this handoff file was locally dirty from the previous refresh.
+- After the June 30 office follow-up, expected edited files are:
   - `AI-CONTEX.md`;
-  - `assets/scripts/BattleUnitDatabase.ts`;
-  - `assets/scripts/BattleWave.ts`;
-  - `assets/scripts/GameManager.ts`;
-  - `assets/scripts/TrueMiniMapPanel.ts`.
+  - `assets/scripts/TrueMiniMapPanel.ts`;
+  - `assets/scripts/UnitBehavior.ts`;
+  - `assets/scripts/GameManager.ts`.
+  - `assets/scripts/BattleUnitDatabase.ts`.
 - Git may print `C:\Users\CPU/.config/git/ignore: Permission denied`; this is a local git-config warning, not a project source change.
 - If future `profiles/`, `library/`, or `temp/` changes appear, treat them as Cocos/editor generated unless the user explicitly asks to inspect them.
 - Run `git status --short` before editing because the user may commit, reverse, or continue testing from the other machine.
@@ -715,10 +720,14 @@ Implemented selection rules:
    - scan alive units in the wave;
    - compute average X of alive unit positions;
    - choose the alive unit whose X is closest to that average X.
-4. Tie-breakers, if needed:
-   - prefer a unit with a valid target;
-   - then prefer a unit currently on forward;
-   - then prefer the unit further along `forwardDir`.
+4. Tie-breakers:
+   - The design discussion suggested preferring a unit with a valid target,
+     then a unit currently on forward, then the unit further along
+     `forwardDir`.
+   - Current source does not implement those tie-breakers yet; it simply keeps
+     the first alive unit found with the smallest distance to average X.
+   - Add tie-breakers only if visual testing shows banner handoff picking an
+     awkward holder.
 
 Why average X, not lane center:
 
@@ -1494,6 +1503,68 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
   import/module configuration issue.
 - Runtime Button wiring and actual spawning still require testing in the Cocos
   scene after the Inspector setup above.
+
+## June 30 - Wave Banner Icon Setup
+
+- `assets/prefabs/Banner.prefab` is the base billboard banner prefab.
+- Five per-unit-type banner prefabs were generated from it:
+  - `Banner_LightSword.prefab`
+  - `Banner_LightSpear.prefab`
+  - `Banner_LightMace.prefab`
+  - `Banner_LightArcher.prefab`
+  - `Banner_LightCavalry.prefab`
+- Each banner prefab has its own material using the corresponding minimap icon
+  texture as `mainTexture`.
+- The same per-unit-type banner prefab is assigned to both team A and team B
+  `UnitPrefabEntry.waveBannerPrefab` slots in `assets/Test.scene`.
+- `BattleUnitDatabase` now exposes:
+  - `teamAWaveBannerBackgroundColor`
+  - `teamBWaveBannerBackgroundColor`
+- `GameManager.assignWaveBanner()` reapplies the team background color every
+  time a banner is acquired from the pool. This is intentionally runtime-driven
+  through `MeshRenderer.setInstancedAttribute('a_billboard_bg_color', ...)`, so
+  one unit-type banner prefab can be shared by both teams.
+- `assets/materials/Banner.mtl` and all `Banner_*` materials have
+  `USE_INSTANCING` enabled. Keep this enabled or team-specific background color
+  will fall back to the material default.
+- Follow-up fixes done after visual testing:
+  - Some banners existed in the hierarchy under the scanner/representative unit
+    but the quad was invisible.
+  - First suspected issue was instanced tint: `UnlitBillboard.effect` previously
+    used `a_billboard_tint` when `USE_INSTANCING` was enabled. If Cocos did not
+    bind that custom attribute, the icon could effectively render with alpha 0.
+  - `UnlitBillboard.effect` now uses material `tintColor` for the icon tint and
+    keeps only `a_billboard_bg_color` as an instanced attribute.
+  - All `Banner*.mtl` materials now explicitly serialize `tintColor` as white.
+  - `GameManager.applyWaveBannerAppearance()` no longer sets
+    `a_billboard_tint`; it only sets `a_billboard_bg_color` from
+    `BattleUnitDatabase` team colors.
+  - Another banner-loss issue was fixed: when the current representative unit
+    despawns, `GameManager.notifyUnitWillDespawn()` now calls
+    `BattleWave.handleUnitWillDespawn(unit)`, so the banner can move to another
+    alive unit before the old holder node is disabled/recycled.
+  - `BattleWave.refreshWaveBanner()` no longer releases the banner immediately
+    when no holder is found while the wave still has alive units; this lets a
+    later tick retry instead of prematurely returning the banner to the pool.
+
+### Current Banner Issue To Continue
+
+- Latest user test: banners are now visible.
+- Remaining issue: some banners render normally, but some lose the background
+  color behind the icon.
+- Likely area to inspect next:
+  - `a_billboard_bg_color` may not be applied to every `MeshRenderer` instance
+    after pooling/reparenting or material/shader reimport.
+  - Because `USE_INSTANCING` is enabled, if `a_billboard_bg_color` is missing
+    for a renderer, the shader currently has no material fallback for
+    background in the instancing branch.
+  - Consider making `UnlitBillboard.effect` resilient by detecting an unset
+    instanced background, or make `GameManager.applyWaveBannerAppearance()` run
+    again after `wave.setWaveBanner()`/parent changes if Cocos drops instanced
+    attributes when pooled or reparented.
+- Do not remove `USE_INSTANCING` lightly: it is needed so one unit-type banner
+  prefab can be shared by team A and team B with only background color changing
+  per instance.
 
 ## Current Next Best Direction
 
