@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, unitTypeToName, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _crd, ccclass, property, ArmyBrainMode, ArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, unitTypeToName, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _crd, ccclass, property, BattleWaveSpawnedEvent, ArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -60,18 +60,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         ccclass,
         property
       } = _decorator);
-
-      ArmyBrainMode = /*#__PURE__*/function (ArmyBrainMode) {
-        ArmyBrainMode[ArmyBrainMode["Attack"] = 0] = "Attack";
-        ArmyBrainMode[ArmyBrainMode["Defense"] = 1] = "Defense";
-        return ArmyBrainMode;
-      }(ArmyBrainMode || {});
+      BattleWaveSpawnedEvent = 'battle-wave-spawned';
 
       _export("ArmyBrain", ArmyBrain = (_dec = ccclass('ArmyBrain'), _dec2 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
         error: Error()
       }), GameManager) : GameManager), _dec3 = property({
-        displayName: 'Aggressive Forward Chance'
+        displayName: 'Fast React Chance'
       }), _dec4 = property({
+        displayName: 'Aggressive Forward Chance'
+      }), _dec5 = property({
         displayName: 'Enable Aggressive Forward Log'
       }), _dec(_class = (_class2 = class ArmyBrain extends Component {
         constructor() {
@@ -87,52 +84,60 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "maxSpawnInterval", _descriptor5, this);
 
-          _initializerDefineProperty(this, "maxBrainDeltaTime", _descriptor6, this);
+          _initializerDefineProperty(this, "fastReactChance", _descriptor6, this);
 
-          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor7, this);
+          _initializerDefineProperty(this, "maxBrainDeltaTime", _descriptor7, this);
 
-          _initializerDefineProperty(this, "maxAliveWaves", _descriptor8, this);
+          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor8, this);
 
-          _initializerDefineProperty(this, "defenseWaveThreshold", _descriptor9, this);
+          _initializerDefineProperty(this, "maxAliveWaves", _descriptor9, this);
 
-          _initializerDefineProperty(this, "attackModeChance", _descriptor10, this);
+          _initializerDefineProperty(this, "preferUnengagedWaveInAttack", _descriptor10, this);
 
-          _initializerDefineProperty(this, "defenseModeChance", _descriptor11, this);
+          _initializerDefineProperty(this, "ignoreNearlyDeadWaveRatio", _descriptor11, this);
 
-          _initializerDefineProperty(this, "preferUnengagedWaveInAttack", _descriptor12, this);
+          _initializerDefineProperty(this, "attackCounterCoverageRatio", _descriptor12, this);
 
-          _initializerDefineProperty(this, "ignoreNearlyDeadWaveRatio", _descriptor13, this);
+          _initializerDefineProperty(this, "counterSameLaneChance", _descriptor13, this);
 
-          _initializerDefineProperty(this, "attackCounterCoverageRatio", _descriptor14, this);
+          _initializerDefineProperty(this, "laneAwareness", _descriptor14, this);
 
-          _initializerDefineProperty(this, "counterSameLaneChance", _descriptor15, this);
+          _initializerDefineProperty(this, "aggressiveForwardChance", _descriptor15, this);
 
-          _initializerDefineProperty(this, "laneAwareness", _descriptor16, this);
+          _initializerDefineProperty(this, "aiIntelligence", _descriptor16, this);
 
-          _initializerDefineProperty(this, "flankAggression", _descriptor17, this);
+          _initializerDefineProperty(this, "spawnRandomIfNoThreat", _descriptor17, this);
 
-          _initializerDefineProperty(this, "aggressiveForwardChance", _descriptor18, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor18, this);
 
-          _initializerDefineProperty(this, "aiIntelligence", _descriptor19, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor19, this);
 
-          _initializerDefineProperty(this, "spawnRandomIfNoThreat", _descriptor20, this);
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor20, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor21, this);
-
-          _initializerDefineProperty(this, "enableStateLog", _descriptor22, this);
-
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor23, this);
-
-          _initializerDefineProperty(this, "enableAggressiveForwardLog", _descriptor24, this);
+          _initializerDefineProperty(this, "enableAggressiveForwardLog", _descriptor21, this);
 
           this.timer = 0;
           this.nextInterval = 3;
-          this.currentMode = ArmyBrainMode.Attack;
-          this.currentModeName = 'ATTACK';
+          this.registeredGameManager = null;
+          this.fastReactCounteredWaveIds = new Set();
+          this.hasReachedMaxAliveWavesOnce = false;
+        }
+
+        onEnable() {
+          this.registerWaveSpawnEvent();
         }
 
         start() {
           this.randomizeNextInterval();
+          this.registerWaveSpawnEvent();
+        }
+
+        onDisable() {
+          this.unregisterWaveSpawnEvent();
+        }
+
+        onDestroy() {
+          this.unregisterWaveSpawnEvent();
         }
 
         update(deltaTime) {
@@ -156,6 +161,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         thinkAndSpawn() {
           if (!this.gameManager) return;
+          this.refreshMaxAliveWaveReached();
 
           if (!this.canSpawnMoreWave()) {
             this.debugLog("Skip spawn: aliveWaves=" + this.getAliveWaveCount(this.team) + " >= maxAliveWaves=" + this.maxAliveWaves);
@@ -172,8 +178,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var enemyTeam = this.team === 0 ? 1 : 0;
           var enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
-          this.resolveMode(enemyWaves.length);
-          this.stateLog("MODE=" + this.currentModeName + ", myWaves=" + this.getAliveWaveCount(this.team) + ", enemyWaves=" + enemyWaves.length + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", AI=" + this.getAIIntelligence().toFixed(2));
+          this.stateLog("MODE=" + this.getModeLogName() + ", myWaves=" + this.getAliveWaveCount(this.team) + ", enemyWaves=" + enemyWaves.length + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", AI=" + this.getAIIntelligence().toFixed(2));
           var lanePressure = this.buildLanePressureSnapshot();
 
           if (enemyWaves.length <= 0) {
@@ -193,9 +198,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          var raidDefenseWave = this.findRaidDefenseThreatWave();
-          var useRaidDefense = !!raidDefenseWave && Math.random() <= this.clamp(this.defenseModeChance, 0, 1);
-          var targetWave = useRaidDefense ? raidDefenseWave : this.findTargetWave();
+          var targetWave = this.findTargetWave();
 
           if (!targetWave) {
             if (this.trySpawnAggressiveForwardRaid(validEntries, lanePressure, 'No valid target')) {
@@ -224,13 +227,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), unitTypeToName) : unitTypeToName)(selectedEntry.unitType) + ", score=" + selectedCounterScore.toFixed(2) + ", isCounter=" + isRealCounter + ", CP=" + Math.floor(this.gameManager.getCombatPoint(this.team)) + ", cost=" + selectedEntry.combatPointCost + ", coverage=" + targetWave.getCounterCoverageRatio().toFixed(2) + ", lane=" + targetWave.laneId + ", engaged=" + targetWave.hasEngaged());
 
-          if (!useRaidDefense && !isRealCounter && this.trySpawnAggressiveForwardRaid(validEntries, lanePressure, "Fallback/non-counter against wave=" + targetWave.id)) {
+          if (!isRealCounter && this.trySpawnAggressiveForwardRaid(validEntries, lanePressure, "Fallback/non-counter against wave=" + targetWave.id)) {
             return;
           }
 
-          var spawnLaneId = useRaidDefense ? this.getSafeTargetLaneId(targetWave) : this.getCounterSpawnLaneId(targetWave, lanePressure);
-          this.debugLog("Counter spawn lane: targetLane=" + targetWave.laneId + ", spawnLane=" + spawnLaneId + ", sameLaneChance=" + this.counterSameLaneChance.toFixed(2) + ", raidDefense=" + useRaidDefense);
-          var spawned = this.gameManager.spawnWaveByEntry(this.team, selectedEntry, spawnLaneId);
+          var spawnLaneId = this.getCounterSpawnLaneId(targetWave, lanePressure);
+          var aggressiveForward = this.shouldSpawnAggressiveForward();
+          this.debugLog("Counter spawn lane: targetLane=" + targetWave.laneId + ", spawnLane=" + spawnLaneId + ", sameLaneChance=" + this.counterSameLaneChance.toFixed(2) + ", aggressive=" + aggressiveForward);
+          var spawned = this.gameManager.spawnWaveByEntry(this.team, selectedEntry, spawnLaneId, aggressiveForward);
 
           if (spawned) {
             if (isRealCounter) {
@@ -242,52 +246,59 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        findRaidDefenseThreatWave() {
-          if (!this.gameManager) return null;
-          var enemyTeam = this.team === 0 ? 1 : 0;
-          var waves = this.gameManager.getWavesByTeam(enemyTeam);
-          var defendPoint = this.getDefendPoint();
-          var defendLane = this.getDefendLaneId();
-          var best = null;
-          var bestScore = -Infinity;
+        onBattleWaveSpawned(spawnedWave) {
+          if (!this.gameManager) return;
+          if (!spawnedWave) return;
+          this.refreshMaxAliveWaveReached();
+          if (spawnedWave.team === this.team) return;
 
-          for (var i = 0; i < waves.length; i++) {
-            var wave = waves[i];
-            if (!this.isAliveThreatWave(wave)) continue;
-            if (!wave.hasAggressiveForward()) continue;
-            if (wave.laneId < 0) continue;
-            var laneId = this.gameManager.clampLaneId(wave.laneId);
-
-            if (Math.abs(laneId - defendLane) > 1) {
-              continue;
-            }
-
-            var distSq = wave.getClosestDistanceSqTo(defendPoint.x, defendPoint.z);
-            var dist = Math.sqrt(distSq);
-            var aliveRatio = wave.getAliveRatio();
-            var score = 0;
-            score += Math.max(0, 140 - dist);
-            score += aliveRatio * 60;
-
-            if (laneId === defendLane) {
-              score += 35;
-            }
-
-            if (!wave.isCounterCovered(this.attackCounterCoverageRatio)) {
-              score += 45;
-            }
-
-            if (score > bestScore) {
-              bestScore = score;
-              best = wave;
-            }
+          if (this.runOnlyWhenGameManagerAutoSpawnOff && this.gameManager.enableAutoSpawn) {
+            return;
           }
 
-          if (best) {
-            this.debugLog("Raid defense target: wave=" + best.id + ", lane=" + best.laneId + ", defenseChance=" + this.defenseModeChance.toFixed(2));
+          if (!this.canFastReactNow()) return;
+          if (!this.canSpawnMoreWave()) return;
+          if (!this.isAliveThreatWave(spawnedWave)) return;
+          var entries = this.gameManager.getTeamEntries(this.team);
+          var validEntries = this.getValidEntries(entries);
+          var counterEntry = this.getBestRealCounterEntryAgainstWave(validEntries, spawnedWave);
+
+          if (!counterEntry) {
+            this.debugLog("Fast react skipped: no affordable real counter for wave=" + spawnedWave.id + ", target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+              error: Error()
+            }), unitTypeToName) : unitTypeToName)(spawnedWave.unitType));
+            return;
           }
 
-          return best;
+          var lanePressure = this.buildLanePressureSnapshot();
+          var spawnLaneId = this.getCounterSpawnLaneId(spawnedWave, lanePressure);
+          var spawned = this.gameManager.spawnWaveByEntry(this.team, counterEntry, spawnLaneId, this.shouldSpawnAggressiveForward());
+
+          if (!spawned) {
+            return;
+          }
+
+          spawnedWave.addCounterAssignment(counterEntry.unitCount);
+          this.fastReactCounteredWaveIds.add(spawnedWave.id);
+          this.timer = 0;
+          this.randomizeNextInterval();
+          this.debugLog("Fast react counter: enemyWave=" + spawnedWave.id + ", target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+            error: Error()
+          }), unitTypeToName) : unitTypeToName)(spawnedWave.unitType) + ", spawn=" + counterEntry.name + "/" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+            error: Error()
+          }), unitTypeToName) : unitTypeToName)(counterEntry.unitType) + ", lane=" + spawnLaneId + ", chance=" + this.getFastReactChance().toFixed(2) + ", nextInterval=" + this.nextInterval.toFixed(2));
+        }
+
+        canFastReactNow() {
+          var chance = this.getFastReactChance();
+          if (chance <= 0) return false;
+          var minInterval = Math.max(0.1, this.minSpawnInterval);
+
+          if (this.timer < minInterval) {
+            return false;
+          }
+
+          return Math.random() <= chance;
         }
 
         trySpawnAggressiveForwardRaid(validEntries, lanePressure, reason) {
@@ -330,32 +341,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return true;
         }
 
-        resolveMode(enemyAliveWaveCount) {
-          var myWaves = this.getAliveWaveCount(this.team);
-          var threshold = Math.max(0, Math.floor(this.defenseWaveThreshold));
-          var shouldDefense = myWaves <= threshold && enemyAliveWaveCount > myWaves;
-
-          if (shouldDefense) {
-            var _roll = Math.random();
-
-            var _correct = _roll <= this.defenseModeChance;
-
-            this.currentMode = _correct ? ArmyBrainMode.Defense : ArmyBrainMode.Attack;
-            this.currentModeName = _correct ? 'DEFENSE' : 'DEFENSE_MISREAD_TO_ATTACK';
-            return;
-          }
-
-          var roll = Math.random();
-          var correct = roll <= this.attackModeChance;
-          this.currentMode = correct ? ArmyBrainMode.Attack : ArmyBrainMode.Defense;
-          this.currentModeName = correct ? 'ATTACK' : 'ATTACK_MISREAD_TO_DEFENSE';
-        }
-
         findTargetWave() {
-          if (this.currentMode === ArmyBrainMode.Defense) {
-            return this.findNearestThreatWaveForDefense();
-          }
-
           return this.findInterceptThreatWaveForAttack();
         }
 
@@ -394,52 +380,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return best;
         }
 
-        findNearestThreatWaveForDefense() {
-          if (!this.gameManager) return null;
-          var enemyTeam = this.team === 0 ? 1 : 0;
-          var waves = this.gameManager.getWavesByTeam(enemyTeam);
-          var best = null;
-          var bestScore = -Infinity;
-          var defendPoint = this.getDefendPoint();
-
-          for (var i = 0; i < waves.length; i++) {
-            var wave = waves[i];
-            if (!this.isValidDefenseThreatWave(wave)) continue;
-            var distSq = wave.getClosestDistanceSqTo(defendPoint.x, defendPoint.z);
-            var aliveRatio = wave.getAliveRatio();
-            var dist = Math.sqrt(distSq);
-            var distanceScore = Math.max(0, 120 - dist);
-            var score = 0;
-            score += distanceScore;
-            score += aliveRatio * 70;
-
-            if (score > bestScore) {
-              bestScore = score;
-              best = wave;
-            }
-          }
-
-          return best;
-        }
-
         isValidAttackThreatWave(wave) {
           if (!this.isAliveThreatWave(wave)) return false;
+          if (this.isCoveredByFastReact(wave)) return false;
 
           if (wave.isCounterCovered(this.attackCounterCoverageRatio)) {
             this.debugLog("Skip attack target wave=" + wave.id + ": coverage=" + wave.getCounterCoverageRatio().toFixed(2) + " >= " + this.attackCounterCoverageRatio);
-            return false;
-          }
-
-          return true;
-        }
-
-        isValidDefenseThreatWave(wave) {
-          if (!this.isAliveThreatWave(wave)) return false;
-          var engaged = wave.hasEngaged();
-          var covered = wave.isCounterCovered(this.attackCounterCoverageRatio);
-
-          if (!engaged && covered) {
-            this.debugLog("Skip defense target wave=" + wave.id + ": not engaged and coverage=" + wave.getCounterCoverageRatio().toFixed(2) + " >= " + this.attackCounterCoverageRatio);
             return false;
           }
 
@@ -455,6 +401,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
+          return true;
+        }
+
+        isCoveredByFastReact(wave) {
+          if (!this.fastReactCounteredWaveIds.has(wave.id)) {
+            return false;
+          }
+
+          if (!wave.isCounterCovered(this.attackCounterCoverageRatio)) {
+            return false;
+          }
+
+          this.debugLog("Skip wave=" + wave.id + ": already covered by fast react, coverage=" + wave.getCounterCoverageRatio().toFixed(2));
           return true;
         }
 
@@ -536,6 +495,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.getCheapestAffordableEntry(entries);
+        }
+
+        getBestRealCounterEntryAgainstWave(entries, targetWave) {
+          var affordableEntries = this.getAffordableEntries(entries);
+          var bestScore = -Infinity;
+          var bestEntries = [];
+
+          for (var i = 0; i < affordableEntries.length; i++) {
+            var entry = affordableEntries[i];
+            if (!this.isValidEntry(entry)) continue;
+            var score = this.getCounterScore(entry.unitType, targetWave.unitType);
+
+            if (!this.isRealCounterScore(score)) {
+              continue;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestEntries.length = 0;
+              bestEntries.push(entry);
+            } else if (Math.abs(score - bestScore) < 0.0001) {
+              bestEntries.push(entry);
+            }
+          }
+
+          if (bestEntries.length <= 0) {
+            return null;
+          }
+
+          var index = Math.floor(Math.random() * bestEntries.length);
+          return bestEntries[index];
         }
 
         getAffordableEntries(entries) {
@@ -651,14 +641,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return alive < max;
         }
 
+        refreshMaxAliveWaveReached(aliveWaveCount) {
+          if (aliveWaveCount === void 0) {
+            aliveWaveCount = this.getAliveWaveCount(this.team);
+          }
+
+          if (this.hasReachedMaxAliveWavesOnce) {
+            return true;
+          }
+
+          if (!this.enableMaxAliveWaveLimit) {
+            this.hasReachedMaxAliveWavesOnce = true;
+            return true;
+          }
+
+          var max = Math.max(1, Math.floor(this.maxAliveWaves));
+
+          if (aliveWaveCount >= max) {
+            this.hasReachedMaxAliveWavesOnce = true;
+          }
+
+          return this.hasReachedMaxAliveWavesOnce;
+        }
+
+        shouldSpawnAggressiveForward() {
+          return !this.hasReachedMaxAliveWavesOnce;
+        }
+
         getAliveWaveCount(team) {
           if (!this.gameManager) return 0;
-          var waves = this.gameManager.getWavesByTeam(team);
+          var waves = this.gameManager.waves;
           var count = 0;
 
           for (var i = 0; i < waves.length; i++) {
             var wave = waves[i];
             if (!wave) continue;
+            if (wave.team !== team) continue;
             if (wave.isDead()) continue;
             count++;
           }
@@ -671,7 +689,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.canSpawnMoreWave()) return;
           var opening = this.getRandomAffordableEntry(validEntries);
           if (!opening) return;
-          this.gameManager.spawnWaveByEntry(this.team, opening);
+          this.gameManager.spawnWaveByEntry(this.team, opening, -1, this.shouldSpawnAggressiveForward());
         }
 
         spawnRandom(validEntries, reason) {
@@ -680,7 +698,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var randomEntry = this.getRandomAffordableEntry(validEntries);
           if (!randomEntry) return;
           this.debugLog(reason + ". Random spawn: " + randomEntry.name);
-          this.gameManager.spawnWaveByEntry(this.team, randomEntry);
+          this.gameManager.spawnWaveByEntry(this.team, randomEntry, -1, this.shouldSpawnAggressiveForward());
         }
 
         getCounterSpawnLaneId(targetWave, lanePressure) {
@@ -698,7 +716,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var sameLaneChance = this.clamp(this.counterSameLaneChance, 0, 1);
           var targetInfo = lanePressure[targetLane];
           var targetUndefended = !!targetInfo && targetInfo.enemyCount > 0 && targetInfo.allyCount <= 0;
-          var adjustedSameLaneChance = this.clamp(sameLaneChance + this.getLaneAwareness() * (targetUndefended ? this.getDefenseSameLaneBonus() : -0.25 * this.getFlankAggression()), 0, 1);
+          var adjustedSameLaneChance = this.clamp(sameLaneChance + this.getLaneAwareness() * (targetUndefended ? 0.2 : 0), 0, 1);
 
           if (Math.random() <= adjustedSameLaneChance) {
             return targetLane;
@@ -728,7 +746,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return 0;
           }
 
-          if (this.getLaneAwareness() <= 0 || this.getFlankAggression() <= 0) {
+          if (this.getLaneAwareness() <= 0) {
             var index = Math.floor(Math.random() * lanes.length);
             return lanes[index];
           }
@@ -797,52 +815,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
         }
 
-        getDefendLaneId() {
-          if (!this.gameManager) {
-            return 0;
-          }
-
-          var hero = this.team === 0 ? this.gameManager.teamAHero : this.gameManager.teamBHero;
-
-          if (hero && hero.laneId >= 0) {
-            return this.gameManager.clampLaneId(hero.laneId);
-          }
-
-          return this.gameManager.clampLaneId(Math.floor(this.gameManager.getSafeLaneCount() / 2));
-        }
-
-        getSafeTargetLaneId(targetWave) {
-          if (!this.gameManager) {
-            return targetWave.laneId;
-          }
-
-          if (targetWave.laneId < 0) {
-            return this.getDefendLaneId();
-          }
-
-          return this.gameManager.clampLaneId(targetWave.laneId);
-        }
-
         getAIIntelligence() {
           return this.clamp(this.aiIntelligence, 0, 1);
+        }
+
+        getFastReactChance() {
+          return this.clamp(this.fastReactChance, 0, 1);
         }
 
         getLaneAwareness() {
           return this.clamp(this.laneAwareness, 0, 1);
         }
 
-        getFlankAggression() {
-          return this.clamp(this.flankAggression, 0, 1);
-        }
-
-        getDefenseSameLaneBonus() {
-          return this.currentMode === ArmyBrainMode.Defense ? 0.45 : 0.2;
+        getModeLogName() {
+          return this.hasReachedMaxAliveWavesOnce ? 'ATTACK' : 'ATTACK_EARLY_AGGRESSIVE_SPAWN';
         }
 
         randomizeNextInterval() {
           var min = Math.max(0.1, this.minSpawnInterval);
           var max = Math.max(min, this.maxSpawnInterval);
           this.nextInterval = min + Math.random() * (max - min);
+        }
+
+        registerWaveSpawnEvent() {
+          this.unregisterWaveSpawnEvent();
+          var manager = this.gameManager;
+          if (!manager || !manager.node) return;
+          this.registeredGameManager = manager;
+          manager.node.on(BattleWaveSpawnedEvent, this.onBattleWaveSpawned, this);
+        }
+
+        unregisterWaveSpawnEvent() {
+          var manager = this.registeredGameManager;
+
+          if (manager && manager.node) {
+            manager.node.off(BattleWaveSpawnedEvent, this.onBattleWaveSpawned, this);
+          }
+
+          this.registeredGameManager = null;
         }
 
         getValidEntries(entries) {
@@ -919,133 +929,112 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 5.0;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "maxBrainDeltaTime", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.1;
-        }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "enableMaxAliveWaveLimit", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return true;
-        }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWaves", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 7;
-        }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "defenseWaveThreshold", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 2;
-        }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "attackModeChance", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.0;
-        }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "defenseModeChance", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.0;
-        }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "preferUnengagedWaveInAttack", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return true;
-        }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "ignoreNearlyDeadWaveRatio", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.2;
-        }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "attackCounterCoverageRatio", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.0;
-        }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "counterSameLaneChance", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.75;
-        }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "laneAwareness", [property], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "fastReactChance", [_dec3], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.5;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "flankAggression", [property], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "maxBrainDeltaTime", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 0.25;
+          return 0.1;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChance", [_dec3], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "enableMaxAliveWaveLimit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 0.25;
+          return true;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "aiIntelligence", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWaves", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 7;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "preferUnengagedWaveInAttack", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "ignoreNearlyDeadWaveRatio", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.2;
+        }
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "attackCounterCoverageRatio", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.0;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "spawnRandomIfNoThreat", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "counterSameLaneChance", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.75;
+        }
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "laneAwareness", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.5;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChance", [_dec4], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.25;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "aiIntelligence", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1.0;
+        }
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "spawnRandomIfNoThreat", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "enableAggressiveForwardLog", [_dec4], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "enableAggressiveForwardLog", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -404,7 +404,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (gm) {
-            gm.onWaveCombatStarted(this, attacker);
+            gm.onWaveCombatStarted(this, attacker, false);
           } // A result requested before retaliation must not replace the
           // attacker when the worker responds later.
 
@@ -509,6 +509,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         enterWaveCombatMode() {
           this.onForward = false;
+          this.aggressiveForward = false;
           this.resetStableRotationPosition();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -528,6 +529,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.onForward = false;
+          this.aggressiveForward = false;
           this.resetStableRotationPosition();
 
           if (searchRange > 0) {
@@ -766,7 +768,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
                 }), GameManager) : GameManager).instance;
 
                 if (gm) {
-                  gm.onWaveCombatStarted(this, target);
+                  gm.onWaveCombatStarted(this, target, false);
                 }
               }
 

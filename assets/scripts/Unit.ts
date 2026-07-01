@@ -528,6 +528,7 @@ export class Unit extends Component {
 
     enterWaveCombatMode() {
         this.onForward = false;
+        this.aggressiveForward = false;
         this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
@@ -546,6 +547,7 @@ export class Unit extends Component {
         searchRange: number = 0
     ) {
         this.onForward = false;
+        this.aggressiveForward = false;
         this.resetStableRotationPosition();
 
         if (searchRange > 0) {

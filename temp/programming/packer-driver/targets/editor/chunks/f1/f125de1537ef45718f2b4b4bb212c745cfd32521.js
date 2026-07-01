@@ -54,6 +54,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
+          this.initialForwardCombatGateActive = true;
+          this.initialForwardCombatReleaseThreshold = 1;
           this.forwardScannerUnit = null;
           this.representativeUnit = null;
           this.waveBannerNode = null;
@@ -89,6 +91,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         addCounterAssignment(count) {
           this.assignedCounterCount += Math.max(1, Math.floor(count));
+        }
+
+        setInitialForwardCombatReleaseThreshold(threshold) {
+          this.initialForwardCombatReleaseThreshold = Math.max(1, Math.floor(threshold));
         }
 
         getAliveCount() {
@@ -180,6 +186,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             position: new Vec3(0, 0, 0)
           }).start();
           return true;
+        }
+
+        setWaveBannerVisible(visible) {
+          const banner = this.waveBannerNode;
+          if (!banner || !banner.isValid) return;
+          if (banner.active === visible) return;
+          banner.active = visible;
         }
 
         notifyWaveBannerAttached(banner) {
@@ -348,6 +361,39 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return !this.released && this.aggressiveForwardMode;
         }
 
+        isInitialForwardCombatGateActive() {
+          return !this.released && this.initialForwardCombatGateActive && this.forwardModeActive && !this.freeHuntActive;
+        }
+
+        getInitialForwardCombatReleaseThreshold() {
+          return this.initialForwardCombatReleaseThreshold;
+        }
+
+        getEngagedCountIncluding(pendingUnit = null) {
+          if (this.released) return 0;
+          let count = 0;
+          let hasPending = false;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+
+            if (u === pendingUnit) {
+              hasPending = true;
+            }
+
+            if (u.onBusy) {
+              count++;
+            }
+          }
+
+          if (pendingUnit && hasPending && !pendingUnit.onBusy) {
+            count++;
+          }
+
+          return count;
+        }
+
         findSharedTargetForUnit(requester) {
           if (this.released) return null;
           if (!this.isUnitAlive(requester)) return null;
@@ -398,6 +444,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.aggressiveForwardMode = false;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -412,6 +460,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.freeHuntActive) return;
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.aggressiveForwardMode = false;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -427,6 +477,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -500,6 +551,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (aliveCount <= 0) return false;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -509,6 +561,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return true;
+        }
+
+        refreshInitialForwardCombatGate() {
+          if (!this.isInitialForwardCombatGateActive()) {
+            return;
+          }
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy) continue;
+            if (u.onForward) continue;
+            u.enterWaveForwardMode(this.aggressiveForwardMode);
+          }
         }
 
         isDead() {
@@ -531,6 +597,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
+          this.initialForwardCombatGateActive = false;
+          this.initialForwardCombatReleaseThreshold = 1;
           this.forwardScannerUnit = null;
           this.representativeUnit = null;
           this.units.length = 0;

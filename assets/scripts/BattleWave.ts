@@ -535,6 +535,7 @@ export class BattleWave {
 
         this.forwardModeActive = false;
         this.freeHuntActive = true;
+        this.aggressiveForwardMode = false;
         this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
@@ -556,6 +557,7 @@ export class BattleWave {
 
         this.forwardModeActive = false;
         this.freeHuntActive = true;
+        this.aggressiveForwardMode = false;
         this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 

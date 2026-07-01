@@ -8,11 +8,6 @@ const { ccclass, property } = _decorator;
 const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
 
-enum ArmyBrainMode {
-    Attack = 0,
-    Defense = 1,
-}
-
 type LanePressureInfo = {
     enemyThreat: number;
     allyDefense: number;
@@ -49,15 +44,6 @@ export class ArmyBrain extends Component {
 
     @property
     maxAliveWaves = 7;
-
-    @property
-    defenseWaveThreshold = 2;
-
-    @property
-    attackModeChance = 1.0;
-
-    @property
-    defenseModeChance = 1.0;
 
     @property
     preferUnengagedWaveInAttack = true;
@@ -98,10 +84,9 @@ export class ArmyBrain extends Component {
     private timer = 0;
     private nextInterval = 3;
 
-    private currentMode: ArmyBrainMode = ArmyBrainMode.Attack;
-    private currentModeName = 'ATTACK';
     private registeredGameManager: GameManager | null = null;
     private fastReactCounteredWaveIds: Set<number> = new Set();
+    private hasReachedMaxAliveWavesOnce = false;
 
     onEnable() {
         this.registerWaveSpawnEvent();
@@ -150,6 +135,8 @@ export class ArmyBrain extends Component {
     private thinkAndSpawn() {
         if (!this.gameManager) return;
 
+        this.refreshMaxAliveWaveReached();
+
         if (!this.canSpawnMoreWave()) {
             this.debugLog(
                 `Skip spawn: aliveWaves=${this.getAliveWaveCount(this.team)} >= maxAliveWaves=${this.maxAliveWaves}`
@@ -168,10 +155,8 @@ export class ArmyBrain extends Component {
         const enemyTeam = this.team === 0 ? 1 : 0;
         const enemyWaves = this.gameManager.getWavesByTeam(enemyTeam);
 
-        this.resolveMode(enemyWaves.length);
-
         this.stateLog(
-            `MODE=${this.currentModeName}, myWaves=${this.getAliveWaveCount(this.team)}, enemyWaves=${enemyWaves.length}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, AI=${this.getAIIntelligence().toFixed(2)}`
+            `MODE=${this.getModeLogName()}, myWaves=${this.getAliveWaveCount(this.team)}, enemyWaves=${enemyWaves.length}, CP=${Math.floor(this.gameManager.getCombatPoint(this.team))}, AI=${this.getAIIntelligence().toFixed(2)}`
         );
 
         const lanePressure =
@@ -200,20 +185,7 @@ export class ArmyBrain extends Component {
             return;
         }
 
-        const raidDefenseWave =
-            this.findRaidDefenseThreatWave();
-
-        const useRaidDefense =
-            !!raidDefenseWave &&
-            Math.random() <= this.clamp(
-                this.defenseModeChance,
-                0,
-                1
-            );
-
-        const targetWave = useRaidDefense
-            ? raidDefenseWave
-            : this.findTargetWave();
+        const targetWave = this.findTargetWave();
 
         if (!targetWave) {
             if (
@@ -256,7 +228,6 @@ export class ArmyBrain extends Component {
         );
 
         if (
-            !useRaidDefense &&
             !isRealCounter &&
             this.trySpawnAggressiveForwardRaid(
                 validEntries,
@@ -267,21 +238,24 @@ export class ArmyBrain extends Component {
             return;
         }
 
-        const spawnLaneId = useRaidDefense
-            ? this.getSafeTargetLaneId(targetWave)
-            : this.getCounterSpawnLaneId(
+        const spawnLaneId =
+            this.getCounterSpawnLaneId(
                 targetWave,
                 lanePressure
             );
 
+        const aggressiveForward =
+            this.shouldSpawnAggressiveForward();
+
         this.debugLog(
-            `Counter spawn lane: targetLane=${targetWave.laneId}, spawnLane=${spawnLaneId}, sameLaneChance=${this.counterSameLaneChance.toFixed(2)}, raidDefense=${useRaidDefense}`
+            `Counter spawn lane: targetLane=${targetWave.laneId}, spawnLane=${spawnLaneId}, sameLaneChance=${this.counterSameLaneChance.toFixed(2)}, aggressive=${aggressiveForward}`
         );
 
         const spawned = this.gameManager.spawnWaveByEntry(
             this.team,
             selectedEntry,
-            spawnLaneId
+            spawnLaneId,
+            aggressiveForward
         );
 
         if (spawned) {
@@ -304,6 +278,9 @@ export class ArmyBrain extends Component {
     ) {
         if (!this.gameManager) return;
         if (!spawnedWave) return;
+
+        this.refreshMaxAliveWaveReached();
+
         if (spawnedWave.team === this.team) return;
 
         if (
@@ -346,7 +323,8 @@ export class ArmyBrain extends Component {
             this.gameManager.spawnWaveByEntry(
                 this.team,
                 counterEntry,
-                spawnLaneId
+                spawnLaneId,
+                this.shouldSpawnAggressiveForward()
             );
 
         if (!spawned) {
@@ -385,67 +363,6 @@ export class ArmyBrain extends Component {
         }
 
         return Math.random() <= chance;
-    }
-
-    private findRaidDefenseThreatWave(): BattleWave | null {
-        if (!this.gameManager) return null;
-
-        const enemyTeam = this.team === 0 ? 1 : 0;
-        const waves = this.gameManager.getWavesByTeam(enemyTeam);
-        const defendPoint = this.getDefendPoint();
-        const defendLane = this.getDefendLaneId();
-
-        let best: BattleWave | null = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-
-            if (!this.isAliveThreatWave(wave)) continue;
-            if (!wave!.hasAggressiveForward()) continue;
-            if (wave!.laneId < 0) continue;
-
-            const laneId =
-                this.gameManager.clampLaneId(wave!.laneId);
-
-            if (Math.abs(laneId - defendLane) > 1) {
-                continue;
-            }
-
-            const distSq = wave!.getClosestDistanceSqTo(
-                defendPoint.x,
-                defendPoint.z
-            );
-
-            const dist = Math.sqrt(distSq);
-            const aliveRatio = wave!.getAliveRatio();
-
-            let score = 0;
-
-            score += Math.max(0, 140 - dist);
-            score += aliveRatio * 60;
-
-            if (laneId === defendLane) {
-                score += 35;
-            }
-
-            if (!wave!.isCounterCovered(this.attackCounterCoverageRatio)) {
-                score += 45;
-            }
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = wave!;
-            }
-        }
-
-        if (best) {
-            this.debugLog(
-                `Raid defense target: wave=${best.id}, lane=${best.laneId}, defenseChance=${this.defenseModeChance.toFixed(2)}`
-            );
-        }
-
-        return best;
     }
 
     private trySpawnAggressiveForwardRaid(
@@ -513,50 +430,7 @@ export class ArmyBrain extends Component {
         return true;
     }
 
-    private resolveMode(enemyAliveWaveCount: number) {
-        const myWaves = this.getAliveWaveCount(this.team);
-
-        const threshold = Math.max(
-            0,
-            Math.floor(this.defenseWaveThreshold)
-        );
-
-        const shouldDefense =
-            myWaves <= threshold &&
-            enemyAliveWaveCount > myWaves;
-
-        if (shouldDefense) {
-            const roll = Math.random();
-            const correct = roll <= this.defenseModeChance;
-
-            this.currentMode = correct
-                ? ArmyBrainMode.Defense
-                : ArmyBrainMode.Attack;
-
-            this.currentModeName = correct
-                ? 'DEFENSE'
-                : 'DEFENSE_MISREAD_TO_ATTACK';
-
-            return;
-        }
-
-        const roll = Math.random();
-        const correct = roll <= this.attackModeChance;
-
-        this.currentMode = correct
-            ? ArmyBrainMode.Attack
-            : ArmyBrainMode.Defense;
-
-        this.currentModeName = correct
-            ? 'ATTACK'
-            : 'ATTACK_MISREAD_TO_DEFENSE';
-    }
-
     private findTargetWave(): BattleWave | null {
-        if (this.currentMode === ArmyBrainMode.Defense) {
-            return this.findNearestThreatWaveForDefense();
-        }
-
         return this.findInterceptThreatWaveForAttack();
     }
 
@@ -615,46 +489,6 @@ export class ArmyBrain extends Component {
         return best;
     }
 
-    private findNearestThreatWaveForDefense(): BattleWave | null {
-        if (!this.gameManager) return null;
-
-        const enemyTeam = this.team === 0 ? 1 : 0;
-        const waves = this.gameManager.getWavesByTeam(enemyTeam);
-
-        let best: BattleWave | null = null;
-        let bestScore = -Infinity;
-
-        const defendPoint = this.getDefendPoint();
-
-        for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-
-            if (!this.isValidDefenseThreatWave(wave)) continue;
-
-            const distSq = wave.getClosestDistanceSqTo(
-                defendPoint.x,
-                defendPoint.z
-            );
-
-            const aliveRatio = wave.getAliveRatio();
-            const dist = Math.sqrt(distSq);
-            const distanceScore =
-                Math.max(0, 120 - dist);
-
-            let score = 0;
-
-            score += distanceScore;
-            score += aliveRatio * 70;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = wave;
-            }
-        }
-
-        return best;
-    }
-
     private isValidAttackThreatWave(wave: BattleWave | null) {
         if (!this.isAliveThreatWave(wave)) return false;
         if (this.isCoveredByFastReact(wave!)) return false;
@@ -662,23 +496,6 @@ export class ArmyBrain extends Component {
         if (wave!.isCounterCovered(this.attackCounterCoverageRatio)) {
             this.debugLog(
                 `Skip attack target wave=${wave!.id}: coverage=${wave!.getCounterCoverageRatio().toFixed(2)} >= ${this.attackCounterCoverageRatio}`
-            );
-            return false;
-        }
-
-        return true;
-    }
-
-    private isValidDefenseThreatWave(wave: BattleWave | null) {
-        if (!this.isAliveThreatWave(wave)) return false;
-        if (this.isCoveredByFastReact(wave!)) return false;
-
-        const engaged = wave!.hasEngaged();
-        const covered = wave!.isCounterCovered(this.attackCounterCoverageRatio);
-
-        if (!engaged && covered) {
-            this.debugLog(
-                `Skip defense target wave=${wave!.id}: not engaged and coverage=${wave!.getCounterCoverageRatio().toFixed(2)} >= ${this.attackCounterCoverageRatio}`
             );
             return false;
         }
@@ -1038,10 +855,38 @@ export class ArmyBrain extends Component {
         return alive < max;
     }
 
+    private refreshMaxAliveWaveReached(
+        aliveWaveCount: number = this.getAliveWaveCount(this.team)
+    ) {
+        if (this.hasReachedMaxAliveWavesOnce) {
+            return true;
+        }
+
+        if (!this.enableMaxAliveWaveLimit) {
+            this.hasReachedMaxAliveWavesOnce = true;
+            return true;
+        }
+
+        const max = Math.max(
+            1,
+            Math.floor(this.maxAliveWaves)
+        );
+
+        if (aliveWaveCount >= max) {
+            this.hasReachedMaxAliveWavesOnce = true;
+        }
+
+        return this.hasReachedMaxAliveWavesOnce;
+    }
+
+    private shouldSpawnAggressiveForward() {
+        return !this.hasReachedMaxAliveWavesOnce;
+    }
+
     private getAliveWaveCount(team: number) {
         if (!this.gameManager) return 0;
 
-        const waves = this.gameManager.getWavesByTeam(team);
+        const waves = this.gameManager.waves;
 
         let count = 0;
 
@@ -1049,6 +894,7 @@ export class ArmyBrain extends Component {
             const wave = waves[i];
 
             if (!wave) continue;
+            if (wave.team !== team) continue;
             if (wave.isDead()) continue;
 
             count++;
@@ -1067,7 +913,9 @@ export class ArmyBrain extends Component {
 
         this.gameManager.spawnWaveByEntry(
             this.team,
-            opening
+            opening,
+            -1,
+            this.shouldSpawnAggressiveForward()
         );
     }
 
@@ -1089,7 +937,9 @@ export class ArmyBrain extends Component {
 
         this.gameManager.spawnWaveByEntry(
             this.team,
-            randomEntry
+            randomEntry,
+            -1,
+            this.shouldSpawnAggressiveForward()
         );
     }
 
@@ -1131,7 +981,7 @@ export class ArmyBrain extends Component {
                 this.getLaneAwareness() *
                 (
                     targetUndefended
-                        ? this.getDefenseSameLaneBonus()
+                        ? 0.2
                         : 0
                 ),
                 0,
@@ -1260,41 +1110,6 @@ export class ArmyBrain extends Component {
         };
     }
 
-    private getDefendLaneId() {
-        if (!this.gameManager) {
-            return 0;
-        }
-
-        const hero =
-            this.team === 0
-                ? this.gameManager.teamAHero
-                : this.gameManager.teamBHero;
-
-        if (hero && hero.laneId >= 0) {
-            return this.gameManager.clampLaneId(hero.laneId);
-        }
-
-        return this.gameManager.clampLaneId(
-            Math.floor(
-                this.gameManager.getSafeLaneCount() / 2
-            )
-        );
-    }
-
-    private getSafeTargetLaneId(targetWave: BattleWave) {
-        if (!this.gameManager) {
-            return targetWave.laneId;
-        }
-
-        if (targetWave.laneId < 0) {
-            return this.getDefendLaneId();
-        }
-
-        return this.gameManager.clampLaneId(
-            targetWave.laneId
-        );
-    }
-
     private getAIIntelligence() {
         return this.clamp(
             this.aiIntelligence,
@@ -1319,10 +1134,10 @@ export class ArmyBrain extends Component {
         );
     }
 
-    private getDefenseSameLaneBonus() {
-        return this.currentMode === ArmyBrainMode.Defense
-            ? 0.45
-            : 0.2;
+    private getModeLogName() {
+        return this.hasReachedMaxAliveWavesOnce
+            ? 'ATTACK'
+            : 'ATTACK_EARLY_AGGRESSIVE_SPAWN';
     }
 
     private randomizeNextInterval() {

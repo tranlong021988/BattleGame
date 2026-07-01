@@ -2,13 +2,13 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-07-01.
+Last updated: 2026-07-02.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest local source check after the June 30 home-Codex wave-banner work:
+Latest local source check after the July 2 home-Codex ArmyBrain cleanup:
 
-- Current HEAD while checking on the home machine: `1d3d9064`.
+- Current HEAD while checking on the home machine: `6e3c8505`.
 - `git status --short` is dirty because the user has been testing in Cocos
   Editor and because the wave-banner work intentionally changed source,
   scene/prefab/material assets, and generated Cocos cache files.
@@ -58,6 +58,15 @@ Latest local source check after the June 30 home-Codex wave-banner work:
   - `LevelSettings` component was added as an optional campaign difficulty scaler;
   - if enabled, `LevelSettings` applies a normalized level curve to the selected team only: initial CP, ArmyBrain AI, lane awareness, same-lane counter chance, spawn interval, max alive waves, and aggressive-forward chance;
   - if the component is disabled or not present, existing `GameManager`/`ArmyBrain` logic is unchanged.
+- July 2 home follow-up now present in source:
+  - ArmyBrain Defense mode and raid-defense override were removed from runtime;
+  - early ArmyBrain spawns are aggressive-forward until that brain has once
+    reached `maxAliveWaves`;
+  - after an aggressive-forward wave enters freehunt/combat, it clears the
+    aggressive trait and later resumes as normal forward;
+  - obsolete ArmyBrain inspector properties `attackModeChance`,
+    `defenseWaveThreshold`, and `defenseModeChance` were removed from
+    `ArmyBrain.ts` and `assets/Test.scene`.
 - Earlier office patches did not intentionally wire scene/prefab fields, but
   the later home banner work did intentionally update banner prefabs,
   materials, minimap icon assets, and `assets/Test.scene` banner assignments.
@@ -76,13 +85,15 @@ Latest local source check after the June 30 home-Codex wave-banner work:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff on the home machine: `1d3d9064`.
+- Current HEAD while writing this handoff on the home machine: `6e3c8505`.
 - Git may require `git -c safe.directory=F:/Github/BattleGame ...` on this
   machine because Windows user ownership differs from the repo owner.
 - Expected dirty source/asset files from the recent home work include:
   - `AI-CONTEX.md`;
   - `assets/Test.scene`;
   - `assets/scripts/BattleWave.ts`;
+  - `assets/scripts/Unit.ts`;
+  - `assets/scripts/ArmyBrain.ts`;
   - `assets/scripts/GameManager.ts`;
   - `assets/shaders/UnlitBillboard.effect`;
   - `assets/materials/Banner*.mtl`;
@@ -549,7 +560,8 @@ This flow is the current canonical rule set. Older notes or commits describing i
   - it does not use the normal same-lane/adjacent-lane passed-target scanner release;
   - it does not release merely because a scanner sees an enemy;
   - it still enters whole-wave freehunt/combat from attack-range contact, retaliation, and hero-line detection;
-  - after recoverable freehunt finishes with no target, it resumes aggressive forward rather than becoming normal forward.
+  - once it enters freehunt/combat, the aggressive-forward trait is cleared;
+  - after recoverable freehunt finishes with no target, it resumes normal forward.
 
 ### Free Hunt Targeting
 
@@ -674,8 +686,12 @@ Behavior:
 - Actual attack-range engage still uses normal wave-wide combat.
 - Being attacked still triggers retaliation and wave-wide freehunt.
 - Reaching/passing the enemy hero's Z line triggers freehunt regardless of lane.
-- After freehunt finds no remaining target, the wave resumes aggressive-forward rather than becoming a normal wave.
-- Aggressive-forward is a persistent wave trait stored at wave level. Ordinary freehunt/combat does not erase it.
+- After aggressive-forward enters freehunt/combat, the aggressive-forward trait
+  is cleared at both wave and unit level.
+- If that wave later finds no remaining target and resumes forward, it resumes
+  as normal forward, not aggressive-forward.
+- Aggressive-forward is now an opening/explicit-spawn behavior, not a permanent
+  wave trait after first contact.
 
 ArmyBrain raid rules:
 
@@ -683,8 +699,11 @@ ArmyBrain raid rules:
 - Raid may happen when there is no valid target or the selected spawn would be fallback/non-counter.
 - Raid lane must be empty at the ArmyBrain snapshot: no enemy wave and no ally wave counted in that lane.
 - Raid unit selection prefers highest `maxSpeed` among affordable entries; if too expensive, it naturally falls to the next fastest affordable entry.
-- Raid defense reuses `defenseModeChance`; no extra defense knob was added.
-- If an enemy aggressive-forward wave threatens hero lane or adjacent hero lane, AI can override target selection to defend that raid.
+- The old raid-defense override was removed on July 2. ArmyBrain no longer
+  switches target selection to a special defense/raid-defense target.
+- Before an ArmyBrain has ever reached `maxAliveWaves`, every ArmyBrain spawn
+  uses aggressive-forward, so early "defense" is handled by pushing the fight
+  forward instead of spawning a home-defense counter.
 
 ## Hero Logic
 
@@ -707,8 +726,9 @@ ordinary forward/freehunt rules once hero phase unlocks.
   - the hero wave runs `BattleWave.forceForwardMode()`;
   - enemy waves run `BattleWave.forceForwardMode()` instead of being forced into freehunt.
 - `BattleWave.forceForwardMode()` clears freehunt/permanent state and calls
-  `Unit.enterWaveForwardMode(...)` on alive units, preserving each wave's
-  aggressive-forward trait.
+  `Unit.enterWaveForwardMode(...)` on alive units using the wave's current
+  forward trait. If the wave had already entered freehunt/combat, that trait
+  has already been cleared and it resumes as normal forward.
 - Enemy hero does not auto-unlock just because the other hero unlocked.
 - Hero kills do not award CP.
 - There is no hero-pressure all-map target search now.
@@ -874,7 +894,7 @@ Verification done:
   - same-lane enemies can also release earlier through attack-range contact;
   - aggressive forward ignores scanner search release completely;
   - both normal and aggressive forward still release when any unit detects an enemy in attack range, when attacked, or when reaching/passing enemy hero line;
-  - aggressive wave resumes aggressive-forward after all alive members confirm no target;
+  - aggressive wave resumes normal forward after all alive members confirm no target;
   - ranged engage makes both waves freehunt;
   - no unit forwards alone while another member still has a target or pending search;
   - all targets disappear, all searches complete, and the whole wave resumes forward together;
@@ -1863,9 +1883,11 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
 
 ## July 1 - ArmyBrain Over-Counter Analysis Only
 
+- Superseded by the implementation note below:
+  `July 2 - ArmyBrain Defense Removed / Early Aggressive Spawn Cleanup`.
 - The user observed that early battle can spawn too many counter waves into
   one enemy wave.
-- No ArmyBrain code was changed for this issue yet. This is analysis only.
+- At the time of this analysis, no ArmyBrain code had been changed yet.
 - Current relevant ArmyBrain behavior:
   - `Defense Wave Threshold` is the alarm gate:
     `myWaves <= defenseWaveThreshold && enemyAliveWaveCount > myWaves`;
@@ -1904,10 +1926,87 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
   - both should still avoid dumping extra waves into a target that is already
     sufficiently covered unless there is an explicit emergency exception.
 
+## July 2 - ArmyBrain Defense Removed / Early Aggressive Spawn Cleanup
+
+- Implemented in `assets/scripts/ArmyBrain.ts`.
+- User-approved design:
+  - CP is now fixed and no longer rewarded enough during combat, so late
+    "spawn a defense counter near home" rarely happens before CP runs out;
+  - remove ArmyBrain Defense as a runtime mode;
+  - before a brain's own alive wave count has ever reached `maxAliveWaves`,
+    every ArmyBrain spawn should use aggressive-forward, regardless of whether
+    it is a counter, opening spawn, random spawn, fallback spawn, or fast-react
+    spawn;
+  - this makes early waves take the fight forward and keeps combat farther
+    away from hero/base: attack is the defense;
+  - once the brain has reached `maxAliveWaves` at least once, ArmyBrain spawns
+    return to normal behavior unless another existing rule
+    explicitly spawns an aggressive raid.
+- New internal state:
+  - `hasReachedMaxAliveWavesOnce` starts `false`;
+  - it becomes `true` permanently once `getAliveWaveCount(team) >=
+    maxAliveWaves`;
+  - if `enableMaxAliveWaveLimit` is disabled, it is considered already reached
+    to preserve older behavior.
+- The max-reached check is refreshed from `thinkAndSpawn()` and
+  `onBattleWaveSpawned()` so reaching max is recorded during normal decisions
+  and immediately after wave spawns. It is intentionally not checked every
+  frame because alive-wave counting should not add per-frame allocations.
+- ArmyBrain no longer has runtime mode resolution:
+  - before max has ever been reached, state log shows
+    `ATTACK_EARLY_AGGRESSIVE_SPAWN`;
+  - after max has been reached, state log shows `ATTACK`;
+  - Defense target selection and Defense same-lane bonus are no longer used by
+    runtime ArmyBrain flow.
+- Normal target/counter spawns, fast-react counter spawns, opening spawns, and
+  random spawns now pass `aggressiveForward = true` while
+  `hasReachedMaxAliveWavesOnce` is `false`.
+- Once `hasReachedMaxAliveWavesOnce` is `true`, those same spawns pass
+  `aggressiveForward = false` and behave like the previous normal flow.
+- If any aggressive-forward wave enters freehunt/combat and later resumes
+  forward, it resumes as normal forward.
+- The old raid-defense path is no longer part of `thinkAndSpawn()` target
+  selection.
+- Obsolete inspector fields `attackModeChance`, `defenseWaveThreshold`, and
+  `defenseModeChance` were removed from `ArmyBrain.ts` and from the two
+  ArmyBrain components serialized in `assets/Test.scene`.
+- `fastReactChance` remains available:
+  - it is an immediate counter reaction;
+  - early fast-react counters also spawn as aggressive-forward until max has
+    been reached once;
+  - it still respects `minSpawnInterval`, CP affordability, max alive wave
+    limit, and real-counter availability.
+- Scene cleanup was done only for obsolete ArmyBrain fields:
+  `attackModeChance`, `defenseWaveThreshold`, and `defenseModeChance` were
+  removed from `assets/Test.scene`. Other tuning values were not intentionally
+  changed.
+- Verification in this pass:
+  - `rg` found no remaining obsolete ArmyBrain Defense symbols/properties in
+    `assets/scripts` or `assets/Test.scene`;
+  - `assets/Test.scene` parses successfully as JSON after the cleanup;
+  - `git diff --check` passed for `ArmyBrain.ts`, `BattleWave.ts`, `Unit.ts`,
+    `assets/Test.scene`, and this handoff, with only Windows LF/CRLF warnings;
+  - TypeScript compile was not run because this workspace does not currently
+    have local `node_modules/typescript/bin/tsc`.
+- Important handoff instruction for the other Codex:
+  - do not rely on older historical sections alone;
+  - re-read `assets/scripts/ArmyBrain.ts`, `BattleWave.ts`, `Unit.ts`, and
+    `assets/Test.scene`;
+  - then compare the current source against this section before changing
+    ArmyBrain/wave-forward behavior.
+
 ## Current Next Best Direction
 
 For the next session, unless the user changes direction:
 
+- Visually test the ArmyBrain early aggressive spawn rule:
+  - before that brain has ever reached `maxAliveWaves`, every ArmyBrain-spawned
+    wave should spawn aggressive-forward and push combat away from hero/base;
+  - after that brain has once reached `maxAliveWaves`, ArmyBrain-spawned waves
+    should return to normal non-aggressive behavior, except explicit aggressive
+    raid rules;
+  - ArmyBrain should no longer enter Defense or pick targets through the old
+    raid-defense path.
 - Visually test the June 29 forward/freehunt reconciliation in Cocos before
   adding more battle logic:
   - normal forward does not freehunt just because an adjacent-lane enemy enters
@@ -1972,4 +2071,7 @@ For the next session, unless the user changes direction:
 - The user may switch between the office Codex and home Codex.
 - Always assume the other Codex may have changed source since this file was written.
 - Re-read actual files before editing battle logic.
+- Always cross-check this handoff against current source before coding. If a
+  historical section conflicts with source, trust current source first and
+  update this handoff after confirming with the user.
 - Ask the user before broad reversions or deleting experimental files.
