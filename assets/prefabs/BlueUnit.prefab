@@ -926,7 +926,7 @@
     "radius": 0.5,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 10,
-    "targetSearchRange": 15,
+    "targetSearchRange": 6,
     "targetSearchIntervalFrames": 30,
     "aggressiveForward": false,
     "forwardDir": {
@@ -937,6 +937,8 @@
     },
     "onForward": false,
     "isSteady": false,
+    "heroGuardDistance": 0,
+    "heroGuardReturnTolerance": 0.08,
     "enableAllyOvertake": true,
     "overtakeLookAhead": 2,
     "overtakeSideRange": 1,
