@@ -2,7 +2,7 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-06-30.
+Last updated: 2026-07-01.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
@@ -1832,6 +1832,77 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
   same-lane defense through `getDefenseSameLaneBonus()`.
 - `rg` found no remaining `flankAggression` / `flank` references in source,
   scene, or this handoff after the cleanup.
+
+## July 1 - Top-Down Camera Drag Follow Test
+
+- The user reported that drag/drop top-down camera feels laggy or stop-motion
+  when framerate drops.
+- Source check:
+  - `TopDownCameraDrag.updatePosition(deltaTime)` already uses delta-time
+    exponential smoothing;
+  - `TopDownCameraDrag.updateZoom(deltaTime)` also uses delta-time smoothing;
+  - `event.getDelta()` from touch drag should not be multiplied by
+    `deltaTime`, because it is already the pointer movement delta between
+    input events.
+- Current implementation has a separate Inspector knob:
+  - `dragFollowSpeed` default in source is `60`;
+  - while `isDragging && !isPinching`, `updatePosition()` uses
+    `dragFollowSpeed` instead of `smoothSpeed`;
+  - while not dragging, it keeps using the existing `smoothSpeed`.
+- Important scene note:
+  - `assets/Test.scene` currently serializes `dragFollowSpeed` as `15`, the
+    same value as `smoothSpeed`;
+  - if testing should actually reduce drag lag, raise `Drag Follow Speed` in
+    the Inspector, for example `60-120`;
+  - setting it to `0` makes drag snap directly to the target position while
+    dragging, which is useful only as an extreme comparison.
+- Intent:
+  - preserve soft camera behavior after release/zoom;
+  - make active finger drag follow the target faster under low FPS.
+- TypeScript check passed after this camera/source state was inspected.
+
+## July 1 - ArmyBrain Over-Counter Analysis Only
+
+- The user observed that early battle can spawn too many counter waves into
+  one enemy wave.
+- No ArmyBrain code was changed for this issue yet. This is analysis only.
+- Current relevant ArmyBrain behavior:
+  - `Defense Wave Threshold` is the alarm gate:
+    `myWaves <= defenseWaveThreshold && enemyAliveWaveCount > myWaves`;
+  - after that gate opens, `defenseModeChance` decides whether the brain
+    really enters `DEFENSE` or misreads into attack;
+  - raid-defense also uses `defenseModeChance` when reacting to aggressive
+    forward waves near the defend/hero lane.
+- Likely cause of over-counter:
+  - attack target selection skips a wave once it is covered by
+    `attackCounterCoverageRatio`;
+  - defense target selection currently skips a covered wave only when that
+    wave is not engaged;
+  - if a target wave is already engaged, Defense mode can keep selecting it
+    even when its `getCounterCoverageRatio()` is already high enough.
+- Why this matches user observation:
+  - early battle has few waves;
+  - `myWaves <= defenseWaveThreshold` is easy to satisfy;
+  - one enemy wave becomes the obvious nearby threat;
+  - once it starts fighting, Defense can keep treating it as valid and spawn
+    more counters into the same fight.
+- Related current scene values observed during the check:
+  - `attackCounterCoverageRatio = 0.7`;
+  - `maxAliveWaves = 10`;
+  - team B had `fastReactChance = 0`;
+  - team A had `fastReactChance = 0.7`;
+  - `counterSameLaneChance` and `laneAwareness` differ between the brains.
+- Suggested fix when user resumes:
+  - make Defense mode also respect coverage for engaged waves, or add a very
+    narrow exception only for true raid/aggressive threats close to hero/base;
+  - avoid solving this only by tuning `defenseWaveThreshold` or
+    `defenseModeChance`, because the core issue is target validity allowing
+    over-counter in Defense.
+- Design distinction to preserve if fixed:
+  - Attack should choose useful battlefield counter targets;
+  - Defense should choose the most dangerous near-base/near-hero target;
+  - both should still avoid dumping extra waves into a target that is already
+    sufficiently covered unless there is an explicit emergency exception.
 
 ## Current Next Best Direction
 
