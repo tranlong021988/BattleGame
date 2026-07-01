@@ -415,7 +415,8 @@ export class Unit extends Component {
         if (gm) {
             gm.onWaveCombatStarted(
                 this,
-                attacker
+                attacker,
+                false
             );
         }
 
@@ -859,7 +860,8 @@ export class Unit extends Component {
                     if (gm) {
                         gm.onWaveCombatStarted(
                             this,
-                            target
+                            target,
+                            false
                         );
                     }
                 }

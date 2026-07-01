@@ -58,10 +58,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
+          this.initialForwardCombatGateActive = true;
+          this.initialForwardCombatReleaseThreshold = 1;
           this.forwardScannerUnit = null;
           this.representativeUnit = null;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
+          this.waveBannerOnAttached = null;
           this.waveBannerTweenDuration = 0.2;
           this.id = id;
           this.team = team;
@@ -92,6 +95,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         addCounterAssignment(count) {
           this.assignedCounterCount += Math.max(1, Math.floor(count));
+        }
+
+        setInitialForwardCombatReleaseThreshold(threshold) {
+          this.initialForwardCombatReleaseThreshold = Math.max(1, Math.floor(threshold));
         }
 
         getAliveCount() {
@@ -131,11 +138,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.representativeUnit;
         }
 
-        setWaveBanner(node, recycle, tweenDuration) {
+        setWaveBanner(node, recycle, tweenDuration, onAttached) {
+          if (onAttached === void 0) {
+            onAttached = null;
+          }
+
           this.releaseWaveBanner();
           if (!node) return;
           this.waveBannerNode = node;
           this.waveBannerRecycle = recycle;
+          this.waveBannerOnAttached = onAttached;
           this.waveBannerTweenDuration = Math.max(0, tweenDuration);
           node.active = true;
           this.refreshWaveBanner(true);
@@ -169,11 +181,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!hasParent) {
             banner.setParent(holder.node);
             banner.setPosition(0, 0, 0);
+            this.notifyWaveBannerAttached(banner);
             return true;
           }
 
           banner.setParent(null, true);
           banner.setParent(holder.node, true);
+          this.notifyWaveBannerAttached(banner);
 
           if (this.waveBannerTweenDuration <= 0) {
             banner.setPosition(0, 0, 0);
@@ -184,6 +198,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             position: new Vec3(0, 0, 0)
           }).start();
           return true;
+        }
+
+        setWaveBannerVisible(visible) {
+          var banner = this.waveBannerNode;
+          if (!banner || !banner.isValid) return;
+          if (banner.active === visible) return;
+          banner.active = visible;
+        }
+
+        notifyWaveBannerAttached(banner) {
+          var onAttached = this.waveBannerOnAttached;
+
+          if (onAttached) {
+            onAttached(banner);
+          }
         }
 
         handleUnitWillDespawn(unit) {
@@ -209,12 +238,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (!banner) {
             this.waveBannerRecycle = null;
+            this.waveBannerOnAttached = null;
             return;
           }
 
           if (!banner.isValid) {
             this.waveBannerNode = null;
             this.waveBannerRecycle = null;
+            this.waveBannerOnAttached = null;
             return;
           }
 
@@ -223,6 +254,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           var recycle = this.waveBannerRecycle;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
+          this.waveBannerOnAttached = null;
 
           if (recycle) {
             recycle(banner);
@@ -341,6 +373,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return !this.released && this.aggressiveForwardMode;
         }
 
+        isInitialForwardCombatGateActive() {
+          return !this.released && this.initialForwardCombatGateActive && this.forwardModeActive && !this.freeHuntActive;
+        }
+
+        getInitialForwardCombatReleaseThreshold() {
+          return this.initialForwardCombatReleaseThreshold;
+        }
+
+        getEngagedCountIncluding(pendingUnit) {
+          if (pendingUnit === void 0) {
+            pendingUnit = null;
+          }
+
+          if (this.released) return 0;
+          var count = 0;
+          var hasPending = false;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+
+            if (u === pendingUnit) {
+              hasPending = true;
+            }
+
+            if (u.onBusy) {
+              count++;
+            }
+          }
+
+          if (pendingUnit && hasPending && !pendingUnit.onBusy) {
+            count++;
+          }
+
+          return count;
+        }
+
         findSharedTargetForUnit(requester) {
           if (this.released) return null;
           if (!this.isUnitAlive(requester)) return null;
@@ -399,6 +468,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (var i = 0; i < this.units.length; i++) {
@@ -413,6 +483,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.freeHuntActive) return;
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (var i = 0; i < this.units.length; i++) {
@@ -428,6 +499,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (var i = 0; i < this.units.length; i++) {
@@ -505,6 +577,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (aliveCount <= 0) return false;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
+          this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
           for (var _i = 0; _i < this.units.length; _i++) {
@@ -515,6 +588,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return true;
+        }
+
+        refreshInitialForwardCombatGate() {
+          if (!this.isInitialForwardCombatGateActive()) {
+            return;
+          }
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy) continue;
+            if (u.onForward) continue;
+            u.enterWaveForwardMode(this.aggressiveForwardMode);
+          }
         }
 
         isDead() {
@@ -537,6 +624,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
+          this.initialForwardCombatGateActive = false;
+          this.initialForwardCombatReleaseThreshold = 1;
           this.forwardScannerUnit = null;
           this.representativeUnit = null;
           this.units.length = 0;
@@ -589,17 +678,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           if (this.released) return null;
-
-          if (!excludedUnit && !this.representativeUnit && this.isForwardMode()) {
-            var scanner = this.getForwardScanner(true);
-
-            if (this.isUnitAlive(scanner)) {
-              return scanner;
-            }
-          }
-
           var aliveCount = 0;
           var sumX = 0;
+          var sumZ = 0;
 
           for (var i = 0; i < this.units.length; i++) {
             var u = this.units[i];
@@ -607,10 +688,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             if (!this.isUnitAlive(u)) continue;
             aliveCount++;
             sumX += u.agent.pos.x;
+            sumZ += u.agent.pos.z;
           }
 
           if (aliveCount <= 0) return null;
           var averageX = sumX / aliveCount;
+          var averageZ = sumZ / aliveCount;
           var best = null;
           var bestDistance = Infinity;
 
@@ -618,7 +701,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             var _u2 = this.units[_i2];
             if (_u2 === excludedUnit) continue;
             if (!this.isUnitAlive(_u2)) continue;
-            var distance = Math.abs(_u2.agent.pos.x - averageX);
+            var distance = (_u2.agent.pos.x - averageX) * (_u2.agent.pos.x - averageX) + (_u2.agent.pos.z - averageZ) * (_u2.agent.pos.z - averageZ);
 
             if (distance < bestDistance) {
               bestDistance = distance;

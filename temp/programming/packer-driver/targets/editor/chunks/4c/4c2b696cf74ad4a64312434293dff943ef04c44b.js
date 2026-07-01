@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _class3, _crd, ccclass, property, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -77,6 +77,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       __checkObsolete__ = _cc.__checkObsolete__;
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       _decorator = _cc._decorator;
+      Camera = _cc.Camera;
       Color = _cc.Color;
       Component = _cc.Component;
       Vec3 = _cc.Vec3;
@@ -117,20 +118,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer']);
+      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer']);
 
       ({
         ccclass,
         property
       } = _decorator);
+      BannerVisibilityBlockedEvent = 'battle-camera-banner-visibility-blocked';
+      BattleWaveSpawnedEvent = 'battle-wave-spawned';
 
       _export("GameManager", GameManager = (_dec = ccclass('GameManager'), _dec2 = property(_crd && BattleUnitDatabase === void 0 ? (_reportPossibleCrUseOfBattleUnitDatabase({
         error: Error()
-      }), BattleUnitDatabase) : BattleUnitDatabase), _dec3 = property(Component), _dec4 = property(Label), _dec5 = property(Label), _dec6 = property(Label), _dec7 = property(Label), _dec8 = property(Label), _dec9 = property(Label), _dec10 = property(Label), _dec11 = property(Label), _dec12 = property(Label), _dec13 = property(Label), _dec14 = property({
+      }), BattleUnitDatabase) : BattleUnitDatabase), _dec3 = property(Component), _dec4 = property(Label), _dec5 = property(Label), _dec6 = property(Label), _dec7 = property(Label), _dec8 = property(Label), _dec9 = property(Label), _dec10 = property(Label), _dec11 = property(Label), _dec12 = property(Label), _dec13 = property(Label), _dec14 = property(Camera), _dec15 = property({
         type: [_crd && ObstacleCircle === void 0 ? (_reportPossibleCrUseOfObstacleCircle({
           error: Error()
         }), ObstacleCircle) : ObstacleCircle]
-      }), _dec15 = property({
+      }), _dec16 = property({
         type: [_crd && ObstacleRect === void 0 ? (_reportPossibleCrUseOfObstacleRect({
           error: Error()
         }), ObstacleRect) : ObstacleRect]
@@ -232,11 +235,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "waveBannerTweenDuration", _descriptor39, this);
 
+          _initializerDefineProperty(this, "waveBannerCamera", _descriptor40, this);
+
+          _initializerDefineProperty(this, "enableWaveBannerCameraVisibility", _descriptor41, this);
+
+          _initializerDefineProperty(this, "hideWaveBannerInOrbitMode", _descriptor42, this);
+
+          _initializerDefineProperty(this, "waveBannerHideFovBelow", _descriptor43, this);
+
+          _initializerDefineProperty(this, "waveBannerShowFovAbove", _descriptor44, this);
+
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor40, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor45, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor41, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor46, this);
 
           this.sim = null;
           this.teamA = [];
@@ -253,7 +266,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamBHeroWave = null;
           this.heroForwardUnlocked = [false, false];
           this.waveBannerPools = new Map();
-          this.waveBannerBackgroundParams = [0, 0, 0, 1];
+          this.registeredCinematicController = null;
+          this.waveBannerCameraBlocked = false;
+          this.waveBannerVisibleByCamera = true;
+          this.waveBannerVisibilityInitialized = false;
           this.fallbackTeamABannerColor = new Color(0, 70, 255, 255);
           this.fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
         }
@@ -288,6 +304,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), UnitSpawner) : UnitSpawner);
           this.spawner.init(this.sim);
+          this.registerWaveBannerCameraEvents();
+          this.updateWaveBannerCameraVisibility(true);
 
           if (this.prewarmOnStart) {
             this.prewarmAllUnits();
@@ -318,6 +336,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (GameManager.instance === this) {
             GameManager.instance = null;
           }
+
+          this.unregisterWaveBannerCameraEvents();
 
           if (this.sim && this.sim.destroy) {
             this.sim.destroy();
@@ -442,13 +462,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.refreshBattleStatsUI();
         }
 
-        onWaveCombatStarted(unit, enemy = null) {
+        onWaveCombatStarted(unit, enemy = null, useInitialForwardGate = true) {
           const wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return;
           if (wave.isDead()) return;
-          wave.enterCombatMode();
+
+          if (!this.shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate)) {
+            wave.enterCombatMode();
+          }
+
           const enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(enemy);
@@ -457,7 +481,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          enemyWave.enterCombatMode();
+          if (!this.shouldDelayInitialForwardCombat(enemyWave, enemy, unit, useInitialForwardGate)) {
+            enemyWave.enterCombatMode();
+          }
+        }
+
+        shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate) {
+          if (!useInitialForwardGate) return false;
+          if (!wave.isInitialForwardCombatGateActive()) return false;
+          if (!unit || !enemy) return false;
+          if (!unit.onForward) return false;
+          if (unit.laneId < 0 || enemy.laneId < 0) return false;
+
+          if (this.clampLaneId(unit.laneId) !== this.clampLaneId(enemy.laneId)) {
+            return false;
+          }
+
+          const aliveCount = wave.getRuntimeAliveCount(this.frame);
+          const threshold = Math.min(aliveCount, wave.getInitialForwardCombatReleaseThreshold());
+          if (threshold <= 1) return false;
+          return wave.getEngagedCountIncluding(unit) < threshold;
         }
 
         onWaveForwardTargetFound(unit, target) {
@@ -591,8 +634,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (target.laneId < 0) return false;
           const scannerLane = this.clampLaneId(scanner.laneId);
           const targetLane = this.clampLaneId(target.laneId);
+          const laneDistance = Math.abs(scannerLane - targetLane);
 
-          if (Math.abs(scannerLane - targetLane) !== 1) {
+          if (laneDistance > 1) {
             return false;
           }
 
@@ -607,11 +651,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
+            wave.refreshInitialForwardCombatGate();
             wave.tryResumeForward();
           }
         }
 
         processWaveBanners() {
+          this.updateWaveBannerCameraVisibility(false);
+
           for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
 
@@ -621,6 +668,71 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             wave.refreshWaveBanner();
           }
+        }
+
+        updateWaveBannerCameraVisibility(force) {
+          const visible = this.resolveWaveBannerCameraVisibility();
+
+          if (!force && this.waveBannerVisibilityInitialized && visible === this.waveBannerVisibleByCamera) {
+            return;
+          }
+
+          this.waveBannerVisibilityInitialized = true;
+          this.waveBannerVisibleByCamera = visible;
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+              continue;
+            }
+
+            wave.setWaveBannerVisible(visible);
+          }
+        }
+
+        resolveWaveBannerCameraVisibility() {
+          if (!this.enableWaveBannerCameraVisibility) {
+            return true;
+          }
+
+          if (this.hideWaveBannerInOrbitMode && this.waveBannerCameraBlocked) {
+            return false;
+          }
+
+          const camera = this.resolveWaveBannerCamera();
+
+          if (!camera) {
+            return true;
+          }
+
+          const fov = camera.fov;
+          const hideFov = Math.max(0, this.waveBannerHideFovBelow);
+          const showFov = Math.max(hideFov, this.waveBannerShowFovAbove);
+
+          if (!this.waveBannerVisibilityInitialized) {
+            return fov > hideFov;
+          }
+
+          if (this.waveBannerVisibleByCamera) {
+            return fov > hideFov;
+          }
+
+          return fov >= showFov;
+        }
+
+        resolveWaveBannerCamera() {
+          if (this.waveBannerCamera) {
+            return this.waveBannerCamera;
+          }
+
+          const controller = this.cinematicController;
+
+          if (controller && controller.mainCamera) {
+            return controller.mainCamera;
+          }
+
+          return null;
         }
 
         refreshDynamicLaneForWave(wave) {
@@ -1051,6 +1163,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave)(this.nextWaveId++, team, entry.name, entry.unitType, count, laneId);
+          wave.setInitialForwardCombatReleaseThreshold(entry.maxUnitPerRow);
           this.waves.push(wave);
 
           if (this.enableLaneSpawn) {
@@ -1060,6 +1173,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.assignWaveBanner(wave, entry.waveBannerPrefab);
+          this.node.emit(BattleWaveSpawnedEvent, wave);
           return wave;
         }
 
@@ -1072,16 +1186,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.applyWaveBannerAppearance(node, wave.team);
           wave.setWaveBanner(node, bannerNode => {
             this.recycleWaveBanner(prefab, bannerNode);
-          }, this.waveBannerTweenDuration);
+          }, this.waveBannerTweenDuration, bannerNode => {
+            this.applyWaveBannerAppearance(bannerNode, wave.team);
+          });
+          wave.setWaveBannerVisible(this.waveBannerVisibleByCamera);
         }
 
         applyWaveBannerAppearance(node, team) {
           const color = this.getWaveBannerBackgroundColor(team);
-          const params = this.waveBannerBackgroundParams;
-          params[0] = color.r / 255;
-          params[1] = color.g / 255;
-          params[2] = color.b / 255;
-          params[3] = color.a / 255;
+          const params = [color.r / 255, color.g / 255, color.b / 255, color.a / 255];
           const renderers = node.getComponentsInChildren(MeshRenderer);
 
           for (let i = 0; i < renderers.length; i++) {
@@ -1095,6 +1208,34 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return team === 0 ? this.fallbackTeamABannerColor : this.fallbackTeamBBannerColor;
+        }
+
+        registerWaveBannerCameraEvents() {
+          this.unregisterWaveBannerCameraEvents();
+          const controller = this.cinematicController;
+          if (!controller || !controller.node) return;
+          this.registeredCinematicController = controller;
+          controller.node.on(BannerVisibilityBlockedEvent, this.onWaveBannerCameraBlockedChanged, this);
+          const controllerAny = controller;
+
+          if (typeof controllerAny.isBannerVisibilityBlocked === 'function') {
+            this.waveBannerCameraBlocked = !!controllerAny.isBannerVisibilityBlocked();
+          }
+        }
+
+        unregisterWaveBannerCameraEvents() {
+          const controller = this.registeredCinematicController;
+
+          if (controller && controller.node) {
+            controller.node.off(BannerVisibilityBlockedEvent, this.onWaveBannerCameraBlockedChanged, this);
+          }
+
+          this.registeredCinematicController = null;
+        }
+
+        onWaveBannerCameraBlockedChanged(blocked) {
+          this.waveBannerCameraBlocked = !!blocked;
+          this.updateWaveBannerCameraVisibility(true);
         }
 
         acquireWaveBanner(prefab) {
@@ -1926,14 +2067,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 0.2;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec14], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerCamera", [_dec14], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return null;
+        }
+      }), _descriptor41 = _applyDecoratedDescriptor(_class2.prototype, "enableWaveBannerCameraVisibility", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor42 = _applyDecoratedDescriptor(_class2.prototype, "hideWaveBannerInOrbitMode", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerHideFovBelow", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 35;
+        }
+      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerShowFovAbove", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 38;
+        }
+      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return [];
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec15], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,

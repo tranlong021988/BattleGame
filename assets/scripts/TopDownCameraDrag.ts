@@ -31,6 +31,7 @@ export class TopDownCameraDrag extends Component {
 
     @property dragSensitivity = 0.03;
     @property smoothSpeed = 12;
+    @property dragFollowSpeed = 60;
 
     @property invertX = false;
     @property invertZ = false;
@@ -317,7 +318,22 @@ export class TopDownCameraDrag extends Component {
 
         this.clampTargetPosition();
 
-        const t = 1 - Math.exp(-this.smoothSpeed * deltaTime);
+        const followSpeed =
+            this.isDragging && !this.isPinching
+                ? this.dragFollowSpeed
+                : this.smoothSpeed;
+
+        if (followSpeed <= 0) {
+            this.currentPos.set(
+                this.enableDragX ? this.targetPos.x : this.currentPos.x,
+                this.currentPos.y,
+                this.enableDragZ ? this.targetPos.z : this.currentPos.z
+            );
+            this.node.setWorldPosition(this.currentPos);
+            return;
+        }
+
+        const t = 1 - Math.exp(-followSpeed * deltaTime);
 
         const newX =
             this.currentPos.x +

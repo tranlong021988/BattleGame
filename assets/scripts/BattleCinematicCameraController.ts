@@ -26,6 +26,9 @@ enum CinematicState {
     Returning = 2,
 }
 
+const BannerVisibilityBlockedEvent =
+    'battle-camera-banner-visibility-blocked';
+
 @ccclass('BattleCinematicCameraController')
 export class BattleCinematicCameraController extends Component {
 
@@ -102,6 +105,7 @@ export class BattleCinematicCameraController extends Component {
     enableDebugLog = false;
 
     private state: CinematicState = CinematicState.Idle;
+    private bannerVisibilityBlocked = false;
 
     private currentWave: BattleWave | null = null;
     private currentUnit: Unit | null = null;
@@ -207,6 +211,7 @@ export class BattleCinematicCameraController extends Component {
         }
 
         this.state = CinematicState.Orbit;
+        this.setBannerVisibilityBlocked(true);
 
         this.currentWave = wave;
         this.currentUnit = unit;
@@ -237,6 +242,7 @@ export class BattleCinematicCameraController extends Component {
         }
 
         this.state = CinematicState.Orbit;
+        this.setBannerVisibilityBlocked(true);
 
         this.currentWave = BattleWave.getWaveForUnit(unit);
         this.currentUnit = unit;
@@ -285,6 +291,10 @@ export class BattleCinematicCameraController extends Component {
             this.uiTapSuppressTimer,
             d
         );
+    }
+
+    public isBannerVisibilityBlocked() {
+        return this.bannerVisibilityBlocked;
     }
 
     public isCinematicActive() {
@@ -642,6 +652,7 @@ export class BattleCinematicCameraController extends Component {
 
     private finishReturn() {
         this.state = CinematicState.Idle;
+        this.setBannerVisibilityBlocked(false);
 
         this.currentWave = null;
         this.currentUnit = null;
@@ -651,6 +662,20 @@ export class BattleCinematicCameraController extends Component {
         }
 
         this.log('Return finished');
+    }
+
+    private setBannerVisibilityBlocked(
+        blocked: boolean
+    ) {
+        if (this.bannerVisibilityBlocked === blocked) {
+            return;
+        }
+
+        this.bannerVisibilityBlocked = blocked;
+        this.node.emit(
+            BannerVisibilityBlockedEvent,
+            blocked
+        );
     }
 
     private onTouchStart(event: EventTouch) {

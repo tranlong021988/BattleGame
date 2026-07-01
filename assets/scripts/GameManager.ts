@@ -1,5 +1,6 @@
 import {
     _decorator,
+    Camera,
     Color,
     Component,
     Vec3,
@@ -37,6 +38,10 @@ import {
 export { UnitPrefabEntry } from './BattleUnitDatabase';
 
 const { ccclass, property } = _decorator;
+const BannerVisibilityBlockedEvent =
+    'battle-camera-banner-visibility-blocked';
+const BattleWaveSpawnedEvent =
+    'battle-wave-spawned';
 
 @ccclass('GameManager')
 export class GameManager extends Component {
@@ -176,6 +181,21 @@ export class GameManager extends Component {
     @property
     waveBannerTweenDuration = 0.2;
 
+    @property(Camera)
+    waveBannerCamera: Camera | null = null;
+
+    @property
+    enableWaveBannerCameraVisibility = true;
+
+    @property
+    hideWaveBannerInOrbitMode = true;
+
+    @property
+    waveBannerHideFovBelow = 35;
+
+    @property
+    waveBannerShowFovAbove = 38;
+
     private spawnWaveTimer = 0;
 
     @property({ type: [ObstacleCircle] })
@@ -204,6 +224,10 @@ export class GameManager extends Component {
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
     private waveBannerPools: Map<Prefab, Node[]> = new Map();
+    private registeredCinematicController: Component | null = null;
+    private waveBannerCameraBlocked = false;
+    private waveBannerVisibleByCamera = true;
+    private waveBannerVisibilityInitialized = false;
     private readonly fallbackTeamABannerColor = new Color(0, 70, 255, 255);
     private readonly fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
 
@@ -253,6 +277,8 @@ export class GameManager extends Component {
 
         this.spawner = this.getComponent(UnitSpawner)!;
         this.spawner.init(this.sim);
+        this.registerWaveBannerCameraEvents();
+        this.updateWaveBannerCameraVisibility(true);
 
         if (this.prewarmOnStart) {
             this.prewarmAllUnits();
@@ -298,6 +324,8 @@ export class GameManager extends Component {
         if (GameManager.instance === this) {
             GameManager.instance = null;
         }
+
+        this.unregisterWaveBannerCameraEvents();
 
         if (this.sim && this.sim.destroy) {
             this.sim.destroy();
@@ -475,7 +503,8 @@ export class GameManager extends Component {
 
     public onWaveCombatStarted(
         unit: Unit | null,
-        enemy: Unit | null = null
+        enemy: Unit | null = null,
+        useInitialForwardGate: boolean = true
     ) {
         const wave =
             BattleWave.getWaveForUnit(unit);
@@ -483,7 +512,16 @@ export class GameManager extends Component {
         if (!wave) return;
         if (wave.isDead()) return;
 
-        wave.enterCombatMode();
+        if (
+            !this.shouldDelayInitialForwardCombat(
+                wave,
+                unit,
+                enemy,
+                useInitialForwardGate
+            )
+        ) {
+            wave.enterCombatMode();
+        }
 
         const enemyWave =
             BattleWave.getWaveForUnit(enemy);
@@ -496,7 +534,48 @@ export class GameManager extends Component {
             return;
         }
 
-        enemyWave.enterCombatMode();
+        if (
+            !this.shouldDelayInitialForwardCombat(
+                enemyWave,
+                enemy,
+                unit,
+                useInitialForwardGate
+            )
+        ) {
+            enemyWave.enterCombatMode();
+        }
+    }
+
+    private shouldDelayInitialForwardCombat(
+        wave: BattleWave,
+        unit: Unit | null,
+        enemy: Unit | null,
+        useInitialForwardGate: boolean
+    ) {
+        if (!useInitialForwardGate) return false;
+        if (!wave.isInitialForwardCombatGateActive()) return false;
+        if (!unit || !enemy) return false;
+        if (!unit.onForward) return false;
+        if (unit.laneId < 0 || enemy.laneId < 0) return false;
+
+        if (
+            this.clampLaneId(unit.laneId) !==
+            this.clampLaneId(enemy.laneId)
+        ) {
+            return false;
+        }
+
+        const aliveCount =
+            wave.getRuntimeAliveCount(this.frame);
+        const threshold =
+            Math.min(
+                aliveCount,
+                wave.getInitialForwardCombatReleaseThreshold()
+            );
+
+        if (threshold <= 1) return false;
+
+        return wave.getEngagedCountIncluding(unit) < threshold;
     }
 
     public onWaveForwardTargetFound(
@@ -731,11 +810,14 @@ export class GameManager extends Component {
                 continue;
             }
 
+            wave.refreshInitialForwardCombatGate();
             wave.tryResumeForward();
         }
     }
 
     private processWaveBanners() {
+        this.updateWaveBannerCameraVisibility(false);
+
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
 
@@ -745,6 +827,89 @@ export class GameManager extends Component {
 
             wave.refreshWaveBanner();
         }
+    }
+
+    private updateWaveBannerCameraVisibility(
+        force: boolean
+    ) {
+        const visible =
+            this.resolveWaveBannerCameraVisibility();
+
+        if (
+            !force &&
+            this.waveBannerVisibilityInitialized &&
+            visible === this.waveBannerVisibleByCamera
+        ) {
+            return;
+        }
+
+        this.waveBannerVisibilityInitialized = true;
+        this.waveBannerVisibleByCamera = visible;
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+                continue;
+            }
+
+            wave.setWaveBannerVisible(visible);
+        }
+    }
+
+    private resolveWaveBannerCameraVisibility() {
+        if (!this.enableWaveBannerCameraVisibility) {
+            return true;
+        }
+
+        if (
+            this.hideWaveBannerInOrbitMode &&
+            this.waveBannerCameraBlocked
+        ) {
+            return false;
+        }
+
+        const camera =
+            this.resolveWaveBannerCamera();
+
+        if (!camera) {
+            return true;
+        }
+
+        const fov = camera.fov;
+        const hideFov = Math.max(
+            0,
+            this.waveBannerHideFovBelow
+        );
+        const showFov = Math.max(
+            hideFov,
+            this.waveBannerShowFovAbove
+        );
+
+        if (!this.waveBannerVisibilityInitialized) {
+            return fov > hideFov;
+        }
+
+        if (this.waveBannerVisibleByCamera) {
+            return fov > hideFov;
+        }
+
+        return fov >= showFov;
+    }
+
+    private resolveWaveBannerCamera(): Camera | null {
+        if (this.waveBannerCamera) {
+            return this.waveBannerCamera;
+        }
+
+        const controller: any =
+            this.cinematicController as any;
+
+        if (controller && controller.mainCamera) {
+            return controller.mainCamera as Camera;
+        }
+
+        return null;
     }
 
     private refreshDynamicLaneForWave(
@@ -1398,6 +1563,10 @@ export class GameManager extends Component {
             laneId
         );
 
+        wave.setInitialForwardCombatReleaseThreshold(
+            entry.maxUnitPerRow
+        );
+
         this.waves.push(wave);
 
         if (this.enableLaneSpawn) {
@@ -1424,6 +1593,11 @@ export class GameManager extends Component {
         this.assignWaveBanner(
             wave,
             entry.waveBannerPrefab
+        );
+
+        this.node.emit(
+            BattleWaveSpawnedEvent,
+            wave
         );
 
         return wave;
@@ -1462,6 +1636,10 @@ export class GameManager extends Component {
                     wave.team
                 );
             }
+        );
+
+        wave.setWaveBannerVisible(
+            this.waveBannerVisibleByCamera
         );
     }
 
@@ -1502,6 +1680,55 @@ export class GameManager extends Component {
         return team === 0
             ? this.fallbackTeamABannerColor
             : this.fallbackTeamBBannerColor;
+    }
+
+    private registerWaveBannerCameraEvents() {
+        this.unregisterWaveBannerCameraEvents();
+
+        const controller =
+            this.cinematicController;
+
+        if (!controller || !controller.node) return;
+
+        this.registeredCinematicController = controller;
+
+        controller.node.on(
+            BannerVisibilityBlockedEvent,
+            this.onWaveBannerCameraBlockedChanged,
+            this
+        );
+
+        const controllerAny: any = controller as any;
+
+        if (
+            typeof controllerAny.isBannerVisibilityBlocked ===
+            'function'
+        ) {
+            this.waveBannerCameraBlocked =
+                !!controllerAny.isBannerVisibilityBlocked();
+        }
+    }
+
+    private unregisterWaveBannerCameraEvents() {
+        const controller =
+            this.registeredCinematicController;
+
+        if (controller && controller.node) {
+            controller.node.off(
+                BannerVisibilityBlockedEvent,
+                this.onWaveBannerCameraBlockedChanged,
+                this
+            );
+        }
+
+        this.registeredCinematicController = null;
+    }
+
+    private onWaveBannerCameraBlockedChanged(
+        blocked: boolean
+    ) {
+        this.waveBannerCameraBlocked = !!blocked;
+        this.updateWaveBannerCameraVisibility(true);
     }
 
     private acquireWaveBanner(

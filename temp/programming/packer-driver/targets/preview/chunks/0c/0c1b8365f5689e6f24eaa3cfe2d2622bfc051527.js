@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, geometry, input, Input, Quat, Vec3, BattleWave, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _crd, ccclass, property, CinematicState, BattleCinematicCameraController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Component, geometry, input, Input, Quat, Vec3, BattleWave, CinematicOrbitRig, TopDownCameraDrag, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _crd, ccclass, property, CinematicState, BannerVisibilityBlockedEvent, BattleCinematicCameraController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -72,6 +72,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         return CinematicState;
       }(CinematicState || {});
 
+      BannerVisibilityBlockedEvent = 'battle-camera-banner-visibility-blocked';
+
       _export("BattleCinematicCameraController", BattleCinematicCameraController = (_dec = ccclass('BattleCinematicCameraController'), _dec2 = property(Camera), _dec3 = property(_crd && CinematicOrbitRig === void 0 ? (_reportPossibleCrUseOfCinematicOrbitRig({
         error: Error()
       }), CinematicOrbitRig) : CinematicOrbitRig), _dec4 = property(_crd && TopDownCameraDrag === void 0 ? (_reportPossibleCrUseOfTopDownCameraDrag({
@@ -131,6 +133,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           _initializerDefineProperty(this, "enableDebugLog", _descriptor24, this);
 
           this.state = CinematicState.Idle;
+          this.bannerVisibilityBlocked = false;
           this.currentWave = null;
           this.currentUnit = null;
           this.originalParent = null;
@@ -224,6 +227,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.state = CinematicState.Orbit;
+          this.setBannerVisibilityBlocked(true);
           this.currentWave = wave;
           this.currentUnit = unit;
 
@@ -251,6 +255,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.state = CinematicState.Orbit;
+          this.setBannerVisibilityBlocked(true);
           this.currentWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
@@ -294,6 +299,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var d = duration >= 0 ? duration : this.uiTapSuppressDuration;
           this.uiTapSuppressTimer = Math.max(this.uiTapSuppressTimer, d);
+        }
+
+        isBannerVisibilityBlocked() {
+          return this.bannerVisibilityBlocked;
         }
 
         isCinematicActive() {
@@ -518,6 +527,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         finishReturn() {
           this.state = CinematicState.Idle;
+          this.setBannerVisibilityBlocked(false);
           this.currentWave = null;
           this.currentUnit = null;
 
@@ -526,6 +536,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.log('Return finished');
+        }
+
+        setBannerVisibilityBlocked(blocked) {
+          if (this.bannerVisibilityBlocked === blocked) {
+            return;
+          }
+
+          this.bannerVisibilityBlocked = blocked;
+          this.node.emit(BannerVisibilityBlockedEvent, blocked);
         }
 
         onTouchStart(event) {

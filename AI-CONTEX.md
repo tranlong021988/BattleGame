@@ -1723,6 +1723,116 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
   Cocos regenerated many of these while the user tested the banner/logic
   changes.
 
+## July 1 - Banner Camera Visibility
+
+- Wave banners now support camera-driven visibility.
+- Files changed:
+  - `assets/scripts/BattleWave.ts`
+  - `assets/scripts/BattleCinematicCameraController.ts`
+  - `assets/scripts/GameManager.ts`
+- `BattleWave` exposes `setWaveBannerVisible(visible)` to toggle only the
+  banner node. It does not release, recycle, or change the representative
+  holder.
+- `BattleCinematicCameraController` emits the node event
+  `battle-camera-banner-visibility-blocked`:
+  - `true` when entering orbit/focus mode;
+  - `false` only after smooth return finishes and state is back to idle/top-down.
+- `GameManager` listens to that event through its existing
+  `cinematicController` component reference and hides all wave banners while
+  orbit/return is active.
+- `GameManager` also hides/shows banners by top-down camera FOV:
+  - `waveBannerHideFovBelow` default `35`;
+  - `waveBannerShowFovAbove` default `38`;
+  - the gap is intentional hysteresis so banners do not flicker near the zoom
+    threshold.
+- `GameManager.waveBannerCamera` can be assigned directly. If it is left null,
+  `GameManager` tries to read `mainCamera` from the assigned
+  `cinematicController`.
+- Visibility changes are applied only when the global visible/hidden state
+  actually changes, plus once when a new banner is assigned. This avoids setting
+  node active state every frame for every wave.
+- If a banner is hidden, holder refresh/reparenting can still run; the banner is
+  only visually disabled, not removed from its pool/holder lifecycle.
+
+## July 1 - Initial Forward Same-Lane Combat Gate
+
+- New gameplay tweak: during a wave's first forward phase immediately after
+  spawn, same-lane attack-range contact no longer releases the whole wave into
+  freehunt from the first engaged unit.
+- The whole wave enters combat/freehunt only after the number of engaged units
+  reaches the wave's `UnitPrefabEntry.maxUnitPerRow`.
+- The threshold is stored on `BattleWave` at spawn time through
+  `setInitialForwardCombatReleaseThreshold(entry.maxUnitPerRow)`.
+- This gate is intentionally narrow:
+  - applies only while `BattleWave` is still in its initial forward mode;
+  - applies only to same-lane contact detected by normal attack-range proximity;
+  - does not apply to adjacent-lane/hero-line forward release;
+  - does not apply to retaliation or being attacked from range;
+  - does not apply after the wave has already entered combat/freehunt once and
+    later returns to forward.
+- `BattleWave` disables the gate permanently when it enters combat/freehunt,
+  `releaseForwardToFreeHunt()`, `enterCombatMode()`, `forceForwardMode()`, or
+  `tryResumeForward()`.
+- `GameManager.onWaveCombatStarted(unit, enemy, useInitialForwardGate)` now
+  has an optional third argument. Normal attack-range contact uses the gate by
+  default. Retaliation and steady hero guard pass `false` so they keep old
+  immediate combat behavior.
+- While the gate is active, an individual unit can still engage normally. If
+  that unit later becomes not busy before the gate threshold is reached,
+  `BattleWave.refreshInitialForwardCombatGate()` returns it to forward so it
+  does not stand idle behind the still-forward wave.
+- Intended visual result: the first row has a chance to form multiple combat
+  pairs before the entire wave switches to freehunt, reducing the old
+  "everyone borrows the first unit's target and piles into one victim" look.
+
+## July 1 - ArmyBrain Fast React Counter
+
+- `GameManager.spawnEntryFormation()` now emits the node event
+  `battle-wave-spawned` after a normal unit wave has been created, filled with
+  units, assigned its banner, and added to `GameManager.waves`.
+- `ArmyBrain` listens to this event through its assigned `gameManager`.
+- New Inspector knob:
+  - `fastReactChance` (`0..1`, default `0.5`)
+- Fast react behavior:
+  - only reacts to enemy waves;
+  - respects `runOnlyWhenGameManagerAutoSpawnOff`;
+  - requires the brain timer to have reached at least `minSpawnInterval`;
+  - respects max alive wave limit and CP affordability;
+  - only spawns a real counter unit, never random fallback and never raid;
+  - uses existing counter lane selection, so `laneAwareness` and
+    `counterSameLaneChance` still matter;
+  - after spawning, adds counter assignment to the target wave, resets timer to
+    `0`, and randomizes the next normal interval.
+- Double-react guard:
+  - fast-reacted target wave ids are tracked in `fastReactCounteredWaveIds`;
+  - if the target wave is already covered according to
+    `attackCounterCoverageRatio`, normal ArmyBrain attack/defense target
+    selection skips it;
+  - if fast react did not provide enough coverage, normal logic can still add
+    more counters later.
+- Counter-chain risk is intentionally controlled by `fastReactChance`, CP,
+  `minSpawnInterval`, and `maxAliveWaves`. If both brains have very high fast
+  react chance and enough CP, some counter-reaction chains are still possible
+  by design.
+
+## July 1 - ArmyBrain Flank Aggression Removed
+
+- `ArmyBrain.flankAggression` was removed because it no longer produced a
+  distinct, understandable visual behavior under the current lane/freehunt
+  design.
+- `assets/Test.scene` serialized `flankAggression` fields were removed from
+  both ArmyBrain components.
+- Counter lane behavior is now controlled by fewer knobs:
+  - `counterSameLaneChance`: decides whether a counter tries to spawn in the
+    target wave's current lane.
+  - `laneAwareness`: if the counter does not spawn same-lane, controls whether
+    support-lane selection is pressure-aware or random.
+- The old negative same-lane adjustment driven by flank aggression was removed.
+  If the target lane is undefended, lane awareness can still increase
+  same-lane defense through `getDefenseSameLaneBonus()`.
+- `rg` found no remaining `flankAggression` / `flank` references in source,
+  scene, or this handoff after the cleanup.
+
 ## Current Next Best Direction
 
 For the next session, unless the user changes direction:

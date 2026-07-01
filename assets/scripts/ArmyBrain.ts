@@ -5,6 +5,8 @@ import { CounterSettings } from './CounterSettings';
 import { UnitType, unitTypeToName } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
+const BattleWaveSpawnedEvent =
+    'battle-wave-spawned';
 
 enum ArmyBrainMode {
     Attack = 0,
@@ -35,6 +37,9 @@ export class ArmyBrain extends Component {
 
     @property
     maxSpawnInterval = 5.0;
+
+    @property({ displayName: 'Fast React Chance' })
+    fastReactChance = 0.5;
 
     @property
     maxBrainDeltaTime = 0.1;
@@ -69,9 +74,6 @@ export class ArmyBrain extends Component {
     @property
     laneAwareness = 0.5;
 
-    @property
-    flankAggression = 0.25;
-
     @property({ displayName: 'Aggressive Forward Chance' })
     aggressiveForwardChance = 0.25;
 
@@ -98,9 +100,24 @@ export class ArmyBrain extends Component {
 
     private currentMode: ArmyBrainMode = ArmyBrainMode.Attack;
     private currentModeName = 'ATTACK';
+    private registeredGameManager: GameManager | null = null;
+    private fastReactCounteredWaveIds: Set<number> = new Set();
+
+    onEnable() {
+        this.registerWaveSpawnEvent();
+    }
 
     start() {
         this.randomizeNextInterval();
+        this.registerWaveSpawnEvent();
+    }
+
+    onDisable() {
+        this.unregisterWaveSpawnEvent();
+    }
+
+    onDestroy() {
+        this.unregisterWaveSpawnEvent();
     }
 
     update(deltaTime: number) {
@@ -280,6 +297,94 @@ export class ArmyBrain extends Component {
                 );
             }
         }
+    }
+
+    private onBattleWaveSpawned(
+        spawnedWave: BattleWave | null
+    ) {
+        if (!this.gameManager) return;
+        if (!spawnedWave) return;
+        if (spawnedWave.team === this.team) return;
+
+        if (
+            this.runOnlyWhenGameManagerAutoSpawnOff &&
+            this.gameManager.enableAutoSpawn
+        ) {
+            return;
+        }
+
+        if (!this.canFastReactNow()) return;
+        if (!this.canSpawnMoreWave()) return;
+        if (!this.isAliveThreatWave(spawnedWave)) return;
+
+        const entries =
+            this.gameManager.getTeamEntries(this.team);
+        const validEntries =
+            this.getValidEntries(entries);
+        const counterEntry =
+            this.getBestRealCounterEntryAgainstWave(
+                validEntries,
+                spawnedWave
+            );
+
+        if (!counterEntry) {
+            this.debugLog(
+                `Fast react skipped: no affordable real counter for wave=${spawnedWave.id}, target=${unitTypeToName(spawnedWave.unitType)}`
+            );
+            return;
+        }
+
+        const lanePressure =
+            this.buildLanePressureSnapshot();
+        const spawnLaneId =
+            this.getCounterSpawnLaneId(
+                spawnedWave,
+                lanePressure
+            );
+
+        const spawned =
+            this.gameManager.spawnWaveByEntry(
+                this.team,
+                counterEntry,
+                spawnLaneId
+            );
+
+        if (!spawned) {
+            return;
+        }
+
+        spawnedWave.addCounterAssignment(
+            counterEntry.unitCount
+        );
+        this.fastReactCounteredWaveIds.add(
+            spawnedWave.id
+        );
+
+        this.timer = 0;
+        this.randomizeNextInterval();
+
+        this.debugLog(
+            `Fast react counter: enemyWave=${spawnedWave.id}, target=${unitTypeToName(spawnedWave.unitType)}, spawn=${counterEntry.name}/${unitTypeToName(counterEntry.unitType)}, lane=${spawnLaneId}, chance=${this.getFastReactChance().toFixed(2)}, nextInterval=${this.nextInterval.toFixed(2)}`
+        );
+    }
+
+    private canFastReactNow() {
+        const chance =
+            this.getFastReactChance();
+
+        if (chance <= 0) return false;
+
+        const minInterval =
+            Math.max(
+                0.1,
+                this.minSpawnInterval
+            );
+
+        if (this.timer < minInterval) {
+            return false;
+        }
+
+        return Math.random() <= chance;
     }
 
     private findRaidDefenseThreatWave(): BattleWave | null {
@@ -552,6 +657,7 @@ export class ArmyBrain extends Component {
 
     private isValidAttackThreatWave(wave: BattleWave | null) {
         if (!this.isAliveThreatWave(wave)) return false;
+        if (this.isCoveredByFastReact(wave!)) return false;
 
         if (wave!.isCounterCovered(this.attackCounterCoverageRatio)) {
             this.debugLog(
@@ -565,6 +671,7 @@ export class ArmyBrain extends Component {
 
     private isValidDefenseThreatWave(wave: BattleWave | null) {
         if (!this.isAliveThreatWave(wave)) return false;
+        if (this.isCoveredByFastReact(wave!)) return false;
 
         const engaged = wave!.hasEngaged();
         const covered = wave!.isCounterCovered(this.attackCounterCoverageRatio);
@@ -588,6 +695,22 @@ export class ArmyBrain extends Component {
         if (aliveRatio < this.ignoreNearlyDeadWaveRatio) {
             return false;
         }
+
+        return true;
+    }
+
+    private isCoveredByFastReact(wave: BattleWave) {
+        if (!this.fastReactCounteredWaveIds.has(wave.id)) {
+            return false;
+        }
+
+        if (!wave.isCounterCovered(this.attackCounterCoverageRatio)) {
+            return false;
+        }
+
+        this.debugLog(
+            `Skip wave=${wave.id}: already covered by fast react, coverage=${wave.getCounterCoverageRatio().toFixed(2)}`
+        );
 
         return true;
     }
@@ -690,6 +813,51 @@ export class ArmyBrain extends Component {
         }
 
         return this.getCheapestAffordableEntry(entries);
+    }
+
+    private getBestRealCounterEntryAgainstWave(
+        entries: UnitPrefabEntry[],
+        targetWave: BattleWave
+    ): UnitPrefabEntry | null {
+
+        const affordableEntries =
+            this.getAffordableEntries(entries);
+
+        let bestScore = -Infinity;
+        const bestEntries: UnitPrefabEntry[] = [];
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (!this.isValidEntry(entry)) continue;
+
+            const score = this.getCounterScore(
+                entry.unitType,
+                targetWave.unitType
+            );
+
+            if (!this.isRealCounterScore(score)) {
+                continue;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestEntries.length = 0;
+                bestEntries.push(entry);
+            } else if (Math.abs(score - bestScore) < 0.0001) {
+                bestEntries.push(entry);
+            }
+        }
+
+        if (bestEntries.length <= 0) {
+            return null;
+        }
+
+        const index = Math.floor(
+            Math.random() * bestEntries.length
+        );
+
+        return bestEntries[index];
     }
 
     private getAffordableEntries(
@@ -964,7 +1132,7 @@ export class ArmyBrain extends Component {
                 (
                     targetUndefended
                         ? this.getDefenseSameLaneBonus()
-                        : -0.25 * this.getFlankAggression()
+                        : 0
                 ),
                 0,
                 1
@@ -1005,10 +1173,7 @@ export class ArmyBrain extends Component {
             return 0;
         }
 
-        if (
-            this.getLaneAwareness() <= 0 ||
-            this.getFlankAggression() <= 0
-        ) {
+        if (this.getLaneAwareness() <= 0) {
             const index = Math.floor(
                 Math.random() * lanes.length
             );
@@ -1138,17 +1303,17 @@ export class ArmyBrain extends Component {
         );
     }
 
-    private getLaneAwareness() {
+    private getFastReactChance() {
         return this.clamp(
-            this.laneAwareness,
+            this.fastReactChance,
             0,
             1
         );
     }
 
-    private getFlankAggression() {
+    private getLaneAwareness() {
         return this.clamp(
-            this.flankAggression,
+            this.laneAwareness,
             0,
             1
         );
@@ -1173,6 +1338,38 @@ export class ArmyBrain extends Component {
 
         this.nextInterval =
             min + Math.random() * (max - min);
+    }
+
+    private registerWaveSpawnEvent() {
+        this.unregisterWaveSpawnEvent();
+
+        const manager =
+            this.gameManager;
+
+        if (!manager || !manager.node) return;
+
+        this.registeredGameManager = manager;
+
+        manager.node.on(
+            BattleWaveSpawnedEvent,
+            this.onBattleWaveSpawned,
+            this
+        );
+    }
+
+    private unregisterWaveSpawnEvent() {
+        const manager =
+            this.registeredGameManager;
+
+        if (manager && manager.node) {
+            manager.node.off(
+                BattleWaveSpawnedEvent,
+                this.onBattleWaveSpawned,
+                this
+            );
+        }
+
+        this.registeredGameManager = null;
     }
 
     private getValidEntries(entries: UnitPrefabEntry[]) {

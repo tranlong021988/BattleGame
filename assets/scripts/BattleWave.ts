@@ -28,6 +28,8 @@ export class BattleWave {
     private freeHuntActive = false;
     private permanentFreeHunt = false;
     private aggressiveForwardMode = false;
+    private initialForwardCombatGateActive = true;
+    private initialForwardCombatReleaseThreshold = 1;
     private forwardScannerUnit: Unit | null = null;
     private representativeUnit: Unit | null = null;
     private waveBannerNode: Node | null = null;
@@ -84,6 +86,16 @@ export class BattleWave {
             1,
             Math.floor(count)
         );
+    }
+
+    setInitialForwardCombatReleaseThreshold(
+        threshold: number
+    ) {
+        this.initialForwardCombatReleaseThreshold =
+            Math.max(
+                1,
+                Math.floor(threshold)
+            );
     }
 
     getAliveCount() {
@@ -207,6 +219,16 @@ export class BattleWave {
             .start();
 
         return true;
+    }
+
+    setWaveBannerVisible(visible: boolean) {
+        const banner =
+            this.waveBannerNode;
+
+        if (!banner || !banner.isValid) return;
+        if (banner.active === visible) return;
+
+        banner.active = visible;
     }
 
     private notifyWaveBannerAttached(
@@ -399,6 +421,50 @@ export class BattleWave {
             this.aggressiveForwardMode;
     }
 
+    isInitialForwardCombatGateActive() {
+        return !this.released &&
+            this.initialForwardCombatGateActive &&
+            this.forwardModeActive &&
+            !this.freeHuntActive;
+    }
+
+    getInitialForwardCombatReleaseThreshold() {
+        return this.initialForwardCombatReleaseThreshold;
+    }
+
+    getEngagedCountIncluding(
+        pendingUnit: Unit | null = null
+    ) {
+        if (this.released) return 0;
+
+        let count = 0;
+        let hasPending = false;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            if (u === pendingUnit) {
+                hasPending = true;
+            }
+
+            if (u.onBusy) {
+                count++;
+            }
+        }
+
+        if (
+            pendingUnit &&
+            hasPending &&
+            !pendingUnit.onBusy
+        ) {
+            count++;
+        }
+
+        return count;
+    }
+
     findSharedTargetForUnit(
         requester: Unit | null
     ) {
@@ -469,6 +535,7 @@ export class BattleWave {
 
         this.forwardModeActive = false;
         this.freeHuntActive = true;
+        this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -489,6 +556,7 @@ export class BattleWave {
 
         this.forwardModeActive = false;
         this.freeHuntActive = true;
+        this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -508,6 +576,7 @@ export class BattleWave {
         this.forwardModeActive = true;
         this.freeHuntActive = false;
         this.permanentFreeHunt = false;
+        this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -603,6 +672,7 @@ export class BattleWave {
 
         this.forwardModeActive = true;
         this.freeHuntActive = false;
+        this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -616,6 +686,24 @@ export class BattleWave {
         }
 
         return true;
+    }
+
+    refreshInitialForwardCombatGate() {
+        if (!this.isInitialForwardCombatGateActive()) {
+            return;
+        }
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy) continue;
+            if (u.onForward) continue;
+
+            u.enterWaveForwardMode(
+                this.aggressiveForwardMode
+            );
+        }
     }
 
     isDead() {
@@ -639,6 +727,8 @@ export class BattleWave {
         this.freeHuntActive = false;
         this.permanentFreeHunt = false;
         this.aggressiveForwardMode = false;
+        this.initialForwardCombatGateActive = false;
+        this.initialForwardCombatReleaseThreshold = 1;
         this.forwardScannerUnit = null;
         this.representativeUnit = null;
         this.units.length = 0;
