@@ -2040,10 +2040,210 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
   - after the target is gone, normal guard return behavior resumes.
 - TypeScript check passed with the Cocos 3.8.8 compiler on the office machine.
 
+## July 2 - Mobile Performance Trace Review / Banner And Healthbar Batching
+
+The user corrected an overly optimistic desktop-preview interpretation: this
+game targets mobile browser, so traces that look "fine" on desktop must still
+be treated as borderline if frame pacing is close to the 16.67 ms edge.
+
+Skill update:
+
+- The local Codex skill
+  `C:/Users/CPU/.codex/skills/cocos-performance-optimize-skills/SKILL.md`
+  was updated on the office machine.
+- New reminders added there:
+  - do not be overly optimistic from desktop/editor-preview traces when the
+    target is mobile browser;
+  - treat p95/p99 frame pacing near 16.67 ms as borderline until release/mobile
+    testing proves otherwise;
+  - check worker CPU and worker heap explicitly;
+  - do not rely on V8 desktop GC behavior as proof of mobile-browser safety,
+    because mobile browsers may use V8, JavaScriptCore, SpiderMonkey, or
+    platform WebView engines.
+
+Performance reports reviewed:
+
+```text
+C:/Users/CPU/Downloads/Trace-20260702T170927.json.gz
+C:/Users/CPU/Downloads/Trace-20260702T172415.json.gz
+```
+
+Updated interpretation:
+
+- These reports do not show catastrophic frame drops, but they are not
+  "comfortable" for mobile 60 FPS.
+- The second trace is slightly worse than the first:
+  - `FireAnimationFrame` p95 rose from about `3.75 ms` to `4.21 ms`;
+  - `FireAnimationFrame` p99 rose from about `5.09 ms` to `5.96 ms`;
+  - frame gaps over `17 ms` rose from about `0.68%` to `0.93%`;
+  - p95/p99 frame gaps sit very close to the 16.67 ms 60 FPS edge.
+- On desktop/editor preview this is still playable, but for mobile browser it
+  should be treated as borderline. Do not call this "healthy" without real
+  release/mobile confirmation.
+
+Second trace key numbers:
+
+- `FireAnimationFrame`:
+  - count `6021`;
+  - avg `1.846 ms`;
+  - p95 `4.209 ms`;
+  - p99 `5.956 ms`;
+  - max `12.827 ms`;
+  - frames over `8.33 ms`: `10`;
+  - frames over `16.67 ms`: `0`.
+- Frame gaps:
+  - avg `16.662 ms`;
+  - p95 `16.821 ms`;
+  - p99 `16.991 ms`;
+  - max `21.139 ms`;
+  - gaps over `17 ms`: `56 / 6020`;
+  - gaps over `20 ms`: `2 / 6020`;
+  - gaps over `33.33 ms`: `0`.
+- GPU trace:
+  - `GPUTask` avg about `0.211 ms`;
+  - p95 about `0.444 ms`;
+  - max about `3.847 ms`;
+  - no obvious GPU-task spike in this desktop trace.
+- Main GC:
+  - `MinorGC` count `320`, avg about `0.612 ms`, max `3.229 ms`;
+  - `MajorGC` count `30`, avg about `4.626 ms`, max `6.827 ms`;
+  - acceptable in this trace, but still watch on mobile.
+
+Worker heap / worker performance:
+
+- Worker heap counters were present in these traces.
+- In the second trace:
+  - larger worker heap went roughly `0.50 MB -> 2.66 MB`, max about `5.09 MB`;
+  - smaller worker heap went roughly `0.45 MB -> 0.75 MB`, max about `1.23 MB`;
+  - the larger worker's lower envelope rose during most of the trace but later
+    dropped back near `0.5 MB`.
+- Current conclusion:
+  - no confirmed leak from these traces alone;
+  - there is allocation churn in the large worker;
+  - for mobile browser, run longer captures and watch the *bottom* of the
+    sawtooth, not only the peak;
+  - if the GC baseline keeps climbing over 5-10 minutes, investigate retained
+    worker queues, request records, or typed-array/object allocation.
+- CPU profile from the second trace:
+  - target-search worker was almost idle;
+  - RVO worker had some real active work, but still not the primary bottleneck;
+  - notable worker samples included `collectNeighbors`, `key`, `step`,
+    `compareNeighbors`, `applyAllyOvertake`, and `buildGrid`.
+
+Where the performance issue appears to be:
+
+- The stronger signal is still engine/render/WebGL work rather than game AI or
+  workers.
+- Main sampled hot areas in the second trace included:
+  - `bufferData`;
+  - `WebGL2CmdFuncBindStates`;
+  - `getUniformBlock`;
+  - `addConstantBuffer`;
+  - `bindBuffer`;
+  - `updatePerPassUBO`;
+  - Cocos bundled engine functions such as `toArray`, `get`, `assert`,
+    `update`, and `_loop`.
+- Game script sample totals were much smaller:
+  - `Unit.ts` around `164 ms` sampled over about 100 seconds;
+  - `BattleSpatialGrid.ts` around `72 ms`;
+  - `GameManager.ts` around `30 ms`;
+  - `UnitProps.ts` around `5-6 ms`.
+- Do not optimize ArmyBrain/target-worker first based on these reports. The
+  next measured direction should be render/material/mesh/animation/batching.
+
+Healthbar batching status:
+
+- `assets/scripts/HealthBar3D.ts` uses:
+  - `renderer.setInstancedAttribute('a_health_params', ...)`;
+  - `renderer.setInstancedAttribute('a_bar_color', ...)`.
+- This is the correct pattern for many units with different health values.
+  Different health ratios should not by itself split draw calls.
+- `HealthBarMat.mtl` has `USE_INSTANCING` enabled.
+- Blue and Red unit prefabs both reference the same `HealthBarMat` UUID
+  (`5f434786-d4f3-41f9-81b1-15a1fa9fd12b`), so healthbars are not split by
+  team material.
+- Healthbar updates currently happen on spawn/reset and on damage/heal, not
+  every frame.
+- Remaining healthbar risks:
+  - `HealthBar3D.applyHealthParams()` toggles `renderer.enabled` when
+    full-health bars hide/show; many units changing visibility together can
+    churn render lists/batches;
+  - `setHealthRatio()` currently applies even when the clamped ratio is
+    unchanged, so a future micro-optimization could early-return;
+  - many simultaneous damage events still upload instanced data, but this is
+    still better than per-unit material properties.
+- Important clarification:
+  - `setInstancedAttribute` is not the problem for healthbars;
+  - it is exactly how per-unit health should be supplied without making a
+    unique material per unit.
+
+Banner batching status:
+
+- Banner rendering is more suspicious than healthbar.
+- `UnlitBillboard.effect` supports `USE_INSTANCING` and uses
+  `a_billboard_bg_color` for per-instance team/background color.
+- Team color/background is therefore correctly handled with an instanced
+  attribute and should not require material variants for team A vs team B.
+- However, the current banner setup uses one material per troop icon:
+  - `Banner_LightSword.mtl`;
+  - `Banner_LightArcher.mtl`;
+  - `Banner_LightSpear.mtl`;
+  - `Banner_LightMace.mtl`;
+  - `Banner_LightCavalry.mtl`;
+  - etc.
+- Each of those materials binds a different `mainTexture` icon. Even with
+  `USE_INSTANCING`, GPU instancing normally requires the same material and the
+  same texture binding, so banners will be split at least by troop icon
+  material/texture.
+- AutoAtlas on the banner icon folder may help Sprite/SpriteFrame workflows,
+  but it does not automatically make `MeshRenderer` materials that each bind a
+  different `mainTexture` become one shared material. If the material still
+  references different texture assets, draw calls remain split.
+- `setInstancedAttribute` cannot pass a different texture per instance.
+  Textures are resource bindings on the material/pass. Instancing can pass
+  small numeric/vector data only, such as color, alpha, UV rect, health ratio,
+  or state.
+- Correct future banner batching direction:
+  - pack all troop icons into a single atlas texture;
+  - use one shared banner material pointing at that atlas;
+  - pass the per-banner icon rectangle as an instanced attribute, for example
+    `a_icon_uv_rect = [offsetX, offsetY, scaleX, scaleY]`;
+  - keep team/background color as `a_billboard_bg_color`;
+  - this is the path that can let different icon banners batch/instance
+    together.
+
+Banner CPU-side notes:
+
+- `GameManager.processWaveBanners()` currently runs every frame and loops over
+  waves, then calls `wave.refreshWaveBanner()`.
+- Most calls return quickly when the banner is already parented to the current
+  representative unit.
+- More expensive banner operations occur when the representative/holder dies:
+  - `BattleWave.refreshWaveBanner(true)` reparents the banner while preserving
+    world transform and starts a tween to local `(0, 0, 0)`;
+  - `GameManager.applyWaveBannerAppearance()` calls
+    `getComponentsInChildren(MeshRenderer)` when a banner is assigned or
+    attached.
+- These did not dominate the supplied trace, but if banner count grows, cache
+  banner renderer refs and consider throttling/dirty-flagging banner refresh
+  instead of checking all waves every frame.
+
 ## Current Next Best Direction
 
 For the next session, unless the user changes direction:
 
+- Continue performance work with mobile-browser skepticism:
+  - desktop/editor preview reports are useful but not proof of mobile safety;
+  - inspect frame gaps, main thread, GPU/render work, GC, worker CPU, and worker
+    heap in every performance review;
+  - avoid calling a trace "healthy" if p95/p99 frame pacing is already near
+    16.67 ms.
+- If investigating batching next, focus first on banner material/texture split:
+  - current healthbar instancing is conceptually correct;
+  - current banner instancing is limited because each troop icon is still a
+    different material/texture;
+  - the real fix is a shared atlas texture plus per-instance UV rect, not
+    trying to set a different texture through `setInstancedAttribute`.
 - Visually test the ArmyBrain early aggressive spawn rule:
   - before that brain has ever reached `maxAliveWaves`, every ArmyBrain-spawned
     wave should spawn aggressive-forward and push combat away from hero/base;
