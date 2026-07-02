@@ -625,7 +625,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (wave.isAggressiveForwardMode()) return;
+          if (wave.isAggressiveForwardMode()) {
+            var _heroTarget = scanner.getEnemyHeroTarget();
+
+            if (_heroTarget && this.shouldReleaseAggressiveForwardHeroTarget(scanner, _heroTarget)) {
+              this.onWaveForwardTargetFound(scanner, _heroTarget);
+            }
+
+            if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
+              return;
+            }
+
+            scanner = wave.getForwardScanner(true);
+            if (!scanner) return;
+            var sameLaneTarget = scanner.findForwardSearchTarget(true);
+
+            if (sameLaneTarget && this.shouldReleaseAggressiveForwardSameLaneTarget(scanner, sameLaneTarget)) {
+              this.onWaveForwardTargetFound(scanner, sameLaneTarget);
+            }
+
+            return;
+          }
 
           if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
             return;
@@ -649,6 +669,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var laneDistance = Math.abs(scannerLane - targetLane);
 
           if (laneDistance > 1) {
+            return false;
+          }
+
+          return scanner.hasPassedForwardTarget(target);
+        }
+
+        shouldReleaseAggressiveForwardHeroTarget(scanner, target) {
+          if (!target.isHero) return false;
+          if (!scanner.agent || !target.agent) return false;
+          var dx = target.agent.pos.x - scanner.agent.pos.x;
+          var dz = target.agent.pos.z - scanner.agent.pos.z;
+          var range = Math.max(0, scanner.targetSearchRange);
+
+          if (dx * dx + dz * dz > range * range) {
+            return false;
+          }
+
+          return this.shouldReleaseNormalForwardTarget(scanner, target);
+        }
+
+        shouldReleaseAggressiveForwardSameLaneTarget(scanner, target) {
+          if (!scanner || !target) return false;
+          if (scanner.laneId < 0) return false;
+          if (target.laneId < 0) return false;
+
+          if (this.clampLaneId(scanner.laneId) !== this.clampLaneId(target.laneId)) {
             return false;
           }
 

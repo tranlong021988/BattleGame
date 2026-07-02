@@ -33,35 +33,101 @@ export class LevelSettings extends Component {
     })
     allowCP = true;
 
+    @property
+    initialCombatPointMin = 70;
+
+    @property
+    initialCombatPointMax = 180;
+
     @property({
         tooltip: 'Apply AI Intelligence curve. Higher values make ArmyBrain choose better counter units.'
     })
     allowAI = true;
+
+    @property
+    aiIntelligenceMin = 0;
+
+    @property
+    aiIntelligenceMax = 1;
 
     @property({
         tooltip: 'Apply Lane Awareness curve. Higher values make ArmyBrain value lane pressure more accurately.'
     })
     allowLane = true;
 
+    @property
+    laneAwarenessMin = 0;
+
+    @property
+    laneAwarenessMax = 1;
+
     @property({
         tooltip: 'Apply Counter Same Lane Chance curve. Higher values make counter waves spawn in the threatened lane more often.'
     })
     allowSameLane = true;
+
+    @property
+    counterSameLaneChanceMin = 0.4;
+
+    @property
+    counterSameLaneChanceMax = 1;
+
+    @property({
+        tooltip: 'Apply Fast React Chance curve. At max level, ArmyBrain always attempts eligible fast-react counters.'
+    })
+    allowFastReact = true;
+
+    @property
+    fastReactChanceMin = 0;
+
+    @property
+    fastReactChanceMax = 1;
 
     @property({
         tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
     })
     allowInterval = true;
 
+    @property
+    minSpawnIntervalMinLevel = 5.0;
+
+    @property
+    minSpawnIntervalMaxLevel = 2.7;
+
+    @property
+    maxSpawnIntervalMinLevel = 6.0;
+
+    @property
+    maxSpawnIntervalMaxLevel = 3.7;
+
     @property({
         tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
     })
     allowMaxWave = true;
 
+    @property
+    maxAliveWavesMin = 5;
+
+    @property
+    maxAliveWavesMax = 15;
+
     @property({
         tooltip: 'Apply Aggressive Forward curve. Higher levels unlock more lane-empty raid attempts.'
     })
     allowAggressive = true;
+
+    @property
+    aggressiveForwardChanceMin = 0;
+
+    @property
+    aggressiveForwardChanceMax = 0.25;
+
+    @property({
+        min: 0,
+        max: 1,
+        tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
+    })
+    aggressiveForwardUnlockAt = 0.45;
 
     onLoad() {
         this.applyLevelSettings();
@@ -85,7 +151,11 @@ export class LevelSettings extends Component {
         ) {
             const cp =
                 Math.round(
-                    this.lerp(70, 180, t)
+                    this.lerp(
+                        this.initialCombatPointMin,
+                        this.initialCombatPointMax,
+                        t
+                    )
                 );
 
             if (team === 0) {
@@ -104,40 +174,86 @@ export class LevelSettings extends Component {
             if (!brain) continue;
 
             if (this.allowAI) {
-                brain.aiIntelligence = t;
+                brain.aiIntelligence =
+                    this.lerp(
+                        this.aiIntelligenceMin,
+                        this.aiIntelligenceMax,
+                        t
+                    );
             }
 
             if (this.allowLane) {
-                brain.laneAwareness = t;
+                brain.laneAwareness =
+                    this.lerp(
+                        this.laneAwarenessMin,
+                        this.laneAwarenessMax,
+                        t
+                    );
             }
 
             if (this.allowSameLane) {
                 brain.counterSameLaneChance =
-                    this.lerp(0.4, 1, t);
+                    this.lerp(
+                        this.counterSameLaneChanceMin,
+                        this.counterSameLaneChanceMax,
+                        t
+                    );
+            }
+
+            if (this.allowFastReact) {
+                brain.fastReactChance =
+                    this.lerp(
+                        this.fastReactChanceMin,
+                        this.fastReactChanceMax,
+                        t
+                    );
             }
 
             if (this.allowInterval) {
                 brain.minSpawnInterval =
-                    this.lerp(5.0, 2.7, t);
+                    this.lerp(
+                        this.minSpawnIntervalMinLevel,
+                        this.minSpawnIntervalMaxLevel,
+                        t
+                    );
                 brain.maxSpawnInterval =
-                    this.lerp(6.0, 3.7, t);
+                    this.lerp(
+                        this.maxSpawnIntervalMinLevel,
+                        this.maxSpawnIntervalMaxLevel,
+                        t
+                    );
             }
 
             if (this.allowMaxWave) {
                 brain.maxAliveWaves =
                     Math.round(
-                        this.lerp(5, 15, t)
+                        this.lerp(
+                            this.maxAliveWavesMin,
+                            this.maxAliveWavesMax,
+                            t
+                        )
                     );
             }
 
             if (this.allowAggressive) {
-                const raidT =
+                const unlockAt =
                     this.clamp01(
-                        (t - 0.45) / 0.55
+                        this.aggressiveForwardUnlockAt
                     );
+                const raidT =
+                    unlockAt >= 1
+                        ? (t >= 1 ? 1 : 0)
+                        : this.clamp01(
+                            (t - unlockAt) /
+                            (1 - unlockAt)
+                        );
 
                 brain.aggressiveForwardChance =
-                    raidT * 0.25;
+                    this.lerp(
+                        this.aggressiveForwardChanceMin,
+                        this.aggressiveForwardChanceMax,
+                        raidT
+                    );
             }
         }
     }

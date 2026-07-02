@@ -2,16 +2,16 @@
 
 Handoff note for the other Codex instance working on `BattleGame`.
 
-Last updated: 2026-07-02.
+Last updated: 2026-07-03.
 
 The user runs two Codex sessions on different machines. These sessions do not share memory. Always read this file and re-check the current source before making changes. Treat this handoff as orientation, not as a substitute for source inspection.
 
-Latest local source check after the July 2 home-Codex ArmyBrain cleanup:
+Latest local source check after the July 3 home-Codex LevelSettings cleanup:
 
-- Current HEAD while checking on the home machine: `6e3c8505`.
+- Current HEAD while checking on the home machine: `6faa5e3a`.
 - `git status --short` is dirty because the user has been testing in Cocos
-  Editor and because the wave-banner work intentionally changed source,
-  scene/prefab/material assets, and generated Cocos cache files.
+  Editor and because the July 3 LevelSettings work intentionally changed
+  source/scene files while Cocos generated cache/temp changes.
 - Treat `library/`, `temp/`, and `profiles/` changes as editor-generated
   unless the user explicitly asks to inspect or clean them.
 - June 26 office work that is now present in source:
@@ -56,7 +56,10 @@ Latest local source check after the July 2 home-Codex ArmyBrain cleanup:
   - formation spacing/count knobs were moved from `GameManager` to each `BattleUnitDatabase.UnitPrefabEntry`: `maxUnitPerRow`, `squareFormationWidth`, `spaceBetweenUnit`, and `spaceBetweenRow`;
   - `GameManager` now reads those formation values from the unit entry when spawning both lane-square and centered-row formations.
   - `LevelSettings` component was added as an optional campaign difficulty scaler;
-  - if enabled, `LevelSettings` applies a normalized level curve to the selected team only: initial CP, ArmyBrain AI, lane awareness, same-lane counter chance, spawn interval, max alive waves, and aggressive-forward chance;
+  - if enabled, `LevelSettings` applies a normalized level curve to the selected team only: initial CP, ArmyBrain AI, lane awareness, same-lane counter chance, fast-react chance, spawn interval, max alive waves, and aggressive-forward chance;
+  - July 3 home follow-up added Inspector min/max endpoints for every
+    LevelSettings value driven by level, so those ranges are no longer
+    hardcoded in the apply method;
   - if the component is disabled or not present, existing `GameManager`/`ArmyBrain` logic is unchanged.
 - July 2 home follow-up now present in source:
   - ArmyBrain Defense mode and raid-defense override were removed from runtime;
@@ -85,20 +88,13 @@ Latest local source check after the July 2 home-Codex ArmyBrain cleanup:
 
 ## Current Worktree Status
 
-- Current HEAD while writing this handoff on the home machine: `6e3c8505`.
+- Current HEAD while writing this handoff on the home machine: `6faa5e3a`.
 - Git may require `git -c safe.directory=F:/Github/BattleGame ...` on this
   machine because Windows user ownership differs from the repo owner.
-- Expected dirty source/asset files from the recent home work include:
+- Expected dirty source/asset files from the July 3 LevelSettings work include:
   - `AI-CONTEX.md`;
   - `assets/Test.scene`;
-  - `assets/scripts/BattleWave.ts`;
-  - `assets/scripts/Unit.ts`;
-  - `assets/scripts/ArmyBrain.ts`;
-  - `assets/scripts/GameManager.ts`;
-  - `assets/shaders/UnlitBillboard.effect`;
-  - `assets/materials/Banner*.mtl`;
-  - `assets/prefabs/Banner*.prefab`;
-  - `assets/MiniMap/images/*-ico-small.png` and matching `.meta` files.
+  - `assets/scripts/LevelSettings.ts`.
 - There are also many dirty Cocos-generated files under `library/`, `temp/`,
   and `profiles/`. Do not delete or revert these casually; they may reflect
   the user's open-editor/test state and are not source logic.
@@ -533,7 +529,14 @@ This flow is the current canonical rule set. Older notes or commits describing i
 - If any alive member remains `onBusy`, owns a valid target, or has a target query still pending/not yet confirmed empty, the wave cannot resume forward.
 - Normal freehunt is recoverable. There is currently no intended permanent
   hero-pressure freehunt path.
-- Attack-range contact is the universal hard trigger: if any alive unit detects a valid enemy inside `attackRange` on its `attackCheckIntervalFrames`, both involved waves enter freehunt/combat together.
+- Attack-range contact is the universal hard trigger after the initial forward
+  gate is no longer active: if any alive unit detects a valid enemy inside
+  `attackRange` on its `attackCheckIntervalFrames`, both involved waves enter
+  freehunt/combat together.
+- Intentional exception: `initialForwardCombatGate` can delay whole-wave
+  release during the first same-lane forward contact until the wave reaches
+  its configured engaged-unit threshold. This is a deliberate visual formation
+  rule, not a bug to remove casually.
 
 ### Normal Forward
 
@@ -587,9 +590,8 @@ This flow is the current canonical rule set. Older notes or commits describing i
 - There is no extra recovery grace period. The configured search interval already controls reaction cadence.
 - Recovery is checked centrally at wave level. Once valid, all alive members enter forward together.
 - After recovery, target scanning returns to the single cached/front-most scanner. Units do not continue individual freehunt scans while in forward.
-- The wave resumes its original forward type:
-  - normal wave -> normal forward;
-  - aggressive wave -> aggressive forward.
+- After recovery, the wave resumes normal forward. Aggressive-forward is
+  intentionally cleared when a wave enters freehunt/combat.
 
 ### Combat And Retaliation
 
@@ -1883,48 +1885,22 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
 
 ## July 1 - ArmyBrain Over-Counter Analysis Only
 
-- Superseded by the implementation note below:
-  `July 2 - ArmyBrain Defense Removed / Early Aggressive Spawn Cleanup`.
-- The user observed that early battle can spawn too many counter waves into
-  one enemy wave.
-- At the time of this analysis, no ArmyBrain code had been changed yet.
-- Current relevant ArmyBrain behavior:
-  - `Defense Wave Threshold` is the alarm gate:
-    `myWaves <= defenseWaveThreshold && enemyAliveWaveCount > myWaves`;
-  - after that gate opens, `defenseModeChance` decides whether the brain
-    really enters `DEFENSE` or misreads into attack;
-  - raid-defense also uses `defenseModeChance` when reacting to aggressive
-    forward waves near the defend/hero lane.
-- Likely cause of over-counter:
-  - attack target selection skips a wave once it is covered by
-    `attackCounterCoverageRatio`;
-  - defense target selection currently skips a covered wave only when that
-    wave is not engaged;
-  - if a target wave is already engaged, Defense mode can keep selecting it
-    even when its `getCounterCoverageRatio()` is already high enough.
-- Why this matches user observation:
-  - early battle has few waves;
-  - `myWaves <= defenseWaveThreshold` is easy to satisfy;
-  - one enemy wave becomes the obvious nearby threat;
-  - once it starts fighting, Defense can keep treating it as valid and spawn
-    more counters into the same fight.
-- Related current scene values observed during the check:
-  - `attackCounterCoverageRatio = 0.7`;
-  - `maxAliveWaves = 10`;
-  - team B had `fastReactChance = 0`;
-  - team A had `fastReactChance = 0.7`;
-  - `counterSameLaneChance` and `laneAwareness` differ between the brains.
-- Suggested fix when user resumes:
-  - make Defense mode also respect coverage for engaged waves, or add a very
-    narrow exception only for true raid/aggressive threats close to hero/base;
-  - avoid solving this only by tuning `defenseWaveThreshold` or
-    `defenseModeChance`, because the core issue is target validity allowing
-    over-counter in Defense.
-- Design distinction to preserve if fixed:
-  - Attack should choose useful battlefield counter targets;
-  - Defense should choose the most dangerous near-base/near-hero target;
-  - both should still avoid dumping extra waves into a target that is already
-    sufficiently covered unless there is an explicit emergency exception.
+- Obsolete analysis.
+- Do not implement fixes from the original July 1 Defense-mode analysis.
+- The old ArmyBrain Defense mode, `defenseWaveThreshold`,
+  `attackModeChance`, `defenseModeChance`, and raid-defense path were removed
+  by the July 2 ArmyBrain cleanup.
+- The current replacement design is:
+  - no runtime Defense mode;
+  - early ArmyBrain spawns use aggressive-forward until the brain has once
+    reached `maxAliveWaves`;
+  - later ArmyBrain spawns return to normal behavior except explicit
+    aggressive raid rules.
+- If over-counter or early-pressure behavior needs tuning now, inspect the
+  current `ArmyBrain.ts` flow and tune `fastReactChance`,
+  `attackCounterCoverageRatio`, lane awareness, counter same-lane chance, CP,
+  spawn intervals, and `maxAliveWaves`; do not resurrect the removed Defense
+  fields.
 
 ## July 2 - ArmyBrain Defense Removed / Early Aggressive Spawn Cleanup
 
@@ -1994,6 +1970,46 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
     `assets/Test.scene`;
   - then compare the current source against this section before changing
     ArmyBrain/wave-forward behavior.
+
+## July 2 / July 3 - LevelSettings Curves
+
+- Implemented in `assets/scripts/LevelSettings.ts`.
+- July 2 added `allowFastReact` and mapped it to
+  `ArmyBrain.fastReactChance`.
+- July 3 added Inspector endpoints for every value driven by level:
+  - `initialCombatPointMin` / `initialCombatPointMax`;
+  - `aiIntelligenceMin` / `aiIntelligenceMax`;
+  - `laneAwarenessMin` / `laneAwarenessMax`;
+  - `counterSameLaneChanceMin` / `counterSameLaneChanceMax`;
+  - `fastReactChanceMin` / `fastReactChanceMax`;
+  - `minSpawnIntervalMinLevel` / `minSpawnIntervalMaxLevel`;
+  - `maxSpawnIntervalMinLevel` / `maxSpawnIntervalMaxLevel`;
+  - `maxAliveWavesMin` / `maxAliveWavesMax`;
+  - `aggressiveForwardChanceMin` / `aggressiveForwardChanceMax`.
+- The previous hardcoded values are now only defaults on those properties.
+- `aggressiveForwardUnlockAt` remains as a separate threshold so the old raid
+  chance curve shape is preserved while still exposing min/max endpoints.
+- Current `assets/Test.scene` LevelSettings state at this update:
+  - component enabled;
+  - `currentLevel = 300`, `totalLevels = 300`, `targetTeam = 1`;
+  - all allow toggles are true, including `allowMaxWave`;
+  - current serialized ranges are:
+    - initial CP: `70 -> 150`;
+    - AI intelligence: `0 -> 1`;
+    - lane awareness: `0 -> 1`;
+    - counter same-lane chance: `0 -> 0.7`;
+    - fast-react chance: `0 -> 1`;
+    - min spawn interval: `5 -> 2`;
+    - max spawn interval: `6 -> 3`;
+    - max alive waves: `5 -> 10`;
+    - aggressive-forward raid chance: `0 -> 1`;
+    - aggressive unlock threshold: `0.45`.
+- No longer valid:
+  - `LevelSettings` does not use hardcoded `70 -> 180`, `0.4 -> 1`,
+    `5/6 -> 2.7/3.7`, `5 -> 15`, or `0 -> 0.25` runtime curves inside
+    `applyLevelSettings()`;
+  - those values are now editable scene/Inspector properties and may differ
+    per scene.
 
 ## July 2 - Aggressive Forward Can Release On Adjacent Enemy Hero
 
@@ -2282,6 +2298,15 @@ For the next session, unless the user changes direction:
   - single tap spawns normal forward after the short `doubleTapWindow`;
   - double tap spawns aggressive forward;
   - changing lane during the double-tap window does not move the pending spawn.
+- Test `LevelSettings` in Cocos after Inspector edits:
+  - toggle each `allow*` field independently and confirm only the intended
+    `ArmyBrain`/CP value changes;
+  - verify level 1 uses every `*Min`/`*MinLevel` endpoint and max level uses
+    every `*Max`/`*MaxLevel` endpoint;
+  - verify `aggressiveForwardUnlockAt` delays only the aggressive raid chance,
+    not the other curves;
+  - remember that `maxAliveWaves` also affects how long the new ArmyBrain
+    early-aggressive phase lasts.
 - Complete and test the `PlayerArmyController` Inspector wiring before adding
   more bottom-UI behavior.
 - Confirm that `ArmyBrainA` is disabled during manual-control tests.
