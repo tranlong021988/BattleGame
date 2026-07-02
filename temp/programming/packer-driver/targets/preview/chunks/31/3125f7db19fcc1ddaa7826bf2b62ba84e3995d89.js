@@ -509,6 +509,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         enterWaveCombatMode() {
           this.onForward = false;
+          this.aggressiveForward = false;
           this.resetStableRotationPosition();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -528,6 +529,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.onForward = false;
+          this.aggressiveForward = false;
           this.resetStableRotationPosition();
 
           if (searchRange > 0) {
@@ -746,7 +748,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (this.heroGuardDistance <= 0) return false;
           var target = this.getValidEnemyTarget();
 
-          if (!this.isEnemyInsideHeroGuardZone(target)) {
+          if (!this.shouldKeepSteadyHeroTarget(target)) {
             target = this.findNearestEnemyInHeroGuardZone();
           }
 
@@ -855,6 +857,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return best;
+        }
+
+        shouldKeepSteadyHeroTarget(target) {
+          if (!this.isValidEnemy(target)) {
+            return false;
+          }
+
+          if (this.isEnemyInsideHeroGuardZone(target)) {
+            return true;
+          }
+
+          if (target === this.retaliationTarget && target.lifeId === this.retaliationTargetLifeId) {
+            return true;
+          }
+
+          return this.onBusy && target === this.enemy && target.lifeId === this.enemyLifeId;
         }
 
         isEnemyInsideHeroGuardZone(enemy) {

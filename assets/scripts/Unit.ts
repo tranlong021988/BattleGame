@@ -833,7 +833,7 @@ export class Unit extends Component {
             this.getValidEnemyTarget();
 
         if (
-            !this.isEnemyInsideHeroGuardZone(target)
+            !this.shouldKeepSteadyHeroTarget(target)
         ) {
             target =
                 this.findNearestEnemyInHeroGuardZone();
@@ -999,6 +999,29 @@ export class Unit extends Component {
         }
 
         return best;
+    }
+
+    private shouldKeepSteadyHeroTarget(
+        target: Unit | null
+    ) {
+        if (!this.isValidEnemy(target)) {
+            return false;
+        }
+
+        if (this.isEnemyInsideHeroGuardZone(target)) {
+            return true;
+        }
+
+        if (
+            target === this.retaliationTarget &&
+            target.lifeId === this.retaliationTargetLifeId
+        ) {
+            return true;
+        }
+
+        return this.onBusy &&
+            target === this.enemy &&
+            target.lifeId === this.enemyLifeId;
     }
 
     private isEnemyInsideHeroGuardZone(

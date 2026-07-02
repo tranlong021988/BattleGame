@@ -468,6 +468,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.aggressiveForwardMode = false;
           this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
@@ -483,6 +484,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.freeHuntActive) return;
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.aggressiveForwardMode = false;
           this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 

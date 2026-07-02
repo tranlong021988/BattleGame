@@ -1995,6 +1995,51 @@ tsc -p tsconfig.json --noEmit --skipLibCheck --module esnext
   - then compare the current source against this section before changing
     ArmyBrain/wave-forward behavior.
 
+## July 2 - Aggressive Forward Can Release On Adjacent Enemy Hero
+
+- Implemented in `assets/scripts/GameManager.ts`.
+- Reason:
+  - aggressive-forward waves intentionally ignore normal enemy units in
+    adjacent lanes;
+  - earlier logic still released aggressive-forward at the enemy hero line;
+  - after hero behavior changed so heroes can leave their home line to fight,
+    an aggressive-forward wave could keep forwarding if the enemy hero was no
+    longer standing on that old line.
+- New rule:
+  - aggressive-forward still ignores ordinary adjacent-lane units;
+  - aggressive-forward still keeps same-lane forward release: if the current
+    forward scanner finds a same-lane enemy within `targetSearchRange` and has
+    passed it along forward direction, the wave releases to freehunt;
+  - the same-lane aggressive scan is throttled by the wave's
+    `targetSearchIntervalFrames`, like normal forward scan;
+  - aggressive-forward now treats the enemy hero as a special adjacent-lane
+    forward target;
+  - if the current forward scanner sees the enemy hero within
+    `targetSearchRange`, the hero is in the same lane or an adjacent lane, and
+    the scanner has passed the hero along forward direction, the wave releases
+    to freehunt through `onWaveForwardTargetFound()`.
+- Existing hero-line behavior is preserved.
+- TypeScript check passed with the Cocos 3.8.8 compiler on the office machine.
+
+## July 2 - Steady Hero Retaliates Against Ranged Attackers
+
+- Implemented in `assets/scripts/Unit.ts`.
+- Issue:
+  - steady hero guard only kept targets standing inside the hero guard zone;
+  - ranged units, especially archers, could stand outside that zone while still
+    shooting the hero;
+  - `reactToAttacker()` set the attacker as retaliation target, but
+    `updateSteadyHeroGuard()` immediately discarded it because the attacker was
+    outside the guard zone, so the hero could stand still as a target.
+- New rule:
+  - steady hero still prefers normal guard-zone targets;
+  - if the hero has a valid retaliation target, it keeps that target even when
+    the attacker is outside the guard zone;
+  - once the hero is already busy fighting a valid target, it also keeps that
+    target until it is invalid/dead;
+  - after the target is gone, normal guard return behavior resumes.
+- TypeScript check passed with the Cocos 3.8.8 compiler on the office machine.
+
 ## Current Next Best Direction
 
 For the next session, unless the user changes direction:

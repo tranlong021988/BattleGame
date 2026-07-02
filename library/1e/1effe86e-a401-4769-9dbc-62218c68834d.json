@@ -1427,7 +1427,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -494.25,
+      "y": -499.75,
       "z": 0
     },
     "_lrot": {
@@ -1466,7 +1466,7 @@
         "__id__": 34
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 164
@@ -1872,7 +1872,7 @@
     "node": {
       "__id__": 34
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "gameManager": {
       "__id__": 45
@@ -3866,10 +3866,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 6,
-    "unitCount": 5,
+    "unitCount": 10,
     "maxUnitPerRow": 8,
     "squareFormationWidth": 4,
-    "spaceBetweenUnit": 2,
+    "spaceBetweenUnit": 0.5,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
     "maxSpeed": 4.5,
@@ -3879,7 +3879,7 @@
     "health": 75,
     "damage": 4,
     "defense": 0,
-    "combatPointCost": 11
+    "combatPointCost": 5
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -4001,10 +4001,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "unitType": 6,
-    "unitCount": 5,
+    "unitCount": 10,
     "maxUnitPerRow": 8,
     "squareFormationWidth": 4,
-    "spaceBetweenUnit": 2,
+    "spaceBetweenUnit": 0.5,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
     "maxSpeed": 4.5,
@@ -4014,7 +4014,7 @@
     "health": 75,
     "damage": 4,
     "defense": 0,
-    "combatPointCost": 11
+    "combatPointCost": 5
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -4673,7 +4673,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 104.25,
+      "y": 109.75,
       "z": 0
     },
     "_lrot": {
@@ -5721,7 +5721,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -30.75,
+      "y": -25.25,
       "z": 0
     },
     "_lrot": {
@@ -7263,7 +7263,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 720,
-      "height": 291.5
+      "height": 280.5
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -8417,7 +8417,7 @@
     "preferUnengagedWaveInAttack": true,
     "ignoreNearlyDeadWaveRatio": 0.3,
     "attackCounterCoverageRatio": 0.7,
-    "counterSameLaneChance": 0.5,
+    "counterSameLaneChance": 0.1,
     "laneAwareness": 0.1,
     "aggressiveForwardChance": 0.1,
     "aiIntelligence": 0.1,
@@ -8490,7 +8490,7 @@
     "runOnlyWhenGameManagerAutoSpawnOff": true,
     "minSpawnInterval": 3,
     "maxSpawnInterval": 5,
-    "fastReactChance": 0.7,
+    "fastReactChance": 0.9,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 10,
@@ -8647,7 +8647,7 @@
     "allowSameLane": false,
     "allowInterval": false,
     "allowMaxWave": false,
-    "allowAggressive": true,
+    "allowAggressive": false,
     "_id": "a8WHRaLlVJzLB+E7XR9qFu"
   },
   {

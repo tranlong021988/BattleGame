@@ -740,7 +740,56 @@ export class GameManager extends Component {
             return;
         }
 
-        if (wave.isAggressiveForwardMode()) return;
+        if (wave.isAggressiveForwardMode()) {
+            const heroTarget =
+                scanner.getEnemyHeroTarget();
+
+            if (
+                heroTarget &&
+                this.shouldReleaseAggressiveForwardHeroTarget(
+                    scanner,
+                    heroTarget
+                )
+            ) {
+                this.onWaveForwardTargetFound(
+                    scanner,
+                    heroTarget
+                );
+            }
+
+            if (
+                !this.shouldRunFrameInterval(
+                    wave.getTargetSearchIntervalFrames(),
+                    wave.id
+                )
+            ) {
+                return;
+            }
+
+            scanner = wave.getForwardScanner(true);
+
+            if (!scanner) return;
+
+            const sameLaneTarget =
+                scanner.findForwardSearchTarget(
+                    true
+                );
+
+            if (
+                sameLaneTarget &&
+                this.shouldReleaseAggressiveForwardSameLaneTarget(
+                    scanner,
+                    sameLaneTarget
+                )
+            ) {
+                this.onWaveForwardTargetFound(
+                    scanner,
+                    sameLaneTarget
+                );
+            }
+
+            return;
+        }
 
         if (
             !this.shouldRunFrameInterval(
@@ -794,6 +843,55 @@ export class GameManager extends Component {
             );
 
         if (laneDistance > 1) {
+            return false;
+        }
+
+        return scanner.hasPassedForwardTarget(
+            target
+        );
+    }
+
+    private shouldReleaseAggressiveForwardHeroTarget(
+        scanner: Unit,
+        target: Unit
+    ) {
+        if (!target.isHero) return false;
+        if (!scanner.agent || !target.agent) return false;
+
+        const dx =
+            target.agent.pos.x -
+            scanner.agent.pos.x;
+        const dz =
+            target.agent.pos.z -
+            scanner.agent.pos.z;
+        const range =
+            Math.max(
+                0,
+                scanner.targetSearchRange
+            );
+
+        if (dx * dx + dz * dz > range * range) {
+            return false;
+        }
+
+        return this.shouldReleaseNormalForwardTarget(
+            scanner,
+            target
+        );
+    }
+
+    private shouldReleaseAggressiveForwardSameLaneTarget(
+        scanner: Unit,
+        target: Unit
+    ) {
+        if (!scanner || !target) return false;
+        if (scanner.laneId < 0) return false;
+        if (target.laneId < 0) return false;
+
+        if (
+            this.clampLaneId(scanner.laneId) !==
+            this.clampLaneId(target.laneId)
+        ) {
             return false;
         }
 
