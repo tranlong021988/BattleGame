@@ -37,6 +37,7 @@
             "scripts\\ObstacleRect.ts",
             "scripts\\PlayerArmyController.ts",
             "scripts\\RandomAnimcationOffset.ts",
+            "scripts\\SmartArmyBrain.ts",
             "scripts\\SpawnBackPressureGate.ts",
             "scripts\\SpectorDebugger.ts",
             "scripts\\spectorjs.d.ts",

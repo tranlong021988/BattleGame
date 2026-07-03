@@ -2,19 +2,24 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-03 by the office Codex.
+Last updated: 2026-07-04 by the home Codex.
 
 This file is intentionally concise. It should describe the current source and the currently accepted design, not the whole history of experiments. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
 ## Current Workspace Facts
 
-- Current HEAD while writing this handoff: `7eb7f467`.
+- Current HEAD while writing this handoff: `85b818e7`.
 - The worktree is dirty mostly because Cocos Editor/Preview generates files under `library/`, `temp/`, and `profiles/`.
 - Do not revert user/editor changes unless the user explicitly asks.
 - `.claude/` was removed from this workspace because it was an untracked, non-Cocos local settings folder.
 - Current real source changes from the office session:
   - `assets/scripts/GameManager.ts` added `waveBannerRefreshIntervalFrames = 12`.
   - `AI-CONTEX.md` was rewritten to remove obsolete/conflicting history.
+- Current real source changes from the home session:
+  - Added `assets/scripts/SmartArmyBrain.ts` and `.meta`.
+  - `SmartArmyBrain` is a separate experimental AI component. It does not replace or modify `ArmyBrain` automatically.
+  - Simplified `SmartArmyBrain` after user feedback: removed direct-counter blocker limits, lane-traffic direct-counter limits, and deferred-target cooldown logic.
+  - Added the opening aggressive rule to `SmartArmyBrain`: before this AI has ever reached `maxAliveWaves`, its counter/opening spawns use aggressive forward.
 - `assets/Test.scene` currently serializes the `LevelSettings` node inactive and the `LevelSettings` component disabled. Do not claim LevelSettings is active in this scene unless re-checked in Cocos.
 - `assets/Test.scene` serializes `SpectorDebugger` disabled; its `enableSpector` field may be true, but the disabled component means it should not run.
 - The user recently disabled an extra camera in the scene. A Spector capture after that showed render pass/draw-call reduction. Re-check camera components before assuming the scene still has only one active render camera.
@@ -109,6 +114,43 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
   - max alive wave pressure.
 - ArmyBrain has early aggressive behavior until it has once reached `maxAliveWaves`. Verify source before changing this because it affects opening pressure.
 - Aggressive raid chance is still separately tunable through `aggressiveForwardChance`.
+
+## SmartArmyBrain
+
+- `assets/scripts/SmartArmyBrain.ts` is a new separate component intended to test a cleaner strategic AI instead of patching `ArmyBrain`.
+- It is not wired into `assets/Test.scene` by this handoff. Add it manually in Cocos if testing.
+- Keep old `ArmyBrain` available as fallback until SmartArmyBrain is proven in playtests.
+- It only decides wave spawn strategy. It does not directly control unit movement, combat, forward/freehunt, lane voting, worker, RVO, banner, or minimap behavior after spawn.
+- It should usually run with `GameManager.enableAutoSpawn = false` when `runOnlyWhenGameManagerAutoSpawnOff = true`, so the old random/auto spawn loop does not compete with it.
+- Current SmartArmyBrain decision model:
+  - runs on a spawn interval;
+  - builds lane intel from current alive waves;
+  - builds enemy-wave intel from current alive enemy waves;
+  - scores enemy threat using counter coverage, alive ratio, distance to own hero/spawn, engagement, and whether a same-lane ally counter is struggling;
+  - prefers uncovered enemy waves that have a real counter available through `CounterSettings`;
+  - can still target a wave that already has counter coverage if that wave is near the hero or current counter pressure looks like it is failing;
+  - does not block counter decisions based on lane traffic, path blockers, or time-based deferral;
+  - can spawn into a support/empty lane only when `decisionAccuracy` allows an inaccurate lane choice;
+  - can spawn aggressive-forward into an empty lane when there is no good counter target;
+  - can spawn an opening wave if no enemy wave exists.
+- Opening aggressive rule:
+  - `SmartArmyBrain` tracks whether its team has ever reached `maxAliveWaves`;
+  - before that first reach, counter/opening spawns use `aggressiveForward = true`;
+  - once the team has ever reached `maxAliveWaves`, later counter/opening spawns use normal forward;
+  - if `enableMaxAliveWaveLimit` is off, this opening aggressive phase is considered already complete.
+- `decisionAccuracy` is the main combined knob for counter correctness and lane correctness:
+  - `1` means best real counter and best reachable lane;
+  - lower values allow more random unit/lane choices.
+- Counter assignment/coverage is only added to the target enemy wave when SmartArmyBrain spawned a real counter into that target's lane. Support-lane/aggressive spawns do not falsely count as coverage.
+- Counter coverage is no longer a hard "do not spawn" gate. This is intentional because assigned counter count is historical and does not decrease when counter waves die, get stuck, or fail.
+- Avoid reintroducing separate "max blockers", "max lane traffic", or "deferred target cooldown" knobs unless the user explicitly asks. They were removed because they felt like duplicate, hard-to-tune interpretations of "lane is too crowded".
+- Performance shape:
+  - uses reused arrays/buffers for lane intel, enemy intel, affordable entries, and best-entry candidates;
+  - scans wave state only on SmartArmyBrain's spawn interval, not every frame;
+  - currently not event-driven. Do not convert it to spawn/death event bookkeeping unless testing proves interval scanning is a bottleneck, because event hooks would touch more core systems.
+- Current known integration gap:
+  - `LevelSettings` does not scale SmartArmyBrain yet.
+  - If the user wants level curves for SmartArmyBrain, add explicit min/max inputs for SmartArmyBrain properties instead of silently mapping old ArmyBrain fields.
 
 ## LevelSettings
 

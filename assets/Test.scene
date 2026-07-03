@@ -68,19 +68,19 @@
         "__id__": 291
       },
       {
-        "__id__": 293
-      },
-      {
-        "__id__": 295
+        "__id__": 294
       },
       {
         "__id__": 297
+      },
+      {
+        "__id__": 299
       }
     ],
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 299
+      "__id__": 301
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -111,7 +111,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 300
+      "__id__": 302
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -8362,6 +8362,9 @@
     "_components": [
       {
         "__id__": 292
+      },
+      {
+        "__id__": 293
       }
     ],
     "_prefab": null,
@@ -8402,7 +8405,7 @@
     "node": {
       "__id__": 291
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "gameManager": {
       "__id__": 45
@@ -8430,6 +8433,36 @@
     "_id": "8b7typUxFBD7+IiCLqavbl"
   },
   {
+    "__type__": "176e8OduVVJWZtW75fGMWiX",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 291
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "gameManager": {
+      "__id__": 45
+    },
+    "team": 1,
+    "runOnlyWhenGameManagerAutoSpawnOff": true,
+    "minSpawnInterval": 2.5,
+    "maxSpawnInterval": 5,
+    "maxBrainDeltaTime": 0.1,
+    "enableMaxAliveWaveLimit": true,
+    "maxAliveWaves": 7,
+    "decisionAccuracy": 0,
+    "attackCounterCoverageRatio": 1,
+    "ignoreNearlyDeadWaveRatio": 0.2,
+    "rescueAllyAliveRatio": 0.35,
+    "aggressiveForwardChance": 0.25,
+    "spawnOpeningWaveIfNoEnemyWave": true,
+    "enableStateLog": false,
+    "enableDebugLog": false,
+    "_id": "8a6P/lUQpO+YB/mpixuO0U"
+  },
+  {
     "__type__": "cc.Node",
     "_name": "ArmyBrainA",
     "_objFlags": 0,
@@ -8441,7 +8474,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 294
+        "__id__": 295
+      },
+      {
+        "__id__": 296
       }
     ],
     "_prefab": null,
@@ -8480,9 +8516,9 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 293
+      "__id__": 294
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "gameManager": {
       "__id__": 45
@@ -8510,75 +8546,38 @@
     "_id": "4fwfKxselC06vULLcWgs9+"
   },
   {
-    "__type__": "cc.Node",
-    "_name": "SpectorDebugger",
-    "_objFlags": 0,
-    "__editorExtras__": {},
-    "_parent": {
-      "__id__": 1
-    },
-    "_children": [],
-    "_active": false,
-    "_components": [
-      {
-        "__id__": 296
-      }
-    ],
-    "_prefab": null,
-    "_lpos": {
-      "__type__": "cc.Vec3",
-      "x": 0,
-      "y": 0,
-      "z": 0
-    },
-    "_lrot": {
-      "__type__": "cc.Quat",
-      "x": 0,
-      "y": 0,
-      "z": 0,
-      "w": 1
-    },
-    "_lscale": {
-      "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
-      "z": 1
-    },
-    "_mobility": 0,
-    "_layer": 1073741824,
-    "_euler": {
-      "__type__": "cc.Vec3",
-      "x": 0,
-      "y": 0,
-      "z": 0
-    },
-    "_id": "bbeX9TNylCZZgk7JJdEHrY"
-  },
-  {
-    "__type__": "87939wfbU9LKL9PL0ZEiEaD",
+    "__type__": "176e8OduVVJWZtW75fGMWiX",
     "_name": "",
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 295
+      "__id__": 294
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": null,
-    "enableSpector": true,
-    "showUIOnStart": true,
-    "spyCanvasesOnStart": false,
-    "captureOnStart": false,
-    "captureCommandCount": 3000,
-    "autoDownloadCaptureJson": true,
-    "exposeLastCaptureOnWindow": true,
-    "captureFilePrefix": "spector-capture",
-    "enableCaptureHotkey": true,
-    "enableLog": true,
-    "_id": "9epuY8TLVJyJv4KQVW578y"
+    "gameManager": {
+      "__id__": 45
+    },
+    "team": 0,
+    "runOnlyWhenGameManagerAutoSpawnOff": true,
+    "minSpawnInterval": 2.5,
+    "maxSpawnInterval": 5,
+    "maxBrainDeltaTime": 0.1,
+    "enableMaxAliveWaveLimit": true,
+    "maxAliveWaves": 7,
+    "decisionAccuracy": 1,
+    "attackCounterCoverageRatio": 1,
+    "ignoreNearlyDeadWaveRatio": 0.2,
+    "rescueAllyAliveRatio": 0.35,
+    "aggressiveForwardChance": 0.25,
+    "spawnOpeningWaveIfNoEnemyWave": true,
+    "enableStateLog": false,
+    "enableDebugLog": false,
+    "_id": "b8OTbLvLdHvYGAlWHqsH6l"
   },
   {
     "__type__": "cc.Node",
-    "_name": "LevelSettings",
+    "_name": "SpectorDebugger",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -8619,6 +8618,73 @@
       "y": 0,
       "z": 0
     },
+    "_id": "bbeX9TNylCZZgk7JJdEHrY"
+  },
+  {
+    "__type__": "87939wfbU9LKL9PL0ZEiEaD",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 297
+    },
+    "_enabled": false,
+    "__prefab": null,
+    "enableSpector": true,
+    "showUIOnStart": true,
+    "spyCanvasesOnStart": false,
+    "captureOnStart": false,
+    "captureCommandCount": 3000,
+    "autoDownloadCaptureJson": true,
+    "exposeLastCaptureOnWindow": true,
+    "captureFilePrefix": "spector-capture",
+    "enableCaptureHotkey": true,
+    "enableLog": true,
+    "_id": "9epuY8TLVJyJv4KQVW578y"
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "LevelSettings",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__id__": 300
+      }
+    ],
+    "_prefab": null,
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 1073741824,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
     "_id": "491h7XWz5ArrHEM+sqAG2W"
   },
   {
@@ -8627,7 +8693,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 297
+      "__id__": 299
     },
     "_enabled": false,
     "__prefab": null,
@@ -8696,28 +8762,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 301
-    },
-    "shadows": {
-      "__id__": 302
-    },
-    "_skybox": {
       "__id__": 303
     },
-    "fog": {
+    "shadows": {
       "__id__": 304
     },
-    "octree": {
+    "_skybox": {
       "__id__": 305
     },
-    "skin": {
+    "fog": {
       "__id__": 306
     },
-    "lightProbeInfo": {
+    "octree": {
       "__id__": 307
     },
-    "postSettings": {
+    "skin": {
       "__id__": 308
+    },
+    "lightProbeInfo": {
+      "__id__": 309
+    },
+    "postSettings": {
+      "__id__": 310
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false
