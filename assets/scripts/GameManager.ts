@@ -181,6 +181,13 @@ export class GameManager extends Component {
     @property
     waveBannerTweenDuration = 0.2;
 
+    @property({
+        min: 1,
+        tooltip:
+            'Frames between safety wave-banner holder refresh checks. Set to 1 to refresh every frame.',
+    })
+    waveBannerRefreshIntervalFrames = 12;
+
     @property(Camera)
     waveBannerCamera: Camera | null = null;
 
@@ -915,6 +922,15 @@ export class GameManager extends Component {
 
     private processWaveBanners() {
         this.updateWaveBannerCameraVisibility(false);
+
+        if (
+            !this.shouldRunFrameInterval(
+                this.waveBannerRefreshIntervalFrames,
+                0
+            )
+        ) {
+            return;
+        }
 
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
