@@ -21,6 +21,11 @@ This file is intentionally concise. It should describe the current source and th
   - Simplified `SmartArmyBrain` after user feedback: removed direct-counter blocker limits, lane-traffic direct-counter limits, and deferred-target cooldown logic.
   - Added the opening aggressive rule to `SmartArmyBrain`: before this AI has ever reached `maxAliveWaves`, its counter/opening spawns use aggressive forward.
   - Changed attack-range contact to edge-based range for all units: effective range is `unit.radius + enemy.radius + attackRange`.
+  - Reworked RVO ally overtake in both worker and main-thread fallback:
+    - same-speed units can now proactively sidestep allied blockers;
+    - side choice uses local clearance from current neighbors;
+    - side choice is locked briefly to reduce left/right jitter;
+    - this is local steering, not full pathfinding.
 - `assets/Test.scene` currently serializes the `LevelSettings` node inactive and the `LevelSettings` component disabled. Do not claim LevelSettings is active in this scene unless re-checked in Cocos.
 - `assets/Test.scene` serializes `SpectorDebugger` disabled; its `enableSpector` field may be true, but the disabled component means it should not run.
 - The user recently disabled an extra camera in the scene. A Spector capture after that showed render pass/draw-call reduction. Re-check camera components before assuming the scene still has only one active render camera.
@@ -202,6 +207,27 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 - If banner count grows, cache banner renderer refs instead of repeatedly using `getComponentsInChildren(MeshRenderer)` during attach/re-attach.
 - `TrueMiniMapPanel` uses `BattleWave.getRepresentativeUnit()` first; fallback averaging is only for missing representatives.
 - Hero minimap display is handled by hero icon path, not normal wave icon path.
+
+## RVO / Local Avoidance
+
+- RVO remains local avoidance plus steering, not long-range pathfinding.
+- Ally overtake is proactive now:
+  - only runs for movable `onForward` agents with `enableAllyOvertake`;
+  - considers same-team blockers ahead only when they are actually blocking: locked, not `onForward`, or moving forward too slowly for several RVO steps;
+  - this slow-blocker gate is intentional. It prevents freshly spawned wave formations from spreading sideways just because rear units see normal allies in front of them;
+  - no longer requires the rear unit to be faster; it only skips overtake if the rear unit is clearly slower than the blocker by `overtakeSpeedDiff`;
+  - chooses left/right by scoring local clearance from the already collected neighbor list;
+  - stores `overtakeSideLock` / `overtakeHoldFrames` to avoid oscillating side choice;
+  - stores per-agent `forwardSlowFrames`; keep this mirrored in worker and fallback.
+- Unit visual movement facing now prefers actual `agent.vel` when it is large enough, falling back to `prefVel` otherwise. This is intentional so ally-overtake sidesteps look like the unit turns into the dodge instead of being pulled sideways.
+- Worker and fallback logic must stay mirrored:
+  - `assets/scripts/rvo/RVO.ts`;
+  - `assets/scripts/rvo/RVOWorkerSimulator.ts` embedded worker source.
+- If tuning visual behavior:
+  - `overtakeLookAhead` controls how early the rear unit starts reacting;
+  - `overtakeSideRange` controls how wide a blocker corridor counts;
+  - `overtakeSideStrength` controls lateral push;
+  - `overtakeSpeedDiff` now means "do not overtake a meaningfully faster ally", not "must be faster to overtake".
 
 ## Render / Performance Status
 

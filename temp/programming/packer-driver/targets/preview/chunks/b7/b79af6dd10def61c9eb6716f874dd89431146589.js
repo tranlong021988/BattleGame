@@ -1110,6 +1110,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (this.agent.locked) return;
           var dx = this.agent.prefVel.x;
           var dz = this.agent.prefVel.z;
+          var velX = this.agent.vel.x;
+          var velZ = this.agent.vel.z;
+          var minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
+          var velLenSq = velX * velX + velZ * velZ;
+
+          if (velLenSq >= minVel * minVel) {
+            dx = velX;
+            dz = velZ;
+          }
+
           var lenSq = dx * dx + dz * dz;
 
           if (lenSq < 0.0001) {

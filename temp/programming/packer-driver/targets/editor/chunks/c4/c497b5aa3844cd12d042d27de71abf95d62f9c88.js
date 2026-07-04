@@ -47,6 +47,9 @@ System.register(["cc"], function (_export, _context) {
           this.overtakeSideStrength = 0.75;
           this.overtakeSpeedDiff = 0.15;
           this.overtakeSeed = 1;
+          this.overtakeSideLock = 0;
+          this.overtakeHoldFrames = 0;
+          this.forwardSlowFrames = 0;
           this.gridX = 0;
           this.gridZ = 0;
           this.pos.x = x;
@@ -80,6 +83,7 @@ System.register(["cc"], function (_export, _context) {
           this.timeStep = 1 / 60;
           this.minStepDeltaTime = 1 / 120;
           this.maxStepDeltaTime = 1 / 20;
+          this.overtakeSlowFrameThreshold = 8;
           // Số vòng chống xuyên vật cản.
           // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
           this.obstacleSolveIterations = 3;
@@ -241,60 +245,145 @@ System.register(["cc"], function (_export, _context) {
           return result;
         }
 
-        applyAllyOvertake(a) {
+        applyAllyOvertake(a, neighbors) {
           if (!a.enableAllyOvertake) return;
           if (a.locked) return;
           if (a.onForward !== 1) return;
           let best = null;
           let bestForwardDist = Infinity;
+          let bestSideDist = 0;
+          const lookAhead = Math.max(0, a.overtakeLookAhead);
+          const sideRange = Math.max(0, a.overtakeSideRange);
 
-          for (let i = 0; i < this.agents.length; i++) {
-            const b = this.agents[i];
+          if (lookAhead <= 0 || sideRange <= 0) {
+            return;
+          }
+
+          for (let i = 0; i < neighbors.length; i++) {
+            const b = neighbors[i];
             if (b === a) continue;
-            if (b.locked) continue;
             if (b.team !== a.team) continue;
-            if (b.onForward !== 1) continue;
 
-            if (a.maxSpeed <= b.maxSpeed + a.overtakeSpeedDiff) {
+            if (a.maxSpeed + a.overtakeSpeedDiff < b.maxSpeed) {
               continue;
             }
 
+            if (!this.isAllyOvertakeBlocker(b)) continue;
             const dx = b.pos.x - a.pos.x;
             const dz = b.pos.z - a.pos.z;
             const forwardDist = dx * a.forwardX + dz * a.forwardZ;
-            if (forwardDist <= 0) continue;
-            if (forwardDist > a.overtakeLookAhead) continue;
+            if (forwardDist <= a.radius * 0.25) continue;
+            if (forwardDist > lookAhead) continue;
             const sideDist = dx * a.forwardZ - dz * a.forwardX;
 
-            if (Math.abs(sideDist) > a.overtakeSideRange) {
+            if (Math.abs(sideDist) > sideRange + a.radius + b.radius) {
               continue;
             }
 
             if (forwardDist < bestForwardDist) {
               bestForwardDist = forwardDist;
+              bestSideDist = sideDist;
               best = b;
             }
           }
 
-          if (!best) return;
-          const dx = a.pos.x - best.pos.x;
-          const dz = a.pos.z - best.pos.z;
-          let side = dx * a.forwardZ - dz * a.forwardX;
+          if (!best) {
+            if (a.overtakeHoldFrames > 0) {
+              a.overtakeHoldFrames--;
+            } else {
+              a.overtakeSideLock = 0;
+            }
 
-          if (Math.abs(side) > 0.05) {
-            side = side >= 0 ? 1 : -1;
-          } else {
-            side = a.overtakeSeed >= 0 ? 1 : -1;
+            return;
           }
 
-          a.vel.x += a.forwardZ * side * a.maxSpeed * a.overtakeSideStrength;
-          a.vel.z += -a.forwardX * side * a.maxSpeed * a.overtakeSideStrength;
+          let side = a.overtakeSideLock;
+
+          if (side === 0 || a.overtakeHoldFrames <= 0) {
+            side = this.chooseOvertakeSide(a, neighbors, bestSideDist);
+            a.overtakeSideLock = side;
+          }
+
+          a.overtakeHoldFrames = 12;
+          const closeFactor = 1 - Math.min(1, bestForwardDist / Math.max(0.001, lookAhead));
+          const strength = a.maxSpeed * a.overtakeSideStrength * (0.35 + closeFactor * 0.65);
+          a.vel.x += a.forwardZ * side * strength;
+          a.vel.z += -a.forwardX * side * strength;
           const speed = Math.sqrt(a.vel.x * a.vel.x + a.vel.z * a.vel.z);
 
           if (speed > a.maxSpeed) {
             a.vel.x = a.vel.x / speed * a.maxSpeed;
             a.vel.z = a.vel.z / speed * a.maxSpeed;
           }
+        }
+
+        updateForwardSlowFrames(a) {
+          if (a.locked || a.onForward !== 1) {
+            a.forwardSlowFrames = 0;
+            return;
+          }
+
+          const prefForward = a.prefVel.x * a.forwardX + a.prefVel.z * a.forwardZ;
+
+          if (prefForward <= a.maxSpeed * 0.25) {
+            a.forwardSlowFrames = 0;
+            return;
+          }
+
+          const currentForward = a.vel.x * a.forwardX + a.vel.z * a.forwardZ;
+
+          if (currentForward < prefForward * 0.35) {
+            a.forwardSlowFrames++;
+          } else {
+            a.forwardSlowFrames = 0;
+          }
+        }
+
+        isAllyOvertakeBlocker(b) {
+          if (b.locked) return true;
+          if (b.onForward !== 1) return true;
+          return b.forwardSlowFrames >= this.overtakeSlowFrameThreshold;
+        }
+
+        chooseOvertakeSide(a, neighbors, blockerSideDist) {
+          const rightScore = this.getOvertakeSideClearanceScore(a, neighbors, 1);
+          const leftScore = this.getOvertakeSideClearanceScore(a, neighbors, -1);
+
+          if (Math.abs(rightScore - leftScore) > 0.001) {
+            return rightScore > leftScore ? 1 : -1;
+          }
+
+          if (Math.abs(blockerSideDist) > 0.05) {
+            return blockerSideDist > 0 ? -1 : 1;
+          }
+
+          return a.overtakeSeed >= 0 ? 1 : -1;
+        }
+
+        getOvertakeSideClearanceScore(a, neighbors, side) {
+          const sideX = a.forwardZ * side;
+          const sideZ = -a.forwardX * side;
+          const lookAhead = Math.max(0.001, a.overtakeLookAhead);
+          const sideRange = Math.max(0.001, a.overtakeSideRange);
+          let score = 0;
+
+          for (let i = 0; i < neighbors.length; i++) {
+            const b = neighbors[i];
+            if (b === a) continue;
+            const dx = b.pos.x - a.pos.x;
+            const dz = b.pos.z - a.pos.z;
+            const forwardDist = dx * a.forwardX + dz * a.forwardZ;
+            if (forwardDist < -a.radius) continue;
+            if (forwardDist > lookAhead + b.radius) continue;
+            const sideDist = dx * sideX + dz * sideZ;
+            if (sideDist <= 0) continue;
+            if (sideDist > sideRange + b.radius) continue;
+            const forwardWeight = 1 - Math.min(1, Math.abs(forwardDist) / lookAhead);
+            const sideWeight = 1 - Math.min(1, sideDist / (sideRange + b.radius));
+            score -= (forwardWeight * 1.5 + sideWeight) * (b.radius + a.radius);
+          }
+
+          return score;
         } // =========================================================
         // HARD COLLISION: CIRCLE OBSTACLE
         // =========================================================
@@ -407,6 +496,7 @@ System.register(["cc"], function (_export, _context) {
 
           for (let i = 0; i < this.agents.length; i++) {
             const a = this.agents[i];
+            this.updateForwardSlowFrames(a);
             if (a.locked) continue;
             let vx = a.prefVel.x;
             let vz = a.prefVel.z;
@@ -530,7 +620,7 @@ System.register(["cc"], function (_export, _context) {
 
             a.vel.x = vx;
             a.vel.z = vz;
-            this.applyAllyOvertake(a);
+            this.applyAllyOvertake(a, neighbors);
             vx = a.vel.x;
             vz = a.vel.z;
             const speed = Math.sqrt(vx * vx + vz * vz);

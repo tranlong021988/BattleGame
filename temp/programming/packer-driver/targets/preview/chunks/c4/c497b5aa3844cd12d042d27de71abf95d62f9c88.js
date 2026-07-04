@@ -47,6 +47,9 @@ System.register(["cc"], function (_export, _context) {
           this.overtakeSideStrength = 0.75;
           this.overtakeSpeedDiff = 0.15;
           this.overtakeSeed = 1;
+          this.overtakeSideLock = 0;
+          this.overtakeHoldFrames = 0;
+          this.forwardSlowFrames = 0;
           this.gridX = 0;
           this.gridZ = 0;
           this.pos.x = x;
@@ -80,6 +83,7 @@ System.register(["cc"], function (_export, _context) {
           this.timeStep = 1 / 60;
           this.minStepDeltaTime = 1 / 120;
           this.maxStepDeltaTime = 1 / 20;
+          this.overtakeSlowFrameThreshold = 8;
           // Số vòng chống xuyên vật cản.
           // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
           this.obstacleSolveIterations = 3;
@@ -241,62 +245,145 @@ System.register(["cc"], function (_export, _context) {
           return result;
         }
 
-        applyAllyOvertake(a) {
+        applyAllyOvertake(a, neighbors) {
           if (!a.enableAllyOvertake) return;
           if (a.locked) return;
           if (a.onForward !== 1) return;
           var best = null;
           var bestForwardDist = Infinity;
+          var bestSideDist = 0;
+          var lookAhead = Math.max(0, a.overtakeLookAhead);
+          var sideRange = Math.max(0, a.overtakeSideRange);
 
-          for (var i = 0; i < this.agents.length; i++) {
-            var b = this.agents[i];
+          if (lookAhead <= 0 || sideRange <= 0) {
+            return;
+          }
+
+          for (var i = 0; i < neighbors.length; i++) {
+            var b = neighbors[i];
             if (b === a) continue;
-            if (b.locked) continue;
             if (b.team !== a.team) continue;
-            if (b.onForward !== 1) continue;
 
-            if (a.maxSpeed <= b.maxSpeed + a.overtakeSpeedDiff) {
+            if (a.maxSpeed + a.overtakeSpeedDiff < b.maxSpeed) {
               continue;
             }
 
-            var _dx = b.pos.x - a.pos.x;
+            if (!this.isAllyOvertakeBlocker(b)) continue;
+            var dx = b.pos.x - a.pos.x;
+            var dz = b.pos.z - a.pos.z;
+            var forwardDist = dx * a.forwardX + dz * a.forwardZ;
+            if (forwardDist <= a.radius * 0.25) continue;
+            if (forwardDist > lookAhead) continue;
+            var sideDist = dx * a.forwardZ - dz * a.forwardX;
 
-            var _dz = b.pos.z - a.pos.z;
-
-            var forwardDist = _dx * a.forwardX + _dz * a.forwardZ;
-            if (forwardDist <= 0) continue;
-            if (forwardDist > a.overtakeLookAhead) continue;
-            var sideDist = _dx * a.forwardZ - _dz * a.forwardX;
-
-            if (Math.abs(sideDist) > a.overtakeSideRange) {
+            if (Math.abs(sideDist) > sideRange + a.radius + b.radius) {
               continue;
             }
 
             if (forwardDist < bestForwardDist) {
               bestForwardDist = forwardDist;
+              bestSideDist = sideDist;
               best = b;
             }
           }
 
-          if (!best) return;
-          var dx = a.pos.x - best.pos.x;
-          var dz = a.pos.z - best.pos.z;
-          var side = dx * a.forwardZ - dz * a.forwardX;
+          if (!best) {
+            if (a.overtakeHoldFrames > 0) {
+              a.overtakeHoldFrames--;
+            } else {
+              a.overtakeSideLock = 0;
+            }
 
-          if (Math.abs(side) > 0.05) {
-            side = side >= 0 ? 1 : -1;
-          } else {
-            side = a.overtakeSeed >= 0 ? 1 : -1;
+            return;
           }
 
-          a.vel.x += a.forwardZ * side * a.maxSpeed * a.overtakeSideStrength;
-          a.vel.z += -a.forwardX * side * a.maxSpeed * a.overtakeSideStrength;
+          var side = a.overtakeSideLock;
+
+          if (side === 0 || a.overtakeHoldFrames <= 0) {
+            side = this.chooseOvertakeSide(a, neighbors, bestSideDist);
+            a.overtakeSideLock = side;
+          }
+
+          a.overtakeHoldFrames = 12;
+          var closeFactor = 1 - Math.min(1, bestForwardDist / Math.max(0.001, lookAhead));
+          var strength = a.maxSpeed * a.overtakeSideStrength * (0.35 + closeFactor * 0.65);
+          a.vel.x += a.forwardZ * side * strength;
+          a.vel.z += -a.forwardX * side * strength;
           var speed = Math.sqrt(a.vel.x * a.vel.x + a.vel.z * a.vel.z);
 
           if (speed > a.maxSpeed) {
             a.vel.x = a.vel.x / speed * a.maxSpeed;
             a.vel.z = a.vel.z / speed * a.maxSpeed;
           }
+        }
+
+        updateForwardSlowFrames(a) {
+          if (a.locked || a.onForward !== 1) {
+            a.forwardSlowFrames = 0;
+            return;
+          }
+
+          var prefForward = a.prefVel.x * a.forwardX + a.prefVel.z * a.forwardZ;
+
+          if (prefForward <= a.maxSpeed * 0.25) {
+            a.forwardSlowFrames = 0;
+            return;
+          }
+
+          var currentForward = a.vel.x * a.forwardX + a.vel.z * a.forwardZ;
+
+          if (currentForward < prefForward * 0.35) {
+            a.forwardSlowFrames++;
+          } else {
+            a.forwardSlowFrames = 0;
+          }
+        }
+
+        isAllyOvertakeBlocker(b) {
+          if (b.locked) return true;
+          if (b.onForward !== 1) return true;
+          return b.forwardSlowFrames >= this.overtakeSlowFrameThreshold;
+        }
+
+        chooseOvertakeSide(a, neighbors, blockerSideDist) {
+          var rightScore = this.getOvertakeSideClearanceScore(a, neighbors, 1);
+          var leftScore = this.getOvertakeSideClearanceScore(a, neighbors, -1);
+
+          if (Math.abs(rightScore - leftScore) > 0.001) {
+            return rightScore > leftScore ? 1 : -1;
+          }
+
+          if (Math.abs(blockerSideDist) > 0.05) {
+            return blockerSideDist > 0 ? -1 : 1;
+          }
+
+          return a.overtakeSeed >= 0 ? 1 : -1;
+        }
+
+        getOvertakeSideClearanceScore(a, neighbors, side) {
+          var sideX = a.forwardZ * side;
+          var sideZ = -a.forwardX * side;
+          var lookAhead = Math.max(0.001, a.overtakeLookAhead);
+          var sideRange = Math.max(0.001, a.overtakeSideRange);
+          var score = 0;
+
+          for (var i = 0; i < neighbors.length; i++) {
+            var b = neighbors[i];
+            if (b === a) continue;
+            var dx = b.pos.x - a.pos.x;
+            var dz = b.pos.z - a.pos.z;
+            var forwardDist = dx * a.forwardX + dz * a.forwardZ;
+            if (forwardDist < -a.radius) continue;
+            if (forwardDist > lookAhead + b.radius) continue;
+            var sideDist = dx * sideX + dz * sideZ;
+            if (sideDist <= 0) continue;
+            if (sideDist > sideRange + b.radius) continue;
+            var forwardWeight = 1 - Math.min(1, Math.abs(forwardDist) / lookAhead);
+            var sideWeight = 1 - Math.min(1, sideDist / (sideRange + b.radius));
+            score -= (forwardWeight * 1.5 + sideWeight) * (b.radius + a.radius);
+          }
+
+          return score;
         } // =========================================================
         // HARD COLLISION: CIRCLE OBSTACLE
         // =========================================================
@@ -409,6 +496,7 @@ System.register(["cc"], function (_export, _context) {
 
           for (var i = 0; i < this.agents.length; i++) {
             var a = this.agents[i];
+            this.updateForwardSlowFrames(a);
             if (a.locked) continue;
             var vx = a.prefVel.x;
             var vz = a.prefVel.z;
@@ -442,18 +530,18 @@ System.register(["cc"], function (_export, _context) {
             for (var _j = 0; _j < this.circleObs.length; _j++) {
               var ob = this.circleObs[_j];
 
-              var _dx2 = a.pos.x - ob.x;
+              var _dx = a.pos.x - ob.x;
 
-              var _dz2 = a.pos.z - ob.z;
+              var _dz = a.pos.z - ob.z;
 
-              var _dist = Math.sqrt(_dx2 * _dx2 + _dz2 * _dz2);
+              var _dist = Math.sqrt(_dx * _dx + _dz * _dz);
 
               var _minDist = a.radius + ob.r;
 
               if (_dist < _minDist && _dist > 0.0001) {
-                var _nx = _dx2 / _dist;
+                var _nx = _dx / _dist;
 
-                var _nz = _dz2 / _dist;
+                var _nz = _dz / _dist;
 
                 vx += _nx * (_minDist - _dist) * 2;
                 vz += _nz * (_minDist - _dist) * 2;
@@ -471,12 +559,12 @@ System.register(["cc"], function (_export, _context) {
             for (var _j2 = 0; _j2 < this.rectObs.length; _j2++) {
               var _ob = this.rectObs[_j2];
 
-              var _dx3 = a.pos.x - _ob.x;
+              var _dx2 = a.pos.x - _ob.x;
 
-              var _dz3 = a.pos.z - _ob.z;
+              var _dz2 = a.pos.z - _ob.z;
 
-              var lx = _dx3 * _ob.cos + _dz3 * _ob.sin;
-              var lz = -_dx3 * _ob.sin + _dz3 * _ob.cos;
+              var lx = _dx2 * _ob.cos + _dz2 * _ob.sin;
+              var lz = -_dx2 * _ob.sin + _dz2 * _ob.cos;
               var px = this.clamp(lx, -_ob.hx, _ob.hx);
               var pz = this.clamp(lz, -_ob.hz, _ob.hz);
               var ox = lx - px;
@@ -554,7 +642,7 @@ System.register(["cc"], function (_export, _context) {
 
             a.vel.x = vx;
             a.vel.z = vz;
-            this.applyAllyOvertake(a);
+            this.applyAllyOvertake(a, neighbors);
             vx = a.vel.x;
             vz = a.vel.z;
             var speed = Math.sqrt(vx * vx + vz * vz);
@@ -594,11 +682,11 @@ System.register(["cc"], function (_export, _context) {
             for (var _j3 = 0; _j3 < _neighbors.length; _j3++) {
               var _b = _neighbors[_j3];
 
-              var _dx4 = _b.pos.x - _a2.pos.x;
+              var _dx3 = _b.pos.x - _a2.pos.x;
 
-              var _dz4 = _b.pos.z - _a2.pos.z;
+              var _dz3 = _b.pos.z - _a2.pos.z;
 
-              var _distSq2 = _dx4 * _dx4 + _dz4 * _dz4;
+              var _distSq2 = _dx3 * _dx3 + _dz3 * _dz3;
 
               var _minDist2 = _a2.radius + _b.radius;
 
@@ -609,9 +697,9 @@ System.register(["cc"], function (_export, _context) {
 
                 var overlap = _minDist2 - _dist3;
 
-                var _nx4 = _dx4 / _dist3;
+                var _nx4 = _dx3 / _dist3;
 
-                var _nz4 = _dz4 / _dist3;
+                var _nz4 = _dz3 / _dist3;
 
                 var aMovable = !_a2.locked;
                 var bMovable = !_b.locked;

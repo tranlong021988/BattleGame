@@ -25,6 +25,9 @@ export class RVOAgent {
     overtakeSideStrength = 0.75;
     overtakeSpeedDiff = 0.15;
     overtakeSeed = 1;
+    overtakeSideLock = 0;
+    overtakeHoldFrames = 0;
+    forwardSlowFrames = 0;
 
     gridX = 0;
     gridZ = 0;
@@ -80,6 +83,7 @@ export class RVOSimulator {
     timeStep = 1 / 60;
     minStepDeltaTime = 1 / 120;
     maxStepDeltaTime = 1 / 20;
+    private readonly overtakeSlowFrameThreshold = 8;
 
     // Số vòng chống xuyên vật cản.
     // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
@@ -258,27 +262,43 @@ export class RVOSimulator {
         return result;
     }
 
-    private applyAllyOvertake(a: RVOAgent) {
+    private applyAllyOvertake(
+        a: RVOAgent,
+        neighbors: RVOAgent[]
+    ) {
         if (!a.enableAllyOvertake) return;
         if (a.locked) return;
         if (a.onForward !== 1) return;
 
         let best: RVOAgent | null = null;
         let bestForwardDist = Infinity;
+        let bestSideDist = 0;
 
-        for (let i = 0; i < this.agents.length; i++) {
-            const b = this.agents[i];
+        const lookAhead = Math.max(
+            0,
+            a.overtakeLookAhead
+        );
+        const sideRange = Math.max(
+            0,
+            a.overtakeSideRange
+        );
+
+        if (lookAhead <= 0 || sideRange <= 0) {
+            return;
+        }
+
+        for (let i = 0; i < neighbors.length; i++) {
+            const b = neighbors[i];
 
             if (b === a) continue;
-            if (b.locked) continue;
             if (b.team !== a.team) continue;
-            if (b.onForward !== 1) continue;
             if (
-                a.maxSpeed <=
-                b.maxSpeed + a.overtakeSpeedDiff
+                a.maxSpeed + a.overtakeSpeedDiff <
+                b.maxSpeed
             ) {
                 continue;
             }
+            if (!this.isAllyOvertakeBlocker(b)) continue;
 
             const dx = b.pos.x - a.pos.x;
             const dz = b.pos.z - a.pos.z;
@@ -286,8 +306,8 @@ export class RVOSimulator {
                 dx * a.forwardX +
                 dz * a.forwardZ;
 
-            if (forwardDist <= 0) continue;
-            if (forwardDist > a.overtakeLookAhead) continue;
+            if (forwardDist <= a.radius * 0.25) continue;
+            if (forwardDist > lookAhead) continue;
 
             const sideDist =
                 dx * a.forwardZ -
@@ -295,41 +315,63 @@ export class RVOSimulator {
 
             if (
                 Math.abs(sideDist) >
-                a.overtakeSideRange
+                sideRange + a.radius + b.radius
             ) {
                 continue;
             }
 
             if (forwardDist < bestForwardDist) {
                 bestForwardDist = forwardDist;
+                bestSideDist = sideDist;
                 best = b;
             }
         }
 
-        if (!best) return;
+        if (!best) {
+            if (a.overtakeHoldFrames > 0) {
+                a.overtakeHoldFrames--;
+            } else {
+                a.overtakeSideLock = 0;
+            }
 
-        const dx = a.pos.x - best.pos.x;
-        const dz = a.pos.z - best.pos.z;
-        let side =
-            dx * a.forwardZ -
-            dz * a.forwardX;
-
-        if (Math.abs(side) > 0.05) {
-            side = side >= 0 ? 1 : -1;
-        } else {
-            side = a.overtakeSeed >= 0 ? 1 : -1;
+            return;
         }
+
+        let side =
+            a.overtakeSideLock;
+
+        if (side === 0 || a.overtakeHoldFrames <= 0) {
+            side = this.chooseOvertakeSide(
+                a,
+                neighbors,
+                bestSideDist
+            );
+
+            a.overtakeSideLock = side;
+        }
+
+        a.overtakeHoldFrames = 12;
+
+        const closeFactor =
+            1 -
+            Math.min(
+                1,
+                bestForwardDist /
+                Math.max(0.001, lookAhead)
+            );
+        const strength =
+            a.maxSpeed *
+            a.overtakeSideStrength *
+            (0.35 + closeFactor * 0.65);
 
         a.vel.x +=
             a.forwardZ *
             side *
-            a.maxSpeed *
-            a.overtakeSideStrength;
+            strength;
         a.vel.z +=
             -a.forwardX *
             side *
-            a.maxSpeed *
-            a.overtakeSideStrength;
+            strength;
 
         const speed = Math.sqrt(
             a.vel.x * a.vel.x +
@@ -342,6 +384,127 @@ export class RVOSimulator {
             a.vel.z =
                 (a.vel.z / speed) * a.maxSpeed;
         }
+    }
+
+    private updateForwardSlowFrames(a: RVOAgent) {
+        if (a.locked || a.onForward !== 1) {
+            a.forwardSlowFrames = 0;
+            return;
+        }
+
+        const prefForward =
+            a.prefVel.x * a.forwardX +
+            a.prefVel.z * a.forwardZ;
+
+        if (prefForward <= a.maxSpeed * 0.25) {
+            a.forwardSlowFrames = 0;
+            return;
+        }
+
+        const currentForward =
+            a.vel.x * a.forwardX +
+            a.vel.z * a.forwardZ;
+
+        if (currentForward < prefForward * 0.35) {
+            a.forwardSlowFrames++;
+        } else {
+            a.forwardSlowFrames = 0;
+        }
+    }
+
+    private isAllyOvertakeBlocker(b: RVOAgent) {
+        if (b.locked) return true;
+        if (b.onForward !== 1) return true;
+
+        return (
+            b.forwardSlowFrames >=
+            this.overtakeSlowFrameThreshold
+        );
+    }
+
+    private chooseOvertakeSide(
+        a: RVOAgent,
+        neighbors: RVOAgent[],
+        blockerSideDist: number
+    ) {
+        const rightScore =
+            this.getOvertakeSideClearanceScore(
+                a,
+                neighbors,
+                1
+            );
+        const leftScore =
+            this.getOvertakeSideClearanceScore(
+                a,
+                neighbors,
+                -1
+            );
+
+        if (Math.abs(rightScore - leftScore) > 0.001) {
+            return rightScore > leftScore ? 1 : -1;
+        }
+
+        if (Math.abs(blockerSideDist) > 0.05) {
+            return blockerSideDist > 0 ? -1 : 1;
+        }
+
+        return a.overtakeSeed >= 0 ? 1 : -1;
+    }
+
+    private getOvertakeSideClearanceScore(
+        a: RVOAgent,
+        neighbors: RVOAgent[],
+        side: number
+    ) {
+        const sideX = a.forwardZ * side;
+        const sideZ = -a.forwardX * side;
+        const lookAhead =
+            Math.max(0.001, a.overtakeLookAhead);
+        const sideRange =
+            Math.max(0.001, a.overtakeSideRange);
+
+        let score = 0;
+
+        for (let i = 0; i < neighbors.length; i++) {
+            const b = neighbors[i];
+
+            if (b === a) continue;
+            const dx = b.pos.x - a.pos.x;
+            const dz = b.pos.z - a.pos.z;
+            const forwardDist =
+                dx * a.forwardX +
+                dz * a.forwardZ;
+
+            if (forwardDist < -a.radius) continue;
+            if (forwardDist > lookAhead + b.radius) continue;
+
+            const sideDist =
+                dx * sideX +
+                dz * sideZ;
+
+            if (sideDist <= 0) continue;
+            if (sideDist > sideRange + b.radius) continue;
+
+            const forwardWeight =
+                1 -
+                Math.min(
+                    1,
+                    Math.abs(forwardDist) / lookAhead
+                );
+            const sideWeight =
+                1 -
+                Math.min(
+                    1,
+                    sideDist /
+                    (sideRange + b.radius)
+                );
+
+            score -=
+                (forwardWeight * 1.5 + sideWeight) *
+                (b.radius + a.radius);
+        }
+
+        return score;
     }
 
     // =========================================================
@@ -486,6 +649,8 @@ export class RVOSimulator {
         // ===== VELOCITY =====
         for (let i = 0; i < this.agents.length; i++) {
             const a = this.agents[i];
+
+            this.updateForwardSlowFrames(a);
 
             if (a.locked) continue;
 
@@ -636,7 +801,7 @@ export class RVOSimulator {
             a.vel.x = vx;
             a.vel.z = vz;
 
-            this.applyAllyOvertake(a);
+            this.applyAllyOvertake(a, neighbors);
 
             vx = a.vel.x;
             vz = a.vel.z;

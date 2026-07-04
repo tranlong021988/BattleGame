@@ -28,6 +28,9 @@ export class RVOWorkerAgent {
     overtakeSideStrength = 0.75;
     overtakeSpeedDiff = 0.15;
     overtakeSeed = 1;
+    overtakeSideLock = 0;
+    overtakeHoldFrames = 0;
+    forwardSlowFrames = 0;
 
     gridX = 0;
     gridZ = 0;
@@ -542,6 +545,7 @@ let circleData = new Float32Array(0);
 let rectData = new Float32Array(0);
 
 const agentCache = [];
+const OVERTAKE_SLOW_FRAME_THRESHOLD = 8;
 
 function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
@@ -593,6 +597,9 @@ function getAgentFromCache(index) {
             overtakeSideStrength: 0,
             overtakeSpeedDiff: 0,
             overtakeSeed: 1,
+            overtakeSideLock: 0,
+            overtakeHoldFrames: 0,
+            forwardSlowFrames: 0,
 
             team: -1,
             onForward: 0,
@@ -616,11 +623,18 @@ function buildAgents(ids, floats, ints, count) {
 
     for (let i = 0; i < count; i++) {
         const a = getAgentFromCache(i);
+        const previousId = a.id;
 
         const fi = i * 18;
         const ii = i * 3;
 
         a.id = ids[i];
+
+        if (previousId !== a.id) {
+            a.overtakeSideLock = 0;
+            a.overtakeHoldFrames = 0;
+            a.forwardSlowFrames = 0;
+        }
 
         a.x = floats[fi + 0];
         a.z = floats[fi + 1];
@@ -945,28 +959,32 @@ function applyObstacleVelocityAvoidance(a) {
     a.vz = vz;
 }
 
-function applyAllyOvertake(a, agents, count) {
+function applyAllyOvertake(a, neighbors) {
     if (!a.enableAllyOvertake) return;
     if (a.locked) return;
     if (a.onForward !== 1) return;
 
     let best = null;
     let bestForwardDist = Infinity;
+    let bestSideDist = 0;
 
-    const lookAhead = a.overtakeLookAhead;
-    const sideRange = a.overtakeSideRange;
+    const lookAhead = Math.max(0, a.overtakeLookAhead);
+    const sideRange = Math.max(0, a.overtakeSideRange);
 
-    for (let i = 0; i < count; i++) {
-        const b = agents[i];
+    if (lookAhead <= 0 || sideRange <= 0) {
+        return;
+    }
+
+    for (let i = 0; i < neighbors.length; i++) {
+        const b = neighbors[i];
 
         if (b === a) continue;
-        if (b.locked) continue;
         if (b.team !== a.team) continue;
-        if (b.onForward !== 1) continue;
 
-        if (a.maxSpeed <= b.maxSpeed + a.overtakeSpeedDiff) {
+        if (a.maxSpeed + a.overtakeSpeedDiff < b.maxSpeed) {
             continue;
         }
+        if (!isAllyOvertakeBlocker(b)) continue;
 
         const dx = b.x - a.x;
         const dz = b.z - a.z;
@@ -975,41 +993,58 @@ function applyAllyOvertake(a, agents, count) {
             dx * a.forwardX +
             dz * a.forwardZ;
 
-        if (forwardDist <= 0) continue;
+        if (forwardDist <= a.radius * 0.25) continue;
         if (forwardDist > lookAhead) continue;
 
         const sideDist =
             dx * a.forwardZ -
             dz * a.forwardX;
 
-        if (Math.abs(sideDist) > sideRange) continue;
+        if (Math.abs(sideDist) > sideRange + a.radius + b.radius) continue;
 
         if (forwardDist < bestForwardDist) {
             bestForwardDist = forwardDist;
+            bestSideDist = sideDist;
             best = b;
         }
     }
 
-    if (!best) return;
+    if (!best) {
+        if (a.overtakeHoldFrames > 0) {
+            a.overtakeHoldFrames--;
+        } else {
+            a.overtakeSideLock = 0;
+        }
 
-    const dx = a.x - best.x;
-    const dz = a.z - best.z;
-
-    let side =
-        dx * a.forwardZ -
-        dz * a.forwardX;
-
-    if (Math.abs(side) > 0.05) {
-        side = side >= 0 ? 1 : -1;
-    } else {
-        side = a.overtakeSeed >= 0 ? 1 : -1;
+        return;
     }
+
+    let side = a.overtakeSideLock;
+
+    if (side === 0 || a.overtakeHoldFrames <= 0) {
+        side = chooseOvertakeSide(a, neighbors, bestSideDist);
+        a.overtakeSideLock = side;
+    }
+
+    a.overtakeHoldFrames = 12;
+
+    const closeFactor =
+        1 -
+        Math.min(
+            1,
+            bestForwardDist /
+            Math.max(0.001, lookAhead)
+        );
+    const strength =
+        a.maxSpeed *
+        a.overtakeSideStrength *
+        (0.35 + closeFactor * 0.65);
 
     const sideX = a.forwardZ * side;
     const sideZ = -a.forwardX * side;
 
-    a.vx += sideX * a.maxSpeed * a.overtakeSideStrength;
-    a.vz += sideZ * a.maxSpeed * a.overtakeSideStrength;
+    a.vx += sideX * strength;
+    a.vz += sideZ * strength;
 
     const speed = Math.sqrt(a.vx * a.vx + a.vz * a.vz);
 
@@ -1019,11 +1054,112 @@ function applyAllyOvertake(a, agents, count) {
     }
 }
 
+function updateForwardSlowFrames(a) {
+    if (a.locked || a.onForward !== 1) {
+        a.forwardSlowFrames = 0;
+        return;
+    }
+
+    const prefForward =
+        a.prefX * a.forwardX +
+        a.prefZ * a.forwardZ;
+
+    if (prefForward <= a.maxSpeed * 0.25) {
+        a.forwardSlowFrames = 0;
+        return;
+    }
+
+    const currentForward =
+        a.vx * a.forwardX +
+        a.vz * a.forwardZ;
+
+    if (currentForward < prefForward * 0.35) {
+        a.forwardSlowFrames++;
+    } else {
+        a.forwardSlowFrames = 0;
+    }
+}
+
+function isAllyOvertakeBlocker(b) {
+    if (b.locked) return true;
+    if (b.onForward !== 1) return true;
+
+    return b.forwardSlowFrames >= OVERTAKE_SLOW_FRAME_THRESHOLD;
+}
+
+function chooseOvertakeSide(a, neighbors, blockerSideDist) {
+    const rightScore = getOvertakeSideClearanceScore(a, neighbors, 1);
+    const leftScore = getOvertakeSideClearanceScore(a, neighbors, -1);
+
+    if (Math.abs(rightScore - leftScore) > 0.001) {
+        return rightScore > leftScore ? 1 : -1;
+    }
+
+    if (Math.abs(blockerSideDist) > 0.05) {
+        return blockerSideDist > 0 ? -1 : 1;
+    }
+
+    return a.overtakeSeed >= 0 ? 1 : -1;
+}
+
+function getOvertakeSideClearanceScore(a, neighbors, side) {
+    const sideX = a.forwardZ * side;
+    const sideZ = -a.forwardX * side;
+    const lookAhead = Math.max(0.001, a.overtakeLookAhead);
+    const sideRange = Math.max(0.001, a.overtakeSideRange);
+
+    let score = 0;
+
+    for (let i = 0; i < neighbors.length; i++) {
+        const b = neighbors[i];
+
+        if (b === a) continue;
+
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
+        const forwardDist =
+            dx * a.forwardX +
+            dz * a.forwardZ;
+
+        if (forwardDist < -a.radius) continue;
+        if (forwardDist > lookAhead + b.radius) continue;
+
+        const sideDist =
+            dx * sideX +
+            dz * sideZ;
+
+        if (sideDist <= 0) continue;
+        if (sideDist > sideRange + b.radius) continue;
+
+        const forwardWeight =
+            1 -
+            Math.min(
+                1,
+                Math.abs(forwardDist) / lookAhead
+            );
+        const sideWeight =
+            1 -
+            Math.min(
+                1,
+                sideDist /
+                (sideRange + b.radius)
+            );
+
+        score -=
+            (forwardWeight * 1.5 + sideWeight) *
+            (b.radius + a.radius);
+    }
+
+    return score;
+}
+
 function applyVelocityAvoidance(agents, count, data) {
     buildGrid(agents, count, data.cellSize);
 
     for (let i = 0; i < count; i++) {
         const a = agents[i];
+
+        updateForwardSlowFrames(a);
 
         if (a.locked) continue;
 
@@ -1068,7 +1204,7 @@ function applyVelocityAvoidance(agents, count, data) {
         a.vz = vz;
 
         applyObstacleVelocityAvoidance(a);
-        applyAllyOvertake(a, agents, count);
+        applyAllyOvertake(a, neighborScratch);
 
         const speed = Math.sqrt(a.vx * a.vx + a.vz * a.vz);
 

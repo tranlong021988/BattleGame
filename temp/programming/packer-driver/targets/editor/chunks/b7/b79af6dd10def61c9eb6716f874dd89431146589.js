@@ -1079,8 +1079,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         lookMoveIntentSmooth(deltaTime) {
           if (!this.agent) return;
           if (this.agent.locked) return;
-          const dx = this.agent.prefVel.x;
-          const dz = this.agent.prefVel.z;
+          let dx = this.agent.prefVel.x;
+          let dz = this.agent.prefVel.z;
+          const velX = this.agent.vel.x;
+          const velZ = this.agent.vel.z;
+          const minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
+          const velLenSq = velX * velX + velZ * velZ;
+
+          if (velLenSq >= minVel * minVel) {
+            dx = velX;
+            dz = velZ;
+          }
+
           const lenSq = dx * dx + dz * dz;
 
           if (lenSq < 0.0001) {
