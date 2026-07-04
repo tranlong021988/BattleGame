@@ -235,6 +235,12 @@ export class GameManager extends Component {
     private waveBannerCameraBlocked = false;
     private waveBannerVisibleByCamera = true;
     private waveBannerVisibilityInitialized = false;
+    private spatialGridDirty = true;
+    private battleStatsUiDirty = true;
+    private readonly waveBannerTeamAColorParams = [0, 0, 0, 0];
+    private readonly waveBannerTeamBColorParams = [0, 0, 0, 0];
+    private waveBannerRendererCache: WeakMap<Node, MeshRenderer[]> =
+        new WeakMap();
     private readonly fallbackTeamABannerColor = new Color(0, 70, 255, 255);
     private readonly fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
 
@@ -324,7 +330,7 @@ export class GameManager extends Component {
         }
 
         this.rebuildSpatialGrid();
-        this.refreshBattleStatsUI();
+        this.refreshBattleStatsUI(true);
     }
 
     onDestroy() {
@@ -425,11 +431,15 @@ export class GameManager extends Component {
                 this.spatialGridUpdateFrameOffset
             )
         ) {
-            this.rebuildSpatialGrid();
+            this.requestSpatialGridRebuild();
         }
 
         if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
+        }
+
+        if (this.spatialGridDirty) {
+            this.rebuildSpatialGrid();
         }
 
         this.processDynamicWaveLanes();
@@ -438,6 +448,8 @@ export class GameManager extends Component {
         this.processWaveBanners();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
+
+        this.refreshBattleStatsUI();
     }
 
     private shouldRunFrameInterval(
@@ -505,7 +517,7 @@ export class GameManager extends Component {
             );
         }
 
-        this.refreshBattleStatsUI();
+        this.requestBattleStatsUIRefresh();
     }
 
     public onWaveCombatStarted(
@@ -1366,6 +1378,12 @@ export class GameManager extends Component {
             this.teamA,
             this.teamB
         );
+
+        this.spatialGridDirty = false;
+    }
+
+    private requestSpatialGridRebuild() {
+        this.spatialGridDirty = true;
     }
 
     private buildPrefabMaps() {
@@ -1578,7 +1596,7 @@ export class GameManager extends Component {
             );
         }
 
-        this.rebuildSpatialGrid();
+        this.requestSpatialGridRebuild();
     }
 
     public spawnWaveByEntry(
@@ -1606,7 +1624,7 @@ export class GameManager extends Component {
             aggressiveForward
         );
 
-        this.rebuildSpatialGrid();
+        this.requestSpatialGridRebuild();
 
         return wave;
     }
@@ -1661,7 +1679,7 @@ export class GameManager extends Component {
             this.isCombatPointEnabled() &&
             !this.spendCombatPoint(team, cost)
         ) {
-            this.refreshBattleStatsUI();
+            this.requestBattleStatsUIRefresh();
             return null;
         }
 
@@ -1761,18 +1779,11 @@ export class GameManager extends Component {
         node: Node,
         team: number
     ) {
-        const color =
-            this.getWaveBannerBackgroundColor(team);
-
-        const params = [
-            color.r / 255,
-            color.g / 255,
-            color.b / 255,
-            color.a / 255
-        ];
+        const params =
+            this.getWaveBannerColorParams(team);
 
         const renderers =
-            node.getComponentsInChildren(MeshRenderer);
+            this.getWaveBannerRenderers(node);
 
         for (let i = 0; i < renderers.length; i++) {
             renderers[i].setInstancedAttribute(
@@ -1780,6 +1791,39 @@ export class GameManager extends Component {
                 params
             );
         }
+    }
+
+    private getWaveBannerColorParams(team: number) {
+        const color =
+            this.getWaveBannerBackgroundColor(team);
+        const params =
+            team === 0
+                ? this.waveBannerTeamAColorParams
+                : this.waveBannerTeamBColorParams;
+
+        params[0] = color.r / 255;
+        params[1] = color.g / 255;
+        params[2] = color.b / 255;
+        params[3] = color.a / 255;
+
+        return params;
+    }
+
+    private getWaveBannerRenderers(node: Node) {
+        let renderers =
+            this.waveBannerRendererCache.get(node);
+
+        if (!renderers) {
+            renderers =
+                node.getComponentsInChildren(MeshRenderer);
+
+            this.waveBannerRendererCache.set(
+                node,
+                renderers
+            );
+        }
+
+        return renderers;
     }
 
     private getWaveBannerBackgroundColor(
@@ -2288,7 +2332,7 @@ export class GameManager extends Component {
             behavior.gameManager = this;
         }
 
-        this.refreshBattleStatsUI();
+        this.requestBattleStatsUIRefresh();
 
         return unit;
     }
@@ -2333,7 +2377,7 @@ export class GameManager extends Component {
             behavior.gameManager = this;
         }
 
-        this.refreshBattleStatsUI();
+        this.requestBattleStatsUIRefresh();
 
         return unit;
     }
@@ -2379,8 +2423,8 @@ export class GameManager extends Component {
                     entry.prefab
                 );
 
-                this.rebuildSpatialGrid();
-                this.refreshBattleStatsUI();
+                this.requestSpatialGridRebuild();
+                this.requestBattleStatsUIRefresh();
             }
 
             return;
@@ -2407,8 +2451,8 @@ export class GameManager extends Component {
                     entry.prefab
                 );
 
-                this.rebuildSpatialGrid();
-                this.refreshBattleStatsUI();
+                this.requestSpatialGridRebuild();
+                this.requestBattleStatsUIRefresh();
             }
 
             return;
@@ -2484,8 +2528,8 @@ export class GameManager extends Component {
         unit.resetForDespawn();
         unit.node.active = false;
 
-        this.rebuildSpatialGrid();
-        this.refreshBattleStatsUI();
+        this.requestSpatialGridRebuild();
+        this.requestBattleStatsUIRefresh();
     }
 
     private removeUnitAgentFromSimulator(unit: Unit) {
@@ -2686,72 +2730,107 @@ export class GameManager extends Component {
         );
     }
 
-    private refreshBattleStatsUI() {
+    private requestBattleStatsUIRefresh() {
+        this.battleStatsUiDirty = true;
+    }
+
+    private refreshBattleStatsUI(force: boolean = false) {
+        if (!force && !this.battleStatsUiDirty) {
+            return;
+        }
+
+        this.battleStatsUiDirty = false;
 
         if (this.teamAAliveLabel) {
-            this.teamAAliveLabel.string =
+            this.setLabelString(
+                this.teamAAliveLabel,
                 'A Alive: ' +
-                this.aliveCount[0];
+                this.aliveCount[0]
+            );
         }
 
         if (this.teamADeathLabel) {
-            this.teamADeathLabel.string =
+            this.setLabelString(
+                this.teamADeathLabel,
                 'A Death: ' +
-                this.deathCount[0];
+                this.deathCount[0]
+            );
         }
 
         if (this.teamBAliveLabel) {
-            this.teamBAliveLabel.string =
+            this.setLabelString(
+                this.teamBAliveLabel,
                 'B Alive: ' +
-                this.aliveCount[1];
+                this.aliveCount[1]
+            );
         }
 
         if (this.teamBDeathLabel) {
-            this.teamBDeathLabel.string =
+            this.setLabelString(
+                this.teamBDeathLabel,
                 'B Death: ' +
-                this.deathCount[1];
+                this.deathCount[1]
+            );
         }
 
         if (this.teamAKillLabel) {
-            this.teamAKillLabel.string =
+            this.setLabelString(
+                this.teamAKillLabel,
                 'A Kill: ' +
-                this.killCount[0];
+                this.killCount[0]
+            );
         }
 
         if (this.teamBKillLabel) {
-            this.teamBKillLabel.string =
+            this.setLabelString(
+                this.teamBKillLabel,
                 'B Kill: ' +
-                this.killCount[1];
+                this.killCount[1]
+            );
         }
 
         if (this.teamACounterKillLabel) {
-            this.teamACounterKillLabel.string =
+            this.setLabelString(
+                this.teamACounterKillLabel,
                 'A Counter Kill: ' +
                 this.counterKillCount[0] +
                 ' (' +
                 Math.round(this.getCounterKillRatio(0) * 100) +
-                '%)';
+                '%)'
+            );
         }
 
         if (this.teamBCounterKillLabel) {
-            this.teamBCounterKillLabel.string =
+            this.setLabelString(
+                this.teamBCounterKillLabel,
                 'B Counter Kill: ' +
                 this.counterKillCount[1] +
                 ' (' +
                 Math.round(this.getCounterKillRatio(1) * 100) +
-                '%)';
+                '%)'
+            );
         }
 
         if (this.teamACombatPointLabel) {
-            this.teamACombatPointLabel.string =
+            this.setLabelString(
+                this.teamACombatPointLabel,
                 'A CP: ' +
-                Math.floor(this.combatPoint[0]);
+                Math.floor(this.combatPoint[0])
+            );
         }
 
         if (this.teamBCombatPointLabel) {
-            this.teamBCombatPointLabel.string =
+            this.setLabelString(
+                this.teamBCombatPointLabel,
                 'B CP: ' +
-                Math.floor(this.combatPoint[1]);
+                Math.floor(this.combatPoint[1])
+            );
+        }
+    }
+
+    private setLabelString(label: Label, value: string) {
+        if (label.string !== value) {
+            label.string = value;
         }
     }
 

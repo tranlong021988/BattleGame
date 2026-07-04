@@ -26,6 +26,12 @@ This file is intentionally concise. It should describe the current source and th
     - side choice uses local clearance from current neighbors;
     - side choice is locked briefly to reduce left/right jitter;
     - this is local steering, not full pathfinding.
+  - Runtime performance cleanup:
+    - `GameManager` now coalesces runtime spatial-grid rebuild requests through a dirty flag and flushes before wave search in `update`;
+    - battle stat labels now use a dirty flag and only set strings when text changes;
+    - wave banner renderer lists are cached per banner node before setting instanced background color; color params are reused separately per team, not one shared mutable array;
+    - `Unit.update` no longer reapplies static RVO agent config every frame;
+    - `HealthBar3D` skips instanced health updates when the ratio did not change.
 - `assets/Test.scene` currently serializes the `LevelSettings` node inactive and the `LevelSettings` component disabled. Do not claim LevelSettings is active in this scene unless re-checked in Cocos.
 - `assets/Test.scene` serializes `SpectorDebugger` disabled; its `enableSpector` field may be true, but the disabled component means it should not run.
 - The user recently disabled an extra camera in the scene. A Spector capture after that showed render pass/draw-call reduction. Re-check camera components before assuming the scene still has only one active render camera.
@@ -230,6 +236,14 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
   - `overtakeSpeedDiff` now means "do not overtake a meaningfully faster ally", not "must be faster to overtake".
 
 ## Render / Performance Status
+
+Runtime optimization note:
+
+- `GameManager.rebuildSpatialGrid()` is still the single place that rebuilds the target-search grid.
+- Runtime spawn/despawn paths should call `requestSpatialGridRebuild()` instead of rebuilding immediately; `GameManager.update()` flushes the dirty grid before dynamic lane, forward search, recovery, and banner processing.
+- Initial scene setup still force-builds the spatial grid once in `start()`.
+- Battle stats UI is dirty-driven; use `requestBattleStatsUIRefresh()` for count/CP changes.
+- Wave banner appearance uses a per-node renderer cache; if a banner prefab changes renderer hierarchy at runtime, clear/rebuild that cache path before relying on it.
 
 Recent reports reviewed on 2026-07-03:
 

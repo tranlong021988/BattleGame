@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 3917744.299,
+      "mTimestamp": 7080138.8803,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3055,7 +3055,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1783094583007.026,
+        "mtime": 1783187660623.6748,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "2a3d48594ca107bb253a09fa8016eb25bbe98eb1",
@@ -3568,7 +3568,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1783184519261.744,
+        "mtime": 1783187462676.535,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "b79af6dd10def61c9eb6716f874dd89431146589",
@@ -6268,7 +6268,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/HealthBar3D.ts": {
       "mTimestamp": {
-        "mtime": 1781969539568.685,
+        "mtime": 1783187513555.9692,
         "uuid": "6c024aa7-a229-41fd-8a4c-51ee2113e594"
       },
       "chunkId": "33aae120a5c53c84492eff747b653a1cd746cc7d",

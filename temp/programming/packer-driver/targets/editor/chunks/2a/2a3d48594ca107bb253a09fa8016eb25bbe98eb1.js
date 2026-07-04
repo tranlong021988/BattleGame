@@ -275,6 +275,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.waveBannerCameraBlocked = false;
           this.waveBannerVisibleByCamera = true;
           this.waveBannerVisibilityInitialized = false;
+          this.spatialGridDirty = true;
+          this.battleStatsUiDirty = true;
+          this.waveBannerTeamAColorParams = [0, 0, 0, 0];
+          this.waveBannerTeamBColorParams = [0, 0, 0, 0];
+          this.waveBannerRendererCache = new WeakMap();
           this.fallbackTeamABannerColor = new Color(0, 70, 255, 255);
           this.fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
         }
@@ -334,7 +339,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.rebuildSpatialGrid();
-          this.refreshBattleStatsUI();
+          this.refreshBattleStatsUI(true);
         }
 
         onDestroy() {
@@ -414,11 +419,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (this.shouldRunFrameInterval(this.spatialGridUpdateInterval, this.spatialGridUpdateFrameOffset)) {
-            this.rebuildSpatialGrid();
+            this.requestSpatialGridRebuild();
           }
 
           if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
+          }
+
+          if (this.spatialGridDirty) {
+            this.rebuildSpatialGrid();
           }
 
           this.processDynamicWaveLanes();
@@ -427,6 +436,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.processWaveBanners();
           this.pruneDeadWaves();
           this.processHeroForwardUnlock();
+          this.refreshBattleStatsUI();
         }
 
         shouldRunFrameInterval(interval, offset = 0) {
@@ -464,7 +474,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.addCombatPointFromVictim(killerTeam, victim, isCounterKill);
           }
 
-          this.refreshBattleStatsUI();
+          this.requestBattleStatsUIRefresh();
         }
 
         onWaveCombatStarted(unit, enemy = null, useInitialForwardGate = true) {
@@ -1034,6 +1044,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.spatialGrid.cellSize = this.spatialGridCellSize;
           this.spatialGrid.useWorkerTargetQuery = this.useWorkerSpatialTargetQuery;
           this.spatialGrid.build(this.teamA, this.teamB);
+          this.spatialGridDirty = false;
+        }
+
+        requestSpatialGridRebuild() {
+          this.spatialGridDirty = true;
         }
 
         buildPrefabMaps() {
@@ -1180,7 +1195,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.spawnEntryFormation(1, entryB, this.teamBSpawnZ, true);
           }
 
-          this.rebuildSpatialGrid();
+          this.requestSpatialGridRebuild();
         }
 
         spawnWaveByEntry(team, entry, laneId = -1, aggressiveForward = false) {
@@ -1190,7 +1205,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           const baseZ = team === 0 ? this.teamASpawnZ : this.teamBSpawnZ;
           const wave = this.spawnEntryFormation(team, entry, baseZ, true, laneId, aggressiveForward);
-          this.rebuildSpatialGrid();
+          this.requestSpatialGridRebuild();
           return wave;
         }
 
@@ -1210,7 +1225,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const cost = Math.max(0, entry.combatPointCost);
 
           if (spendCost && this.isCombatPointEnabled() && !this.spendCombatPoint(team, cost)) {
-            this.refreshBattleStatsUI();
+            this.requestBattleStatsUIRefresh();
             return null;
           }
 
@@ -1248,13 +1263,33 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         applyWaveBannerAppearance(node, team) {
-          const color = this.getWaveBannerBackgroundColor(team);
-          const params = [color.r / 255, color.g / 255, color.b / 255, color.a / 255];
-          const renderers = node.getComponentsInChildren(MeshRenderer);
+          const params = this.getWaveBannerColorParams(team);
+          const renderers = this.getWaveBannerRenderers(node);
 
           for (let i = 0; i < renderers.length; i++) {
             renderers[i].setInstancedAttribute('a_billboard_bg_color', params);
           }
+        }
+
+        getWaveBannerColorParams(team) {
+          const color = this.getWaveBannerBackgroundColor(team);
+          const params = team === 0 ? this.waveBannerTeamAColorParams : this.waveBannerTeamBColorParams;
+          params[0] = color.r / 255;
+          params[1] = color.g / 255;
+          params[2] = color.b / 255;
+          params[3] = color.a / 255;
+          return params;
+        }
+
+        getWaveBannerRenderers(node) {
+          let renderers = this.waveBannerRendererCache.get(node);
+
+          if (!renderers) {
+            renderers = node.getComponentsInChildren(MeshRenderer);
+            this.waveBannerRendererCache.set(node, renderers);
+          }
+
+          return renderers;
         }
 
         getWaveBannerBackgroundColor(team) {
@@ -1521,7 +1556,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             behavior.gameManager = this;
           }
 
-          this.refreshBattleStatsUI();
+          this.requestBattleStatsUIRefresh();
           return unit;
         }
 
@@ -1547,7 +1582,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             behavior.gameManager = this;
           }
 
-          this.refreshBattleStatsUI();
+          this.requestBattleStatsUIRefresh();
           return unit;
         }
 
@@ -1581,8 +1616,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               }
 
               this.spawner.despawnUnit(unit, entry.prefab);
-              this.rebuildSpatialGrid();
-              this.refreshBattleStatsUI();
+              this.requestSpatialGridRebuild();
+              this.requestBattleStatsUIRefresh();
             }
 
             return;
@@ -1601,8 +1636,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               }
 
               this.spawner.despawnUnit(unit, entry.prefab);
-              this.rebuildSpatialGrid();
-              this.refreshBattleStatsUI();
+              this.requestSpatialGridRebuild();
+              this.requestBattleStatsUIRefresh();
             }
 
             return;
@@ -1667,8 +1702,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.removeUnitAgentFromSimulator(unit);
           unit.resetForDespawn();
           unit.node.active = false;
-          this.rebuildSpatialGrid();
-          this.refreshBattleStatsUI();
+          this.requestSpatialGridRebuild();
+          this.requestBattleStatsUIRefresh();
         }
 
         removeUnitAgentFromSimulator(unit) {
@@ -1803,45 +1838,61 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.clampLaneId(Math.floor(this.getSafeLaneCount() / 2));
         }
 
-        refreshBattleStatsUI() {
+        requestBattleStatsUIRefresh() {
+          this.battleStatsUiDirty = true;
+        }
+
+        refreshBattleStatsUI(force = false) {
+          if (!force && !this.battleStatsUiDirty) {
+            return;
+          }
+
+          this.battleStatsUiDirty = false;
+
           if (this.teamAAliveLabel) {
-            this.teamAAliveLabel.string = 'A Alive: ' + this.aliveCount[0];
+            this.setLabelString(this.teamAAliveLabel, 'A Alive: ' + this.aliveCount[0]);
           }
 
           if (this.teamADeathLabel) {
-            this.teamADeathLabel.string = 'A Death: ' + this.deathCount[0];
+            this.setLabelString(this.teamADeathLabel, 'A Death: ' + this.deathCount[0]);
           }
 
           if (this.teamBAliveLabel) {
-            this.teamBAliveLabel.string = 'B Alive: ' + this.aliveCount[1];
+            this.setLabelString(this.teamBAliveLabel, 'B Alive: ' + this.aliveCount[1]);
           }
 
           if (this.teamBDeathLabel) {
-            this.teamBDeathLabel.string = 'B Death: ' + this.deathCount[1];
+            this.setLabelString(this.teamBDeathLabel, 'B Death: ' + this.deathCount[1]);
           }
 
           if (this.teamAKillLabel) {
-            this.teamAKillLabel.string = 'A Kill: ' + this.killCount[0];
+            this.setLabelString(this.teamAKillLabel, 'A Kill: ' + this.killCount[0]);
           }
 
           if (this.teamBKillLabel) {
-            this.teamBKillLabel.string = 'B Kill: ' + this.killCount[1];
+            this.setLabelString(this.teamBKillLabel, 'B Kill: ' + this.killCount[1]);
           }
 
           if (this.teamACounterKillLabel) {
-            this.teamACounterKillLabel.string = 'A Counter Kill: ' + this.counterKillCount[0] + ' (' + Math.round(this.getCounterKillRatio(0) * 100) + '%)';
+            this.setLabelString(this.teamACounterKillLabel, 'A Counter Kill: ' + this.counterKillCount[0] + ' (' + Math.round(this.getCounterKillRatio(0) * 100) + '%)');
           }
 
           if (this.teamBCounterKillLabel) {
-            this.teamBCounterKillLabel.string = 'B Counter Kill: ' + this.counterKillCount[1] + ' (' + Math.round(this.getCounterKillRatio(1) * 100) + '%)';
+            this.setLabelString(this.teamBCounterKillLabel, 'B Counter Kill: ' + this.counterKillCount[1] + ' (' + Math.round(this.getCounterKillRatio(1) * 100) + '%)');
           }
 
           if (this.teamACombatPointLabel) {
-            this.teamACombatPointLabel.string = 'A CP: ' + Math.floor(this.combatPoint[0]);
+            this.setLabelString(this.teamACombatPointLabel, 'A CP: ' + Math.floor(this.combatPoint[0]));
           }
 
           if (this.teamBCombatPointLabel) {
-            this.teamBCombatPointLabel.string = 'B CP: ' + Math.floor(this.combatPoint[1]);
+            this.setLabelString(this.teamBCombatPointLabel, 'B CP: ' + Math.floor(this.combatPoint[1]));
+          }
+        }
+
+        setLabelString(label, value) {
+          if (label.string !== value) {
+            label.string = value;
           }
         }
 

@@ -560,7 +560,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         update(deltaTime) {
           if (!this.sim || !this.agent) return;
           this.frameCounter++;
-          this.applyRuntimeAgentData();
 
           if (this.props && this.props.isDead()) {
             this.setEnemyTarget(null);

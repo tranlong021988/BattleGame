@@ -28,7 +28,17 @@ export class HealthBar3D extends Component {
     }
 
     setHealthRatio(ratio: number) {
-        this.currentRatio = Math.max(0, Math.min(1, ratio));
+        const nextRatio =
+            Math.max(0, Math.min(1, ratio));
+
+        if (
+            Math.abs(this.currentRatio - nextRatio) <=
+            0.0001
+        ) {
+            return;
+        }
+
+        this.currentRatio = nextRatio;
         this.applyHealthParams();
     }
 

@@ -57,7 +57,13 @@ System.register(["cc"], function (_export, _context) {
         }
 
         setHealthRatio(ratio) {
-          this.currentRatio = Math.max(0, Math.min(1, ratio));
+          var nextRatio = Math.max(0, Math.min(1, ratio));
+
+          if (Math.abs(this.currentRatio - nextRatio) <= 0.0001) {
+            return;
+          }
+
+          this.currentRatio = nextRatio;
           this.applyHealthParams();
         }
 

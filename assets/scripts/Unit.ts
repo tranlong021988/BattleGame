@@ -598,7 +598,6 @@ export class Unit extends Component {
         if (!this.sim || !this.agent) return;
 
         this.frameCounter++;
-        this.applyRuntimeAgentData();
 
         if (this.props && this.props.isDead()) {
             this.setEnemyTarget(null);
