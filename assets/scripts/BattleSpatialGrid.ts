@@ -33,6 +33,8 @@ export class BattleSpatialGrid {
         new Map();
     private teamAActiveCells: Unit[][] = [];
     private teamBActiveCells: Unit[][] = [];
+    private teamAMaxRadius = 0;
+    private teamBMaxRadius = 0;
 
     private tempResult: Unit[] = [];
     private nearestSearchBest: Unit | null = null;
@@ -62,6 +64,8 @@ export class BattleSpatialGrid {
         this.clearActiveGridCells(this.teamBActiveCells);
         this.unitsById.clear();
         this.targetSnapshotLength = 0;
+        this.teamAMaxRadius = 0;
+        this.teamBMaxRadius = 0;
 
         this.fillGrid(
             this.teamAGrid,
@@ -97,6 +101,8 @@ export class BattleSpatialGrid {
         this.gridKeyRows.clear();
         this.teamAActiveCells.length = 0;
         this.teamBActiveCells.length = 0;
+        this.teamAMaxRadius = 0;
+        this.teamBMaxRadius = 0;
         this.unitsById.clear();
         this.targetSnapshot = new Float64Array(0);
         this.targetSnapshotLength = 0;
@@ -134,6 +140,18 @@ export class BattleSpatialGrid {
             }
 
             list.push(unit);
+
+            if (team === 0) {
+                this.teamAMaxRadius = Math.max(
+                    this.teamAMaxRadius,
+                    unit.radius
+                );
+            } else {
+                this.teamBMaxRadius = Math.max(
+                    this.teamBMaxRadius,
+                    unit.radius
+                );
+            }
 
             const id = this.getUnitId(unit);
             this.unitsById.set(id, unit);
@@ -377,6 +395,12 @@ export class BattleSpatialGrid {
         range: number
     ): Unit | null {
         return this.findNearestEnemy(team, x, z, range);
+    }
+
+    getMaxEnemyRadius(team: number) {
+        return team === 0
+            ? this.teamBMaxRadius
+            : this.teamAMaxRadius;
     }
 
     requestNearestEnemy(

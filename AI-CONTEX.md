@@ -20,6 +20,7 @@ This file is intentionally concise. It should describe the current source and th
   - `SmartArmyBrain` is a separate experimental AI component. It does not replace or modify `ArmyBrain` automatically.
   - Simplified `SmartArmyBrain` after user feedback: removed direct-counter blocker limits, lane-traffic direct-counter limits, and deferred-target cooldown logic.
   - Added the opening aggressive rule to `SmartArmyBrain`: before this AI has ever reached `maxAliveWaves`, its counter/opening spawns use aggressive forward.
+  - Changed attack-range contact to edge-based range for all units: effective range is `unit.radius + enemy.radius + attackRange`.
 - `assets/Test.scene` currently serializes the `LevelSettings` node inactive and the `LevelSettings` component disabled. Do not claim LevelSettings is active in this scene unless re-checked in Cocos.
 - `assets/Test.scene` serializes `SpectorDebugger` disabled; its `enableSpector` field may be true, but the disabled component means it should not run.
 - The user recently disabled an extra camera in the scene. A Spector capture after that showed render pass/draw-call reduction. Re-check camera components before assuming the scene still has only one active render camera.
@@ -69,6 +70,10 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 ### Freehunt / Combat
 
 - Any real attack-range contact can call wave-level combat and push the involved waves into freehunt/combat.
+- `Unit.attackRange` now means weapon reach from body edge, not center-to-center distance.
+- Effective combat contact range is `self.radius + enemy.radius + attackRange`.
+- `BattleSpatialGrid` tracks max unit radius per team so `Unit` can query a broad enough nearby enemy set, then filter each candidate by its own effective attack range.
+- Ranged units still attack from range; they do not wait for radius contact. If a ranged unit feels too long after this change, tune its Inspector/database `attackRange` down.
 - A unit without a target can borrow a valid target from a teammate in the same wave.
 - Target refs must respect pooled-unit validity/life-id checks.
 - There is no regroup-to-slot or lane-return movement.
@@ -95,6 +100,7 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
   - kills involving hero are not counter kills.
 - Before hero unlock, steady hero guards around its home area.
 - Steady hero can keep a valid retaliation target even when the attacker is outside the guard zone, so ranged attackers cannot safely shoot it forever.
+- Steady hero guard uses the same edge-based attack range as normal units.
 - Hero phase no longer forces full-map/permanent freehunt.
 - When unlocked, hero becomes a one-unit mid-lane forward wave and uses normal forward/freehunt rules.
 - Existing enemy waves should return to their own forward mode rather than being forced to chase the hero globally.

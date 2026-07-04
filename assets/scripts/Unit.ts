@@ -774,9 +774,8 @@ export class Unit extends Component {
             this.setCachedNearestInRangeTarget(null);
         }
 
-        return this.isValidEnemyWithinRange(
+        return this.isValidEnemyWithinAttackRange(
             this.cachedNearestInRange,
-            this.attackRange,
             this.cachedNearestInRangeLifeId
         )
             ? this.cachedNearestInRange
@@ -851,9 +850,8 @@ export class Unit extends Component {
             }
 
             if (
-                this.isValidEnemyWithinRange(
-                    target,
-                    this.attackRange
+                this.isValidEnemyWithinAttackRange(
+                    target
                 )
             ) {
                 if (!this.onBusy) {
@@ -1121,18 +1119,32 @@ export class Unit extends Component {
     private findNearestEnemyInAttackRange(): Unit | null {
         if (!this.agent) return null;
 
-        const gm = GameManager.instance;
-
-        if (gm && gm.spatialGrid) {
-            return gm.spatialGrid.findNearestEnemyInRange(
-                this.team,
-                this.agent.pos.x,
-                this.agent.pos.z,
-                this.attackRange
+        const enemies =
+            this.getNearbyEnemyList(
+                this.getAttackRangeSearchRadius()
             );
+
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+
+            if (!this.isValidEnemy(e)) continue;
+
+            const dx = e.agent!.pos.x - this.agent.pos.x;
+            const dz = e.agent!.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+
+            if (!this.isValidEnemyWithinAttackRange(e)) continue;
+
+            if (d < bestDistSq) {
+                bestDistSq = d;
+                best = e;
+            }
         }
 
-        return this.findNearestEnemyInAttackRangeFallback();
+        return best;
     }
 
     private findNearestEnemy(): Unit | null {
@@ -1150,33 +1162,6 @@ export class Unit extends Component {
         }
 
         return this.findNearestEnemyFallback();
-    }
-
-    private findNearestEnemyInAttackRangeFallback(): Unit | null {
-        if (!this.agent) return null;
-
-        const attackRangeSq = this.attackRange * this.attackRange;
-        const enemies = this.getEnemyList();
-
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-
-            if (!this.isValidEnemy(e)) continue;
-
-            const dx = e.agent!.pos.x - this.agent.pos.x;
-            const dz = e.agent!.pos.z - this.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d <= attackRangeSq && d < bestDistSq) {
-                bestDistSq = d;
-                best = e;
-            }
-        }
-
-        return best;
     }
 
     private findNearestEnemyFallback(): Unit | null {
@@ -1237,6 +1222,42 @@ export class Unit extends Component {
         const dz = e!.agent!.pos.z - this.agent.pos.z;
 
         return dx * dx + dz * dz <= range * range;
+    }
+
+    private isValidEnemyWithinAttackRange(
+        e: Unit | null,
+        lifeId: number = -1
+    ): boolean {
+        if (!this.agent) return false;
+        if (!this.isValidEnemy(e, lifeId)) return false;
+
+        const dx = e!.agent!.pos.x - this.agent.pos.x;
+        const dz = e!.agent!.pos.z - this.agent.pos.z;
+        const effectiveRange =
+            this.getEffectiveAttackRangeAgainst(e!);
+
+        return dx * dx + dz * dz <=
+            effectiveRange * effectiveRange;
+    }
+
+    private getEffectiveAttackRangeAgainst(
+        enemy: Unit
+    ) {
+        return Math.max(0, this.attackRange) +
+            Math.max(0, this.radius) +
+            Math.max(0, enemy.radius);
+    }
+
+    private getAttackRangeSearchRadius() {
+        const gm = GameManager.instance;
+        const maxEnemyRadius =
+            gm && gm.spatialGrid
+                ? gm.spatialGrid.getMaxEnemyRadius(this.team)
+                : this.radius;
+
+        return Math.max(0, this.attackRange) +
+            Math.max(0, this.radius) +
+            Math.max(0, maxEnemyRadius);
     }
 
     private getEnemyList() {
