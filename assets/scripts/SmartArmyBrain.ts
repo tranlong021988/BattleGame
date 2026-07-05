@@ -160,10 +160,7 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
-        const entries =
-            this.gameManager.getTeamEntries(this.team);
-
-        this.collectAffordableEntries(entries);
+        this.collectAffordableEntries();
 
         if (this.affordableEntries.length <= 0) {
             this.debugLog('Skip: no affordable entries.');
@@ -691,29 +688,15 @@ export class SmartArmyBrain extends Component {
         return Math.sqrt(dx * dx + dz * dz);
     }
 
-    private collectAffordableEntries(
-        entries: UnitPrefabEntry[]
-    ) {
+    private collectAffordableEntries() {
         this.affordableEntries.length = 0;
 
         if (!this.gameManager) return;
 
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-
-            if (!this.isValidEntry(entry)) continue;
-
-            if (
-                !this.gameManager.canAffordEntry(
-                    this.team,
-                    entry
-                )
-            ) {
-                continue;
-            }
-
-            this.affordableEntries.push(entry);
-        }
+        this.gameManager.collectAffordableEntries(
+            this.team,
+            this.affordableEntries
+        );
     }
 
     private getRandomAffordableEntry() {
@@ -836,34 +819,13 @@ export class SmartArmyBrain extends Component {
     private getAliveWaveCount(team: number) {
         if (!this.gameManager) return 0;
 
-        let count = 0;
-        const waves = this.gameManager.waves;
-
-        for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-
-            if (!this.isValidWave(wave)) continue;
-            if (wave!.team !== team) continue;
-
-            count++;
-        }
-
-        return count;
+        return this.gameManager.getAliveWaveCount(team);
     }
 
     private isValidWave(wave: BattleWave | null) {
         if (!wave) return false;
         if (wave.released) return false;
         if (wave.isDead()) return false;
-
-        return true;
-    }
-
-    private isValidEntry(entry: UnitPrefabEntry | null) {
-        if (!entry) return false;
-        if (!entry.name) return false;
-        if (!entry.prefab) return false;
-        if (Math.floor(entry.unitCount) <= 0) return false;
 
         return true;
     }

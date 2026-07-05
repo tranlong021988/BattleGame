@@ -192,8 +192,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          const entries = this.gameManager.getTeamEntries(this.team);
-          this.collectAffordableEntries(entries);
+          this.collectAffordableEntries();
 
           if (this.affordableEntries.length <= 0) {
             this.debugLog('Skip: no affordable entries.');
@@ -528,20 +527,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return Math.sqrt(dx * dx + dz * dz);
         }
 
-        collectAffordableEntries(entries) {
+        collectAffordableEntries() {
           this.affordableEntries.length = 0;
           if (!this.gameManager) return;
-
-          for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-            if (!this.isValidEntry(entry)) continue;
-
-            if (!this.gameManager.canAffordEntry(this.team, entry)) {
-              continue;
-            }
-
-            this.affordableEntries.push(entry);
-          }
+          this.gameManager.collectAffordableEntries(this.team, this.affordableEntries);
         }
 
         getRandomAffordableEntry() {
@@ -634,31 +623,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         getAliveWaveCount(team) {
           if (!this.gameManager) return 0;
-          let count = 0;
-          const waves = this.gameManager.waves;
-
-          for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-            if (!this.isValidWave(wave)) continue;
-            if (wave.team !== team) continue;
-            count++;
-          }
-
-          return count;
+          return this.gameManager.getAliveWaveCount(team);
         }
 
         isValidWave(wave) {
           if (!wave) return false;
           if (wave.released) return false;
           if (wave.isDead()) return false;
-          return true;
-        }
-
-        isValidEntry(entry) {
-          if (!entry) return false;
-          if (!entry.name) return false;
-          if (!entry.prefab) return false;
-          if (Math.floor(entry.unitCount) <= 0) return false;
           return true;
         }
 

@@ -94,6 +94,10 @@ export class PlayerArmyController extends Component {
     private pendingLaneTapTimer = 0;
     private pendingLaneTapLaneId = PlayerLane.Mid;
     private pendingLaneTapUnitName = '';
+    private lastAvailabilityAliveWaveCount = -1;
+    private lastAvailabilityCombatPoint = NaN;
+    private lastAvailabilityCoolingDown = false;
+    private unitIconTintDirty = true;
 
     onLoad() {
         this.cachePowerBar();
@@ -102,7 +106,7 @@ export class PlayerArmyController extends Component {
         this.setSelectedUnit('');
         this.updatePowerBar();
         this.updateLanePickerTint(false);
-        this.updateUnitIconTint(false);
+        this.updateUnitIconTint(false, true);
     }
 
     onEnable() {
@@ -115,6 +119,9 @@ export class PlayerArmyController extends Component {
     }
 
     update(deltaTime: number) {
+        const wasCoolingDown =
+            this.isCoolingDown();
+
         if (this.coolDownTimer > 0) {
             this.coolDownTimer = Math.max(
                 0,
@@ -128,7 +135,16 @@ export class PlayerArmyController extends Component {
             }
         }
 
-        this.refreshSpawnAvailability();
+        if (
+            wasCoolingDown !== this.isCoolingDown()
+        ) {
+            this.unitIconTintDirty = true;
+        }
+
+        if (this.shouldRefreshSpawnAvailability()) {
+            this.refreshSpawnAvailability();
+        }
+
         this.updatePendingLaneTap(deltaTime);
     }
 
@@ -591,7 +607,8 @@ export class PlayerArmyController extends Component {
             this.isCoolingDown()
         );
         this.updateUnitIconTint(
-            this.isSpawnInputBlocked()
+            this.isSpawnInputBlocked(),
+            true
         );
     }
 
@@ -625,6 +642,54 @@ export class PlayerArmyController extends Component {
         this.updateUnitIconTint(
             this.isSpawnInputBlocked()
         );
+    }
+
+    private shouldRefreshSpawnAvailability() {
+        const manager =
+            this.getGameManager();
+        const aliveWaveCount =
+            manager && this.enableMaxAliveWaveLimit
+                ? manager.getAliveWaveCount(this.team)
+                : -1;
+        const combatPoint =
+            manager
+                ? manager.getCombatPoint(this.team)
+                : NaN;
+        const coolingDown =
+            this.isCoolingDown();
+
+        let changed = false;
+
+        if (
+            aliveWaveCount !==
+            this.lastAvailabilityAliveWaveCount
+        ) {
+            this.lastAvailabilityAliveWaveCount =
+                aliveWaveCount;
+            changed = true;
+        }
+
+        if (
+            combatPoint !==
+            this.lastAvailabilityCombatPoint
+        ) {
+            this.lastAvailabilityCombatPoint =
+                combatPoint;
+            this.unitIconTintDirty = true;
+            changed = true;
+        }
+
+        if (
+            coolingDown !==
+            this.lastAvailabilityCoolingDown
+        ) {
+            this.lastAvailabilityCoolingDown =
+                coolingDown;
+            this.unitIconTintDirty = true;
+            changed = true;
+        }
+
+        return changed;
     }
 
     private isMaxAliveWaveBlocked() {
@@ -700,14 +765,36 @@ export class PlayerArmyController extends Component {
         );
     }
 
-    private updateUnitIconTint(dimmed: boolean) {
+    private updateUnitIconTint(
+        dimmed: boolean,
+        force: boolean = false
+    ) {
+        if (
+            !force &&
+            !this.unitIconTintDirty &&
+            this.unitIconsDimmed === dimmed
+        ) {
+            return;
+        }
+
+        if (
+            !force &&
+            this.unitIconsDimmed === dimmed &&
+            dimmed
+        ) {
+            this.unitIconTintDirty = false;
+            return;
+        }
+
         if (this.unitIconsDimmed === dimmed) {
             this.refreshUnitIconAffordTint(dimmed);
+            this.unitIconTintDirty = false;
             return;
         }
 
         this.unitIconsDimmed = dimmed;
         this.refreshUnitIconAffordTint(dimmed);
+        this.unitIconTintDirty = false;
     }
 
     private refreshUnitIconAffordTint(dimmed: boolean) {
@@ -747,7 +834,8 @@ export class PlayerArmyController extends Component {
             !maxBlocked
         );
         this.updateUnitIconTint(
-            this.isSpawnInputBlocked()
+            this.isSpawnInputBlocked(),
+            true
         );
 
         for (let i = 0; i < this.unitIcons.length; i++) {
@@ -771,22 +859,10 @@ export class PlayerArmyController extends Component {
 
         if (!manager) return false;
 
-        const entries =
-            manager.getTeamEntries(this.team);
-
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-
-            if (!entry) continue;
-            if (entry.name !== unitName) continue;
-
-            return manager.canAffordEntry(
-                this.team,
-                entry
-            );
-        }
-
-        return false;
+        return manager.canAffordUnitName(
+            this.team,
+            unitName
+        );
     }
 
     private setLanePickersVisible(visible: boolean) {

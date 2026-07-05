@@ -271,12 +271,10 @@ export class SpawnBackPressureGate extends Component {
         const gm: any = this.gameManager;
 
         if (
-            typeof gm.aliveCount !== 'undefined' &&
-            gm.aliveCount &&
-            gm.aliveCount.length >= 2
+            typeof gm.getTotalAliveUnitCount ===
+            'function'
         ) {
-            return Math.max(0, gm.aliveCount[0]) +
-                Math.max(0, gm.aliveCount[1]);
+            return gm.getTotalAliveUnitCount();
         }
 
         let count = 0;
@@ -294,6 +292,13 @@ export class SpawnBackPressureGate extends Component {
         if (!this.gameManager) return 0;
 
         const gm: any = this.gameManager;
+
+        if (
+            typeof gm.getTotalAliveWaveCount ===
+            'function'
+        ) {
+            return gm.getTotalAliveWaveCount();
+        }
 
         if (!gm.waves) return 0;
 

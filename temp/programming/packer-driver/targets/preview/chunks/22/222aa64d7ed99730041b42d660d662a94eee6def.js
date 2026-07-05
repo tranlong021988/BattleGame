@@ -670,18 +670,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         getAliveWaveCount(team) {
           if (!this.gameManager) return 0;
-          var waves = this.gameManager.waves;
-          var count = 0;
-
-          for (var i = 0; i < waves.length; i++) {
-            var wave = waves[i];
-            if (!wave) continue;
-            if (wave.team !== team) continue;
-            if (wave.isDead()) continue;
-            count++;
-          }
-
-          return count;
+          return this.gameManager.getAliveWaveCount(team);
         }
 
         spawnOpeningWave(validEntries) {
@@ -868,11 +857,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         isValidEntry(entry) {
-          if (!entry) return false;
-          if (!entry.name) return false;
-          if (!entry.prefab) return false;
-          if (Math.floor(entry.unitCount) <= 0) return false;
-          return true;
+          return !!this.gameManager && this.gameManager.isValidSpawnEntry(entry);
         }
 
         clamp(v, min, max) {

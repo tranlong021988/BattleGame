@@ -930,11 +930,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           for (let i = 0; i < entries.length; i++) {
             const entry = entries[i];
-            if (!this.isValidEntry(entry)) continue;
-
-            if (Math.floor(entry.unitCount) <= 0) {
-              continue;
-            }
+            if (!this.isValidSpawnEntry(entry)) continue;
 
             if (this.canAffordEntry(team, entry)) {
               return true;
@@ -998,6 +994,48 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!entry) return false;
           if (!this.isCombatPointEnabled()) return true;
           return this.combatPoint[team] >= Math.max(0, entry.combatPointCost);
+        }
+
+        isValidSpawnEntry(entry, requirePositiveUnitCount = true) {
+          if (!entry) return false;
+          if (!entry.name) return false;
+          if (!entry.prefab) return false;
+
+          if (requirePositiveUnitCount && Math.floor(entry.unitCount) <= 0) {
+            return false;
+          }
+
+          return true;
+        }
+
+        canAffordUnitName(team, unitName) {
+          const safeName = (unitName || '').trim();
+          if (!safeName) return false;
+          const entry = this.getTeamEntry(team, safeName);
+
+          if (!this.isValidSpawnEntry(entry)) {
+            return false;
+          }
+
+          return this.canAffordEntry(team, entry);
+        }
+
+        collectAffordableEntries(team, out) {
+          out.length = 0;
+          const entries = this.getDatabaseTeamEntries(team);
+
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+            if (!this.isValidSpawnEntry(entry)) continue;
+
+            if (!this.canAffordEntry(team, entry)) {
+              continue;
+            }
+
+            out.push(entry);
+          }
+
+          return out;
         }
 
         getCombatPoint(team) {
@@ -1092,10 +1130,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         isValidEntry(entry) {
-          if (!entry) return false;
-          if (!entry.name) return false;
-          if (!entry.prefab) return false;
-          return true;
+          return this.isValidSpawnEntry(entry, false);
         }
 
         getTeamEntry(team, unitName) {
@@ -1126,11 +1161,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const validEntries = [];
 
           for (const entry of entries) {
-            if (!this.isValidEntry(entry)) continue;
-
-            if (Math.floor(entry.unitCount) <= 0) {
-              continue;
-            }
+            if (!this.isValidSpawnEntry(entry)) continue;
 
             if (!this.canAffordEntry(team, entry)) {
               continue;
@@ -1167,6 +1198,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return count;
+        }
+
+        getTotalAliveWaveCount() {
+          let count = 0;
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.isDead()) continue;
+            count++;
+          }
+
+          return count;
+        }
+
+        getTotalAliveUnitCount() {
+          return Math.max(0, this.aliveCount[0]) + Math.max(0, this.aliveCount[1]);
         }
 
         getWavesByTeam(team) {

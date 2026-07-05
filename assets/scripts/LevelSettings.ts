@@ -1,6 +1,6 @@
 import { _decorator, Component, director } from 'cc';
 import { GameManager } from './GameManager';
-import { ArmyBrain } from './ArmyBrain';
+import { SmartArmyBrain } from './SmartArmyBrain';
 
 const { ccclass, property } = _decorator;
 
@@ -25,8 +25,8 @@ export class LevelSettings extends Component {
     @property(GameManager)
     gameManager: GameManager | null = null;
 
-    @property({ type: [ArmyBrain] })
-    armyBrains: ArmyBrain[] = [];
+    @property({ type: [SmartArmyBrain] })
+    armyBrains: SmartArmyBrain[] = [];
 
     @property({
         tooltip: 'Apply initial Combat Point curve to the selected team.'
@@ -40,48 +40,15 @@ export class LevelSettings extends Component {
     initialCombatPointMax = 180;
 
     @property({
-        tooltip: 'Apply AI Intelligence curve. Higher values make ArmyBrain choose better counter units.'
+        tooltip: 'Apply SmartArmyBrain decision accuracy curve. Higher values make AI choose better counter units and lanes.'
     })
-    allowAI = true;
+    allowDecisionAccuracy = true;
 
     @property
-    aiIntelligenceMin = 0;
+    decisionAccuracyMin = 0;
 
     @property
-    aiIntelligenceMax = 1;
-
-    @property({
-        tooltip: 'Apply Lane Awareness curve. Higher values make ArmyBrain value lane pressure more accurately.'
-    })
-    allowLane = true;
-
-    @property
-    laneAwarenessMin = 0;
-
-    @property
-    laneAwarenessMax = 1;
-
-    @property({
-        tooltip: 'Apply Counter Same Lane Chance curve. Higher values make counter waves spawn in the threatened lane more often.'
-    })
-    allowSameLane = true;
-
-    @property
-    counterSameLaneChanceMin = 0.4;
-
-    @property
-    counterSameLaneChanceMax = 1;
-
-    @property({
-        tooltip: 'Apply Fast React Chance curve. At max level, ArmyBrain always attempts eligible fast-react counters.'
-    })
-    allowFastReact = true;
-
-    @property
-    fastReactChanceMin = 0;
-
-    @property
-    fastReactChanceMax = 1;
+    decisionAccuracyMax = 1;
 
     @property({
         tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
@@ -142,7 +109,7 @@ export class LevelSettings extends Component {
         const manager =
             this.getGameManager();
         const brains =
-            this.getTargetArmyBrains(team);
+            this.getTargetSmartArmyBrains(team);
 
         if (
             this.allowCP &&
@@ -173,38 +140,11 @@ export class LevelSettings extends Component {
 
             if (!brain) continue;
 
-            if (this.allowAI) {
-                brain.aiIntelligence =
+            if (this.allowDecisionAccuracy) {
+                brain.decisionAccuracy =
                     this.lerp(
-                        this.aiIntelligenceMin,
-                        this.aiIntelligenceMax,
-                        t
-                    );
-            }
-
-            if (this.allowLane) {
-                brain.laneAwareness =
-                    this.lerp(
-                        this.laneAwarenessMin,
-                        this.laneAwarenessMax,
-                        t
-                    );
-            }
-
-            if (this.allowSameLane) {
-                brain.counterSameLaneChance =
-                    this.lerp(
-                        this.counterSameLaneChanceMin,
-                        this.counterSameLaneChanceMax,
-                        t
-                    );
-            }
-
-            if (this.allowFastReact) {
-                brain.fastReactChance =
-                    this.lerp(
-                        this.fastReactChanceMin,
-                        this.fastReactChanceMax,
+                        this.decisionAccuracyMin,
+                        this.decisionAccuracyMax,
                         t
                     );
             }
@@ -278,8 +218,8 @@ export class LevelSettings extends Component {
             : null;
     }
 
-    private getTargetArmyBrains(team: number) {
-        const result: ArmyBrain[] = [];
+    private getTargetSmartArmyBrains(team: number) {
+        const result: SmartArmyBrain[] = [];
 
         for (let i = 0; i < this.armyBrains.length; i++) {
             const brain = this.armyBrains[i];
@@ -301,7 +241,7 @@ export class LevelSettings extends Component {
 
         const brains =
             scene.getComponentsInChildren(
-                ArmyBrain
+                SmartArmyBrain
             );
 
         for (let i = 0; i < brains.length; i++) {

@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-04 by the home Codex.
+Last updated: 2026-07-06 by the home Codex.
 
 This file is intentionally concise. It should describe the current source and the currently accepted design, not the whole history of experiments. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -16,8 +16,7 @@ This file is intentionally concise. It should describe the current source and th
   - `assets/scripts/GameManager.ts` added `waveBannerRefreshIntervalFrames = 12`.
   - `AI-CONTEX.md` was rewritten to remove obsolete/conflicting history.
 - Current real source changes from the home session:
-  - Added `assets/scripts/SmartArmyBrain.ts` and `.meta`.
-  - `SmartArmyBrain` is a separate experimental AI component. It does not replace or modify `ArmyBrain` automatically.
+  - `assets/scripts/ArmyBrain.ts` and `.meta` were removed. `SmartArmyBrain` is now the only maintained AI brain.
   - Simplified `SmartArmyBrain` after user feedback: removed direct-counter blocker limits, lane-traffic direct-counter limits, and deferred-target cooldown logic.
   - Added the opening aggressive rule to `SmartArmyBrain`: before this AI has ever reached `maxAliveWaves`, its counter/opening spawns use aggressive forward.
   - Changed attack-range contact to edge-based range for all units: effective range is `unit.radius + enemy.radius + attackRange`.
@@ -32,6 +31,11 @@ This file is intentionally concise. It should describe the current source and th
     - wave banner renderer lists are cached per banner node before setting instanced background color; color params are reused separately per team, not one shared mutable array;
     - `Unit.update` no longer reapplies static RVO agent config every frame;
     - `HealthBar3D` skips instanced health updates when the ratio did not change.
+  - Logic cleanup to avoid duplicate "small truth" copies:
+    - `GameManager.isValidSpawnEntry()`, `canAffordUnitName()`, `collectAffordableEntries()`, `getTotalAliveWaveCount()`, and `getTotalAliveUnitCount()` are now shared helpers.
+    - `PlayerArmyController`, `SmartArmyBrain`, and `SpawnBackPressureGate` should reuse these helpers instead of re-scanning database entries, CP, alive unit count, or alive wave count locally.
+  - `PlayerArmyController` no longer refreshes all unit icon affordability every frame; it uses a light CP/alive-wave/cooldown snapshot and only refreshes icon tints when that snapshot changes.
+  - RVO worker and fallback now keep the nearest `maxNeighbors` while collecting neighbors instead of collecting all nearby neighbors and sorting the full list.
 - `assets/Test.scene` currently serializes the `LevelSettings` node inactive and the `LevelSettings` component disabled. Do not claim LevelSettings is active in this scene unless re-checked in Cocos.
 - `assets/Test.scene` serializes `SpectorDebugger` disabled; its `enableSpector` field may be true, but the disabled component means it should not run.
 - The user recently disabled an extra camera in the scene. A Spector capture after that showed render pass/draw-call reduction. Re-check camera components before assuming the scene still has only one active render camera.
@@ -42,6 +46,8 @@ This file is intentionally concise. It should describe the current source and th
 - Avoid optimistic desktop-preview conclusions. Check frame pacing, GPU/render, main thread, worker CPU, and worker heap.
 - Prefer small, source-local changes.
 - Do not add broad architecture or new knobs unless the user asks or a trace proves the need.
+- Before adding a new flag, scan, snapshot, counter, or inspector knob, check whether an existing helper/cache/gate already answers the question. Reuse or extend the existing source of truth first. This rule was added after the PlayerArmyController max-alive-wave tint detour, where the correct solution was to reuse the existing lightweight battle snapshot instead of inventing a parallel availability system.
+- The home machine skill `cocos-performance-optimize-skills` has been updated with the same "reuse existing truths before adding new logic" rule. The office Codex should update its local copy of that skill too, otherwise future optimization/refactor passes may drift back into duplicate logic.
 - Debug logs must be behind Inspector toggles. Current broad `console.log` uses in battle scripts are guarded by toggles; optional tools/prototypes may still log.
 - Do not hardcode local paths in source or shared scripts. Office and home machines use different project paths.
 - Cocos-bundled typecheck command on the office machine:
@@ -97,7 +103,7 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 
 ### Dynamic Lane
 
-- Lane ID is strategic metadata for ArmyBrain and minimap, not a regroup command.
+- Lane ID is strategic metadata for SmartArmyBrain and minimap, not a regroup command.
 - Dynamic lane is based on alive unit positions / majority lane logic.
 - Lane ties prefer the current lane; otherwise closest lane to average X wins.
 - Lane voting is done on main thread and is not currently a proven bottleneck.
@@ -116,27 +122,11 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 - When unlocked, hero becomes a one-unit mid-lane forward wave and uses normal forward/freehunt rules.
 - Existing enemy waves should return to their own forward mode rather than being forced to chase the hero globally.
 
-## ArmyBrain Current Shape
-
-- `ArmyBrain` no longer has runtime Defense mode, raid-defense override, `attackModeChance`, `defenseModeChance`, `defenseWaveThreshold`, or `flankAggression`.
-- Max alive wave limit is controlled by `enableMaxAliveWaveLimit` and `maxAliveWaves`.
-- Fast react exists:
-  - `fastReactChance`;
-  - `fastReactCounteredWaveIds` prevents repeatedly fast-reacting to the same wave.
-- Counter quality is mainly driven by:
-  - `aiIntelligence`;
-  - `laneAwareness`;
-  - `counterSameLaneChance`;
-  - available CP;
-  - max alive wave pressure.
-- ArmyBrain has early aggressive behavior until it has once reached `maxAliveWaves`. Verify source before changing this because it affects opening pressure.
-- Aggressive raid chance is still separately tunable through `aggressiveForwardChance`.
-
 ## SmartArmyBrain
 
-- `assets/scripts/SmartArmyBrain.ts` is a new separate component intended to test a cleaner strategic AI instead of patching `ArmyBrain`.
-- It is not wired into `assets/Test.scene` by this handoff. Add it manually in Cocos if testing.
-- Keep old `ArmyBrain` available as fallback until SmartArmyBrain is proven in playtests.
+- `assets/scripts/SmartArmyBrain.ts` is the only maintained AI brain.
+- `assets/Test.scene` contains SmartArmyBrain components on `SmartArmyBrainA/B` nodes.
+- Do not reintroduce `ArmyBrain` unless the user explicitly asks for a fallback experiment.
 - It only decides wave spawn strategy. It does not directly control unit movement, combat, forward/freehunt, lane voting, worker, RVO, banner, or minimap behavior after spawn.
 - It should usually run with `GameManager.enableAutoSpawn = false` when `runOnlyWhenGameManagerAutoSpawnOff = true`, so the old random/auto spawn loop does not compete with it.
 - Current SmartArmyBrain decision model:
@@ -165,20 +155,14 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
   - uses reused arrays/buffers for lane intel, enemy intel, affordable entries, and best-entry candidates;
   - scans wave state only on SmartArmyBrain's spawn interval, not every frame;
   - currently not event-driven. Do not convert it to spawn/death event bookkeeping unless testing proves interval scanning is a bottleneck, because event hooks would touch more core systems.
-- Current known integration gap:
-  - `LevelSettings` does not scale SmartArmyBrain yet.
-  - If the user wants level curves for SmartArmyBrain, add explicit min/max inputs for SmartArmyBrain properties instead of silently mapping old ArmyBrain fields.
-
 ## LevelSettings
 
 - `assets/scripts/LevelSettings.ts` is optional.
 - If the node/component is disabled, it should not affect battle logic.
+- It targets `SmartArmyBrain` references, while keeping the serialized property name `armyBrains` for scene compatibility.
 - It can scale selected team values:
   - initial CP;
-  - AI intelligence;
-  - lane awareness;
-  - counter same-lane chance;
-  - fast-react chance;
+  - SmartArmyBrain decision accuracy;
   - spawn intervals;
   - max alive waves;
   - aggressive-forward chance.
@@ -198,6 +182,7 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 - During cooldown or while `maxAliveWaves` blocks player spawning, unit icon root sprites are tinted black 50%; they return to normal only when the spawn gate is open again.
 - Outside global spawn blocking, individual unit icons are also tinted black 50% when current CP cannot afford that unit.
 - Player max-wave availability uses `GameManager.getAliveWaveCount(team)`, a no-allocation scan over the live wave list; do not use `getWavesByTeam()` just to count waves in UI.
+- Player unit affordability uses `GameManager.canAffordUnitName(team, unitName)`; do not duplicate database/CP checks in UI.
 - Lane `selected` child highlights are intentionally disabled for now because they made the bottom UI feel noisy.
 - After a successful player spawn, the lane picker container is hidden and the selected unit icon is cleared.
 - During cooldown, unit selection is still allowed; lane icons are tinted black and cannot spawn or change the selected-lane reminder.
@@ -287,6 +272,32 @@ Current interpretation:
   - per-instance UV rect attribute;
   - keep team/background color as an instanced attribute.
 - Mesh triangle count remains a bigger future risk than current battle AI. At 300 units, body mesh tris can become the main mobile cost.
+
+Chrome trace reviewed on 2026-07-06:
+
+- Trace: `Trace-20260706T010846.json.gz`.
+- Test condition: CPU slowdown 4x, interpreted as mobile-browser pressure rather than exact device proof.
+- `FireAnimationFrame`:
+  - count about `14,095`;
+  - avg about `4.24 ms`;
+  - p95 about `10.54 ms`;
+  - p99 about `14.45 ms`;
+  - `64` frames over `16.67 ms`;
+  - `5` frames over `33.33 ms`.
+- Worker status:
+  - RVO worker avg about `0.32 ms`, p95 about `0.62 ms`, max about `2.66 ms`;
+  - target/search worker avg about `0.16 ms`;
+  - main-thread worker message handling avg about `0.36 ms`, max about `3.7 ms`;
+  - no evidence that worker is currently the bottleneck.
+- GC status:
+  - `MinorGC` is frequent but small: avg about `3.25 ms`, no event over `8.33 ms`;
+  - `MajorGC` happened `6` times, avg about `28.4 ms`, with one event around `33 ms`.
+- Interpretation:
+  - gameplay/AI/RVO worker currently look acceptable under 4x slowdown;
+  - rare long frames still exist, and not all overlap GC;
+  - MajorGC is the main memory risk to watch when adding VFX, damage numbers, projectiles, or heavier UI;
+  - keep Spector/debug components disabled during normal traces;
+  - for final judgement, compare release mobile builds on real devices.
 
 ## VAT / Spector Tooling
 

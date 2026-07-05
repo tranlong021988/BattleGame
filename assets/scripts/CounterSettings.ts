@@ -144,7 +144,7 @@ export class CounterSettings extends Component {
 
         // =====================================================
         // SIMPLE LIGHT TEST LOOP
-        // Dùng bộ này để test ArmyBrain dễ nhìn:
+        // Dùng bộ này để test SmartArmyBrain dễ nhìn:
         //
         // LightSword   > LightSpear
         // LightSpear   > LightCavalry

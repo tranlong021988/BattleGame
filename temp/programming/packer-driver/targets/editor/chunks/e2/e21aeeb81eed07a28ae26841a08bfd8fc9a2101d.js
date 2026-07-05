@@ -612,6 +612,11 @@ function collectNeighbors(a, result, cellSize) {
     result.length = 0;
 
     const maxDistSq = a.neighborDist * a.neighborDist;
+    const maxNeighbors = Math.max(0, Math.floor(a.maxNeighbors));
+
+    if (maxNeighbors <= 0) {
+        return;
+    }
 
     for (let x = -1; x <= 1; x++) {
         for (let z = -1; z <= 1; z++) {
@@ -630,29 +635,48 @@ function collectNeighbors(a, result, cellSize) {
 
                 if (d > maxDistSq) continue;
 
-                result.push(b);
+                insertNearestNeighbor(
+                    a,
+                    b,
+                    d,
+                    maxNeighbors,
+                    result
+                );
             }
         }
     }
-
-    result.sort(compareNeighbors);
-
-    if (result.length > a.maxNeighbors) {
-        result.length = a.maxNeighbors;
-    }
 }
 
-let currentNeighborAgent = null;
 const neighborScratch = [];
 
-function compareNeighbors(a, b) {
-    const dxA = a.x - currentNeighborAgent.x;
-    const dzA = a.z - currentNeighborAgent.z;
-    const dxB = b.x - currentNeighborAgent.x;
-    const dzB = b.z - currentNeighborAgent.z;
+function insertNearestNeighbor(origin, candidate, candidateDistSq, maxNeighbors, result) {
+    let insertAt = result.length;
 
-    return dxA * dxA + dzA * dzA -
-        (dxB * dxB + dzB * dzB);
+    for (let i = 0; i < result.length; i++) {
+        const other = result[i];
+        const dx = other.x - origin.x;
+        const dz = other.z - origin.z;
+        const distSq = dx * dx + dz * dz;
+
+        if (candidateDistSq < distSq) {
+            insertAt = i;
+            break;
+        }
+    }
+
+    if (insertAt >= maxNeighbors) {
+        return;
+    }
+
+    const end = Math.min(result.length, maxNeighbors - 1);
+
+    result.length = Math.min(result.length + 1, maxNeighbors);
+
+    for (let i = end; i > insertAt; i--) {
+        result[i] = result[i - 1];
+    }
+
+    result[insertAt] = candidate;
 }
 
 function pushAgentOutOfCircle(a, k) {
@@ -1073,7 +1097,6 @@ function applyVelocityAvoidance(agents, count, data) {
         let vx = a.prefX;
         let vz = a.prefZ;
 
-        currentNeighborAgent = a;
         collectNeighbors(a, neighborScratch, data.cellSize);
 
         for (let j = 0; j < neighborScratch.length; j++) {
@@ -1121,7 +1144,6 @@ function applyVelocityAvoidance(agents, count, data) {
         }
     }
 
-    currentNeighborAgent = null;
 }
 
 function moveAgents(agents, count, data) {
@@ -1155,7 +1177,6 @@ function hardSeparateAgents(agents, count, data) {
     for (let i = 0; i < count; i++) {
         const a = agents[i];
 
-        currentNeighborAgent = a;
         collectNeighbors(a, neighborScratch, data.cellSize);
 
         for (let j = 0; j < neighborScratch.length; j++) {
@@ -1197,7 +1218,6 @@ function hardSeparateAgents(agents, count, data) {
         }
     }
 
-    currentNeighborAgent = null;
 }
 
 function solveObstaclesAgain(agents, count, data) {

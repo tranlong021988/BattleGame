@@ -61,23 +61,6 @@ export class RVOSimulator {
         new Map();
     private activeGridCells: RVOAgent[][] = [];
     private neighborScratch: RVOAgent[] = [];
-    private currentNeighborAgent: RVOAgent | null = null;
-    private readonly compareNeighbors = (
-        a: RVOAgent,
-        b: RVOAgent
-    ) => {
-        const current = this.currentNeighborAgent;
-
-        if (!current) return 0;
-
-        const dxA = a.pos.x - current.pos.x;
-        const dzA = a.pos.z - current.pos.z;
-        const dxB = b.pos.x - current.pos.x;
-        const dzB = b.pos.z - current.pos.z;
-
-        return dxA * dxA + dzA * dzA -
-            (dxB * dxB + dzB * dzB);
-    };
 
     cellSize = 2.2;
     timeStep = 1 / 60;
@@ -110,7 +93,6 @@ export class RVOSimulator {
         this.rectObs.length = 0;
         this.activeGridCells.length = 0;
         this.neighborScratch.length = 0;
-        this.currentNeighborAgent = null;
         this.grid.clear();
         this.gridKeyRows.clear();
     }
@@ -224,6 +206,12 @@ export class RVOSimulator {
         result.length = 0;
 
         const maxDistSq = a.neighborDist * a.neighborDist;
+        const maxNeighbors =
+            Math.max(0, Math.floor(a.maxNeighbors));
+
+        if (maxNeighbors <= 0) {
+            return result;
+        }
 
         for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
@@ -246,20 +234,56 @@ export class RVOSimulator {
 
                     if (distSq > maxDistSq) continue;
 
-                    result.push(other);
+                    this.insertNearestNeighbor(
+                        a,
+                        other,
+                        distSq,
+                        maxNeighbors,
+                        result
+                    );
                 }
             }
         }
 
-        this.currentNeighborAgent = a;
-        result.sort(this.compareNeighbors);
-        this.currentNeighborAgent = null;
+        return result;
+    }
 
-        if (result.length > a.maxNeighbors) {
-            result.length = a.maxNeighbors;
+    private insertNearestNeighbor(
+        origin: RVOAgent,
+        candidate: RVOAgent,
+        candidateDistSq: number,
+        maxNeighbors: number,
+        result: RVOAgent[]
+    ) {
+        let insertAt = result.length;
+
+        for (let i = 0; i < result.length; i++) {
+            const other = result[i];
+            const dx = other.pos.x - origin.pos.x;
+            const dz = other.pos.z - origin.pos.z;
+            const distSq = dx * dx + dz * dz;
+
+            if (candidateDistSq < distSq) {
+                insertAt = i;
+                break;
+            }
         }
 
-        return result;
+        if (insertAt >= maxNeighbors) {
+            return;
+        }
+
+        const end =
+            Math.min(result.length, maxNeighbors - 1);
+
+        result.length =
+            Math.min(result.length + 1, maxNeighbors);
+
+        for (let i = end; i > insertAt; i--) {
+            result[i] = result[i - 1];
+        }
+
+        result[insertAt] = candidate;
     }
 
     private applyAllyOvertake(

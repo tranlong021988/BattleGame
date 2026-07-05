@@ -8060,7 +8060,7 @@
     "node": {
       "__id__": 32
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "gameManager": {
       "__id__": 45
@@ -9027,7 +9027,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "ArmyBrainB",
+    "_name": "SmartArmyBrainB",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -9074,7 +9074,7 @@
     "_id": "90jhOzBRZArLxnc5c/YZ4U"
   },
   {
-    "__type__": "d53d3tB+Y9P9qMKZ2Hz3I1T",
+    "__type__": "176e8OduVVJWZtW75fGMWiX",
     "_name": "",
     "_objFlags": 0,
     "__editorExtras__": {},
@@ -9090,22 +9090,17 @@
     "runOnlyWhenGameManagerAutoSpawnOff": true,
     "minSpawnInterval": 3,
     "maxSpawnInterval": 5,
-    "fastReactChance": 0,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 6,
-    "preferUnengagedWaveInAttack": true,
-    "ignoreNearlyDeadWaveRatio": 0.3,
+    "decisionAccuracy": 0.1,
     "attackCounterCoverageRatio": 0.7,
-    "counterSameLaneChance": 0.1,
-    "laneAwareness": 0.1,
+    "ignoreNearlyDeadWaveRatio": 0.3,
+    "rescueAllyAliveRatio": 0.35,
     "aggressiveForwardChance": 0.1,
-    "aiIntelligence": 0.1,
-    "spawnRandomIfNoThreat": true,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "enableStateLog": false,
     "enableDebugLog": false,
-    "enableAggressiveForwardLog": false,
     "_id": "8b7typUxFBD7+IiCLqavbl"
   },
   {
@@ -9140,7 +9135,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "ArmyBrainA",
+    "_name": "SmartArmyBrainA",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -9187,7 +9182,7 @@
     "_id": "c8e4nbi05DbbpCr4WYUK25"
   },
   {
-    "__type__": "d53d3tB+Y9P9qMKZ2Hz3I1T",
+    "__type__": "176e8OduVVJWZtW75fGMWiX",
     "_name": "",
     "_objFlags": 0,
     "__editorExtras__": {},
@@ -9203,22 +9198,17 @@
     "runOnlyWhenGameManagerAutoSpawnOff": true,
     "minSpawnInterval": 3,
     "maxSpawnInterval": 5,
-    "fastReactChance": 0.9,
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 6,
-    "preferUnengagedWaveInAttack": true,
-    "ignoreNearlyDeadWaveRatio": 0.3,
+    "decisionAccuracy": 1,
     "attackCounterCoverageRatio": 0.7,
-    "counterSameLaneChance": 1,
-    "laneAwareness": 1,
+    "ignoreNearlyDeadWaveRatio": 0.3,
+    "rescueAllyAliveRatio": 0.35,
     "aggressiveForwardChance": 0.7,
-    "aiIntelligence": 1,
-    "spawnRandomIfNoThreat": true,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "enableStateLog": false,
     "enableDebugLog": false,
-    "enableAggressiveForwardLog": false,
     "_id": "4fwfKxselC06vULLcWgs9+"
   },
   {
@@ -9229,7 +9219,7 @@
     "node": {
       "__id__": 312
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": null,
     "gameManager": {
       "__id__": 45
@@ -9381,24 +9371,15 @@
     },
     "armyBrains": [
       {
-        "__id__": 310
+        "__id__": 311
       }
     ],
     "allowCP": true,
     "initialCombatPointMin": 70,
     "initialCombatPointMax": 150,
-    "allowAI": true,
-    "aiIntelligenceMin": 0,
-    "aiIntelligenceMax": 1,
-    "allowLane": true,
-    "laneAwarenessMin": 0,
-    "laneAwarenessMax": 1,
-    "allowSameLane": true,
-    "counterSameLaneChanceMin": 0,
-    "counterSameLaneChanceMax": 0.7,
-    "allowFastReact": true,
-    "fastReactChanceMin": 0,
-    "fastReactChanceMax": 1,
+    "allowDecisionAccuracy": true,
+    "decisionAccuracyMin": 0,
+    "decisionAccuracyMax": 1,
     "allowInterval": true,
     "minSpawnIntervalMinLevel": 5,
     "minSpawnIntervalMaxLevel": 2,

@@ -1213,11 +1213,7 @@ export class GameManager extends Component {
         for (let i = 0; i < entries.length; i++) {
             const entry = entries[i];
 
-            if (!this.isValidEntry(entry)) continue;
-
-            if (Math.floor(entry.unitCount) <= 0) {
-                continue;
-            }
+            if (!this.isValidSpawnEntry(entry)) continue;
 
             if (this.canAffordEntry(team, entry)) {
                 return true;
@@ -1318,6 +1314,67 @@ export class GameManager extends Component {
 
         return this.combatPoint[team] >=
             Math.max(0, entry.combatPointCost);
+    }
+
+    public isValidSpawnEntry(
+        entry: UnitPrefabEntry | null,
+        requirePositiveUnitCount: boolean = true
+    ) {
+        if (!entry) return false;
+        if (!entry.name) return false;
+        if (!entry.prefab) return false;
+
+        if (
+            requirePositiveUnitCount &&
+            Math.floor(entry.unitCount) <= 0
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public canAffordUnitName(
+        team: number,
+        unitName: string
+    ) {
+        const safeName =
+            (unitName || '').trim();
+
+        if (!safeName) return false;
+
+        const entry =
+            this.getTeamEntry(team, safeName);
+
+        if (!this.isValidSpawnEntry(entry)) {
+            return false;
+        }
+
+        return this.canAffordEntry(team, entry);
+    }
+
+    public collectAffordableEntries(
+        team: number,
+        out: UnitPrefabEntry[]
+    ) {
+        out.length = 0;
+
+        const entries =
+            this.getDatabaseTeamEntries(team);
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidSpawnEntry(entry)) continue;
+
+            if (!this.canAffordEntry(team, entry)) {
+                continue;
+            }
+
+            out.push(entry);
+        }
+
+        return out;
     }
 
     public getCombatPoint(team: number) {
@@ -1446,11 +1503,7 @@ export class GameManager extends Component {
     }
 
     private isValidEntry(entry: UnitPrefabEntry | null): boolean {
-        if (!entry) return false;
-        if (!entry.name) return false;
-        if (!entry.prefab) return false;
-
-        return true;
+        return this.isValidSpawnEntry(entry, false);
     }
 
     private getTeamEntry(
@@ -1495,11 +1548,7 @@ export class GameManager extends Component {
         const validEntries: UnitPrefabEntry[] = [];
 
         for (const entry of entries) {
-            if (!this.isValidEntry(entry)) continue;
-
-            if (Math.floor(entry.unitCount) <= 0) {
-                continue;
-            }
+            if (!this.isValidSpawnEntry(entry)) continue;
 
             if (!this.canAffordEntry(team, entry)) {
                 continue;
@@ -1543,6 +1592,26 @@ export class GameManager extends Component {
         }
 
         return count;
+    }
+
+    public getTotalAliveWaveCount() {
+        let count = 0;
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.isDead()) continue;
+
+            count++;
+        }
+
+        return count;
+    }
+
+    public getTotalAliveUnitCount() {
+        return Math.max(0, this.aliveCount[0]) +
+            Math.max(0, this.aliveCount[1]);
     }
 
     public getWavesByTeam(team: number): BattleWave[] {

@@ -19,7 +19,6 @@
             "shaders\\UnlitBillboard.effect",
             "shaders\\VAT-Animation.effect",
             "shaders\\VATCharacter.effect",
-            "scripts\\ArmyBrain.ts",
             "scripts\\BattleCinematicCameraController.ts",
             "scripts\\BattleInformationIconItem.ts",
             "scripts\\BattleSpatialGrid.ts",

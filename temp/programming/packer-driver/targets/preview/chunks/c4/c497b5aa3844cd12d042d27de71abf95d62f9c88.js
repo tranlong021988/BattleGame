@@ -67,18 +67,6 @@ System.register(["cc"], function (_export, _context) {
           this.gridKeyRows = new Map();
           this.activeGridCells = [];
           this.neighborScratch = [];
-          this.currentNeighborAgent = null;
-
-          this.compareNeighbors = (a, b) => {
-            var current = this.currentNeighborAgent;
-            if (!current) return 0;
-            var dxA = a.pos.x - current.pos.x;
-            var dzA = a.pos.z - current.pos.z;
-            var dxB = b.pos.x - current.pos.x;
-            var dzB = b.pos.z - current.pos.z;
-            return dxA * dxA + dzA * dzA - (dxB * dxB + dzB * dzB);
-          };
-
           this.cellSize = 2.2;
           this.timeStep = 1 / 60;
           this.minStepDeltaTime = 1 / 120;
@@ -109,7 +97,6 @@ System.register(["cc"], function (_export, _context) {
           this.rectObs.length = 0;
           this.activeGridCells.length = 0;
           this.neighborScratch.length = 0;
-          this.currentNeighborAgent = null;
           this.grid.clear();
           this.gridKeyRows.clear();
         }
@@ -215,6 +202,11 @@ System.register(["cc"], function (_export, _context) {
           var result = this.neighborScratch;
           result.length = 0;
           var maxDistSq = a.neighborDist * a.neighborDist;
+          var maxNeighbors = Math.max(0, Math.floor(a.maxNeighbors));
+
+          if (maxNeighbors <= 0) {
+            return result;
+          }
 
           for (var x = -1; x <= 1; x++) {
             for (var z = -1; z <= 1; z++) {
@@ -229,20 +221,41 @@ System.register(["cc"], function (_export, _context) {
                 var dz = other.pos.z - a.pos.z;
                 var distSq = dx * dx + dz * dz;
                 if (distSq > maxDistSq) continue;
-                result.push(other);
+                this.insertNearestNeighbor(a, other, distSq, maxNeighbors, result);
               }
             }
           }
 
-          this.currentNeighborAgent = a;
-          result.sort(this.compareNeighbors);
-          this.currentNeighborAgent = null;
+          return result;
+        }
 
-          if (result.length > a.maxNeighbors) {
-            result.length = a.maxNeighbors;
+        insertNearestNeighbor(origin, candidate, candidateDistSq, maxNeighbors, result) {
+          var insertAt = result.length;
+
+          for (var i = 0; i < result.length; i++) {
+            var other = result[i];
+            var dx = other.pos.x - origin.pos.x;
+            var dz = other.pos.z - origin.pos.z;
+            var distSq = dx * dx + dz * dz;
+
+            if (candidateDistSq < distSq) {
+              insertAt = i;
+              break;
+            }
           }
 
-          return result;
+          if (insertAt >= maxNeighbors) {
+            return;
+          }
+
+          var end = Math.min(result.length, maxNeighbors - 1);
+          result.length = Math.min(result.length + 1, maxNeighbors);
+
+          for (var _i2 = end; _i2 > insertAt; _i2--) {
+            result[_i2] = result[_i2 - 1];
+          }
+
+          result[insertAt] = candidate;
         }
 
         applyAllyOvertake(a, neighbors) {
@@ -479,8 +492,8 @@ System.register(["cc"], function (_export, _context) {
             this.pushAgentOutOfCircle(a, this.circleObs[i]);
           }
 
-          for (var _i2 = 0; _i2 < this.rectObs.length; _i2++) {
-            this.pushAgentOutOfRect(a, this.rectObs[_i2]);
+          for (var _i3 = 0; _i3 < this.rectObs.length; _i3++) {
+            this.pushAgentOutOfRect(a, this.rectObs[_i3]);
           }
         }
 
@@ -657,14 +670,14 @@ System.register(["cc"], function (_export, _context) {
           } // ===== MOVE =====
 
 
-          for (var _i3 = 0; _i3 < this.agents.length; _i3++) {
-            var _a = this.agents[_i3];
+          for (var _i4 = 0; _i4 < this.agents.length; _i4++) {
+            var _a = this.agents[_i4];
 
             if (!_a.locked) {
               _a.pos.x += _a.vel.x * dt;
               _a.pos.z += _a.vel.z * dt; // Chống xuyên obstacle sau khi di chuyển.
 
-              for (var _i4 = 0; _i4 < this.obstacleSolveIterations; _i4++) {
+              for (var _i5 = 0; _i5 < this.obstacleSolveIterations; _i5++) {
                 this.pushAgentOutOfObstacles(_a);
               }
             }
@@ -674,8 +687,8 @@ System.register(["cc"], function (_export, _context) {
 
           this.buildGrid(); // ===== HARD SEPARATION: AGENT-AGENT =====
 
-          for (var _i5 = 0; _i5 < this.agents.length; _i5++) {
-            var _a2 = this.agents[_i5];
+          for (var _i6 = 0; _i6 < this.agents.length; _i6++) {
+            var _a2 = this.agents[_i6];
 
             var _neighbors = this.getNeighbors(_a2);
 
@@ -724,11 +737,11 @@ System.register(["cc"], function (_export, _context) {
           // nên cần solve obstacle thêm lần nữa.
 
 
-          for (var _i6 = 0; _i6 < this.agents.length; _i6++) {
-            var _a3 = this.agents[_i6];
+          for (var _i7 = 0; _i7 < this.agents.length; _i7++) {
+            var _a3 = this.agents[_i7];
             if (_a3.locked) continue;
 
-            for (var _i7 = 0; _i7 < this.obstacleSolveIterations; _i7++) {
+            for (var _i8 = 0; _i8 < this.obstacleSolveIterations; _i8++) {
               this.pushAgentOutOfObstacles(_a3);
             }
 

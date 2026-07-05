@@ -134,6 +134,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.pendingLaneTapTimer = 0;
           this.pendingLaneTapLaneId = PlayerLane.Mid;
           this.pendingLaneTapUnitName = '';
+          this.lastAvailabilityAliveWaveCount = -1;
+          this.lastAvailabilityCombatPoint = NaN;
+          this.lastAvailabilityCoolingDown = false;
+          this.unitIconTintDirty = true;
         }
 
         onLoad() {
@@ -143,7 +147,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.setSelectedUnit('');
           this.updatePowerBar();
           this.updateLanePickerTint(false);
-          this.updateUnitIconTint(false);
+          this.updateUnitIconTint(false, true);
         }
 
         onEnable() {
@@ -156,6 +160,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         update(deltaTime) {
+          var wasCoolingDown = this.isCoolingDown();
+
           if (this.coolDownTimer > 0) {
             this.coolDownTimer = Math.max(0, this.coolDownTimer - deltaTime);
             this.updatePowerBar();
@@ -165,7 +171,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }
           }
 
-          this.refreshSpawnAvailability();
+          if (wasCoolingDown !== this.isCoolingDown()) {
+            this.unitIconTintDirty = true;
+          }
+
+          if (this.shouldRefreshSpawnAvailability()) {
+            this.refreshSpawnAvailability();
+          }
+
           this.updatePendingLaneTap(deltaTime);
         }
 
@@ -466,7 +479,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.coolDownTimer = Math.max(0, this.coolDownDuration);
           this.updatePowerBar();
           this.updateLanePickerTint(this.isCoolingDown());
-          this.updateUnitIconTint(this.isSpawnInputBlocked());
+          this.updateUnitIconTint(this.isSpawnInputBlocked(), true);
         }
 
         isCoolingDown() {
@@ -492,6 +505,33 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.updateUnitIconTint(this.isSpawnInputBlocked());
+        }
+
+        shouldRefreshSpawnAvailability() {
+          var manager = this.getGameManager();
+          var aliveWaveCount = manager && this.enableMaxAliveWaveLimit ? manager.getAliveWaveCount(this.team) : -1;
+          var combatPoint = manager ? manager.getCombatPoint(this.team) : NaN;
+          var coolingDown = this.isCoolingDown();
+          var changed = false;
+
+          if (aliveWaveCount !== this.lastAvailabilityAliveWaveCount) {
+            this.lastAvailabilityAliveWaveCount = aliveWaveCount;
+            changed = true;
+          }
+
+          if (combatPoint !== this.lastAvailabilityCombatPoint) {
+            this.lastAvailabilityCombatPoint = combatPoint;
+            this.unitIconTintDirty = true;
+            changed = true;
+          }
+
+          if (coolingDown !== this.lastAvailabilityCoolingDown) {
+            this.lastAvailabilityCoolingDown = coolingDown;
+            this.unitIconTintDirty = true;
+            changed = true;
+          }
+
+          return changed;
         }
 
         isMaxAliveWaveBlocked() {
@@ -537,14 +577,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.setNodeTint(this.rightPicker, !dimmed);
         }
 
-        updateUnitIconTint(dimmed) {
+        updateUnitIconTint(dimmed, force) {
+          if (force === void 0) {
+            force = false;
+          }
+
+          if (!force && !this.unitIconTintDirty && this.unitIconsDimmed === dimmed) {
+            return;
+          }
+
+          if (!force && this.unitIconsDimmed === dimmed && dimmed) {
+            this.unitIconTintDirty = false;
+            return;
+          }
+
           if (this.unitIconsDimmed === dimmed) {
             this.refreshUnitIconAffordTint(dimmed);
+            this.unitIconTintDirty = false;
             return;
           }
 
           this.unitIconsDimmed = dimmed;
           this.refreshUnitIconAffordTint(dimmed);
+          this.unitIconTintDirty = false;
         }
 
         refreshUnitIconAffordTint(dimmed) {
@@ -564,7 +619,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.maxAliveWaveBlocked = maxBlocked;
           this.selectedUnitName = safeUnitName;
           this.setLanePickersVisible(canAfford && !this.isCoolingDown() && !maxBlocked);
-          this.updateUnitIconTint(this.isSpawnInputBlocked());
+          this.updateUnitIconTint(this.isSpawnInputBlocked(), true);
 
           for (var i = 0; i < this.unitIcons.length; i++) {
             var item = this.unitIcons[i];
@@ -581,16 +636,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), GameManager) : GameManager).instance;
           if (!manager) return false;
-          var entries = manager.getTeamEntries(this.team);
-
-          for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            if (!entry) continue;
-            if (entry.name !== unitName) continue;
-            return manager.canAffordEntry(this.team, entry);
-          }
-
-          return false;
+          return manager.canAffordUnitName(this.team, unitName);
         }
 
         setLanePickersVisible(visible) {
