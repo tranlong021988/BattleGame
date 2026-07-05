@@ -127,7 +127,8 @@
             "MiniMap\\images\\spear-ico-small.png",
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico-small.png",
-            "MiniMap\\images\\sword-ico.png"
+            "MiniMap\\images\\sword-ico.png",
+            "MiniMap\\images\\selected-ico.png"
         ]
     }
 }

@@ -8,9 +8,6 @@ import {
     EventTouch,
     Node,
     Sprite,
-    Tween,
-    tween,
-    UIOpacity,
     UITransform,
 } from 'cc';
 import { GameManager } from './GameManager';
@@ -44,6 +41,8 @@ export class PlayerArmyController extends Component {
     private static readonly activeTint =
         new Color(255, 255, 255, 255);
     private static readonly inactiveTint =
+        new Color(0, 0, 0, 255);
+    private static readonly unitCooldownTint =
         new Color(128, 128, 128, 255);
 
     @property(GameManager)
@@ -82,40 +81,37 @@ export class PlayerArmyController extends Component {
     @property({ min: 1 })
     maxAliveWaves = 7;
 
-    @property({ min: 0, max: 255 })
-    selectedBlinkMinOpacity = 80;
-
-    @property({ min: 0.01 })
-    selectedBlinkDuration = 0.45;
-
     private selectedLaneId = PlayerLane.Mid;
     private coolDownTimer = 0;
     private powerBar: Node | null = null;
     private powerBarTransform: UITransform | null = null;
     private powerBarMaxWidth = 0;
     private powerBarHeight = 0;
+    private lanePickersDimmed = true;
     private unitIconsDimmed = true;
-    private pendingUnitTapName = '';
-    private pendingUnitTapTimer = 0;
-    private pendingUnitTapLaneId = PlayerLane.Mid;
+    private maxAliveWaveBlocked = false;
+    private selectedUnitName = '';
+    private pendingLaneTapTimer = 0;
+    private pendingLaneTapLaneId = PlayerLane.Mid;
+    private pendingLaneTapUnitName = '';
 
     onLoad() {
         this.cachePowerBar();
         this.resetLanePickerTint();
         this.setSelectedLane(this.defaultLane);
+        this.setSelectedUnit('');
         this.updatePowerBar();
+        this.updateLanePickerTint(false);
         this.updateUnitIconTint(false);
     }
 
     onEnable() {
         this.registerInput();
-        this.playSelectedBlink();
     }
 
     onDisable() {
         this.unregisterInput();
-        this.stopSelectedBlink();
-        this.clearPendingUnitTap();
+        this.clearPendingLaneTap();
     }
 
     update(deltaTime: number) {
@@ -128,11 +124,12 @@ export class PlayerArmyController extends Component {
             this.updatePowerBar();
 
             if (this.coolDownTimer <= 0) {
-                this.updateUnitIconTint(false);
+                this.updateLanePickerTint(false);
             }
         }
 
-        this.updatePendingUnitTap(deltaTime);
+        this.refreshSpawnAvailability();
+        this.updatePendingLaneTap(deltaTime);
     }
 
     public selectLane(
@@ -149,14 +146,14 @@ export class PlayerArmyController extends Component {
             return;
         }
 
-        this.setSelectedLane(laneId);
+        this.handleLaneTap(laneId);
     }
 
     public spawnUnit(
         _event: Event,
         unitName: string
     ) {
-        this.spawnByName(unitName ?? '', false);
+        this.setSelectedUnit(unitName ?? '');
     }
 
     public setSelectedLane(laneId: number) {
@@ -169,26 +166,7 @@ export class PlayerArmyController extends Component {
         );
 
         this.selectedLaneId = safeLaneId;
-
-        const leftSelected =
-            this.getSelectedNode(this.leftPicker);
-        const midSelected =
-            this.getSelectedNode(this.midPicker);
-        const rightSelected =
-            this.getSelectedNode(this.rightPicker);
-
-        this.setSelectedNodeActive(
-            leftSelected,
-            safeLaneId === PlayerLane.Left
-        );
-        this.setSelectedNodeActive(
-            midSelected,
-            safeLaneId === PlayerLane.Mid
-        );
-        this.setSelectedNodeActive(
-            rightSelected,
-            safeLaneId === PlayerLane.Right
-        );
+        this.hideLaneSelectedNodes();
     }
 
     public getSelectedLaneId() {
@@ -290,17 +268,17 @@ export class PlayerArmyController extends Component {
         const node = event.currentTarget as Node | null;
 
         if (node === this.leftPicker) {
-            this.setSelectedLane(PlayerLane.Left);
+            this.handleLaneTap(PlayerLane.Left);
             return;
         }
 
         if (node === this.midPicker) {
-            this.setSelectedLane(PlayerLane.Mid);
+            this.handleLaneTap(PlayerLane.Mid);
             return;
         }
 
         if (node === this.rightPicker) {
-            this.setSelectedLane(PlayerLane.Right);
+            this.handleLaneTap(PlayerLane.Right);
         }
     }
 
@@ -319,32 +297,63 @@ export class PlayerArmyController extends Component {
             return;
         }
 
-        this.handleUnitIconTap(unitName);
+        this.setSelectedUnit(unitName);
     }
 
-    private handleUnitIconTap(unitName: string) {
+    private handleLaneTap(laneId: number) {
         if (this.isCoolingDown()) {
-            this.clearPendingUnitTap();
-            this.spawnByName(unitName, false);
+            this.clearPendingLaneTap();
+            console.warn(
+                `[PlayerArmyController] Spawn is cooling down: ${this.coolDownTimer.toFixed(2)}s remaining.`
+            );
             return;
         }
+
+        if (this.isMaxAliveWaveBlocked()) {
+            this.clearPendingLaneTap();
+            const manager =
+                this.getGameManager();
+            const aliveCount = manager
+                ? manager.getAliveWaveCount(this.team)
+                : 0;
+
+            console.warn(
+                `[PlayerArmyController] Max alive wave limit reached: ` +
+                `${aliveCount}/${this.getMaxAliveWaves()}.`
+            );
+            return;
+        }
+
+        if (!this.selectedUnitName) {
+            console.warn(
+                '[PlayerArmyController] Select a unit icon before tapping a lane.'
+            );
+            return;
+        }
+
+        this.setSelectedLane(laneId);
 
         const window =
             Math.max(0, this.doubleTapWindow);
 
         if (window <= 0) {
-            this.spawnByName(unitName, false);
+            this.spawnByName(
+                this.selectedUnitName,
+                false,
+                laneId
+            );
             return;
         }
 
         if (
-            this.pendingUnitTapTimer > 0 &&
-            this.pendingUnitTapName === unitName
+            this.pendingLaneTapTimer > 0 &&
+            this.pendingLaneTapLaneId === laneId
         ) {
-            const laneId =
-                this.pendingUnitTapLaneId;
+            const unitName =
+                this.pendingLaneTapUnitName ||
+                this.selectedUnitName;
 
-            this.clearPendingUnitTap();
+            this.clearPendingLaneTap();
             this.spawnByName(
                 unitName,
                 true,
@@ -353,39 +362,41 @@ export class PlayerArmyController extends Component {
             return;
         }
 
-        if (this.pendingUnitTapTimer > 0) {
-            this.flushPendingUnitTap();
+        if (this.pendingLaneTapTimer > 0) {
+            this.flushPendingLaneTap();
 
             if (this.isCoolingDown()) {
                 return;
             }
         }
 
-        this.pendingUnitTapName = unitName;
-        this.pendingUnitTapTimer = window;
-        this.pendingUnitTapLaneId =
-            this.selectedLaneId;
+        this.pendingLaneTapTimer = window;
+        this.pendingLaneTapLaneId = laneId;
+        this.pendingLaneTapUnitName =
+            this.selectedUnitName;
     }
 
-    private updatePendingUnitTap(deltaTime: number) {
-        if (this.pendingUnitTapTimer <= 0) return;
+    private updatePendingLaneTap(deltaTime: number) {
+        if (this.pendingLaneTapTimer <= 0) return;
 
-        this.pendingUnitTapTimer = Math.max(
+        this.pendingLaneTapTimer = Math.max(
             0,
-            this.pendingUnitTapTimer - deltaTime
+            this.pendingLaneTapTimer - deltaTime
         );
 
-        if (this.pendingUnitTapTimer > 0) return;
+        if (this.pendingLaneTapTimer > 0) return;
 
-        this.flushPendingUnitTap();
+        this.flushPendingLaneTap();
     }
 
-    private flushPendingUnitTap() {
-        const unitName = this.pendingUnitTapName;
+    private flushPendingLaneTap() {
+        const unitName =
+            this.pendingLaneTapUnitName ||
+            this.selectedUnitName;
         const laneId =
-            this.pendingUnitTapLaneId;
+            this.pendingLaneTapLaneId;
 
-        this.clearPendingUnitTap();
+        this.clearPendingLaneTap();
 
         if (!unitName) return;
 
@@ -396,11 +407,11 @@ export class PlayerArmyController extends Component {
         );
     }
 
-    private clearPendingUnitTap() {
-        this.pendingUnitTapName = '';
-        this.pendingUnitTapTimer = 0;
-        this.pendingUnitTapLaneId =
+    private clearPendingLaneTap() {
+        this.pendingLaneTapTimer = 0;
+        this.pendingLaneTapLaneId =
             this.selectedLaneId;
+        this.pendingLaneTapUnitName = '';
     }
 
     private spawnByName(
@@ -437,7 +448,7 @@ export class PlayerArmyController extends Component {
         if (!this.canSpawnMoreWave(manager)) {
             console.warn(
                 `[PlayerArmyController] Max alive wave limit reached: ` +
-                `${this.getAliveWaveCount(manager)}/${this.getMaxAliveWaves()}.`
+                `${manager.getAliveWaveCount(this.team)}/${this.getMaxAliveWaves()}.`
             );
             return;
         }
@@ -452,6 +463,8 @@ export class PlayerArmyController extends Component {
 
         if (!wave) return;
 
+        this.setSelectedUnit('');
+        this.setLanePickersVisible(false);
         this.startCoolDown();
     }
 
@@ -462,7 +475,7 @@ export class PlayerArmyController extends Component {
             return true;
         }
 
-        return this.getAliveWaveCount(manager) <
+        return manager.getAliveWaveCount(this.team) <
             this.getMaxAliveWaves();
     }
 
@@ -471,26 +484,6 @@ export class PlayerArmyController extends Component {
             1,
             Math.floor(this.maxAliveWaves)
         );
-    }
-
-    private getAliveWaveCount(
-        manager: GameManager
-    ) {
-        const waves =
-            manager.getWavesByTeam(this.team);
-
-        let count = 0;
-
-        for (let i = 0; i < waves.length; i++) {
-            const wave = waves[i];
-
-            if (!wave) continue;
-            if (wave.isDead()) continue;
-
-            count++;
-        }
-
-        return count;
     }
 
     private getUnitNameForIcon(node: Node) {
@@ -519,120 +512,22 @@ export class PlayerArmyController extends Component {
     ) {
         if (!selected) return;
 
-        if (!active) {
-            this.stopSelectedNodeBlink(selected);
-            selected.active = false;
-            return;
-        }
-
-        selected.active = true;
-        this.playSelectedNodeBlink(selected);
+        selected.active = active;
     }
 
-    private playSelectedBlink() {
-        this.playSelectedNodeBlink(
-            this.getSelectedNodeByLane(
-                this.selectedLaneId
-            )
+    private hideLaneSelectedNodes() {
+        this.setSelectedNodeActive(
+            this.getSelectedNode(this.leftPicker),
+            false
         );
-    }
-
-    private stopSelectedBlink() {
-        this.stopSelectedNodeBlink(
-            this.getSelectedNode(this.leftPicker)
+        this.setSelectedNodeActive(
+            this.getSelectedNode(this.midPicker),
+            false
         );
-        this.stopSelectedNodeBlink(
-            this.getSelectedNode(this.midPicker)
+        this.setSelectedNodeActive(
+            this.getSelectedNode(this.rightPicker),
+            false
         );
-        this.stopSelectedNodeBlink(
-            this.getSelectedNode(this.rightPicker)
-        );
-    }
-
-    private playSelectedNodeBlink(
-        selected: Node | null
-    ) {
-        if (!selected || !selected.active) return;
-
-        const opacity =
-            this.getOrAddOpacity(selected);
-
-        this.stopSelectedNodeBlink(selected);
-
-        opacity.opacity = 255;
-
-        const minOpacity =
-            Math.max(
-                0,
-                Math.min(
-                    255,
-                    Math.floor(
-                        this.selectedBlinkMinOpacity
-                    )
-                )
-            );
-
-        const duration =
-            Math.max(
-                0.01,
-                this.selectedBlinkDuration
-            );
-
-        tween(opacity)
-            .to(duration, { opacity: minOpacity })
-            .to(duration, { opacity: 255 })
-            .union()
-            .repeatForever()
-            .start();
-    }
-
-    private stopSelectedNodeBlink(
-        selected: Node | null
-    ) {
-        if (!selected) return;
-
-        const opacity =
-            selected.getComponent(UIOpacity);
-
-        if (!opacity) return;
-
-        Tween.stopAllByTarget(opacity);
-        opacity.opacity = 255;
-    }
-
-    private getOrAddOpacity(
-        node: Node
-    ) {
-        let opacity =
-            node.getComponent(UIOpacity);
-
-        if (!opacity) {
-            opacity =
-                node.addComponent(UIOpacity);
-        }
-
-        return opacity;
-    }
-
-    private getSelectedNodeByLane(
-        laneId: number
-    ) {
-        switch (laneId) {
-            case PlayerLane.Left:
-                return this.getSelectedNode(
-                    this.leftPicker
-                );
-
-            case PlayerLane.Right:
-                return this.getSelectedNode(
-                    this.rightPicker
-                );
-
-            default:
-                return this.getSelectedNode(
-                    this.midPicker
-                );
-        }
     }
 
     private removeManagedClickEvents(
@@ -692,13 +587,61 @@ export class PlayerArmyController extends Component {
         );
 
         this.updatePowerBar();
-        this.updateUnitIconTint(
+        this.updateLanePickerTint(
             this.isCoolingDown()
+        );
+        this.updateUnitIconTint(
+            this.isSpawnInputBlocked()
         );
     }
 
     private isCoolingDown() {
         return this.coolDownTimer > 0;
+    }
+
+    private isSpawnInputBlocked() {
+        return this.isCoolingDown() ||
+            this.maxAliveWaveBlocked;
+    }
+
+    private refreshSpawnAvailability() {
+        const blocked =
+            this.isMaxAliveWaveBlocked();
+
+        if (this.maxAliveWaveBlocked !== blocked) {
+            this.maxAliveWaveBlocked = blocked;
+
+            if (blocked) {
+                this.clearPendingLaneTap();
+                this.setLanePickersVisible(false);
+            } else if (
+                this.selectedUnitName &&
+                this.canAffordUnitName(this.selectedUnitName)
+            ) {
+                this.setLanePickersVisible(true);
+            }
+        }
+
+        this.updateUnitIconTint(
+            this.isSpawnInputBlocked()
+        );
+    }
+
+    private isMaxAliveWaveBlocked() {
+        if (!this.enableMaxAliveWaveLimit) {
+            return false;
+        }
+
+        const manager =
+            this.getGameManager();
+
+        if (!manager) return false;
+
+        return !this.canSpawnMoreWave(manager);
+    }
+
+    private getGameManager() {
+        return this.gameManager ?? GameManager.instance;
     }
 
     private updatePowerBar() {
@@ -736,29 +679,164 @@ export class PlayerArmyController extends Component {
         );
     }
 
+    private updateLanePickerTint(dimmed: boolean) {
+        if (this.lanePickersDimmed === dimmed) {
+            return;
+        }
+
+        this.lanePickersDimmed = dimmed;
+
+        this.setNodeTint(
+            this.leftPicker,
+            !dimmed
+        );
+        this.setNodeTint(
+            this.midPicker,
+            !dimmed
+        );
+        this.setNodeTint(
+            this.rightPicker,
+            !dimmed
+        );
+    }
+
     private updateUnitIconTint(dimmed: boolean) {
         if (this.unitIconsDimmed === dimmed) {
+            this.refreshUnitIconAffordTint(dimmed);
             return;
         }
 
         this.unitIconsDimmed = dimmed;
+        this.refreshUnitIconAffordTint(dimmed);
+    }
+
+    private refreshUnitIconAffordTint(dimmed: boolean) {
+        for (let i = 0; i < this.unitIcons.length; i++) {
+            const item = this.unitIcons[i];
+            const node = item ? item.node : null;
+            const unitName =
+                item ? item.unitName.trim() : '';
+            const canUse =
+                !!unitName &&
+                !dimmed &&
+                this.canAffordUnitName(unitName);
+
+            this.setNodeTint(
+                node,
+                canUse,
+                PlayerArmyController.unitCooldownTint
+            );
+        }
+    }
+
+    private setSelectedUnit(unitName: string) {
+        const safeUnitName =
+            (unitName || '').trim();
+        const canAfford =
+            !!safeUnitName &&
+            this.canAffordUnitName(safeUnitName);
+        const maxBlocked =
+            this.isMaxAliveWaveBlocked();
+
+        this.maxAliveWaveBlocked = maxBlocked;
+
+        this.selectedUnitName = safeUnitName;
+        this.setLanePickersVisible(
+            canAfford &&
+            !this.isCoolingDown() &&
+            !maxBlocked
+        );
+        this.updateUnitIconTint(
+            this.isSpawnInputBlocked()
+        );
 
         for (let i = 0; i < this.unitIcons.length; i++) {
             const item = this.unitIcons[i];
             const node = item ? item.node : null;
+            const active =
+                !!safeUnitName &&
+                !!item &&
+                item.unitName.trim() === safeUnitName;
 
-            if (!node) continue;
-
-            this.setNodeTint(
-                node,
-                !dimmed
+            this.setSelectedNodeActive(
+                this.getSelectedNode(node),
+                active
             );
+        }
+    }
+
+    private canAffordUnitName(unitName: string) {
+        const manager =
+            this.gameManager ?? GameManager.instance;
+
+        if (!manager) return false;
+
+        const entries =
+            manager.getTeamEntries(this.team);
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!entry) continue;
+            if (entry.name !== unitName) continue;
+
+            return manager.canAffordEntry(
+                this.team,
+                entry
+            );
+        }
+
+        return false;
+    }
+
+    private setLanePickersVisible(visible: boolean) {
+        const container =
+            this.getLanePickerContainer();
+
+        if (container) {
+            container.active = visible;
+            return;
+        }
+
+        this.setLanePickerNodesVisible(visible);
+    }
+
+    private getLanePickerContainer() {
+        const parent =
+            this.leftPicker ? this.leftPicker.parent : null;
+
+        if (
+            parent &&
+            this.midPicker &&
+            this.rightPicker &&
+            this.midPicker.parent === parent &&
+            this.rightPicker.parent === parent
+        ) {
+            return parent;
+        }
+
+        return null;
+    }
+
+    private setLanePickerNodesVisible(visible: boolean) {
+        if (this.leftPicker) {
+            this.leftPicker.active = visible;
+        }
+
+        if (this.midPicker) {
+            this.midPicker.active = visible;
+        }
+
+        if (this.rightPicker) {
+            this.rightPicker.active = visible;
         }
     }
 
     private setNodeTint(
         node: Node | null,
-        active: boolean
+        active: boolean,
+        inactiveTint: Color =
+            PlayerArmyController.inactiveTint
     ) {
         if (!node) return;
 
@@ -769,6 +847,6 @@ export class PlayerArmyController extends Component {
 
         sprite.color = active
             ? PlayerArmyController.activeTint
-            : PlayerArmyController.inactiveTint;
+            : inactiveTint;
     }
 }

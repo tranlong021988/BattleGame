@@ -142,5 +142,10 @@
       "mipfilter": "none",
       "wrapMode": "Repeat"
     }
+  },
+  "31a1b750-d176-4b95-a54f-be23f613634e@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
   }
 }

@@ -33,7 +33,7 @@
       "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1783187660623.6748,
+      "time": 1783271183829.6135,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -79,10 +79,10 @@
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
-      "time": 1782497499266.807
+      "time": 1783271269107.594
     },
     "Test.scene": {
-      "time": 1783187713871.5852,
+      "time": 1783271950743.2502,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -411,7 +411,7 @@
       "time": 1780417906533.4
     },
     "MiniMap\\images": {
-      "time": 1782828657470.7031,
+      "time": 1783264325562.889,
       "uuid": "f3e429e0-e07d-48cc-80d4-98f6aafeb897"
     },
     "MiniMap\\images\\bow-ico.png.meta": {
@@ -775,7 +775,7 @@
       "time": 1782414073070.3994
     },
     "scripts\\PlayerArmyController.ts": {
-      "time": 1782668481859.465,
+      "time": 1783271773271.5288,
       "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
     },
     "scripts\\LevelSettings.ts.meta": {
@@ -882,6 +882,13 @@
     },
     "scripts\\SmartArmyBrain.ts.meta": {
       "time": 1783100935386.021
+    },
+    "MiniMap\\images\\selected-ico.png.meta": {
+      "time": 1783242016495.1482
+    },
+    "MiniMap\\images\\selected-ico.png": {
+      "time": 1783264325558.3738,
+      "uuid": "31a1b750-d176-4b95-a54f-be23f613634e"
     }
   },
   "missing": {}

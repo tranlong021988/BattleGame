@@ -188,12 +188,23 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 ## Player Controller / Bottom UI
 
 - `PlayerArmyController` supports Inspector-driven lane picker and unit icon mapping.
-- Selected lane uses blinking `selected` child highlight.
+- Current UX is unit-first, lane-second:
+  - tap a unit icon to select the unit type;
+  - lane icons are hidden until a unit type that the player can currently afford is selected;
+  - tap a lane icon to spawn the selected unit on that lane;
+  - double tap the same lane within `doubleTapWindow` to spawn aggressive forward.
+- Unit icons use a static `selected` child highlight; no selected highlight should blink.
+- Unit `selected` child highlight only marks the currently selected unit; affordability is shown by tinting the unit icon root black 50%, not by red/green selected tint.
+- During cooldown or while `maxAliveWaves` blocks player spawning, unit icon root sprites are tinted black 50%; they return to normal only when the spawn gate is open again.
+- Outside global spawn blocking, individual unit icons are also tinted black 50% when current CP cannot afford that unit.
+- Player max-wave availability uses `GameManager.getAliveWaveCount(team)`, a no-allocation scan over the live wave list; do not use `getWavesByTeam()` just to count waves in UI.
+- Lane `selected` child highlights are intentionally disabled for now because they made the bottom UI feel noisy.
+- After a successful player spawn, the lane picker container is hidden and the selected unit icon is cleared.
+- During cooldown, unit selection is still allowed; lane icons are tinted black and cannot spawn or change the selected-lane reminder.
 - Player spawn cooldown drives `power-bar-container/bar` width.
 - Player also has `maxAliveWaves`.
-- Single tap spawns normal forward after the double-tap window.
-- Double tap spawns aggressive forward.
-- The pending tap stores lane at tap time.
+- Single lane tap spawns normal forward after the double-tap window.
+- The pending lane tap stores both lane and selected unit at tap time.
 
 ## Banner / Minimap
 

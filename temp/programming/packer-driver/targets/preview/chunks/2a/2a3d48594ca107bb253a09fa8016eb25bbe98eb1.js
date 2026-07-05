@@ -1167,6 +1167,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return team === 0 ? this.teamA : this.teamB;
         }
 
+        getAliveWaveCount(team) {
+          var count = 0;
+
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+            count++;
+          }
+
+          return count;
+        }
+
         getWavesByTeam(team) {
           var result = [];
 

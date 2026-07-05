@@ -1529,6 +1529,22 @@ export class GameManager extends Component {
             : this.teamB;
     }
 
+    public getAliveWaveCount(team: number) {
+        let count = 0;
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+
+            count++;
+        }
+
+        return count;
+    }
+
     public getWavesByTeam(team: number): BattleWave[] {
         const result: BattleWave[] = [];
 

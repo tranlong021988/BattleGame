@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Button, Color, Component, Enum, Node, Sprite, Tween, tween, UIOpacity, UITransform, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _class6, _crd, ccclass, property, PlayerLane, PlayerUnitIconBinding, PlayerArmyController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Button, Color, Component, Enum, Node, Sprite, UITransform, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _class6, _crd, ccclass, property, PlayerLane, PlayerUnitIconBinding, PlayerArmyController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -27,9 +27,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       Enum = _cc.Enum;
       Node = _cc.Node;
       Sprite = _cc.Sprite;
-      Tween = _cc.Tween;
-      tween = _cc.tween;
-      UIOpacity = _cc.UIOpacity;
       UITransform = _cc.UITransform;
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
@@ -39,7 +36,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
       _cclegacy._RF.push({}, "89dbfa88XVPOLKVdWWhpYrY", "PlayerArmyController", undefined);
 
-      __checkObsolete__(['_decorator', 'Button', 'Color', 'Component', 'Enum', 'Event', 'EventTouch', 'Node', 'Sprite', 'Tween', 'tween', 'UIOpacity', 'UITransform']);
+      __checkObsolete__(['_decorator', 'Button', 'Color', 'Component', 'Enum', 'Event', 'EventTouch', 'Node', 'Sprite', 'UITransform']);
 
       ({
         ccclass,
@@ -96,11 +93,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         min: 0
       }), _dec15 = property({
         min: 1
-      }), _dec16 = property({
-        min: 0,
-        max: 255
-      }), _dec17 = property({
-        min: 0.01
       }), _dec4(_class4 = (_class5 = (_class6 = class PlayerArmyController extends Component {
         constructor() {
           super(...arguments);
@@ -129,39 +121,38 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "maxAliveWaves", _descriptor14, this);
 
-          _initializerDefineProperty(this, "selectedBlinkMinOpacity", _descriptor15, this);
-
-          _initializerDefineProperty(this, "selectedBlinkDuration", _descriptor16, this);
-
           this.selectedLaneId = PlayerLane.Mid;
           this.coolDownTimer = 0;
           this.powerBar = null;
           this.powerBarTransform = null;
           this.powerBarMaxWidth = 0;
           this.powerBarHeight = 0;
+          this.lanePickersDimmed = true;
           this.unitIconsDimmed = true;
-          this.pendingUnitTapName = '';
-          this.pendingUnitTapTimer = 0;
-          this.pendingUnitTapLaneId = PlayerLane.Mid;
+          this.maxAliveWaveBlocked = false;
+          this.selectedUnitName = '';
+          this.pendingLaneTapTimer = 0;
+          this.pendingLaneTapLaneId = PlayerLane.Mid;
+          this.pendingLaneTapUnitName = '';
         }
 
         onLoad() {
           this.cachePowerBar();
           this.resetLanePickerTint();
           this.setSelectedLane(this.defaultLane);
+          this.setSelectedUnit('');
           this.updatePowerBar();
+          this.updateLanePickerTint(false);
           this.updateUnitIconTint(false);
         }
 
         onEnable() {
           this.registerInput();
-          this.playSelectedBlink();
         }
 
         onDisable() {
           this.unregisterInput();
-          this.stopSelectedBlink();
-          this.clearPendingUnitTap();
+          this.clearPendingLaneTap();
         }
 
         update(deltaTime) {
@@ -170,11 +161,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.updatePowerBar();
 
             if (this.coolDownTimer <= 0) {
-              this.updateUnitIconTint(false);
+              this.updateLanePickerTint(false);
             }
           }
 
-          this.updatePendingUnitTap(deltaTime);
+          this.refreshSpawnAvailability();
+          this.updatePendingLaneTap(deltaTime);
         }
 
         selectLane(_event, laneData) {
@@ -185,22 +177,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
-          this.setSelectedLane(laneId);
+          this.handleLaneTap(laneId);
         }
 
         spawnUnit(_event, unitName) {
-          this.spawnByName(unitName != null ? unitName : '', false);
+          this.setSelectedUnit(unitName != null ? unitName : '');
         }
 
         setSelectedLane(laneId) {
           var safeLaneId = Math.max(PlayerLane.Left, Math.min(PlayerLane.Right, Math.floor(laneId)));
           this.selectedLaneId = safeLaneId;
-          var leftSelected = this.getSelectedNode(this.leftPicker);
-          var midSelected = this.getSelectedNode(this.midPicker);
-          var rightSelected = this.getSelectedNode(this.rightPicker);
-          this.setSelectedNodeActive(leftSelected, safeLaneId === PlayerLane.Left);
-          this.setSelectedNodeActive(midSelected, safeLaneId === PlayerLane.Mid);
-          this.setSelectedNodeActive(rightSelected, safeLaneId === PlayerLane.Right);
+          this.hideLaneSelectedNodes();
         }
 
         getSelectedLaneId() {
@@ -271,17 +258,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           var node = event.currentTarget;
 
           if (node === this.leftPicker) {
-            this.setSelectedLane(PlayerLane.Left);
+            this.handleLaneTap(PlayerLane.Left);
             return;
           }
 
           if (node === this.midPicker) {
-            this.setSelectedLane(PlayerLane.Mid);
+            this.handleLaneTap(PlayerLane.Mid);
             return;
           }
 
           if (node === this.rightPicker) {
-            this.setSelectedLane(PlayerLane.Right);
+            this.handleLaneTap(PlayerLane.Right);
           }
         }
 
@@ -295,62 +282,76 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
-          this.handleUnitIconTap(unitName);
+          this.setSelectedUnit(unitName);
         }
 
-        handleUnitIconTap(unitName) {
+        handleLaneTap(laneId) {
           if (this.isCoolingDown()) {
-            this.clearPendingUnitTap();
-            this.spawnByName(unitName, false);
+            this.clearPendingLaneTap();
+            console.warn("[PlayerArmyController] Spawn is cooling down: " + this.coolDownTimer.toFixed(2) + "s remaining.");
             return;
           }
 
+          if (this.isMaxAliveWaveBlocked()) {
+            this.clearPendingLaneTap();
+            var manager = this.getGameManager();
+            var aliveCount = manager ? manager.getAliveWaveCount(this.team) : 0;
+            console.warn("[PlayerArmyController] Max alive wave limit reached: " + (aliveCount + "/" + this.getMaxAliveWaves() + "."));
+            return;
+          }
+
+          if (!this.selectedUnitName) {
+            console.warn('[PlayerArmyController] Select a unit icon before tapping a lane.');
+            return;
+          }
+
+          this.setSelectedLane(laneId);
           var window = Math.max(0, this.doubleTapWindow);
 
           if (window <= 0) {
-            this.spawnByName(unitName, false);
+            this.spawnByName(this.selectedUnitName, false, laneId);
             return;
           }
 
-          if (this.pendingUnitTapTimer > 0 && this.pendingUnitTapName === unitName) {
-            var laneId = this.pendingUnitTapLaneId;
-            this.clearPendingUnitTap();
+          if (this.pendingLaneTapTimer > 0 && this.pendingLaneTapLaneId === laneId) {
+            var unitName = this.pendingLaneTapUnitName || this.selectedUnitName;
+            this.clearPendingLaneTap();
             this.spawnByName(unitName, true, laneId);
             return;
           }
 
-          if (this.pendingUnitTapTimer > 0) {
-            this.flushPendingUnitTap();
+          if (this.pendingLaneTapTimer > 0) {
+            this.flushPendingLaneTap();
 
             if (this.isCoolingDown()) {
               return;
             }
           }
 
-          this.pendingUnitTapName = unitName;
-          this.pendingUnitTapTimer = window;
-          this.pendingUnitTapLaneId = this.selectedLaneId;
+          this.pendingLaneTapTimer = window;
+          this.pendingLaneTapLaneId = laneId;
+          this.pendingLaneTapUnitName = this.selectedUnitName;
         }
 
-        updatePendingUnitTap(deltaTime) {
-          if (this.pendingUnitTapTimer <= 0) return;
-          this.pendingUnitTapTimer = Math.max(0, this.pendingUnitTapTimer - deltaTime);
-          if (this.pendingUnitTapTimer > 0) return;
-          this.flushPendingUnitTap();
+        updatePendingLaneTap(deltaTime) {
+          if (this.pendingLaneTapTimer <= 0) return;
+          this.pendingLaneTapTimer = Math.max(0, this.pendingLaneTapTimer - deltaTime);
+          if (this.pendingLaneTapTimer > 0) return;
+          this.flushPendingLaneTap();
         }
 
-        flushPendingUnitTap() {
-          var unitName = this.pendingUnitTapName;
-          var laneId = this.pendingUnitTapLaneId;
-          this.clearPendingUnitTap();
+        flushPendingLaneTap() {
+          var unitName = this.pendingLaneTapUnitName || this.selectedUnitName;
+          var laneId = this.pendingLaneTapLaneId;
+          this.clearPendingLaneTap();
           if (!unitName) return;
           this.spawnByName(unitName, false, laneId);
         }
 
-        clearPendingUnitTap() {
-          this.pendingUnitTapName = '';
-          this.pendingUnitTapTimer = 0;
-          this.pendingUnitTapLaneId = this.selectedLaneId;
+        clearPendingLaneTap() {
+          this.pendingLaneTapTimer = 0;
+          this.pendingLaneTapLaneId = this.selectedLaneId;
+          this.pendingLaneTapUnitName = '';
         }
 
         spawnByName(unitName, aggressiveForward, laneId) {
@@ -382,12 +383,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           if (!this.canSpawnMoreWave(manager)) {
-            console.warn("[PlayerArmyController] Max alive wave limit reached: " + (this.getAliveWaveCount(manager) + "/" + this.getMaxAliveWaves() + "."));
+            console.warn("[PlayerArmyController] Max alive wave limit reached: " + (manager.getAliveWaveCount(this.team) + "/" + this.getMaxAliveWaves() + "."));
             return;
           }
 
           var wave = manager.spawnWaveByName(this.team, safeUnitName, laneId, aggressiveForward);
           if (!wave) return;
+          this.setSelectedUnit('');
+          this.setLanePickersVisible(false);
           this.startCoolDown();
         }
 
@@ -396,25 +399,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return true;
           }
 
-          return this.getAliveWaveCount(manager) < this.getMaxAliveWaves();
+          return manager.getAliveWaveCount(this.team) < this.getMaxAliveWaves();
         }
 
         getMaxAliveWaves() {
           return Math.max(1, Math.floor(this.maxAliveWaves));
-        }
-
-        getAliveWaveCount(manager) {
-          var waves = manager.getWavesByTeam(this.team);
-          var count = 0;
-
-          for (var i = 0; i < waves.length; i++) {
-            var wave = waves[i];
-            if (!wave) continue;
-            if (wave.isDead()) continue;
-            count++;
-          }
-
-          return count;
         }
 
         getUnitNameForIcon(node) {
@@ -434,70 +423,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         setSelectedNodeActive(selected, active) {
           if (!selected) return;
-
-          if (!active) {
-            this.stopSelectedNodeBlink(selected);
-            selected.active = false;
-            return;
-          }
-
-          selected.active = true;
-          this.playSelectedNodeBlink(selected);
+          selected.active = active;
         }
 
-        playSelectedBlink() {
-          this.playSelectedNodeBlink(this.getSelectedNodeByLane(this.selectedLaneId));
-        }
-
-        stopSelectedBlink() {
-          this.stopSelectedNodeBlink(this.getSelectedNode(this.leftPicker));
-          this.stopSelectedNodeBlink(this.getSelectedNode(this.midPicker));
-          this.stopSelectedNodeBlink(this.getSelectedNode(this.rightPicker));
-        }
-
-        playSelectedNodeBlink(selected) {
-          if (!selected || !selected.active) return;
-          var opacity = this.getOrAddOpacity(selected);
-          this.stopSelectedNodeBlink(selected);
-          opacity.opacity = 255;
-          var minOpacity = Math.max(0, Math.min(255, Math.floor(this.selectedBlinkMinOpacity)));
-          var duration = Math.max(0.01, this.selectedBlinkDuration);
-          tween(opacity).to(duration, {
-            opacity: minOpacity
-          }).to(duration, {
-            opacity: 255
-          }).union().repeatForever().start();
-        }
-
-        stopSelectedNodeBlink(selected) {
-          if (!selected) return;
-          var opacity = selected.getComponent(UIOpacity);
-          if (!opacity) return;
-          Tween.stopAllByTarget(opacity);
-          opacity.opacity = 255;
-        }
-
-        getOrAddOpacity(node) {
-          var opacity = node.getComponent(UIOpacity);
-
-          if (!opacity) {
-            opacity = node.addComponent(UIOpacity);
-          }
-
-          return opacity;
-        }
-
-        getSelectedNodeByLane(laneId) {
-          switch (laneId) {
-            case PlayerLane.Left:
-              return this.getSelectedNode(this.leftPicker);
-
-            case PlayerLane.Right:
-              return this.getSelectedNode(this.rightPicker);
-
-            default:
-              return this.getSelectedNode(this.midPicker);
-          }
+        hideLaneSelectedNodes() {
+          this.setSelectedNodeActive(this.getSelectedNode(this.leftPicker), false);
+          this.setSelectedNodeActive(this.getSelectedNode(this.midPicker), false);
+          this.setSelectedNodeActive(this.getSelectedNode(this.rightPicker), false);
         }
 
         removeManagedClickEvents(node, handler) {
@@ -533,11 +465,51 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         startCoolDown() {
           this.coolDownTimer = Math.max(0, this.coolDownDuration);
           this.updatePowerBar();
-          this.updateUnitIconTint(this.isCoolingDown());
+          this.updateLanePickerTint(this.isCoolingDown());
+          this.updateUnitIconTint(this.isSpawnInputBlocked());
         }
 
         isCoolingDown() {
           return this.coolDownTimer > 0;
+        }
+
+        isSpawnInputBlocked() {
+          return this.isCoolingDown() || this.maxAliveWaveBlocked;
+        }
+
+        refreshSpawnAvailability() {
+          var blocked = this.isMaxAliveWaveBlocked();
+
+          if (this.maxAliveWaveBlocked !== blocked) {
+            this.maxAliveWaveBlocked = blocked;
+
+            if (blocked) {
+              this.clearPendingLaneTap();
+              this.setLanePickersVisible(false);
+            } else if (this.selectedUnitName && this.canAffordUnitName(this.selectedUnitName)) {
+              this.setLanePickersVisible(true);
+            }
+          }
+
+          this.updateUnitIconTint(this.isSpawnInputBlocked());
+        }
+
+        isMaxAliveWaveBlocked() {
+          if (!this.enableMaxAliveWaveLimit) {
+            return false;
+          }
+
+          var manager = this.getGameManager();
+          if (!manager) return false;
+          return !this.canSpawnMoreWave(manager);
+        }
+
+        getGameManager() {
+          var _this$gameManager2;
+
+          return (_this$gameManager2 = this.gameManager) != null ? _this$gameManager2 : (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
         }
 
         updatePowerBar() {
@@ -554,29 +526,120 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.setNodeTint(this.rightPicker, true);
         }
 
+        updateLanePickerTint(dimmed) {
+          if (this.lanePickersDimmed === dimmed) {
+            return;
+          }
+
+          this.lanePickersDimmed = dimmed;
+          this.setNodeTint(this.leftPicker, !dimmed);
+          this.setNodeTint(this.midPicker, !dimmed);
+          this.setNodeTint(this.rightPicker, !dimmed);
+        }
+
         updateUnitIconTint(dimmed) {
           if (this.unitIconsDimmed === dimmed) {
+            this.refreshUnitIconAffordTint(dimmed);
             return;
           }
 
           this.unitIconsDimmed = dimmed;
+          this.refreshUnitIconAffordTint(dimmed);
+        }
+
+        refreshUnitIconAffordTint(dimmed) {
+          for (var i = 0; i < this.unitIcons.length; i++) {
+            var item = this.unitIcons[i];
+            var node = item ? item.node : null;
+            var unitName = item ? item.unitName.trim() : '';
+            var canUse = !!unitName && !dimmed && this.canAffordUnitName(unitName);
+            this.setNodeTint(node, canUse, PlayerArmyController.unitCooldownTint);
+          }
+        }
+
+        setSelectedUnit(unitName) {
+          var safeUnitName = (unitName || '').trim();
+          var canAfford = !!safeUnitName && this.canAffordUnitName(safeUnitName);
+          var maxBlocked = this.isMaxAliveWaveBlocked();
+          this.maxAliveWaveBlocked = maxBlocked;
+          this.selectedUnitName = safeUnitName;
+          this.setLanePickersVisible(canAfford && !this.isCoolingDown() && !maxBlocked);
+          this.updateUnitIconTint(this.isSpawnInputBlocked());
 
           for (var i = 0; i < this.unitIcons.length; i++) {
             var item = this.unitIcons[i];
             var node = item ? item.node : null;
-            if (!node) continue;
-            this.setNodeTint(node, !dimmed);
+            var active = !!safeUnitName && !!item && item.unitName.trim() === safeUnitName;
+            this.setSelectedNodeActive(this.getSelectedNode(node), active);
           }
         }
 
-        setNodeTint(node, active) {
+        canAffordUnitName(unitName) {
+          var _this$gameManager3;
+
+          var manager = (_this$gameManager3 = this.gameManager) != null ? _this$gameManager3 : (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!manager) return false;
+          var entries = manager.getTeamEntries(this.team);
+
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!entry) continue;
+            if (entry.name !== unitName) continue;
+            return manager.canAffordEntry(this.team, entry);
+          }
+
+          return false;
+        }
+
+        setLanePickersVisible(visible) {
+          var container = this.getLanePickerContainer();
+
+          if (container) {
+            container.active = visible;
+            return;
+          }
+
+          this.setLanePickerNodesVisible(visible);
+        }
+
+        getLanePickerContainer() {
+          var parent = this.leftPicker ? this.leftPicker.parent : null;
+
+          if (parent && this.midPicker && this.rightPicker && this.midPicker.parent === parent && this.rightPicker.parent === parent) {
+            return parent;
+          }
+
+          return null;
+        }
+
+        setLanePickerNodesVisible(visible) {
+          if (this.leftPicker) {
+            this.leftPicker.active = visible;
+          }
+
+          if (this.midPicker) {
+            this.midPicker.active = visible;
+          }
+
+          if (this.rightPicker) {
+            this.rightPicker.active = visible;
+          }
+        }
+
+        setNodeTint(node, active, inactiveTint) {
+          if (inactiveTint === void 0) {
+            inactiveTint = PlayerArmyController.inactiveTint;
+          }
+
           if (!node) return;
           var sprite = node.getComponent(Sprite);
           if (!sprite) return;
-          sprite.color = active ? PlayerArmyController.activeTint : PlayerArmyController.inactiveTint;
+          sprite.color = active ? PlayerArmyController.activeTint : inactiveTint;
         }
 
-      }, _class6.activeTint = new Color(255, 255, 255, 255), _class6.inactiveTint = new Color(128, 128, 128, 255), _class6), (_descriptor3 = _applyDecoratedDescriptor(_class5.prototype, "gameManager", [_dec5], {
+      }, _class6.activeTint = new Color(255, 255, 255, 255), _class6.inactiveTint = new Color(0, 0, 0, 255), _class6.unitCooldownTint = new Color(128, 128, 128, 255), _class6), (_descriptor3 = _applyDecoratedDescriptor(_class5.prototype, "gameManager", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -659,20 +722,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         writable: true,
         initializer: function initializer() {
           return 7;
-        }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "selectedBlinkMinOpacity", [_dec16], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 80;
-        }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "selectedBlinkDuration", [_dec17], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.45;
         }
       })), _class5)) || _class4));
 
