@@ -29,6 +29,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.gridKeyRows = new Map();
           this.teamAActiveCells = [];
           this.teamBActiveCells = [];
+          this.teamAMaxRadius = 0;
+          this.teamBMaxRadius = 0;
           this.tempResult = [];
           this.nearestSearchBest = null;
           this.nearestSearchBestDistSq = Infinity;
@@ -57,6 +59,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.clearActiveGridCells(this.teamBActiveCells);
           this.unitsById.clear();
           this.targetSnapshotLength = 0;
+          this.teamAMaxRadius = 0;
+          this.teamBMaxRadius = 0;
           this.fillGrid(this.teamAGrid, this.teamAActiveCells, teamA, 0);
           this.fillGrid(this.teamBGrid, this.teamBActiveCells, teamB, 1);
         }
@@ -81,6 +85,8 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.gridKeyRows.clear();
           this.teamAActiveCells.length = 0;
           this.teamBActiveCells.length = 0;
+          this.teamAMaxRadius = 0;
+          this.teamBMaxRadius = 0;
           this.unitsById.clear();
           this.targetSnapshot = new Float64Array(0);
           this.targetSnapshotLength = 0;
@@ -109,6 +115,13 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
             }
 
             list.push(unit);
+
+            if (team === 0) {
+              this.teamAMaxRadius = Math.max(this.teamAMaxRadius, unit.radius);
+            } else {
+              this.teamBMaxRadius = Math.max(this.teamBMaxRadius, unit.radius);
+            }
+
             var id = this.getUnitId(unit);
             this.unitsById.set(id, unit);
             this.appendTargetSnapshot(id, unit.lifeId, team, unit.agent.pos.x, unit.agent.pos.z);
@@ -220,6 +233,10 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
         findNearestEnemyInRange(team, x, z, range) {
           return this.findNearestEnemy(team, x, z, range);
+        }
+
+        getMaxEnemyRadius(team) {
+          return team === 0 ? this.teamBMaxRadius : this.teamAMaxRadius;
         }
 
         requestNearestEnemy(unit, team, x, z, radius, callback, callbackToken) {

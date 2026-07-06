@@ -47,6 +47,9 @@ System.register(["cc"], function (_export, _context) {
           this.overtakeSideStrength = 0.75;
           this.overtakeSpeedDiff = 0.15;
           this.overtakeSeed = 1;
+          this.overtakeSideLock = 0;
+          this.overtakeHoldFrames = 0;
+          this.forwardSlowFrames = 0;
           this.gridX = 0;
           this.gridZ = 0;
           this.pos.x = x;
@@ -64,22 +67,11 @@ System.register(["cc"], function (_export, _context) {
           this.gridKeyRows = new Map();
           this.activeGridCells = [];
           this.neighborScratch = [];
-          this.currentNeighborAgent = null;
-
-          this.compareNeighbors = (a, b) => {
-            var current = this.currentNeighborAgent;
-            if (!current) return 0;
-            var dxA = a.pos.x - current.pos.x;
-            var dzA = a.pos.z - current.pos.z;
-            var dxB = b.pos.x - current.pos.x;
-            var dzB = b.pos.z - current.pos.z;
-            return dxA * dxA + dzA * dzA - (dxB * dxB + dzB * dzB);
-          };
-
           this.cellSize = 2.2;
           this.timeStep = 1 / 60;
           this.minStepDeltaTime = 1 / 120;
           this.maxStepDeltaTime = 1 / 20;
+          this.overtakeSlowFrameThreshold = 8;
           // Số vòng chống xuyên vật cản.
           // Tăng lên 4-5 nếu unit chạy rất nhanh hoặc obstacle sát nhau.
           this.obstacleSolveIterations = 3;
@@ -105,7 +97,6 @@ System.register(["cc"], function (_export, _context) {
           this.rectObs.length = 0;
           this.activeGridCells.length = 0;
           this.neighborScratch.length = 0;
-          this.currentNeighborAgent = null;
           this.grid.clear();
           this.gridKeyRows.clear();
         }
@@ -211,6 +202,11 @@ System.register(["cc"], function (_export, _context) {
           var result = this.neighborScratch;
           result.length = 0;
           var maxDistSq = a.neighborDist * a.neighborDist;
+          var maxNeighbors = Math.max(0, Math.floor(a.maxNeighbors));
+
+          if (maxNeighbors <= 0) {
+            return result;
+          }
 
           for (var x = -1; x <= 1; x++) {
             for (var z = -1; z <= 1; z++) {
@@ -225,78 +221,182 @@ System.register(["cc"], function (_export, _context) {
                 var dz = other.pos.z - a.pos.z;
                 var distSq = dx * dx + dz * dz;
                 if (distSq > maxDistSq) continue;
-                result.push(other);
+                this.insertNearestNeighbor(a, other, distSq, maxNeighbors, result);
               }
             }
-          }
-
-          this.currentNeighborAgent = a;
-          result.sort(this.compareNeighbors);
-          this.currentNeighborAgent = null;
-
-          if (result.length > a.maxNeighbors) {
-            result.length = a.maxNeighbors;
           }
 
           return result;
         }
 
-        applyAllyOvertake(a) {
+        insertNearestNeighbor(origin, candidate, candidateDistSq, maxNeighbors, result) {
+          var insertAt = result.length;
+
+          for (var i = 0; i < result.length; i++) {
+            var other = result[i];
+            var dx = other.pos.x - origin.pos.x;
+            var dz = other.pos.z - origin.pos.z;
+            var distSq = dx * dx + dz * dz;
+
+            if (candidateDistSq < distSq) {
+              insertAt = i;
+              break;
+            }
+          }
+
+          if (insertAt >= maxNeighbors) {
+            return;
+          }
+
+          var end = Math.min(result.length, maxNeighbors - 1);
+          result.length = Math.min(result.length + 1, maxNeighbors);
+
+          for (var _i2 = end; _i2 > insertAt; _i2--) {
+            result[_i2] = result[_i2 - 1];
+          }
+
+          result[insertAt] = candidate;
+        }
+
+        applyAllyOvertake(a, neighbors) {
           if (!a.enableAllyOvertake) return;
           if (a.locked) return;
           if (a.onForward !== 1) return;
           var best = null;
           var bestForwardDist = Infinity;
+          var bestSideDist = 0;
+          var lookAhead = Math.max(0, a.overtakeLookAhead);
+          var sideRange = Math.max(0, a.overtakeSideRange);
 
-          for (var i = 0; i < this.agents.length; i++) {
-            var b = this.agents[i];
+          if (lookAhead <= 0 || sideRange <= 0) {
+            return;
+          }
+
+          for (var i = 0; i < neighbors.length; i++) {
+            var b = neighbors[i];
             if (b === a) continue;
-            if (b.locked) continue;
             if (b.team !== a.team) continue;
-            if (b.onForward !== 1) continue;
 
-            if (a.maxSpeed <= b.maxSpeed + a.overtakeSpeedDiff) {
+            if (a.maxSpeed + a.overtakeSpeedDiff < b.maxSpeed) {
               continue;
             }
 
-            var _dx = b.pos.x - a.pos.x;
+            if (!this.isAllyOvertakeBlocker(b)) continue;
+            var dx = b.pos.x - a.pos.x;
+            var dz = b.pos.z - a.pos.z;
+            var forwardDist = dx * a.forwardX + dz * a.forwardZ;
+            if (forwardDist <= a.radius * 0.25) continue;
+            if (forwardDist > lookAhead) continue;
+            var sideDist = dx * a.forwardZ - dz * a.forwardX;
 
-            var _dz = b.pos.z - a.pos.z;
-
-            var forwardDist = _dx * a.forwardX + _dz * a.forwardZ;
-            if (forwardDist <= 0) continue;
-            if (forwardDist > a.overtakeLookAhead) continue;
-            var sideDist = _dx * a.forwardZ - _dz * a.forwardX;
-
-            if (Math.abs(sideDist) > a.overtakeSideRange) {
+            if (Math.abs(sideDist) > sideRange + a.radius + b.radius) {
               continue;
             }
 
             if (forwardDist < bestForwardDist) {
               bestForwardDist = forwardDist;
+              bestSideDist = sideDist;
               best = b;
             }
           }
 
-          if (!best) return;
-          var dx = a.pos.x - best.pos.x;
-          var dz = a.pos.z - best.pos.z;
-          var side = dx * a.forwardZ - dz * a.forwardX;
+          if (!best) {
+            if (a.overtakeHoldFrames > 0) {
+              a.overtakeHoldFrames--;
+            } else {
+              a.overtakeSideLock = 0;
+            }
 
-          if (Math.abs(side) > 0.05) {
-            side = side >= 0 ? 1 : -1;
-          } else {
-            side = a.overtakeSeed >= 0 ? 1 : -1;
+            return;
           }
 
-          a.vel.x += a.forwardZ * side * a.maxSpeed * a.overtakeSideStrength;
-          a.vel.z += -a.forwardX * side * a.maxSpeed * a.overtakeSideStrength;
+          var side = a.overtakeSideLock;
+
+          if (side === 0 || a.overtakeHoldFrames <= 0) {
+            side = this.chooseOvertakeSide(a, neighbors, bestSideDist);
+            a.overtakeSideLock = side;
+          }
+
+          a.overtakeHoldFrames = 12;
+          var closeFactor = 1 - Math.min(1, bestForwardDist / Math.max(0.001, lookAhead));
+          var strength = a.maxSpeed * a.overtakeSideStrength * (0.35 + closeFactor * 0.65);
+          a.vel.x += a.forwardZ * side * strength;
+          a.vel.z += -a.forwardX * side * strength;
           var speed = Math.sqrt(a.vel.x * a.vel.x + a.vel.z * a.vel.z);
 
           if (speed > a.maxSpeed) {
             a.vel.x = a.vel.x / speed * a.maxSpeed;
             a.vel.z = a.vel.z / speed * a.maxSpeed;
           }
+        }
+
+        updateForwardSlowFrames(a) {
+          if (a.locked || a.onForward !== 1) {
+            a.forwardSlowFrames = 0;
+            return;
+          }
+
+          var prefForward = a.prefVel.x * a.forwardX + a.prefVel.z * a.forwardZ;
+
+          if (prefForward <= a.maxSpeed * 0.25) {
+            a.forwardSlowFrames = 0;
+            return;
+          }
+
+          var currentForward = a.vel.x * a.forwardX + a.vel.z * a.forwardZ;
+
+          if (currentForward < prefForward * 0.35) {
+            a.forwardSlowFrames++;
+          } else {
+            a.forwardSlowFrames = 0;
+          }
+        }
+
+        isAllyOvertakeBlocker(b) {
+          if (b.locked) return true;
+          if (b.onForward !== 1) return true;
+          return b.forwardSlowFrames >= this.overtakeSlowFrameThreshold;
+        }
+
+        chooseOvertakeSide(a, neighbors, blockerSideDist) {
+          var rightScore = this.getOvertakeSideClearanceScore(a, neighbors, 1);
+          var leftScore = this.getOvertakeSideClearanceScore(a, neighbors, -1);
+
+          if (Math.abs(rightScore - leftScore) > 0.001) {
+            return rightScore > leftScore ? 1 : -1;
+          }
+
+          if (Math.abs(blockerSideDist) > 0.05) {
+            return blockerSideDist > 0 ? -1 : 1;
+          }
+
+          return a.overtakeSeed >= 0 ? 1 : -1;
+        }
+
+        getOvertakeSideClearanceScore(a, neighbors, side) {
+          var sideX = a.forwardZ * side;
+          var sideZ = -a.forwardX * side;
+          var lookAhead = Math.max(0.001, a.overtakeLookAhead);
+          var sideRange = Math.max(0.001, a.overtakeSideRange);
+          var score = 0;
+
+          for (var i = 0; i < neighbors.length; i++) {
+            var b = neighbors[i];
+            if (b === a) continue;
+            var dx = b.pos.x - a.pos.x;
+            var dz = b.pos.z - a.pos.z;
+            var forwardDist = dx * a.forwardX + dz * a.forwardZ;
+            if (forwardDist < -a.radius) continue;
+            if (forwardDist > lookAhead + b.radius) continue;
+            var sideDist = dx * sideX + dz * sideZ;
+            if (sideDist <= 0) continue;
+            if (sideDist > sideRange + b.radius) continue;
+            var forwardWeight = 1 - Math.min(1, Math.abs(forwardDist) / lookAhead);
+            var sideWeight = 1 - Math.min(1, sideDist / (sideRange + b.radius));
+            score -= (forwardWeight * 1.5 + sideWeight) * (b.radius + a.radius);
+          }
+
+          return score;
         } // =========================================================
         // HARD COLLISION: CIRCLE OBSTACLE
         // =========================================================
@@ -392,8 +492,8 @@ System.register(["cc"], function (_export, _context) {
             this.pushAgentOutOfCircle(a, this.circleObs[i]);
           }
 
-          for (var _i2 = 0; _i2 < this.rectObs.length; _i2++) {
-            this.pushAgentOutOfRect(a, this.rectObs[_i2]);
+          for (var _i3 = 0; _i3 < this.rectObs.length; _i3++) {
+            this.pushAgentOutOfRect(a, this.rectObs[_i3]);
           }
         }
 
@@ -409,6 +509,7 @@ System.register(["cc"], function (_export, _context) {
 
           for (var i = 0; i < this.agents.length; i++) {
             var a = this.agents[i];
+            this.updateForwardSlowFrames(a);
             if (a.locked) continue;
             var vx = a.prefVel.x;
             var vz = a.prefVel.z;
@@ -442,18 +543,18 @@ System.register(["cc"], function (_export, _context) {
             for (var _j = 0; _j < this.circleObs.length; _j++) {
               var ob = this.circleObs[_j];
 
-              var _dx2 = a.pos.x - ob.x;
+              var _dx = a.pos.x - ob.x;
 
-              var _dz2 = a.pos.z - ob.z;
+              var _dz = a.pos.z - ob.z;
 
-              var _dist = Math.sqrt(_dx2 * _dx2 + _dz2 * _dz2);
+              var _dist = Math.sqrt(_dx * _dx + _dz * _dz);
 
               var _minDist = a.radius + ob.r;
 
               if (_dist < _minDist && _dist > 0.0001) {
-                var _nx = _dx2 / _dist;
+                var _nx = _dx / _dist;
 
-                var _nz = _dz2 / _dist;
+                var _nz = _dz / _dist;
 
                 vx += _nx * (_minDist - _dist) * 2;
                 vz += _nz * (_minDist - _dist) * 2;
@@ -471,12 +572,12 @@ System.register(["cc"], function (_export, _context) {
             for (var _j2 = 0; _j2 < this.rectObs.length; _j2++) {
               var _ob = this.rectObs[_j2];
 
-              var _dx3 = a.pos.x - _ob.x;
+              var _dx2 = a.pos.x - _ob.x;
 
-              var _dz3 = a.pos.z - _ob.z;
+              var _dz2 = a.pos.z - _ob.z;
 
-              var lx = _dx3 * _ob.cos + _dz3 * _ob.sin;
-              var lz = -_dx3 * _ob.sin + _dz3 * _ob.cos;
+              var lx = _dx2 * _ob.cos + _dz2 * _ob.sin;
+              var lz = -_dx2 * _ob.sin + _dz2 * _ob.cos;
               var px = this.clamp(lx, -_ob.hx, _ob.hx);
               var pz = this.clamp(lz, -_ob.hz, _ob.hz);
               var ox = lx - px;
@@ -554,7 +655,7 @@ System.register(["cc"], function (_export, _context) {
 
             a.vel.x = vx;
             a.vel.z = vz;
-            this.applyAllyOvertake(a);
+            this.applyAllyOvertake(a, neighbors);
             vx = a.vel.x;
             vz = a.vel.z;
             var speed = Math.sqrt(vx * vx + vz * vz);
@@ -569,14 +670,14 @@ System.register(["cc"], function (_export, _context) {
           } // ===== MOVE =====
 
 
-          for (var _i3 = 0; _i3 < this.agents.length; _i3++) {
-            var _a = this.agents[_i3];
+          for (var _i4 = 0; _i4 < this.agents.length; _i4++) {
+            var _a = this.agents[_i4];
 
             if (!_a.locked) {
               _a.pos.x += _a.vel.x * dt;
               _a.pos.z += _a.vel.z * dt; // Chống xuyên obstacle sau khi di chuyển.
 
-              for (var _i4 = 0; _i4 < this.obstacleSolveIterations; _i4++) {
+              for (var _i5 = 0; _i5 < this.obstacleSolveIterations; _i5++) {
                 this.pushAgentOutOfObstacles(_a);
               }
             }
@@ -586,19 +687,19 @@ System.register(["cc"], function (_export, _context) {
 
           this.buildGrid(); // ===== HARD SEPARATION: AGENT-AGENT =====
 
-          for (var _i5 = 0; _i5 < this.agents.length; _i5++) {
-            var _a2 = this.agents[_i5];
+          for (var _i6 = 0; _i6 < this.agents.length; _i6++) {
+            var _a2 = this.agents[_i6];
 
             var _neighbors = this.getNeighbors(_a2);
 
             for (var _j3 = 0; _j3 < _neighbors.length; _j3++) {
               var _b = _neighbors[_j3];
 
-              var _dx4 = _b.pos.x - _a2.pos.x;
+              var _dx3 = _b.pos.x - _a2.pos.x;
 
-              var _dz4 = _b.pos.z - _a2.pos.z;
+              var _dz3 = _b.pos.z - _a2.pos.z;
 
-              var _distSq2 = _dx4 * _dx4 + _dz4 * _dz4;
+              var _distSq2 = _dx3 * _dx3 + _dz3 * _dz3;
 
               var _minDist2 = _a2.radius + _b.radius;
 
@@ -609,9 +710,9 @@ System.register(["cc"], function (_export, _context) {
 
                 var overlap = _minDist2 - _dist3;
 
-                var _nx4 = _dx4 / _dist3;
+                var _nx4 = _dx3 / _dist3;
 
-                var _nz4 = _dz4 / _dist3;
+                var _nz4 = _dz3 / _dist3;
 
                 var aMovable = !_a2.locked;
                 var bMovable = !_b.locked;
@@ -636,11 +737,11 @@ System.register(["cc"], function (_export, _context) {
           // nên cần solve obstacle thêm lần nữa.
 
 
-          for (var _i6 = 0; _i6 < this.agents.length; _i6++) {
-            var _a3 = this.agents[_i6];
+          for (var _i7 = 0; _i7 < this.agents.length; _i7++) {
+            var _a3 = this.agents[_i7];
             if (_a3.locked) continue;
 
-            for (var _i7 = 0; _i7 < this.obstacleSolveIterations; _i7++) {
+            for (var _i8 = 0; _i8 < this.obstacleSolveIterations; _i8++) {
               this.pushAgentOutOfObstacles(_a3);
             }
 

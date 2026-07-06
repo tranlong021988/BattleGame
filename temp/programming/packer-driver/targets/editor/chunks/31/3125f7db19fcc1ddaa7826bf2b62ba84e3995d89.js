@@ -560,7 +560,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         update(deltaTime) {
           if (!this.sim || !this.agent) return;
           this.frameCounter++;
-          this.applyRuntimeAgentData();
 
           if (this.props && this.props.isDead()) {
             this.setEnemyTarget(null);
@@ -703,7 +702,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setCachedNearestInRangeTarget(null);
           }
 
-          return this.isValidEnemyWithinRange(this.cachedNearestInRange, this.attackRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
+          return this.isValidEnemyWithinAttackRange(this.cachedNearestInRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
         }
 
         refreshNearestEnemyTargetThrottled() {
@@ -749,7 +748,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.onBusy = false;
             }
 
-            if (this.isValidEnemyWithinRange(target, this.attackRange)) {
+            if (this.isValidEnemyWithinAttackRange(target)) {
               if (!this.onBusy) {
                 const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                   error: Error()
@@ -929,15 +928,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         findNearestEnemyInAttackRange() {
           if (!this.agent) return null;
-          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
+          const enemies = this.getNearbyEnemyList(this.getAttackRangeSearchRadius());
+          let best = null;
+          let bestDistSq = Infinity;
 
-          if (gm && gm.spatialGrid) {
-            return gm.spatialGrid.findNearestEnemyInRange(this.team, this.agent.pos.x, this.agent.pos.z, this.attackRange);
+          for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            if (!this.isValidEnemy(e)) continue;
+            const dx = e.agent.pos.x - this.agent.pos.x;
+            const dz = e.agent.pos.z - this.agent.pos.z;
+            const d = dx * dx + dz * dz;
+            if (!this.isValidEnemyWithinAttackRange(e)) continue;
+
+            if (d < bestDistSq) {
+              bestDistSq = d;
+              best = e;
+            }
           }
 
-          return this.findNearestEnemyInAttackRangeFallback();
+          return best;
         }
 
         findNearestEnemy() {
@@ -951,29 +960,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return this.findNearestEnemyFallback();
-        }
-
-        findNearestEnemyInAttackRangeFallback() {
-          if (!this.agent) return null;
-          const attackRangeSq = this.attackRange * this.attackRange;
-          const enemies = this.getEnemyList();
-          let best = null;
-          let bestDistSq = Infinity;
-
-          for (let i = 0; i < enemies.length; i++) {
-            const e = enemies[i];
-            if (!this.isValidEnemy(e)) continue;
-            const dx = e.agent.pos.x - this.agent.pos.x;
-            const dz = e.agent.pos.z - this.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d <= attackRangeSq && d < bestDistSq) {
-              bestDistSq = d;
-              best = e;
-            }
-          }
-
-          return best;
         }
 
         findNearestEnemyFallback() {
@@ -1016,6 +1002,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const dx = e.agent.pos.x - this.agent.pos.x;
           const dz = e.agent.pos.z - this.agent.pos.z;
           return dx * dx + dz * dz <= range * range;
+        }
+
+        isValidEnemyWithinAttackRange(e, lifeId = -1) {
+          if (!this.agent) return false;
+          if (!this.isValidEnemy(e, lifeId)) return false;
+          const dx = e.agent.pos.x - this.agent.pos.x;
+          const dz = e.agent.pos.z - this.agent.pos.z;
+          const effectiveRange = this.getEffectiveAttackRangeAgainst(e);
+          return dx * dx + dz * dz <= effectiveRange * effectiveRange;
+        }
+
+        getEffectiveAttackRangeAgainst(enemy) {
+          return Math.max(0, this.attackRange) + Math.max(0, this.radius) + Math.max(0, enemy.radius);
+        }
+
+        getAttackRangeSearchRadius() {
+          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          const maxEnemyRadius = gm && gm.spatialGrid ? gm.spatialGrid.getMaxEnemyRadius(this.team) : this.radius;
+          return Math.max(0, this.attackRange) + Math.max(0, this.radius) + Math.max(0, maxEnemyRadius);
         }
 
         getEnemyList() {
@@ -1071,8 +1078,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         lookMoveIntentSmooth(deltaTime) {
           if (!this.agent) return;
           if (this.agent.locked) return;
-          const dx = this.agent.prefVel.x;
-          const dz = this.agent.prefVel.z;
+          let dx = this.agent.prefVel.x;
+          let dz = this.agent.prefVel.z;
+          const velX = this.agent.vel.x;
+          const velZ = this.agent.vel.z;
+          const minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
+          const velLenSq = velX * velX + velZ * velZ;
+
+          if (velLenSq >= minVel * minVel) {
+            dx = velX;
+            dz = velZ;
+          }
+
           const lenSq = dx * dx + dz * dz;
 
           if (lenSq < 0.0001) {

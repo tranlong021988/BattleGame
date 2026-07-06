@@ -2049,7 +2049,9 @@
     "autoSpawnRandomLane": true,
     "waveBannerTweenDuration": 0.2,
     "waveBannerRefreshIntervalFrames": 12,
-    "waveBannerCamera": null,
+    "waveBannerCamera": {
+      "__id__": 152
+    },
     "enableWaveBannerCameraVisibility": true,
     "hideWaveBannerInOrbitMode": true,
     "waveBannerHideFovBelow": 10,
@@ -2146,6 +2148,10 @@
       "g": 0,
       "b": 0,
       "a": 255
+    },
+    "waveBannerMaterial": {
+      "__uuid__": "cbd8bd0f-7682-4540-a443-a219835bb97a",
+      "__expectedType__": "cc.Material"
     },
     "teamAHero": {
       "__id__": 56
@@ -3782,9 +3788,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "fbf3d158-e5d0-41ef-a409-a2f48eda64f4",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 0,
     "unitType": 0,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3809,9 +3816,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "601b0e93-8812-4e26-873b-47fffb89a9db",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 5,
     "unitType": 2,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3836,9 +3844,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "4eca2463-d482-4233-9f96-27d2dc8acf41",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 4,
     "unitType": 4,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3863,9 +3872,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "2d2d001b-3753-4074-b288-0bb6e75942ec",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 6,
     "unitType": 6,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3890,9 +3900,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "a53d6f28-0566-470d-8f63-b6f4abc2be1d",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 7,
     "unitType": 8,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3917,9 +3928,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "fbf3d158-e5d0-41ef-a409-a2f48eda64f4",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 0,
     "unitType": 0,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3944,9 +3956,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "601b0e93-8812-4e26-873b-47fffb89a9db",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 5,
     "unitType": 2,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3971,9 +3984,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "4eca2463-d482-4233-9f96-27d2dc8acf41",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 4,
     "unitType": 4,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3998,9 +4012,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "2d2d001b-3753-4074-b288-0bb6e75942ec",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 6,
     "unitType": 6,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -4025,9 +4040,10 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
-      "__uuid__": "a53d6f28-0566-470d-8f63-b6f4abc2be1d",
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
+    "waveBannerIconId": 7,
     "unitType": 8,
     "unitCount": 10,
     "maxUnitPerRow": 8,

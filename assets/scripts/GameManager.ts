@@ -9,6 +9,7 @@ import {
     Node,
     instantiate,
     MeshRenderer,
+    Material,
 } from 'cc';
 
 import { Unit } from './Unit';
@@ -34,6 +35,7 @@ import {
     UnitPrefabEntry,
     HeroEntry,
 } from './BattleUnitDatabase';
+import { HealthBar3D } from './HealthBar3D';
 
 export { UnitPrefabEntry } from './BattleUnitDatabase';
 
@@ -240,6 +242,10 @@ export class GameManager extends Component {
     private readonly waveBannerTeamAColorParams = [0, 0, 0, 0];
     private readonly waveBannerTeamBColorParams = [0, 0, 0, 0];
     private waveBannerRendererCache: WeakMap<Node, MeshRenderer[]> =
+        new WeakMap();
+    private waveBannerIconParamCache: WeakMap<Node, number[]> =
+        new WeakMap();
+    private waveBannerHealthBarCache: WeakMap<Node, HealthBar3D[]> =
         new WeakMap();
     private readonly fallbackTeamABannerColor = new Color(0, 70, 255, 255);
     private readonly fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
@@ -952,6 +958,7 @@ export class GameManager extends Component {
             }
 
             wave.refreshWaveBanner();
+            this.updateWaveBannerHealthBar(wave);
         }
     }
 
@@ -1411,7 +1418,9 @@ export class GameManager extends Component {
             BattleWave.getWaveForUnit(unit);
 
         if (wave) {
+            wave.invalidateRuntimeHealth();
             wave.handleUnitWillDespawn(unit);
+            this.updateWaveBannerHealthBar(wave);
         }
 
         const anyController = this.cinematicController as any;
@@ -1809,7 +1818,7 @@ export class GameManager extends Component {
 
         this.assignWaveBanner(
             wave,
-            entry.waveBannerPrefab
+            entry
         );
 
         this.node.emit(
@@ -1822,8 +1831,11 @@ export class GameManager extends Component {
 
     private assignWaveBanner(
         wave: BattleWave,
-        prefab: Prefab | null
+        entry: UnitPrefabEntry | null
     ) {
+        const prefab =
+            entry ? entry.waveBannerPrefab : null;
+
         if (!prefab) return;
         if (!wave) return;
         if (wave.getAliveCount() <= 0) return;
@@ -1835,7 +1847,8 @@ export class GameManager extends Component {
 
         this.applyWaveBannerAppearance(
             node,
-            wave.team
+            wave.team,
+            entry ? entry.waveBannerIconId : 0
         );
 
         wave.setWaveBanner(
@@ -1850,32 +1863,137 @@ export class GameManager extends Component {
             (bannerNode: Node) => {
                 this.applyWaveBannerAppearance(
                     bannerNode,
-                    wave.team
+                    wave.team,
+                    entry ? entry.waveBannerIconId : 0
                 );
+                this.updateWaveBannerHealthBar(wave);
             }
         );
 
         wave.setWaveBannerVisible(
             this.waveBannerVisibleByCamera
         );
+
+        this.updateWaveBannerHealthBar(wave);
     }
 
     private applyWaveBannerAppearance(
         node: Node,
-        team: number
+        team: number,
+        iconId: number
     ) {
         const params =
             this.getWaveBannerColorParams(team);
+
+        const iconParams =
+            this.getWaveBannerIconParams(
+                node,
+                iconId
+            );
+
+        const sharedMaterial =
+            this.getWaveBannerMaterial();
 
         const renderers =
             this.getWaveBannerRenderers(node);
 
         for (let i = 0; i < renderers.length; i++) {
-            renderers[i].setInstancedAttribute(
+            const renderer = renderers[i];
+
+            if (
+                sharedMaterial &&
+                renderer.sharedMaterials?.[0] !==
+                sharedMaterial
+            ) {
+                renderer.setSharedMaterial(
+                    sharedMaterial,
+                    0
+                );
+            }
+
+            renderer.setInstancedAttribute(
                 'a_billboard_bg_color',
                 params
             );
+
+            renderer.setInstancedAttribute(
+                'a_billboard_icon_id',
+                iconParams
+            );
         }
+    }
+
+    private getWaveBannerIconParams(
+        node: Node,
+        iconId: number
+    ) {
+        let params =
+            this.waveBannerIconParamCache.get(node);
+
+        if (!params) {
+            params = [0, 0, 0, 0];
+            this.waveBannerIconParamCache.set(
+                node,
+                params
+            );
+        }
+
+        params[0] =
+            Math.max(
+                0,
+                Math.floor(iconId)
+            );
+        params[1] = 0;
+        params[2] = 0;
+        params[3] = 0;
+
+        return params;
+    }
+
+    private getWaveBannerMaterial(): Material | null {
+        return this.unitDatabase
+            ? this.unitDatabase.waveBannerMaterial
+            : null;
+    }
+
+    private updateWaveBannerHealthBar(
+        wave: BattleWave | null
+    ) {
+        if (!wave) return;
+
+        const node =
+            wave.getWaveBannerNode();
+
+        if (!node) return;
+
+        const healthBars =
+            this.getWaveBannerHealthBars(node);
+
+        if (healthBars.length <= 0) return;
+
+        const ratio =
+            wave.getRuntimeHealthRatio(this.frame);
+
+        for (let i = 0; i < healthBars.length; i++) {
+            healthBars[i].setHealthRatio(ratio);
+        }
+    }
+
+    private getWaveBannerHealthBars(node: Node) {
+        let healthBars =
+            this.waveBannerHealthBarCache.get(node);
+
+        if (!healthBars) {
+            healthBars =
+                node.getComponentsInChildren(HealthBar3D);
+
+            this.waveBannerHealthBarCache.set(
+                node,
+                healthBars
+            );
+        }
+
+        return healthBars;
     }
 
     private getWaveBannerColorParams(team: number) {
@@ -1899,8 +2017,22 @@ export class GameManager extends Component {
             this.waveBannerRendererCache.get(node);
 
         if (!renderers) {
-            renderers =
+            const allRenderers =
                 node.getComponentsInChildren(MeshRenderer);
+
+            renderers = [];
+
+            for (let i = 0; i < allRenderers.length; i++) {
+                const renderer = allRenderers[i];
+
+                if (
+                    renderer.node.getComponent(HealthBar3D)
+                ) {
+                    continue;
+                }
+
+                renderers.push(renderer);
+            }
 
             this.waveBannerRendererCache.set(
                 node,

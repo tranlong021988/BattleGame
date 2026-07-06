@@ -242,8 +242,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.gameManager) return 0;
           const gm = this.gameManager;
 
-          if (typeof gm.aliveCount !== 'undefined' && gm.aliveCount && gm.aliveCount.length >= 2) {
-            return Math.max(0, gm.aliveCount[0]) + Math.max(0, gm.aliveCount[1]);
+          if (typeof gm.getTotalAliveUnitCount === 'function') {
+            return gm.getTotalAliveUnitCount();
           }
 
           let count = 0;
@@ -260,6 +260,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         getAliveWaveCount() {
           if (!this.gameManager) return 0;
           const gm = this.gameManager;
+
+          if (typeof gm.getTotalAliveWaveCount === 'function') {
+            return gm.getTotalAliveWaveCount();
+          }
+
           if (!gm.waves) return 0;
           let count = 0;
 

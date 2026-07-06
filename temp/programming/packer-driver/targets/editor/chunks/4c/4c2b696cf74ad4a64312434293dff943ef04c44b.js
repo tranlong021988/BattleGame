@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -69,6 +69,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("HeroEntry", "./BattleUnitDatabase", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfHealthBar3D(extras) {
+    _reporterNs.report("HealthBar3D", "./HealthBar3D", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -111,14 +115,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_14) {
       BattleUnitDatabase = _unresolved_14.BattleUnitDatabase;
     }, function (_unresolved_15) {
-      _export("UnitPrefabEntry", _unresolved_15.UnitPrefabEntry);
+      HealthBar3D = _unresolved_15.HealthBar3D;
+    }, function (_unresolved_16) {
+      _export("UnitPrefabEntry", _unresolved_16.UnitPrefabEntry);
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer']);
+      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer', 'Material']);
 
       ({
         ccclass,
@@ -275,6 +281,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.waveBannerCameraBlocked = false;
           this.waveBannerVisibleByCamera = true;
           this.waveBannerVisibilityInitialized = false;
+          this.spatialGridDirty = true;
+          this.battleStatsUiDirty = true;
+          this.waveBannerTeamAColorParams = [0, 0, 0, 0];
+          this.waveBannerTeamBColorParams = [0, 0, 0, 0];
+          this.waveBannerRendererCache = new WeakMap();
+          this.waveBannerIconParamCache = new WeakMap();
+          this.waveBannerHealthBarCache = new WeakMap();
           this.fallbackTeamABannerColor = new Color(0, 70, 255, 255);
           this.fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
         }
@@ -334,7 +347,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.rebuildSpatialGrid();
-          this.refreshBattleStatsUI();
+          this.refreshBattleStatsUI(true);
         }
 
         onDestroy() {
@@ -414,11 +427,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (this.shouldRunFrameInterval(this.spatialGridUpdateInterval, this.spatialGridUpdateFrameOffset)) {
-            this.rebuildSpatialGrid();
+            this.requestSpatialGridRebuild();
           }
 
           if (this.enableAutoSpawn) {
             this.updateAutoSpawn(deltaTime);
+          }
+
+          if (this.spatialGridDirty) {
+            this.rebuildSpatialGrid();
           }
 
           this.processDynamicWaveLanes();
@@ -427,6 +444,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.processWaveBanners();
           this.pruneDeadWaves();
           this.processHeroForwardUnlock();
+          this.refreshBattleStatsUI();
         }
 
         shouldRunFrameInterval(interval, offset = 0) {
@@ -464,7 +482,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.addCombatPointFromVictim(killerTeam, victim, isCounterKill);
           }
 
-          this.refreshBattleStatsUI();
+          this.requestBattleStatsUIRefresh();
         }
 
         onWaveCombatStarted(unit, enemy = null, useInitialForwardGate = true) {
@@ -722,6 +740,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             wave.refreshWaveBanner();
+            this.updateWaveBannerHealthBar(wave);
           }
         }
 
@@ -920,11 +939,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           for (let i = 0; i < entries.length; i++) {
             const entry = entries[i];
-            if (!this.isValidEntry(entry)) continue;
-
-            if (Math.floor(entry.unitCount) <= 0) {
-              continue;
-            }
+            if (!this.isValidSpawnEntry(entry)) continue;
 
             if (this.canAffordEntry(team, entry)) {
               return true;
@@ -990,6 +1005,48 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.combatPoint[team] >= Math.max(0, entry.combatPointCost);
         }
 
+        isValidSpawnEntry(entry, requirePositiveUnitCount = true) {
+          if (!entry) return false;
+          if (!entry.name) return false;
+          if (!entry.prefab) return false;
+
+          if (requirePositiveUnitCount && Math.floor(entry.unitCount) <= 0) {
+            return false;
+          }
+
+          return true;
+        }
+
+        canAffordUnitName(team, unitName) {
+          const safeName = (unitName || '').trim();
+          if (!safeName) return false;
+          const entry = this.getTeamEntry(team, safeName);
+
+          if (!this.isValidSpawnEntry(entry)) {
+            return false;
+          }
+
+          return this.canAffordEntry(team, entry);
+        }
+
+        collectAffordableEntries(team, out) {
+          out.length = 0;
+          const entries = this.getDatabaseTeamEntries(team);
+
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+            if (!this.isValidSpawnEntry(entry)) continue;
+
+            if (!this.canAffordEntry(team, entry)) {
+              continue;
+            }
+
+            out.push(entry);
+          }
+
+          return out;
+        }
+
         getCombatPoint(team) {
           if (team !== 0 && team !== 1) return 0;
           return this.combatPoint[team];
@@ -1020,7 +1077,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
 
           if (wave) {
+            wave.invalidateRuntimeHealth();
             wave.handleUnitWillDespawn(unit);
+            this.updateWaveBannerHealthBar(wave);
           }
 
           const anyController = this.cinematicController;
@@ -1034,6 +1093,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.spatialGrid.cellSize = this.spatialGridCellSize;
           this.spatialGrid.useWorkerTargetQuery = this.useWorkerSpatialTargetQuery;
           this.spatialGrid.build(this.teamA, this.teamB);
+          this.spatialGridDirty = false;
+        }
+
+        requestSpatialGridRebuild() {
+          this.spatialGridDirty = true;
         }
 
         buildPrefabMaps() {
@@ -1077,10 +1141,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         isValidEntry(entry) {
-          if (!entry) return false;
-          if (!entry.name) return false;
-          if (!entry.prefab) return false;
-          return true;
+          return this.isValidSpawnEntry(entry, false);
         }
 
         getTeamEntry(team, unitName) {
@@ -1111,11 +1172,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const validEntries = [];
 
           for (const entry of entries) {
-            if (!this.isValidEntry(entry)) continue;
-
-            if (Math.floor(entry.unitCount) <= 0) {
-              continue;
-            }
+            if (!this.isValidSpawnEntry(entry)) continue;
 
             if (!this.canAffordEntry(team, entry)) {
               continue;
@@ -1138,6 +1195,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         getAliveUnits(team) {
           return team === 0 ? this.teamA : this.teamB;
+        }
+
+        getAliveWaveCount(team) {
+          let count = 0;
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDead()) continue;
+            count++;
+          }
+
+          return count;
+        }
+
+        getTotalAliveWaveCount() {
+          let count = 0;
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+            if (!wave) continue;
+            if (wave.isDead()) continue;
+            count++;
+          }
+
+          return count;
+        }
+
+        getTotalAliveUnitCount() {
+          return Math.max(0, this.aliveCount[0]) + Math.max(0, this.aliveCount[1]);
         }
 
         getWavesByTeam(team) {
@@ -1180,7 +1268,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.spawnEntryFormation(1, entryB, this.teamBSpawnZ, true);
           }
 
-          this.rebuildSpatialGrid();
+          this.requestSpatialGridRebuild();
         }
 
         spawnWaveByEntry(team, entry, laneId = -1, aggressiveForward = false) {
@@ -1190,7 +1278,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           const baseZ = team === 0 ? this.teamASpawnZ : this.teamBSpawnZ;
           const wave = this.spawnEntryFormation(team, entry, baseZ, true, laneId, aggressiveForward);
-          this.rebuildSpatialGrid();
+          this.requestSpatialGridRebuild();
           return wave;
         }
 
@@ -1210,7 +1298,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const cost = Math.max(0, entry.combatPointCost);
 
           if (spendCost && this.isCombatPointEnabled() && !this.spendCombatPoint(team, cost)) {
-            this.refreshBattleStatsUI();
+            this.requestBattleStatsUIRefresh();
             return null;
           }
 
@@ -1227,34 +1315,127 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.spawnCenteredRowsFormation(team, entry, baseZ, wave, count, aggressiveForward);
           }
 
-          this.assignWaveBanner(wave, entry.waveBannerPrefab);
+          this.assignWaveBanner(wave, entry);
           this.node.emit(BattleWaveSpawnedEvent, wave);
           return wave;
         }
 
-        assignWaveBanner(wave, prefab) {
+        assignWaveBanner(wave, entry) {
+          const prefab = entry ? entry.waveBannerPrefab : null;
           if (!prefab) return;
           if (!wave) return;
           if (wave.getAliveCount() <= 0) return;
           const node = this.acquireWaveBanner(prefab);
           if (!node) return;
-          this.applyWaveBannerAppearance(node, wave.team);
+          this.applyWaveBannerAppearance(node, wave.team, entry ? entry.waveBannerIconId : 0);
           wave.setWaveBanner(node, bannerNode => {
             this.recycleWaveBanner(prefab, bannerNode);
           }, this.waveBannerTweenDuration, bannerNode => {
-            this.applyWaveBannerAppearance(bannerNode, wave.team);
+            this.applyWaveBannerAppearance(bannerNode, wave.team, entry ? entry.waveBannerIconId : 0);
+            this.updateWaveBannerHealthBar(wave);
           });
           wave.setWaveBannerVisible(this.waveBannerVisibleByCamera);
+          this.updateWaveBannerHealthBar(wave);
         }
 
-        applyWaveBannerAppearance(node, team) {
-          const color = this.getWaveBannerBackgroundColor(team);
-          const params = [color.r / 255, color.g / 255, color.b / 255, color.a / 255];
-          const renderers = node.getComponentsInChildren(MeshRenderer);
+        applyWaveBannerAppearance(node, team, iconId) {
+          const params = this.getWaveBannerColorParams(team);
+          const iconParams = this.getWaveBannerIconParams(node, iconId);
+          const sharedMaterial = this.getWaveBannerMaterial();
+          const renderers = this.getWaveBannerRenderers(node);
 
           for (let i = 0; i < renderers.length; i++) {
-            renderers[i].setInstancedAttribute('a_billboard_bg_color', params);
+            var _renderer$sharedMater;
+
+            const renderer = renderers[i];
+
+            if (sharedMaterial && ((_renderer$sharedMater = renderer.sharedMaterials) == null ? void 0 : _renderer$sharedMater[0]) !== sharedMaterial) {
+              renderer.setSharedMaterial(sharedMaterial, 0);
+            }
+
+            renderer.setInstancedAttribute('a_billboard_bg_color', params);
+            renderer.setInstancedAttribute('a_billboard_icon_id', iconParams);
           }
+        }
+
+        getWaveBannerIconParams(node, iconId) {
+          let params = this.waveBannerIconParamCache.get(node);
+
+          if (!params) {
+            params = [0, 0, 0, 0];
+            this.waveBannerIconParamCache.set(node, params);
+          }
+
+          params[0] = Math.max(0, Math.floor(iconId));
+          params[1] = 0;
+          params[2] = 0;
+          params[3] = 0;
+          return params;
+        }
+
+        getWaveBannerMaterial() {
+          return this.unitDatabase ? this.unitDatabase.waveBannerMaterial : null;
+        }
+
+        updateWaveBannerHealthBar(wave) {
+          if (!wave) return;
+          const node = wave.getWaveBannerNode();
+          if (!node) return;
+          const healthBars = this.getWaveBannerHealthBars(node);
+          if (healthBars.length <= 0) return;
+          const ratio = wave.getRuntimeHealthRatio(this.frame);
+
+          for (let i = 0; i < healthBars.length; i++) {
+            healthBars[i].setHealthRatio(ratio);
+          }
+        }
+
+        getWaveBannerHealthBars(node) {
+          let healthBars = this.waveBannerHealthBarCache.get(node);
+
+          if (!healthBars) {
+            healthBars = node.getComponentsInChildren(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+              error: Error()
+            }), HealthBar3D) : HealthBar3D);
+            this.waveBannerHealthBarCache.set(node, healthBars);
+          }
+
+          return healthBars;
+        }
+
+        getWaveBannerColorParams(team) {
+          const color = this.getWaveBannerBackgroundColor(team);
+          const params = team === 0 ? this.waveBannerTeamAColorParams : this.waveBannerTeamBColorParams;
+          params[0] = color.r / 255;
+          params[1] = color.g / 255;
+          params[2] = color.b / 255;
+          params[3] = color.a / 255;
+          return params;
+        }
+
+        getWaveBannerRenderers(node) {
+          let renderers = this.waveBannerRendererCache.get(node);
+
+          if (!renderers) {
+            const allRenderers = node.getComponentsInChildren(MeshRenderer);
+            renderers = [];
+
+            for (let i = 0; i < allRenderers.length; i++) {
+              const renderer = allRenderers[i];
+
+              if (renderer.node.getComponent(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+                error: Error()
+              }), HealthBar3D) : HealthBar3D)) {
+                continue;
+              }
+
+              renderers.push(renderer);
+            }
+
+            this.waveBannerRendererCache.set(node, renderers);
+          }
+
+          return renderers;
         }
 
         getWaveBannerBackgroundColor(team) {
@@ -1521,7 +1702,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             behavior.gameManager = this;
           }
 
-          this.refreshBattleStatsUI();
+          this.requestBattleStatsUIRefresh();
           return unit;
         }
 
@@ -1547,7 +1728,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             behavior.gameManager = this;
           }
 
-          this.refreshBattleStatsUI();
+          this.requestBattleStatsUIRefresh();
           return unit;
         }
 
@@ -1581,8 +1762,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               }
 
               this.spawner.despawnUnit(unit, entry.prefab);
-              this.rebuildSpatialGrid();
-              this.refreshBattleStatsUI();
+              this.requestSpatialGridRebuild();
+              this.requestBattleStatsUIRefresh();
             }
 
             return;
@@ -1601,8 +1782,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               }
 
               this.spawner.despawnUnit(unit, entry.prefab);
-              this.rebuildSpatialGrid();
-              this.refreshBattleStatsUI();
+              this.requestSpatialGridRebuild();
+              this.requestBattleStatsUIRefresh();
             }
 
             return;
@@ -1667,8 +1848,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.removeUnitAgentFromSimulator(unit);
           unit.resetForDespawn();
           unit.node.active = false;
-          this.rebuildSpatialGrid();
-          this.refreshBattleStatsUI();
+          this.requestSpatialGridRebuild();
+          this.requestBattleStatsUIRefresh();
         }
 
         removeUnitAgentFromSimulator(unit) {
@@ -1803,45 +1984,61 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.clampLaneId(Math.floor(this.getSafeLaneCount() / 2));
         }
 
-        refreshBattleStatsUI() {
+        requestBattleStatsUIRefresh() {
+          this.battleStatsUiDirty = true;
+        }
+
+        refreshBattleStatsUI(force = false) {
+          if (!force && !this.battleStatsUiDirty) {
+            return;
+          }
+
+          this.battleStatsUiDirty = false;
+
           if (this.teamAAliveLabel) {
-            this.teamAAliveLabel.string = 'A Alive: ' + this.aliveCount[0];
+            this.setLabelString(this.teamAAliveLabel, 'A Alive: ' + this.aliveCount[0]);
           }
 
           if (this.teamADeathLabel) {
-            this.teamADeathLabel.string = 'A Death: ' + this.deathCount[0];
+            this.setLabelString(this.teamADeathLabel, 'A Death: ' + this.deathCount[0]);
           }
 
           if (this.teamBAliveLabel) {
-            this.teamBAliveLabel.string = 'B Alive: ' + this.aliveCount[1];
+            this.setLabelString(this.teamBAliveLabel, 'B Alive: ' + this.aliveCount[1]);
           }
 
           if (this.teamBDeathLabel) {
-            this.teamBDeathLabel.string = 'B Death: ' + this.deathCount[1];
+            this.setLabelString(this.teamBDeathLabel, 'B Death: ' + this.deathCount[1]);
           }
 
           if (this.teamAKillLabel) {
-            this.teamAKillLabel.string = 'A Kill: ' + this.killCount[0];
+            this.setLabelString(this.teamAKillLabel, 'A Kill: ' + this.killCount[0]);
           }
 
           if (this.teamBKillLabel) {
-            this.teamBKillLabel.string = 'B Kill: ' + this.killCount[1];
+            this.setLabelString(this.teamBKillLabel, 'B Kill: ' + this.killCount[1]);
           }
 
           if (this.teamACounterKillLabel) {
-            this.teamACounterKillLabel.string = 'A Counter Kill: ' + this.counterKillCount[0] + ' (' + Math.round(this.getCounterKillRatio(0) * 100) + '%)';
+            this.setLabelString(this.teamACounterKillLabel, 'A Counter Kill: ' + this.counterKillCount[0] + ' (' + Math.round(this.getCounterKillRatio(0) * 100) + '%)');
           }
 
           if (this.teamBCounterKillLabel) {
-            this.teamBCounterKillLabel.string = 'B Counter Kill: ' + this.counterKillCount[1] + ' (' + Math.round(this.getCounterKillRatio(1) * 100) + '%)';
+            this.setLabelString(this.teamBCounterKillLabel, 'B Counter Kill: ' + this.counterKillCount[1] + ' (' + Math.round(this.getCounterKillRatio(1) * 100) + '%)');
           }
 
           if (this.teamACombatPointLabel) {
-            this.teamACombatPointLabel.string = 'A CP: ' + Math.floor(this.combatPoint[0]);
+            this.setLabelString(this.teamACombatPointLabel, 'A CP: ' + Math.floor(this.combatPoint[0]));
           }
 
           if (this.teamBCombatPointLabel) {
-            this.teamBCombatPointLabel.string = 'B CP: ' + Math.floor(this.combatPoint[1]);
+            this.setLabelString(this.teamBCombatPointLabel, 'B CP: ' + Math.floor(this.combatPoint[1]));
+          }
+        }
+
+        setLabelString(label, value) {
+          if (label.string !== value) {
+            label.string = value;
           }
         }
 

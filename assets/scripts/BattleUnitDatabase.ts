@@ -1,4 +1,11 @@
-import { _decorator, Color, Component, Node, Prefab } from 'cc';
+import {
+    _decorator,
+    Color,
+    Component,
+    Material,
+    Node,
+    Prefab,
+} from 'cc';
 import { UnitType } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
@@ -14,6 +21,14 @@ export class UnitPrefabEntry {
 
     @property(Prefab)
     waveBannerPrefab: Prefab | null = null;
+
+    @property({
+        min: 0,
+        step: 1,
+        tooltip:
+            'Icon index in the shared wave banner sheet. Runtime sends this as an instanced attribute so banners can keep one shared material.',
+    })
+    waveBannerIconId: number = 0;
 
     @property({ type: UnitType })
     unitType: UnitType = UnitType.LightSword;
@@ -115,6 +130,13 @@ export class BattleUnitDatabase extends Component {
 
     @property(Color)
     teamBWaveBannerBackgroundColor: Color = new Color(255, 0, 0, 255);
+
+    @property({
+        type: Material,
+        tooltip:
+            'Shared material for every troop wave banner. Assign UnlitBillboard with the icon sheet here to avoid one material per troop type.',
+    })
+    waveBannerMaterial: Material | null = null;
 
     @property(HeroEntry)
     teamAHero: HeroEntry = new HeroEntry();

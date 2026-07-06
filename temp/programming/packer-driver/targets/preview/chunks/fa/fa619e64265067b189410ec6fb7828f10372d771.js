@@ -53,6 +53,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.runtimeHealthFrame = -1;
+          this.runtimeHealthRatio = 1;
+          this.totalMaxHealth = 0;
           this.targetSearchIntervalFrames = 1;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
@@ -89,7 +92,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               this.aggressiveForwardMode = true;
             }
 
+            if (unit.props) {
+              this.totalMaxHealth += Math.max(0, unit.props.maxHealth);
+            }
+
             this.units.push(unit);
+            this.runtimeHealthFrame = -1;
           }
         }
 
@@ -123,6 +131,38 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return this.getAliveCount() / this.totalCount;
+        }
+
+        refreshRuntimeHealth(frame) {
+          if (this.runtimeHealthFrame === frame) {
+            return;
+          }
+
+          this.runtimeHealthFrame = frame;
+
+          if (this.released || this.totalMaxHealth <= 0) {
+            this.runtimeHealthRatio = 0;
+            return;
+          }
+
+          var currentHealth = 0;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            currentHealth += Math.max(0, Math.min(u.props.health, u.props.maxHealth));
+          }
+
+          this.runtimeHealthRatio = Math.max(0, Math.min(1, currentHealth / this.totalMaxHealth));
+        }
+
+        getRuntimeHealthRatio(frame) {
+          this.refreshRuntimeHealth(frame);
+          return this.runtimeHealthRatio;
+        }
+
+        invalidateRuntimeHealth() {
+          this.runtimeHealthFrame = -1;
         }
 
         getRandomAliveUnit() {
@@ -205,6 +245,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!banner || !banner.isValid) return;
           if (banner.active === visible) return;
           banner.active = visible;
+        }
+
+        getWaveBannerNode() {
+          return this.waveBannerNode;
         }
 
         notifyWaveBannerAttached(banner) {
@@ -621,6 +665,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
+          this.runtimeHealthFrame = -1;
+          this.runtimeHealthRatio = 0;
+          this.totalMaxHealth = 0;
           this.targetSearchIntervalFrames = 1;
           this.forwardModeActive = false;
           this.freeHuntActive = false;

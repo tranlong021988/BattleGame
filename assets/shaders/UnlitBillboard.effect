@@ -20,7 +20,25 @@ CCEffect %{
         mainTexture:
           value: white
           editor:
-            tooltip: Billboard texture. Alpha controls transparency.
+            tooltip: Billboard icon sheet. Alpha controls transparency.
+        sheetColumns:
+          value: 1
+          editor:
+            min: 1
+            step: 1
+            tooltip: Number of icon columns in mainTexture. Shared by every banner using this material.
+        sheetRows:
+          value: 1
+          editor:
+            min: 1
+            step: 1
+            tooltip: Number of icon rows in mainTexture. Shared by every banner using this material.
+        iconId:
+          value: 0
+          editor:
+            min: 0
+            step: 1
+            tooltip: Fallback icon index when no per-instance a_billboard_icon_id is provided.
         tilingOffset:
           value: [1, 1, 0, 0]
           editor:
@@ -54,9 +72,11 @@ CCProgram billboard-vs %{
   out vec2 v_uv;
   out vec4 v_tint;
   out vec4 v_background;
+  out float v_iconId;
 
   #if USE_INSTANCING
     in vec4 a_billboard_bg_color;
+    in vec4 a_billboard_icon_id;
   #endif
 
   uniform Constant {
@@ -64,6 +84,9 @@ CCProgram billboard-vs %{
     vec4 tintColor;
     vec4 backgroundColor;
     float alphaThreshold;
+    float sheetColumns;
+    float sheetRows;
+    float iconId;
   };
 
   vec4 vert () {
@@ -99,8 +122,10 @@ CCProgram billboard-vs %{
       v_background = instancedBackground.a > 0.001
         ? instancedBackground
         : backgroundColor;
+      v_iconId = max(0.0, a_billboard_icon_id.x);
     #else
       v_background = backgroundColor;
+      v_iconId = max(0.0, iconId);
     #endif
 
     return cc_matProj * viewPos;
@@ -115,6 +140,7 @@ CCProgram billboard-fs %{
   in vec2 v_uv;
   in vec4 v_tint;
   in vec4 v_background;
+  in float v_iconId;
 
   uniform sampler2D mainTexture;
   uniform Constant {
@@ -122,10 +148,27 @@ CCProgram billboard-fs %{
     vec4 tintColor;
     vec4 backgroundColor;
     float alphaThreshold;
+    float sheetColumns;
+    float sheetRows;
+    float iconId;
   };
 
+  vec2 sampleSheetUv (vec2 uv) {
+    float columns = max(1.0, floor(sheetColumns + 0.5));
+    float rows = max(1.0, floor(sheetRows + 0.5));
+    float maxId = max(0.0, columns * rows - 1.0);
+    float selectedId = clamp(floor(v_iconId + 0.5), 0.0, maxId);
+    float column = mod(selectedId, columns);
+    float row = floor(selectedId / columns);
+
+    return vec2(
+      (column + uv.x) / columns,
+      (rows - 1.0 - row + uv.y) / rows
+    );
+  }
+
   vec4 frag () {
-    vec4 foreground = texture(mainTexture, v_uv) * v_tint;
+    vec4 foreground = texture(mainTexture, sampleSheetUv(v_uv)) * v_tint;
     float outAlpha =
       foreground.a +
       v_background.a * (1.0 - foreground.a);

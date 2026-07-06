@@ -66,7 +66,8 @@
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
         "8e39c061-d956-43ce-ad16-db3efa6f7be1",
         "5f434786-d4f3-41f9-81b1-15a1fa9fd12b",
-        "1263d74c-8167-4928-91a6-4e2672411f47@fc873"
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
+        "1263d74c-8167-4928-91a6-4e2672411f47@a804a"
       ],
       "dependScripts": [
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
@@ -86,7 +87,8 @@
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
         "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f",
         "5f434786-d4f3-41f9-81b1-15a1fa9fd12b",
-        "1263d74c-8167-4928-91a6-4e2672411f47@fc873"
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
+        "1263d74c-8167-4928-91a6-4e2672411f47@a804a"
       ],
       "dependScripts": [
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
@@ -106,6 +108,7 @@
         "14af58e2-d4f9-4cfa-9812-7b2f869bdd24",
         "f198fc0d-9e2c-40e3-9b56-bff96ed989f3@f9941",
         "139f9f81-b709-415e-82f1-1f05e89438ce@f9941",
+        "cbd8bd0f-7682-4540-a443-a219835bb97a",
         "8e39c061-d956-43ce-ad16-db3efa6f7be1",
         "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
         "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
@@ -116,11 +119,7 @@
         "8b0aa1a5-d95f-4c12-9bf2-494d2f26986f",
         "31c94d47-e409-42f3-b397-08be549e95e2",
         "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
-        "fbf3d158-e5d0-41ef-a409-a2f48eda64f4",
-        "601b0e93-8812-4e26-873b-47fffb89a9db",
-        "4eca2463-d482-4233-9f96-27d2dc8acf41",
-        "2d2d001b-3753-4074-b288-0bb6e75942ec",
-        "a53d6f28-0566-470d-8f63-b6f4abc2be1d",
+        "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
         "e9fa7cb9-649b-4dac-a368-f9515b675d79",
         "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5@f9941",
         "c513c3d6-bb46-4592-8efd-b8d73c099863@f9941",
@@ -1877,9 +1876,12 @@
     "value": {
       "depends": [
         "4b85a778-d505-48a8-b551-ae35c97fdfb2",
-        "1263d74c-8167-4928-91a6-4e2672411f47@fc873"
+        "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
+        "5f434786-d4f3-41f9-81b1-15a1fa9fd12b"
       ],
-      "dependScripts": []
+      "dependScripts": [
+        "6c024aa7-a229-41fd-8a4c-51ee2113e594"
+      ]
     },
     "versionCode": 2
   },
@@ -2014,6 +2016,32 @@
     "value": {
       "depends": [
         "31a1b750-d176-4b95-a54f-be23f613634e@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "332671e6-6208-415d-a385-c0160f199fe8": {
+    "url": "db://assets/MiniMap/Units.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "332671e6-6208-415d-a385-c0160f199fe8@6c48a": {
+    "url": "db://assets/MiniMap/Units.png@6c48a",
+    "value": {
+      "depends": [
+        "332671e6-6208-415d-a385-c0160f199fe8"
+      ]
+    },
+    "versionCode": 1
+  },
+  "cbd8bd0f-7682-4540-a443-a219835bb97a": {
+    "url": "db://assets/materials/Banner_Units.mtl",
+    "value": {
+      "depends": [
+        "06f2f072-60e0-4a08-8020-76c24d5c553a",
+        "332671e6-6208-415d-a385-c0160f199fe8@6c48a"
       ]
     },
     "versionCode": 1

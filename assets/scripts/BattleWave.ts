@@ -23,6 +23,9 @@ export class BattleWave {
     private runtimeStateFrame = -1;
     private runtimeAliveCount = 0;
     private runtimeHasEngaged = false;
+    private runtimeHealthFrame = -1;
+    private runtimeHealthRatio = 1;
+    private totalMaxHealth = 0;
     private targetSearchIntervalFrames = 1;
     private forwardModeActive = true;
     private freeHuntActive = false;
@@ -77,7 +80,16 @@ export class BattleWave {
                 this.aggressiveForwardMode = true;
             }
 
+            if (unit.props) {
+                this.totalMaxHealth +=
+                    Math.max(
+                        0,
+                        unit.props.maxHealth
+                    );
+            }
+
             this.units.push(unit);
+            this.runtimeHealthFrame = -1;
         }
     }
 
@@ -122,6 +134,58 @@ export class BattleWave {
         }
 
         return this.getAliveCount() / this.totalCount;
+    }
+
+    refreshRuntimeHealth(frame: number) {
+        if (this.runtimeHealthFrame === frame) {
+            return;
+        }
+
+        this.runtimeHealthFrame = frame;
+
+        if (
+            this.released ||
+            this.totalMaxHealth <= 0
+        ) {
+            this.runtimeHealthRatio = 0;
+            return;
+        }
+
+        let currentHealth = 0;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+
+            currentHealth +=
+                Math.max(
+                    0,
+                    Math.min(
+                        u!.props!.health,
+                        u!.props!.maxHealth
+                    )
+                );
+        }
+
+        this.runtimeHealthRatio =
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    currentHealth / this.totalMaxHealth
+                )
+            );
+    }
+
+    getRuntimeHealthRatio(frame: number) {
+        this.refreshRuntimeHealth(frame);
+
+        return this.runtimeHealthRatio;
+    }
+
+    invalidateRuntimeHealth() {
+        this.runtimeHealthFrame = -1;
     }
 
     getRandomAliveUnit(): Unit | null {
@@ -229,6 +293,10 @@ export class BattleWave {
         if (banner.active === visible) return;
 
         banner.active = visible;
+    }
+
+    getWaveBannerNode() {
+        return this.waveBannerNode;
     }
 
     private notifyWaveBannerAttached(
@@ -724,6 +792,9 @@ export class BattleWave {
         this.runtimeStateFrame = -1;
         this.runtimeAliveCount = 0;
         this.runtimeHasEngaged = false;
+        this.runtimeHealthFrame = -1;
+        this.runtimeHealthRatio = 0;
+        this.totalMaxHealth = 0;
         this.targetSearchIntervalFrames = 1;
         this.forwardModeActive = false;
         this.freeHuntActive = false;

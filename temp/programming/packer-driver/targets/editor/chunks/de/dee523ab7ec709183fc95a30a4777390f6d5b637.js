@@ -187,7 +187,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         createDefaultRules() {
           this.rules.length = 0; // =====================================================
           // SIMPLE LIGHT TEST LOOP
-          // Dùng bộ này để test ArmyBrain dễ nhìn:
+          // Dùng bộ này để test SmartArmyBrain dễ nhìn:
           //
           // LightSword   > LightSpear
           // LightSpear   > LightCavalry
