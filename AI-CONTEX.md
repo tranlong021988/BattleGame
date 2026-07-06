@@ -165,17 +165,38 @@ Banner holder/lifecycle:
 - Holder death/despawn is event-assisted so the banner should not stay on pooled inactive units.
 - Banner node is pooled by `GameManager`.
 - `waveBannerRefreshIntervalFrames` defaults to `12` and only throttles the safety sweep over `wave.refreshWaveBanner()`.
-- Camera/orbit banner visibility is still checked every frame, but it is cheap unless global visible state changes.
+- Camera-driven banner visibility is no longer checked every frame:
+  - `GameManager.waveBannerVisibleByCamera` is the source-of-truth snapshot.
+  - orbit mode changes it through `battle-camera-banner-visibility-blocked`;
+  - topdown zoom changes it through `battle-camera-topdown-zoom-range-changed`;
+  - `GameManager.processWaveBanners()` resolves camera visibility only when dirty or on the `waveBannerRefreshIntervalFrames` fallback.
 
-Important: failed/reverted experiment:
+Unit healthbar / banner swap:
 
-- A 2026-07-06 attempt to show per-unit healthbars on zoom/orbit and hide banners was reverted.
-- There should be no `unitHealthBarsVisibleByCamera`, `setUnitHealthBarsVisible`, `applyCurrentUnitHealthBarVisibility`, `applyUnitHealthBarVisibility`, `setVisibilityAllowed`, or `visibilityAllowed` in source.
-- `HealthBar3D` is back to simple health-ratio behavior with `hideWhenFull`.
-- `BlueUnit.prefab`, `RedUnit.prefab`, and `Banner.prefab` have `hideWhenFull: true`.
-- `HealthBar.effect` depth state is back to `depthTest: true`, `depthWrite: false`.
-- `HealthBarMat.mtl` is back to `"blend": false`.
-- Do not revive the failed zoom/unit-healthbar approach without redesigning it cleanly. The user saw banner icon flicker/id reset, banner lag during engagement, inconsistent zoom behavior, and all unit healthbars showing instead of only busy units.
+- Zoom far / topdown: wave banner group is visible; unit healthbars are hidden.
+- Zoom near / orbit: wave banner group is hidden; unit healthbars may show.
+- Unit healthbars show only for units whose health is below full.
+- `UnitProps.takeDamage()` / `heal()` update health ratio immediately.
+- Unit healthbar visibility refreshes through each unit's `targetSearchIntervalFrames`, not every frame.
+- `HealthBar3D` has no `update()` and only changes renderer/instanced attributes via `setHealthRatio()` or `setDisplayActive()`.
+- `HealthBar3D.hideWhenFull` remains useful as a local renderer guard.
+
+Why the old 2026-07-06 zoom/unit-healthbar attempt failed:
+
+- It mixed wave banner lifecycle and per-unit healthbar lifecycle too tightly.
+- It treated camera zoom as a broad per-frame controller instead of a stable snapshot/dirty source of truth.
+- It touched banner attach/reparent/tween/material/icon state while banners were being pooled and moved between holders, causing flicker, icon id reset, and banner lag.
+- It did not define a narrow display rule, so too many unit healthbars appeared.
+- It created/used parallel state names such as `unitHealthBarsVisibleByCamera`, `setUnitHealthBarsVisible`, `applyCurrentUnitHealthBarVisibility`, `applyUnitHealthBarVisibility`, `setVisibilityAllowed`, and `visibilityAllowed`.
+
+Why the current approach works:
+
+- Banner remains owned by `BattleWave`; unit healthbar remains owned by `UnitProps` / `HealthBar3D`.
+- `GameManager.waveBannerVisibleByCamera` is the one camera visibility snapshot used by both banner and unit healthbars.
+- Camera changes are event/dirty driven, with interval fallback, not per-frame polling.
+- Unit healthbar visibility reuses `targetSearchIntervalFrames` instead of introducing a new throttle.
+- Health ratio updates are event-driven by damage/heal.
+- Renderer/material work stays instanced and local; no banner material is applied to healthbar renderers.
 
 ## RVO / Local Avoidance
 
@@ -198,6 +219,8 @@ Global rules:
 - Avoid optimistic desktop/editor-preview conclusions.
 - Check frame pacing, GPU/render, main thread, worker CPU, and worker heap.
 - Before adding a new throttle/snapshot/scan/knob, first check whether an existing helper/cache/gate already answers the question.
+- Avoid per-frame logic whenever possible. Prefer event, dirty flag, existing interval, or existing snapshot/cache. Per-frame work should be reserved for movement, camera smoothing, animation, and other behavior that visually requires continuous updates.
+- The office Codex should add the same rule to its local `cocos-performance-optimize-skills`: do not add per-frame polling for UI/camera/state transitions until event, dirty flag, existing interval, or existing snapshot/cache has been ruled out.
 - Keep debug logs behind Inspector toggles.
 
 Current known render conclusions:
@@ -210,6 +233,7 @@ Current known render conclusions:
 - `bufferData` seen in Spector is mostly dynamic/UBO-style engine data, not proof that cube mesh vertices are the bottleneck.
 - Only two skinned meshes are expected for heroes in the recent cube tests; do not blame "many skinned meshes" unless re-verified.
 - UI/minimap should not be blamed in traces where minimap/healthbar/banner were explicitly disabled.
+- Camera-driven banner/unit-healthbar visibility now uses the snapshot/dirty path described in `Banner / Wave Healthbar`. Do not reintroduce per-frame camera polling for this.
 
 Recent trace interpretation to preserve:
 

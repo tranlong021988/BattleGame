@@ -424,7 +424,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 31
@@ -473,7 +473,7 @@
     "node": {
       "__id__": 30
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": {
       "__id__": 32
     },
@@ -534,7 +534,7 @@
     "node": {
       "__id__": 30
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": {
       "__id__": 35
     },
@@ -752,6 +752,7 @@
     "healthBar": {
       "__id__": 34
     },
+    "healthBarRecentDamageSeconds": 1.5,
     "_id": ""
   },
   {

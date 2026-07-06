@@ -71,6 +71,7 @@
             "materials\\Banner_LightMace.mtl",
             "materials\\Banner_LightSpear.mtl",
             "materials\\Banner_LightSword.mtl",
+            "materials\\Banner_Units.mtl",
             "materials\\Blue.mtl",
             "materials\\BlueMat.mtl",
             "materials\\HealthBarMat.mtl",
@@ -79,6 +80,7 @@
             "materials\\terrain-sand.mtl",
             "materials\\VATAnimMat.mtl",
             "materials\\VATCharacterMat.mtl",
+            "MiniMap\\Units.png",
             "prefabs\\Banner.prefab",
             "prefabs\\Banner_LightArcher.prefab",
             "prefabs\\Banner_LightCavalry.prefab",
@@ -127,9 +129,7 @@
             "MiniMap\\images\\spear-ico-small.png",
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico-small.png",
-            "MiniMap\\images\\sword-ico.png",
-            "materials\\Banner_Units.mtl",
-            "MiniMap\\Units.png"
+            "MiniMap\\images\\sword-ico.png"
         ]
     }
 }

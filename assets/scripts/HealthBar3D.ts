@@ -13,6 +13,7 @@ export class HealthBar3D extends Component {
 
     private renderer: MeshRenderer | null = null;
     private currentRatio = 1;
+    private displayActive = true;
     private healthParams = [1, 0, 0, 0];
     private barColor = [0, 1, 0, 1];
     private colorDirty = true;
@@ -42,6 +43,15 @@ export class HealthBar3D extends Component {
         this.applyHealthParams();
     }
 
+    setDisplayActive(active: boolean) {
+        if (this.displayActive === active) {
+            return;
+        }
+
+        this.displayActive = active;
+        this.applyHealthParams();
+    }
+
     setMainColor(color: Color) {
         this.mainColor.set(color);
         this.colorDirty = true;
@@ -63,8 +73,11 @@ export class HealthBar3D extends Component {
         if (!this.renderer) return;
 
         const shouldShow =
-            !this.hideWhenFull ||
-            this.currentRatio < 0.999;
+            this.displayActive &&
+            (
+                !this.hideWhenFull ||
+                this.currentRatio < 0.999
+            );
         const wasShowing =
             this.renderer.enabled;
 

@@ -42,6 +42,8 @@ export { UnitPrefabEntry } from './BattleUnitDatabase';
 const { ccclass, property } = _decorator;
 const BannerVisibilityBlockedEvent =
     'battle-camera-banner-visibility-blocked';
+const TopDownZoomRangeChangedEvent =
+    'battle-camera-topdown-zoom-range-changed';
 const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
 
@@ -234,9 +236,11 @@ export class GameManager extends Component {
     private heroForwardUnlocked = [false, false];
     private waveBannerPools: Map<Prefab, Node[]> = new Map();
     private registeredCinematicController: Component | null = null;
+    private registeredTopDownCameraDragNode: Node | null = null;
     private waveBannerCameraBlocked = false;
     private waveBannerVisibleByCamera = true;
     private waveBannerVisibilityInitialized = false;
+    private waveBannerCameraVisibilityDirty = true;
     private spatialGridDirty = true;
     private battleStatsUiDirty = true;
     private readonly waveBannerTeamAColorParams = [0, 0, 0, 0];
@@ -939,14 +943,20 @@ export class GameManager extends Component {
     }
 
     private processWaveBanners() {
-        this.updateWaveBannerCameraVisibility(false);
-
-        if (
-            !this.shouldRunFrameInterval(
+        const bannerInterval =
+            this.shouldRunFrameInterval(
                 this.waveBannerRefreshIntervalFrames,
                 0
-            )
+            );
+
+        if (
+            this.waveBannerCameraVisibilityDirty ||
+            bannerInterval
         ) {
+            this.updateWaveBannerCameraVisibility(false);
+        }
+
+        if (!bannerInterval) {
             return;
         }
 
@@ -973,11 +983,13 @@ export class GameManager extends Component {
             this.waveBannerVisibilityInitialized &&
             visible === this.waveBannerVisibleByCamera
         ) {
+            this.waveBannerCameraVisibilityDirty = false;
             return;
         }
 
         this.waveBannerVisibilityInitialized = true;
         this.waveBannerVisibleByCamera = visible;
+        this.waveBannerCameraVisibilityDirty = false;
 
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
@@ -1000,6 +1012,13 @@ export class GameManager extends Component {
             this.waveBannerCameraBlocked
         ) {
             return false;
+        }
+
+        const topDownVisibility =
+            this.resolveTopDownZoomBannerVisibility();
+
+        if (topDownVisibility !== null) {
+            return topDownVisibility;
         }
 
         const camera =
@@ -1028,6 +1047,71 @@ export class GameManager extends Component {
         }
 
         return fov >= showFov;
+    }
+
+    private resolveTopDownZoomBannerVisibility(): boolean | null {
+        const controller: any =
+            this.cinematicController as any;
+
+        const topDownCameraDrag =
+            controller && controller.topDownCameraDrag
+                ? controller.topDownCameraDrag
+                : null;
+
+        if (!topDownCameraDrag) {
+            return null;
+        }
+
+        if (
+            typeof topDownCameraDrag.getTargetFov !== 'function' ||
+            typeof topDownCameraDrag.getMinFov !== 'function' ||
+            typeof topDownCameraDrag.getMaxFov !== 'function'
+        ) {
+            return null;
+        }
+
+        const targetFov =
+            topDownCameraDrag.getTargetFov();
+        const minFov =
+            topDownCameraDrag.getMinFov();
+        const maxFov =
+            topDownCameraDrag.getMaxFov();
+
+        if (
+            typeof targetFov !== 'number' ||
+            typeof minFov !== 'number' ||
+            typeof maxFov !== 'number'
+        ) {
+            return null;
+        }
+
+        const epsilon = 0.001;
+
+        if (targetFov <= minFov + epsilon) {
+            return false;
+        }
+
+        if (targetFov >= maxFov - epsilon) {
+            return true;
+        }
+
+        if (!this.waveBannerVisibilityInitialized) {
+            return true;
+        }
+
+        return this.waveBannerVisibleByCamera;
+    }
+
+    public shouldShowUnitHealthBars() {
+        if (!this.enableWaveBannerCameraVisibility) {
+            return false;
+        }
+
+        if (!this.waveBannerVisibilityInitialized) {
+            return !this.resolveWaveBannerCameraVisibility();
+        }
+
+        return !this.waveBannerVisibleByCamera;
     }
 
     private resolveWaveBannerCamera(): Camera | null {
@@ -2074,6 +2158,21 @@ export class GameManager extends Component {
         );
 
         const controllerAny: any = controller as any;
+        const topDownCameraDrag =
+            controllerAny && controllerAny.topDownCameraDrag
+                ? controllerAny.topDownCameraDrag
+                : null;
+
+        if (topDownCameraDrag && topDownCameraDrag.node) {
+            this.registeredTopDownCameraDragNode =
+                topDownCameraDrag.node;
+
+            topDownCameraDrag.node.on(
+                TopDownZoomRangeChangedEvent,
+                this.onWaveBannerCameraVisibilityChanged,
+                this
+            );
+        }
 
         if (
             typeof controllerAny.isBannerVisibilityBlocked ===
@@ -2096,14 +2195,28 @@ export class GameManager extends Component {
             );
         }
 
+        if (this.registeredTopDownCameraDragNode) {
+            this.registeredTopDownCameraDragNode.off(
+                TopDownZoomRangeChangedEvent,
+                this.onWaveBannerCameraVisibilityChanged,
+                this
+            );
+        }
+
         this.registeredCinematicController = null;
+        this.registeredTopDownCameraDragNode = null;
     }
 
     private onWaveBannerCameraBlockedChanged(
         blocked: boolean
     ) {
         this.waveBannerCameraBlocked = !!blocked;
-        this.updateWaveBannerCameraVisibility(true);
+        this.onWaveBannerCameraVisibilityChanged();
+    }
+
+    private onWaveBannerCameraVisibilityChanged() {
+        this.waveBannerCameraVisibilityDirty = true;
+        this.updateWaveBannerCameraVisibility(false);
     }
 
     private acquireWaveBanner(

@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _crd, ccclass, property, TopDownCameraDrag;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _crd, ccclass, property, TopDownZoomRangeChangedEvent, TopDownCameraDrag;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -33,6 +33,7 @@ System.register(["cc"], function (_export, _context) {
         ccclass,
         property
       } = _decorator);
+      TopDownZoomRangeChangedEvent = 'battle-camera-topdown-zoom-range-changed';
 
       _export("TopDownCameraDrag", TopDownCameraDrag = (_dec = ccclass('TopDownCameraDrag'), _dec2 = property(Camera), _dec(_class = (_class2 = class TopDownCameraDrag extends Component {
         constructor(...args) {
@@ -94,6 +95,7 @@ System.register(["cc"], function (_export, _context) {
           this.isPinching = false;
           this.lastPinchDistance = 0;
           this.targetFov = 45;
+          this.zoomRangeState = 0;
         }
 
         onEnable() {
@@ -103,6 +105,7 @@ System.register(["cc"], function (_export, _context) {
             this.targetFov = this.targetCamera.fov;
           }
 
+          this.zoomRangeState = this.resolveZoomRangeState();
           input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
           input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
           input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
@@ -124,6 +127,20 @@ System.register(["cc"], function (_export, _context) {
           if (this.targetCamera) {
             this.targetFov = this.targetCamera.fov;
           }
+
+          this.zoomRangeState = this.resolveZoomRangeState();
+        }
+
+        getTargetFov() {
+          return this.targetFov;
+        }
+
+        getMinFov() {
+          return this.minFov;
+        }
+
+        getMaxFov() {
+          return this.maxFov;
         }
 
         onTouchStart(event) {
@@ -238,6 +255,7 @@ System.register(["cc"], function (_export, _context) {
 
           this.targetFov -= zoomDelta;
           this.targetFov = this.clamp(this.targetFov, this.minFov, this.maxFov);
+          this.emitZoomRangeChangedIfNeeded();
           const fovChange = oldFov - this.targetFov;
 
           if (this.zoomToPointer && Math.abs(fovChange) > 0.0001) {
@@ -358,6 +376,31 @@ System.register(["cc"], function (_export, _context) {
 
         clamp(value, min, max) {
           return Math.max(min, Math.min(max, value));
+        }
+
+        emitZoomRangeChangedIfNeeded() {
+          const nextState = this.resolveZoomRangeState();
+
+          if (nextState === this.zoomRangeState) {
+            return;
+          }
+
+          this.zoomRangeState = nextState;
+          this.node.emit(TopDownZoomRangeChangedEvent, nextState);
+        }
+
+        resolveZoomRangeState() {
+          const epsilon = 0.001;
+
+          if (this.targetFov <= this.minFov + epsilon) {
+            return -1;
+          }
+
+          if (this.targetFov >= this.maxFov - epsilon) {
+            return 1;
+          }
+
+          return 0;
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "targetCamera", [_dec2], {

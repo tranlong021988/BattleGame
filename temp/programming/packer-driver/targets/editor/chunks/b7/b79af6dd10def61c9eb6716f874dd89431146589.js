@@ -433,6 +433,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = true;
+
+          if (this.props) {
+            this.props.resetForDespawn();
+          }
+
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.laneId = -1;
@@ -560,6 +565,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         update(deltaTime) {
           if (!this.sim || !this.agent) return;
           this.frameCounter++;
+
+          if (this.props && this.shouldRunTargetSearch()) {
+            const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance;
+            this.props.refreshHealthBarVisibility(gm ? gm.shouldShowUnitHealthBars() : false);
+          }
 
           if (this.props && this.props.isDead()) {
             this.setEnemyTarget(null);

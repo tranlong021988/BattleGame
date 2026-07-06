@@ -11,6 +11,8 @@ import {
 } from 'cc';
 
 const { ccclass, property } = _decorator;
+const TopDownZoomRangeChangedEvent =
+    'battle-camera-topdown-zoom-range-changed';
 
 @ccclass('TopDownCameraDrag')
 export class TopDownCameraDrag extends Component {
@@ -65,6 +67,7 @@ export class TopDownCameraDrag extends Component {
 
     private lastPinchDistance = 0;
     private targetFov = 45;
+    private zoomRangeState = 0;
 
     onEnable() {
         this.node.getWorldPosition(this.targetPos);
@@ -72,6 +75,9 @@ export class TopDownCameraDrag extends Component {
         if (this.targetCamera) {
             this.targetFov = this.targetCamera.fov;
         }
+
+        this.zoomRangeState =
+            this.resolveZoomRangeState();
 
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
         input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
@@ -94,6 +100,21 @@ export class TopDownCameraDrag extends Component {
         if (this.targetCamera) {
             this.targetFov = this.targetCamera.fov;
         }
+
+        this.zoomRangeState =
+            this.resolveZoomRangeState();
+    }
+
+    public getTargetFov() {
+        return this.targetFov;
+    }
+
+    public getMinFov() {
+        return this.minFov;
+    }
+
+    public getMaxFov() {
+        return this.maxFov;
     }
 
     private onTouchStart(event: EventTouch) {
@@ -240,6 +261,8 @@ export class TopDownCameraDrag extends Component {
             this.minFov,
             this.maxFov
         );
+
+        this.emitZoomRangeChangedIfNeeded();
 
         const fovChange = oldFov - this.targetFov;
 
@@ -446,5 +469,34 @@ export class TopDownCameraDrag extends Component {
 
     private clamp(value: number, min: number, max: number) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private emitZoomRangeChangedIfNeeded() {
+        const nextState =
+            this.resolveZoomRangeState();
+
+        if (nextState === this.zoomRangeState) {
+            return;
+        }
+
+        this.zoomRangeState = nextState;
+        this.node.emit(
+            TopDownZoomRangeChangedEvent,
+            nextState
+        );
+    }
+
+    private resolveZoomRangeState() {
+        const epsilon = 0.001;
+
+        if (this.targetFov <= this.minFov + epsilon) {
+            return -1;
+        }
+
+        if (this.targetFov >= this.maxFov - epsilon) {
+            return 1;
+        }
+
+        return 0;
     }
 }

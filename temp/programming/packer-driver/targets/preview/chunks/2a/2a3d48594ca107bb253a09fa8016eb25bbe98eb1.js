@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -69,6 +69,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("HeroEntry", "./BattleUnitDatabase", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfHealthBar3D(extras) {
+    _reporterNs.report("HealthBar3D", "./HealthBar3D", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -111,20 +115,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_14) {
       BattleUnitDatabase = _unresolved_14.BattleUnitDatabase;
     }, function (_unresolved_15) {
-      _export("UnitPrefabEntry", _unresolved_15.UnitPrefabEntry);
+      HealthBar3D = _unresolved_15.HealthBar3D;
+    }, function (_unresolved_16) {
+      _export("UnitPrefabEntry", _unresolved_16.UnitPrefabEntry);
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer']);
+      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer', 'Material']);
 
       ({
         ccclass,
         property
       } = _decorator);
       BannerVisibilityBlockedEvent = 'battle-camera-banner-visibility-blocked';
+      TopDownZoomRangeChangedEvent = 'battle-camera-topdown-zoom-range-changed';
       BattleWaveSpawnedEvent = 'battle-wave-spawned';
 
       _export("GameManager", GameManager = (_dec = ccclass('GameManager'), _dec2 = property(_crd && BattleUnitDatabase === void 0 ? (_reportPossibleCrUseOfBattleUnitDatabase({
@@ -272,14 +279,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.heroForwardUnlocked = [false, false];
           this.waveBannerPools = new Map();
           this.registeredCinematicController = null;
+          this.registeredTopDownCameraDragNode = null;
           this.waveBannerCameraBlocked = false;
           this.waveBannerVisibleByCamera = true;
           this.waveBannerVisibilityInitialized = false;
+          this.waveBannerCameraVisibilityDirty = true;
           this.spatialGridDirty = true;
           this.battleStatsUiDirty = true;
           this.waveBannerTeamAColorParams = [0, 0, 0, 0];
           this.waveBannerTeamBColorParams = [0, 0, 0, 0];
           this.waveBannerRendererCache = new WeakMap();
+          this.waveBannerIconParamCache = new WeakMap();
+          this.waveBannerHealthBarCache = new WeakMap();
           this.fallbackTeamABannerColor = new Color(0, 70, 255, 255);
           this.fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
         }
@@ -730,9 +741,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         processWaveBanners() {
-          this.updateWaveBannerCameraVisibility(false);
+          var bannerInterval = this.shouldRunFrameInterval(this.waveBannerRefreshIntervalFrames, 0);
 
-          if (!this.shouldRunFrameInterval(this.waveBannerRefreshIntervalFrames, 0)) {
+          if (this.waveBannerCameraVisibilityDirty || bannerInterval) {
+            this.updateWaveBannerCameraVisibility(false);
+          }
+
+          if (!bannerInterval) {
             return;
           }
 
@@ -744,6 +759,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             wave.refreshWaveBanner();
+            this.updateWaveBannerHealthBar(wave);
           }
         }
 
@@ -751,11 +767,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var visible = this.resolveWaveBannerCameraVisibility();
 
           if (!force && this.waveBannerVisibilityInitialized && visible === this.waveBannerVisibleByCamera) {
+            this.waveBannerCameraVisibilityDirty = false;
             return;
           }
 
           this.waveBannerVisibilityInitialized = true;
           this.waveBannerVisibleByCamera = visible;
+          this.waveBannerCameraVisibilityDirty = false;
 
           for (var i = 0; i < this.waves.length; i++) {
             var wave = this.waves[i];
@@ -777,6 +795,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
+          var topDownVisibility = this.resolveTopDownZoomBannerVisibility();
+
+          if (topDownVisibility !== null) {
+            return topDownVisibility;
+          }
+
           var camera = this.resolveWaveBannerCamera();
 
           if (!camera) {
@@ -796,6 +820,55 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return fov >= showFov;
+        }
+
+        resolveTopDownZoomBannerVisibility() {
+          var controller = this.cinematicController;
+          var topDownCameraDrag = controller && controller.topDownCameraDrag ? controller.topDownCameraDrag : null;
+
+          if (!topDownCameraDrag) {
+            return null;
+          }
+
+          if (typeof topDownCameraDrag.getTargetFov !== 'function' || typeof topDownCameraDrag.getMinFov !== 'function' || typeof topDownCameraDrag.getMaxFov !== 'function') {
+            return null;
+          }
+
+          var targetFov = topDownCameraDrag.getTargetFov();
+          var minFov = topDownCameraDrag.getMinFov();
+          var maxFov = topDownCameraDrag.getMaxFov();
+
+          if (typeof targetFov !== 'number' || typeof minFov !== 'number' || typeof maxFov !== 'number') {
+            return null;
+          }
+
+          var epsilon = 0.001;
+
+          if (targetFov <= minFov + epsilon) {
+            return false;
+          }
+
+          if (targetFov >= maxFov - epsilon) {
+            return true;
+          }
+
+          if (!this.waveBannerVisibilityInitialized) {
+            return true;
+          }
+
+          return this.waveBannerVisibleByCamera;
+        }
+
+        shouldShowUnitHealthBars() {
+          if (!this.enableWaveBannerCameraVisibility) {
+            return false;
+          }
+
+          if (!this.waveBannerVisibilityInitialized) {
+            return !this.resolveWaveBannerCameraVisibility();
+          }
+
+          return !this.waveBannerVisibleByCamera;
         }
 
         resolveWaveBannerCamera() {
@@ -1084,7 +1157,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
 
           if (wave) {
+            wave.invalidateRuntimeHealth();
             wave.handleUnitWillDespawn(unit);
+            this.updateWaveBannerHealthBar(wave);
           }
 
           var anyController = this.cinematicController;
@@ -1344,33 +1419,92 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.spawnCenteredRowsFormation(team, entry, baseZ, wave, count, aggressiveForward);
           }
 
-          this.assignWaveBanner(wave, entry.waveBannerPrefab);
+          this.assignWaveBanner(wave, entry);
           this.node.emit(BattleWaveSpawnedEvent, wave);
           return wave;
         }
 
-        assignWaveBanner(wave, prefab) {
+        assignWaveBanner(wave, entry) {
+          var prefab = entry ? entry.waveBannerPrefab : null;
           if (!prefab) return;
           if (!wave) return;
           if (wave.getAliveCount() <= 0) return;
           var node = this.acquireWaveBanner(prefab);
           if (!node) return;
-          this.applyWaveBannerAppearance(node, wave.team);
+          this.applyWaveBannerAppearance(node, wave.team, entry ? entry.waveBannerIconId : 0);
           wave.setWaveBanner(node, bannerNode => {
             this.recycleWaveBanner(prefab, bannerNode);
           }, this.waveBannerTweenDuration, bannerNode => {
-            this.applyWaveBannerAppearance(bannerNode, wave.team);
+            this.applyWaveBannerAppearance(bannerNode, wave.team, entry ? entry.waveBannerIconId : 0);
+            this.updateWaveBannerHealthBar(wave);
           });
           wave.setWaveBannerVisible(this.waveBannerVisibleByCamera);
+          this.updateWaveBannerHealthBar(wave);
         }
 
-        applyWaveBannerAppearance(node, team) {
+        applyWaveBannerAppearance(node, team, iconId) {
           var params = this.getWaveBannerColorParams(team);
+          var iconParams = this.getWaveBannerIconParams(node, iconId);
+          var sharedMaterial = this.getWaveBannerMaterial();
           var renderers = this.getWaveBannerRenderers(node);
 
           for (var i = 0; i < renderers.length; i++) {
-            renderers[i].setInstancedAttribute('a_billboard_bg_color', params);
+            var _renderer$sharedMater;
+
+            var renderer = renderers[i];
+
+            if (sharedMaterial && ((_renderer$sharedMater = renderer.sharedMaterials) == null ? void 0 : _renderer$sharedMater[0]) !== sharedMaterial) {
+              renderer.setSharedMaterial(sharedMaterial, 0);
+            }
+
+            renderer.setInstancedAttribute('a_billboard_bg_color', params);
+            renderer.setInstancedAttribute('a_billboard_icon_id', iconParams);
           }
+        }
+
+        getWaveBannerIconParams(node, iconId) {
+          var params = this.waveBannerIconParamCache.get(node);
+
+          if (!params) {
+            params = [0, 0, 0, 0];
+            this.waveBannerIconParamCache.set(node, params);
+          }
+
+          params[0] = Math.max(0, Math.floor(iconId));
+          params[1] = 0;
+          params[2] = 0;
+          params[3] = 0;
+          return params;
+        }
+
+        getWaveBannerMaterial() {
+          return this.unitDatabase ? this.unitDatabase.waveBannerMaterial : null;
+        }
+
+        updateWaveBannerHealthBar(wave) {
+          if (!wave) return;
+          var node = wave.getWaveBannerNode();
+          if (!node) return;
+          var healthBars = this.getWaveBannerHealthBars(node);
+          if (healthBars.length <= 0) return;
+          var ratio = wave.getRuntimeHealthRatio(this.frame);
+
+          for (var i = 0; i < healthBars.length; i++) {
+            healthBars[i].setHealthRatio(ratio);
+          }
+        }
+
+        getWaveBannerHealthBars(node) {
+          var healthBars = this.waveBannerHealthBarCache.get(node);
+
+          if (!healthBars) {
+            healthBars = node.getComponentsInChildren(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+              error: Error()
+            }), HealthBar3D) : HealthBar3D);
+            this.waveBannerHealthBarCache.set(node, healthBars);
+          }
+
+          return healthBars;
         }
 
         getWaveBannerColorParams(team) {
@@ -1387,7 +1521,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var renderers = this.waveBannerRendererCache.get(node);
 
           if (!renderers) {
-            renderers = node.getComponentsInChildren(MeshRenderer);
+            var allRenderers = node.getComponentsInChildren(MeshRenderer);
+            renderers = [];
+
+            for (var i = 0; i < allRenderers.length; i++) {
+              var renderer = allRenderers[i];
+
+              if (renderer.node.getComponent(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+                error: Error()
+              }), HealthBar3D) : HealthBar3D)) {
+                continue;
+              }
+
+              renderers.push(renderer);
+            }
+
             this.waveBannerRendererCache.set(node, renderers);
           }
 
@@ -1409,6 +1557,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.registeredCinematicController = controller;
           controller.node.on(BannerVisibilityBlockedEvent, this.onWaveBannerCameraBlockedChanged, this);
           var controllerAny = controller;
+          var topDownCameraDrag = controllerAny && controllerAny.topDownCameraDrag ? controllerAny.topDownCameraDrag : null;
+
+          if (topDownCameraDrag && topDownCameraDrag.node) {
+            this.registeredTopDownCameraDragNode = topDownCameraDrag.node;
+            topDownCameraDrag.node.on(TopDownZoomRangeChangedEvent, this.onWaveBannerCameraVisibilityChanged, this);
+          }
 
           if (typeof controllerAny.isBannerVisibilityBlocked === 'function') {
             this.waveBannerCameraBlocked = !!controllerAny.isBannerVisibilityBlocked();
@@ -1422,12 +1576,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             controller.node.off(BannerVisibilityBlockedEvent, this.onWaveBannerCameraBlockedChanged, this);
           }
 
+          if (this.registeredTopDownCameraDragNode) {
+            this.registeredTopDownCameraDragNode.off(TopDownZoomRangeChangedEvent, this.onWaveBannerCameraVisibilityChanged, this);
+          }
+
           this.registeredCinematicController = null;
+          this.registeredTopDownCameraDragNode = null;
         }
 
         onWaveBannerCameraBlockedChanged(blocked) {
           this.waveBannerCameraBlocked = !!blocked;
-          this.updateWaveBannerCameraVisibility(true);
+          this.onWaveBannerCameraVisibilityChanged();
+        }
+
+        onWaveBannerCameraVisibilityChanged() {
+          this.waveBannerCameraVisibilityDirty = true;
+          this.updateWaveBannerCameraVisibility(false);
         }
 
         acquireWaveBanner(prefab) {

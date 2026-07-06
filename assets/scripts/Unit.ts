@@ -452,6 +452,10 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = true;
 
+        if (this.props) {
+            this.props.resetForDespawn();
+        }
+
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.laneId = -1;
@@ -598,6 +602,14 @@ export class Unit extends Component {
         if (!this.sim || !this.agent) return;
 
         this.frameCounter++;
+
+        if (this.props && this.shouldRunTargetSearch()) {
+            const gm = GameManager.instance;
+
+            this.props.refreshHealthBarVisibility(
+                gm ? gm.shouldShowUnitHealthBars() : false
+            );
+        }
 
         if (this.props && this.props.isDead()) {
             this.setEnemyTarget(null);

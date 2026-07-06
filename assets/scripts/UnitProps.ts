@@ -27,6 +27,11 @@ export class UnitProps extends Component {
     resetForSpawn() {
         this.health = this.maxHealth;
         this.updateHealthBar();
+        this.refreshHealthBarVisibility(false);
+    }
+
+    resetForDespawn() {
+        this.refreshHealthBarVisibility(false);
     }
 
     takeDamage(amount: number) {
@@ -66,6 +71,16 @@ export class UnitProps extends Component {
 
         this.healthBar.setHealthRatio(
             this.getHealthRatio()
+        );
+    }
+
+    refreshHealthBarVisibility(showUnitHealthBars: boolean) {
+        if (!this.healthBar) return;
+
+        this.healthBar.setDisplayActive(
+            showUnitHealthBars &&
+            !this.isDead() &&
+            this.getHealthRatio() < 0.999
         );
     }
 }

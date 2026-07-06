@@ -41,6 +41,7 @@ System.register(["cc"], function (_export, _context) {
 
           this.renderer = null;
           this.currentRatio = 1;
+          this.displayActive = true;
           this.healthParams = [1, 0, 0, 0];
           this.barColor = [0, 1, 0, 1];
           this.colorDirty = true;
@@ -67,6 +68,15 @@ System.register(["cc"], function (_export, _context) {
           this.applyHealthParams();
         }
 
+        setDisplayActive(active) {
+          if (this.displayActive === active) {
+            return;
+          }
+
+          this.displayActive = active;
+          this.applyHealthParams();
+        }
+
         setMainColor(color) {
           this.mainColor.set(color);
           this.colorDirty = true;
@@ -85,7 +95,7 @@ System.register(["cc"], function (_export, _context) {
 
         applyHealthParams() {
           if (!this.renderer) return;
-          var shouldShow = !this.hideWhenFull || this.currentRatio < 0.999;
+          var shouldShow = this.displayActive && (!this.hideWhenFull || this.currentRatio < 0.999);
           var wasShowing = this.renderer.enabled;
           this.renderer.enabled = shouldShow;
           this.healthParams[0] = this.currentRatio;
