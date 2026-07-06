@@ -747,14 +747,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.updateWaveBannerCameraVisibility(false);
           }
 
-          if (!bannerInterval) {
-            return;
-          }
-
           for (var i = 0; i < this.waves.length; i++) {
             var wave = this.waves[i];
 
             if (!wave || wave.isDeadRuntime(this.frame)) {
+              continue;
+            }
+
+            if (!this.shouldRunFrameInterval(this.waveBannerRefreshIntervalFrames, wave.id)) {
               continue;
             }
 
@@ -888,10 +888,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         refreshDynamicLaneForWave(wave) {
           if (!wave) return;
           if (wave.isDeadRuntime(this.frame)) return;
-          var interval = wave.getTargetSearchIntervalFrames(); // Lane is strategic metadata only. Stagger updates by wave
-          // so dispersed waves do not all vote on the same frame.
+          var interval = wave.getTargetSearchIntervalFrames();
+          var offset = wave.id + Math.floor(interval / 2); // Lane is strategic metadata only. Stagger updates by wave
+          // and away from forward scans for the same wave.
 
-          if (!this.shouldRunFrameInterval(interval, wave.id)) {
+          if (!this.shouldRunFrameInterval(interval, offset)) {
             return;
           }
 

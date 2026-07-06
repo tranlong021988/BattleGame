@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-06 by the office Codex.
+Last updated: 2026-07-07 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -234,6 +234,12 @@ Current known render conclusions:
 - Only two skinned meshes are expected for heroes in the recent cube tests; do not blame "many skinned meshes" unless re-verified.
 - UI/minimap should not be blamed in traces where minimap/healthbar/banner were explicitly disabled.
 - Camera-driven banner/unit-healthbar visibility now uses the snapshot/dirty path described in `Banner / Wave Healthbar`. Do not reintroduce per-frame camera polling for this.
+- Frame-interval work should stay staggered:
+  - RVO and spatial-grid rebuild already use different frame offsets.
+  - Unit attack/search/healthbar checks use each unit's randomized `updateOffset`.
+  - Wave forward scan uses `wave.id` as phase.
+  - Dynamic lane voting intentionally uses `wave.id + floor(interval / 2)` so the same wave does not scan forward and vote lane on the same frame.
+  - Wave banner holder/health refresh is staggered per wave id instead of refreshing every wave in one banner frame.
 
 Recent trace interpretation to preserve:
 
