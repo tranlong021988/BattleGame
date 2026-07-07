@@ -1,0 +1,92 @@
+[
+    1,
+    [
+        "33JnHmYghBXaOFwBYPGZ/o@6c48a",
+        "068vByYOBKCIAgdsJNXFU6"
+    ],
+    [
+        "mainTexture",
+        "_effectAsset"
+    ],
+    [
+        [
+            "cc.Material",
+            [
+                "_name",
+                "_states",
+                "_defines",
+                "_props"
+            ],
+            0,
+            12
+        ]
+    ],
+    [
+        [
+            0,
+            0,
+            1,
+            2,
+            3,
+            4
+        ]
+    ],
+    [
+        [
+            0,
+            "Banner_Units",
+            [
+                {
+                    "rasterizerState": {},
+                    "depthStencilState": {},
+                    "blendState": {
+                        "targets": [
+                            {}
+                        ]
+                    }
+                }
+            ],
+            [
+                {
+                    "USE_INSTANCING": true
+                }
+            ],
+            [
+                [
+                    [
+                        {
+                            "sheetColumns": 3,
+                            "sheetRows": 3,
+                            "iconId": 8,
+                            "alphaThreshold": 0.5
+                        },
+                        "backgroundColor",
+                        8,
+                        [
+                            4,
+                            4278190080
+                        ],
+                        "mainTexture",
+                        6,
+                        0
+                    ]
+                ],
+                11
+            ]
+        ]
+    ],
+    0,
+    0,
+    [
+        0,
+        0
+    ],
+    [
+        0,
+        1
+    ],
+    [
+        0,
+        1
+    ]
+]

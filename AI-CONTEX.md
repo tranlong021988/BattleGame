@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-07 by the office Codex.
+Last updated: 2026-07-08 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -50,6 +50,34 @@ Rejected/reverted today:
 - Do not resurrect the attempted render/shader flag optimization from today. It caused banner/healthbar sort or disappearance issues.
 - In particular, do not casually change healthbar/banner depth state, render priority, material state, shadow receiving flags, or shader precision again unless the user explicitly asks and there is a focused verification plan.
 - Current `HealthBar.effect` and `UnlitBillboard.effect` should be treated as restored to the accepted high-precision/functionally stable path.
+
+## Accepted 2026-07-08 Home Changes
+
+These changes were made after receiving the 2026-07-07 office handoff:
+
+- `Unit.ts` now guards repeated writes to agent runtime state:
+  - `setAgentLocked()`;
+  - `setAgentOnForward()`;
+  - `setAgentPrefVelocity()`;
+  - `setAgentStopped()`;
+  - `zeroAgentVelocity()`.
+- These guards replace repeated direct writes to `agent.locked`, `agent.onForward`, zero velocity, and identical `setPrefVelocity()` calls across dead, steady, busy, forward, chase, hero-guard, freehunt, and despawn paths.
+- This is intended as a small hot-path cleanup only. It must not change movement/combat rules.
+- `Unit.ts` now caches visual yaw:
+  - `visualYawCache`;
+  - `visualYawCacheValid`;
+  - `refreshVisualYawCache()`;
+  - `getVisualEulerY()` reads the cache after it is initialized;
+  - `setVisualYaw()` updates the cache when applying rotation.
+- The yaw cache reduced `getVisualEulerY()` profile cost in the slowdown trace, but did not significantly improve total frame time because total `Unit` cost is small compared with full frame cost.
+- Unit counts in `assets/Test.scene` were temporarily halved from `10` to `5` for all 10 `UnitPrefabEntry` records to test scaling, then restored to `10`. Current accepted database unit count is `10` for all troop entries.
+
+Rejected/reverted on 2026-07-08:
+
+- Far/topdown rotation snap was tested and then removed.
+- Do not reintroduce `Far Facing Snap Step`, `shouldUseLowDetailUnitFacing()`, `shouldSnapFacingYaw()`, or `snapYaw()` unless the user explicitly asks.
+- Unit rotation should remain smooth through `lerpAngle()` as before.
+- Animation FPS LOD was not implemented. The user allowed lower animation FPS but explicitly said not to disable `SkeletalAnimation`. Cocos' safe public path is mainly pause/resume/stop or playback speed; changing speed alters animation timing, and pause plus manual sample is too risky for blend/event/baked animation without a focused experiment.
 
 ## Current Unit / Wave Flow
 
@@ -231,6 +259,48 @@ Why the current approach works:
   - `assets/scripts/rvo/RVOWorkerSimulator.ts` embedded worker source.
 - Unit visual facing prefers actual `agent.vel` when large enough, falling back to `prefVel`.
 
+## Pooling / Packed Wave Ideas
+
+Pooling status from 2026-07-08 source review:
+
+- Inactive pooled unit nodes should not run `Component.update()` and should not render.
+- Current despawn path is broadly correct:
+  - `UnitSpawner.despawnUnit()` removes the agent from the simulator;
+  - `Unit.resetForDespawn()` clears target/runtime references and sets `agent = null`, `sim = null`;
+  - `GameManager.despawnUnit()` removes normal units from `teamA` / `teamB`;
+  - `BattleSpatialGrid` skips inactive units with `!node.activeInHierarchy`.
+- Therefore pooled inactive units should mainly cost resident memory, not ongoing logic/RVO/grid/render work.
+- Still watch for global listeners, schedules, tweens, or newly added components on pooled prefabs; those can create hidden cost if not cleared.
+
+Packed forward idea discussed but not implemented:
+
+- User suggested grouping a freshly spawned forward wave under the scanner/front unit while all units share one direction, then unpacking when the scanner engages or triggers forward-release.
+- Simple reparenting alone is unlikely to give a large win if child units remain active full visual units, because renderers/animation/child world transforms still exist.
+- A safer first experiment would be "sleep follower logic during initial forward":
+  - scanner remains the only active logic/scanner/RVO agent;
+  - followers keep visual positions or cheap visual following;
+  - followers do not run target search, attack checks, or RVO until unpack;
+  - unpack restores world positions, RVO agents, target state, and normal wave logic.
+- This would mostly reduce gameplay/RVO cost. If trace barely improves, the real target is active renderer/animation/object count.
+- A stronger but more intrusive direction is a packed-wave visual proxy during initial forward, then spawning/unpacking real unit visuals only near combat. This changes visual/game feel and needs explicit user approval.
+
+## Unity WebGL Port Discussion
+
+- Do not assume a Unity WebGL rewrite automatically solves the current performance problem.
+- If ported with the same architecture, it may have the same or worse issues:
+  - one unit equals one `GameObject`;
+  - each unit has `MonoBehaviour.Update`;
+  - each unit has its own `Animator` / `SkinnedMeshRenderer`;
+  - object-per-unit combat/targeting remains active.
+- Unity Web/mobile browser still has WebGL/WebAssembly/browser memory constraints.
+- Unity can be a better target only if the rewrite changes architecture:
+  - data-oriented simulation rather than per-unit update scripts;
+  - instanced/batched rendering from the start;
+  - fewer active `Animator` / `SkinnedMeshRenderer` objects;
+  - packed-wave or proxy visuals before combat;
+  - careful WebAssembly memory/GC setup.
+- In short: the useful pivot is not "Cocos vs Unity" alone, but "object-per-unit architecture vs data-oriented/instanced/packed architecture".
+
 ## Performance Notes
 
 Global rules:
@@ -275,6 +345,22 @@ Recent trace interpretation to preserve:
 - Watch worker heap lower envelope in longer mobile-like captures; desktop V8 behavior is not proof for mobile browsers.
 - Major GC remains a risk when adding VFX, damage numbers, projectiles, or heavier UI.
 - For final performance judgment, compare release mobile builds on real devices.
+- 2026-07-07/08 CPU slowdown 4x traces clarified several things:
+  - `Trace-20260707T222045` full-unit baseline: `FireAnimationFrame` avg about `4.454ms`, p95 `11.640ms`, p99 `14.601ms`, `45` frames over `16.67ms`.
+  - `Trace-20260707T235904` after write guards/yaw cache but before half-unit test: avg about `4.344ms`, p95 `10.877ms`, p99 `13.355ms`, `32` frames over `16.67ms`.
+  - `Trace-20260708T001551` with all `unitCount` temporarily set to `5`: avg about `4.043ms`, p95 `10.200ms`, p99 `12.599ms`, `18` frames over `16.67ms`.
+  - Halving unit count reduced `Unit` profile cost from about `97us/frame` to about `52us/frame`, nearly proportional.
+  - Total frame time only improved by about `6-7%`, so per-unit gameplay logic is not the only limiting factor.
+  - Do not expect reducing unit count by 50% to reduce whole-frame cost by 50%; `Unit.update` is only a small part of the total frame.
+- Important interpretation correction:
+  - Do not state vague conclusions like "the bottleneck is render/transform/animation/engine sync" unless the next proposed test isolates which layer is responsible.
+  - Prior tests changing high-poly/skinned unit visuals to simple capsule/cube and snapping rotation did not produce a major win, so vertex count, skinning, and rotation snapping are not currently proven primary bottlenecks.
+  - The current evidence says: unit logic scales with unit count, but much of the frame cost is outside `Unit.update`; the exact culprit still needs isolated tests.
+- Useful next tests if performance investigation resumes:
+  - Test A: keep unit count/logic, temporarily disable unit renderers only. If frame time improves strongly, renderer/object render count is the likely target.
+  - Test B: keep renderers active, temporarily freeze movement/simulation after dense spawn. If frame time improves strongly, transform/movement sync is the likely target.
+  - Test C: compare release build without Preview/source-map/editor/devtool overhead against Preview slowdown traces.
+  - Test D: test "sleep follower logic during initial forward" without changing visuals; if it barely moves frame time, active renderer/animation object count is more important than per-unit logic.
 - `Trace-20260707T180002` improved over the bad `16:32` report but is still not back to the lighter 2026-07-02/06 baseline:
   - `18:00`: avg `3.486ms`, p95 `5.832ms`, p99 `8.490ms`, `76` frames over `8.33ms`, `6` over `16.67ms`.
   - `16:32`: avg `4.171ms`, p95 `7.239ms`, p99 `9.231ms`, `116` frames over `8.33ms`, `6` over `16.67ms`.

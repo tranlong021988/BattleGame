@@ -26,14 +26,14 @@
       "time": 1776578026202.4324
     },
     "scripts\\Unit.ts": {
-      "time": 1783435787194.963,
+      "time": 1783444150068.7188,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\GameManager.ts.meta": {
       "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1783435787192.8567,
+      "time": 1783444158585.236,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -68,21 +68,21 @@
       "time": 1776578320994.4348
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1783435787191.5862,
+      "time": 1783446216660.8335,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
       "time": 1776578323163.4592
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1783435787191.5862,
+      "time": 1783446229772.7288,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
       "time": 1783271269107.594
     },
     "Test.scene": {
-      "time": 1783440156729.1416,
+      "time": 1783446426779.896,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -219,7 +219,7 @@
       "uuid": "30c135f7-50d5-40bb-9ef8-638f796dbd9e"
     },
     "3D\\Victory.fbx.meta": {
-      "time": 1782148608869.0317
+      "time": 1783445087484.489
     },
     "3D\\Victory.fbx": {
       "time": 1782147782131.319,

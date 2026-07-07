@@ -73,6 +73,8 @@ export class Unit extends Component {
     private moveIntentFacingActive = true;
     private lastMoveIntentDir = { x: 0, z: 0 };
     private tempPos = new Vec3();
+    private visualYawCache = 0;
+    private visualYawCacheValid = false;
 
     private frameCounter = 0;
     private cachedNearestInRange: Unit | null = null;
@@ -111,6 +113,7 @@ export class Unit extends Component {
 
     onLoad() {
         this.props = this.getComponent(UnitProps)!;
+        this.refreshVisualYawCache();
     }
 
     init(
@@ -128,6 +131,7 @@ export class Unit extends Component {
         // Unit node chỉ handle position.
         // Rotation visual nằm ở visualRoot.
         this.node.setRotationFromEuler(0, 0, 0);
+        this.visualYawCacheValid = false;
 
         const p = this.node.worldPosition;
 
@@ -183,16 +187,9 @@ export class Unit extends Component {
                 this.heroGuardHomeZ = this.agent.pos.z;
             }
 
-            this.agent.locked = true;
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
-            this.agent.prefVel.x = 0;
-            this.agent.prefVel.z = 0;
-            this.agent.onForward = 0;
-
-            if (this.sim) {
-                this.sim.setPrefVelocity(this.agent, 0, 0);
-            }
+            this.setAgentLocked(true);
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
 
             return;
         }
@@ -201,21 +198,64 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = useForwardPhase;
 
-        this.agent.locked = false;
-        this.agent.vel.x = 0;
-        this.agent.vel.z = 0;
-        this.agent.prefVel.x = 0;
-        this.agent.prefVel.z = 0;
-        this.agent.onForward = useForwardPhase ? 1 : 0;
+        this.setAgentLocked(false);
+        this.setAgentOnForward(useForwardPhase ? 1 : 0);
+        this.setAgentStopped();
 
         this.applyRuntimeAgentData();
+    }
+
+    private setAgentLocked(value: boolean) {
+        if (!this.agent) return;
+        if (this.agent.locked === value) return;
+
+        this.agent.locked = value;
+    }
+
+    private setAgentOnForward(value: number) {
+        if (!this.agent) return;
+        if (this.agent.onForward === value) return;
+
+        this.agent.onForward = value;
+    }
+
+    private setAgentPrefVelocity(x: number, z: number) {
+        if (!this.agent || !this.sim) return;
+
+        const prefVel = this.agent.prefVel;
+
+        if (
+            Math.abs(prefVel.x - x) <= 0.0001 &&
+            Math.abs(prefVel.z - z) <= 0.0001
+        ) {
+            return;
+        }
+
+        this.sim.setPrefVelocity(this.agent, x, z);
+    }
+
+    private zeroAgentVelocity() {
+        if (!this.agent) return;
+
+        if (this.agent.vel.x !== 0) {
+            this.agent.vel.x = 0;
+        }
+
+        if (this.agent.vel.z !== 0) {
+            this.agent.vel.z = 0;
+        }
+    }
+
+    private setAgentStopped() {
+        this.setAgentPrefVelocity(0, 0);
+        this.zeroAgentVelocity();
     }
 
     private applyRuntimeAgentData() {
         if (!this.agent) return;
 
         this.agent.team = this.team;
-        this.agent.onForward = this.onForward ? 1 : 0;
+        this.setAgentOnForward(this.onForward ? 1 : 0);
 
         this.agent.forwardX = this.forwardDir.x;
         this.agent.forwardZ = this.forwardDir.z;
@@ -232,15 +272,12 @@ export class Unit extends Component {
         if (!this.agent) return;
 
         if (this.isSteady) {
-            this.agent.locked = true;
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
-            this.agent.prefVel.x = 0;
-            this.agent.prefVel.z = 0;
+            this.setAgentLocked(true);
+            this.setAgentStopped();
             this.onForward = false;
-            this.agent.onForward = 0;
+            this.setAgentOnForward(0);
         } else {
-            this.agent.locked = false;
+            this.setAgentLocked(false);
         }
     }
 
@@ -469,12 +506,9 @@ export class Unit extends Component {
         this.resetMoveIntentFacing();
 
         if (this.agent) {
-            this.agent.locked = false;
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
-            this.agent.prefVel.x = 0;
-            this.agent.prefVel.z = 0;
-            this.agent.onForward = 0;
+            this.setAgentLocked(false);
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
         }
 
         this.agent = null;
@@ -496,11 +530,8 @@ export class Unit extends Component {
         this.clearCachedTargets();
 
         if (this.agent) {
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
-            this.agent.prefVel.x = 0;
-            this.agent.prefVel.z = 0;
-            this.agent.locked = this.isSteady;
+            this.setAgentStopped();
+            this.setAgentLocked(this.isSteady);
         }
     }
 
@@ -524,14 +555,11 @@ export class Unit extends Component {
         }
 
         if (this.agent) {
-            this.agent.locked = this.onBusy;
-            this.agent.onForward = 0;
+            this.setAgentLocked(this.onBusy);
+            this.setAgentOnForward(0);
 
             if (!this.onBusy) {
-                this.agent.vel.x = 0;
-                this.agent.vel.z = 0;
-                this.agent.prefVel.x = 0;
-                this.agent.prefVel.z = 0;
+                this.setAgentStopped();
             }
         }
     }
@@ -545,10 +573,10 @@ export class Unit extends Component {
         this.clearCachedTargets();
 
         if (this.agent) {
-            this.agent.onForward = 0;
+            this.setAgentOnForward(0);
 
             if (!this.onBusy) {
-                this.agent.locked = this.isSteady;
+                this.setAgentLocked(this.isSteady);
             }
         }
     }
@@ -571,10 +599,10 @@ export class Unit extends Component {
         this.clearCachedTargets();
 
         if (this.agent) {
-            this.agent.onForward = 0;
+            this.setAgentOnForward(0);
 
             if (!this.onBusy) {
-                this.agent.locked = this.isSteady;
+                this.setAgentLocked(this.isSteady);
             }
         }
     }
@@ -595,12 +623,9 @@ export class Unit extends Component {
         this.clearCachedTargets();
 
         if (this.agent) {
-            this.agent.locked = false;
-            this.agent.onForward = 1;
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
-            this.agent.prefVel.x = 0;
-            this.agent.prefVel.z = 0;
+            this.setAgentLocked(false);
+            this.setAgentOnForward(1);
+            this.setAgentStopped();
         }
     }
 
@@ -621,11 +646,9 @@ export class Unit extends Component {
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
-            this.agent.onForward = 0;
-            this.agent.locked = true;
-            this.sim.setPrefVelocity(this.agent, 0, 0);
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
+            this.setAgentOnForward(0);
+            this.setAgentLocked(true);
+            this.setAgentStopped();
             this.sync(deltaTime, false);
             return;
         }
@@ -635,12 +658,10 @@ export class Unit extends Component {
         }
 
         if (this.isSteady) {
-            this.agent.locked = true;
-            this.sim.setPrefVelocity(this.agent, 0, 0);
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
+            this.setAgentLocked(true);
+            this.setAgentStopped();
             this.onForward = false;
-            this.agent.onForward = 0;
+            this.setAgentOnForward(0);
         }
 
         if (this.onBusy) {
@@ -656,9 +677,7 @@ export class Unit extends Component {
                             deltaTime
                         );
 
-                    this.sim.setPrefVelocity(this.agent, 0, 0);
-                    this.agent.vel.x = 0;
-                    this.agent.vel.z = 0;
+                    this.setAgentStopped();
 
                     this.sync(deltaTime, false);
                     this.updateBusyLookSettled(
@@ -686,28 +705,24 @@ export class Unit extends Component {
             }
 
             this.onForward = false;
-            this.agent.onForward = 0;
+            this.setAgentOnForward(0);
 
             this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
-            this.agent.locked = true;
+            this.setAgentLocked(true);
 
             this.setCachedNearestInRangeTarget(null);
 
             this.lookAtTargetSmooth(nearestInRange, deltaTime);
 
-            this.sim.setPrefVelocity(this.agent, 0, 0);
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
+            this.setAgentStopped();
 
             this.sync(deltaTime, false);
             return;
         }
 
         if (this.isSteady) {
-            this.sim.setPrefVelocity(this.agent, 0, 0);
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
+            this.setAgentStopped();
 
             this.returnToInitialYawSmooth(deltaTime);
 
@@ -716,7 +731,7 @@ export class Unit extends Component {
         }
 
         if (this.onForward) {
-            this.agent.onForward = 1;
+            this.setAgentOnForward(1);
 
             this.updateForwardPrefVelocity();
 
@@ -728,7 +743,7 @@ export class Unit extends Component {
             return;
         }
 
-        this.agent.onForward = 0;
+        this.setAgentOnForward(0);
 
         if (!this.hasValidEnemyTarget()) {
             this.setEnemyTarget(
@@ -749,8 +764,7 @@ export class Unit extends Component {
             const dist = Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
-                this.sim.setPrefVelocity(
-                    this.agent,
+                this.setAgentPrefVelocity(
                     (dx / dist) * this.agent.maxSpeed,
                     (dz / dist) * this.agent.maxSpeed
                 );
@@ -759,9 +773,7 @@ export class Unit extends Component {
             this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
         } else {
-            this.sim.setPrefVelocity(this.agent, 0, 0);
-            this.agent.vel.x = 0;
-            this.agent.vel.z = 0;
+            this.setAgentStopped();
             this.sync(deltaTime, true);
         }
     }
@@ -847,8 +859,7 @@ export class Unit extends Component {
     private updateForwardPrefVelocity() {
         if (!this.agent) return;
 
-        this.sim.setPrefVelocity(
-            this.agent,
+        this.setAgentPrefVelocity(
             this.forwardDir.x * this.agent.maxSpeed,
             this.forwardDir.z * this.agent.maxSpeed
         );
@@ -872,7 +883,7 @@ export class Unit extends Component {
 
         if (target) {
             this.onForward = false;
-            this.agent.onForward = 0;
+            this.setAgentOnForward(0);
 
             if (
                 this.getValidEnemyTarget() !== target
@@ -900,10 +911,8 @@ export class Unit extends Component {
 
                 this.setEnemyTarget(target);
                 this.onBusy = true;
-                this.agent.locked = true;
-                this.sim.setPrefVelocity(this.agent, 0, 0);
-                this.agent.vel.x = 0;
-                this.agent.vel.z = 0;
+                this.setAgentLocked(true);
+                this.setAgentStopped();
                 this.lookAtTargetSmooth(
                     target,
                     deltaTime
@@ -913,7 +922,7 @@ export class Unit extends Component {
             }
 
             this.onBusy = false;
-            this.agent.locked = false;
+            this.setAgentLocked(false);
 
             const dx =
                 target.agent!.pos.x -
@@ -925,8 +934,7 @@ export class Unit extends Component {
                 Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
-                this.sim.setPrefVelocity(
-                    this.agent,
+                this.setAgentPrefVelocity(
                     dx / dist * this.agent.maxSpeed,
                     dz / dist * this.agent.maxSpeed
                 );
@@ -943,7 +951,7 @@ export class Unit extends Component {
         this.setEnemyTarget(null);
         this.onBusy = false;
         this.onForward = false;
-        this.agent.onForward = 0;
+        this.setAgentOnForward(0);
 
         const dx =
             this.heroGuardHomeX -
@@ -960,13 +968,12 @@ export class Unit extends Component {
             );
 
         if (distSq > tolerance * tolerance) {
-            this.agent.locked = false;
+            this.setAgentLocked(false);
 
             const dist =
                 Math.sqrt(distSq);
 
-            this.sim.setPrefVelocity(
-                this.agent,
+            this.setAgentPrefVelocity(
                 dx / dist * this.agent.maxSpeed,
                 dz / dist * this.agent.maxSpeed
             );
@@ -975,10 +982,8 @@ export class Unit extends Component {
             return true;
         }
 
-        this.agent.locked = true;
-        this.sim.setPrefVelocity(this.agent, 0, 0);
-        this.agent.vel.x = 0;
-        this.agent.vel.z = 0;
+        this.setAgentLocked(true);
+        this.setAgentStopped();
         this.returnToInitialYawSmooth(deltaTime);
         this.sync(deltaTime, false);
         return true;
@@ -1328,21 +1333,10 @@ export class Unit extends Component {
 
         if (dx * dx + dz * dz < 0.0001) return false;
 
-        const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-        const currentY = this.getVisualEulerY();
-
-        if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
-            return false;
-        }
-
-        const newY = this.lerpAngle(
-            currentY,
-            targetY,
-            this.rotationSpeed * deltaTime
+        return this.applyFacingYaw(
+            Math.atan2(dx, dz) * 180 / Math.PI,
+            deltaTime
         );
-
-        this.setVisualYaw(newY);
-        return true;
     }
 
     private resetBusyLookCache() {
@@ -1388,19 +1382,7 @@ export class Unit extends Component {
     }
 
     private returnToInitialYawSmooth(deltaTime: number) {
-        const currentY = this.getVisualEulerY();
-
-        if (this.getAngleDeltaAbs(currentY, this.initialYaw) <= 0.5) {
-            return;
-        }
-
-        const newY = this.lerpAngle(
-            currentY,
-            this.initialYaw,
-            this.rotationSpeed * deltaTime
-        );
-
-        this.setVisualYaw(newY);
+        this.applyFacingYaw(this.initialYaw, deltaTime);
     }
 
     private lookForwardSmooth(deltaTime: number) {
@@ -1496,21 +1478,10 @@ export class Unit extends Component {
     ) {
         if (dx * dx + dz * dz < 0.0001) return false;
 
-        const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
-        const currentY = this.getVisualEulerY();
-
-        if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
-            return false;
-        }
-
-        const newY = this.lerpAngle(
-            currentY,
-            targetY,
-            this.rotationSpeed * deltaTime
+        return this.applyFacingYaw(
+            Math.atan2(dx, dz) * 180 / Math.PI,
+            deltaTime
         );
-
-        this.setVisualYaw(newY);
-        return true;
     }
 
     private sync(deltaTime: number, rotateByVelocity: boolean) {
@@ -1554,15 +1525,30 @@ export class Unit extends Component {
         this.lastStablePos.x = visualX;
         this.lastStablePos.z = visualZ;
 
-        const targetAngle = Math.atan2(moveDx, moveDz) * 180 / Math.PI;
+        this.applyFacingYaw(
+            Math.atan2(moveDx, moveDz) * 180 / Math.PI,
+            deltaTime
+        );
+    }
+
+    private applyFacingYaw(
+        targetYaw: number,
+        deltaTime: number
+    ) {
         const currentY = this.getVisualEulerY();
+
+        if (this.getAngleDeltaAbs(currentY, targetYaw) <= 0.5) {
+            return false;
+        }
+
         const newY = this.lerpAngle(
             currentY,
-            targetAngle,
+            targetYaw,
             this.rotationSpeed * deltaTime
         );
 
         this.setVisualYaw(newY);
+        return true;
     }
 
     private getVisualNode(): Node {
@@ -1570,17 +1556,30 @@ export class Unit extends Component {
     }
 
     private getVisualEulerY() {
-        return this.getVisualNode().eulerAngles.y - this.visualYawOffset;
+        if (!this.visualYawCacheValid) {
+            this.refreshVisualYawCache();
+        }
+
+        return this.visualYawCache;
     }
 
     private setVisualYaw(y: number) {
         this.moveIntentFacingActive = true;
+        this.visualYawCache = y;
+        this.visualYawCacheValid = true;
 
         this.getVisualNode().setRotationFromEuler(
             0,
             y + this.visualYawOffset,
             0
         );
+    }
+
+    private refreshVisualYawCache() {
+        this.visualYawCache =
+            this.getVisualNode().eulerAngles.y -
+            this.visualYawOffset;
+        this.visualYawCacheValid = true;
     }
 
     private resetStableRotationPosition() {
