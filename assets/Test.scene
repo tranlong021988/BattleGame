@@ -1901,7 +1901,7 @@
       "__id__": 134
     },
     "useWorkerRVO": true,
-    "targetFrameRate": 45,
+    "targetFrameRate": 60,
     "battleMinX": -8,
     "battleMaxX": 8,
     "battleMinZ": -21,
