@@ -78,6 +78,10 @@ System.register(["cc"], function (_export, _context) {
         }
 
         setMainColor(color) {
+          if (this.mainColor.r === color.r && this.mainColor.g === color.g && this.mainColor.b === color.b && this.mainColor.a === color.a) {
+            return;
+          }
+
           this.mainColor.set(color);
           this.colorDirty = true;
           this.applyColor();
@@ -97,7 +101,11 @@ System.register(["cc"], function (_export, _context) {
           if (!this.renderer) return;
           const shouldShow = this.displayActive && (!this.hideWhenFull || this.currentRatio < 0.999);
           const wasShowing = this.renderer.enabled;
-          this.renderer.enabled = shouldShow;
+
+          if (wasShowing !== shouldShow) {
+            this.renderer.enabled = shouldShow;
+          }
+
           this.healthParams[0] = this.currentRatio;
           this.healthParams[1] = shouldShow ? 1 : 0;
           this.healthParams[2] = 0;

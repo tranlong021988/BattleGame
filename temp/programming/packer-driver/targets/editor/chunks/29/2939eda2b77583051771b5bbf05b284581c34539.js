@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _crd, ccclass, property, TopDownZoomRangeChangedEvent, TopDownCameraDrag;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _crd, ccclass, property, TopDownZoomRangeChangedEvent, CameraPositionEpsilon, CameraPositionEpsilonSq, CameraFovEpsilon, TopDownCameraDrag;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -34,6 +34,9 @@ System.register(["cc"], function (_export, _context) {
         property
       } = _decorator);
       TopDownZoomRangeChangedEvent = 'battle-camera-topdown-zoom-range-changed';
+      CameraPositionEpsilon = 0.001;
+      CameraPositionEpsilonSq = CameraPositionEpsilon * CameraPositionEpsilon;
+      CameraFovEpsilon = 0.001;
 
       _export("TopDownCameraDrag", TopDownCameraDrag = (_dec = ccclass('TopDownCameraDrag'), _dec2 = property(Camera), _dec(_class = (_class2 = class TopDownCameraDrag extends Component {
         constructor(...args) {
@@ -304,26 +307,42 @@ System.register(["cc"], function (_export, _context) {
         updatePosition(deltaTime) {
           this.node.getWorldPosition(this.currentPos);
           this.clampTargetPosition();
+          const targetX = this.enableDragX ? this.targetPos.x : this.currentPos.x;
+          const targetZ = this.enableDragZ ? this.targetPos.z : this.currentPos.z;
+          const targetDx = targetX - this.currentPos.x;
+          const targetDz = targetZ - this.currentPos.z;
+
+          if (targetDx * targetDx + targetDz * targetDz <= CameraPositionEpsilonSq) {
+            return;
+          }
+
           const followSpeed = this.isDragging && !this.isPinching ? this.dragFollowSpeed : this.smoothSpeed;
 
           if (followSpeed <= 0) {
-            this.currentPos.set(this.enableDragX ? this.targetPos.x : this.currentPos.x, this.currentPos.y, this.enableDragZ ? this.targetPos.z : this.currentPos.z);
+            this.currentPos.set(targetX, this.currentPos.y, targetZ);
             this.node.setWorldPosition(this.currentPos);
             return;
           }
 
           const t = 1 - Math.exp(-followSpeed * deltaTime);
-          const newX = this.currentPos.x + (this.targetPos.x - this.currentPos.x) * t;
+          const newX = this.currentPos.x + targetDx * t;
           const newY = this.currentPos.y;
-          const newZ = this.currentPos.z + (this.targetPos.z - this.currentPos.z) * t;
+          const newZ = this.currentPos.z + targetDz * t;
           this.currentPos.set(newX, newY, newZ);
           this.node.setWorldPosition(this.currentPos);
         }
 
         updateZoom(deltaTime) {
           if (!this.targetCamera) return;
+          const fovDiff = this.targetFov - this.targetCamera.fov;
+
+          if (Math.abs(fovDiff) <= CameraFovEpsilon) {
+            return;
+          }
+
           const t = 1 - Math.exp(-this.zoomSmoothSpeed * deltaTime);
-          this.targetCamera.fov = this.targetCamera.fov + (this.targetFov - this.targetCamera.fov) * t;
+          const nextFov = this.targetCamera.fov + fovDiff * t;
+          this.targetCamera.fov = Math.abs(this.targetFov - nextFov) <= CameraFovEpsilon ? this.targetFov : nextFov;
         }
 
         clampTargetPosition() {
