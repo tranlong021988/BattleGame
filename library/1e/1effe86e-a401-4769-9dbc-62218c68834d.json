@@ -1524,7 +1524,7 @@
         "__id__": 41
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 43
@@ -2000,6 +2000,7 @@
       "__id__": 143
     },
     "useWorkerRVO": true,
+    "targetFrameRate": 60,
     "battleMinX": -8,
     "battleMaxX": 8,
     "battleMinZ": -21,
@@ -9350,7 +9351,7 @@
     "asset": null,
     "fileId": "1effe86e-a401-4769-9dbc-62218c68834d",
     "instance": null,
-    "targetOverrides": null,
+    "targetOverrides": [],
     "nestedPrefabInstanceRoots": [
       {
         "__id__": 271

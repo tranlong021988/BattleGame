@@ -220,7 +220,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (!hasParent) {
             banner.setParent(holder.node);
-            banner.setPosition(0, 0, 0);
+            this.resetWaveBannerLocalPosition(banner);
             this.notifyWaveBannerAttached(banner);
             return true;
           }
@@ -230,7 +230,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.notifyWaveBannerAttached(banner);
 
           if (this.waveBannerTweenDuration <= 0) {
-            banner.setPosition(0, 0, 0);
+            this.resetWaveBannerLocalPosition(banner);
             return true;
           }
 
@@ -238,6 +238,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             position: new Vec3(0, 0, 0)
           }).start();
           return true;
+        }
+
+        resetWaveBannerLocalPosition(banner) {
+          var p = banner.position;
+
+          if (Math.abs(p.x) <= 0.0001 && Math.abs(p.y) <= 0.0001 && Math.abs(p.z) <= 0.0001) {
+            return;
+          }
+
+          banner.setPosition(0, 0, 0);
         }
 
         setWaveBannerVisible(visible) {

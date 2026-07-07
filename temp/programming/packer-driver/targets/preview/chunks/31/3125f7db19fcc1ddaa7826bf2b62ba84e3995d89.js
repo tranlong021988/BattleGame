@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _class3, _crd, ccclass, property, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -44,6 +44,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         ccclass,
         property
       } = _decorator);
+      FORWARD_LOOK_DOT_THRESHOLD = 0.98;
 
       _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Node), _dec3 = property({
         displayName: 'Aggressive Forward'
@@ -127,6 +128,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.cachedNearestInRange = null;
           this.enemyLifeId = -1;
           this.cachedNearestInRangeLifeId = -1;
+          this.busyLookTarget = null;
+          this.busyLookTargetLifeId = -1;
+          this.busyLookSettled = false;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
           this.targetSearchPending = false;
@@ -284,6 +288,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.enemyLifeId = target ? target.lifeId : -1;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
+          this.resetBusyLookCache();
 
           if (target) {
             this.targetSearchConfirmedNoTarget = false;
@@ -296,6 +301,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.retaliationTarget = target;
           this.retaliationTargetLifeId = target.lifeId;
           this.targetSearchConfirmedNoTarget = false;
+          this.resetBusyLookCache();
         }
 
         setCachedNearestInRangeTarget(target) {
@@ -437,6 +443,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = true;
+
+          if (this.props) {
+            this.props.resetForDespawn();
+          }
+
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.laneId = -1;
@@ -573,6 +584,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (!this.sim || !this.agent) return;
           this.frameCounter++;
 
+          if (this.props && this.shouldRunTargetSearch()) {
+            var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance;
+            this.props.refreshHealthBarVisibility(gm ? gm.shouldShowUnitHealthBars() : false);
+          }
+
           if (this.props && this.props.isDead()) {
             this.setEnemyTarget(null);
             this.onBusy = false;
@@ -605,11 +623,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!busyEnemy) {
               this.clearEnemy();
             } else {
-              this.lookAtTargetSmooth(busyEnemy, deltaTime);
-              this.sim.setPrefVelocity(this.agent, 0, 0);
-              this.agent.vel.x = 0;
-              this.agent.vel.z = 0;
-              this.sync(deltaTime, false);
+              if (!this.shouldSkipBusyLookAndSync(busyEnemy)) {
+                var rotated = this.lookAtTargetSmooth(busyEnemy, deltaTime);
+                this.sim.setPrefVelocity(this.agent, 0, 0);
+                this.agent.vel.x = 0;
+                this.agent.vel.z = 0;
+                this.sync(deltaTime, false);
+                this.updateBusyLookSettled(busyEnemy, rotated);
+              }
+
               return;
             }
           }
@@ -618,12 +640,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var nearestInRange = this.getNearestEnemyInAttackRangeThrottled();
 
           if (nearestInRange) {
-            var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            var _gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
               error: Error()
             }), GameManager) : GameManager).instance;
 
-            if (gm) {
-              gm.onWaveCombatStarted(this, nearestInRange);
+            if (_gm) {
+              _gm.onWaveCombatStarted(this, nearestInRange);
             }
 
             this.onForward = false;
@@ -652,7 +674,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (this.onForward) {
             this.agent.onForward = 1;
             this.updateForwardPrefVelocity();
-            this.lookMoveIntentSmooth(deltaTime);
+
+            if (!this.shouldSkipForwardMoveIntentLook()) {
+              this.lookMoveIntentSmooth(deltaTime);
+            }
+
             this.sync(deltaTime, false);
             return;
           }
@@ -690,7 +716,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         shouldRunAttackCheck() {
           var interval = Math.max(1, Math.floor(this.attackCheckIntervalFrames));
-          return this.frameCounter % interval === 0;
+          var phase = Math.floor(interval / 2);
+          return (this.frameCounter + phase) % interval === 0;
         }
 
         shouldRunTargetSearch() {
@@ -1076,24 +1103,54 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         lookAtTargetSmooth(target, deltaTime) {
-          if (!this.agent) return;
-          if (!target || !target.agent) return;
+          if (!this.agent) return false;
+          if (!target || !target.agent) return false;
           var dx = target.agent.pos.x - this.agent.pos.x;
           var dz = target.agent.pos.z - this.agent.pos.z;
-          if (dx * dx + dz * dz < 0.0001) return;
+          if (dx * dx + dz * dz < 0.0001) return false;
           var targetY = Math.atan2(dx, dz) * 180 / Math.PI;
           var currentY = this.getVisualEulerY();
 
           if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
-            return;
+            return false;
           }
 
           var newY = this.lerpAngle(currentY, targetY, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
+          return true;
+        }
+
+        resetBusyLookCache() {
+          this.busyLookTarget = null;
+          this.busyLookTargetLifeId = -1;
+          this.busyLookSettled = false;
+        }
+
+        shouldSkipBusyLookAndSync(target) {
+          return this.busyLookSettled && this.busyLookTarget === target && this.busyLookTargetLifeId === target.lifeId && !!this.agent && !!target.agent && this.agent.locked && target.agent.locked;
+        }
+
+        updateBusyLookSettled(target, rotated) {
+          this.busyLookTarget = target;
+          this.busyLookTargetLifeId = target.lifeId;
+          this.busyLookSettled = !rotated && !!this.agent && !!target.agent && this.agent.locked && target.agent.locked && this.isVisualPositionSettled();
+        }
+
+        isVisualPositionSettled() {
+          if (!this.agent) return false;
+          var current = this.node.worldPosition;
+          var dx = this.agent.pos.x - current.x;
+          var dz = this.agent.pos.z - current.z;
+          return dx * dx + dz * dz < this.visualThreshold * this.visualThreshold;
         }
 
         returnToInitialYawSmooth(deltaTime) {
           var currentY = this.getVisualEulerY();
+
+          if (this.getAngleDeltaAbs(currentY, this.initialYaw) <= 0.5) {
+            return;
+          }
+
           var newY = this.lerpAngle(currentY, this.initialYaw, this.rotationSpeed * deltaTime);
           this.setVisualYaw(newY);
         }
@@ -1140,6 +1197,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (!this.moveIntentFacingActive) return;
           this.moveIntentFacingActive = this.lookDirectionSmooth(dirX, dirZ, deltaTime);
+        }
+
+        shouldSkipForwardMoveIntentLook() {
+          if (!this.agent) return false;
+          if (this.agent.locked) return false;
+          if (this.moveIntentFacingActive) return false;
+          var dx = this.agent.prefVel.x;
+          var dz = this.agent.prefVel.z;
+          var velX = this.agent.vel.x;
+          var velZ = this.agent.vel.z;
+          var minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
+          var velLenSq = velX * velX + velZ * velZ;
+
+          if (velLenSq >= minVel * minVel) {
+            dx = velX;
+            dz = velZ;
+          }
+
+          var lenSq = dx * dx + dz * dz;
+
+          if (lenSq < 0.0001) {
+            return true;
+          }
+
+          var invLen = 1 / Math.sqrt(lenSq);
+          var dirX = dx * invLen;
+          var dirZ = dz * invLen;
+          var dot = dirX * this.forwardDir.x + dirZ * this.forwardDir.z;
+          return dot >= FORWARD_LOOK_DOT_THRESHOLD;
         }
 
         lookDirectionSmooth(dx, dz, deltaTime) {

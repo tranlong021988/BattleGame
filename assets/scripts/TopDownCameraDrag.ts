@@ -13,6 +13,10 @@ import {
 const { ccclass, property } = _decorator;
 const TopDownZoomRangeChangedEvent =
     'battle-camera-topdown-zoom-range-changed';
+const CameraPositionEpsilon = 0.001;
+const CameraPositionEpsilonSq =
+    CameraPositionEpsilon * CameraPositionEpsilon;
+const CameraFovEpsilon = 0.001;
 
 @ccclass('TopDownCameraDrag')
 export class TopDownCameraDrag extends Component {
@@ -341,6 +345,27 @@ export class TopDownCameraDrag extends Component {
 
         this.clampTargetPosition();
 
+        const targetX =
+            this.enableDragX
+                ? this.targetPos.x
+                : this.currentPos.x;
+        const targetZ =
+            this.enableDragZ
+                ? this.targetPos.z
+                : this.currentPos.z;
+
+        const targetDx =
+            targetX - this.currentPos.x;
+        const targetDz =
+            targetZ - this.currentPos.z;
+
+        if (
+            targetDx * targetDx + targetDz * targetDz <=
+            CameraPositionEpsilonSq
+        ) {
+            return;
+        }
+
         const followSpeed =
             this.isDragging && !this.isPinching
                 ? this.dragFollowSpeed
@@ -348,9 +373,9 @@ export class TopDownCameraDrag extends Component {
 
         if (followSpeed <= 0) {
             this.currentPos.set(
-                this.enableDragX ? this.targetPos.x : this.currentPos.x,
+                targetX,
                 this.currentPos.y,
-                this.enableDragZ ? this.targetPos.z : this.currentPos.z
+                targetZ
             );
             this.node.setWorldPosition(this.currentPos);
             return;
@@ -360,13 +385,13 @@ export class TopDownCameraDrag extends Component {
 
         const newX =
             this.currentPos.x +
-            (this.targetPos.x - this.currentPos.x) * t;
+            targetDx * t;
 
         const newY = this.currentPos.y;
 
         const newZ =
             this.currentPos.z +
-            (this.targetPos.z - this.currentPos.z) * t;
+            targetDz * t;
 
         this.currentPos.set(newX, newY, newZ);
         this.node.setWorldPosition(this.currentPos);
@@ -375,11 +400,22 @@ export class TopDownCameraDrag extends Component {
     private updateZoom(deltaTime: number) {
         if (!this.targetCamera) return;
 
+        const fovDiff =
+            this.targetFov - this.targetCamera.fov;
+
+        if (Math.abs(fovDiff) <= CameraFovEpsilon) {
+            return;
+        }
+
         const t = 1 - Math.exp(-this.zoomSmoothSpeed * deltaTime);
+        const nextFov =
+            this.targetCamera.fov + fovDiff * t;
 
         this.targetCamera.fov =
-            this.targetCamera.fov +
-            (this.targetFov - this.targetCamera.fov) * t;
+            Math.abs(this.targetFov - nextFov) <=
+                CameraFovEpsilon
+                ? this.targetFov
+                : nextFov;
     }
 
     private clampTargetPosition() {

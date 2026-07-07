@@ -704,7 +704,7 @@
     "visualYawOffset": 0,
     "rotationSpeed": 5,
     "moveThreshold": 0.2,
-    "visualThreshold": 0.03,
+    "visualThreshold": 0.1,
     "moveSpeed": 7,
     "radius": 0.5,
     "attackRange": 1.2,
@@ -752,7 +752,6 @@
     "healthBar": {
       "__id__": 34
     },
-    "healthBarRecentDamageSeconds": 1.5,
     "_id": ""
   },
   {

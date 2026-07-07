@@ -10,6 +10,7 @@ import {
     instantiate,
     MeshRenderer,
     Material,
+    game,
 } from 'cc';
 
 import { Unit } from './Unit';
@@ -60,6 +61,11 @@ export class GameManager extends Component {
 
     @property
     useWorkerRVO = true;
+
+    @property({
+        tooltip: 'Target frame rate for mobile performance tests. Use 30, 45, or 60. Set 0 or lower to keep the engine default.',
+    })
+    targetFrameRate = 60;
 
     teamAHero: Unit | null = null;
     teamBHero: Unit | null = null;
@@ -256,6 +262,7 @@ export class GameManager extends Component {
 
     start() {
         GameManager.instance = this;
+        this.applyTargetFrameRate();
 
         this.teamA.length = 0;
         this.teamB.length = 0;
@@ -413,6 +420,14 @@ export class GameManager extends Component {
         } else {
             this.sim = new RVOSimulator();
         }
+    }
+
+    private applyTargetFrameRate() {
+        const fps = Math.floor(this.targetFrameRate);
+
+        if (fps <= 0) return;
+
+        game.frameRate = fps;
     }
 
     update(deltaTime: number) {
@@ -966,7 +981,7 @@ export class GameManager extends Component {
             if (
                 !this.shouldRunFrameInterval(
                     this.waveBannerRefreshIntervalFrames,
-                    wave.id
+                    wave.id + 1
                 )
             ) {
                 continue;

@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-07 by the home Codex.
+Last updated: 2026-07-07 by the office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -18,7 +18,7 @@ This file should describe the current accepted source and design. It is not a fu
 Useful office typecheck command:
 
 ```powershell
-node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\node_modules\@cocos\typescript\bin\tsc' --noEmit --pretty false --project tsconfig.json --skipLibCheck --module ESNext
+node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\bin\tsc' --noEmit --skipLibCheck --module esnext
 ```
 
 ## Current Source Shape
@@ -30,6 +30,26 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\resources\3d\engine\n
 - `Unit` / `UnitBehavior` still own per-unit movement/combat state.
 - There is no regroup-to-slot or lane-return movement in the accepted flow.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
+
+## Accepted 2026-07-07 Office Changes
+
+These are the current accepted changes from today's office session:
+
+- `GameManager.targetFrameRate` was added for mobile/browser FPS experiments. Use `30`, `45`, or `60`; use `0` or lower to keep the engine default.
+- `GameManager` shifted wave-banner refresh phase from `wave.id` to `wave.id + 1` to reduce same-frame overlap with other wave work.
+- `TopDownCameraDrag` now avoids setting camera world position or FOV when the value is already within a tiny epsilon. This reduces unnecessary transform/render invalidation during camera idle/smoothing.
+- `Unit` skips forward-facing rotation work when actual movement/pref velocity is already aligned with `forwardDir`. This must not be changed into a hard rotation lock, because RVO/overtake can move units diagonally while forwarding.
+- `Unit` skips repeated busy look/sync work once both attacker and target are locked, the look direction is settled, and visual position is already close enough.
+- `Unit` attack-check phase is shifted by half its interval to reduce overlap with target-search/forward-scan phases.
+- `BattleWave` avoids resetting banner local position to `(0,0,0)` when it is already there.
+- `HealthBar3D` avoids reapplying identical color and avoids setting `renderer.enabled` when the state is unchanged.
+- `BlueUnit.prefab` / `RedUnit.prefab` currently have `visualThreshold = 0.1` from Inspector tuning. Treat this as an accepted tuning value unless the user changes it.
+
+Rejected/reverted today:
+
+- Do not resurrect the attempted render/shader flag optimization from today. It caused banner/healthbar sort or disappearance issues.
+- In particular, do not casually change healthbar/banner depth state, render priority, material state, shadow receiving flags, or shader precision again unless the user explicitly asks and there is a focused verification plan.
+- Current `HealthBar.effect` and `UnlitBillboard.effect` should be treated as restored to the accepted high-precision/functionally stable path.
 
 ## Current Unit / Wave Flow
 
@@ -218,15 +238,18 @@ Global rules:
 - Mobile browser performance is a core design constraint.
 - Avoid optimistic desktop/editor-preview conclusions.
 - Check frame pacing, GPU/render, main thread, worker CPU, and worker heap.
+- When comparing traces, separate normal/no-throttle captures from DevTools CPU slowdown captures. Slowdown 4x reports must only be compared against other slowdown 4x reports, not raw normal traces.
+- If trace conditions are unclear, mark the comparison as uncertain and avoid strong conclusions.
 - Before adding a new throttle/snapshot/scan/knob, first check whether an existing helper/cache/gate already answers the question.
 - Avoid per-frame logic whenever possible. Prefer event, dirty flag, existing interval, or existing snapshot/cache. Per-frame work should be reserved for movement, camera smoothing, animation, and other behavior that visually requires continuous updates.
-- The office Codex should add the same rule to its local `cocos-performance-optimize-skills`: do not add per-frame polling for UI/camera/state transitions until event, dirty flag, existing interval, or existing snapshot/cache has been ruled out.
+- The local `cocos-performance-optimize-skills` includes the project rule to avoid new per-frame polling/parallel state when existing event, dirty flag, interval, snapshot, or wave-level truth can be reused.
 - Keep debug logs behind Inspector toggles.
 
 Current known render conclusions:
 
 - Recent tests replacing high-poly unit mesh with capsule/cube did not produce a major win.
 - Therefore vertex count alone is not the current proven bottleneck.
+- Reducing Node transform writes can still help render-side cost because Cocos must sync transform/render data when nodes are marked dirty. The accepted optimizations are small guards around camera transform/FOV, forward-facing rotation, busy locked sync, banner local position, and healthbar renderer/color setters.
 - Extra active cameras are a real render cost. Re-check camera components before comparing traces.
 - Unit body rendering appears to batch/instance reasonably by team/material in current captures.
 - Wave banner icon sheet/shared-material path is the current accepted direction for banner batching.
@@ -241,12 +264,22 @@ Current known render conclusions:
   - Dynamic lane voting intentionally uses `wave.id + floor(interval / 2)` so the same wave does not scan forward and vote lane on the same frame.
   - Wave banner holder/health refresh is staggered per wave id instead of refreshing every wave in one banner frame.
 
+Rejected render direction from 2026-07-07:
+
+- The attempted "item 4" render/shader cleanup changed render/material-related state and repeatedly broke banner/healthbar rendering or sort order. It was reversed.
+- Do not use that failed attempt as a starting point. If render-state optimization is revisited, isolate one flag/material/shader change at a time and verify banner icon, wave healthbar, unit healthbar, orbit/topdown visibility, and Spector draw behavior.
+
 Recent trace interpretation to preserve:
 
 - Workers were not the proven main bottleneck in the 2026-07-06 traces.
 - Watch worker heap lower envelope in longer mobile-like captures; desktop V8 behavior is not proof for mobile browsers.
 - Major GC remains a risk when adding VFX, damage numbers, projectiles, or heavier UI.
 - For final performance judgment, compare release mobile builds on real devices.
+- `Trace-20260707T180002` improved over the bad `16:32` report but is still not back to the lighter 2026-07-02/06 baseline:
+  - `18:00`: avg `3.486ms`, p95 `5.832ms`, p99 `8.490ms`, `76` frames over `8.33ms`, `6` over `16.67ms`.
+  - `16:32`: avg `4.171ms`, p95 `7.239ms`, p99 `9.231ms`, `116` frames over `8.33ms`, `6` over `16.67ms`.
+  - Earlier 2026-07-02/06 normal traces often had avg around `1.1-1.8ms`, p95 around `1.5-4.2ms`, and very few frames over `8.33ms`.
+  - Conclusion: today's accepted transform/write guards help, but the current state is still borderline for mobile-browser headroom and should not be called "done" for VFX scaling.
 
 ## LevelSettings
 

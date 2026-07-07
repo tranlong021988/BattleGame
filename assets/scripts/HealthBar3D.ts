@@ -53,6 +53,15 @@ export class HealthBar3D extends Component {
     }
 
     setMainColor(color: Color) {
+        if (
+            this.mainColor.r === color.r &&
+            this.mainColor.g === color.g &&
+            this.mainColor.b === color.b &&
+            this.mainColor.a === color.a
+        ) {
+            return;
+        }
+
         this.mainColor.set(color);
         this.colorDirty = true;
         this.applyColor();
@@ -81,7 +90,9 @@ export class HealthBar3D extends Component {
         const wasShowing =
             this.renderer.enabled;
 
-        this.renderer.enabled = shouldShow;
+        if (wasShowing !== shouldShow) {
+            this.renderer.enabled = shouldShow;
+        }
 
         this.healthParams[0] = this.currentRatio;
         this.healthParams[1] = shouldShow ? 1 : 0;

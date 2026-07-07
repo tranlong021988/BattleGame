@@ -3,6 +3,7 @@ import { UnitProps } from './UnitProps';
 import { GameManager } from './GameManager';
 
 const { ccclass, property } = _decorator;
+const FORWARD_LOOK_DOT_THRESHOLD = 0.98;
 
 @ccclass('Unit')
 export class Unit extends Component {
@@ -77,6 +78,9 @@ export class Unit extends Component {
     private cachedNearestInRange: Unit | null = null;
     private enemyLifeId = -1;
     private cachedNearestInRangeLifeId = -1;
+    private busyLookTarget: Unit | null = null;
+    private busyLookTargetLifeId = -1;
+    private busyLookSettled = false;
     private retaliationTarget: Unit | null = null;
     private retaliationTargetLifeId = -1;
     private targetSearchPending = false;
@@ -259,6 +263,7 @@ export class Unit extends Component {
         this.enemyLifeId = target ? target.lifeId : -1;
         this.retaliationTarget = null;
         this.retaliationTargetLifeId = -1;
+        this.resetBusyLookCache();
 
         if (target) {
             this.targetSearchConfirmedNoTarget = false;
@@ -271,6 +276,7 @@ export class Unit extends Component {
         this.retaliationTarget = target;
         this.retaliationTargetLifeId = target.lifeId;
         this.targetSearchConfirmedNoTarget = false;
+        this.resetBusyLookCache();
     }
 
     private setCachedNearestInRangeTarget(target: Unit | null) {
@@ -643,13 +649,24 @@ export class Unit extends Component {
             if (!busyEnemy) {
                 this.clearEnemy();
             } else {
-                this.lookAtTargetSmooth(busyEnemy, deltaTime);
+                if (!this.shouldSkipBusyLookAndSync(busyEnemy)) {
+                    const rotated =
+                        this.lookAtTargetSmooth(
+                            busyEnemy,
+                            deltaTime
+                        );
 
-                this.sim.setPrefVelocity(this.agent, 0, 0);
-                this.agent.vel.x = 0;
-                this.agent.vel.z = 0;
+                    this.sim.setPrefVelocity(this.agent, 0, 0);
+                    this.agent.vel.x = 0;
+                    this.agent.vel.z = 0;
 
-                this.sync(deltaTime, false);
+                    this.sync(deltaTime, false);
+                    this.updateBusyLookSettled(
+                        busyEnemy,
+                        rotated
+                    );
+                }
+
                 return;
             }
         }
@@ -702,7 +719,10 @@ export class Unit extends Component {
             this.agent.onForward = 1;
 
             this.updateForwardPrefVelocity();
-            this.lookMoveIntentSmooth(deltaTime);
+
+            if (!this.shouldSkipForwardMoveIntentLook()) {
+                this.lookMoveIntentSmooth(deltaTime);
+            }
 
             this.sync(deltaTime, false);
             return;
@@ -748,7 +768,8 @@ export class Unit extends Component {
 
     private shouldRunAttackCheck(): boolean {
         const interval = Math.max(1, Math.floor(this.attackCheckIntervalFrames));
-        return this.frameCounter % interval === 0;
+        const phase = Math.floor(interval / 2);
+        return (this.frameCounter + phase) % interval === 0;
     }
 
     private shouldRunTargetSearch(): boolean {
@@ -1299,19 +1320,19 @@ export class Unit extends Component {
     }
 
     private lookAtTargetSmooth(target: Unit, deltaTime: number) {
-        if (!this.agent) return;
-        if (!target || !target.agent) return;
+        if (!this.agent) return false;
+        if (!target || !target.agent) return false;
 
         const dx = target.agent.pos.x - this.agent.pos.x;
         const dz = target.agent.pos.z - this.agent.pos.z;
 
-        if (dx * dx + dz * dz < 0.0001) return;
+        if (dx * dx + dz * dz < 0.0001) return false;
 
         const targetY = Math.atan2(dx, dz) * 180 / Math.PI;
         const currentY = this.getVisualEulerY();
 
         if (this.getAngleDeltaAbs(currentY, targetY) <= 0.5) {
-            return;
+            return false;
         }
 
         const newY = this.lerpAngle(
@@ -1321,10 +1342,57 @@ export class Unit extends Component {
         );
 
         this.setVisualYaw(newY);
+        return true;
+    }
+
+    private resetBusyLookCache() {
+        this.busyLookTarget = null;
+        this.busyLookTargetLifeId = -1;
+        this.busyLookSettled = false;
+    }
+
+    private shouldSkipBusyLookAndSync(target: Unit) {
+        return this.busyLookSettled &&
+            this.busyLookTarget === target &&
+            this.busyLookTargetLifeId === target.lifeId &&
+            !!this.agent &&
+            !!target.agent &&
+            this.agent.locked &&
+            target.agent.locked;
+    }
+
+    private updateBusyLookSettled(
+        target: Unit,
+        rotated: boolean
+    ) {
+        this.busyLookTarget = target;
+        this.busyLookTargetLifeId = target.lifeId;
+        this.busyLookSettled =
+            !rotated &&
+            !!this.agent &&
+            !!target.agent &&
+            this.agent.locked &&
+            target.agent.locked &&
+            this.isVisualPositionSettled();
+    }
+
+    private isVisualPositionSettled() {
+        if (!this.agent) return false;
+
+        const current = this.node.worldPosition;
+        const dx = this.agent.pos.x - current.x;
+        const dz = this.agent.pos.z - current.z;
+
+        return dx * dx + dz * dz <
+            this.visualThreshold * this.visualThreshold;
     }
 
     private returnToInitialYawSmooth(deltaTime: number) {
         const currentY = this.getVisualEulerY();
+
+        if (this.getAngleDeltaAbs(currentY, this.initialYaw) <= 0.5) {
+            return;
+        }
 
         const newY = this.lerpAngle(
             currentY,
@@ -1385,6 +1453,40 @@ export class Unit extends Component {
 
         this.moveIntentFacingActive =
             this.lookDirectionSmooth(dirX, dirZ, deltaTime);
+    }
+
+    private shouldSkipForwardMoveIntentLook() {
+        if (!this.agent) return false;
+        if (this.agent.locked) return false;
+        if (this.moveIntentFacingActive) return false;
+
+        let dx = this.agent.prefVel.x;
+        let dz = this.agent.prefVel.z;
+        const velX = this.agent.vel.x;
+        const velZ = this.agent.vel.z;
+        const minVel =
+            Math.max(0.02, this.agent.maxSpeed * 0.05);
+        const velLenSq = velX * velX + velZ * velZ;
+
+        if (velLenSq >= minVel * minVel) {
+            dx = velX;
+            dz = velZ;
+        }
+
+        const lenSq = dx * dx + dz * dz;
+
+        if (lenSq < 0.0001) {
+            return true;
+        }
+
+        const invLen = 1 / Math.sqrt(lenSq);
+        const dirX = dx * invLen;
+        const dirZ = dz * invLen;
+        const dot =
+            dirX * this.forwardDir.x +
+            dirZ * this.forwardDir.z;
+
+        return dot >= FORWARD_LOOK_DOT_THRESHOLD;
     }
 
     private lookDirectionSmooth(

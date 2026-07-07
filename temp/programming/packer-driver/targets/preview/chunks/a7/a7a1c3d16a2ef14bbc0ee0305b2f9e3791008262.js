@@ -1,7 +1,7 @@
 System.register(["cc"], function (_export, _context) {
   "use strict";
 
-  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _crd, ccclass, property, TopDownCameraDrag;
+  var _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Camera, Vec3, input, Input, view, _dec, _dec2, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _crd, ccclass, property, TopDownZoomRangeChangedEvent, CameraPositionEpsilon, CameraPositionEpsilonSq, CameraFovEpsilon, TopDownCameraDrag;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -33,6 +33,10 @@ System.register(["cc"], function (_export, _context) {
         ccclass,
         property
       } = _decorator);
+      TopDownZoomRangeChangedEvent = 'battle-camera-topdown-zoom-range-changed';
+      CameraPositionEpsilon = 0.001;
+      CameraPositionEpsilonSq = CameraPositionEpsilon * CameraPositionEpsilon;
+      CameraFovEpsilon = 0.001;
 
       _export("TopDownCameraDrag", TopDownCameraDrag = (_dec = ccclass('TopDownCameraDrag'), _dec2 = property(Camera), _dec(_class = (_class2 = class TopDownCameraDrag extends Component {
         constructor() {
@@ -94,6 +98,7 @@ System.register(["cc"], function (_export, _context) {
           this.isPinching = false;
           this.lastPinchDistance = 0;
           this.targetFov = 45;
+          this.zoomRangeState = 0;
         }
 
         onEnable() {
@@ -103,6 +108,7 @@ System.register(["cc"], function (_export, _context) {
             this.targetFov = this.targetCamera.fov;
           }
 
+          this.zoomRangeState = this.resolveZoomRangeState();
           input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
           input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
           input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
@@ -124,6 +130,20 @@ System.register(["cc"], function (_export, _context) {
           if (this.targetCamera) {
             this.targetFov = this.targetCamera.fov;
           }
+
+          this.zoomRangeState = this.resolveZoomRangeState();
+        }
+
+        getTargetFov() {
+          return this.targetFov;
+        }
+
+        getMinFov() {
+          return this.minFov;
+        }
+
+        getMaxFov() {
+          return this.maxFov;
         }
 
         onTouchStart(event) {
@@ -238,6 +258,7 @@ System.register(["cc"], function (_export, _context) {
 
           this.targetFov -= zoomDelta;
           this.targetFov = this.clamp(this.targetFov, this.minFov, this.maxFov);
+          this.emitZoomRangeChangedIfNeeded();
           var fovChange = oldFov - this.targetFov;
 
           if (this.zoomToPointer && Math.abs(fovChange) > 0.0001) {
@@ -286,26 +307,42 @@ System.register(["cc"], function (_export, _context) {
         updatePosition(deltaTime) {
           this.node.getWorldPosition(this.currentPos);
           this.clampTargetPosition();
+          var targetX = this.enableDragX ? this.targetPos.x : this.currentPos.x;
+          var targetZ = this.enableDragZ ? this.targetPos.z : this.currentPos.z;
+          var targetDx = targetX - this.currentPos.x;
+          var targetDz = targetZ - this.currentPos.z;
+
+          if (targetDx * targetDx + targetDz * targetDz <= CameraPositionEpsilonSq) {
+            return;
+          }
+
           var followSpeed = this.isDragging && !this.isPinching ? this.dragFollowSpeed : this.smoothSpeed;
 
           if (followSpeed <= 0) {
-            this.currentPos.set(this.enableDragX ? this.targetPos.x : this.currentPos.x, this.currentPos.y, this.enableDragZ ? this.targetPos.z : this.currentPos.z);
+            this.currentPos.set(targetX, this.currentPos.y, targetZ);
             this.node.setWorldPosition(this.currentPos);
             return;
           }
 
           var t = 1 - Math.exp(-followSpeed * deltaTime);
-          var newX = this.currentPos.x + (this.targetPos.x - this.currentPos.x) * t;
+          var newX = this.currentPos.x + targetDx * t;
           var newY = this.currentPos.y;
-          var newZ = this.currentPos.z + (this.targetPos.z - this.currentPos.z) * t;
+          var newZ = this.currentPos.z + targetDz * t;
           this.currentPos.set(newX, newY, newZ);
           this.node.setWorldPosition(this.currentPos);
         }
 
         updateZoom(deltaTime) {
           if (!this.targetCamera) return;
+          var fovDiff = this.targetFov - this.targetCamera.fov;
+
+          if (Math.abs(fovDiff) <= CameraFovEpsilon) {
+            return;
+          }
+
           var t = 1 - Math.exp(-this.zoomSmoothSpeed * deltaTime);
-          this.targetCamera.fov = this.targetCamera.fov + (this.targetFov - this.targetCamera.fov) * t;
+          var nextFov = this.targetCamera.fov + fovDiff * t;
+          this.targetCamera.fov = Math.abs(this.targetFov - nextFov) <= CameraFovEpsilon ? this.targetFov : nextFov;
         }
 
         clampTargetPosition() {
@@ -358,6 +395,31 @@ System.register(["cc"], function (_export, _context) {
 
         clamp(value, min, max) {
           return Math.max(min, Math.min(max, value));
+        }
+
+        emitZoomRangeChangedIfNeeded() {
+          var nextState = this.resolveZoomRangeState();
+
+          if (nextState === this.zoomRangeState) {
+            return;
+          }
+
+          this.zoomRangeState = nextState;
+          this.node.emit(TopDownZoomRangeChangedEvent, nextState);
+        }
+
+        resolveZoomRangeState() {
+          var epsilon = 0.001;
+
+          if (this.targetFov <= this.minFov + epsilon) {
+            return -1;
+          }
+
+          if (this.targetFov >= this.maxFov - epsilon) {
+            return 1;
+          }
+
+          return 0;
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "targetCamera", [_dec2], {
