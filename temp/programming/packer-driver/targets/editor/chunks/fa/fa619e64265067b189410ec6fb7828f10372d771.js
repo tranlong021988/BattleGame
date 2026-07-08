@@ -65,6 +65,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveBannerRecycle = null;
           this.waveBannerOnAttached = null;
           this.waveBannerTweenDuration = 0.2;
+          this.waveBannerBaseScale = new Vec3(1, 1, 1);
+          this.waveBannerTransferTarget = null;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -181,6 +183,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveBannerRecycle = recycle;
           this.waveBannerOnAttached = onAttached;
           this.waveBannerTweenDuration = Math.max(0, tweenDuration);
+          this.captureWaveBannerBaseScale(node);
           node.active = true;
           this.refreshWaveBanner(true);
         }
@@ -203,29 +206,58 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return true;
           }
 
+          if (this.waveBannerTransferTarget === holder && banner.parent !== holder.node) {
+            return true;
+          }
+
           Tween.stopAllByTarget(banner);
+          this.waveBannerTransferTarget = null;
           const hasParent = !!banner.parent;
 
           if (!hasParent) {
             banner.setParent(holder.node);
             this.resetWaveBannerLocalPosition(banner);
+            banner.setScale(this.waveBannerBaseScale);
             this.notifyWaveBannerAttached(banner);
             return true;
           }
 
-          banner.setParent(null, true);
-          banner.setParent(holder.node, true);
-          this.notifyWaveBannerAttached(banner);
+          this.transferWaveBanner(banner, holder);
+          return true;
+        }
 
+        transferWaveBanner(banner, holder) {
           if (this.waveBannerTweenDuration <= 0) {
+            banner.setParent(holder.node);
             this.resetWaveBannerLocalPosition(banner);
-            return true;
+            banner.setScale(this.waveBannerBaseScale);
+            this.notifyWaveBannerAttached(banner);
+            return;
           }
 
+          this.waveBannerTransferTarget = holder;
+          banner.setParent(null, true);
+          const zeroScale = new Vec3(0, 0, 0);
           tween(banner).to(this.waveBannerTweenDuration, {
-            position: new Vec3(0, 0, 0)
+            scale: zeroScale
+          }).call(() => {
+            if (!banner.isValid) return;
+            const target = this.isUnitAlive(holder) ? holder : this.getRepresentativeUnit();
+
+            if (!target) {
+              this.releaseWaveBanner();
+              return;
+            }
+
+            banner.setParent(target.node);
+            this.resetWaveBannerLocalPosition(banner);
+            banner.setScale(zeroScale);
+            this.notifyWaveBannerAttached(banner);
+            this.waveBannerTransferTarget = null;
+            tween(banner).to(this.waveBannerTweenDuration, {
+              scale: this.waveBannerBaseScale.clone()
+            }).start();
           }).start();
-          return true;
         }
 
         resetWaveBannerLocalPosition(banner) {
@@ -236,6 +268,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           banner.setPosition(0, 0, 0);
+        }
+
+        captureWaveBannerBaseScale(banner) {
+          const scale = banner.scale;
+
+          if (Math.abs(scale.x) <= 0.0001 && Math.abs(scale.y) <= 0.0001 && Math.abs(scale.z) <= 0.0001) {
+            this.waveBannerBaseScale.set(1, 1, 1);
+            return;
+          }
+
+          this.waveBannerBaseScale.set(scale.x, scale.y, scale.z);
         }
 
         setWaveBannerVisible(visible) {
@@ -288,15 +331,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.waveBannerNode = null;
             this.waveBannerRecycle = null;
             this.waveBannerOnAttached = null;
+            this.waveBannerTransferTarget = null;
             return;
           }
 
           Tween.stopAllByTarget(banner);
           banner.setParent(null, true);
+          banner.setScale(this.waveBannerBaseScale);
           const recycle = this.waveBannerRecycle;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
           this.waveBannerOnAttached = null;
+          this.waveBannerTransferTarget = null;
 
           if (recycle) {
             recycle(banner);

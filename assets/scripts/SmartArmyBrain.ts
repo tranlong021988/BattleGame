@@ -5,6 +5,8 @@ import { CounterSettings } from './CounterSettings';
 import { unitTypeToName } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
+const BattleWaveSpawnedEvent =
+    'battle-wave-spawned';
 
 class SmartLaneIntel {
     laneId = 0;
@@ -33,6 +35,10 @@ class SmartWaveIntel {
     coverage = 0;
     uncovered = 0;
     distanceToDefend = 0;
+    unengaged = false;
+    allyCountInLane = 0;
+    allyBlockersFromSpawn = 0;
+    firstEnemyOnCleanLane = false;
     hasStrugglingAlly = false;
     threatScore = 0;
 
@@ -45,6 +51,10 @@ class SmartWaveIntel {
         this.coverage = 0;
         this.uncovered = 0;
         this.distanceToDefend = 0;
+        this.unengaged = false;
+        this.allyCountInLane = 0;
+        this.allyBlockersFromSpawn = 0;
+        this.firstEnemyOnCleanLane = false;
         this.hasStrugglingAlly = false;
         this.threatScore = 0;
     }
@@ -96,6 +106,13 @@ export class SmartArmyBrain extends Component {
     @property
     aggressiveForwardChance = 0.25;
 
+    @property({
+        min: 0,
+        max: 1,
+        tooltip: 'Chance to immediately counter a newly spawned enemy wave after min spawn interval has elapsed. Higher AI can react faster without waiting for max spawn interval.',
+    })
+    fastReactCounterChance = 0.0;
+
     @property
     spawnOpeningWaveIfNoEnemyWave = true;
 
@@ -118,6 +135,11 @@ export class SmartArmyBrain extends Component {
 
     start() {
         this.randomizeNextInterval();
+        this.registerFastReactListener();
+    }
+
+    onDestroy() {
+        this.unregisterFastReactListener();
     }
 
     update(deltaTime: number) {
@@ -145,6 +167,91 @@ export class SmartArmyBrain extends Component {
         this.timer = 0;
         this.randomizeNextInterval();
         this.thinkAndSpawn();
+    }
+
+    private registerFastReactListener() {
+        if (!this.gameManager) return;
+
+        this.gameManager.node.on(
+            BattleWaveSpawnedEvent,
+            this.onBattleWaveSpawned,
+            this
+        );
+    }
+
+    private unregisterFastReactListener() {
+        if (!this.gameManager) return;
+
+        this.gameManager.node.off(
+            BattleWaveSpawnedEvent,
+            this.onBattleWaveSpawned,
+            this
+        );
+    }
+
+    private onBattleWaveSpawned(
+        wave: BattleWave | null
+    ) {
+        if (!wave) return;
+        if (!this.gameManager) return;
+        if (wave.team === this.team) return;
+        if (!this.isValidWave(wave)) return;
+
+        if (
+            this.runOnlyWhenGameManagerAutoSpawnOff &&
+            this.gameManager.enableAutoSpawn
+        ) {
+            return;
+        }
+
+        if (
+            Math.random() >
+            this.clamp01(this.fastReactCounterChance)
+        ) {
+            return;
+        }
+
+        if (!this.hasReachedMinSpawnInterval()) {
+            return;
+        }
+
+        const aliveWaveCount =
+            this.getAliveWaveCount(this.team);
+
+        this.refreshMaxAliveWaveReached(aliveWaveCount);
+
+        if (!this.canSpawnMoreWave(aliveWaveCount)) {
+            this.debugLog('Fast react skip: max alive waves reached.');
+            return;
+        }
+
+        this.collectAffordableEntries();
+
+        if (this.affordableEntries.length <= 0) {
+            this.debugLog('Fast react skip: no affordable entries.');
+            return;
+        }
+
+        this.rebuildIntel();
+
+        const targetIntel =
+            this.findIntelForWave(wave);
+
+        if (!this.isCounterCandidate(targetIntel)) {
+            this.debugLog('Fast react skip: spawned wave has no reachable counter.');
+            return;
+        }
+
+        if (!this.spawnCounter(targetIntel!)) {
+            return;
+        }
+
+        this.stateLog(
+            `FAST_REACT enemyWave=${wave.id}`
+        );
+
+        this.timer = 0;
+        this.randomizeNextInterval();
     }
 
     private thinkAndSpawn() {
@@ -287,17 +394,57 @@ export class SmartArmyBrain extends Component {
                 intel.centerZ
             );
 
+        intel.unengaged =
+            !wave.hasEngaged();
+
+        const lane =
+            this.laneIntel[laneId];
+
+        intel.allyCountInLane =
+            lane ? lane.allyCount : 0;
+
+        intel.allyBlockersFromSpawn =
+            this.countAllyBlockersFromSpawnToTarget(
+                wave,
+                laneId,
+                intel.centerZ
+            );
+
+        intel.firstEnemyOnCleanLane =
+            this.isFirstEnemyOnCleanLane(
+                wave,
+                laneId,
+                intel.centerZ
+            );
+
         intel.hasStrugglingAlly =
             this.hasStrugglingAllyNearTarget(intel);
 
         const distanceScore =
             Math.max(0, 120 - intel.distanceToDefend);
+        const unengagedHeroLineScore =
+            intel.unengaged
+                ? 10000000 + distanceScore * 10000
+                : 0;
+        const clearLaneScore =
+            intel.allyCountInLane <= 0 &&
+            intel.allyBlockersFromSpawn <= 0
+                ? 200000
+                : 0;
+        const oneBlockerScore =
+            intel.allyCountInLane > 0 &&
+            intel.allyBlockersFromSpawn === 1
+                ? 100000
+                : 0;
         const underCounteredScore =
             intel.uncovered > 0 ? intel.uncovered * 120 : 0;
         const failedCounterScore =
             intel.hasStrugglingAlly ? 80 : 0;
 
         intel.threatScore =
+            unengagedHeroLineScore +
+            clearLaneScore +
+            oneBlockerScore +
             underCounteredScore +
             failedCounterScore +
             intel.aliveRatio * 45 +
@@ -323,12 +470,40 @@ export class SmartArmyBrain extends Component {
         return best;
     }
 
+    private findIntelForWave(
+        wave: BattleWave
+    ): SmartWaveIntel | null {
+        for (let i = 0; i < this.activeEnemyIntelCount; i++) {
+            const intel = this.enemyIntel[i];
+
+            if (intel.wave === wave) {
+                return intel;
+            }
+        }
+
+        return null;
+    }
+
     private isCounterCandidate(
         intel: SmartWaveIntel | null
     ) {
         if (!intel || !intel.wave) return false;
         if (!this.isValidWave(intel.wave)) return false;
         if (intel.aliveRatio < this.ignoreNearlyDeadWaveRatio) {
+            return false;
+        }
+
+        if (
+            intel.uncovered <= 0 &&
+            !intel.hasStrugglingAlly
+        ) {
+            return false;
+        }
+
+        if (
+            intel.allyBlockersFromSpawn <= 0 &&
+            !intel.firstEnemyOnCleanLane
+        ) {
             return false;
         }
 
@@ -355,13 +530,18 @@ export class SmartArmyBrain extends Component {
             this.chooseCounterLane(
                 intel
             );
+        const aggressiveForward =
+            this.shouldSpawnCounterAggressiveForward(
+                intel,
+                laneId
+            );
 
         const spawned =
             this.gameManager.spawnWaveByEntry(
                 this.team,
                 entry,
                 laneId,
-                this.shouldSpawnAggressiveForward()
+                aggressiveForward
             );
 
         if (!spawned) return false;
@@ -388,11 +568,36 @@ export class SmartArmyBrain extends Component {
             `target=${unitTypeToName(intel.wave.unitType)} ` +
             `spawn=${entry.name} lane=${laneId} targetLane=${intel.laneId} ` +
             `coverage=${intel.coverage.toFixed(2)} ` +
+            `unengaged=${intel.unengaged} ` +
+            `allyLane=${intel.allyCountInLane} ` +
+            `blockers=${intel.allyBlockersFromSpawn} ` +
+            `firstClean=${intel.firstEnemyOnCleanLane} ` +
             `struggling=${intel.hasStrugglingAlly} ` +
-            `aggressive=${this.shouldSpawnAggressiveForward()}`
+            `score=${intel.threatScore.toFixed(1)} ` +
+            `aggressive=${aggressiveForward}`
         );
 
         return true;
+    }
+
+    private shouldSpawnCounterAggressiveForward(
+        intel: SmartWaveIntel,
+        spawnLaneId: number
+    ) {
+        if (spawnLaneId === intel.laneId) {
+            if (intel.allyBlockersFromSpawn > 0) {
+                return true;
+            }
+
+            if (
+                intel.allyCountInLane <= 0 &&
+                intel.allyBlockersFromSpawn <= 0
+            ) {
+                return true;
+            }
+        }
+
+        return this.shouldSpawnAggressiveForward();
     }
 
     private chooseEntryForTarget(
@@ -630,6 +835,100 @@ export class SmartArmyBrain extends Component {
         return false;
     }
 
+    private countAllyBlockersFromSpawnToTarget(
+        targetWave: BattleWave,
+        laneId: number,
+        targetZ: number
+    ) {
+        if (!this.gameManager) return 0;
+
+        const waves =
+            this.gameManager.waves;
+        const spawnZ =
+            this.team === 0
+                ? this.gameManager.teamASpawnZ
+                : this.gameManager.teamBSpawnZ;
+        const minZ =
+            Math.min(spawnZ, targetZ);
+        const maxZ =
+            Math.max(spawnZ, targetZ);
+
+        let blockers = 0;
+
+        for (let i = 0; i < waves.length; i++) {
+            const wave = waves[i];
+
+            if (!this.isValidWave(wave)) continue;
+            if (wave === targetWave) continue;
+            if (wave!.team !== this.team) continue;
+            if (wave!.laneId < 0) continue;
+            if (
+                this.gameManager.clampLaneId(wave!.laneId) !==
+                laneId
+            ) {
+                continue;
+            }
+
+            const centerZ =
+                this.getWaveCenterZ(wave!);
+
+            if (centerZ < minZ || centerZ > maxZ) {
+                continue;
+            }
+
+            blockers++;
+        }
+
+        return blockers;
+    }
+
+    private isFirstEnemyOnCleanLane(
+        targetWave: BattleWave,
+        laneId: number,
+        targetZ: number
+    ) {
+        if (!this.gameManager) return true;
+
+        const waves =
+            this.gameManager.waves;
+        const spawnZ =
+            this.team === 0
+                ? this.gameManager.teamASpawnZ
+                : this.gameManager.teamBSpawnZ;
+        const minZ =
+            Math.min(spawnZ, targetZ);
+        const maxZ =
+            Math.max(spawnZ, targetZ);
+        const enemyTeam =
+            this.team === 0 ? 1 : 0;
+
+        for (let i = 0; i < waves.length; i++) {
+            const wave = waves[i];
+
+            if (!this.isValidWave(wave)) continue;
+            if (wave === targetWave) continue;
+            if (wave!.team !== enemyTeam) continue;
+            if (wave!.laneId < 0) continue;
+            if (
+                this.gameManager.clampLaneId(wave!.laneId) !==
+                laneId
+            ) {
+                continue;
+            }
+
+            const centerZ =
+                this.getWaveCenterZ(wave!);
+
+            if (centerZ < minZ || centerZ > maxZ) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     private getWaveCenter(
         wave: BattleWave,
         intel: SmartWaveIntel
@@ -660,6 +959,28 @@ export class SmartArmyBrain extends Component {
 
         intel.centerX = sumX / count;
         intel.centerZ = sumZ / count;
+    }
+
+    private getWaveCenterZ(wave: BattleWave) {
+        let count = 0;
+        let sumZ = 0;
+
+        for (let i = 0; i < wave.units.length; i++) {
+            const unit = wave.units[i];
+
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.agent) continue;
+            if (!unit.props) continue;
+            if (unit.props.isDead()) continue;
+
+            count++;
+            sumZ += unit.agent.pos.z;
+        }
+
+        if (count <= 0) return 0;
+
+        return sumZ / count;
     }
 
     private getDistanceToDefendPoint(
@@ -854,6 +1175,14 @@ export class SmartArmyBrain extends Component {
 
         this.nextInterval =
             min + Math.random() * (max - min);
+    }
+
+    private hasReachedMinSpawnInterval() {
+        return this.timer >=
+            Math.max(
+                0.1,
+                this.minSpawnInterval
+            );
     }
 
     private stateLog(message: string) {

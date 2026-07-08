@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-08 by the home Codex.
+Last updated: 2026-07-08 by the office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -79,6 +79,44 @@ Rejected/reverted on 2026-07-08:
 - Unit rotation should remain smooth through `lerpAngle()` as before.
 - Animation FPS LOD was not implemented. The user allowed lower animation FPS but explicitly said not to disable `SkeletalAnimation`. Cocos' safe public path is mainly pause/resume/stop or playback speed; changing speed alters animation timing, and pause plus manual sample is too risky for blend/event/baked animation without a focused experiment.
 
+## Accepted 2026-07-08 Office Changes
+
+These are the accepted current changes from the office session after receiving the home handoff:
+
+- `GameManager` can show the built-in Cocos profiler overlay in preview/build:
+  - Inspector: `showCocosProfilerStats`;
+  - URL query when allowed: `?stats=1`, `?profiler=1`, or `?showStats=1`;
+  - `?stats=0` / equivalent false values hide it.
+- `SmartArmyBrain` target priority was strengthened for counter-focused gameplay:
+  - highest priority is an enemy wave that is not yet engaged / not yet in combat and is closest to own hero/spawn line;
+  - next priority is an enemy in a clean same-lane path with no ally blockers;
+  - next priority is an enemy whose same-lane path has exactly one ally blocker;
+  - existing counter coverage, alive ratio, distance, and struggling-ally checks still contribute after those priorities.
+- `SmartArmyBrain.fastReactCounterChance` is available:
+  - listens for newly spawned enemy waves;
+  - only runs after `minSpawnInterval` has elapsed and the chance roll passes;
+  - respects max alive wave limit and affordability;
+  - only reacts to the newly spawned enemy wave, not any arbitrary older target;
+  - if it spawns, it resets the normal timer/random interval to avoid immediate double-spawn pressure.
+- Counter anti-duplication/reachability rules:
+  - do not counter a nearly-dead wave;
+  - do not spawn another real counter into an already-covered target unless same-lane ally pressure is visibly failing;
+  - on a clean lane, only the first enemy from spawn/hero-line to target is a valid counter target.
+- Counter aggressive-forward rule:
+  - if SmartArmyBrain chooses to counter on the enemy target's lane and the path from spawn to that target has ally blockers, the counter wave spawns with `aggressiveForward = true`;
+  - if that target lane is clean with no ally blockers, same-lane counter also spawns aggressive;
+  - other cases fall back to the existing `shouldSpawnAggressiveForward()` / opening-phase behavior.
+- Wave banner transfer was changed:
+  - when the representative holder dies/despawns, the banner no longer keeps world position and tween-flies to the new holder;
+  - it detaches from the old holder, scales down to `0`, reparents to the new holder at local `(0,0,0)`, then scales back to its cached base scale;
+  - `BattleWave` guards transfer-in-progress so the periodic banner refresh does not reparent/tween over the transfer.
+
+Rejected/reverted in the office session:
+
+- Lane-biased ally overtake was tested and removed.
+- Do not assume left/right lane overtake is forced to one side. Current RVO overtake behavior is back to the previous local-clearance/side-lock/seed logic for all lanes.
+- No `overtakePreferredSide` field or worker-buffer stride change should exist in the accepted source.
+
 ## Current Unit / Wave Flow
 
 ### Forward
@@ -147,17 +185,29 @@ Rejected/reverted on 2026-07-08:
 - `SmartArmyBrain` decides spawn strategy only. It does not directly control unit movement, combat, forward/freehunt, lane voting, workers, RVO, banners, or healthbars after spawn.
 - It runs on a spawn interval.
 - It builds lane intel and enemy-wave intel from current alive waves.
-- It scores threats using counter coverage, alive ratio, distance to own hero/spawn, engagement, and whether same-lane ally counters look like they are failing.
+- It scores threats using counter coverage, alive ratio, distance to own hero/spawn, engagement/free status, clean-path priority, ally blockers from spawn to target, and whether same-lane ally counters look like they are failing.
 - It prefers uncovered enemy waves with real counters from `CounterSettings`.
 - It may still target a covered wave if that wave is near hero or current counter pressure is failing.
+- Snapshot/intel rebuild is not the same thing as deciding to spawn:
+  - normal AI only decides/spawns when its timer reaches `nextInterval`;
+  - fast react only decides/spawns when a new enemy wave event arrives, `minSpawnInterval` is satisfied, the chance roll passes, and all spawn gates pass;
+  - rebuilding intel is just "looking at the board", not automatically "pressing spawn".
 - `decisionAccuracy` is the main combined knob for counter correctness and lane correctness:
   - `1` means best real counter and best reachable lane;
   - lower values allow more random unit/lane choices.
+- `fastReactCounterChance` is a separate reaction-speed knob:
+  - higher values make the AI more likely to answer a newly spawned enemy immediately after min interval;
+  - it should not ignore max-wave or affordability gates.
 - Opening aggressive rule:
   - SmartArmyBrain tracks whether its team has ever reached `maxAliveWaves`;
   - before first reaching max alive waves, counter/opening spawns use aggressive forward;
   - after that, counter/opening spawns use normal forward;
   - if max-alive limit is off, opening aggressive phase is considered already complete.
+- Counter aggressive-forward detail:
+  - if the chosen counter lane is the target enemy's lane and at least one ally wave blocks the route from spawn to target, the spawn is aggressive forward;
+  - if the chosen counter lane is the target enemy's lane and the lane is fully clean (`allyCountInLane <= 0` and `allyBlockersFromSpawn <= 0`), the spawn is also aggressive forward;
+  - if there are allies in the same lane but none between spawn and target, the spawn falls back to normal `shouldSpawnAggressiveForward()` opening-phase behavior;
+  - this is intentional so counters spawned into a lane with ally traffic can still push through instead of behaving like a slow normal-forward support wave.
 - Counter coverage is not a hard "do not spawn" gate. Assigned counter count is historical and does not decrease when counters die, get stuck, or fail.
 - Avoid reintroducing separate "max blockers", "max lane traffic", or "deferred target cooldown" knobs unless the user explicitly asks.
 
@@ -211,6 +261,12 @@ Banner holder/lifecycle:
 - `BattleWave` owns one representative holder and one optional wave banner node.
 - Representative holder is picked from alive units near wave centroid and kept stable while alive/valid.
 - Holder death/despawn is event-assisted so the banner should not stay on pooled inactive units.
+- Holder transfer animation is scale-based, not flight-based:
+  - old holder invalid -> banner detaches and keeps current world position;
+  - banner scales down to zero;
+  - banner parents to the new holder at local `(0,0,0)`;
+  - banner scales back up to cached base scale.
+- Avoid bringing back world-position-to-local-position tweening for holder transfer; it makes banners fly across the battlefield when holders are far apart.
 - Banner node is pooled by `GameManager`.
 - `waveBannerRefreshIntervalFrames` defaults to `12` and only throttles the safety sweep over `wave.refreshWaveBanner()`.
 - Camera-driven banner visibility is no longer checked every frame:
@@ -254,6 +310,7 @@ Why the current approach works:
   - considers same-team blockers ahead when blocked/locked/not-forward/too slow for several steps;
   - uses local clearance from neighbor list to choose side;
   - uses side locks/hold frames to reduce jitter.
+- Ally overtake currently may choose either side on any lane. The attempted lane-biased left/right-only overtake was reverted because it did not feel good enough in testing.
 - Worker and fallback logic must stay mirrored:
   - `assets/scripts/rvo/RVO.ts`;
   - `assets/scripts/rvo/RVOWorkerSimulator.ts` embedded worker source.
