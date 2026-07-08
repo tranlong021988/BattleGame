@@ -1902,6 +1902,8 @@
     },
     "useWorkerRVO": true,
     "targetFrameRate": 60,
+    "showCocosProfilerStats": false,
+    "allowProfilerStatsQueryParam": true,
     "battleMinX": -8,
     "battleMaxX": 8,
     "battleMinZ": -21,

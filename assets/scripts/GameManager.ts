@@ -11,6 +11,7 @@ import {
     MeshRenderer,
     Material,
     game,
+    profiler,
 } from 'cc';
 
 import { Unit } from './Unit';
@@ -66,6 +67,16 @@ export class GameManager extends Component {
         tooltip: 'Target frame rate for mobile performance tests. Use 30, 45, or 60. Set 0 or lower to keep the engine default.',
     })
     targetFrameRate = 60;
+
+    @property({
+        tooltip: 'Show the built-in Cocos profiler overlay in build/preview. Keep off for normal release tests unless you need on-device FPS/drawcall stats.',
+    })
+    showCocosProfilerStats = false;
+
+    @property({
+        tooltip: 'Allow URL query params ?stats=1 or ?profiler=1 to show the Cocos profiler overlay in browser builds.',
+    })
+    allowProfilerStatsQueryParam = true;
 
     teamAHero: Unit | null = null;
     teamBHero: Unit | null = null;
@@ -263,6 +274,7 @@ export class GameManager extends Component {
     start() {
         GameManager.instance = this;
         this.applyTargetFrameRate();
+        this.applyProfilerStats();
 
         this.teamA.length = 0;
         this.teamB.length = 0;
@@ -428,6 +440,55 @@ export class GameManager extends Component {
         if (fps <= 0) return;
 
         game.frameRate = fps;
+    }
+
+    private applyProfilerStats() {
+        const queryState =
+            this.getProfilerStatsQueryState();
+
+        if (this.showCocosProfilerStats || queryState === true) {
+            profiler.showStats();
+            return;
+        }
+
+        if (queryState === false) {
+            profiler.hideStats();
+        }
+    }
+
+    private getProfilerStatsQueryState(): boolean | null {
+        if (!this.allowProfilerStatsQueryParam) return null;
+        if (typeof window === 'undefined') return null;
+
+        const params =
+            new URLSearchParams(window.location.search);
+        const value =
+            params.get('stats') ??
+            params.get('profiler') ??
+            params.get('showStats');
+
+        if (value === null) return null;
+
+        const normalized =
+            value.trim().toLowerCase();
+
+        if (
+            normalized === '1' ||
+            normalized === 'true' ||
+            normalized === 'on'
+        ) {
+            return true;
+        }
+
+        if (
+            normalized === '0' ||
+            normalized === 'false' ||
+            normalized === 'off'
+        ) {
+            return false;
+        }
+
+        return null;
     }
 
     update(deltaTime: number) {
