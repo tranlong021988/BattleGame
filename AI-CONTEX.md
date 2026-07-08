@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-08 by the office Codex.
+Last updated: 2026-07-09 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -70,7 +70,7 @@ These changes were made after receiving the 2026-07-07 office handoff:
   - `getVisualEulerY()` reads the cache after it is initialized;
   - `setVisualYaw()` updates the cache when applying rotation.
 - The yaw cache reduced `getVisualEulerY()` profile cost in the slowdown trace, but did not significantly improve total frame time because total `Unit` cost is small compared with full frame cost.
-- Unit counts in `assets/Test.scene` were temporarily halved from `10` to `5` for all 10 `UnitPrefabEntry` records to test scaling, then restored to `10`. Current accepted database unit count is `10` for all troop entries.
+- Unit counts in `assets/Test.scene` were temporarily halved for a scaling test. Current serialized state is `5` for both `light_archer` entries and `10` for the other eight troop entries. Trust the scene/database Inspector if the user retunes these values later.
 
 Rejected/reverted on 2026-07-08:
 
@@ -87,35 +87,84 @@ These are the accepted current changes from the office session after receiving t
   - Inspector: `showCocosProfilerStats`;
   - URL query when allowed: `?stats=1`, `?profiler=1`, or `?showStats=1`;
   - `?stats=0` / equivalent false values hide it.
-- `SmartArmyBrain` target priority was strengthened for counter-focused gameplay:
-  - highest priority is an enemy wave that is not yet engaged / not yet in combat and is closest to own hero/spawn line;
-  - next priority is an enemy in a clean same-lane path with no ally blockers;
-  - next priority is an enemy whose same-lane path has exactly one ally blocker;
-  - existing counter coverage, alive ratio, distance, and struggling-ally checks still contribute after those priorities.
+- The office SmartArmyBrain priority/coverage implementation was superseded by the accepted 2026-07-09 home changes below.
 - `SmartArmyBrain.fastReactCounterChance` is available:
   - listens for newly spawned enemy waves;
   - only runs after `minSpawnInterval` has elapsed and the chance roll passes;
   - respects max alive wave limit and affordability;
   - only reacts to the newly spawned enemy wave, not any arbitrary older target;
   - if it spawns, it resets the normal timer/random interval to avoid immediate double-spawn pressure.
-- Counter anti-duplication/reachability rules:
-  - do not counter a nearly-dead wave;
-  - do not spawn another real counter into an already-covered target unless same-lane ally pressure is visibly failing;
-  - on a clean lane, only the first enemy from spawn/hero-line to target is a valid counter target.
 - Counter aggressive-forward rule:
   - if SmartArmyBrain chooses to counter on the enemy target's lane and the path from spawn to that target has ally blockers, the counter wave spawns with `aggressiveForward = true`;
   - if that target lane is clean with no ally blockers, same-lane counter also spawns aggressive;
   - other cases fall back to the existing `shouldSpawnAggressiveForward()` / opening-phase behavior.
-- Wave banner transfer was changed:
-  - when the representative holder dies/despawns, the banner no longer keeps world position and tween-flies to the new holder;
-  - it detaches from the old holder, scales down to `0`, reparents to the new holder at local `(0,0,0)`, then scales back to its cached base scale;
-  - `BattleWave` guards transfer-in-progress so the periodic banner refresh does not reparent/tween over the transfer.
+- The office scale-tween banner transfer was superseded by the accepted immediate transfer on 2026-07-09.
 
 Rejected/reverted in the office session:
 
 - Lane-biased ally overtake was tested and removed.
 - Do not assume left/right lane overtake is forced to one side. Current RVO overtake behavior is back to the previous local-clearance/side-lock/seed logic for all lanes.
 - No `overtakePreferredSide` field or worker-buffer stride change should exist in the accepted source.
+
+## Accepted 2026-07-09 Home Changes
+
+### SmartArmyBrain Snapshot And Coverage
+
+- Removed historical counter assignment state from `BattleWave`:
+  - no `assignedCounterCount`;
+  - no `addCounterAssignment()`;
+  - no `getCounterCoverageRatio()` / `isCounterCovered()`.
+- SmartArmyBrain now calculates counter coverage from the current battlefield only when `rebuildIntel()` runs. This does not add a per-frame scan.
+- A same-lane ally wave contributes live coverage only when it is a real counter type and currently relevant to that enemy:
+  - if units already have targets, only units targeting that specific enemy wave count;
+  - if the wave has no target, its alive units count only toward the first enemy wave ahead;
+  - if it is chasing another enemy, it does not cover this target.
+- Dead, depleted, redirected, or lane-shifted counters stop contributing automatically on the next intel rebuild.
+- A struggling counter means a relevant real-counter wave at or below `rescueAllyAliveRatio`:
+  - either it has units targeting that enemy;
+  - or it has no target and that enemy is the first one ahead.
+
+### SmartArmyBrain Reachability And Priority
+
+- Counter target eligibility is front-to-back per lane:
+  - only the first enemy wave on the path from this team's spawn can be selected for a new direct counter;
+  - this applies even when ally waves already occupy or block the lane;
+  - a rear enemy becomes eligible after the front enemy dies, leaves the lane, or is otherwise no longer first.
+- This prevents an invalid visual/tactical decision such as spawning cavalry for a rear archer while an enemy spear wave physically stands in front and will intercept the cavalry first.
+- Among eligible front enemies, proximity to this team's hero/defend point is the primary threat weight.
+- Unengaged state, clean path, one-blocker path, live coverage, alive ratio, and struggling-counter state are secondary weights.
+- The front-enemy eligibility guard applies to both normal interval decisions and `fastReactCounterChance`.
+
+### SmartArmyBrain Anti-Over-Counter
+
+- Reinforcement is size-aware and uses the existing live snapshot:
+  - zero live coverage always permits the first real counter wave, including against a small enemy wave;
+  - after coverage exists, another full wave is eligible only if adding its `unitCount` moves projected coverage closer to `attackCounterCoverageRatio`;
+  - a relevant counter below `rescueAllyAliveRatio` may still receive emergency reinforcement.
+- This guard runs before `decisionAccuracy` randomness. Low-accuracy AI cannot repeatedly use an already-covered enemy as a spawn trigger.
+- Do not simplify this back to `coverage < attackCounterCoverageRatio`: a tiny deficit must not spawn an entire extra wave when the resulting overshoot is worse than waiting.
+- `decisionAccuracy` still intentionally controls unit/lane correctness after a counter decision is valid. In the current `assets/Test.scene`, SmartArmyBrainB is serialized with `decisionAccuracy = 0`, while SmartArmyBrainA is `1`; set the tested AI to `1` when validating exact counter choice.
+
+### SmartArmyBrain Opening Max And LevelSettings
+
+- SmartArmyBrain now handles its own `battle-wave-spawned` event to update `hasReachedMaxAliveWavesOnce` immediately.
+- This prevents missing the opening-aggressive cutoff when the max-th wave appears but another wave dies before the next AI interval.
+- Enemy-wave fast react still obeys minimum interval, chance, max-alive-wave, affordability, reachability, and coverage gates.
+- `LevelSettings` now supports optional min/max scaling for `fastReactCounterChance`; the default maximum is `1`.
+
+### Immediate Wave Banner Transfer
+
+- Banner holder transfer no longer uses any tween:
+  - the existing banner reparents immediately to the replacement representative holder;
+  - local position is reset to `(0,0,0)`;
+  - cached base scale is restored in the same update.
+- Removed obsolete transfer machinery:
+  - `Tween` / `tween` imports from `BattleWave`;
+  - `waveBannerTransferTarget`;
+  - `waveBannerTweenDuration` from `BattleWave`, `GameManager`, and `assets/Test.scene`;
+  - scale-out/scale-in and detached transfer state.
+- Holder selection, holder-death notification, banner pooling, icon/material refresh, healthbar refresh, and camera visibility behavior are unchanged.
+- Do not reintroduce flight or scale tween unless the user explicitly asks. The accepted visual is immediate teleport to the new holder.
 
 ## Current Unit / Wave Flow
 
@@ -185,9 +234,14 @@ Rejected/reverted in the office session:
 - `SmartArmyBrain` decides spawn strategy only. It does not directly control unit movement, combat, forward/freehunt, lane voting, workers, RVO, banners, or healthbars after spawn.
 - It runs on a spawn interval.
 - It builds lane intel and enemy-wave intel from current alive waves.
+- Counter coverage is live snapshot data, not historical assignment data. Do not restore `assignedCounterCount`, `addCounterAssignment()`, or `getCounterCoverageRatio()` on `BattleWave`.
+- One counter wave cannot cover every enemy lined up in the same lane:
+  - if its units have targets, only units targeting that specific enemy count;
+  - if it has no targets, it covers only the first enemy ahead.
 - It scores threats using counter coverage, alive ratio, distance to own hero/spawn, engagement/free status, clean-path priority, ally blockers from spawn to target, and whether same-lane ally counters look like they are failing.
 - It prefers uncovered enemy waves with real counters from `CounterSettings`.
-- It may still target a covered wave if that wave is near hero or current counter pressure is failing.
+- Target reachability is resolved before threat score: a rear wave cannot win priority while another enemy wave stands between it and this team's spawn on the same lane.
+- A fully covered wave is not a new counter candidate unless its relevant counter pressure is visibly failing.
 - Snapshot/intel rebuild is not the same thing as deciding to spawn:
   - normal AI only decides/spawns when its timer reaches `nextInterval`;
   - fast react only decides/spawns when a new enemy wave event arrives, `minSpawnInterval` is satisfied, the chance roll passes, and all spawn gates pass;
@@ -208,7 +262,8 @@ Rejected/reverted in the office session:
   - if the chosen counter lane is the target enemy's lane and the lane is fully clean (`allyCountInLane <= 0` and `allyBlockersFromSpawn <= 0`), the spawn is also aggressive forward;
   - if there are allies in the same lane but none between spawn and target, the spawn falls back to normal `shouldSpawnAggressiveForward()` opening-phase behavior;
   - this is intentional so counters spawned into a lane with ally traffic can still push through instead of behaving like a slow normal-forward support wave.
-- Counter coverage is not a hard "do not spawn" gate. Assigned counter count is historical and does not decrease when counters die, get stuck, or fail.
+- Counter coverage remains a candidate gate, but it is recalculated from living/currently relevant counters at every intel rebuild. A dead, redirected, or no-longer-relevant counter cannot permanently suppress reinforcement.
+- Do not replace the size-aware reinforcement check with a simple `coverage < required` test. A tiny coverage deficit must not spawn an entire extra wave when that would overshoot the requested ratio more than waiting.
 - Avoid reintroducing separate "max blockers", "max lane traffic", or "deferred target cooldown" knobs unless the user explicitly asks.
 
 ## Player Controller / Bottom UI
@@ -261,12 +316,12 @@ Banner holder/lifecycle:
 - `BattleWave` owns one representative holder and one optional wave banner node.
 - Representative holder is picked from alive units near wave centroid and kept stable while alive/valid.
 - Holder death/despawn is event-assisted so the banner should not stay on pooled inactive units.
-- Holder transfer animation is scale-based, not flight-based:
-  - old holder invalid -> banner detaches and keeps current world position;
-  - banner scales down to zero;
-  - banner parents to the new holder at local `(0,0,0)`;
-  - banner scales back up to cached base scale.
-- Avoid bringing back world-position-to-local-position tweening for holder transfer; it makes banners fly across the battlefield when holders are far apart.
+- Holder transfer is immediate:
+  - old holder invalid -> select the replacement representative;
+  - reparent the existing banner directly to the replacement holder;
+  - reset local position to `(0,0,0)` and restore cached base scale in the same update.
+- There is no flight tween, scale tween, detached transfer phase, or transfer-in-progress guard.
+- `waveBannerTweenDuration` is obsolete and should not be restored to `BattleWave`, `GameManager`, or scene serialization.
 - Banner node is pooled by `GameManager`.
 - `waveBannerRefreshIntervalFrames` defaults to `12` and only throttles the safety sweep over `wave.refreshWaveBanner()`.
 - Camera-driven banner visibility is no longer checked every frame:
@@ -434,7 +489,8 @@ Recent trace interpretation to preserve:
   - SmartArmyBrain decision accuracy;
   - spawn intervals;
   - max alive waves;
-  - aggressive-forward chance.
+  - aggressive-forward chance;
+  - fast-react counter chance.
 - Current `assets/Test.scene` previously serialized the LevelSettings node inactive/component disabled; re-check in Cocos before assuming.
 
 ## VAT / Spector

@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _crd, ccclass, property, SmartArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleWaveSpawnedEvent, SmartArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -41,9 +41,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
     }, function (_unresolved_3) {
-      CounterSettings = _unresolved_3.CounterSettings;
+      BattleWave = _unresolved_3.BattleWave;
     }, function (_unresolved_4) {
-      unitTypeToName = _unresolved_4.unitTypeToName;
+      CounterSettings = _unresolved_4.CounterSettings;
+    }, function (_unresolved_5) {
+      unitTypeToName = _unresolved_5.unitTypeToName;
     }],
     execute: function () {
       _crd = true;
@@ -56,6 +58,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         ccclass,
         property
       } = _decorator);
+      BattleWaveSpawnedEvent = 'battle-wave-spawned';
       SmartLaneIntel = class SmartLaneIntel {
         constructor() {
           this.laneId = 0;
@@ -86,6 +89,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.coverage = 0;
           this.uncovered = 0;
           this.distanceToDefend = 0;
+          this.unengaged = false;
+          this.allyCountInLane = 0;
+          this.allyBlockersFromSpawn = 0;
+          this.firstEnemyFromSpawn = false;
           this.hasStrugglingAlly = false;
           this.threatScore = 0;
         }
@@ -99,6 +106,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.coverage = 0;
           this.uncovered = 0;
           this.distanceToDefend = 0;
+          this.unengaged = false;
+          this.allyCountInLane = 0;
+          this.allyBlockersFromSpawn = 0;
+          this.firstEnemyFromSpawn = false;
           this.hasStrugglingAlly = false;
           this.threatScore = 0;
         }
@@ -111,6 +122,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 0,
         max: 1,
         tooltip: '1 = best counter and best reachable lane. 0 = more random unit/lane choices.'
+      }), _dec4 = property({
+        min: 0,
+        max: 1,
+        tooltip: 'Chance to immediately counter a newly spawned enemy wave after min spawn interval has elapsed. Higher AI can react faster without waiting for max spawn interval.'
       }), _dec(_class3 = (_class4 = class SmartArmyBrain extends Component {
         constructor() {
           super(...arguments);
@@ -141,11 +156,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "aggressiveForwardChance", _descriptor13, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor14, this);
+          _initializerDefineProperty(this, "fastReactCounterChance", _descriptor14, this);
 
-          _initializerDefineProperty(this, "enableStateLog", _descriptor15, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor15, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor16, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor16, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor17, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -160,6 +177,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         start() {
           this.randomizeNextInterval();
+          this.registerFastReactListener();
+        }
+
+        onDestroy() {
+          this.unregisterFastReactListener();
         }
 
         update(deltaTime) {
@@ -180,6 +202,71 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.timer = 0;
           this.randomizeNextInterval();
           this.thinkAndSpawn();
+        }
+
+        registerFastReactListener() {
+          if (!this.gameManager) return;
+          this.gameManager.node.on(BattleWaveSpawnedEvent, this.onBattleWaveSpawned, this);
+        }
+
+        unregisterFastReactListener() {
+          if (!this.gameManager) return;
+          this.gameManager.node.off(BattleWaveSpawnedEvent, this.onBattleWaveSpawned, this);
+        }
+
+        onBattleWaveSpawned(wave) {
+          if (!wave) return;
+          if (!this.gameManager) return;
+
+          if (wave.team === this.team) {
+            this.refreshMaxAliveWaveReached();
+            return;
+          }
+
+          if (!this.isValidWave(wave)) return;
+
+          if (this.runOnlyWhenGameManagerAutoSpawnOff && this.gameManager.enableAutoSpawn) {
+            return;
+          }
+
+          if (Math.random() > this.clamp01(this.fastReactCounterChance)) {
+            return;
+          }
+
+          if (!this.hasReachedMinSpawnInterval()) {
+            return;
+          }
+
+          var aliveWaveCount = this.getAliveWaveCount(this.team);
+          this.refreshMaxAliveWaveReached(aliveWaveCount);
+
+          if (!this.canSpawnMoreWave(aliveWaveCount)) {
+            this.debugLog('Fast react skip: max alive waves reached.');
+            return;
+          }
+
+          this.collectAffordableEntries();
+
+          if (this.affordableEntries.length <= 0) {
+            this.debugLog('Fast react skip: no affordable entries.');
+            return;
+          }
+
+          this.rebuildIntel();
+          var targetIntel = this.findIntelForWave(wave);
+
+          if (!this.isCounterCandidate(targetIntel)) {
+            this.debugLog('Fast react skip: spawned wave has no reachable counter.');
+            return;
+          }
+
+          if (!this.spawnCounter(targetIntel)) {
+            return;
+          }
+
+          this.stateLog("FAST_REACT enemyWave=" + wave.id);
+          this.timer = 0;
+          this.randomizeNextInterval();
         }
 
         thinkAndSpawn() {
@@ -273,15 +360,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           intel.wave = wave;
           intel.laneId = laneId;
           intel.aliveRatio = wave.getAliveRatio();
-          intel.coverage = wave.getCounterCoverageRatio();
+          this.fillLiveCounterState(intel, wave, laneId);
           intel.uncovered = Math.max(0, this.attackCounterCoverageRatio - intel.coverage);
           this.getWaveCenter(wave, intel);
           intel.distanceToDefend = this.getDistanceToDefendPoint(intel.centerX, intel.centerZ);
-          intel.hasStrugglingAlly = this.hasStrugglingAllyNearTarget(intel);
+          intel.unengaged = !wave.hasEngaged();
+          var lane = this.laneIntel[laneId];
+          intel.allyCountInLane = lane ? lane.allyCount : 0;
+          intel.allyBlockersFromSpawn = this.countAllyBlockersFromSpawnToTarget(wave, laneId, intel.centerZ);
+          intel.firstEnemyFromSpawn = this.isFirstEnemyFromSpawn(wave, laneId, intel.centerZ);
           var distanceScore = Math.max(0, 120 - intel.distanceToDefend);
+          var proximityScore = distanceScore * 1000;
+          var unengagedScore = intel.unengaged ? 100 : 0;
+          var clearLaneScore = intel.allyCountInLane <= 0 && intel.allyBlockersFromSpawn <= 0 ? 20 : 0;
+          var oneBlockerScore = intel.allyCountInLane > 0 && intel.allyBlockersFromSpawn === 1 ? 10 : 0;
           var underCounteredScore = intel.uncovered > 0 ? intel.uncovered * 120 : 0;
           var failedCounterScore = intel.hasStrugglingAlly ? 80 : 0;
-          intel.threatScore = underCounteredScore + failedCounterScore + intel.aliveRatio * 45 + distanceScore + (wave.hasEngaged() ? 20 : 0);
+          intel.threatScore = proximityScore + unengagedScore + clearLaneScore + oneBlockerScore + underCounteredScore + failedCounterScore + intel.aliveRatio * 45 + (wave.hasEngaged() ? 20 : 0);
         }
 
         findBestCounterTarget() {
@@ -301,6 +396,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return best;
         }
 
+        findIntelForWave(wave) {
+          for (var i = 0; i < this.activeEnemyIntelCount; i++) {
+            var intel = this.enemyIntel[i];
+
+            if (intel.wave === wave) {
+              return intel;
+            }
+          }
+
+          return null;
+        }
+
         isCounterCandidate(intel) {
           if (!intel || !intel.wave) return false;
           if (!this.isValidWave(intel.wave)) return false;
@@ -309,29 +416,48 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
-          return !!this.chooseEntryForTarget(intel.wave, true);
+          if (intel.uncovered <= 0 && !intel.hasStrugglingAlly) {
+            return false;
+          }
+
+          if (!intel.firstEnemyFromSpawn) {
+            return false;
+          }
+
+          return this.hasUsefulCounterEntry(intel);
         }
 
         spawnCounter(intel) {
           if (!this.gameManager || !intel.wave) return false;
-          var entry = this.chooseEntryForTarget(intel.wave, false);
+          var entry = this.chooseEntryForTarget(intel);
           if (!entry) return false;
           var laneId = this.chooseCounterLane(intel);
-          var spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, this.shouldSpawnAggressiveForward());
+          var aggressiveForward = this.shouldSpawnCounterAggressiveForward(intel, laneId);
+          var spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, aggressiveForward);
           if (!spawned) return false;
-          var realCounter = this.isRealCounterScore(this.getCounterScore(entry, intel.wave));
-
-          if (realCounter && laneId === intel.laneId) {
-            intel.wave.addCounterAssignment(entry.unitCount);
-          }
-
           this.stateLog("COUNTER wave=" + intel.wave.id + " " + ("target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
             error: Error()
-          }), unitTypeToName) : unitTypeToName)(intel.wave.unitType) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " targetLane=" + intel.laneId + " ") + ("coverage=" + intel.coverage.toFixed(2) + " ") + ("struggling=" + intel.hasStrugglingAlly + " ") + ("aggressive=" + this.shouldSpawnAggressiveForward()));
+          }), unitTypeToName) : unitTypeToName)(intel.wave.unitType) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " targetLane=" + intel.laneId + " ") + ("coverage=" + intel.coverage.toFixed(2) + " ") + ("unengaged=" + intel.unengaged + " ") + ("allyLane=" + intel.allyCountInLane + " ") + ("blockers=" + intel.allyBlockersFromSpawn + " ") + ("firstFromSpawn=" + intel.firstEnemyFromSpawn + " ") + ("struggling=" + intel.hasStrugglingAlly + " ") + ("score=" + intel.threatScore.toFixed(1) + " ") + ("aggressive=" + aggressiveForward));
           return true;
         }
 
-        chooseEntryForTarget(targetWave, exactOnly) {
+        shouldSpawnCounterAggressiveForward(intel, spawnLaneId) {
+          if (spawnLaneId === intel.laneId) {
+            if (intel.allyBlockersFromSpawn > 0) {
+              return true;
+            }
+
+            if (intel.allyCountInLane <= 0 && intel.allyBlockersFromSpawn <= 0) {
+              return true;
+            }
+          }
+
+          return this.shouldSpawnAggressiveForward();
+        }
+
+        chooseEntryForTarget(intel) {
+          if (!intel.wave) return null;
+
           if (this.affordableEntries.length <= 0) {
             return null;
           }
@@ -341,9 +467,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           for (var i = 0; i < this.affordableEntries.length; i++) {
             var entry = this.affordableEntries[i];
-            var score = this.getCounterScore(entry, targetWave);
+            var score = this.getCounterScore(entry, intel.wave);
 
-            if (exactOnly && !this.isRealCounterScore(score)) {
+            if (this.isRealCounterScore(score) && !this.wouldImproveCounterCoverage(intel, entry)) {
               continue;
             }
 
@@ -362,7 +488,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var accurate = Math.random() <= this.getDecisionAccuracy();
 
-          if (!accurate && !exactOnly) {
+          if (!accurate) {
             return this.getRandomAffordableEntry();
           }
 
@@ -469,10 +595,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return bestLane;
         }
 
-        hasStrugglingAllyNearTarget(targetIntel) {
-          if (!this.gameManager) return false;
+        fillLiveCounterState(targetIntel, targetWave, laneId) {
+          targetIntel.coverage = 0;
+          targetIntel.hasStrugglingAlly = false;
+          if (!this.gameManager) return;
           var waves = this.gameManager.waves;
           var threshold = this.clamp01(this.rescueAllyAliveRatio);
+          var targetAlive = targetWave.getAliveCount();
+          var liveCounterUnits = 0;
 
           for (var i = 0; i < waves.length; i++) {
             var wave = waves[i];
@@ -480,16 +610,215 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (wave.team !== this.team) continue;
             if (wave.laneId < 0) continue;
 
-            if (this.gameManager.clampLaneId(wave.laneId) !== targetIntel.laneId) {
+            if (this.gameManager.clampLaneId(wave.laneId) !== laneId) {
               continue;
             }
 
-            if (!wave.hasEngaged()) continue;
-            if (wave.getAliveRatio() > threshold) continue;
-            return true;
+            if (!this.isRealCounterScore(this.getWaveCounterScore(wave, targetWave))) {
+              continue;
+            }
+
+            var targetRelation = this.getWaveTargetRelation(wave, targetWave);
+
+            if (targetRelation < 0) {
+              continue;
+            }
+
+            if (targetRelation > 0) {
+              liveCounterUnits += targetRelation;
+
+              if (wave.getAliveRatio() <= threshold) {
+                targetIntel.hasStrugglingAlly = true;
+              }
+
+              continue;
+            }
+
+            if (!this.isFirstEnemyAheadForAlly(wave, targetWave, laneId)) {
+              continue;
+            }
+
+            liveCounterUnits += wave.getAliveCount();
+
+            if (wave.getAliveRatio() <= threshold) {
+              targetIntel.hasStrugglingAlly = true;
+            }
+          }
+
+          targetIntel.coverage = targetAlive > 0 ? liveCounterUnits / targetAlive : 1;
+        }
+
+        getWaveTargetRelation(allyWave, targetWave) {
+          var directTargetCount = 0;
+          var hasOtherTarget = false;
+
+          for (var i = 0; i < allyWave.units.length; i++) {
+            var unit = allyWave.units[i];
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.agent) continue;
+            if (!unit.props || unit.props.isDead()) continue;
+            var target = unit.getValidEnemyTarget();
+            if (!target) continue;
+
+            if ((_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+              error: Error()
+            }), BattleWave) : BattleWave).getWaveForUnit(target) === targetWave) {
+              directTargetCount++;
+            } else {
+              hasOtherTarget = true;
+            }
+          }
+
+          if (directTargetCount > 0) {
+            return directTargetCount;
+          }
+
+          return hasOtherTarget ? -1 : 0;
+        }
+
+        isFirstEnemyAheadForAlly(allyWave, targetWave, laneId) {
+          if (!this.gameManager) return false;
+          var allyZ = this.getWaveCenterZ(allyWave);
+          var targetZ = this.getWaveCenterZ(targetWave);
+          var forwardSign = this.team === 0 ? 1 : -1;
+          var targetForwardDistance = (targetZ - allyZ) * forwardSign;
+
+          if (targetForwardDistance < 0) {
+            return false;
+          }
+
+          var waves = this.gameManager.waves;
+          var enemyTeam = this.team === 0 ? 1 : 0;
+
+          for (var i = 0; i < waves.length; i++) {
+            var wave = waves[i];
+            if (!this.isValidWave(wave)) continue;
+            if (wave === targetWave) continue;
+            if (wave.team !== enemyTeam) continue;
+            if (wave.laneId < 0) continue;
+
+            if (this.gameManager.clampLaneId(wave.laneId) !== laneId) {
+              continue;
+            }
+
+            var otherDistance = (this.getWaveCenterZ(wave) - allyZ) * forwardSign;
+            if (otherDistance < 0) continue;
+
+            if (otherDistance < targetForwardDistance - 0.0001 || Math.abs(otherDistance - targetForwardDistance) <= 0.0001 && wave.id < targetWave.id) {
+              return false;
+            }
+          }
+
+          return true;
+        }
+
+        getWaveCounterScore(attackerWave, targetWave) {
+          var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          if (!counter) return 1;
+          return counter.getCounterScore(attackerWave.unitType, targetWave.unitType);
+        }
+
+        hasUsefulCounterEntry(intel) {
+          if (!intel.wave) return false;
+
+          for (var i = 0; i < this.affordableEntries.length; i++) {
+            var entry = this.affordableEntries[i];
+            var score = this.getCounterScore(entry, intel.wave);
+
+            if (!this.isRealCounterScore(score)) {
+              continue;
+            }
+
+            if (this.wouldImproveCounterCoverage(intel, entry)) {
+              return true;
+            }
           }
 
           return false;
+        }
+
+        wouldImproveCounterCoverage(intel, entry) {
+          if (!intel.wave) return false;
+          if (intel.hasStrugglingAlly) return true;
+          if (intel.coverage <= 0.0001) return true;
+          var targetAlive = intel.wave.getAliveCount();
+          if (targetAlive <= 0) return false;
+          var requiredCoverage = Math.max(0, this.attackCounterCoverageRatio);
+          var addedCoverage = Math.max(0, Math.floor(entry.unitCount)) / targetAlive;
+          var currentError = Math.abs(requiredCoverage - intel.coverage);
+          var projectedError = Math.abs(requiredCoverage - (intel.coverage + addedCoverage));
+          return projectedError < currentError - 0.0001;
+        }
+
+        countAllyBlockersFromSpawnToTarget(targetWave, laneId, targetZ) {
+          if (!this.gameManager) return 0;
+          var waves = this.gameManager.waves;
+          var spawnZ = this.team === 0 ? this.gameManager.teamASpawnZ : this.gameManager.teamBSpawnZ;
+          var minZ = Math.min(spawnZ, targetZ);
+          var maxZ = Math.max(spawnZ, targetZ);
+          var blockers = 0;
+
+          for (var i = 0; i < waves.length; i++) {
+            var wave = waves[i];
+            if (!this.isValidWave(wave)) continue;
+            if (wave === targetWave) continue;
+            if (wave.team !== this.team) continue;
+            if (wave.laneId < 0) continue;
+
+            if (this.gameManager.clampLaneId(wave.laneId) !== laneId) {
+              continue;
+            }
+
+            var centerZ = this.getWaveCenterZ(wave);
+
+            if (centerZ < minZ || centerZ > maxZ) {
+              continue;
+            }
+
+            blockers++;
+          }
+
+          return blockers;
+        }
+
+        isFirstEnemyFromSpawn(targetWave, laneId, targetZ) {
+          if (!this.gameManager) return true;
+          var waves = this.gameManager.waves;
+          var spawnZ = this.team === 0 ? this.gameManager.teamASpawnZ : this.gameManager.teamBSpawnZ;
+          var forwardSign = this.team === 0 ? 1 : -1;
+          var targetForwardDistance = (targetZ - spawnZ) * forwardSign;
+          var targetDirection = targetForwardDistance >= 0 ? 1 : -1;
+          var targetDistance = Math.abs(targetForwardDistance);
+          var enemyTeam = this.team === 0 ? 1 : 0;
+
+          for (var i = 0; i < waves.length; i++) {
+            var wave = waves[i];
+            if (!this.isValidWave(wave)) continue;
+            if (wave === targetWave) continue;
+            if (wave.team !== enemyTeam) continue;
+            if (wave.laneId < 0) continue;
+
+            if (this.gameManager.clampLaneId(wave.laneId) !== laneId) {
+              continue;
+            }
+
+            var otherForwardDistance = (this.getWaveCenterZ(wave) - spawnZ) * forwardSign;
+
+            if (otherForwardDistance * targetDirection < 0) {
+              continue;
+            }
+
+            var otherDistance = Math.abs(otherForwardDistance);
+
+            if (otherDistance < targetDistance - 0.0001 || Math.abs(otherDistance - targetDistance) <= 0.0001 && wave.id < targetWave.id) {
+              return false;
+            }
+          }
+
+          return true;
         }
 
         getWaveCenter(wave, intel) {
@@ -517,6 +846,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           intel.centerX = sumX / count;
           intel.centerZ = sumZ / count;
+        }
+
+        getWaveCenterZ(wave) {
+          var count = 0;
+          var sumZ = 0;
+
+          for (var i = 0; i < wave.units.length; i++) {
+            var unit = wave.units[i];
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.agent) continue;
+            if (!unit.props) continue;
+            if (unit.props.isDead()) continue;
+            count++;
+            sumZ += unit.agent.pos.z;
+          }
+
+          if (count <= 0) return 0;
+          return sumZ / count;
         }
 
         getDistanceToDefendPoint(x, z) {
@@ -657,6 +1005,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.nextInterval = min + Math.random() * (max - min);
         }
 
+        hasReachedMinSpawnInterval() {
+          return this.timer >= Math.max(0.1, this.minSpawnInterval);
+        }
+
         stateLog(message) {
           if (!this.enableStateLog) return;
           console.log("[SmartArmyBrain State T" + this.team + "] " + message);
@@ -758,21 +1110,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class4.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class4.prototype, "fastReactCounterChance", [_dec4], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.0;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class4.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class4.prototype, "enableStateLog", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class4.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class4.prototype, "enableDebugLog", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class4.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

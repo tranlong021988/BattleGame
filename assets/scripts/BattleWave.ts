@@ -1,4 +1,4 @@
-import { Node, Tween, Vec3, tween } from 'cc';
+import { Node, Vec3 } from 'cc';
 import { Unit } from './Unit';
 import { UnitType } from './BattleTypes';
 
@@ -16,7 +16,6 @@ export class BattleWave {
     totalCount = 0;
     units: Unit[] = [];
 
-    assignedCounterCount = 0;
     laneId = -1;
     released = false;
 
@@ -40,9 +39,7 @@ export class BattleWave {
         ((node: Node) => void) | null = null;
     private waveBannerOnAttached:
         ((node: Node) => void) | null = null;
-    private waveBannerTweenDuration = 0.2;
     private waveBannerBaseScale = new Vec3(1, 1, 1);
-    private waveBannerTransferTarget: Unit | null = null;
 
     constructor(
         id: number,
@@ -93,13 +90,6 @@ export class BattleWave {
             this.units.push(unit);
             this.runtimeHealthFrame = -1;
         }
-    }
-
-    addCounterAssignment(count: number) {
-        this.assignedCounterCount += Math.max(
-            1,
-            Math.floor(count)
-        );
     }
 
     setInitialForwardCombatReleaseThreshold(
@@ -212,7 +202,6 @@ export class BattleWave {
     setWaveBanner(
         node: Node | null,
         recycle: ((node: Node) => void) | null,
-        tweenDuration: number,
         onAttached: ((node: Node) => void) | null = null
     ) {
         this.releaseWaveBanner();
@@ -222,10 +211,6 @@ export class BattleWave {
         this.waveBannerNode = node;
         this.waveBannerRecycle = recycle;
         this.waveBannerOnAttached = onAttached;
-        this.waveBannerTweenDuration = Math.max(
-            0,
-            tweenDuration
-        );
         this.captureWaveBannerBaseScale(node);
         node.active = true;
 
@@ -257,16 +242,6 @@ export class BattleWave {
             return true;
         }
 
-        if (
-            this.waveBannerTransferTarget === holder &&
-            banner.parent !== holder.node
-        ) {
-            return true;
-        }
-
-        Tween.stopAllByTarget(banner);
-        this.waveBannerTransferTarget = null;
-
         const hasParent =
             !!banner.parent;
 
@@ -287,52 +262,10 @@ export class BattleWave {
         banner: Node,
         holder: Unit
     ) {
-        if (this.waveBannerTweenDuration <= 0) {
-            banner.setParent(holder.node);
-            this.resetWaveBannerLocalPosition(banner);
-            banner.setScale(this.waveBannerBaseScale);
-            this.notifyWaveBannerAttached(banner);
-            return;
-        }
-
-        this.waveBannerTransferTarget = holder;
-        banner.setParent(null, true);
-
-        const zeroScale = new Vec3(0, 0, 0);
-
-        tween(banner)
-            .to(
-                this.waveBannerTweenDuration,
-                { scale: zeroScale }
-            )
-            .call(() => {
-                if (!banner.isValid) return;
-
-                const target =
-                    this.isUnitAlive(holder)
-                        ? holder
-                        : this.getRepresentativeUnit();
-
-                if (!target) {
-                    this.releaseWaveBanner();
-                    return;
-                }
-
-                banner.setParent(target.node);
-                this.resetWaveBannerLocalPosition(banner);
-                banner.setScale(zeroScale);
-                this.notifyWaveBannerAttached(banner);
-
-                this.waveBannerTransferTarget = null;
-
-                tween(banner)
-                    .to(
-                        this.waveBannerTweenDuration,
-                        { scale: this.waveBannerBaseScale.clone() }
-                    )
-                    .start();
-            })
-            .start();
+        banner.setParent(holder.node);
+        this.resetWaveBannerLocalPosition(banner);
+        banner.setScale(this.waveBannerBaseScale);
+        this.notifyWaveBannerAttached(banner);
     }
 
     private resetWaveBannerLocalPosition(banner: Node) {
@@ -431,11 +364,9 @@ export class BattleWave {
             this.waveBannerNode = null;
             this.waveBannerRecycle = null;
             this.waveBannerOnAttached = null;
-            this.waveBannerTransferTarget = null;
             return;
         }
 
-        Tween.stopAllByTarget(banner);
         banner.setParent(null, true);
         banner.setScale(this.waveBannerBaseScale);
 
@@ -445,7 +376,6 @@ export class BattleWave {
         this.waveBannerNode = null;
         this.waveBannerRecycle = null;
         this.waveBannerOnAttached = null;
-        this.waveBannerTransferTarget = null;
 
         if (recycle) {
             recycle(banner);
@@ -492,20 +422,6 @@ export class BattleWave {
         }
 
         return best;
-    }
-
-    getCounterCoverageRatio() {
-        const alive = this.getAliveCount();
-
-        if (alive <= 0) {
-            return 1;
-        }
-
-        return this.assignedCounterCount / alive;
-    }
-
-    isCounterCovered(requiredCoverageRatio: number) {
-        return this.getCounterCoverageRatio() >= requiredCoverageRatio;
     }
 
     hasEngaged() {
@@ -876,7 +792,6 @@ export class BattleWave {
         this.releaseWaveBanner();
 
         this.released = true;
-        this.assignedCounterCount = 0;
         this.runtimeStateFrame = -1;
         this.runtimeAliveCount = 0;
         this.runtimeHasEngaged = false;

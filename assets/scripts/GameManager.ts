@@ -199,9 +199,6 @@ export class GameManager extends Component {
     @property
     autoSpawnRandomLane = true;
 
-    @property
-    waveBannerTweenDuration = 0.2;
-
     @property({
         min: 1,
         tooltip:
@@ -2026,7 +2023,6 @@ export class GameManager extends Component {
                     bannerNode
                 );
             },
-            this.waveBannerTweenDuration,
             (bannerNode: Node) => {
                 this.applyWaveBannerAppearance(
                     bannerNode,

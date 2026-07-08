@@ -96,6 +96,17 @@ export class LevelSettings extends Component {
     })
     aggressiveForwardUnlockAt = 0.45;
 
+    @property({
+        tooltip: 'Apply SmartArmyBrain fast-react chance curve. The maximum defaults to immediate reaction at the final level.'
+    })
+    allowFastReact = true;
+
+    @property
+    fastReactCounterChanceMin = 0;
+
+    @property
+    fastReactCounterChanceMax = 1;
+
     onLoad() {
         this.applyLevelSettings();
     }
@@ -193,6 +204,15 @@ export class LevelSettings extends Component {
                         this.aggressiveForwardChanceMin,
                         this.aggressiveForwardChanceMax,
                         raidT
+                    );
+            }
+
+            if (this.allowFastReact) {
+                brain.fastReactCounterChance =
+                    this.lerp(
+                        this.fastReactCounterChanceMin,
+                        this.fastReactCounterChanceMax,
+                        t
                     );
             }
         }

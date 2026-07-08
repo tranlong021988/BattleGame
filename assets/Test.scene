@@ -1951,7 +1951,6 @@
     "laneCount": 3,
     "defaultSpawnLane": 1,
     "autoSpawnRandomLane": true,
-    "waveBannerTweenDuration": 0.2,
     "waveBannerRefreshIntervalFrames": 12,
     "waveBannerCamera": {
       "__id__": 143
@@ -9080,6 +9079,9 @@
     "aggressiveForwardChanceMin": 0,
     "aggressiveForwardChanceMax": 1,
     "aggressiveForwardUnlockAt": 0.45,
+    "allowFastReact": true,
+    "fastReactCounterChanceMin": 0,
+    "fastReactCounterChanceMax": 1,
     "_id": "a8WHRaLlVJzLB+E7XR9qFu"
   },
   {
