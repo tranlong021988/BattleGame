@@ -40,14 +40,22 @@ export class LevelSettings extends Component {
     initialCombatPointMax = 180;
 
     @property({
-        tooltip: 'Apply SmartArmyBrain decision accuracy curve. Higher values make AI choose better counter units and lanes.'
+        tooltip: 'Apply the SmartArmyBrain accuracy curve. At accuracy A: smart=A, deliberate mistake=(1-A)^2, random=A*(1-A). Start near 0.1 to keep the easiest AI weak without locking it into deterministic troop loops.'
     })
     allowDecisionAccuracy = true;
 
-    @property
-    decisionAccuracyMin = 0;
+    @property({
+        min: 0,
+        max: 1,
+        tooltip: 'Decision Accuracy at level 1. Default 0.1 keeps the AI extremely weak but allows enough variation to avoid the Accuracy 0 troop loop.'
+    })
+    decisionAccuracyMin = 0.1;
 
-    @property
+    @property({
+        min: 0,
+        max: 1,
+        tooltip: 'Decision Accuracy at the final level. Use 1 for fully intelligent target, counter-unit, and lane decisions.'
+    })
     decisionAccuracyMax = 1;
 
     @property({
@@ -55,16 +63,28 @@ export class LevelSettings extends Component {
     })
     allowInterval = true;
 
-    @property
+    @property({
+        displayName: 'Easy Spawn Delay Min',
+        tooltip: 'Shortest delay between spawn decisions at level 1.'
+    })
     minSpawnIntervalMinLevel = 5.0;
 
-    @property
-    minSpawnIntervalMaxLevel = 2.7;
-
-    @property
+    @property({
+        displayName: 'Easy Spawn Delay Max',
+        tooltip: 'Longest delay between spawn decisions at level 1. Keep this greater than or equal to Easy Spawn Delay Min.'
+    })
     maxSpawnIntervalMinLevel = 6.0;
 
-    @property
+    @property({
+        displayName: 'Hard Spawn Delay Min',
+        tooltip: 'Shortest delay between spawn decisions at the final level. Lower values make the AI react more frequently.'
+    })
+    minSpawnIntervalMaxLevel = 2.7;
+
+    @property({
+        displayName: 'Hard Spawn Delay Max',
+        tooltip: 'Longest delay between spawn decisions at the final level. Keep this greater than or equal to Hard Spawn Delay Min.'
+    })
     maxSpawnIntervalMaxLevel = 3.7;
 
     @property({
@@ -153,10 +173,12 @@ export class LevelSettings extends Component {
 
             if (this.allowDecisionAccuracy) {
                 brain.decisionAccuracy =
-                    this.lerp(
-                        this.decisionAccuracyMin,
-                        this.decisionAccuracyMax,
-                        t
+                    this.clamp01(
+                        this.lerp(
+                            this.decisionAccuracyMin,
+                            this.decisionAccuracyMax,
+                            t
+                        )
                     );
             }
 

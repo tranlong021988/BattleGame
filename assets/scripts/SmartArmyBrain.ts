@@ -8,6 +8,7 @@ const { ccclass, property } = _decorator;
 const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
 const ComparableThreatDistance = 2;
+const DeliberateLosingChoiceChance = 0.8;
 
 class SmartLaneIntel {
     laneId = 0;
@@ -91,7 +92,7 @@ export class SmartArmyBrain extends Component {
     @property({
         min: 0,
         max: 1,
-        tooltip: 'Chance that one complete counter decision chooses the best reachable target, counter unit, and target lane. 0 = naive random choices; 1 = fully accurate.'
+        tooltip: 'Chance that one complete spawn decision uses the best reachable target and counter unit. Near 0 deliberately favors non-winning matchups against a front enemy; 1 is fully accurate.'
     })
     decisionAccuracy = 1.0;
 
@@ -290,6 +291,18 @@ export class SmartArmyBrain extends Component {
             this.rollAccurateDecision();
 
         if (!accurateDecision) {
+            const deliberateMistake =
+                Math.random() <
+                1 - this.getDecisionAccuracy();
+
+            if (deliberateMistake) {
+                this.rebuildIntel();
+
+                if (this.spawnDeliberatelyBadWave()) {
+                    return;
+                }
+            }
+
             this.spawnNaiveWave();
             return;
         }
@@ -742,6 +755,146 @@ export class SmartArmyBrain extends Component {
         );
 
         return true;
+    }
+
+    private spawnDeliberatelyBadWave() {
+        if (!this.gameManager) return false;
+
+        let losingIntel: SmartWaveIntel | null = null;
+        let losingEntry: UnitPrefabEntry | null = null;
+        let losingChoiceCount = 0;
+        let neutralIntel: SmartWaveIntel | null = null;
+        let neutralEntry: UnitPrefabEntry | null = null;
+        let neutralChoiceCount = 0;
+
+        for (let i = 0; i < this.activeEnemyIntelCount; i++) {
+            const intel = this.enemyIntel[i];
+
+            if (!intel.wave) continue;
+            if (!this.isValidWave(intel.wave)) continue;
+            if (!intel.firstEnemyFromSpawn) continue;
+            if (
+                intel.aliveRatio <
+                this.ignoreNearlyDeadWaveRatio
+            ) {
+                continue;
+            }
+
+            for (let j = 0; j < this.affordableEntries.length; j++) {
+                const candidateEntry =
+                    this.affordableEntries[j];
+                const ratio =
+                    this.getMatchupRatio(
+                        candidateEntry,
+                        intel.wave
+                    );
+
+                if (ratio < 1 - 0.0001) {
+                    losingChoiceCount++;
+
+                    if (
+                        Math.random() *
+                            losingChoiceCount <
+                        1
+                    ) {
+                        losingIntel = intel;
+                        losingEntry = candidateEntry;
+                    }
+
+                    continue;
+                }
+
+                if (ratio <= 1 + 0.0001) {
+                    neutralChoiceCount++;
+
+                    if (
+                        Math.random() *
+                            neutralChoiceCount <
+                        1
+                    ) {
+                        neutralIntel = intel;
+                        neutralEntry = candidateEntry;
+                    }
+                }
+            }
+        }
+
+        const useLosingChoice =
+            !!losingIntel &&
+            !!losingEntry &&
+            (
+                !neutralIntel ||
+                !neutralEntry ||
+                Math.random() <
+                    DeliberateLosingChoiceChance
+            );
+        const targetIntel =
+            useLosingChoice
+                ? losingIntel
+                : neutralIntel;
+        const entry =
+            useLosingChoice
+                ? losingEntry
+                : neutralEntry;
+
+        if (!targetIntel || !targetIntel.wave || !entry) {
+            return false;
+        }
+
+        const laneId = targetIntel.laneId;
+
+        const spawned =
+            this.gameManager.spawnWaveByEntry(
+                this.team,
+                entry,
+                laneId,
+                false
+            );
+
+        if (!spawned) return false;
+
+        this.stateLog(
+            `DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` +
+            `target=${unitTypeToName(targetIntel.wave.unitType)} ` +
+            `spawn=${entry.name} lane=${laneId} ` +
+            `targetLane=${targetIntel.laneId}`
+        );
+
+        return true;
+    }
+
+    private getMatchupRatio(
+        entry: UnitPrefabEntry,
+        targetWave: BattleWave
+    ) {
+        const ownScore =
+            this.getCounterScore(
+                entry,
+                targetWave
+            );
+        const enemyScore =
+            this.getReverseCounterScore(
+                targetWave,
+                entry
+            );
+
+        return ownScore /
+            Math.max(0.0001, enemyScore);
+    }
+
+    private getReverseCounterScore(
+        attackerWave: BattleWave,
+        defenderEntry: UnitPrefabEntry
+    ) {
+        const counter =
+            CounterSettings.instance;
+
+        if (!counter) return 1;
+
+        return counter.getCounterScore(
+            attackerWave.unitType,
+            defenderEntry.unitType
+        );
     }
 
     private trySpawnAggressiveForward(

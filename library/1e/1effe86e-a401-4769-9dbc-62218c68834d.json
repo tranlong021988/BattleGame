@@ -8841,12 +8841,12 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 0,
+    "decisionAccuracy": 0.1,
     "attackCounterCoverageRatio": 0.7,
     "ignoreNearlyDeadWaveRatio": 0.2,
     "rescueAllyAliveRatio": 0.35,
     "aggressiveForwardChance": 0.25,
-    "fastReactCounterChance": 0,
+    "fastReactCounterChance": 1,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "enableStateLog": false,
     "enableDebugLog": false,
@@ -9004,7 +9004,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 311
@@ -9048,10 +9048,10 @@
     "node": {
       "__id__": 310
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": null,
     "totalLevels": 300,
-    "currentLevel": 300,
+    "currentLevel": 1,
     "targetTeam": 1,
     "gameManager": {
       "__id__": 42
@@ -9062,18 +9062,18 @@
       }
     ],
     "allowCP": true,
-    "initialCombatPointMin": 70,
-    "initialCombatPointMax": 150,
+    "initialCombatPointMin": 500,
+    "initialCombatPointMax": 500,
     "allowDecisionAccuracy": true,
-    "decisionAccuracyMin": 0,
+    "decisionAccuracyMin": 0.1,
     "decisionAccuracyMax": 1,
     "allowInterval": true,
-    "minSpawnIntervalMinLevel": 5,
+    "minSpawnIntervalMinLevel": 2,
+    "maxSpawnIntervalMinLevel": 5,
     "minSpawnIntervalMaxLevel": 2,
-    "maxSpawnIntervalMinLevel": 6,
     "maxSpawnIntervalMaxLevel": 3,
     "allowMaxWave": true,
-    "maxAliveWavesMin": 5,
+    "maxAliveWavesMin": 10,
     "maxAliveWavesMax": 10,
     "allowAggressive": true,
     "aggressiveForwardChanceMin": 0,

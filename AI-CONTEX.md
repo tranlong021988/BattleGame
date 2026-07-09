@@ -188,15 +188,28 @@ Rejected/reverted in the office session:
   - chooses a best real counter entry;
   - chooses the target lane.
 - An inaccurate decision does not rebuild or use tactical intel:
-  - chooses a random affordable entry;
-  - chooses a random lane;
-  - rolls aggressive-forward only from `aggressiveForwardChance`.
-- Therefore `decisionAccuracy = 0` is intentionally naive, while `1` always uses the complete SmartArmyBrain counter decision. Intermediate values directly control the proportion of smart decisions.
+  - it rolls deliberate mistake with conditional chance `1 - decisionAccuracy`;
+  - a deliberate mistake uses current intel and randomly chooses among affordable non-winning matchups (losing or neutral) against a front enemy, then spawns that troop on the enemy's own lane with normal forward;
+  - deliberate mistakes intentionally use the target lane because a "wrong" or empty lane can become a successful raid/flank and make low-accuracy AI stronger instead of weaker;
+  - when both choices exist, deliberate mistakes choose a genuinely losing matchup `80%` of the time and a neutral matchup `20%` of the time; this keeps low-accuracy AI weak without locking both teams into one deterministic counter pair;
+  - do not select the single mathematically worst matchup every time; that deterministic extreme caused both teams to repeat one counter pair indefinitely.
+  - if no genuinely losing affordable matchup exists, it falls back to random;
+  - the remaining inaccurate decisions choose a random affordable entry, random lane, and roll aggressive-forward only from `aggressiveForwardChance`.
+- Therefore `decisionAccuracy = 0` always attempts a deliberate losing decision, while `1` always uses the complete SmartArmyBrain counter decision.
+- Total behavior probabilities are:
+  - smart: `accuracy`;
+  - deliberate mistake: `(1 - accuracy)²`;
+  - random: `accuracy × (1 - accuracy)`.
 - Fast react is an intelligent reaction:
   - it only proceeds when its `decisionAccuracy` roll succeeds;
   - if it proceeds, the newly spawned enemy remains its fixed reaction target and the AI chooses the best counter on the target lane;
   - at `decisionAccuracy = 0`, fast react cannot occur.
 - Hard global gates remain independent of intelligence: affordability, max alive waves, and spawn timing are still enforced for naive decisions. Tactical gates such as reachability, coverage, and nearly-dead filtering apply only to intelligent counter decisions.
+- `LevelSettings.allowDecisionAccuracy` continues to scale this same `0..1` value; its Inspector tooltip now reflects deliberate mistakes at the low end.
+- `LevelSettings.decisionAccuracyMin` now defaults to `0.1` rather than `0`. The tested `0.1` result keeps the first-level AI very weak while avoiding the deterministic troop loop seen at exact zero.
+- The curve remains linear across campaign levels and is clamped to `0..1`; no extra curve knob was added.
+- LevelSettings spawn-delay fields keep their serialized names but use clearer Inspector labels and ordering: `Easy Spawn Delay Min/Max`, then `Hard Spawn Delay Min/Max`.
+- `CounterSettings.getCounterScore()` must match actual damage calculation and therefore uses `damageMultiplier * receivedDamageMultiplier`. The old inverse formula incorrectly classified reduced outgoing damage as a favorable counter.
 
 ## Current Unit / Wave Flow
 

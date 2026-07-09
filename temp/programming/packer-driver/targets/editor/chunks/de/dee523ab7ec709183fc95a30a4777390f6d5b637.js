@@ -151,7 +151,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         getCounterScore(attackerType, defenderType) {
           const damageMul = this.getDamageMultiplier(attackerType, defenderType);
           const receivedMul = this.getReceivedDamageMultiplier(attackerType, defenderType);
-          return damageMul * (1 / Math.max(0.1, receivedMul));
+          return damageMul * receivedMul;
         }
 
         calculateDamage(attacker, defender) {

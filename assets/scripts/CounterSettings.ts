@@ -79,7 +79,7 @@ export class CounterSettings extends Component {
             defenderType
         );
 
-        return damageMul * (1 / Math.max(0.1, receivedMul));
+        return damageMul * receivedMul;
     }
 
     calculateDamage(attacker: UnitProps, defender: UnitProps): number {

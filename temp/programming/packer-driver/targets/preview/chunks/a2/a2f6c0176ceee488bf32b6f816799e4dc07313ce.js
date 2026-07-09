@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, SmartArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, SmartArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -60,6 +60,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       } = _decorator);
       BattleWaveSpawnedEvent = 'battle-wave-spawned';
       ComparableThreatDistance = 2;
+      DeliberateLosingChoiceChance = 0.8;
       SmartLaneIntel = class SmartLaneIntel {
         constructor() {
           this.laneId = 0;
@@ -122,7 +123,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), GameManager) : GameManager), _dec3 = property({
         min: 0,
         max: 1,
-        tooltip: 'Chance that one complete counter decision chooses the best reachable target, counter unit, and target lane. 0 = naive random choices; 1 = fully accurate.'
+        tooltip: 'Chance that one complete spawn decision uses the best reachable target and counter unit. Near 0 deliberately favors non-winning matchups against a front enemy; 1 is fully accurate.'
       }), _dec4 = property({
         min: 0,
         max: 1,
@@ -296,6 +297,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var accurateDecision = this.rollAccurateDecision();
 
           if (!accurateDecision) {
+            var deliberateMistake = Math.random() < 1 - this.getDecisionAccuracy();
+
+            if (deliberateMistake) {
+              this.rebuildIntel();
+
+              if (this.spawnDeliberatelyBadWave()) {
+                return;
+              }
+            }
+
             this.spawnNaiveWave();
             return;
           }
@@ -552,6 +563,82 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!spawned) return false;
           this.stateLog("NAIVE_RANDOM spawn=" + entry.name + " " + ("lane=" + laneId + " aggressive=" + aggressiveForward));
           return true;
+        }
+
+        spawnDeliberatelyBadWave() {
+          if (!this.gameManager) return false;
+          var losingIntel = null;
+          var losingEntry = null;
+          var losingChoiceCount = 0;
+          var neutralIntel = null;
+          var neutralEntry = null;
+          var neutralChoiceCount = 0;
+
+          for (var i = 0; i < this.activeEnemyIntelCount; i++) {
+            var intel = this.enemyIntel[i];
+            if (!intel.wave) continue;
+            if (!this.isValidWave(intel.wave)) continue;
+            if (!intel.firstEnemyFromSpawn) continue;
+
+            if (intel.aliveRatio < this.ignoreNearlyDeadWaveRatio) {
+              continue;
+            }
+
+            for (var j = 0; j < this.affordableEntries.length; j++) {
+              var candidateEntry = this.affordableEntries[j];
+              var ratio = this.getMatchupRatio(candidateEntry, intel.wave);
+
+              if (ratio < 1 - 0.0001) {
+                losingChoiceCount++;
+
+                if (Math.random() * losingChoiceCount < 1) {
+                  losingIntel = intel;
+                  losingEntry = candidateEntry;
+                }
+
+                continue;
+              }
+
+              if (ratio <= 1 + 0.0001) {
+                neutralChoiceCount++;
+
+                if (Math.random() * neutralChoiceCount < 1) {
+                  neutralIntel = intel;
+                  neutralEntry = candidateEntry;
+                }
+              }
+            }
+          }
+
+          var useLosingChoice = !!losingIntel && !!losingEntry && (!neutralIntel || !neutralEntry || Math.random() < DeliberateLosingChoiceChance);
+          var targetIntel = useLosingChoice ? losingIntel : neutralIntel;
+          var entry = useLosingChoice ? losingEntry : neutralEntry;
+
+          if (!targetIntel || !targetIntel.wave || !entry) {
+            return false;
+          }
+
+          var laneId = targetIntel.laneId;
+          var spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, false);
+          if (!spawned) return false;
+          this.stateLog("DELIBERATE_MISTAKE wave=" + targetIntel.wave.id + " " + ("target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+            error: Error()
+          }), unitTypeToName) : unitTypeToName)(targetIntel.wave.unitType) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " ") + ("targetLane=" + targetIntel.laneId));
+          return true;
+        }
+
+        getMatchupRatio(entry, targetWave) {
+          var ownScore = this.getCounterScore(entry, targetWave);
+          var enemyScore = this.getReverseCounterScore(targetWave, entry);
+          return ownScore / Math.max(0.0001, enemyScore);
+        }
+
+        getReverseCounterScore(attackerWave, defenderEntry) {
+          var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          if (!counter) return 1;
+          return counter.getCounterScore(attackerWave.unitType, defenderEntry.unitType);
         }
 
         trySpawnAggressiveForward(reason) {
