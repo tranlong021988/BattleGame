@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-09 by the home Codex.
+Last updated: 2026-07-09 by the office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -165,6 +165,38 @@ Rejected/reverted in the office session:
   - scale-out/scale-in and detached transfer state.
 - Holder selection, holder-death notification, banner pooling, icon/material refresh, healthbar refresh, and camera visibility behavior are unchanged.
 - Do not reintroduce flight or scale tween unless the user explicitly asks. The accepted visual is immediate teleport to the new holder.
+
+## Accepted 2026-07-09 Office Changes
+
+### SmartArmyBrain Path Priority
+
+- Counter target eligibility remains front-to-back per lane.
+- A target that is more than `2` world units closer to the defending hero remains the higher-priority threat.
+- When eligible targets are within `2` world units of each other, counter path quality is compared before the old weighted threat score:
+  - zero ally blockers from spawn to target;
+  - then exactly one blocker;
+  - then multiple blockers.
+- A clean counter path is based only on allies between spawn and the target. An ally farther beyond the target no longer makes that path look blocked.
+- This adds no Inspector setting and does not change affordability, coverage, fast-react, max-wave, unit-choice, lane-choice, or aggressive-forward gates.
+
+### SmartArmyBrain Decision Accuracy
+
+- Each normal spawn opportunity rolls `decisionAccuracy` once.
+- An accurate decision:
+  - rebuilds battlefield intel;
+  - chooses the best reachable target using defend distance and path priority;
+  - chooses a best real counter entry;
+  - chooses the target lane.
+- An inaccurate decision does not rebuild or use tactical intel:
+  - chooses a random affordable entry;
+  - chooses a random lane;
+  - rolls aggressive-forward only from `aggressiveForwardChance`.
+- Therefore `decisionAccuracy = 0` is intentionally naive, while `1` always uses the complete SmartArmyBrain counter decision. Intermediate values directly control the proportion of smart decisions.
+- Fast react is an intelligent reaction:
+  - it only proceeds when its `decisionAccuracy` roll succeeds;
+  - if it proceeds, the newly spawned enemy remains its fixed reaction target and the AI chooses the best counter on the target lane;
+  - at `decisionAccuracy = 0`, fast react cannot occur.
+- Hard global gates remain independent of intelligence: affordability, max alive waves, and spawn timing are still enforced for naive decisions. Tactical gates such as reachability, coverage, and nearly-dead filtering apply only to intelligent counter decisions.
 
 ## Current Unit / Wave Flow
 

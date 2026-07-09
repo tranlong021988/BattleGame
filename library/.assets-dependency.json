@@ -377,6 +377,9 @@
       "fonts\\GAMERIA (1)\\GAMERIA.fnt": [
         "fonts\\GAMERIA (1)\\GAMERIA.png"
       ],
+      "fonts\\GAMERIA\\GAMERIA.fnt": [
+        "fonts\\GAMERIA\\GAMERIA.png"
+      ],
       "shaders\\HealthBar.effect": [
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\healthbar-vs.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\input.chunk",
@@ -552,9 +555,6 @@
         "chunks\\legacy\\output-standard.chunk",
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"
-      ],
-      "fonts\\GAMERIA\\GAMERIA.fnt": [
-        "fonts\\GAMERIA\\GAMERIA.png"
       ]
     },
     "uuid": {

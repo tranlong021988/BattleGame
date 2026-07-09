@@ -7,6 +7,7 @@ import { unitTypeToName } from './BattleTypes';
 const { ccclass, property } = _decorator;
 const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
+const ComparableThreatDistance = 2;
 
 class SmartLaneIntel {
     laneId = 0;
@@ -90,7 +91,7 @@ export class SmartArmyBrain extends Component {
     @property({
         min: 0,
         max: 1,
-        tooltip: '1 = best counter and best reachable lane. 0 = more random unit/lane choices.'
+        tooltip: 'Chance that one complete counter decision chooses the best reachable target, counter unit, and target lane. 0 = naive random choices; 1 = fully accurate.'
     })
     decisionAccuracy = 1.0;
 
@@ -132,6 +133,7 @@ export class SmartArmyBrain extends Component {
     private activeEnemyIntelCount = 0;
     private affordableEntries: UnitPrefabEntry[] = [];
     private bestEntryBuffer: UnitPrefabEntry[] = [];
+    private counterCandidateBuffer: SmartWaveIntel[] = [];
 
     start() {
         this.randomizeNextInterval();
@@ -237,6 +239,11 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
+        if (!this.rollAccurateDecision()) {
+            this.debugLog('Fast react skip: inaccurate decision.');
+            return;
+        }
+
         this.rebuildIntel();
 
         const targetIntel =
@@ -276,6 +283,14 @@ export class SmartArmyBrain extends Component {
 
         if (this.affordableEntries.length <= 0) {
             this.debugLog('Skip: no affordable entries.');
+            return;
+        }
+
+        const accurateDecision =
+            this.rollAccurateDecision();
+
+        if (!accurateDecision) {
+            this.spawnNaiveWave();
             return;
         }
 
@@ -435,12 +450,10 @@ export class SmartArmyBrain extends Component {
         const unengagedScore =
             intel.unengaged ? 100 : 0;
         const clearLaneScore =
-            intel.allyCountInLane <= 0 &&
             intel.allyBlockersFromSpawn <= 0
                 ? 20
                 : 0;
         const oneBlockerScore =
-            intel.allyCountInLane > 0 &&
             intel.allyBlockersFromSpawn === 1
                 ? 10
                 : 0;
@@ -462,20 +475,81 @@ export class SmartArmyBrain extends Component {
 
     private findBestCounterTarget(): SmartWaveIntel | null {
         let best: SmartWaveIntel | null = null;
-        let bestScore = -Infinity;
+        let nearestDistance = Infinity;
+
+        this.counterCandidateBuffer.length = 0;
 
         for (let i = 0; i < this.activeEnemyIntelCount; i++) {
             const intel = this.enemyIntel[i];
 
             if (!this.isCounterCandidate(intel)) continue;
 
-            if (intel.threatScore > bestScore) {
-                bestScore = intel.threatScore;
+            this.counterCandidateBuffer.push(intel);
+            nearestDistance = Math.min(
+                nearestDistance,
+                intel.distanceToDefend
+            );
+        }
+
+        if (!Number.isFinite(nearestDistance)) {
+            return null;
+        }
+
+        for (let i = 0; i < this.counterCandidateBuffer.length; i++) {
+            const intel = this.counterCandidateBuffer[i];
+
+            if (
+                intel.distanceToDefend >
+                nearestDistance +
+                    ComparableThreatDistance
+            ) {
+                continue;
+            }
+
+            if (
+                !best ||
+                this.isHigherCounterPriority(intel, best)
+            ) {
                 best = intel;
             }
         }
 
         return best;
+    }
+
+    private isHigherCounterPriority(
+        candidate: SmartWaveIntel,
+        current: SmartWaveIntel
+    ) {
+        const candidatePathPriority =
+            this.getCounterPathPriority(candidate);
+        const currentPathPriority =
+            this.getCounterPathPriority(current);
+
+        if (
+            candidatePathPriority !==
+            currentPathPriority
+        ) {
+            return candidatePathPriority >
+                currentPathPriority;
+        }
+
+        return candidate.threatScore >
+            current.threatScore;
+    }
+
+    private getCounterPathPriority(
+        intel: SmartWaveIntel
+    ) {
+        if (intel.allyBlockersFromSpawn <= 0) {
+            return 2;
+        }
+
+        if (intel.allyBlockersFromSpawn === 1) {
+            return 1;
+        }
+
+        return 0;
     }
 
     private findIntelForWave(
@@ -527,10 +601,7 @@ export class SmartArmyBrain extends Component {
 
         if (!entry) return false;
 
-        const laneId =
-            this.chooseCounterLane(
-                intel
-            );
+        const laneId = intel.laneId;
         const aggressiveForward =
             this.shouldSpawnCounterAggressiveForward(
                 intel,
@@ -558,6 +629,7 @@ export class SmartArmyBrain extends Component {
             `firstFromSpawn=${intel.firstEnemyFromSpawn} ` +
             `struggling=${intel.hasStrugglingAlly} ` +
             `score=${intel.threatScore.toFixed(1)} ` +
+            `accurate=true ` +
             `aggressive=${aggressiveForward}`
         );
 
@@ -629,13 +701,6 @@ export class SmartArmyBrain extends Component {
             return null;
         }
 
-        const accurate =
-            Math.random() <= this.getDecisionAccuracy();
-
-        if (!accurate) {
-            return this.getRandomAffordableEntry();
-        }
-
         const index = Math.floor(
             Math.random() * this.bestEntryBuffer.length
         );
@@ -643,65 +708,40 @@ export class SmartArmyBrain extends Component {
         return this.bestEntryBuffer[index];
     }
 
-    private chooseCounterLane(
-        intel: SmartWaveIntel
-    ) {
-        if (!this.gameManager) return intel.laneId;
+    private spawnNaiveWave() {
+        if (!this.gameManager) return false;
 
-        const accurate =
-            Math.random() <= this.getDecisionAccuracy();
+        const entry =
+            this.getRandomAffordableEntry();
 
-        if (accurate) {
-            return intel.laneId;
-        }
-
-        const supportLane =
-            this.chooseBestSupportLane(intel.laneId);
-
-        if (supportLane >= 0) {
-            return supportLane;
-        }
-
-        return intel.laneId;
-    }
-
-    private chooseBestSupportLane(
-        targetLane: number
-    ) {
-        if (!this.gameManager) return -1;
+        if (!entry) return false;
 
         const laneCount =
             this.gameManager.getSafeLaneCount();
+        const laneId =
+            laneCount > 0
+                ? Math.floor(Math.random() * laneCount)
+                : -1;
+        const aggressiveForward =
+            Math.random() <
+            this.clamp01(this.aggressiveForwardChance);
 
-        let bestLane = -1;
-        let bestScore = -Infinity;
+        const spawned =
+            this.gameManager.spawnWaveByEntry(
+                this.team,
+                entry,
+                laneId,
+                aggressiveForward
+            );
 
-        for (let laneId = 0; laneId < laneCount; laneId++) {
-            if (laneId === targetLane) continue;
+        if (!spawned) return false;
 
-            const lane =
-                this.laneIntel[laneId];
+        this.stateLog(
+            `NAIVE_RANDOM spawn=${entry.name} ` +
+            `lane=${laneId} aggressive=${aggressiveForward}`
+        );
 
-            if (!lane) continue;
-
-            let score =
-                Math.random() * 0.001;
-
-            if (lane.enemyCount <= 0) {
-                score += 20;
-            }
-
-            score -= lane.allyCount * 12;
-            score -= lane.enemyCount * 8;
-            score -= lane.trafficCount * 6;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestLane = laneId;
-            }
-        }
-
-        return bestLane;
+        return true;
     }
 
     private trySpawnAggressiveForward(
@@ -1413,6 +1453,11 @@ export class SmartArmyBrain extends Component {
 
     private getDecisionAccuracy() {
         return this.clamp01(this.decisionAccuracy);
+    }
+
+    private rollAccurateDecision() {
+        return Math.random() <
+            this.getDecisionAccuracy();
     }
 
     private clamp01(v: number) {

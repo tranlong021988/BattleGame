@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -257,25 +257,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "autoSpawnRandomLane", _descriptor41, this);
 
-          _initializerDefineProperty(this, "waveBannerTweenDuration", _descriptor42, this);
+          _initializerDefineProperty(this, "waveBannerRefreshIntervalFrames", _descriptor42, this);
 
-          _initializerDefineProperty(this, "waveBannerRefreshIntervalFrames", _descriptor43, this);
+          _initializerDefineProperty(this, "waveBannerCamera", _descriptor43, this);
 
-          _initializerDefineProperty(this, "waveBannerCamera", _descriptor44, this);
+          _initializerDefineProperty(this, "enableWaveBannerCameraVisibility", _descriptor44, this);
 
-          _initializerDefineProperty(this, "enableWaveBannerCameraVisibility", _descriptor45, this);
+          _initializerDefineProperty(this, "hideWaveBannerInOrbitMode", _descriptor45, this);
 
-          _initializerDefineProperty(this, "hideWaveBannerInOrbitMode", _descriptor46, this);
+          _initializerDefineProperty(this, "waveBannerHideFovBelow", _descriptor46, this);
 
-          _initializerDefineProperty(this, "waveBannerHideFovBelow", _descriptor47, this);
-
-          _initializerDefineProperty(this, "waveBannerShowFovAbove", _descriptor48, this);
+          _initializerDefineProperty(this, "waveBannerShowFovAbove", _descriptor47, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor49, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor48, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor50, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor49, this);
 
           this.sim = null;
           this.teamA = [];
@@ -1491,7 +1489,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.applyWaveBannerAppearance(node, wave.team, entry ? entry.waveBannerIconId : 0);
           wave.setWaveBanner(node, bannerNode => {
             this.recycleWaveBanner(prefab, bannerNode);
-          }, this.waveBannerTweenDuration, bannerNode => {
+          }, bannerNode => {
             this.applyWaveBannerAppearance(bannerNode, wave.team, entry ? entry.waveBannerIconId : 0);
             this.updateWaveBannerHealthBar(wave);
           });
@@ -2530,63 +2528,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerTweenDuration", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.2;
-        }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerRefreshIntervalFrames", [_dec17], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerRefreshIntervalFrames", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 12;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerCamera", [_dec18], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerCamera", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "enableWaveBannerCameraVisibility", [property], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "enableWaveBannerCameraVisibility", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class2.prototype, "hideWaveBannerInOrbitMode", [property], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "hideWaveBannerInOrbitMode", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerHideFovBelow", [property], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerHideFovBelow", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 35;
         }
-      }), _descriptor48 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerShowFovAbove", [property], {
+      }), _descriptor47 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerShowFovAbove", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 38;
         }
-      }), _descriptor49 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec19], {
+      }), _descriptor48 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor50 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec20], {
+      }), _descriptor49 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec20], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, Tween, Vec3, tween, UnitType, BattleWave, _crd;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, Vec3, UnitType, BattleWave, _crd;
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
@@ -20,9 +20,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       _cclegacy = _cc.cclegacy;
       __checkObsolete__ = _cc.__checkObsolete__;
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
-      Tween = _cc.Tween;
       Vec3 = _cc.Vec3;
-      tween = _cc.tween;
     }, function (_unresolved_2) {
       UnitType = _unresolved_2.UnitType;
     }],
@@ -31,7 +29,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
       _cclegacy._RF.push({}, "2d08duCH6RMR4qPFCZCa+i3", "BattleWave", undefined);
 
-      __checkObsolete__(['Node', 'Tween', 'Vec3', 'tween']);
+      __checkObsolete__(['Node', 'Vec3']);
 
       _export("BattleWave", BattleWave = class BattleWave {
         constructor(id, team, unitName, unitType, totalCount, laneId = -1) {
@@ -43,7 +41,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitType) : UnitType).LightSword;
           this.totalCount = 0;
           this.units = [];
-          this.assignedCounterCount = 0;
           this.laneId = -1;
           this.released = false;
           this.runtimeStateFrame = -1;
@@ -64,9 +61,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
           this.waveBannerOnAttached = null;
-          this.waveBannerTweenDuration = 0.2;
           this.waveBannerBaseScale = new Vec3(1, 1, 1);
-          this.waveBannerTransferTarget = null;
           this.id = id;
           this.team = team;
           this.unitName = unitName;
@@ -97,10 +92,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.units.push(unit);
             this.runtimeHealthFrame = -1;
           }
-        }
-
-        addCounterAssignment(count) {
-          this.assignedCounterCount += Math.max(1, Math.floor(count));
         }
 
         setInitialForwardCombatReleaseThreshold(threshold) {
@@ -176,13 +167,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.representativeUnit;
         }
 
-        setWaveBanner(node, recycle, tweenDuration, onAttached = null) {
+        setWaveBanner(node, recycle, onAttached = null) {
           this.releaseWaveBanner();
           if (!node) return;
           this.waveBannerNode = node;
           this.waveBannerRecycle = recycle;
           this.waveBannerOnAttached = onAttached;
-          this.waveBannerTweenDuration = Math.max(0, tweenDuration);
           this.captureWaveBannerBaseScale(node);
           node.active = true;
           this.refreshWaveBanner(true);
@@ -206,12 +196,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return true;
           }
 
-          if (this.waveBannerTransferTarget === holder && banner.parent !== holder.node) {
-            return true;
-          }
-
-          Tween.stopAllByTarget(banner);
-          this.waveBannerTransferTarget = null;
           const hasParent = !!banner.parent;
 
           if (!hasParent) {
@@ -227,37 +211,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         transferWaveBanner(banner, holder) {
-          if (this.waveBannerTweenDuration <= 0) {
-            banner.setParent(holder.node);
-            this.resetWaveBannerLocalPosition(banner);
-            banner.setScale(this.waveBannerBaseScale);
-            this.notifyWaveBannerAttached(banner);
-            return;
-          }
-
-          this.waveBannerTransferTarget = holder;
-          banner.setParent(null, true);
-          const zeroScale = new Vec3(0, 0, 0);
-          tween(banner).to(this.waveBannerTweenDuration, {
-            scale: zeroScale
-          }).call(() => {
-            if (!banner.isValid) return;
-            const target = this.isUnitAlive(holder) ? holder : this.getRepresentativeUnit();
-
-            if (!target) {
-              this.releaseWaveBanner();
-              return;
-            }
-
-            banner.setParent(target.node);
-            this.resetWaveBannerLocalPosition(banner);
-            banner.setScale(zeroScale);
-            this.notifyWaveBannerAttached(banner);
-            this.waveBannerTransferTarget = null;
-            tween(banner).to(this.waveBannerTweenDuration, {
-              scale: this.waveBannerBaseScale.clone()
-            }).start();
-          }).start();
+          banner.setParent(holder.node);
+          this.resetWaveBannerLocalPosition(banner);
+          banner.setScale(this.waveBannerBaseScale);
+          this.notifyWaveBannerAttached(banner);
         }
 
         resetWaveBannerLocalPosition(banner) {
@@ -331,18 +288,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.waveBannerNode = null;
             this.waveBannerRecycle = null;
             this.waveBannerOnAttached = null;
-            this.waveBannerTransferTarget = null;
             return;
           }
 
-          Tween.stopAllByTarget(banner);
           banner.setParent(null, true);
           banner.setScale(this.waveBannerBaseScale);
           const recycle = this.waveBannerRecycle;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
           this.waveBannerOnAttached = null;
-          this.waveBannerTransferTarget = null;
 
           if (recycle) {
             recycle(banner);
@@ -382,20 +336,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return best;
-        }
-
-        getCounterCoverageRatio() {
-          const alive = this.getAliveCount();
-
-          if (alive <= 0) {
-            return 1;
-          }
-
-          return this.assignedCounterCount / alive;
-        }
-
-        isCounterCovered(requiredCoverageRatio) {
-          return this.getCounterCoverageRatio() >= requiredCoverageRatio;
         }
 
         hasEngaged() {
@@ -688,7 +628,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         releaseReferences() {
           this.releaseWaveBanner();
           this.released = true;
-          this.assignedCounterCount = 0;
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;
           this.runtimeHasEngaged = false;
