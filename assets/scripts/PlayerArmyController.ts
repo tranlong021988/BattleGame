@@ -313,6 +313,13 @@ export class PlayerArmyController extends Component {
             return;
         }
 
+        if (!this.isUnitNameUnlocked(unitName)) {
+            console.warn(
+                `[PlayerArmyController] Unit "${unitName}" is locked.`
+            );
+            return;
+        }
+
         this.setSelectedUnit(unitName);
     }
 
@@ -817,8 +824,13 @@ export class PlayerArmyController extends Component {
     }
 
     private setSelectedUnit(unitName: string) {
-        const safeUnitName =
+        const requestedUnitName =
             (unitName || '').trim();
+        const safeUnitName =
+            requestedUnitName &&
+            this.isUnitNameUnlocked(requestedUnitName)
+                ? requestedUnitName
+                : '';
         const canAfford =
             !!safeUnitName &&
             this.canAffordUnitName(safeUnitName);
@@ -860,6 +872,18 @@ export class PlayerArmyController extends Component {
         if (!manager) return false;
 
         return manager.canAffordUnitName(
+            this.team,
+            unitName
+        );
+    }
+
+    private isUnitNameUnlocked(unitName: string) {
+        const manager =
+            this.gameManager ?? GameManager.instance;
+
+        if (!manager) return false;
+
+        return manager.isUnitNameUnlocked(
             this.team,
             unitName
         );

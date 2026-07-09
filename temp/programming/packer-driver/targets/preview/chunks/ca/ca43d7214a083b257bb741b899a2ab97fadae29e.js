@@ -295,6 +295,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
+          if (!this.isUnitNameUnlocked(unitName)) {
+            console.warn("[PlayerArmyController] Unit \"" + unitName + "\" is locked.");
+            return;
+          }
+
           this.setSelectedUnit(unitName);
         }
 
@@ -613,7 +618,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         setSelectedUnit(unitName) {
-          var safeUnitName = (unitName || '').trim();
+          var requestedUnitName = (unitName || '').trim();
+          var safeUnitName = requestedUnitName && this.isUnitNameUnlocked(requestedUnitName) ? requestedUnitName : '';
           var canAfford = !!safeUnitName && this.canAffordUnitName(safeUnitName);
           var maxBlocked = this.isMaxAliveWaveBlocked();
           this.maxAliveWaveBlocked = maxBlocked;
@@ -637,6 +643,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), GameManager) : GameManager).instance;
           if (!manager) return false;
           return manager.canAffordUnitName(this.team, unitName);
+        }
+
+        isUnitNameUnlocked(unitName) {
+          var _this$gameManager4;
+
+          var manager = (_this$gameManager4 = this.gameManager) != null ? _this$gameManager4 : (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!manager) return false;
+          return manager.isUnitNameUnlocked(this.team, unitName);
         }
 
         setLanePickersVisible(visible) {

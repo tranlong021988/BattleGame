@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 23228039.6215,
+      "mTimestamp": 28453968.2658,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3306,7 +3306,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1783566078619.7974,
+        "mtime": 1783596058858.5137,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -7337,7 +7337,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts": {
       "mTimestamp": {
-        "mtime": 1783326961101.5986,
+        "mtime": 1783593341626.538,
         "uuid": "6763c90e-a96e-4d4a-9859-896fdbcb348f"
       },
       "chunkId": "227f4ec588615be1e06e78c2255d3a85fe864d18",
@@ -8483,7 +8483,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/PlayerArmyController.ts": {
       "mTimestamp": {
-        "mtime": 1783306258558.1455,
+        "mtime": 1783596074381.475,
         "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
       },
       "chunkId": "ca43d7214a083b257bb741b899a2ab97fadae29e",
@@ -9028,7 +9028,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/SmartArmyBrain.ts": {
       "mTimestamp": {
-        "mtime": 1783582076815.116,
+        "mtime": 1783593658108.3025,
         "uuid": "176e839d-b955-4959-9b56-ef97c6316897"
       },
       "chunkId": "a2f6c0176ceee488bf32b6f816799e4dc07313ce",

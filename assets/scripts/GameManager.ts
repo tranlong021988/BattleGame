@@ -1494,6 +1494,14 @@ export class GameManager extends Component {
         if (!entry) return false;
         if (!entry.name) return false;
         if (!entry.prefab) return false;
+        const unlocked =
+            this.unitDatabase
+                ? this.unitDatabase.isEntryUnlocked(entry)
+                : entry.unlocked;
+
+        if (!unlocked) {
+            return false;
+        }
 
         if (
             requirePositiveUnitCount &&
@@ -1522,6 +1530,25 @@ export class GameManager extends Component {
         }
 
         return this.canAffordEntry(team, entry);
+    }
+
+    public isUnitNameUnlocked(
+        team: number,
+        unitName: string
+    ) {
+        const safeName =
+            (unitName || '').trim();
+
+        if (!safeName) return false;
+
+        const entry =
+            this.getTeamEntry(team, safeName);
+
+        if (!entry) return false;
+
+        return this.unitDatabase
+            ? this.unitDatabase.isEntryUnlocked(entry)
+            : entry.unlocked;
     }
 
     public collectAffordableEntries(
@@ -1864,7 +1891,7 @@ export class GameManager extends Component {
         aggressiveForward: boolean = false
     ): BattleWave | null {
 
-        if (!entry || !entry.prefab) {
+        if (!this.isValidSpawnEntry(entry)) {
             return null;
         }
 
@@ -1917,6 +1944,9 @@ export class GameManager extends Component {
         requestedLaneId: number = -1,
         aggressiveForward: boolean = false
     ): BattleWave | null {
+        if (!this.isValidSpawnEntry(entry)) {
+            return null;
+        }
 
         const count = Math.max(
             0,

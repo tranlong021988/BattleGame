@@ -10,6 +10,13 @@ const BattleWaveSpawnedEvent =
 const ComparableThreatDistance = 2;
 const DeliberateLosingChoiceChance = 0.8;
 
+enum SmartResponseTier {
+    None = 0,
+    Stronger = 1,
+    SameType = 2,
+    Counter = 3,
+}
+
 class SmartLaneIntel {
     laneId = 0;
     allyCount = 0;
@@ -42,6 +49,7 @@ class SmartWaveIntel {
     allyBlockersFromSpawn = 0;
     firstEnemyFromSpawn = false;
     hasStrugglingAlly = false;
+    responseTier = SmartResponseTier.None;
     threatScore = 0;
 
     reset() {
@@ -58,6 +66,7 @@ class SmartWaveIntel {
         this.allyBlockersFromSpawn = 0;
         this.firstEnemyFromSpawn = false;
         this.hasStrugglingAlly = false;
+        this.responseTier = SmartResponseTier.None;
         this.threatScore = 0;
     }
 }
@@ -250,12 +259,12 @@ export class SmartArmyBrain extends Component {
         const targetIntel =
             this.findIntelForWave(wave);
 
-        if (!this.isCounterCandidate(targetIntel)) {
-            this.debugLog('Fast react skip: spawned wave has no reachable counter.');
+        if (!this.isResponseCandidate(targetIntel)) {
+            this.debugLog('Fast react skip: spawned wave has no reachable response.');
             return;
         }
 
-        if (!this.spawnCounter(targetIntel!)) {
+        if (!this.spawnResponse(targetIntel!)) {
             return;
         }
 
@@ -309,15 +318,15 @@ export class SmartArmyBrain extends Component {
 
         this.rebuildIntel();
 
-        const counterTarget =
-            this.findBestCounterTarget();
+        const responseTarget =
+            this.findBestResponseTarget();
 
-        if (counterTarget) {
-            this.spawnCounter(counterTarget);
+        if (responseTarget) {
+            this.spawnResponse(responseTarget);
             return;
         }
 
-        if (this.trySpawnAggressiveForward('No reachable counter target')) {
+        if (this.trySpawnAggressiveForward('No reachable response target')) {
             return;
         }
 
@@ -409,8 +418,10 @@ export class SmartArmyBrain extends Component {
         intel.wave = wave;
         intel.laneId = laneId;
         intel.aliveRatio = wave.getAliveRatio();
+        intel.responseTier =
+            this.getBestAvailableResponseTier(wave);
 
-        this.fillLiveCounterState(
+        this.fillLiveResponseState(
             intel,
             wave,
             laneId
@@ -486,7 +497,7 @@ export class SmartArmyBrain extends Component {
             (wave.hasEngaged() ? 20 : 0);
     }
 
-    private findBestCounterTarget(): SmartWaveIntel | null {
+    private findBestResponseTarget(): SmartWaveIntel | null {
         let best: SmartWaveIntel | null = null;
         let nearestDistance = Infinity;
 
@@ -495,7 +506,7 @@ export class SmartArmyBrain extends Component {
         for (let i = 0; i < this.activeEnemyIntelCount; i++) {
             const intel = this.enemyIntel[i];
 
-            if (!this.isCounterCandidate(intel)) continue;
+            if (!this.isResponseCandidate(intel)) continue;
 
             this.counterCandidateBuffer.push(intel);
             nearestDistance = Math.min(
@@ -579,7 +590,7 @@ export class SmartArmyBrain extends Component {
         return null;
     }
 
-    private isCounterCandidate(
+    private isResponseCandidate(
         intel: SmartWaveIntel | null
     ) {
         if (!intel || !intel.wave) return false;
@@ -599,10 +610,10 @@ export class SmartArmyBrain extends Component {
             return false;
         }
 
-        return this.hasUsefulCounterEntry(intel);
+        return this.hasUsefulResponseEntry(intel);
     }
 
-    private spawnCounter(
+    private spawnResponse(
         intel: SmartWaveIntel
     ) {
         if (!this.gameManager || !intel.wave) return false;
@@ -632,7 +643,7 @@ export class SmartArmyBrain extends Component {
         if (!spawned) return false;
 
         this.stateLog(
-            `COUNTER wave=${intel.wave.id} ` +
+            `RESPONSE wave=${intel.wave.id} ` +
             `target=${unitTypeToName(intel.wave.unitType)} ` +
             `spawn=${entry.name} lane=${laneId} targetLane=${intel.laneId} ` +
             `coverage=${intel.coverage.toFixed(2)} ` +
@@ -640,6 +651,7 @@ export class SmartArmyBrain extends Component {
             `allyLane=${intel.allyCountInLane} ` +
             `blockers=${intel.allyBlockersFromSpawn} ` +
             `firstFromSpawn=${intel.firstEnemyFromSpawn} ` +
+            `response=${SmartResponseTier[intel.responseTier]} ` +
             `struggling=${intel.hasStrugglingAlly} ` +
             `score=${intel.threatScore.toFixed(1)} ` +
             `accurate=true ` +
@@ -683,21 +695,34 @@ export class SmartArmyBrain extends Component {
 
         for (let i = 0; i < this.affordableEntries.length; i++) {
             const entry = this.affordableEntries[i];
-            const score =
-                this.getCounterScore(
-                    entry,
-                    intel.wave
-                );
 
             if (
-                this.isRealCounterScore(score) &&
-                !this.wouldImproveCounterCoverage(
+                !this.entryMatchesResponseTier(
+                    entry,
+                    intel.wave,
+                    intel.responseTier
+                )
+            ) {
+                continue;
+            }
+
+            if (
+                !this.wouldImproveResponseCoverage(
                     intel,
                     entry
                 )
             ) {
                 continue;
             }
+
+            const score =
+                intel.responseTier ===
+                    SmartResponseTier.Counter
+                    ? this.getCounterScore(
+                        entry,
+                        intel.wave
+                    )
+                    : this.getEntryCombatPower(entry);
 
             if (score > bestScore + 0.0001) {
                 bestScore = score;
@@ -988,7 +1013,7 @@ export class SmartArmyBrain extends Component {
         return bestLane;
     }
 
-    private fillLiveCounterState(
+    private fillLiveResponseState(
         targetIntel: SmartWaveIntel,
         targetWave: BattleWave,
         laneId: number
@@ -1019,11 +1044,10 @@ export class SmartArmyBrain extends Component {
             }
 
             if (
-                !this.isRealCounterScore(
-                    this.getWaveCounterScore(
-                        wave!,
-                        targetWave
-                    )
+                !this.waveMatchesResponseTier(
+                    wave!,
+                    targetWave,
+                    targetIntel.responseTier
                 )
             ) {
                 continue;
@@ -1190,26 +1214,237 @@ export class SmartArmyBrain extends Component {
         );
     }
 
-    private hasUsefulCounterEntry(
-        intel: SmartWaveIntel
+    private getBestAvailableResponseTier(
+        targetWave: BattleWave
     ) {
-        if (!intel.wave) return false;
+        if (this.isHeroWave(targetWave)) {
+            return SmartResponseTier.None;
+        }
+
+        const targetEntry =
+            this.getEntryForWave(targetWave);
+        const targetPower =
+            targetEntry
+                ? this.getEntryCombatPower(targetEntry)
+                : Infinity;
+        let hasSameType = false;
+        let hasStronger = false;
 
         for (let i = 0; i < this.affordableEntries.length; i++) {
-            const entry =
-                this.affordableEntries[i];
-            const score =
+            const entry = this.affordableEntries[i];
+            const counterScore =
                 this.getCounterScore(
                     entry,
-                    intel.wave
+                    targetWave
                 );
 
-            if (!this.isRealCounterScore(score)) {
+            if (this.isRealCounterScore(counterScore)) {
+                return SmartResponseTier.Counter;
+            }
+
+            if (entry.unitType === targetWave.unitType) {
+                hasSameType = true;
                 continue;
             }
 
             if (
-                this.wouldImproveCounterCoverage(
+                this.getEntryCombatPower(entry) >
+                targetPower + 0.0001
+            ) {
+                hasStronger = true;
+            }
+        }
+
+        if (hasSameType) {
+            return SmartResponseTier.SameType;
+        }
+
+        return hasStronger
+            ? SmartResponseTier.Stronger
+            : SmartResponseTier.None;
+    }
+
+    private entryMatchesResponseTier(
+        entry: UnitPrefabEntry,
+        targetWave: BattleWave,
+        tier: SmartResponseTier
+    ) {
+        if (tier === SmartResponseTier.Counter) {
+            return this.isRealCounterScore(
+                this.getCounterScore(
+                    entry,
+                    targetWave
+                )
+            );
+        }
+
+        if (tier === SmartResponseTier.SameType) {
+            return entry.unitType ===
+                targetWave.unitType;
+        }
+
+        if (tier === SmartResponseTier.Stronger) {
+            const targetEntry =
+                this.getEntryForWave(targetWave);
+
+            if (!targetEntry) return false;
+
+            return this.getEntryCombatPower(entry) >
+                this.getEntryCombatPower(targetEntry) +
+                    0.0001;
+        }
+
+        return false;
+    }
+
+    private waveMatchesResponseTier(
+        allyWave: BattleWave,
+        targetWave: BattleWave,
+        tier: SmartResponseTier
+    ) {
+        if (tier === SmartResponseTier.None) {
+            return false;
+        }
+
+        const isCounter =
+            this.isRealCounterScore(
+                this.getWaveCounterScore(
+                    allyWave,
+                    targetWave
+                )
+            );
+
+        if (isCounter) {
+            return true;
+        }
+
+        if (tier === SmartResponseTier.Counter) {
+            return false;
+        }
+
+        const isSameType =
+            allyWave.unitType ===
+            targetWave.unitType;
+
+        if (isSameType) {
+            return true;
+        }
+
+        if (tier === SmartResponseTier.SameType) {
+            return false;
+        }
+
+        if (tier === SmartResponseTier.Stronger) {
+            const allyEntry =
+                this.getEntryForWave(allyWave);
+            const targetEntry =
+                this.getEntryForWave(targetWave);
+
+            if (!allyEntry || !targetEntry) {
+                return false;
+            }
+
+            return this.getEntryCombatPower(allyEntry) >
+                this.getEntryCombatPower(targetEntry) +
+                    0.0001;
+        }
+
+        return false;
+    }
+
+    private getEntryForWave(
+        wave: BattleWave
+    ): UnitPrefabEntry | null {
+        if (!this.gameManager) return null;
+
+        const entries =
+            this.gameManager.getTeamEntries(wave.team);
+        let typeFallback: UnitPrefabEntry | null = null;
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!entry) continue;
+
+            if (entry.name === wave.unitName) {
+                return entry;
+            }
+
+            if (
+                !typeFallback &&
+                entry.unitType === wave.unitType
+            ) {
+                typeFallback = entry;
+            }
+        }
+
+        return typeFallback;
+    }
+
+    private getEntryCombatPower(
+        entry: UnitPrefabEntry
+    ) {
+        const averageInterval =
+            Math.max(
+                0.05,
+                (
+                    Math.max(0, entry.attackIntervalMin) +
+                    Math.max(0, entry.attackIntervalMax)
+                ) * 0.5
+            );
+        const dps =
+            Math.max(0, entry.damage) /
+            averageInterval;
+
+        return Math.max(
+            0,
+            Math.floor(entry.unitCount)
+        ) *
+            Math.max(0, entry.health) *
+            dps;
+    }
+
+    private isHeroWave(
+        wave: BattleWave
+    ) {
+        for (let i = 0; i < wave.units.length; i++) {
+            const unit = wave.units[i];
+
+            if (unit && unit.isHero) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private hasUsefulResponseEntry(
+        intel: SmartWaveIntel
+    ) {
+        if (!intel.wave) return false;
+        if (
+            intel.responseTier ===
+            SmartResponseTier.None
+        ) {
+            return false;
+        }
+
+        for (let i = 0; i < this.affordableEntries.length; i++) {
+            const entry =
+                this.affordableEntries[i];
+
+            if (
+                !this.entryMatchesResponseTier(
+                    entry,
+                    intel.wave,
+                    intel.responseTier
+                )
+            ) {
+                continue;
+            }
+
+            if (
+                this.wouldImproveResponseCoverage(
                     intel,
                     entry
                 )
@@ -1221,7 +1456,7 @@ export class SmartArmyBrain extends Component {
         return false;
     }
 
-    private wouldImproveCounterCoverage(
+    private wouldImproveResponseCoverage(
         intel: SmartWaveIntel,
         entry: UnitPrefabEntry
     ) {

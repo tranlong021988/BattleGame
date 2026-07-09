@@ -1128,6 +1128,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!entry) return false;
           if (!entry.name) return false;
           if (!entry.prefab) return false;
+          const unlocked = this.unitDatabase ? this.unitDatabase.isEntryUnlocked(entry) : entry.unlocked;
+
+          if (!unlocked) {
+            return false;
+          }
 
           if (requirePositiveUnitCount && Math.floor(entry.unitCount) <= 0) {
             return false;
@@ -1146,6 +1151,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.canAffordEntry(team, entry);
+        }
+
+        isUnitNameUnlocked(team, unitName) {
+          const safeName = (unitName || '').trim();
+          if (!safeName) return false;
+          const entry = this.getTeamEntry(team, safeName);
+          if (!entry) return false;
+          return this.unitDatabase ? this.unitDatabase.isEntryUnlocked(entry) : entry.unlocked;
         }
 
         collectAffordableEntries(team, out) {
@@ -1391,7 +1404,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         spawnWaveByEntry(team, entry, laneId = -1, aggressiveForward = false) {
-          if (!entry || !entry.prefab) {
+          if (!this.isValidSpawnEntry(entry)) {
             return null;
           }
 
@@ -1408,6 +1421,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         spawnEntryFormation(team, entry, baseZ, spendCost, requestedLaneId = -1, aggressiveForward = false) {
+          if (!this.isValidSpawnEntry(entry)) {
+            return null;
+          }
+
           const count = Math.max(0, Math.floor(entry.unitCount));
 
           if (count <= 0) {

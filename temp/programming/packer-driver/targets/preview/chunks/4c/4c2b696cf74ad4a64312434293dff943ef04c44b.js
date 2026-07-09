@@ -1144,6 +1144,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!entry) return false;
           if (!entry.name) return false;
           if (!entry.prefab) return false;
+          var unlocked = this.unitDatabase ? this.unitDatabase.isEntryUnlocked(entry) : entry.unlocked;
+
+          if (!unlocked) {
+            return false;
+          }
 
           if (requirePositiveUnitCount && Math.floor(entry.unitCount) <= 0) {
             return false;
@@ -1162,6 +1167,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.canAffordEntry(team, entry);
+        }
+
+        isUnitNameUnlocked(team, unitName) {
+          var safeName = (unitName || '').trim();
+          if (!safeName) return false;
+          var entry = this.getTeamEntry(team, safeName);
+          if (!entry) return false;
+          return this.unitDatabase ? this.unitDatabase.isEntryUnlocked(entry) : entry.unlocked;
         }
 
         collectAffordableEntries(team, out) {
@@ -1415,7 +1428,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             aggressiveForward = false;
           }
 
-          if (!entry || !entry.prefab) {
+          if (!this.isValidSpawnEntry(entry)) {
             return null;
           }
 
@@ -1446,6 +1459,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (aggressiveForward === void 0) {
             aggressiveForward = false;
+          }
+
+          if (!this.isValidSpawnEntry(entry)) {
+            return null;
           }
 
           var count = Math.max(0, Math.floor(entry.unitCount));

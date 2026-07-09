@@ -33,6 +33,11 @@ export class UnitPrefabEntry {
     @property({ type: UnitType })
     unitType: UnitType = UnitType.LightSword;
 
+    @property({
+        tooltip: 'Only unlocked entries can be selected or spawned by player, AI, debug, or direct spawn paths.'
+    })
+    unlocked: boolean = true;
+
     @property
     unitCount: number = 1;
 
@@ -154,6 +159,12 @@ export class BattleUnitDatabase extends Component {
         return team === 0
             ? this.teamAUnits
             : this.teamBUnits;
+    }
+
+    public isEntryUnlocked(
+        entry: UnitPrefabEntry | null
+    ) {
+        return !!entry && entry.unlocked;
     }
 
     public getHeroEntry(team: number): HeroEntry {

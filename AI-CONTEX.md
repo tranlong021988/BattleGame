@@ -114,20 +114,20 @@ Rejected/reverted in the office session:
   - no `assignedCounterCount`;
   - no `addCounterAssignment()`;
   - no `getCounterCoverageRatio()` / `isCounterCovered()`.
-- SmartArmyBrain now calculates counter coverage from the current battlefield only when `rebuildIntel()` runs. This does not add a per-frame scan.
-- A same-lane ally wave contributes live coverage only when it is a real counter type and currently relevant to that enemy:
+- SmartArmyBrain calculates response coverage from the current battlefield only when `rebuildIntel()` runs. This does not add a per-frame scan.
+- A same-lane ally wave contributes live coverage only when it matches the currently best available response tier (or a better tier) and is currently relevant to that enemy:
   - if units already have targets, only units targeting that specific enemy wave count;
   - if the wave has no target, its alive units count only toward the first enemy wave ahead;
   - if it is chasing another enemy, it does not cover this target.
-- Dead, depleted, redirected, or lane-shifted counters stop contributing automatically on the next intel rebuild.
-- A struggling counter means a relevant real-counter wave at or below `rescueAllyAliveRatio`:
+- Dead, depleted, redirected, or lane-shifted responses stop contributing automatically on the next intel rebuild.
+- A struggling response means a relevant response wave at or below `rescueAllyAliveRatio`:
   - either it has units targeting that enemy;
   - or it has no target and that enemy is the first one ahead.
 
 ### SmartArmyBrain Reachability And Priority
 
-- Counter target eligibility is front-to-back per lane:
-  - only the first enemy wave on the path from this team's spawn can be selected for a new direct counter;
+- Response target eligibility is front-to-back per lane:
+  - only the first enemy wave on the path from this team's spawn can be selected for a new direct response;
   - this applies even when ally waves already occupy or block the lane;
   - a rear enemy becomes eligible after the front enemy dies, leaves the lane, or is otherwise no longer first.
 - This prevents an invalid visual/tactical decision such as spawning cavalry for a rear archer while an enemy spear wave physically stands in front and will intercept the cavalry first.
@@ -138,18 +138,18 @@ Rejected/reverted in the office session:
 ### SmartArmyBrain Anti-Over-Counter
 
 - Reinforcement is size-aware and uses the existing live snapshot:
-  - zero live coverage always permits the first real counter wave, including against a small enemy wave;
+  - zero live coverage always permits the first available response wave, including against a small enemy wave;
   - after coverage exists, another full wave is eligible only if adding its `unitCount` moves projected coverage closer to `attackCounterCoverageRatio`;
   - a relevant counter below `rescueAllyAliveRatio` may still receive emergency reinforcement.
 - This guard runs before `decisionAccuracy` randomness. Low-accuracy AI cannot repeatedly use an already-covered enemy as a spawn trigger.
 - Do not simplify this back to `coverage < attackCounterCoverageRatio`: a tiny deficit must not spawn an entire extra wave when the resulting overshoot is worse than waiting.
-- `decisionAccuracy` still intentionally controls unit/lane correctness after a counter decision is valid. In the current `assets/Test.scene`, SmartArmyBrainB is serialized with `decisionAccuracy = 0`, while SmartArmyBrainA is `1`; set the tested AI to `1` when validating exact counter choice.
+- `decisionAccuracy` controls whether a complete spawn decision is intelligent or follows the low-accuracy deliberate/random branches. In current `assets/Test.scene`, SmartArmyBrainB is serialized at `0.1` and SmartArmyBrainA at `1`.
 
 ### SmartArmyBrain Opening Max And LevelSettings
 
 - SmartArmyBrain now handles its own `battle-wave-spawned` event to update `hasReachedMaxAliveWavesOnce` immediately.
 - This prevents missing the opening-aggressive cutoff when the max-th wave appears but another wave dies before the next AI interval.
-- Enemy-wave fast react still obeys minimum interval, chance, max-alive-wave, affordability, reachability, and coverage gates.
+- Enemy-wave fast react still obeys minimum interval, chance, max-alive-wave, unlock, affordability, reachability, and response-coverage gates.
 - `LevelSettings` now supports optional min/max scaling for `fastReactCounterChance`; the default maximum is `1`.
 
 ### Immediate Wave Banner Transfer
@@ -185,7 +185,7 @@ Rejected/reverted in the office session:
 - An accurate decision:
   - rebuilds battlefield intel;
   - chooses the best reachable target using defend distance and path priority;
-  - chooses a best real counter entry;
+  - chooses the best available response entry;
   - chooses the target lane.
 - An inaccurate decision does not rebuild or use tactical intel:
   - it rolls deliberate mistake with conditional chance `1 - decisionAccuracy`;
@@ -209,7 +209,30 @@ Rejected/reverted in the office session:
 - `LevelSettings.decisionAccuracyMin` now defaults to `0.1` rather than `0`. The tested `0.1` result keeps the first-level AI very weak while avoiding the deterministic troop loop seen at exact zero.
 - The curve remains linear across campaign levels and is clamped to `0..1`; no extra curve knob was added.
 - LevelSettings spawn-delay fields keep their serialized names but use clearer Inspector labels and ordering: `Easy Spawn Delay Min/Max`, then `Hard Spawn Delay Min/Max`.
+
+### Unit Unlock And Emergency Response
+
+- Every `UnitPrefabEntry` now owns an `unlocked` boolean, defaulting to `true`.
+- `BattleUnitDatabase` is the source of truth for unlock state. `GameManager.isValidSpawnEntry()` enforces it for affordability queries, AI/player selection, auto spawn, direct entry/name spawn, formation spawn, prefab-map setup, and prewarm.
+- Locked entries are excluded from prewarm and spawn selection. Existing pooled/spawned units are not retroactively removed.
+- Player unit icons inherit the existing unavailable tint because `canAffordUnitName()` now rejects locked entries. Tapping a locked icon is ignored with a warning and cannot leave a false selected highlight. No separate lock-icon UX was added.
+- SmartArmyBrain accurate-response tiers are:
+  - real unlocked/affordable counter;
+  - otherwise unlocked/affordable same unit type;
+  - otherwise an unlocked/affordable stronger troop.
+- Emergency strength is database-only and calculated as `unitCount * health * DPS`, where `DPS = damage / average(attackIntervalMin, attackIntervalMax)`.
+- Hero waves remain excluded from troop counter/emergency-response selection.
+- Fast react and normal interval decisions use the same response-tier logic.
+- Live coverage uses the currently best available tier and accepts a living response of equal or better quality. This prevents CP/unlock changes from making the AI forget a better response already on the field.
+- Coverage relation, front-enemy reachability, struggling-response rescue, and size-aware overshoot protection remain unchanged.
 - `CounterSettings.getCounterScore()` must match actual damage calculation and therefore uses `damageMultiplier * receivedDamageMultiplier`. The old inverse formula incorrectly classified reduced outgoing damage as a favorable counter.
+
+### Accepted AI Non-Issues
+
+- A fully intelligent AI may intentionally wait when no spawn would improve the current response/coverage situation. Do not add a mandatory random fallback merely to keep CP spending equal.
+- Exact `decisionAccuracy = 0` can repeat troop choices because the counter graph has few deliberately losing options. This is accepted; campaign level 1 starts at `0.1` for variation.
+- Difficulty is intentionally influenced by accuracy, fast react, spawn interval, max waves, CP, and aggressive chance together.
+- The current project does not use defensive counter rules. Do not reopen defensive-rule interpretation unless such rules are added again.
 
 ## Current Unit / Wave Flow
 
@@ -279,35 +302,35 @@ Rejected/reverted in the office session:
 - `SmartArmyBrain` decides spawn strategy only. It does not directly control unit movement, combat, forward/freehunt, lane voting, workers, RVO, banners, or healthbars after spawn.
 - It runs on a spawn interval.
 - It builds lane intel and enemy-wave intel from current alive waves.
-- Counter coverage is live snapshot data, not historical assignment data. Do not restore `assignedCounterCount`, `addCounterAssignment()`, or `getCounterCoverageRatio()` on `BattleWave`.
-- One counter wave cannot cover every enemy lined up in the same lane:
+- Response coverage is live snapshot data, not historical assignment data. Do not restore `assignedCounterCount`, `addCounterAssignment()`, or `getCounterCoverageRatio()` on `BattleWave`.
+- One response wave cannot cover every enemy lined up in the same lane:
   - if its units have targets, only units targeting that specific enemy count;
   - if it has no targets, it covers only the first enemy ahead.
-- It scores threats using counter coverage, alive ratio, distance to own hero/spawn, engagement/free status, clean-path priority, ally blockers from spawn to target, and whether same-lane ally counters look like they are failing.
-- It prefers uncovered enemy waves with real counters from `CounterSettings`.
+- It scores threats using response coverage, alive ratio, distance to own hero/spawn, engagement/free status, clean-path priority, ally blockers from spawn to target, and whether same-lane ally responses look like they are failing.
+- It prefers uncovered enemy waves with the best currently unlocked and affordable response tier: real counter, same type, then stronger emergency troop.
 - Target reachability is resolved before threat score: a rear wave cannot win priority while another enemy wave stands between it and this team's spawn on the same lane.
-- A fully covered wave is not a new counter candidate unless its relevant counter pressure is visibly failing.
+- A fully covered wave is not a new response candidate unless its relevant response pressure is visibly failing.
 - Snapshot/intel rebuild is not the same thing as deciding to spawn:
   - normal AI only decides/spawns when its timer reaches `nextInterval`;
   - fast react only decides/spawns when a new enemy wave event arrives, `minSpawnInterval` is satisfied, the chance roll passes, and all spawn gates pass;
   - rebuilding intel is just "looking at the board", not automatically "pressing spawn".
 - `decisionAccuracy` is the main combined knob for counter correctness and lane correctness:
-  - `1` means best real counter and best reachable lane;
-  - lower values allow more random unit/lane choices.
+  - `1` means best available response and best reachable lane;
+  - lower values increasingly use deliberate non-winning matchups and random choices according to the probability model documented above.
 - `fastReactCounterChance` is a separate reaction-speed knob:
   - higher values make the AI more likely to answer a newly spawned enemy immediately after min interval;
-  - it should not ignore max-wave or affordability gates.
+  - it also requires an accurate `decisionAccuracy` roll and must not ignore max-wave, unlock, or affordability gates.
 - Opening aggressive rule:
   - SmartArmyBrain tracks whether its team has ever reached `maxAliveWaves`;
-  - before first reaching max alive waves, counter/opening spawns use aggressive forward;
-  - after that, counter/opening spawns use normal forward;
+  - before first reaching max alive waves, response/opening spawns use aggressive forward;
+  - after that, response/opening spawns use normal forward;
   - if max-alive limit is off, opening aggressive phase is considered already complete.
-- Counter aggressive-forward detail:
-  - if the chosen counter lane is the target enemy's lane and at least one ally wave blocks the route from spawn to target, the spawn is aggressive forward;
-  - if the chosen counter lane is the target enemy's lane and the lane is fully clean (`allyCountInLane <= 0` and `allyBlockersFromSpawn <= 0`), the spawn is also aggressive forward;
+- Response aggressive-forward detail:
+  - if the chosen response lane is the target enemy's lane and at least one ally wave blocks the route from spawn to target, the spawn is aggressive forward;
+  - if the chosen response lane is the target enemy's lane and the lane is fully clean (`allyCountInLane <= 0` and `allyBlockersFromSpawn <= 0`), the spawn is also aggressive forward;
   - if there are allies in the same lane but none between spawn and target, the spawn falls back to normal `shouldSpawnAggressiveForward()` opening-phase behavior;
-  - this is intentional so counters spawned into a lane with ally traffic can still push through instead of behaving like a slow normal-forward support wave.
-- Counter coverage remains a candidate gate, but it is recalculated from living/currently relevant counters at every intel rebuild. A dead, redirected, or no-longer-relevant counter cannot permanently suppress reinforcement.
+  - this is intentional so responses spawned into a lane with ally traffic can still push through instead of behaving like a slow normal-forward support wave.
+- Response coverage remains a candidate gate, but it is recalculated from living/currently relevant responses at every intel rebuild. A dead, redirected, or no-longer-relevant response cannot permanently suppress reinforcement.
 - Do not replace the size-aware reinforcement check with a simple `coverage < required` test. A tiny coverage deficit must not spawn an entire extra wave when that would overshoot the requested ratio more than waiting.
 - Avoid reintroducing separate "max blockers", "max lane traffic", or "deferred target cooldown" knobs unless the user explicitly asks.
 
@@ -536,7 +559,7 @@ Recent trace interpretation to preserve:
   - max alive waves;
   - aggressive-forward chance;
   - fast-react counter chance.
-- Current `assets/Test.scene` previously serialized the LevelSettings node inactive/component disabled; re-check in Cocos before assuming.
+- Current `assets/Test.scene` serializes the LevelSettings node inactive and component disabled. Enabling it with current level `300` applies the configured final-level values immediately.
 
 ## VAT / Spector
 
