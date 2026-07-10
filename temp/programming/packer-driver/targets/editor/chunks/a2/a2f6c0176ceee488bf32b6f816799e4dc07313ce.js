@@ -64,9 +64,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       SmartResponseTier = /*#__PURE__*/function (SmartResponseTier) {
         SmartResponseTier[SmartResponseTier["None"] = 0] = "None";
-        SmartResponseTier[SmartResponseTier["Stronger"] = 1] = "Stronger";
-        SmartResponseTier[SmartResponseTier["SameType"] = 2] = "SameType";
-        SmartResponseTier[SmartResponseTier["Counter"] = 3] = "Counter";
+        SmartResponseTier[SmartResponseTier["Random"] = 1] = "Random";
+        SmartResponseTier[SmartResponseTier["Counter"] = 2] = "Counter";
         return SmartResponseTier;
       }(SmartResponseTier || {});
 
@@ -548,7 +547,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            const score = intel.responseTier === SmartResponseTier.Counter ? this.getCounterScore(entry, intel.wave) : this.getEntryCombatPower(entry);
+            if (intel.responseTier === SmartResponseTier.Random) {
+              this.bestEntryBuffer.push(entry);
+              continue;
+            }
+
+            const score = this.getCounterScore(entry, intel.wave);
 
             if (score > bestScore + 0.0001) {
               bestScore = score;
@@ -599,6 +603,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
+            if (this.hasAnyAllyRelevantToTarget(intel.wave, intel.laneId)) {
+              continue;
+            }
+
             for (let j = 0; j < this.affordableEntries.length; j++) {
               const candidateEntry = this.affordableEntries[j];
               const ratio = this.getMatchupRatio(candidateEntry, intel.wave);
@@ -633,13 +641,40 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
-          const laneId = targetIntel.laneId;
+          const randomLaneId = this.getRandomLaneId();
+          const laneId = randomLaneId >= 0 ? randomLaneId : targetIntel.laneId;
           const spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, false);
           if (!spawned) return false;
           this.stateLog(`DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` + `target=${(_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
             error: Error()
           }), unitTypeToName) : unitTypeToName)(targetIntel.wave.unitType)} ` + `spawn=${entry.name} lane=${laneId} ` + `targetLane=${targetIntel.laneId}`);
           return true;
+        }
+
+        hasAnyAllyRelevantToTarget(targetWave, laneId) {
+          if (!this.gameManager) return false;
+          const waves = this.gameManager.waves;
+
+          for (let i = 0; i < waves.length; i++) {
+            const allyWave = waves[i];
+            if (!this.isValidWave(allyWave)) continue;
+            if (allyWave.team !== this.team) continue;
+            if (allyWave.laneId < 0) continue;
+
+            if (this.gameManager.clampLaneId(allyWave.laneId) !== laneId) {
+              continue;
+            }
+
+            const relation = this.getWaveTargetRelation(allyWave, targetWave);
+            if (relation > 0) return true;
+            if (relation < 0) continue;
+
+            if (this.isFirstEnemyAheadForAlly(allyWave, targetWave, laneId)) {
+              return true;
+            }
+          }
+
+          return false;
         }
 
         getMatchupRatio(entry, targetWave) {
@@ -840,11 +875,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return SmartResponseTier.None;
           }
 
-          const targetEntry = this.getEntryForWave(targetWave);
-          const targetPower = targetEntry ? this.getEntryCombatPower(targetEntry) : Infinity;
-          let hasSameType = false;
-          let hasStronger = false;
-
           for (let i = 0; i < this.affordableEntries.length; i++) {
             const entry = this.affordableEntries[i];
             const counterScore = this.getCounterScore(entry, targetWave);
@@ -852,22 +882,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (this.isRealCounterScore(counterScore)) {
               return SmartResponseTier.Counter;
             }
-
-            if (entry.unitType === targetWave.unitType) {
-              hasSameType = true;
-              continue;
-            }
-
-            if (this.getEntryCombatPower(entry) > targetPower + 0.0001) {
-              hasStronger = true;
-            }
           }
 
-          if (hasSameType) {
-            return SmartResponseTier.SameType;
-          }
-
-          return hasStronger ? SmartResponseTier.Stronger : SmartResponseTier.None;
+          return this.affordableEntries.length > 0 ? SmartResponseTier.Random : SmartResponseTier.None;
         }
 
         entryMatchesResponseTier(entry, targetWave, tier) {
@@ -875,14 +892,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return this.isRealCounterScore(this.getCounterScore(entry, targetWave));
           }
 
-          if (tier === SmartResponseTier.SameType) {
-            return entry.unitType === targetWave.unitType;
-          }
-
-          if (tier === SmartResponseTier.Stronger) {
-            const targetEntry = this.getEntryForWave(targetWave);
-            if (!targetEntry) return false;
-            return this.getEntryCombatPower(entry) > this.getEntryCombatPower(targetEntry) + 0.0001;
+          if (tier === SmartResponseTier.Random) {
+            return true;
           }
 
           return false;
@@ -891,6 +902,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         waveMatchesResponseTier(allyWave, targetWave, tier) {
           if (tier === SmartResponseTier.None) {
             return false;
+          }
+
+          if (tier === SmartResponseTier.Random) {
+            return true;
           }
 
           const isCounter = this.isRealCounterScore(this.getWaveCounterScore(allyWave, targetWave));
@@ -903,55 +918,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
-          const isSameType = allyWave.unitType === targetWave.unitType;
-
-          if (isSameType) {
-            return true;
-          }
-
-          if (tier === SmartResponseTier.SameType) {
-            return false;
-          }
-
-          if (tier === SmartResponseTier.Stronger) {
-            const allyEntry = this.getEntryForWave(allyWave);
-            const targetEntry = this.getEntryForWave(targetWave);
-
-            if (!allyEntry || !targetEntry) {
-              return false;
-            }
-
-            return this.getEntryCombatPower(allyEntry) > this.getEntryCombatPower(targetEntry) + 0.0001;
-          }
-
           return false;
-        }
-
-        getEntryForWave(wave) {
-          if (!this.gameManager) return null;
-          const entries = this.gameManager.getTeamEntries(wave.team);
-          let typeFallback = null;
-
-          for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-            if (!entry) continue;
-
-            if (entry.name === wave.unitName) {
-              return entry;
-            }
-
-            if (!typeFallback && entry.unitType === wave.unitType) {
-              typeFallback = entry;
-            }
-          }
-
-          return typeFallback;
-        }
-
-        getEntryCombatPower(entry) {
-          const averageInterval = Math.max(0.05, (Math.max(0, entry.attackIntervalMin) + Math.max(0, entry.attackIntervalMax)) * 0.5);
-          const dps = Math.max(0, entry.damage) / averageInterval;
-          return Math.max(0, Math.floor(entry.unitCount)) * Math.max(0, entry.health) * dps;
         }
 
         isHeroWave(wave) {
@@ -1138,6 +1105,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           const index = Math.floor(Math.random() * this.affordableEntries.length);
           return this.affordableEntries[index];
+        }
+
+        getRandomLaneId() {
+          if (!this.gameManager) return -1;
+          const laneCount = this.gameManager.getSafeLaneCount();
+          if (laneCount <= 0) return -1;
+          return Math.floor(Math.random() * laneCount);
         }
 
         getFastestAffordableEntry() {

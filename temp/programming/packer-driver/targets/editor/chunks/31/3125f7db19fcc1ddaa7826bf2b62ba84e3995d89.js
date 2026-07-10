@@ -366,19 +366,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         findForwardSearchTarget(aggressiveForward) {
           if (!this.agent) return null;
-
-          if (!aggressiveForward) {
-            const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-              error: Error()
-            }), GameManager) : GameManager).instance;
-
-            if (gm && gm.spatialGrid) {
-              return gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
-            }
-
-            return this.findNearestEnemyFallback();
-          }
-
           if (this.laneId < 0) return null;
           const enemies = this.getNearbyEnemyList(this.targetSearchRange);
           const maxRangeSq = this.targetSearchRange * this.targetSearchRange;
@@ -388,7 +375,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           for (let i = 0; i < enemies.length; i++) {
             const enemy = enemies[i];
             if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.laneId !== this.laneId) continue;
+
+            if (!this.isForwardSearchCandidate(enemy, aggressiveForward)) {
+              continue;
+            }
+
             const dx = enemy.agent.pos.x - this.agent.pos.x;
             const dz = enemy.agent.pos.z - this.agent.pos.z;
             const distanceSq = dx * dx + dz * dz;
@@ -401,6 +392,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return best;
+        }
+
+        isForwardSearchCandidate(enemy, aggressiveForward) {
+          if (this.laneId < 0 || enemy.laneId < 0) {
+            return false;
+          }
+
+          const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          const ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
+          const enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
+          const laneDistance = Math.abs(ownLane - enemyLane);
+
+          if (aggressiveForward) {
+            if (laneDistance !== 0) return false;
+          } else if (laneDistance > 1) {
+            return false;
+          }
+
+          return this.hasPassedTargetAlongForward(enemy);
         }
 
         hasReachedEnemyHeroLine() {

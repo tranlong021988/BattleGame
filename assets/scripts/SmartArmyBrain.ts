@@ -12,9 +12,8 @@ const DeliberateLosingChoiceChance = 0.8;
 
 enum SmartResponseTier {
     None = 0,
-    Stronger = 1,
-    SameType = 2,
-    Counter = 3,
+    Random = 1,
+    Counter = 2,
 }
 
 class SmartLaneIntel {
@@ -715,14 +714,19 @@ export class SmartArmyBrain extends Component {
                 continue;
             }
 
-            const score =
+            if (
                 intel.responseTier ===
-                    SmartResponseTier.Counter
-                    ? this.getCounterScore(
-                        entry,
-                        intel.wave
-                    )
-                    : this.getEntryCombatPower(entry);
+                SmartResponseTier.Random
+            ) {
+                this.bestEntryBuffer.push(entry);
+                continue;
+            }
+
+            const score =
+                this.getCounterScore(
+                    entry,
+                    intel.wave
+                );
 
             if (score > bestScore + 0.0001) {
                 bestScore = score;
@@ -805,6 +809,15 @@ export class SmartArmyBrain extends Component {
                 continue;
             }
 
+            if (
+                this.hasAnyAllyRelevantToTarget(
+                    intel.wave,
+                    intel.laneId
+                )
+            ) {
+                continue;
+            }
+
             for (let j = 0; j < this.affordableEntries.length; j++) {
                 const candidateEntry =
                     this.affordableEntries[j];
@@ -866,7 +879,12 @@ export class SmartArmyBrain extends Component {
             return false;
         }
 
-        const laneId = targetIntel.laneId;
+        const randomLaneId =
+            this.getRandomLaneId();
+        const laneId =
+            randomLaneId >= 0
+                ? randomLaneId
+                : targetIntel.laneId;
 
         const spawned =
             this.gameManager.spawnWaveByEntry(
@@ -886,6 +904,50 @@ export class SmartArmyBrain extends Component {
         );
 
         return true;
+    }
+
+    private hasAnyAllyRelevantToTarget(
+        targetWave: BattleWave,
+        laneId: number
+    ) {
+        if (!this.gameManager) return false;
+
+        const waves = this.gameManager.waves;
+
+        for (let i = 0; i < waves.length; i++) {
+            const allyWave = waves[i];
+
+            if (!this.isValidWave(allyWave)) continue;
+            if (allyWave!.team !== this.team) continue;
+            if (allyWave!.laneId < 0) continue;
+            if (
+                this.gameManager.clampLaneId(allyWave!.laneId) !==
+                laneId
+            ) {
+                continue;
+            }
+
+            const relation =
+                this.getWaveTargetRelation(
+                    allyWave!,
+                    targetWave
+                );
+
+            if (relation > 0) return true;
+            if (relation < 0) continue;
+
+            if (
+                this.isFirstEnemyAheadForAlly(
+                    allyWave!,
+                    targetWave,
+                    laneId
+                )
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private getMatchupRatio(
@@ -1221,15 +1283,6 @@ export class SmartArmyBrain extends Component {
             return SmartResponseTier.None;
         }
 
-        const targetEntry =
-            this.getEntryForWave(targetWave);
-        const targetPower =
-            targetEntry
-                ? this.getEntryCombatPower(targetEntry)
-                : Infinity;
-        let hasSameType = false;
-        let hasStronger = false;
-
         for (let i = 0; i < this.affordableEntries.length; i++) {
             const entry = this.affordableEntries[i];
             const counterScore =
@@ -1241,26 +1294,10 @@ export class SmartArmyBrain extends Component {
             if (this.isRealCounterScore(counterScore)) {
                 return SmartResponseTier.Counter;
             }
-
-            if (entry.unitType === targetWave.unitType) {
-                hasSameType = true;
-                continue;
-            }
-
-            if (
-                this.getEntryCombatPower(entry) >
-                targetPower + 0.0001
-            ) {
-                hasStronger = true;
-            }
         }
 
-        if (hasSameType) {
-            return SmartResponseTier.SameType;
-        }
-
-        return hasStronger
-            ? SmartResponseTier.Stronger
+        return this.affordableEntries.length > 0
+            ? SmartResponseTier.Random
             : SmartResponseTier.None;
     }
 
@@ -1278,20 +1315,8 @@ export class SmartArmyBrain extends Component {
             );
         }
 
-        if (tier === SmartResponseTier.SameType) {
-            return entry.unitType ===
-                targetWave.unitType;
-        }
-
-        if (tier === SmartResponseTier.Stronger) {
-            const targetEntry =
-                this.getEntryForWave(targetWave);
-
-            if (!targetEntry) return false;
-
-            return this.getEntryCombatPower(entry) >
-                this.getEntryCombatPower(targetEntry) +
-                    0.0001;
+        if (tier === SmartResponseTier.Random) {
+            return true;
         }
 
         return false;
@@ -1304,6 +1329,10 @@ export class SmartArmyBrain extends Component {
     ) {
         if (tier === SmartResponseTier.None) {
             return false;
+        }
+
+        if (tier === SmartResponseTier.Random) {
+            return true;
         }
 
         const isCounter =
@@ -1322,86 +1351,7 @@ export class SmartArmyBrain extends Component {
             return false;
         }
 
-        const isSameType =
-            allyWave.unitType ===
-            targetWave.unitType;
-
-        if (isSameType) {
-            return true;
-        }
-
-        if (tier === SmartResponseTier.SameType) {
-            return false;
-        }
-
-        if (tier === SmartResponseTier.Stronger) {
-            const allyEntry =
-                this.getEntryForWave(allyWave);
-            const targetEntry =
-                this.getEntryForWave(targetWave);
-
-            if (!allyEntry || !targetEntry) {
-                return false;
-            }
-
-            return this.getEntryCombatPower(allyEntry) >
-                this.getEntryCombatPower(targetEntry) +
-                    0.0001;
-        }
-
         return false;
-    }
-
-    private getEntryForWave(
-        wave: BattleWave
-    ): UnitPrefabEntry | null {
-        if (!this.gameManager) return null;
-
-        const entries =
-            this.gameManager.getTeamEntries(wave.team);
-        let typeFallback: UnitPrefabEntry | null = null;
-
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-
-            if (!entry) continue;
-
-            if (entry.name === wave.unitName) {
-                return entry;
-            }
-
-            if (
-                !typeFallback &&
-                entry.unitType === wave.unitType
-            ) {
-                typeFallback = entry;
-            }
-        }
-
-        return typeFallback;
-    }
-
-    private getEntryCombatPower(
-        entry: UnitPrefabEntry
-    ) {
-        const averageInterval =
-            Math.max(
-                0.05,
-                (
-                    Math.max(0, entry.attackIntervalMin) +
-                    Math.max(0, entry.attackIntervalMax)
-                ) * 0.5
-            );
-        const dps =
-            Math.max(0, entry.damage) /
-            averageInterval;
-
-        return Math.max(
-            0,
-            Math.floor(entry.unitCount)
-        ) *
-            Math.max(0, entry.health) *
-            dps;
     }
 
     private isHeroWave(
@@ -1719,6 +1669,19 @@ export class SmartArmyBrain extends Component {
         );
 
         return this.affordableEntries[index];
+    }
+
+    private getRandomLaneId() {
+        if (!this.gameManager) return -1;
+
+        const laneCount =
+            this.gameManager.getSafeLaneCount();
+
+        if (laneCount <= 0) return -1;
+
+        return Math.floor(
+            Math.random() * laneCount
+        );
     }
 
     private getFastestAffordableEntry() {

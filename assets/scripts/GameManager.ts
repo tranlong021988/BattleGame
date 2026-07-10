@@ -738,7 +738,9 @@ export class GameManager extends Component {
             if (!this.isAliveUnit(unit)) continue;
 
             const unitX =
-                unit.node.worldPosition.x;
+                unit.agent
+                    ? unit.agent.pos.x
+                    : unit.node.worldPosition.x;
             const laneId =
                 this.getNearestLaneIdForX(
                     unitX

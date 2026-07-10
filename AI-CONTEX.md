@@ -143,7 +143,7 @@ Rejected/reverted in the office session:
   - a relevant counter below `rescueAllyAliveRatio` may still receive emergency reinforcement.
 - This guard runs before `decisionAccuracy` randomness. Low-accuracy AI cannot repeatedly use an already-covered enemy as a spawn trigger.
 - Do not simplify this back to `coverage < attackCounterCoverageRatio`: a tiny deficit must not spawn an entire extra wave when the resulting overshoot is worse than waiting.
-- `decisionAccuracy` controls whether a complete spawn decision is intelligent or follows the low-accuracy deliberate/random branches. In current `assets/Test.scene`, SmartArmyBrainB is serialized at `0.1` and SmartArmyBrainA at `1`.
+- `decisionAccuracy` controls whether a complete spawn decision is intelligent or follows the low-accuracy deliberate/random branches. In current `assets/Test.scene`, SmartArmyBrainB may serialize at `0.1` and SmartArmyBrainA at `1`, but an enabled `LevelSettings` can override BrainB at runtime.
 
 ### SmartArmyBrain Opening Max And LevelSettings
 
@@ -189,8 +189,8 @@ Rejected/reverted in the office session:
   - chooses the target lane.
 - An inaccurate decision does not rebuild or use tactical intel:
   - it rolls deliberate mistake with conditional chance `1 - decisionAccuracy`;
-  - a deliberate mistake uses current intel and randomly chooses among affordable non-winning matchups (losing or neutral) against a front enemy, then spawns that troop on the enemy's own lane with normal forward;
-  - deliberate mistakes intentionally use the target lane because a "wrong" or empty lane can become a successful raid/flank and make low-accuracy AI stronger instead of weaker;
+  - a deliberate mistake uses current intel and randomly chooses among affordable non-winning matchups (losing or neutral) against a front enemy that is not already being handled by an ally wave;
+  - deliberate mistakes spawn on a random lane with normal forward, not always on the target lane, to reduce repeated low-accuracy responses piling onto one enemy;
   - when both choices exist, deliberate mistakes choose a genuinely losing matchup `80%` of the time and a neutral matchup `20%` of the time; this keeps low-accuracy AI weak without locking both teams into one deterministic counter pair;
   - do not select the single mathematically worst matchup every time; that deterministic extreme caused both teams to repeat one counter pair indefinitely.
   - if no genuinely losing affordable matchup exists, it falls back to random;
@@ -218,9 +218,9 @@ Rejected/reverted in the office session:
 - Player unit icons inherit the existing unavailable tint because `canAffordUnitName()` now rejects locked entries. Tapping a locked icon is ignored with a warning and cannot leave a false selected highlight. No separate lock-icon UX was added.
 - SmartArmyBrain accurate-response tiers are:
   - real unlocked/affordable counter;
-  - otherwise unlocked/affordable same unit type;
-  - otherwise an unlocked/affordable stronger troop.
-- Emergency strength is database-only and calculated as `unitCount * health * DPS`, where `DPS = damage / average(attackIntervalMin, attackIntervalMax)`.
+  - otherwise random unlocked/affordable troop.
+- The random fallback is still a response tier and uses the same coverage/overshoot gates, so it should not repeatedly pile extra waves onto an already handled target.
+- There is no Stronger/SameType fallback in the accepted source. It was tested and rejected because "stronger" often selected cavalry, which then fed spear counters and made max-AI decisions worse.
 - Hero waves remain excluded from troop counter/emergency-response selection.
 - Fast react and normal interval decisions use the same response-tier logic.
 - Live coverage uses the currently best available tier and accepts a living response of equal or better quality. This prevents CP/unlock changes from making the AI forget a better response already on the field.
@@ -241,6 +241,7 @@ Rejected/reverted in the office session:
 - Waves spawn into forward mode.
 - Normal forward uses a wave scanner, usually the representative/front unit.
 - Scanner refresh is throttled by the wave/unit target-search interval.
+- Scanner target selection must scan candidates in range and choose a target that already satisfies lane + passed-forward release rules. Do not revert it to "nearest enemy first, then reject" because one invalid nearest enemy can hide a valid same/adjacent-lane release target.
 - Normal forward can release the whole wave to freehunt/combat when:
   - scanner passes a same-lane target along forward direction;
   - scanner passes an adjacent-lane target along forward direction;
@@ -281,6 +282,7 @@ Rejected/reverted in the office session:
 
 - Lane ID is strategic metadata for SmartArmyBrain and display logic, not a regroup command.
 - Dynamic lane is based on alive unit positions / majority lane logic.
+- Dynamic lane uses simulation `agent.pos.x` when available, with node world X only as fallback.
 - Ties prefer current lane; otherwise closest lane to average X wins.
 - Lane voting is main-thread and has not been proven to be a bottleneck.
 
@@ -559,7 +561,7 @@ Recent trace interpretation to preserve:
   - max alive waves;
   - aggressive-forward chance;
   - fast-react counter chance.
-- Current `assets/Test.scene` serializes the LevelSettings node inactive and component disabled. Enabling it with current level `300` applies the configured final-level values immediately.
+- `assets/Test.scene` often uses `LevelSettings` for testing. If it is enabled at `currentLevel = 300`, it overrides SmartArmyBrainB to final-level values at runtime even when the serialized SmartArmyBrainB component still shows lower values such as `decisionAccuracy = 0.1`.
 
 ## VAT / Spector
 

@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 15183.4886,
+      "mTimestamp": 9148.0892,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 28453968.2658,
+      "mTimestamp": 14665320.9781,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1778,7 +1778,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1783567896992,
+      "mTimestamp": 1783651947563,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -3306,7 +3306,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1783596058858.5137,
+        "mtime": 1783653461903.6611,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -3840,7 +3840,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1783501251940.958,
+        "mtime": 1783653422193.139,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -5529,7 +5529,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1783567896992,
+      "mTimestamp": 1783651947563,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -6131,7 +6131,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1783566078619.7974,
+        "mtime": 1783653437059.3076,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -9028,7 +9028,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/SmartArmyBrain.ts": {
       "mTimestamp": {
-        "mtime": 1783593658108.3025,
+        "mtime": 1783666606652.4148,
         "uuid": "176e839d-b955-4959-9b56-ef97c6316897"
       },
       "chunkId": "a2f6c0176ceee488bf32b6f816799e4dc07313ce",

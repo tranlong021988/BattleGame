@@ -361,21 +361,6 @@ export class Unit extends Component {
     ): Unit | null {
         if (!this.agent) return null;
 
-        if (!aggressiveForward) {
-            const gm = GameManager.instance;
-
-            if (gm && gm.spatialGrid) {
-                return gm.spatialGrid.findNearestEnemy(
-                    this.team,
-                    this.agent.pos.x,
-                    this.agent.pos.z,
-                    this.targetSearchRange
-                );
-            }
-
-            return this.findNearestEnemyFallback();
-        }
-
         if (this.laneId < 0) return null;
 
         const enemies =
@@ -393,7 +378,14 @@ export class Unit extends Component {
             const enemy = enemies[i];
 
             if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.laneId !== this.laneId) continue;
+            if (
+                !this.isForwardSearchCandidate(
+                    enemy,
+                    aggressiveForward
+                )
+            ) {
+                continue;
+            }
 
             const dx =
                 enemy.agent!.pos.x - this.agent.pos.x;
@@ -410,6 +402,33 @@ export class Unit extends Component {
         }
 
         return best;
+    }
+
+    private isForwardSearchCandidate(
+        enemy: Unit,
+        aggressiveForward: boolean
+    ) {
+        if (this.laneId < 0 || enemy.laneId < 0) {
+            return false;
+        }
+
+        const gm = GameManager.instance;
+        const ownLane = gm
+            ? gm.clampLaneId(this.laneId)
+            : this.laneId;
+        const enemyLane = gm
+            ? gm.clampLaneId(enemy.laneId)
+            : enemy.laneId;
+        const laneDistance =
+            Math.abs(ownLane - enemyLane);
+
+        if (aggressiveForward) {
+            if (laneDistance !== 0) return false;
+        } else if (laneDistance > 1) {
+            return false;
+        }
+
+        return this.hasPassedTargetAlongForward(enemy);
     }
 
     public hasReachedEnemyHeroLine() {

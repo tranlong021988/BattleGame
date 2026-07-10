@@ -620,7 +620,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (let i = 0; i < wave.units.length; i++) {
             const unit = wave.units[i];
             if (!this.isAliveUnit(unit)) continue;
-            const unitX = unit.node.worldPosition.x;
+            const unitX = unit.agent ? unit.agent.pos.x : unit.node.worldPosition.x;
             const laneId = this.getNearestLaneIdForX(unitX);
             counts[laneId]++;
             counted++;

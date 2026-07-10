@@ -28,7 +28,6 @@ export class BattleWave {
     private targetSearchIntervalFrames = 1;
     private forwardModeActive = true;
     private freeHuntActive = false;
-    private permanentFreeHunt = false;
     private aggressiveForwardMode = false;
     private initialForwardCombatGateActive = true;
     private initialForwardCombatReleaseThreshold = 1;
@@ -589,14 +588,9 @@ export class BattleWave {
     }
 
     releaseForwardToFreeHunt(
-        searchRange: number = 0,
-        permanent: boolean = false
+        searchRange: number = 0
     ) {
         if (this.released) return;
-
-        if (permanent) {
-            this.permanentFreeHunt = true;
-        }
 
         if (
             this.freeHuntActive &&
@@ -649,7 +643,6 @@ export class BattleWave {
 
         this.forwardModeActive = true;
         this.freeHuntActive = false;
-        this.permanentFreeHunt = false;
         this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
@@ -724,7 +717,6 @@ export class BattleWave {
     tryResumeForward() {
         if (this.released) return false;
         if (!this.freeHuntActive) return false;
-        if (this.permanentFreeHunt) return false;
 
         let aliveCount = 0;
 
@@ -801,7 +793,6 @@ export class BattleWave {
         this.targetSearchIntervalFrames = 1;
         this.forwardModeActive = false;
         this.freeHuntActive = false;
-        this.permanentFreeHunt = false;
         this.aggressiveForwardMode = false;
         this.initialForwardCombatGateActive = false;
         this.initialForwardCombatReleaseThreshold = 1;
