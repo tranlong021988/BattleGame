@@ -561,7 +561,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!wave) return;
           if (wave.isDead()) return;
 
-          if (!this.shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate)) {
+          if (!this.shouldUseSoloAggressiveCombat(wave, unit, enemy) && !this.shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate)) {
             wave.enterCombatMode();
           }
 
@@ -573,9 +573,70 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (!this.shouldDelayInitialForwardCombat(enemyWave, enemy, unit, useInitialForwardGate)) {
+          if (!this.shouldUseSoloAggressiveCombat(enemyWave, enemy, unit) && !this.shouldDelayInitialForwardCombat(enemyWave, enemy, unit, useInitialForwardGate)) {
             enemyWave.enterCombatMode();
           }
+        }
+
+        shouldUseSoloAggressiveSkirmish(unit, enemy) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return false;
+          if (wave.isDead()) return false;
+          return this.shouldUseSoloAggressiveCombat(wave, unit, enemy);
+        }
+
+        shouldUseSoloAggressiveCombat(wave, unit, enemy) {
+          if (!wave.isAggressiveForwardMode()) return false;
+          if (!unit || !enemy) return false;
+
+          if (!unit.onForward && !unit.isSoloAggressiveSkirmishActive()) {
+            return false;
+          }
+
+          var unitLane = this.getCurrentLaneIdForUnit(unit);
+          var enemyLane = this.getCurrentLaneIdForUnit(enemy);
+          if (unitLane < 0 || enemyLane < 0) return false;
+
+          if (unitLane !== enemyLane) {
+            return true;
+          }
+
+          return this.isEnemyOutsideUnitAttackRange(unit, enemy);
+        }
+
+        isEnemyOutsideUnitAttackRange(unit, enemy) {
+          if (!unit.agent || !enemy.agent) return false;
+          var dx = enemy.agent.pos.x - unit.agent.pos.x;
+          var dz = enemy.agent.pos.z - unit.agent.pos.z;
+          var range = Math.max(0, unit.attackRange) + Math.max(0, unit.radius) + Math.max(0, enemy.radius);
+          return dx * dx + dz * dz > range * range + 0.0001;
+        }
+
+        getCurrentLaneIdForUnit(unit) {
+          if (!unit) return -1;
+
+          if (unit.agent) {
+            return this.getNearestLaneIdForX(unit.agent.pos.x);
+          }
+
+          if (unit.node && unit.node.isValid) {
+            return this.getNearestLaneIdForX(unit.node.worldPosition.x);
+          }
+
+          return unit.laneId >= 0 ? this.clampLaneId(unit.laneId) : -1;
+        }
+
+        shouldResumeSoloForwardAfterAggressiveSkirmish(unit) {
+          if (!unit) return false;
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return false;
+          if (wave.isDead()) return false;
+          if (!wave.isAggressiveForwardMode()) return false;
+          return unit.isSoloAggressiveSkirmishActive() && !unit.onForward && !unit.onBusy && !unit.hasValidEnemyTarget();
         }
 
         shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate) {
@@ -632,7 +693,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var _i = 0; _i < wave.units.length; _i++) {
             var unit = wave.units[_i];
             if (!this.isAliveUnit(unit)) continue;
-            var unitX = unit.node.worldPosition.x;
+            var unitX = unit.agent ? unit.agent.pos.x : unit.node.worldPosition.x;
             var laneId = this.getNearestLaneIdForX(unitX);
             counts[laneId]++;
             counted++;
@@ -942,6 +1003,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         refreshDynamicLaneForWave(wave) {
           if (!wave) return;
           if (wave.isDeadRuntime(this.frame)) return;
+          if (wave.hasBackToLaneUnits()) return;
           var interval = wave.getTargetSearchIntervalFrames();
           var offset = wave.id + Math.floor(interval / 2); // Lane is strategic metadata only. Stagger updates by wave
           // and away from forward scans for the same wave.
@@ -1144,6 +1206,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!entry) return false;
           if (!entry.name) return false;
           if (!entry.prefab) return false;
+          var unlocked = this.unitDatabase ? this.unitDatabase.isEntryUnlocked(entry) : entry.unlocked;
+
+          if (!unlocked) {
+            return false;
+          }
 
           if (requirePositiveUnitCount && Math.floor(entry.unitCount) <= 0) {
             return false;
@@ -1162,6 +1229,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.canAffordEntry(team, entry);
+        }
+
+        isUnitNameUnlocked(team, unitName) {
+          var safeName = (unitName || '').trim();
+          if (!safeName) return false;
+          var entry = this.getTeamEntry(team, safeName);
+          if (!entry) return false;
+          return this.unitDatabase ? this.unitDatabase.isEntryUnlocked(entry) : entry.unlocked;
         }
 
         collectAffordableEntries(team, out) {
@@ -1415,7 +1490,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             aggressiveForward = false;
           }
 
-          if (!entry || !entry.prefab) {
+          if (!this.isValidSpawnEntry(entry)) {
             return null;
           }
 
@@ -1446,6 +1521,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (aggressiveForward === void 0) {
             aggressiveForward = false;
+          }
+
+          if (!this.isValidSpawnEntry(entry)) {
+            return null;
           }
 
           var count = Math.max(0, Math.floor(entry.unitCount));
@@ -1803,6 +1882,36 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var laneWidth = width / count;
           return this.battleMinX + laneWidth * (safeLane + 0.5);
+        }
+
+        getLaneWidth() {
+          var count = this.getSafeLaneCount();
+          var width = this.battleMaxX - this.battleMinX;
+
+          if (width <= 0) {
+            return 0;
+          }
+
+          return width / count;
+        }
+
+        getLaneMinX(laneId) {
+          return this.getLaneCenterX(laneId) - this.getLaneWidth() * 0.5;
+        }
+
+        getLaneMaxX(laneId) {
+          return this.getLaneCenterX(laneId) + this.getLaneWidth() * 0.5;
+        }
+
+        getDirectionToLaneArea(laneId, x) {
+          if (laneId < 0) return 0;
+          var width = this.getLaneWidth();
+          if (width <= 0) return 0;
+          var minX = this.getLaneMinX(laneId);
+          var maxX = this.getLaneMaxX(laneId);
+          if (x < minX) return 1;
+          if (x > maxX) return -1;
+          return 0;
         }
 
         getNearestLaneIdForX(x) {

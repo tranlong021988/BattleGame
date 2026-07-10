@@ -1950,7 +1950,7 @@
     "enableLaneSpawn": true,
     "laneCount": 3,
     "defaultSpawnLane": 1,
-    "autoSpawnRandomLane": true,
+    "autoSpawnRandomLane": false,
     "waveBannerRefreshIntervalFrames": 12,
     "waveBannerCamera": {
       "__id__": 143
@@ -2034,8 +2034,8 @@
     "_enabled": true,
     "__prefab": null,
     "enableCombatPoint": true,
-    "teamAInitialCombatPoint": 200,
-    "teamBInitialCombatPoint": 200,
+    "teamAInitialCombatPoint": 500,
+    "teamBInitialCombatPoint": 500,
     "killRewardCostWeight": 0,
     "counterKillRewardCostWeight": 0,
     "teamAWaveBannerBackgroundColor": {
@@ -8851,12 +8851,12 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 0.1,
+    "decisionAccuracy": 0,
     "attackCounterCoverageRatio": 0.7,
     "ignoreNearlyDeadWaveRatio": 0.2,
     "rescueAllyAliveRatio": 0.35,
     "aggressiveForwardChance": 0.25,
-    "fastReactCounterChance": 1,
+    "fastReactCounterChance": 0,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "enableStateLog": false,
     "enableDebugLog": false,
@@ -8927,7 +8927,7 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 0.9,
+    "decisionAccuracy": 1,
     "attackCounterCoverageRatio": 0.7,
     "ignoreNearlyDeadWaveRatio": 0.2,
     "rescueAllyAliveRatio": 0.35,
@@ -9014,7 +9014,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 311
@@ -9058,7 +9058,7 @@
     "node": {
       "__id__": 310
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": null,
     "totalLevels": 300,
     "currentLevel": 150,

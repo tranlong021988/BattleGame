@@ -87,6 +87,9 @@ export class Unit extends Component {
     private retaliationTargetLifeId = -1;
     private targetSearchPending = false;
     private targetSearchConfirmedNoTarget = false;
+    private soloAggressiveSkirmishActive = false;
+    private backToLaneActive = false;
+    private backToLaneForwardAggressive = false;
     private nearestEnemyQueryToken = 0;
     private readonly onNearestEnemyQueryResult = (
         target: Unit | null,
@@ -145,6 +148,9 @@ export class Unit extends Component {
 
         this.setEnemyTarget(null);
         this.onBusy = false;
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = false;
+        this.backToLaneForwardAggressive = false;
 
         this.onForward = !this.isSteady;
         this.setForwardDir(forwardX, forwardZ);
@@ -179,6 +185,7 @@ export class Unit extends Component {
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.backToLaneActive = false;
 
             this.initialYaw = this.getVisualEulerY();
 
@@ -197,6 +204,7 @@ export class Unit extends Component {
         this.setEnemyTarget(null);
         this.onBusy = false;
         this.onForward = useForwardPhase;
+        this.backToLaneActive = false;
 
         this.setAgentLocked(false);
         this.setAgentOnForward(useForwardPhase ? 1 : 0);
@@ -314,6 +322,14 @@ export class Unit extends Component {
         this.retaliationTargetLifeId = target.lifeId;
         this.targetSearchConfirmedNoTarget = false;
         this.resetBusyLookCache();
+    }
+
+    public isSoloAggressiveSkirmishActive() {
+        return this.soloAggressiveSkirmishActive;
+    }
+
+    public isBackToLaneActive() {
+        return this.backToLaneActive;
     }
 
     private setCachedNearestInRangeTarget(target: Unit | null) {
@@ -473,6 +489,15 @@ export class Unit extends Component {
         }
 
         const gm = GameManager.instance;
+        const wasBackToLane =
+            this.backToLaneActive;
+        const soloAggressive =
+            gm
+                ? gm.shouldUseSoloAggressiveSkirmish(
+                    this,
+                    attacker
+                )
+                : false;
 
         if (gm) {
             gm.onWaveCombatStarted(
@@ -489,6 +514,18 @@ export class Unit extends Component {
         this.targetSearchConfirmedNoTarget = false;
         this.setRetaliationTarget(attacker!);
         this.setCachedNearestInRangeTarget(null);
+        this.soloAggressiveSkirmishActive =
+            this.soloAggressiveSkirmishActive ||
+            soloAggressive;
+
+        if (this.onForward || wasBackToLane) {
+            this.onForward = false;
+            this.backToLaneActive = false;
+            this.setAgentOnForward(0);
+            this.setAgentLocked(false);
+            this.setAgentStopped();
+            this.resetMoveIntentFacing();
+        }
 
         return true;
     }
@@ -518,6 +555,9 @@ export class Unit extends Component {
             this.props.resetForDespawn();
         }
 
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = false;
+        this.backToLaneForwardAggressive = false;
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.laneId = -1;
@@ -560,6 +600,8 @@ export class Unit extends Component {
         this.isSteady = false;
         this.onForward = false;
         this.aggressiveForward = false;
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = false;
         this.resetStableRotationPosition();
         this.targetSearchRange = Math.max(
             this.targetSearchRange,
@@ -586,6 +628,8 @@ export class Unit extends Component {
     enterWaveCombatMode() {
         this.onForward = false;
         this.aggressiveForward = false;
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = false;
         this.resetStableRotationPosition();
 
         this.invalidateNearestQueryResults();
@@ -605,6 +649,8 @@ export class Unit extends Component {
     ) {
         this.onForward = false;
         this.aggressiveForward = false;
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = false;
         this.resetStableRotationPosition();
 
         if (searchRange > 0) {
@@ -627,14 +673,27 @@ export class Unit extends Component {
     }
 
     enterWaveForwardMode(
-        aggressiveForward: boolean
+        aggressiveForward: boolean,
+        useBackToLanePhase: boolean = false
     ) {
         if (this.isSteady) return;
+
+        if (
+            useBackToLanePhase &&
+            this.startBackToLanePhase(
+                aggressiveForward
+            )
+        ) {
+            return;
+        }
 
         this.setEnemyTarget(null);
         this.onBusy = false;
         this.onForward = true;
         this.aggressiveForward = aggressiveForward;
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = false;
+        this.backToLaneForwardAggressive = false;
         this.resetStableRotationPosition();
         this.resetMoveIntentFacing();
 
@@ -665,6 +724,7 @@ export class Unit extends Component {
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
             this.setAgentStopped();
@@ -680,6 +740,7 @@ export class Unit extends Component {
             this.setAgentLocked(true);
             this.setAgentStopped();
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
         }
 
@@ -715,6 +776,17 @@ export class Unit extends Component {
 
         if (nearestInRange) {
             const gm = GameManager.instance;
+            const soloAggressive =
+                gm
+                    ? gm.shouldUseSoloAggressiveSkirmish(
+                        this,
+                        nearestInRange
+                    )
+                    : false;
+
+            this.soloAggressiveSkirmishActive =
+                this.soloAggressiveSkirmishActive ||
+                soloAggressive;
 
             if (gm) {
                 gm.onWaveCombatStarted(
@@ -724,6 +796,7 @@ export class Unit extends Component {
             }
 
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
 
             this.setEnemyTarget(nearestInRange);
@@ -746,6 +819,12 @@ export class Unit extends Component {
             this.returnToInitialYawSmooth(deltaTime);
 
             this.sync(deltaTime, false);
+            return;
+        }
+
+        this.tryResumeSoloForwardAfterAggressiveSkirmish();
+
+        if (this.updateBackToLanePhase(deltaTime)) {
             return;
         }
 
@@ -795,6 +874,112 @@ export class Unit extends Component {
             this.setAgentStopped();
             this.sync(deltaTime, true);
         }
+    }
+
+    private tryResumeSoloForwardAfterAggressiveSkirmish() {
+        if (this.onForward) return false;
+        if (this.onBusy) return false;
+        if (this.isSteady) return false;
+        if (this.hasValidEnemyTarget()) return false;
+
+        const gm = GameManager.instance;
+
+        if (
+            !gm ||
+            !gm.shouldResumeSoloForwardAfterAggressiveSkirmish(this)
+        ) {
+            return false;
+        }
+
+        this.enterWaveForwardMode(false, true);
+        return true;
+    }
+
+    private startBackToLanePhase(
+        aggressiveForward: boolean
+    ) {
+        if (!this.agent) return false;
+        if (this.laneId < 0) return false;
+
+        const gm = GameManager.instance;
+
+        if (!gm) return false;
+
+        const dir =
+            gm.getDirectionToLaneArea(
+                this.laneId,
+                this.agent.pos.x
+            );
+
+        if (dir === 0) return false;
+
+        this.setEnemyTarget(null);
+        this.onBusy = false;
+        this.onForward = false;
+        this.aggressiveForward = aggressiveForward;
+        this.soloAggressiveSkirmishActive = false;
+        this.backToLaneActive = true;
+        this.backToLaneForwardAggressive = aggressiveForward;
+        this.resetStableRotationPosition();
+        this.resetMoveIntentFacing();
+
+        this.invalidateNearestQueryResults();
+        this.clearCachedTargets();
+
+        this.setAgentLocked(false);
+        this.setAgentOnForward(0);
+        this.setAgentPrefVelocity(
+            dir * this.agent.maxSpeed,
+            0
+        );
+
+        return true;
+    }
+
+    private updateBackToLanePhase(
+        deltaTime: number
+    ) {
+        if (!this.backToLaneActive) return false;
+
+        if (!this.agent || this.isSteady) {
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            return false;
+        }
+
+        const gm = GameManager.instance;
+
+        if (!gm || this.laneId < 0) {
+            this.enterWaveForwardMode(false);
+            return true;
+        }
+
+        const dir =
+            gm.getDirectionToLaneArea(
+                this.laneId,
+                this.agent.pos.x
+            );
+
+        if (dir === 0) {
+            const aggressiveForward =
+                this.backToLaneForwardAggressive;
+
+            this.enterWaveForwardMode(
+                aggressiveForward
+            );
+            return true;
+        }
+
+        this.setAgentOnForward(0);
+        this.setAgentLocked(false);
+        this.setAgentPrefVelocity(
+            dir * this.agent.maxSpeed,
+            0
+        );
+
+        this.lookMoveIntentSmooth(deltaTime);
+        this.sync(deltaTime, false);
+        return true;
     }
 
     private shouldRunAttackCheck(): boolean {

@@ -52,7 +52,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.targetSearchIntervalFrames = 1;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
-          this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
           this.initialForwardCombatGateActive = true;
           this.initialForwardCombatReleaseThreshold = 1;
@@ -471,12 +470,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        releaseForwardToFreeHunt(searchRange = 0, permanent = false) {
+        releaseForwardToFreeHunt(searchRange = 0) {
           if (this.released) return;
-
-          if (permanent) {
-            this.permanentFreeHunt = true;
-          }
 
           if (this.freeHuntActive && searchRange <= 0) {
             return;
@@ -516,7 +511,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           let aliveCount = 0;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
-          this.permanentFreeHunt = false;
           this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
@@ -573,7 +567,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         tryResumeForward() {
           if (this.released) return false;
           if (!this.freeHuntActive) return false;
-          if (this.permanentFreeHunt) return false;
           let aliveCount = 0;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -597,10 +590,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            u.enterWaveForwardMode(this.aggressiveForwardMode);
+            u.enterWaveForwardMode(this.aggressiveForwardMode, true);
           }
 
           return true;
+        }
+
+        hasBackToLaneUnits() {
+          if (this.released) return false;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (u.isBackToLaneActive()) return true;
+          }
+
+          return false;
         }
 
         refreshInitialForwardCombatGate() {
@@ -637,7 +642,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.targetSearchIntervalFrames = 1;
           this.forwardModeActive = false;
           this.freeHuntActive = false;
-          this.permanentFreeHunt = false;
           this.aggressiveForwardMode = false;
           this.initialForwardCombatGateActive = false;
           this.initialForwardCombatReleaseThreshold = 1;

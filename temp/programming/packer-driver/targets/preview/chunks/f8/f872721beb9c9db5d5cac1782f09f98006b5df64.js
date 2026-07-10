@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, GameManager, SmartArmyBrain, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _crd, ccclass, property, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, GameManager, SmartArmyBrain, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _crd, ccclass, property, LevelSettings;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -59,18 +59,38 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       }), _dec7 = property({
         tooltip: 'Apply initial Combat Point curve to the selected team.'
       }), _dec8 = property({
-        tooltip: 'Apply SmartArmyBrain decision accuracy curve. Higher values make AI choose better counter units and lanes.'
+        tooltip: 'Apply the SmartArmyBrain accuracy curve. At accuracy A: smart=A, deliberate mistake=(1-A)^2, random=A*(1-A). Start near 0.1 to keep the easiest AI weak without locking it into deterministic troop loops.'
       }), _dec9 = property({
-        tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
+        min: 0,
+        max: 1,
+        tooltip: 'Decision Accuracy at level 1. Default 0.1 keeps the AI extremely weak but allows enough variation to avoid the Accuracy 0 troop loop.'
       }), _dec10 = property({
-        tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
+        min: 0,
+        max: 1,
+        tooltip: 'Decision Accuracy at the final level. Use 1 for fully intelligent target, counter-unit, and lane decisions.'
       }), _dec11 = property({
-        tooltip: 'Apply Aggressive Forward curve. Higher levels unlock more lane-empty raid attempts.'
+        tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
       }), _dec12 = property({
+        displayName: 'Easy Spawn Delay Min',
+        tooltip: 'Shortest delay between spawn decisions at level 1.'
+      }), _dec13 = property({
+        displayName: 'Easy Spawn Delay Max',
+        tooltip: 'Longest delay between spawn decisions at level 1. Keep this greater than or equal to Easy Spawn Delay Min.'
+      }), _dec14 = property({
+        displayName: 'Hard Spawn Delay Min',
+        tooltip: 'Shortest delay between spawn decisions at the final level. Lower values make the AI react more frequently.'
+      }), _dec15 = property({
+        displayName: 'Hard Spawn Delay Max',
+        tooltip: 'Longest delay between spawn decisions at the final level. Keep this greater than or equal to Hard Spawn Delay Min.'
+      }), _dec16 = property({
+        tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
+      }), _dec17 = property({
+        tooltip: 'Apply Aggressive Forward curve. Higher levels unlock more lane-empty raid attempts.'
+      }), _dec18 = property({
         min: 0,
         max: 1,
         tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
-      }), _dec13 = property({
+      }), _dec19 = property({
         tooltip: 'Apply SmartArmyBrain fast-react chance curve. The maximum defaults to immediate reaction at the final level.'
       }), _dec(_class = (_class2 = class LevelSettings extends Component {
         constructor() {
@@ -102,9 +122,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "minSpawnIntervalMinLevel", _descriptor13, this);
 
-          _initializerDefineProperty(this, "minSpawnIntervalMaxLevel", _descriptor14, this);
+          _initializerDefineProperty(this, "maxSpawnIntervalMinLevel", _descriptor14, this);
 
-          _initializerDefineProperty(this, "maxSpawnIntervalMinLevel", _descriptor15, this);
+          _initializerDefineProperty(this, "minSpawnIntervalMaxLevel", _descriptor15, this);
 
           _initializerDefineProperty(this, "maxSpawnIntervalMaxLevel", _descriptor16, this);
 
@@ -157,7 +177,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!brain) continue;
 
             if (this.allowDecisionAccuracy) {
-              brain.decisionAccuracy = this.lerp(this.decisionAccuracyMin, this.decisionAccuracyMax, t);
+              brain.decisionAccuracy = this.clamp01(this.lerp(this.decisionAccuracyMin, this.decisionAccuracyMax, t));
             }
 
             if (this.allowInterval) {
@@ -310,56 +330,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMin", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMin", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 0;
+          return 0.1;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMax", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMax", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "allowInterval", [_dec9], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "allowInterval", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMinLevel", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMinLevel", [_dec12], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5.0;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMaxLevel", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 2.7;
-        }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMinLevel", [property], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMinLevel", [_dec13], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 6.0;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMaxLevel", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMaxLevel", [_dec14], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 2.7;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMaxLevel", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3.7;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "allowMaxWave", [_dec10], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "allowMaxWave", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -380,7 +400,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 15;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "allowAggressive", [_dec11], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "allowAggressive", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
@@ -401,14 +421,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardUnlockAt", [_dec12], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardUnlockAt", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.45;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "allowFastReact", [_dec13], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "allowFastReact", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-09 by the office Codex.
+Last updated: 2026-07-11 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -28,7 +28,7 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - `GameManager.enableAutoSpawn` should usually be off when `SmartArmyBrain` owns spawning.
 - `BattleWave` owns wave-level state, representative unit, and optional wave banner node.
 - `Unit` / `UnitBehavior` still own per-unit movement/combat state.
-- There is no regroup-to-slot or lane-return movement in the accepted flow.
+- There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
 
 ## Accepted 2026-07-07 Office Changes
@@ -193,13 +193,13 @@ Rejected/reverted in the office session:
   - deliberate mistakes spawn on a random lane with normal forward, not always on the target lane, to reduce repeated low-accuracy responses piling onto one enemy;
   - when both choices exist, deliberate mistakes choose a genuinely losing matchup `80%` of the time and a neutral matchup `20%` of the time; this keeps low-accuracy AI weak without locking both teams into one deterministic counter pair;
   - do not select the single mathematically worst matchup every time; that deterministic extreme caused both teams to repeat one counter pair indefinitely.
-  - if no genuinely losing affordable matchup exists, it falls back to random;
+  - if no losing/neutral matchup exists, it chooses the weakest available affordable matchup before falling back to random;
   - the remaining inaccurate decisions choose a random affordable entry, random lane, and roll aggressive-forward only from `aggressiveForwardChance`.
-- Therefore `decisionAccuracy = 0` always attempts a deliberate losing decision, while `1` always uses the complete SmartArmyBrain counter decision.
-- Total behavior probabilities are:
+- Therefore `decisionAccuracy = 0` attempts a deliberate mistake every normal spawn decision, and should only log `NAIVE_RANDOM` when there is no valid front target / no usable mistake candidate.
+- Approximate behavior probabilities are:
   - smart: `accuracy`;
-  - deliberate mistake: `(1 - accuracy)²`;
-  - random: `accuracy × (1 - accuracy)`.
+  - deliberate mistake attempt: `(1 - accuracy)^2`;
+  - random branch: `accuracy * (1 - accuracy)`, plus rare fallback when no deliberate mistake candidate exists.
 - Fast react is an intelligent reaction:
   - it only proceeds when its `decisionAccuracy` roll succeeds;
   - if it proceeds, the newly spawned enemy remains its fixed reaction target and the AI chooses the best counter on the target lane;
@@ -258,10 +258,17 @@ Rejected/reverted in the office session:
 - It ignores ordinary adjacent-lane unit pass/release.
 - It still releases through:
   - same-lane passed target;
-  - attack-range contact / retaliation;
+  - same-lane attack-range contact / retaliation;
   - enemy hero line;
   - adjacent-lane enemy hero special case.
-- When a wave leaves forward for freehunt/combat, aggressive-forward mode is cleared. Later recovery is normal forward.
+- Adjacent-lane unit contact during aggressive forward is a deliberate solo exception:
+  - the unit that is hit or reaches attack range may leave forward and fight alone;
+  - the rest of the wave stays in aggressive forward;
+  - "adjacent/different lane" for this solo exception is based on each unit's current X position mapped to the nearest lane, not only the wave's dynamic `laneId`;
+  - ranged/off-range retaliation is also a solo exception: if the attacker can damage the unit while still outside that unit's own effective attack range, the damaged unit peels off to chase alone;
+  - once that solo unit has no busy/target state, it resumes normal forward, not aggressive forward;
+  - this exception must not be applied to normal forward.
+- When the whole wave leaves forward for same-lane freehunt/combat, aggressive-forward mode is cleared only for that wave-level release. Later wave recovery is normal forward.
 
 ### Freehunt / Combat
 
@@ -277,6 +284,14 @@ Rejected/reverted in the office session:
   - has confirmed no target from the latest target-search cycle.
 - If any alive unit is busy, still has a target, or has not confirmed no target yet, the wave should not resume forward.
 - Waiting for target/search state to clear is intentional and should not be treated as a bug by itself.
+- After the wave is allowed to leave freehunt/combat and resume forward, each alive unit resolves its own lane position:
+  - units already inside the wave's current lane area immediately forward;
+  - units outside the lane area enter a local back-to-lane phase and move sideways toward that lane at normal `maxSpeed`;
+  - once a unit's center enters the lane area, it switches to forward; it does not need to return to lane center or a fixed formation slot;
+  - this phase uses `GameManager` lane bounds from `battleMinX`, `battleMaxX`, and `laneCount`;
+  - attack-range contact or retaliation still wins over lane return, so a unit can be pulled back into combat while returning;
+  - dynamic lane voting is temporarily held while any unit in the wave is still in this back-to-lane phase, preventing laneId from changing under the returning units.
+- This is intentionally not old regroup-to-slot: there is no whole-wave wait, no slot assignment, and no forced center-line formation.
 
 ### Dynamic Lane
 
@@ -284,6 +299,7 @@ Rejected/reverted in the office session:
 - Dynamic lane is based on alive unit positions / majority lane logic.
 - Dynamic lane uses simulation `agent.pos.x` when available, with node world X only as fallback.
 - Ties prefer current lane; otherwise closest lane to average X wins.
+- Dynamic lane voting skips waves that currently have any unit in the back-to-lane phase. The laneId chosen before forward recovery must stay stable until those units finish returning.
 - Lane voting is main-thread and has not been proven to be a bottleneck.
 
 ## Hero Rules
@@ -309,7 +325,10 @@ Rejected/reverted in the office session:
   - if its units have targets, only units targeting that specific enemy count;
   - if it has no targets, it covers only the first enemy ahead.
 - It scores threats using response coverage, alive ratio, distance to own hero/spawn, engagement/free status, clean-path priority, ally blockers from spawn to target, and whether same-lane ally responses look like they are failing.
-- It prefers uncovered enemy waves with the best currently unlocked and affordable response tier: real counter, same type, then stronger emergency troop.
+- It prefers uncovered enemy waves with the best currently unlocked and affordable response tier:
+  - real counter if any affordable unlocked counter exists;
+  - otherwise random affordable fallback.
+  - There is no accepted same-type or stronger emergency tier.
 - Target reachability is resolved before threat score: a rear wave cannot win priority while another enemy wave stands between it and this team's spawn on the same lane.
 - A fully covered wave is not a new response candidate unless its relevant response pressure is visibly failing.
 - Snapshot/intel rebuild is not the same thing as deciding to spawn:
@@ -572,7 +591,7 @@ Recent trace interpretation to preserve:
 
 ## Do Not Resurrect Without User Approval
 
-- Old regroup-to-slot / lane-return movement.
+- Old regroup-to-slot / whole-wave lane-return movement. The accepted replacement is only the lightweight per-unit back-to-lane phase after `freehunt -> forward`.
 - Old permanent full-map hero freehunt.
 - Old `ArmyBrain` / DefenseMode interpretation.
 - Minimap as an active gameplay feature.

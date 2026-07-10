@@ -747,11 +747,25 @@ export class BattleWave {
             if (!this.isUnitAlive(u)) continue;
 
             u.enterWaveForwardMode(
-                this.aggressiveForwardMode
+                this.aggressiveForwardMode,
+                true
             );
         }
 
         return true;
+    }
+
+    hasBackToLaneUnits() {
+        if (this.released) return false;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isUnitAlive(u)) continue;
+            if (u.isBackToLaneActive()) return true;
+        }
+
+        return false;
     }
 
     refreshInitialForwardCombatGate() {

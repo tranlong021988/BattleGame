@@ -795,6 +795,10 @@ export class SmartArmyBrain extends Component {
         let neutralIntel: SmartWaveIntel | null = null;
         let neutralEntry: UnitPrefabEntry | null = null;
         let neutralChoiceCount = 0;
+        let weakIntel: SmartWaveIntel | null = null;
+        let weakEntry: UnitPrefabEntry | null = null;
+        let weakRatio = Infinity;
+        let weakChoiceCount = 0;
 
         for (let i = 0; i < this.activeEnemyIntelCount; i++) {
             const intel = this.enemyIntel[i];
@@ -854,6 +858,26 @@ export class SmartArmyBrain extends Component {
                         neutralEntry = candidateEntry;
                     }
                 }
+
+                if (ratio < weakRatio - 0.0001) {
+                    weakRatio = ratio;
+                    weakChoiceCount = 1;
+                    weakIntel = intel;
+                    weakEntry = candidateEntry;
+                } else if (
+                    Math.abs(ratio - weakRatio) <= 0.0001
+                ) {
+                    weakChoiceCount++;
+
+                    if (
+                        Math.random() *
+                            weakChoiceCount <
+                        1
+                    ) {
+                        weakIntel = intel;
+                        weakEntry = candidateEntry;
+                    }
+                }
             }
         }
 
@@ -869,11 +893,19 @@ export class SmartArmyBrain extends Component {
         const targetIntel =
             useLosingChoice
                 ? losingIntel
-                : neutralIntel;
+                : neutralIntel ||
+                    weakIntel;
         const entry =
             useLosingChoice
                 ? losingEntry
-                : neutralEntry;
+                : neutralEntry ||
+                    weakEntry;
+        const mistakeKind =
+            useLosingChoice
+                ? 'losing'
+                : neutralIntel
+                    ? 'neutral'
+                    : 'weakest';
 
         if (!targetIntel || !targetIntel.wave || !entry) {
             return false;
@@ -900,7 +932,8 @@ export class SmartArmyBrain extends Component {
             `DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` +
             `target=${unitTypeToName(targetIntel.wave.unitType)} ` +
             `spawn=${entry.name} lane=${laneId} ` +
-            `targetLane=${targetIntel.laneId}`
+            `targetLane=${targetIntel.laneId} ` +
+            `kind=${mistakeKind}`
         );
 
         return true;

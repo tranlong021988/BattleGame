@@ -137,6 +137,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.retaliationTargetLifeId = -1;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.nearestEnemyQueryToken = 0;
 
           this.onNearestEnemyQueryResult = (target, token) => {
@@ -178,6 +181,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent.radius = this.radius;
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.onForward = !this.isSteady;
           this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
@@ -210,6 +216,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.backToLaneActive = false;
             this.initialYaw = this.getVisualEulerY();
 
             if (this.isHero) {
@@ -226,6 +233,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = useForwardPhase;
+          this.backToLaneActive = false;
           this.setAgentLocked(false);
           this.setAgentOnForward(useForwardPhase ? 1 : 0);
           this.setAgentStopped();
@@ -334,6 +342,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.resetBusyLookCache();
         }
 
+        isSoloAggressiveSkirmishActive() {
+          return this.soloAggressiveSkirmishActive;
+        }
+
+        isBackToLaneActive() {
+          return this.backToLaneActive;
+        }
+
         setCachedNearestInRangeTarget(target) {
           this.cachedNearestInRange = target;
           this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
@@ -370,19 +386,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         findForwardSearchTarget(aggressiveForward) {
           if (!this.agent) return null;
-
-          if (!aggressiveForward) {
-            var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-              error: Error()
-            }), GameManager) : GameManager).instance;
-
-            if (gm && gm.spatialGrid) {
-              return gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
-            }
-
-            return this.findNearestEnemyFallback();
-          }
-
           if (this.laneId < 0) return null;
           var enemies = this.getNearbyEnemyList(this.targetSearchRange);
           var maxRangeSq = this.targetSearchRange * this.targetSearchRange;
@@ -392,7 +395,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           for (var i = 0; i < enemies.length; i++) {
             var enemy = enemies[i];
             if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.laneId !== this.laneId) continue;
+
+            if (!this.isForwardSearchCandidate(enemy, aggressiveForward)) {
+              continue;
+            }
+
             var dx = enemy.agent.pos.x - this.agent.pos.x;
             var dz = enemy.agent.pos.z - this.agent.pos.z;
             var distanceSq = dx * dx + dz * dz;
@@ -405,6 +412,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return best;
+        }
+
+        isForwardSearchCandidate(enemy, aggressiveForward) {
+          if (this.laneId < 0 || enemy.laneId < 0) {
+            return false;
+          }
+
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          var ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
+          var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
+          var laneDistance = Math.abs(ownLane - enemyLane);
+
+          if (aggressiveForward) {
+            if (laneDistance !== 0) return false;
+          } else if (laneDistance > 1) {
+            return false;
+          }
+
+          return this.hasPassedTargetAlongForward(enemy);
         }
 
         hasReachedEnemyHeroLine() {
@@ -438,6 +466,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
           }), GameManager) : GameManager).instance;
+          var wasBackToLane = this.backToLaneActive;
+          var soloAggressive = gm ? gm.shouldUseSoloAggressiveSkirmish(this, attacker) : false;
 
           if (gm) {
             gm.onWaveCombatStarted(this, attacker, false);
@@ -450,6 +480,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.targetSearchConfirmedNoTarget = false;
           this.setRetaliationTarget(attacker);
           this.setCachedNearestInRangeTarget(null);
+          this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
+
+          if (this.onForward || wasBackToLane) {
+            this.onForward = false;
+            this.backToLaneActive = false;
+            this.setAgentOnForward(0);
+            this.setAgentLocked(false);
+            this.setAgentStopped();
+            this.resetMoveIntentFacing();
+          }
+
           return true;
         }
 
@@ -478,6 +519,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.props.resetForDespawn();
           }
 
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.laneId = -1;
@@ -520,6 +564,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.isSteady = false;
           this.onForward = false;
           this.aggressiveForward = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
           this.resetStableRotationPosition();
           this.targetSearchRange = Math.max(this.targetSearchRange, searchRange);
           this.invalidateNearestQueryResults();
@@ -542,6 +588,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         enterWaveCombatMode() {
           this.onForward = false;
           this.aggressiveForward = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
           this.resetStableRotationPosition();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -562,6 +610,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.onForward = false;
           this.aggressiveForward = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
           this.resetStableRotationPosition();
 
           if (searchRange > 0) {
@@ -580,12 +630,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        enterWaveForwardMode(aggressiveForward) {
+        enterWaveForwardMode(aggressiveForward, useBackToLanePhase) {
+          if (useBackToLanePhase === void 0) {
+            useBackToLanePhase = false;
+          }
+
           if (this.isSteady) return;
+
+          if (useBackToLanePhase && this.startBackToLanePhase(aggressiveForward)) {
+            return;
+          }
+
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = true;
           this.aggressiveForward = aggressiveForward;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.resetStableRotationPosition();
           this.resetMoveIntentFacing();
           this.invalidateNearestQueryResults();
@@ -613,6 +675,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
             this.setAgentStopped();
@@ -628,6 +691,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentLocked(true);
             this.setAgentStopped();
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
           }
 
@@ -655,12 +719,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var _gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
               error: Error()
             }), GameManager) : GameManager).instance;
+            var soloAggressive = _gm ? _gm.shouldUseSoloAggressiveSkirmish(this, nearestInRange) : false;
+            this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
 
             if (_gm) {
               _gm.onWaveCombatStarted(this, nearestInRange);
             }
 
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
@@ -676,6 +743,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentStopped();
             this.returnToInitialYawSmooth(deltaTime);
             this.sync(deltaTime, false);
+            return;
+          }
+
+          this.tryResumeSoloForwardAfterAggressiveSkirmish();
+
+          if (this.updateBackToLanePhase(deltaTime)) {
             return;
           }
 
@@ -718,6 +791,83 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentStopped();
             this.sync(deltaTime, true);
           }
+        }
+
+        tryResumeSoloForwardAfterAggressiveSkirmish() {
+          if (this.onForward) return false;
+          if (this.onBusy) return false;
+          if (this.isSteady) return false;
+          if (this.hasValidEnemyTarget()) return false;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm || !gm.shouldResumeSoloForwardAfterAggressiveSkirmish(this)) {
+            return false;
+          }
+
+          this.enterWaveForwardMode(false, true);
+          return true;
+        }
+
+        startBackToLanePhase(aggressiveForward) {
+          if (!this.agent) return false;
+          if (this.laneId < 0) return false;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm) return false;
+          var dir = gm.getDirectionToLaneArea(this.laneId, this.agent.pos.x);
+          if (dir === 0) return false;
+          this.setEnemyTarget(null);
+          this.onBusy = false;
+          this.onForward = false;
+          this.aggressiveForward = aggressiveForward;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = true;
+          this.backToLaneForwardAggressive = aggressiveForward;
+          this.resetStableRotationPosition();
+          this.resetMoveIntentFacing();
+          this.invalidateNearestQueryResults();
+          this.clearCachedTargets();
+          this.setAgentLocked(false);
+          this.setAgentOnForward(0);
+          this.setAgentPrefVelocity(dir * this.agent.maxSpeed, 0);
+          return true;
+        }
+
+        updateBackToLanePhase(deltaTime) {
+          if (!this.backToLaneActive) return false;
+
+          if (!this.agent || this.isSteady) {
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            return false;
+          }
+
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm || this.laneId < 0) {
+            this.enterWaveForwardMode(false);
+            return true;
+          }
+
+          var dir = gm.getDirectionToLaneArea(this.laneId, this.agent.pos.x);
+
+          if (dir === 0) {
+            var aggressiveForward = this.backToLaneForwardAggressive;
+            this.enterWaveForwardMode(aggressiveForward);
+            return true;
+          }
+
+          this.setAgentOnForward(0);
+          this.setAgentLocked(false);
+          this.setAgentPrefVelocity(dir * this.agent.maxSpeed, 0);
+          this.lookMoveIntentSmooth(deltaTime);
+          this.sync(deltaTime, false);
+          return true;
         }
 
         shouldRunAttackCheck() {

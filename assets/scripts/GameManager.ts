@@ -615,6 +615,11 @@ export class GameManager extends Component {
         if (wave.isDead()) return;
 
         if (
+            !this.shouldUseSoloAggressiveCombat(
+                wave,
+                unit,
+                enemy
+            ) &&
             !this.shouldDelayInitialForwardCombat(
                 wave,
                 unit,
@@ -637,6 +642,11 @@ export class GameManager extends Component {
         }
 
         if (
+            !this.shouldUseSoloAggressiveCombat(
+                enemyWave,
+                enemy,
+                unit
+            ) &&
             !this.shouldDelayInitialForwardCombat(
                 enemyWave,
                 enemy,
@@ -646,6 +656,110 @@ export class GameManager extends Component {
         ) {
             enemyWave.enterCombatMode();
         }
+    }
+
+    public shouldUseSoloAggressiveSkirmish(
+        unit: Unit | null,
+        enemy: Unit | null
+    ) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return false;
+        if (wave.isDead()) return false;
+
+        return this.shouldUseSoloAggressiveCombat(
+            wave,
+            unit,
+            enemy
+        );
+    }
+
+    private shouldUseSoloAggressiveCombat(
+        wave: BattleWave,
+        unit: Unit | null,
+        enemy: Unit | null
+    ) {
+        if (!wave.isAggressiveForwardMode()) return false;
+        if (!unit || !enemy) return false;
+        if (
+            !unit.onForward &&
+            !unit.isSoloAggressiveSkirmishActive()
+        ) {
+            return false;
+        }
+        const unitLane =
+            this.getCurrentLaneIdForUnit(unit);
+        const enemyLane =
+            this.getCurrentLaneIdForUnit(enemy);
+
+        if (unitLane < 0 || enemyLane < 0) return false;
+
+        if (unitLane !== enemyLane) {
+            return true;
+        }
+
+        return this.isEnemyOutsideUnitAttackRange(
+            unit,
+            enemy
+        );
+    }
+
+    private isEnemyOutsideUnitAttackRange(
+        unit: Unit,
+        enemy: Unit
+    ) {
+        if (!unit.agent || !enemy.agent) return false;
+
+        const dx = enemy.agent.pos.x - unit.agent.pos.x;
+        const dz = enemy.agent.pos.z - unit.agent.pos.z;
+        const range =
+            Math.max(0, unit.attackRange) +
+            Math.max(0, unit.radius) +
+            Math.max(0, enemy.radius);
+
+        return dx * dx + dz * dz >
+            range * range + 0.0001;
+    }
+
+    private getCurrentLaneIdForUnit(
+        unit: Unit | null
+    ) {
+        if (!unit) return -1;
+
+        if (unit.agent) {
+            return this.getNearestLaneIdForX(
+                unit.agent.pos.x
+            );
+        }
+
+        if (unit.node && unit.node.isValid) {
+            return this.getNearestLaneIdForX(
+                unit.node.worldPosition.x
+            );
+        }
+
+        return unit.laneId >= 0
+            ? this.clampLaneId(unit.laneId)
+            : -1;
+    }
+
+    public shouldResumeSoloForwardAfterAggressiveSkirmish(
+        unit: Unit | null
+    ) {
+        if (!unit) return false;
+
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return false;
+        if (wave.isDead()) return false;
+        if (!wave.isAggressiveForwardMode()) return false;
+
+        return unit.isSoloAggressiveSkirmishActive() &&
+            !unit.onForward &&
+            !unit.onBusy &&
+            !unit.hasValidEnemyTarget();
     }
 
     private shouldDelayInitialForwardCombat(
@@ -1214,6 +1328,7 @@ export class GameManager extends Component {
     ) {
         if (!wave) return;
         if (wave.isDeadRuntime(this.frame)) return;
+        if (wave.hasBackToLaneUnits()) return;
 
         const interval =
             wave.getTargetSearchIntervalFrames();
@@ -2629,6 +2744,50 @@ export class GameManager extends Component {
             this.battleMinX +
             laneWidth * (safeLane + 0.5)
         );
+    }
+
+    public getLaneWidth() {
+        const count = this.getSafeLaneCount();
+        const width =
+            this.battleMaxX - this.battleMinX;
+
+        if (width <= 0) {
+            return 0;
+        }
+
+        return width / count;
+    }
+
+    public getLaneMinX(laneId: number) {
+        return this.getLaneCenterX(laneId) -
+            this.getLaneWidth() * 0.5;
+    }
+
+    public getLaneMaxX(laneId: number) {
+        return this.getLaneCenterX(laneId) +
+            this.getLaneWidth() * 0.5;
+    }
+
+    public getDirectionToLaneArea(
+        laneId: number,
+        x: number
+    ) {
+        if (laneId < 0) return 0;
+
+        const width =
+            this.getLaneWidth();
+
+        if (width <= 0) return 0;
+
+        const minX =
+            this.getLaneMinX(laneId);
+        const maxX =
+            this.getLaneMaxX(laneId);
+
+        if (x < minX) return 1;
+        if (x > maxX) return -1;
+
+        return 0;
     }
 
     public getNearestLaneIdForX(x: number) {
