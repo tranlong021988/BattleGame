@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-11 by the home Codex.
+Last updated: 2026-07-12 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -39,6 +39,8 @@ These are the current accepted changes from today's office session:
 - `GameManager` shifted wave-banner refresh phase from `wave.id` to `wave.id + 1` to reduce same-frame overlap with other wave work.
 - `TopDownCameraDrag` now avoids setting camera world position or FOV when the value is already within a tiny epsilon. This reduces unnecessary transform/render invalidation during camera idle/smoothing.
 - `Unit` skips forward-facing rotation work when actual movement/pref velocity is already aligned with `forwardDir`. This must not be changed into a hard rotation lock, because RVO/overtake can move units diagonally while forwarding.
+- `Unit` only prefers actual `agent.vel` for move-intent facing after visual movement has accumulated past the normal move threshold. If a unit is blocked and barely moving, facing falls back to stable `prefVel` instead of jittering with RVO/overtake velocity noise.
+- `Unit.applyFacingYaw()` clamps its lerp factor to `[0, 1]` so frame spikes cannot overshoot the target yaw.
 - `Unit` skips repeated busy look/sync work once both attacker and target are locked, the look direction is settled, and visual position is already close enough.
 - `Unit` attack-check phase is shifted by half its interval to reduce overlap with target-search/forward-scan phases.
 - `BattleWave` avoids resetting banner local position to `(0,0,0)` when it is already there.
@@ -171,12 +173,18 @@ Rejected/reverted in the office session:
 ### SmartArmyBrain Path Priority
 
 - Counter target eligibility remains front-to-back per lane.
-- A target that is more than `2` world units closer to the defending hero remains the higher-priority threat.
-- When eligible targets are within `2` world units of each other, counter path quality is compared before the old weighted threat score:
+- "Near the hero" emergency priority is now gated by travel progress:
+  - `DangerousThreatProgress = 0.75`;
+  - progress is measured from the enemy team's spawn Z to this team's current hero/defend Z;
+  - only enemy waves at or beyond `75%` progress are treated as true near-defend threats;
+  - before that threshold, the AI may still counter, but it must not let "closest enemy relative to hero" behave like an emergency override.
+- Among true near-defend threats, a target that is more than `2` world units closer to the defending hero remains the higher-priority threat.
+- When eligible true near-defend targets are within `2` world units of each other, counter path quality is compared before the old weighted threat score:
   - zero ally blockers from spawn to target;
   - then exactly one blocker;
   - then multiple blockers.
 - A clean counter path is based only on allies between spawn and the target. An ally farther beyond the target no longer makes that path look blocked.
+- If no eligible target has reached the `75%` progress threshold, all eligible front targets compete mainly by path quality, coverage/struggling state, alive ratio, and engagement state instead of emergency proximity.
 - This adds no Inspector setting and does not change affordability, coverage, fast-react, max-wave, unit-choice, lane-choice, or aggressive-forward gates.
 
 ### SmartArmyBrain Decision Accuracy
@@ -291,6 +299,7 @@ Rejected/reverted in the office session:
   - this phase uses `GameManager` lane bounds from `battleMinX`, `battleMaxX`, and `laneCount`;
   - attack-range contact or retaliation still wins over lane return, so a unit can be pulled back into combat while returning;
   - dynamic lane voting is temporarily held while any unit in the wave is still in this back-to-lane phase, preventing laneId from changing under the returning units.
+- Before `tryResumeForward()` actually switches a wave out of freehunt, it forces one dynamic lane refresh. This prevents a stale `laneId` from making units walk horizontally toward an old lane after combat.
 - This is intentionally not old regroup-to-slot: there is no whole-wave wait, no slot assignment, and no forced center-line formation.
 
 ### Dynamic Lane
@@ -449,16 +458,22 @@ Why the current approach works:
 ## RVO / Local Avoidance
 
 - RVO remains local avoidance plus steering, not long-range pathfinding.
+- The 2026-07-12 rear-wave bypass / edge-sidestep experiments were tested and rejected:
+  - it initially helped some rear waves pass a slower ally wave;
+  - in denser battles it caused unnecessary diagonal movement toward ally waves in other lanes;
+  - later edge-marker versions still made waves split or sidestep too early and made lane/back-to-lane symptoms harder to read;
+  - accepted behavior is to keep normal RVO/local ally overtake only.
+  - Do not restore `processWaveForwardBypasses`, `forwardBypass*`, `forwardEdgeSidestep*`, wave-level blocker edge scans, or forward velocity bias in `Unit.updateForwardPrefVelocity()` without an explicit new experiment.
 - Ally overtake is proactive:
   - only for movable `onForward` agents with `enableAllyOvertake`;
   - considers same-team blockers ahead when blocked/locked/not-forward/too slow for several steps;
   - uses local clearance from neighbor list to choose side;
   - uses side locks/hold frames to reduce jitter.
-- Ally overtake currently may choose either side on any lane. The attempted lane-biased left/right-only overtake was reverted because it did not feel good enough in testing.
+- Ally overtake currently may choose either side on any lane. The attempted lane-biased left/right-only overtake and the attempted lane-center-biased side choice were both reverted because they did not feel good enough in testing.
 - Worker and fallback logic must stay mirrored:
   - `assets/scripts/rvo/RVO.ts`;
   - `assets/scripts/rvo/RVOWorkerSimulator.ts` embedded worker source.
-- Unit visual facing prefers actual `agent.vel` when large enough, falling back to `prefVel`.
+- Unit visual facing prefers actual `agent.vel` only when it is large enough and the visual node has actually moved enough; otherwise it falls back to `prefVel`.
 
 ## Pooling / Packed Wave Ideas
 

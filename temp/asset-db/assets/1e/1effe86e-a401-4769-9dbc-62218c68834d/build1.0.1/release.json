@@ -382,13 +382,12 @@
             [
                 "maxSpawnInterval",
                 "attackCounterCoverageRatio",
-                "decisionAccuracy",
-                "team",
                 "fastReactCounterChance",
+                "team",
                 "node",
                 "gameManager"
             ],
-            -2,
+            -1,
             1,
             1
         ],
@@ -1899,10 +1898,10 @@
         [
             17,
             0,
-            2,
             1,
+            2,
+            4,
             5,
-            6,
             4
         ],
         [
@@ -1910,9 +1909,9 @@
             3,
             0,
             1,
+            2,
             4,
             5,
-            6,
             5
         ],
         [
@@ -5208,8 +5207,8 @@
         [
             103,
             3,
-            0,
             0.7,
+            0.5,
             83,
             9
         ],

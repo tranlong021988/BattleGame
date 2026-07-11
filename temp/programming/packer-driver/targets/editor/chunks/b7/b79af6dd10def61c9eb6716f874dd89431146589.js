@@ -123,6 +123,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.lastMoveIntentSamplePos = {
+            x: 0,
+            z: 0
+          };
           this.tempPos = new Vec3();
           this.visualYawCache = 0;
           this.visualYawCacheValid = false;
@@ -197,6 +201,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.lastMoveIntentSamplePos.x = p.x;
+          this.lastMoveIntentSamplePos.z = p.z;
           this.resetMoveIntentFacing();
           this.applyRuntimeAgentData();
           this.applySteadyState();
@@ -1273,10 +1279,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const velZ = this.agent.vel.z;
           const minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
           const velLenSq = velX * velX + velZ * velZ;
+          const minMove = Math.max(this.visualThreshold, this.moveThreshold);
 
-          if (velLenSq >= minVel * minVel) {
+          if (velLenSq >= minVel * minVel && this.hasMoveIntentVisualMovement(minMove)) {
             dx = velX;
             dz = velZ;
+            this.updateMoveIntentSamplePosition();
           }
 
           const lenSq = dx * dx + dz * dz;
@@ -1312,8 +1320,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const velZ = this.agent.vel.z;
           const minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
           const velLenSq = velX * velX + velZ * velZ;
+          const minMove = Math.max(this.visualThreshold, this.moveThreshold);
 
-          if (velLenSq >= minVel * minVel) {
+          if (velLenSq >= minVel * minVel && this.hasMoveIntentVisualMovement(minMove)) {
             dx = velX;
             dz = velZ;
           }
@@ -1334,6 +1343,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         lookDirectionSmooth(dx, dz, deltaTime) {
           if (dx * dx + dz * dz < 0.0001) return false;
           return this.applyFacingYaw(Math.atan2(dx, dz) * 180 / Math.PI, deltaTime);
+        }
+
+        hasMoveIntentVisualMovement(minMove) {
+          const current = this.node.worldPosition;
+          const dx = current.x - this.lastMoveIntentSamplePos.x;
+          const dz = current.z - this.lastMoveIntentSamplePos.z;
+          return dx * dx + dz * dz >= minMove * minMove;
+        }
+
+        updateMoveIntentSamplePosition() {
+          const current = this.node.worldPosition;
+          this.lastMoveIntentSamplePos.x = current.x;
+          this.lastMoveIntentSamplePos.z = current.z;
         }
 
         sync(deltaTime, rotateByVelocity) {
@@ -1373,7 +1395,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
-          const newY = this.lerpAngle(currentY, targetYaw, this.rotationSpeed * deltaTime);
+          const newY = this.lerpAngle(currentY, targetYaw, Math.max(0, Math.min(1, this.rotationSpeed * deltaTime)));
           this.setVisualYaw(newY);
           return true;
         }
@@ -1406,12 +1428,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const p = this.node.worldPosition;
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.lastMoveIntentSamplePos.x = p.x;
+          this.lastMoveIntentSamplePos.z = p.z;
         }
 
         resetMoveIntentFacing() {
           this.moveIntentFacingActive = true;
           this.lastMoveIntentDir.x = 0;
           this.lastMoveIntentDir.z = 0;
+          this.updateMoveIntentSamplePosition();
         }
 
         lerpAngle(a, b, t) {

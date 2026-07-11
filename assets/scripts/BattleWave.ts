@@ -714,7 +714,9 @@ export class BattleWave {
         return this.forwardScannerUnit;
     }
 
-    tryResumeForward() {
+    tryResumeForward(
+        beforeResume: ((wave: BattleWave) => void) | null = null
+    ) {
         if (this.released) return false;
         if (!this.freeHuntActive) return false;
 
@@ -735,6 +737,10 @@ export class BattleWave {
         }
 
         if (aliveCount <= 0) return false;
+
+        if (beforeResume) {
+            beforeResume(this);
+        }
 
         this.forwardModeActive = true;
         this.freeHuntActive = false;

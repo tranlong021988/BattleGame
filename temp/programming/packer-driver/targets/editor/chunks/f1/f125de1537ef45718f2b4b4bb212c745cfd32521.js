@@ -564,7 +564,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.forwardScannerUnit;
         }
 
-        tryResumeForward() {
+        tryResumeForward(beforeResume = null) {
           if (this.released) return false;
           if (!this.freeHuntActive) return false;
           let aliveCount = 0;
@@ -582,6 +582,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           if (aliveCount <= 0) return false;
+
+          if (beforeResume) {
+            beforeResume(this);
+          }
+
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.initialForwardCombatGateActive = false;

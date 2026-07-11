@@ -9,6 +9,7 @@ const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
 const ComparableThreatDistance = 2;
 const DeliberateLosingChoiceChance = 0.8;
+const DangerousThreatProgress = 0.75;
 
 enum SmartResponseTier {
     None = 0,
@@ -43,6 +44,8 @@ class SmartWaveIntel {
     coverage = 0;
     uncovered = 0;
     distanceToDefend = 0;
+    progressToDefend = 0;
+    dangerousToDefend = false;
     unengaged = false;
     allyCountInLane = 0;
     allyBlockersFromSpawn = 0;
@@ -60,6 +63,8 @@ class SmartWaveIntel {
         this.coverage = 0;
         this.uncovered = 0;
         this.distanceToDefend = 0;
+        this.progressToDefend = 0;
+        this.dangerousToDefend = false;
         this.unengaged = false;
         this.allyCountInLane = 0;
         this.allyBlockersFromSpawn = 0;
@@ -442,6 +447,13 @@ export class SmartArmyBrain extends Component {
                 intel.centerX,
                 intel.centerZ
             );
+        intel.progressToDefend =
+            this.getProgressToDefendPoint(
+                intel.centerZ
+            );
+        intel.dangerousToDefend =
+            intel.progressToDefend >=
+            DangerousThreatProgress;
 
         intel.unengaged =
             !wave.hasEngaged();
@@ -467,7 +479,9 @@ export class SmartArmyBrain extends Component {
             );
 
         const distanceScore =
-            Math.max(0, 120 - intel.distanceToDefend);
+            intel.dangerousToDefend
+                ? Math.max(0, 120 - intel.distanceToDefend)
+                : 0;
         const proximityScore =
             distanceScore * 1000;
         const unengagedScore =
@@ -498,7 +512,8 @@ export class SmartArmyBrain extends Component {
 
     private findBestResponseTarget(): SmartWaveIntel | null {
         let best: SmartWaveIntel | null = null;
-        let nearestDistance = Infinity;
+        let nearestDangerousDistance = Infinity;
+        let hasDangerousThreat = false;
 
         this.counterCandidateBuffer.length = 0;
 
@@ -508,13 +523,17 @@ export class SmartArmyBrain extends Component {
             if (!this.isResponseCandidate(intel)) continue;
 
             this.counterCandidateBuffer.push(intel);
-            nearestDistance = Math.min(
-                nearestDistance,
-                intel.distanceToDefend
-            );
+
+            if (intel.dangerousToDefend) {
+                hasDangerousThreat = true;
+                nearestDangerousDistance = Math.min(
+                    nearestDangerousDistance,
+                    intel.distanceToDefend
+                );
+            }
         }
 
-        if (!Number.isFinite(nearestDistance)) {
+        if (this.counterCandidateBuffer.length <= 0) {
             return null;
         }
 
@@ -522,9 +541,13 @@ export class SmartArmyBrain extends Component {
             const intel = this.counterCandidateBuffer[i];
 
             if (
-                intel.distanceToDefend >
-                nearestDistance +
-                    ComparableThreatDistance
+                hasDangerousThreat &&
+                (
+                    !intel.dangerousToDefend ||
+                    intel.distanceToDefend >
+                        nearestDangerousDistance +
+                        ComparableThreatDistance
+                )
             ) {
                 continue;
             }
@@ -650,6 +673,8 @@ export class SmartArmyBrain extends Component {
             `allyLane=${intel.allyCountInLane} ` +
             `blockers=${intel.allyBlockersFromSpawn} ` +
             `firstFromSpawn=${intel.firstEnemyFromSpawn} ` +
+            `progress=${intel.progressToDefend.toFixed(2)} ` +
+            `dangerous=${intel.dangerousToDefend} ` +
             `response=${SmartResponseTier[intel.responseTier]} ` +
             `struggling=${intel.hasStrugglingAlly} ` +
             `score=${intel.threatScore.toFixed(1)} ` +
@@ -1678,6 +1703,39 @@ export class SmartArmyBrain extends Component {
         const dz = z - defendZ;
 
         return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    private getProgressToDefendPoint(
+        z: number
+    ) {
+        if (!this.gameManager) return 0;
+
+        const enemySpawnZ =
+            this.team === 0
+                ? this.gameManager.teamBSpawnZ
+                : this.gameManager.teamASpawnZ;
+        const hero =
+            this.team === 0
+                ? this.gameManager.teamAHero
+                : this.gameManager.teamBHero;
+        const defendZ =
+            hero && hero.agent
+                ? hero.agent.pos.z
+                : this.team === 0
+                    ? this.gameManager.teamASpawnZ
+                    : this.gameManager.teamBSpawnZ;
+        const totalDistance =
+            defendZ - enemySpawnZ;
+
+        if (Math.abs(totalDistance) < 0.0001) {
+            return 1;
+        }
+
+        const progress =
+            (z - enemySpawnZ) /
+            totalDistance;
+
+        return this.clamp01(progress);
     }
 
     private collectAffordableEntries() {

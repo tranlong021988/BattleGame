@@ -248,6 +248,13 @@ export class GameManager extends Component {
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
     private heroForwardUnlocked = [false, false];
+    private readonly refreshLaneBeforeWaveForward =
+        (wave: BattleWave) => {
+            this.refreshDynamicLaneForWave(
+                wave,
+                true
+            );
+        };
     private waveBannerPools: Map<Prefab, Node[]> = new Map();
     private registeredCinematicController: Component | null = null;
     private registeredTopDownCameraDragNode: Node | null = null;
@@ -1127,7 +1134,9 @@ export class GameManager extends Component {
             }
 
             wave.refreshInitialForwardCombatGate();
-            wave.tryResumeForward();
+            wave.tryResumeForward(
+                this.refreshLaneBeforeWaveForward
+            );
         }
     }
 
@@ -1324,7 +1333,8 @@ export class GameManager extends Component {
     }
 
     private refreshDynamicLaneForWave(
-        wave: BattleWave | null
+        wave: BattleWave | null,
+        force: boolean = false
     ) {
         if (!wave) return;
         if (wave.isDeadRuntime(this.frame)) return;
@@ -1338,6 +1348,7 @@ export class GameManager extends Component {
         // Lane is strategic metadata only. Stagger updates by wave
         // and away from forward scans for the same wave.
         if (
+            !force &&
             !this.shouldRunFrameInterval(
                 interval,
                 offset

@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 49265.3748,
+      "mTimestamp": 28050.9398,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 8373725.6485,
+      "mTimestamp": 19358919.6952,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -2324,7 +2324,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1783700429421,
+      "mTimestamp": 1783787127690,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -3034,7 +3034,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1783708672490.6372,
+        "mtime": 1783804002578.3555,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "2a3d48594ca107bb253a09fa8016eb25bbe98eb1",
@@ -3568,7 +3568,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1783708729095.48,
+        "mtime": 1783806368217.7112,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "b79af6dd10def61c9eb6716f874dd89431146589",
@@ -3778,7 +3778,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/rvo/RVO.ts": {
       "mTimestamp": {
-        "mtime": 1783274285633.7498,
+        "mtime": 1783801794057.4424,
         "uuid": "220c203c-ef11-4ca0-8d3c-4607999a8a88"
       },
       "chunkId": "c497b5aa3844cd12d042d27de71abf95d62f9c88",
@@ -5426,7 +5426,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts": {
       "mTimestamp": {
-        "mtime": 1783274292688.7705,
+        "mtime": 1783801879667.665,
         "uuid": "fb8a1849-3759-4dfb-ac42-f957ce6a64ab"
       },
       "chunkId": "e21aeeb81eed07a28ae26841a08bfd8fc9a2101d",
@@ -6075,7 +6075,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1783700429421,
+      "mTimestamp": 1783787127690,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -6341,7 +6341,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1783708666165.2473,
+        "mtime": 1783803935524.036,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "f125de1537ef45718f2b4b4bb212c745cfd32521",
@@ -9427,7 +9427,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/SmartArmyBrain.ts": {
       "mTimestamp": {
-        "mtime": 1783704989655.5422,
+        "mtime": 1783796581356.5625,
         "uuid": "176e839d-b955-4959-9b56-ef97c6316897"
       },
       "chunkId": "cae1d4e25874bc3071e2a733912724c1607aa03b",

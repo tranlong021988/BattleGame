@@ -72,6 +72,7 @@ export class Unit extends Component {
     private lastStablePos = { x: 0, z: 0 };
     private moveIntentFacingActive = true;
     private lastMoveIntentDir = { x: 0, z: 0 };
+    private lastMoveIntentSamplePos = { x: 0, z: 0 };
     private tempPos = new Vec3();
     private visualYawCache = 0;
     private visualYawCacheValid = false;
@@ -167,6 +168,8 @@ export class Unit extends Component {
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
+        this.lastMoveIntentSamplePos.x = p.x;
+        this.lastMoveIntentSamplePos.z = p.z;
         this.resetMoveIntentFacing();
 
         this.applyRuntimeAgentData();
@@ -1607,10 +1610,19 @@ export class Unit extends Component {
         const minVel =
             Math.max(0.02, this.agent.maxSpeed * 0.05);
         const velLenSq = velX * velX + velZ * velZ;
+        const minMove =
+            Math.max(
+                this.visualThreshold,
+                this.moveThreshold
+            );
 
-        if (velLenSq >= minVel * minVel) {
+        if (
+            velLenSq >= minVel * minVel &&
+            this.hasMoveIntentVisualMovement(minMove)
+        ) {
             dx = velX;
             dz = velZ;
+            this.updateMoveIntentSamplePosition();
         }
 
         const lenSq = dx * dx + dz * dz;
@@ -1653,8 +1665,16 @@ export class Unit extends Component {
         const minVel =
             Math.max(0.02, this.agent.maxSpeed * 0.05);
         const velLenSq = velX * velX + velZ * velZ;
+        const minMove =
+            Math.max(
+                this.visualThreshold,
+                this.moveThreshold
+            );
 
-        if (velLenSq >= minVel * minVel) {
+        if (
+            velLenSq >= minVel * minVel &&
+            this.hasMoveIntentVisualMovement(minMove)
+        ) {
             dx = velX;
             dz = velZ;
         }
@@ -1686,6 +1706,26 @@ export class Unit extends Component {
             Math.atan2(dx, dz) * 180 / Math.PI,
             deltaTime
         );
+    }
+
+    private hasMoveIntentVisualMovement(
+        minMove: number
+    ) {
+        const current = this.node.worldPosition;
+        const dx =
+            current.x - this.lastMoveIntentSamplePos.x;
+        const dz =
+            current.z - this.lastMoveIntentSamplePos.z;
+
+        return dx * dx + dz * dz >=
+            minMove * minMove;
+    }
+
+    private updateMoveIntentSamplePosition() {
+        const current = this.node.worldPosition;
+
+        this.lastMoveIntentSamplePos.x = current.x;
+        this.lastMoveIntentSamplePos.z = current.z;
     }
 
     private sync(deltaTime: number, rotateByVelocity: boolean) {
@@ -1748,7 +1788,13 @@ export class Unit extends Component {
         const newY = this.lerpAngle(
             currentY,
             targetYaw,
-            this.rotationSpeed * deltaTime
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    this.rotationSpeed * deltaTime
+                )
+            )
         );
 
         this.setVisualYaw(newY);
@@ -1791,12 +1837,15 @@ export class Unit extends Component {
 
         this.lastStablePos.x = p.x;
         this.lastStablePos.z = p.z;
+        this.lastMoveIntentSamplePos.x = p.x;
+        this.lastMoveIntentSamplePos.z = p.z;
     }
 
     private resetMoveIntentFacing() {
         this.moveIntentFacingActive = true;
         this.lastMoveIntentDir.x = 0;
         this.lastMoveIntentDir.z = 0;
+        this.updateMoveIntentSamplePosition();
     }
 
     private lerpAngle(a: number, b: number, t: number) {

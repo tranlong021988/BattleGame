@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, SmartResponseTier, SmartArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, DangerousThreatProgress, SmartResponseTier, SmartArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -61,6 +61,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       BattleWaveSpawnedEvent = 'battle-wave-spawned';
       ComparableThreatDistance = 2;
       DeliberateLosingChoiceChance = 0.8;
+      DangerousThreatProgress = 0.75;
 
       SmartResponseTier = /*#__PURE__*/function (SmartResponseTier) {
         SmartResponseTier[SmartResponseTier["None"] = 0] = "None";
@@ -99,6 +100,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.coverage = 0;
           this.uncovered = 0;
           this.distanceToDefend = 0;
+          this.progressToDefend = 0;
+          this.dangerousToDefend = false;
           this.unengaged = false;
           this.allyCountInLane = 0;
           this.allyBlockersFromSpawn = 0;
@@ -117,6 +120,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.coverage = 0;
           this.uncovered = 0;
           this.distanceToDefend = 0;
+          this.progressToDefend = 0;
+          this.dangerousToDefend = false;
           this.unengaged = false;
           this.allyCountInLane = 0;
           this.allyBlockersFromSpawn = 0;
@@ -398,12 +403,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           intel.uncovered = Math.max(0, this.attackCounterCoverageRatio - intel.coverage);
           this.getWaveCenter(wave, intel);
           intel.distanceToDefend = this.getDistanceToDefendPoint(intel.centerX, intel.centerZ);
+          intel.progressToDefend = this.getProgressToDefendPoint(intel.centerZ);
+          intel.dangerousToDefend = intel.progressToDefend >= DangerousThreatProgress;
           intel.unengaged = !wave.hasEngaged();
           const lane = this.laneIntel[laneId];
           intel.allyCountInLane = lane ? lane.allyCount : 0;
           intel.allyBlockersFromSpawn = this.countAllyBlockersFromSpawnToTarget(wave, laneId, intel.centerZ);
           intel.firstEnemyFromSpawn = this.isFirstEnemyFromSpawn(wave, laneId, intel.centerZ);
-          const distanceScore = Math.max(0, 120 - intel.distanceToDefend);
+          const distanceScore = intel.dangerousToDefend ? Math.max(0, 120 - intel.distanceToDefend) : 0;
           const proximityScore = distanceScore * 1000;
           const unengagedScore = intel.unengaged ? 100 : 0;
           const clearLaneScore = intel.allyBlockersFromSpawn <= 0 ? 20 : 0;
@@ -415,24 +422,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         findBestResponseTarget() {
           let best = null;
-          let nearestDistance = Infinity;
+          let nearestDangerousDistance = Infinity;
+          let hasDangerousThreat = false;
           this.counterCandidateBuffer.length = 0;
 
           for (let i = 0; i < this.activeEnemyIntelCount; i++) {
             const intel = this.enemyIntel[i];
             if (!this.isResponseCandidate(intel)) continue;
             this.counterCandidateBuffer.push(intel);
-            nearestDistance = Math.min(nearestDistance, intel.distanceToDefend);
+
+            if (intel.dangerousToDefend) {
+              hasDangerousThreat = true;
+              nearestDangerousDistance = Math.min(nearestDangerousDistance, intel.distanceToDefend);
+            }
           }
 
-          if (!Number.isFinite(nearestDistance)) {
+          if (this.counterCandidateBuffer.length <= 0) {
             return null;
           }
 
           for (let i = 0; i < this.counterCandidateBuffer.length; i++) {
             const intel = this.counterCandidateBuffer[i];
 
-            if (intel.distanceToDefend > nearestDistance + ComparableThreatDistance) {
+            if (hasDangerousThreat && (!intel.dangerousToDefend || intel.distanceToDefend > nearestDangerousDistance + ComparableThreatDistance)) {
               continue;
             }
 
@@ -508,7 +520,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!spawned) return false;
           this.stateLog(`RESPONSE wave=${intel.wave.id} ` + `target=${(_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
             error: Error()
-          }), unitTypeToName) : unitTypeToName)(intel.wave.unitType)} ` + `spawn=${entry.name} lane=${laneId} targetLane=${intel.laneId} ` + `coverage=${intel.coverage.toFixed(2)} ` + `unengaged=${intel.unengaged} ` + `allyLane=${intel.allyCountInLane} ` + `blockers=${intel.allyBlockersFromSpawn} ` + `firstFromSpawn=${intel.firstEnemyFromSpawn} ` + `response=${SmartResponseTier[intel.responseTier]} ` + `struggling=${intel.hasStrugglingAlly} ` + `score=${intel.threatScore.toFixed(1)} ` + `accurate=true ` + `aggressive=${aggressiveForward}`);
+          }), unitTypeToName) : unitTypeToName)(intel.wave.unitType)} ` + `spawn=${entry.name} lane=${laneId} targetLane=${intel.laneId} ` + `coverage=${intel.coverage.toFixed(2)} ` + `unengaged=${intel.unengaged} ` + `allyLane=${intel.allyCountInLane} ` + `blockers=${intel.allyBlockersFromSpawn} ` + `firstFromSpawn=${intel.firstEnemyFromSpawn} ` + `progress=${intel.progressToDefend.toFixed(2)} ` + `dangerous=${intel.dangerousToDefend} ` + `response=${SmartResponseTier[intel.responseTier]} ` + `struggling=${intel.hasStrugglingAlly} ` + `score=${intel.threatScore.toFixed(1)} ` + `accurate=true ` + `aggressive=${aggressiveForward}`);
           return true;
         }
 
@@ -1109,6 +1121,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const dx = x - defendX;
           const dz = z - defendZ;
           return Math.sqrt(dx * dx + dz * dz);
+        }
+
+        getProgressToDefendPoint(z) {
+          if (!this.gameManager) return 0;
+          const enemySpawnZ = this.team === 0 ? this.gameManager.teamBSpawnZ : this.gameManager.teamASpawnZ;
+          const hero = this.team === 0 ? this.gameManager.teamAHero : this.gameManager.teamBHero;
+          const defendZ = hero && hero.agent ? hero.agent.pos.z : this.team === 0 ? this.gameManager.teamASpawnZ : this.gameManager.teamBSpawnZ;
+          const totalDistance = defendZ - enemySpawnZ;
+
+          if (Math.abs(totalDistance) < 0.0001) {
+            return 1;
+          }
+
+          const progress = (z - enemySpawnZ) / totalDistance;
+          return this.clamp01(progress);
         }
 
         collectAffordableEntries() {

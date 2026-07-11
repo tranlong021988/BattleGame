@@ -289,6 +289,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
           this.heroForwardUnlocked = [false, false];
+
+          this.refreshLaneBeforeWaveForward = wave => {
+            this.refreshDynamicLaneForWave(wave, true);
+          };
+
           this.waveBannerPools = new Map();
           this.registeredCinematicController = null;
           this.registeredTopDownCameraDragNode = null;
@@ -851,7 +856,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             wave.refreshInitialForwardCombatGate();
-            wave.tryResumeForward();
+            wave.tryResumeForward(this.refreshLaneBeforeWaveForward);
           }
         }
 
@@ -1000,7 +1005,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return null;
         }
 
-        refreshDynamicLaneForWave(wave) {
+        refreshDynamicLaneForWave(wave, force) {
+          if (force === void 0) {
+            force = false;
+          }
+
           if (!wave) return;
           if (wave.isDeadRuntime(this.frame)) return;
           if (wave.hasBackToLaneUnits()) return;
@@ -1008,7 +1017,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var offset = wave.id + Math.floor(interval / 2); // Lane is strategic metadata only. Stagger updates by wave
           // and away from forward scans for the same wave.
 
-          if (!this.shouldRunFrameInterval(interval, offset)) {
+          if (!force && !this.shouldRunFrameInterval(interval, offset)) {
             return;
           }
 
