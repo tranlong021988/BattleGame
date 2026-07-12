@@ -73,6 +73,7 @@ export class UnitSpawner extends Component {
         team: number,
         parent: Node,
         maxSpeed: number,
+        canBePush: boolean,
         attackRange: number,
         attackIntervalMin: number,
         attackIntervalMax: number,
@@ -95,6 +96,7 @@ export class UnitSpawner extends Component {
         const behavior = node.getComponent(UnitBehavior);
 
         unit.moveSpeed = maxSpeed;
+        unit.canBePush = canBePush;
         unit.attackRange = Math.max(0, attackRange);
 
         props.unitType = unitType;

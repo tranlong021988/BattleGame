@@ -1679,3 +1679,12 @@
 7-12-2026 05:26:50-debug: asset-db:refresh-all-database (110ms)
 7-12-2026 05:26:50-debug: asset-db:worker-effect-data-processing (3ms)
 7-12-2026 05:26:50-debug: asset-db-hook-engine-extends-afterRefresh (4ms)
+7-12-2026 06:00:00-debug: refresh db internal success
+7-12-2026 06:00:00-debug: Run asset db hook engine-extends:afterRefresh ...
+7-12-2026 06:00:00-debug: Run asset db hook engine-extends:afterRefresh success!
+7-12-2026 06:00:00-debug: refresh db assets success
+7-12-2026 06:00:00-debug: asset-db:refresh-all-database (130ms)
+7-12-2026 06:00:00-debug: asset-db:worker-effect-data-processing (9ms)
+7-12-2026 06:00:00-debug: asset-db-hook-engine-extends-afterRefresh (9ms)
+7-12-2026 06:00:01-debug: %cImport%c: F:\Github\BattleGame\assets\Test.scenebackground: #aaff85; color: #000;color: #000;
+7-12-2026 06:00:01-debug: asset-db:reimport-asset1effe86e-a401-4769-9dbc-62218c68834d (24ms)

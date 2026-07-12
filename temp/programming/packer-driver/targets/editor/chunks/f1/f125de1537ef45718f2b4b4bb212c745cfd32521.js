@@ -623,6 +623,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             if (!this.isUnitAlive(u)) continue;
             if (u.onBusy) continue;
             if (u.onForward) continue;
+            if (u.hasValidEnemyTarget()) continue;
+            if (u.isSoloAggressiveSkirmishActive()) continue;
             u.enterWaveForwardMode(this.aggressiveForwardMode);
           }
         }

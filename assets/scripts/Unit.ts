@@ -23,6 +23,11 @@ export class Unit extends Component {
 
     @property moveSpeed = 2;
     @property radius = 0.5;
+    @property({
+        tooltip:
+            'Allows this unit to be pushed by hard separation even while busy/engaged and locked.',
+    })
+    canBePush = false;
 
     @property attackRange = 1;
     @property attackCheckIntervalFrames = 2;
@@ -267,6 +272,7 @@ export class Unit extends Component {
 
         this.agent.team = this.team;
         this.setAgentOnForward(this.onForward ? 1 : 0);
+        this.agent.canBePush = this.canBePush ? 1 : 0;
 
         this.agent.forwardX = this.forwardDir.x;
         this.agent.forwardZ = this.forwardDir.z;
@@ -1375,6 +1381,11 @@ export class Unit extends Component {
             const e = enemies[i];
 
             if (!this.isValidEnemy(e)) continue;
+            if (
+                this.shouldIgnoreAttackRangeTargetDuringAggressiveForward(e)
+            ) {
+                continue;
+            }
 
             const dx = e.agent!.pos.x - this.agent.pos.x;
             const dz = e.agent!.pos.z - this.agent.pos.z;
@@ -1474,6 +1485,11 @@ export class Unit extends Component {
     ): boolean {
         if (!this.agent) return false;
         if (!this.isValidEnemy(e, lifeId)) return false;
+        if (
+            this.shouldIgnoreAttackRangeTargetDuringAggressiveForward(e!)
+        ) {
+            return false;
+        }
 
         const dx = e!.agent!.pos.x - this.agent.pos.x;
         const dz = e!.agent!.pos.z - this.agent.pos.z;
@@ -1482,6 +1498,24 @@ export class Unit extends Component {
 
         return dx * dx + dz * dz <=
             effectiveRange * effectiveRange;
+    }
+
+    private shouldIgnoreAttackRangeTargetDuringAggressiveForward(
+        enemy: Unit
+    ) {
+        if (!this.onForward) return false;
+        if (!this.aggressiveForward) return false;
+        if (this.laneId < 0 || enemy.laneId < 0) return false;
+
+        const gm = GameManager.instance;
+        const ownLane = gm
+            ? gm.clampLaneId(this.laneId)
+            : this.laneId;
+        const enemyLane = gm
+            ? gm.clampLaneId(enemy.laneId)
+            : enemy.laneId;
+
+        return ownLane !== enemyLane;
     }
 
     private getEffectiveAttackRangeAgainst(

@@ -785,6 +785,8 @@ export class BattleWave {
             if (!this.isUnitAlive(u)) continue;
             if (u.onBusy) continue;
             if (u.onForward) continue;
+            if (u.hasValidEnemyTarget()) continue;
+            if (u.isSoloAggressiveSkirmishActive()) continue;
 
             u.enterWaveForwardMode(
                 this.aggressiveForwardMode

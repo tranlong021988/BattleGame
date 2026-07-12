@@ -38,7 +38,9 @@
             [
                 {
                     "rasterizerState": {},
-                    "depthStencilState": {},
+                    "depthStencilState": {
+                        "depthTest": false
+                    },
                     "blendState": {
                         "targets": [
                             {}

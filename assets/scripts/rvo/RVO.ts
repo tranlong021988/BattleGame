@@ -12,6 +12,7 @@ export class RVOAgent {
     maxNeighbors = 8;
 
     locked = false;
+    canBePush = 0;
 
     team = -1;
     onForward = 0;
@@ -665,6 +666,10 @@ export class RVOSimulator {
         );
     }
 
+    private canMoveInHardSeparation(a: RVOAgent) {
+        return !a.locked || a.canBePush === 1;
+    }
+
     step(deltaTime?: number) {
         const dt = this.getSafeDeltaTime(deltaTime);
 
@@ -882,8 +887,10 @@ export class RVOSimulator {
                     const nx = dx / dist;
                     const nz = dz / dist;
 
-                    const aMovable = !a.locked;
-                    const bMovable = !b.locked;
+                    const aMovable =
+                        this.canMoveInHardSeparation(a);
+                    const bMovable =
+                        this.canMoveInHardSeparation(b);
 
                     if (aMovable && bMovable) {
                         const half = overlap * 0.5;
@@ -910,7 +917,7 @@ export class RVOSimulator {
         for (let i = 0; i < this.agents.length; i++) {
             const a = this.agents[i];
 
-            if (a.locked) continue;
+            if (a.locked && a.canBePush !== 1) continue;
 
             for (let i = 0; i < this.obstacleSolveIterations; i++) {
                 this.pushAgentOutOfObstacles(a);

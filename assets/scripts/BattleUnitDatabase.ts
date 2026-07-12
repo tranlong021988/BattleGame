@@ -59,6 +59,12 @@ export class UnitPrefabEntry {
     @property
     maxSpeed: number = 2;
 
+    @property({
+        tooltip:
+            'Allows hard-separated units to push this unit even while it is busy/engaged and normally locked.',
+    })
+    canBePush: boolean = false;
+
     @property
     attackRange: number = 1.2;
 

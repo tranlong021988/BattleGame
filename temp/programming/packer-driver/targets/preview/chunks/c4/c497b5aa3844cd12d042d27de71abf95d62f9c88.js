@@ -37,6 +37,7 @@ System.register(["cc"], function (_export, _context) {
           this.neighborDist = 2.4;
           this.maxNeighbors = 8;
           this.locked = false;
+          this.canBePush = 0;
           this.team = -1;
           this.onForward = 0;
           this.forwardX = 0;
@@ -503,6 +504,10 @@ System.register(["cc"], function (_export, _context) {
           a.pos.z = Math.max(this.minZ + a.radius, Math.min(this.maxZ - a.radius, a.pos.z));
         }
 
+        canMoveInHardSeparation(a) {
+          return !a.locked || a.canBePush === 1;
+        }
+
         step(deltaTime) {
           var dt = this.getSafeDeltaTime(deltaTime);
           this.buildGrid(); // ===== VELOCITY =====
@@ -714,8 +719,8 @@ System.register(["cc"], function (_export, _context) {
 
                 var _nz4 = _dz3 / _dist3;
 
-                var aMovable = !_a2.locked;
-                var bMovable = !_b.locked;
+                var aMovable = this.canMoveInHardSeparation(_a2);
+                var bMovable = this.canMoveInHardSeparation(_b);
 
                 if (aMovable && bMovable) {
                   var half = overlap * 0.5;
@@ -739,7 +744,7 @@ System.register(["cc"], function (_export, _context) {
 
           for (var _i7 = 0; _i7 < this.agents.length; _i7++) {
             var _a3 = this.agents[_i7];
-            if (_a3.locked) continue;
+            if (_a3.locked && _a3.canBePush !== 1) continue;
 
             for (var _i8 = 0; _i8 < this.obstacleSolveIterations; _i8++) {
               this.pushAgentOutOfObstacles(_a3);

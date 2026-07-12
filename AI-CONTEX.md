@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-12 by the home Codex.
+Last updated: 2026-07-13 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -30,6 +30,52 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - `Unit` / `UnitBehavior` still own per-unit movement/combat state.
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
+
+## Latest 2026-07-13 Home Handoff
+
+Read this section before continuing gameplay AI or forward/freehunt work.
+
+### Aggressive Forward And Ranged Units
+
+- User reported that aggressive-forward archers could cancel aggressive forward too early because their long `attackRange` let them acquire different-lane enemies.
+- Current accepted fix:
+  - while `Unit.onForward && Unit.aggressiveForward`, the unit's own attack-range acquisition ignores enemies outside the unit/wave lane;
+  - this filter is in `Unit.isValidEnemyWithinAttackRange()`, so cached attack-range targets also cannot bypass it;
+  - normal forward is unchanged and still uses same/adjacent-lane scanner release rules.
+- Important distinction:
+  - aggressive-forward units do not proactively attack different-lane units just because they are in weapon range;
+  - if a different-lane enemy actually attacks them, `reactToAttacker()` still allows solo retaliation for the hit unit;
+  - the rest of the wave keeps aggressive forward during that solo retaliation.
+
+### SmartArmyBrain Telemetry
+
+- Added optional `SmartArmyBrain.enableDecisionStats`, disabled by default.
+- When enabled in Inspector, it logs actual-match counts for:
+  - aggressive spawns;
+  - normal spawns;
+  - intentional waits;
+  - hard skips.
+- Percentages use `aggressive + normal + wait` as the denominator. `skip` is reported separately because max-wave / no-CP / failed-spawn gates are not tactical wait decisions.
+- Use this telemetry for concrete playtests instead of guessing theoretical probabilities.
+- Current scene values observed on 2026-07-13:
+  - `SmartArmyBrainA/B.decisionAccuracy = 1`;
+  - `aggressiveForwardChance = 0.25`;
+  - `fastReactCounterChance = 0.5`;
+  - `maxAliveWaves = 7`;
+  - `LevelSettings` node is disabled, so these serialized Brain values are not being overridden at runtime unless the user enables LevelSettings.
+- User tested with decision stats and observed normal-forward rate is near zero. This is expected with the current AI rules:
+  - before the team first reaches `maxAliveWaves`, `shouldSpawnAggressiveForward()` makes response/opening spawns aggressive;
+  - response spawning also forces aggressive when the target lane is clean, or when ally blockers are between spawn and target;
+  - with `decisionAccuracy = 1`, naive/random and deliberate-mistake paths rarely/never provide normal-forward diversity.
+- Do not change this yet without discussing with the user. The likely future tuning point is `SmartArmyBrain.shouldSpawnCounterAggressiveForward()`, especially the rule that a clean target lane forces aggressive.
+
+### Current Known Worktree Notes
+
+- `AI-CONTEX.md`, `SmartArmyBrain.ts`, and `Unit.ts` have active handoff/gameplay edits from this session.
+- Many `library/`, `temp/`, `profiles/`, and build files are still editor/generated noise. Do not clean/revert them unless the user explicitly asks.
+- Validation done after the telemetry and aggressive-forward filter changes:
+  - `git diff --check -- AI-CONTEX.md assets/scripts/SmartArmyBrain.ts assets/scripts/Unit.ts`;
+  - Cocos TypeScript command from this file's Workspace Notes ran clean on the home machine.
 
 ## Accepted 2026-07-07 Office Changes
 
@@ -266,11 +312,15 @@ Rejected/reverted in the office session:
 - It ignores ordinary adjacent-lane unit pass/release.
 - It still releases through:
   - same-lane passed target;
-  - same-lane attack-range contact / retaliation;
+  - same-lane attack-range contact;
   - enemy hero line;
   - adjacent-lane enemy hero special case.
-- Adjacent-lane unit contact during aggressive forward is a deliberate solo exception:
-  - the unit that is hit or reaches attack range may leave forward and fight alone;
+- While a unit is still in aggressive forward, its own attack-range acquisition is lane-locked:
+  - a ranged unit such as an archer must not cancel aggressive forward just because a different-lane enemy entered its weapon range;
+  - normal forward still uses the normal same/adjacent-lane scanner release rules;
+  - this is filtered in `Unit.isValidEnemyWithinAttackRange()`, so cached attack-range targets cannot bypass it.
+- Adjacent-lane retaliation during aggressive forward is a deliberate solo exception:
+  - the unit that is hit may leave forward and fight alone;
   - the rest of the wave stays in aggressive forward;
   - "adjacent/different lane" for this solo exception is based on each unit's current X position mapped to the nearest lane, not only the wave's dynamic `laneId`;
   - ranged/off-range retaliation is also a solo exception: if the attacker can damage the unit while still outside that unit's own effective attack range, the damaged unit peels off to chase alone;
@@ -350,6 +400,11 @@ Rejected/reverted in the office session:
 - `fastReactCounterChance` is a separate reaction-speed knob:
   - higher values make the AI more likely to answer a newly spawned enemy immediately after min interval;
   - it also requires an accurate `decisionAccuracy` roll and must not ignore max-wave, unlock, or affordability gates.
+- `enableDecisionStats` is an optional runtime telemetry switch:
+  - disabled by default;
+  - when enabled, it logs actual-match counts for aggressive spawns, normal spawns, intentional waits, and hard skips;
+  - percentages use `aggressive + normal + wait` as the denominator, while hard skips are reported separately because max-wave / no-CP gates are not tactical wait decisions;
+  - use this to measure one concrete playtest instead of guessing theoretical probabilities.
 - Opening aggressive rule:
   - SmartArmyBrain tracks whether its team has ever reached `maxAliveWaves`;
   - before first reaching max alive waves, response/opening spawns use aggressive forward;
@@ -469,6 +524,16 @@ Why the current approach works:
   - considers same-team blockers ahead when blocked/locked/not-forward/too slow for several steps;
   - uses local clearance from neighbor list to choose side;
   - uses side locks/hold frames to reduce jitter.
+- The `passedRadius` pass-through experiment was rejected and reversed because waves could still visually dodge/lane around blockers through overtake behavior. Do not restore `passedRadius` or RVO-agent `waveId` for this problem.
+- `canBePush` is the current accepted blocker-pressure experiment:
+  - `UnitPrefabEntry.canBePush` defaults to `false`;
+  - `Unit.canBePush` is copied from the database when spawning/reusing units;
+  - RVO agents carry `canBePush`;
+  - hard separation treats a locked/busy unit with `canBePush = true` as movable, so other units can physically shove it aside;
+  - velocity movement, target selection, combat busy state, attack range, normal radius, obstacles, and bounds are otherwise unchanged.
+- Aggressive-forward solo retaliation fix:
+  - when a forward/aggressive unit is hit by a different-lane ranged attacker, `reactToAttacker()` can set a solo retaliation target without releasing the whole wave;
+  - `BattleWave.refreshInitialForwardCombatGate()` must not force a unit with a valid target or active solo-aggressive skirmish back into forward, otherwise the unit appears to ignore arrows and keep marching.
 - Ally overtake currently may choose either side on any lane. The attempted lane-biased left/right-only overtake and the attempted lane-center-biased side choice were both reverted because they did not feel good enough in testing.
 - Worker and fallback logic must stay mirrored:
   - `assets/scripts/rvo/RVO.ts`;

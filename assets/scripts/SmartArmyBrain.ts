@@ -137,10 +137,20 @@ export class SmartArmyBrain extends Component {
     @property
     enableDebugLog = false;
 
+    @property({
+        tooltip:
+            'Logs runtime counts for aggressive, normal, wait, and hard-skip decisions in an actual match.',
+    })
+    enableDecisionStats = false;
+
     private timer = 0;
     private nextInterval = 3;
     private elapsedTime = 0;
     private hasReachedMaxAliveWavesOnce = false;
+    private decisionStatsAggressive = 0;
+    private decisionStatsNormal = 0;
+    private decisionStatsWait = 0;
+    private decisionStatsSkip = 0;
 
     private laneIntel: SmartLaneIntel[] = [];
     private enemyIntel: SmartWaveIntel[] = [];
@@ -155,6 +165,7 @@ export class SmartArmyBrain extends Component {
     }
 
     onDestroy() {
+        this.logDecisionStats('final');
         this.unregisterFastReactListener();
     }
 
@@ -290,6 +301,7 @@ export class SmartArmyBrain extends Component {
 
         if (!this.canSpawnMoreWave(aliveWaveCount)) {
             this.debugLog('Skip: max alive waves reached.');
+            this.recordDecisionSkip('max-alive');
             return;
         }
 
@@ -297,6 +309,7 @@ export class SmartArmyBrain extends Component {
 
         if (this.affordableEntries.length <= 0) {
             this.debugLog('Skip: no affordable entries.');
+            this.recordDecisionSkip('no-affordable-entry');
             return;
         }
 
@@ -316,7 +329,9 @@ export class SmartArmyBrain extends Component {
                 }
             }
 
-            this.spawnNaiveWave();
+            if (!this.spawnNaiveWave()) {
+                this.recordDecisionSkip('naive-spawn-failed');
+            }
             return;
         }
 
@@ -326,7 +341,9 @@ export class SmartArmyBrain extends Component {
             this.findBestResponseTarget();
 
         if (responseTarget) {
-            this.spawnResponse(responseTarget);
+            if (!this.spawnResponse(responseTarget)) {
+                this.recordDecisionSkip('response-spawn-failed');
+            }
             return;
         }
 
@@ -343,6 +360,7 @@ export class SmartArmyBrain extends Component {
         }
 
         this.stateLog('WAIT no useful spawn decision.');
+        this.recordDecisionWait('no-useful-spawn-decision');
     }
 
     private rebuildIntel() {
@@ -664,6 +682,11 @@ export class SmartArmyBrain extends Component {
 
         if (!spawned) return false;
 
+        this.recordDecisionSpawn(
+            aggressiveForward,
+            'response'
+        );
+
         this.stateLog(
             `RESPONSE wave=${intel.wave.id} ` +
             `target=${unitTypeToName(intel.wave.unitType)} ` +
@@ -802,6 +825,11 @@ export class SmartArmyBrain extends Component {
             );
 
         if (!spawned) return false;
+
+        this.recordDecisionSpawn(
+            aggressiveForward,
+            'naive'
+        );
 
         this.stateLog(
             `NAIVE_RANDOM spawn=${entry.name} ` +
@@ -953,6 +981,11 @@ export class SmartArmyBrain extends Component {
 
         if (!spawned) return false;
 
+        this.recordDecisionSpawn(
+            false,
+            'deliberate-mistake'
+        );
+
         this.stateLog(
             `DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` +
             `target=${unitTypeToName(targetIntel.wave.unitType)} ` +
@@ -1072,6 +1105,11 @@ export class SmartArmyBrain extends Component {
 
         if (!spawned) return false;
 
+        this.recordDecisionSpawn(
+            true,
+            'aggressive-empty-lane'
+        );
+
         this.stateLog(
             `AGGRESSIVE ${reason}: spawn=${entry.name} lane=${laneId}`
         );
@@ -1087,18 +1125,25 @@ export class SmartArmyBrain extends Component {
 
         if (!entry) return false;
 
+        const aggressiveForward =
+            this.shouldSpawnAggressiveForward();
         const spawned =
             this.gameManager.spawnWaveByEntry(
                 this.team,
                 entry,
                 -1,
-                this.shouldSpawnAggressiveForward()
+                aggressiveForward
             );
 
         if (!spawned) return false;
 
+        this.recordDecisionSpawn(
+            aggressiveForward,
+            'opening'
+        );
+
         this.stateLog(
-            `OPENING spawn=${entry.name} aggressive=${this.shouldSpawnAggressiveForward()}`
+            `OPENING spawn=${entry.name} aggressive=${aggressiveForward}`
         );
         return true;
     }
@@ -1930,6 +1975,76 @@ export class SmartArmyBrain extends Component {
                 0.1,
                 this.minSpawnInterval
             );
+    }
+
+    private recordDecisionSpawn(
+        aggressiveForward: boolean,
+        reason: string
+    ) {
+        if (!this.enableDecisionStats) return;
+
+        if (aggressiveForward) {
+            this.decisionStatsAggressive++;
+        } else {
+            this.decisionStatsNormal++;
+        }
+
+        this.logDecisionStats(
+            aggressiveForward
+                ? `aggressive:${reason}`
+                : `normal:${reason}`
+        );
+    }
+
+    private recordDecisionWait(reason: string) {
+        if (!this.enableDecisionStats) return;
+
+        this.decisionStatsWait++;
+        this.logDecisionStats(`wait:${reason}`);
+    }
+
+    private recordDecisionSkip(reason: string) {
+        if (!this.enableDecisionStats) return;
+
+        this.decisionStatsSkip++;
+        this.logDecisionStats(`skip:${reason}`);
+    }
+
+    private logDecisionStats(event: string) {
+        if (!this.enableDecisionStats) return;
+
+        const total =
+            this.decisionStatsAggressive +
+            this.decisionStatsNormal +
+            this.decisionStatsWait;
+
+        if (total <= 0 && this.decisionStatsSkip <= 0) {
+            return;
+        }
+
+        console.log(
+            `[SmartArmyBrain Stats T${this.team}] ` +
+            `event=${event} total=${total} ` +
+            `aggressive=${this.decisionStatsAggressive}` +
+            `(${this.getDecisionStatsPercent(this.decisionStatsAggressive, total)}%) ` +
+            `normal=${this.decisionStatsNormal}` +
+            `(${this.getDecisionStatsPercent(this.decisionStatsNormal, total)}%) ` +
+            `wait=${this.decisionStatsWait}` +
+            `(${this.getDecisionStatsPercent(this.decisionStatsWait, total)}%) ` +
+            `skip=${this.decisionStatsSkip}`
+        );
+    }
+
+    private getDecisionStatsPercent(
+        value: number,
+        total: number
+    ) {
+        if (total <= 0) return '0.0';
+
+        return (
+            value * 100 /
+            total
+        ).toFixed(1);
     }
 
     private stateLog(message: string) {
