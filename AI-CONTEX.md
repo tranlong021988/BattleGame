@@ -77,6 +77,17 @@ Read this section before continuing gameplay AI or forward/freehunt work.
   - `git diff --check -- AI-CONTEX.md assets/scripts/SmartArmyBrain.ts assets/scripts/Unit.ts`;
   - Cocos TypeScript command from this file's Workspace Notes ran clean on the home machine.
 
+### Web Mobile PC Landscape Layout
+
+- User wants the 720x1280 portrait game to keep its 9:16 aspect ratio when opened on a landscape PC browser.
+- Do not solve this by globally changing `settings/v2/packages/project.json` to `fitHeight=true`; that can hurt tall portrait mobile screens.
+- Current accepted source-side solution:
+  - keep project design resolution at 720x1280 with `fitWidth=true`;
+  - add `build-templates/web-mobile/style.css`;
+  - in landscape orientation, CSS centers `#GameDiv` and sets it to `height: 100vh` and `width: calc(100vh * 9 / 16)`, producing side pillars on PC;
+  - portrait remains full-screen `100% x 100%`.
+- Rebuild `web-mobile` after this change so Cocos copies the template CSS into the build output.
+
 ## Accepted 2026-07-07 Office Changes
 
 These are the current accepted changes from today's office session:

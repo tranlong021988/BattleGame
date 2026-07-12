@@ -18,9 +18,8 @@ body, canvas, div {
 /* Remove spin of input type number */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
-    /* display: none; <- Crashes Chrome on hover */
     -webkit-appearance: none;
-    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+    margin: 0;
 }
 
 body {
@@ -51,6 +50,21 @@ canvas {
 #GameDiv, #Cocos3dGameContainer, #GameCanvas {
   width: 100%;
   height: 100%;
+}
+
+@media (orientation: landscape) {
+  body {
+    align-items: center;
+    justify-content: center;
+  }
+
+  #GameDiv {
+    flex: none;
+    width: calc(100vh * 9 / 16);
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+  }
 }
 
 :root {
