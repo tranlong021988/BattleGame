@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-13 by the office Codex.
+Last updated: 2026-07-14 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -35,6 +35,32 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 
 Read this section before touching unit database, counter rules, damage, player spawn UI, or SmartArmyBrain unit choice.
 
+### 2026-07-14 Home Note: Current 5-Family Test Mode
+
+- The project has been migrated structurally to `7 families x 3 tiers`, but the user is currently testing gameplay as the old 5-family troop set with `Axeman` replacing the old `Maceman`.
+- Keep only these tier-1 entries unlocked in `assets/Test.scene` unless the user explicitly starts testing the full 7-family design:
+  - `spear_t1`
+  - `sword_t1`
+  - `archer_t1`
+  - `cavalry_t1`
+  - `axeman_t1`
+- `Skirmisher`, `Monk`, and all tier 2/3 entries remain data-ready but locked for now.
+- For the current scene/runtime test, `CounterSettings.rules` is intentionally serialized as a closed 5-family loop using multiplier `3`:
+
+```text
+Spear > Cavalry
+Cavalry > Archer
+Archer > Axeman
+Axeman > Sword
+Sword > Spear
+```
+
+- Do not "repair" `assets/Test.scene` to the full 7-family counter matrix yet. The 7-family matrix exists as the future target/design, not the current gameplay test target.
+- On 2026-07-14, only stale `note` strings in `assets/Test.scene` were corrected:
+  - `Archer hard-counters Axeman`
+  - `Axeman hard-counters Sword`
+- No counter `attackerFamily`, `defenderFamily`, or `damageMultiplier` values were changed in that note cleanup.
+
 ### Unit Families And Tiers
 
 - The old `UnitType` enum was intentionally removed to avoid future ambiguity between old light/heavy troop types and the new design.
@@ -56,7 +82,7 @@ max(1, attacker.damage - defender.defense) * familyCounterMultiplier
 ```
 
 - Hero-vs-anything remains special and does not use family counter rules; it uses `max(1, attack - defense)`.
-- Current default family counter rules use multiplier `3`:
+- `assets/scripts/CounterSettings.ts` default family counter rules use multiplier `3` for the future full 7-family setup:
   - Spear > Cavalry
   - Cavalry > Archer
   - Archer > Sword
@@ -68,6 +94,7 @@ max(1, attacker.damage - defender.defense) * familyCounterMultiplier
   - Axeman > Sword
   - Monk > Axeman
   - Monk > Sword
+- Important: `assets/Test.scene` currently serializes its own 5-rule closed-loop `CounterSettings.rules`, so the scene does not use the full default list above at runtime while those serialized rules remain present.
 
 ### Current Scene Database
 

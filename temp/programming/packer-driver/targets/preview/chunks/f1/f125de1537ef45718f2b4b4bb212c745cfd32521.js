@@ -1,14 +1,14 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, Vec3, UnitType, BattleWave, _crd;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, Vec3, UnitFamily, BattleWave, _crd;
 
   function _reportPossibleCrUseOfUnit(extras) {
     _reporterNs.report("Unit", "./Unit", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfUnitType(extras) {
-    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  function _reportPossibleCrUseOfUnitFamily(extras) {
+    _reporterNs.report("UnitFamily", "./BattleTypes", _context.meta, extras);
   }
 
   _export("BattleWave", void 0);
@@ -22,7 +22,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsoleteInNamespace__ = _cc.__checkObsoleteInNamespace__;
       Vec3 = _cc.Vec3;
     }, function (_unresolved_2) {
-      UnitType = _unresolved_2.UnitType;
+      UnitFamily = _unresolved_2.UnitFamily;
     }],
     execute: function () {
       _crd = true;
@@ -32,7 +32,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsolete__(['Node', 'Vec3']);
 
       _export("BattleWave", BattleWave = class BattleWave {
-        constructor(id, team, unitName, unitType, totalCount, laneId) {
+        constructor(id, team, unitName, family, tier, totalCount, laneId) {
           if (laneId === void 0) {
             laneId = -1;
           }
@@ -40,9 +40,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.id = 0;
           this.team = 0;
           this.unitName = '';
-          this.unitType = (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+          this.family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitType) : UnitType).LightSword;
+          }), UnitFamily) : UnitFamily).Spear;
+          this.tier = 1;
           this.totalCount = 0;
           this.units = [];
           this.laneId = -1;
@@ -68,7 +69,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.id = id;
           this.team = team;
           this.unitName = unitName;
-          this.unitType = unitType;
+          this.family = family;
+          this.tier = Math.max(1, Math.min(3, Math.floor(tier)));
           this.totalCount = totalCount;
           this.laneId = laneId;
         }
@@ -78,6 +80,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.released) return;
           BattleWave.unitWaveMap.set(unit, this.id);
           BattleWave.unitWaveObjectMap.set(unit, this);
+          unit.setWaveRuntimeId(this.id);
 
           if (this.units.indexOf(unit) < 0) {
             if (this.units.length <= 0) {
@@ -668,6 +671,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         releaseReferences() {
           this.releaseWaveBanner();
+
+          for (var i = 0; i < this.units.length; i++) {
+            var unit = this.units[i];
+            if (!unit) continue;
+            if (BattleWave.unitWaveMap.get(unit) !== this.id) continue;
+            unit.setWaveRuntimeId(-1);
+          }
+
           this.released = true;
           this.runtimeStateFrame = -1;
           this.runtimeAliveCount = 0;

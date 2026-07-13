@@ -53,7 +53,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       Enum(PlayerLane);
 
       _export("PlayerUnitIconBinding", PlayerUnitIconBinding = (_dec = ccclass('PlayerUnitIconBinding'), _dec2 = property(Node), _dec3 = property({
-        tooltip: 'Exact UnitPrefabEntry.name in BattleUnitDatabase, e.g. light_sword.'
+        tooltip: 'Exact UnitPrefabEntry.name in BattleUnitDatabase, e.g. sword_t1.'
       }), _dec(_class = (_class2 = class PlayerUnitIconBinding {
         constructor() {
           _initializerDefineProperty(this, "node", _descriptor, this);

@@ -15,8 +15,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("UnitBehavior", "./UnitBehavior", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfUnitType(extras) {
-    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  function _reportPossibleCrUseOfUnitFamily(extras) {
+    _reporterNs.report("UnitFamily", "./BattleTypes", _context.meta, extras);
   }
 
   return {
@@ -103,7 +103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, canBePush, attackRange, attackIntervalMin, attackIntervalMax, health, damage, defense) {
+        spawnUnit(prefab, unitTypeName, family, tier, pos, team, parent, maxSpeed, canBePush, canBePassedThroughByForwardAlly, attackRange, attackIntervalMin, attackIntervalMax, health, damage, defense) {
           const node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -124,8 +124,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), UnitBehavior) : UnitBehavior);
           unit.moveSpeed = maxSpeed;
           unit.canBePush = canBePush;
+          unit.canBePassedThroughByForwardAlly = canBePassedThroughByForwardAlly;
           unit.attackRange = Math.max(0, attackRange);
-          props.unitType = unitType;
+          props.family = family;
+          props.tier = Math.max(1, Math.min(3, Math.floor(tier)));
           props.maxHealth = health;
           props.damage = damage;
           props.defense = defense;
