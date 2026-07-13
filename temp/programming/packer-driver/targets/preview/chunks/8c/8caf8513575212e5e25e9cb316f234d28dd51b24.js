@@ -33,11 +33,14 @@ System.register(["cc"], function (_export, _context) {
           };
           this.maxSpeed = 2;
           this.radius = 0.5;
+          this.waveRuntimeId = -1;
           // ===== neighbor tuning =====
           this.neighborDist = 2.4;
           this.maxNeighbors = 8;
           this.locked = false;
           this.canBePush = 0;
+          this.isHero = 0;
+          this.canBePassedThroughByForwardAlly = 0;
           this.team = -1;
           this.onForward = 0;
           this.forwardX = 0;
@@ -218,6 +221,7 @@ System.register(["cc"], function (_export, _context) {
               for (var i = 0; i < cell.length; i++) {
                 var other = cell[i];
                 if (other === a) continue;
+                if (this.shouldIgnoreHeroAllyForwardPair(a, other)) continue;
                 var dx = other.pos.x - a.pos.x;
                 var dz = other.pos.z - a.pos.z;
                 var distSq = dx * dx + dz * dz;
@@ -228,6 +232,24 @@ System.register(["cc"], function (_export, _context) {
           }
 
           return result;
+        }
+
+        shouldIgnoreHeroAllyForwardPair(a, b) {
+          if (a.team < 0 || a.team !== b.team) return false;
+
+          if (a.waveRuntimeId >= 0 && a.waveRuntimeId === b.waveRuntimeId) {
+            return false;
+          }
+
+          if (a.isHero === 1 || b.isHero === 1) {
+            return a.onForward === 1 || b.onForward === 1;
+          }
+
+          if (a.canBePassedThroughByForwardAlly === 1 && b.onForward === 1) {
+            return true;
+          }
+
+          return b.canBePassedThroughByForwardAlly === 1 && a.onForward === 1;
         }
 
         insertNearestNeighbor(origin, candidate, candidateDistSq, maxNeighbors, result) {

@@ -103,7 +103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, canBePush, attackRange, attackIntervalMin, attackIntervalMax, health, damage, defense) {
+        spawnUnit(prefab, unitTypeName, unitType, pos, team, parent, maxSpeed, canBePush, canBePassedThroughByForwardAlly, attackRange, attackIntervalMin, attackIntervalMax, health, damage, defense) {
           var node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -124,6 +124,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), UnitBehavior) : UnitBehavior);
           unit.moveSpeed = maxSpeed;
           unit.canBePush = canBePush;
+          unit.canBePassedThroughByForwardAlly = canBePassedThroughByForwardAlly;
           unit.attackRange = Math.max(0, attackRange);
           props.unitType = unitType;
           props.maxHealth = health;

@@ -74,6 +74,7 @@ export class UnitSpawner extends Component {
         parent: Node,
         maxSpeed: number,
         canBePush: boolean,
+        canBePassedThroughByForwardAlly: boolean,
         attackRange: number,
         attackIntervalMin: number,
         attackIntervalMax: number,
@@ -97,6 +98,8 @@ export class UnitSpawner extends Component {
 
         unit.moveSpeed = maxSpeed;
         unit.canBePush = canBePush;
+        unit.canBePassedThroughByForwardAlly =
+            canBePassedThroughByForwardAlly;
         unit.attackRange = Math.max(0, attackRange);
 
         props.unitType = unitType;

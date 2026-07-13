@@ -1936,7 +1936,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 0, this.node, entry.maxSpeed, entry.canBePush, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
+          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 0, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
 
           if (this.teamA.indexOf(unit) < 0) {
             this.teamA.push(unit);
@@ -1962,7 +1962,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 1, this.node, entry.maxSpeed, entry.canBePush, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
+          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 1, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
 
           if (this.teamB.indexOf(unit) < 0) {
             this.teamB.push(unit);
@@ -2165,6 +2165,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const forwardX = 0;
           const forwardZ = team === 0 ? 1 : -1;
           hero.moveSpeed = heroEntry.maxSpeed;
+          hero.canBePassedThroughByForwardAlly = true;
           hero.heroGuardDistance = heroEntry.guardDistance;
           hero.isSteady = true;
           hero.init(this.sim, team, unitTypeName, forwardX, forwardZ);

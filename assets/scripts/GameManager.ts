@@ -2924,6 +2924,7 @@ export class GameManager extends Component {
             this.node,
             entry.maxSpeed,
             entry.canBePush,
+            entry.canBePassedThroughByForwardAlly,
             entry.attackRange,
             entry.attackIntervalMin,
             entry.attackIntervalMax,
@@ -2970,6 +2971,7 @@ export class GameManager extends Component {
             this.node,
             entry.maxSpeed,
             entry.canBePush,
+            entry.canBePassedThroughByForwardAlly,
             entry.attackRange,
             entry.attackIntervalMin,
             entry.attackIntervalMax,
@@ -3230,6 +3232,7 @@ export class GameManager extends Component {
             team === 0 ? 1 : -1;
 
         hero.moveSpeed = heroEntry.maxSpeed;
+        hero.canBePassedThroughByForwardAlly = true;
         hero.heroGuardDistance = heroEntry.guardDistance;
         hero.isSteady = true;
 

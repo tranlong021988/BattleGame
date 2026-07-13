@@ -65,6 +65,12 @@ export class UnitPrefabEntry {
     })
     canBePush: boolean = false;
 
+    @property({
+        tooltip:
+            'Allows same-team units that are in forward/aggressive-forward mode to pass through this unit instead of treating it as a formation blocker.',
+    })
+    canBePassedThroughByForwardAlly: boolean = false;
+
     @property
     attackRange: number = 1.2;
 

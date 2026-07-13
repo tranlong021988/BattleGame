@@ -62,6 +62,7 @@ export class BattleWave {
 
         BattleWave.unitWaveMap.set(unit, this.id);
         BattleWave.unitWaveObjectMap.set(unit, this);
+        unit.setWaveRuntimeId(this.id);
 
         if (this.units.indexOf(unit) < 0) {
             if (this.units.length <= 0) {
@@ -804,6 +805,15 @@ export class BattleWave {
 
     releaseReferences() {
         this.releaseWaveBanner();
+
+        for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+
+            if (!unit) continue;
+            if (BattleWave.unitWaveMap.get(unit) !== this.id) continue;
+
+            unit.setWaveRuntimeId(-1);
+        }
 
         this.released = true;
         this.runtimeStateFrame = -1;

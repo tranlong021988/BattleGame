@@ -6,6 +6,7 @@ export class RVOAgent {
 
     maxSpeed = 2;
     radius = 0.5;
+    waveRuntimeId = -1;
 
     // ===== neighbor tuning =====
     neighborDist = 2.4;
@@ -13,6 +14,8 @@ export class RVOAgent {
 
     locked = false;
     canBePush = 0;
+    isHero = 0;
+    canBePassedThroughByForwardAlly = 0;
 
     team = -1;
     onForward = 0;
@@ -228,6 +231,7 @@ export class RVOSimulator {
                     const other = cell[i];
 
                     if (other === a) continue;
+                    if (this.shouldIgnoreHeroAllyForwardPair(a, other)) continue;
 
                     const dx = other.pos.x - a.pos.x;
                     const dz = other.pos.z - a.pos.z;
@@ -247,6 +251,35 @@ export class RVOSimulator {
         }
 
         return result;
+    }
+
+    private shouldIgnoreHeroAllyForwardPair(
+        a: RVOAgent,
+        b: RVOAgent
+    ) {
+        if (a.team < 0 || a.team !== b.team) return false;
+        if (
+            a.waveRuntimeId >= 0 &&
+            a.waveRuntimeId === b.waveRuntimeId
+        ) {
+            return false;
+        }
+
+        if (a.isHero === 1 || b.isHero === 1) {
+            return a.onForward === 1 || b.onForward === 1;
+        }
+
+        if (
+            a.canBePassedThroughByForwardAlly === 1 &&
+            b.onForward === 1
+        ) {
+            return true;
+        }
+
+        return (
+            b.canBePassedThroughByForwardAlly === 1 &&
+            a.onForward === 1
+        );
     }
 
     private insertNearestNeighbor(

@@ -124,6 +124,13 @@ export class SmartArmyBrain extends Component {
     @property({
         min: 0,
         max: 1,
+        tooltip: 'When countering a target in a clean lane with no ally blockers, chance to use normal forward as a flank strike instead of aggressive forward hero raid.'
+    })
+    flankStrikeRatio = 0.5;
+
+    @property({
+        min: 0,
+        max: 1,
         tooltip: 'Chance to immediately counter a newly spawned enemy wave after min spawn interval has elapsed. Higher AI can react faster without waiting for max spawn interval.',
     })
     fastReactCounterChance = 0.0;
@@ -721,7 +728,8 @@ export class SmartArmyBrain extends Component {
                 intel.allyCountInLane <= 0 &&
                 intel.allyBlockersFromSpawn <= 0
             ) {
-                return true;
+                return Math.random() >=
+                    this.clamp01(this.flankStrikeRatio);
             }
         }
 

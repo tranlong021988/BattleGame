@@ -10,12 +10,15 @@ export class RVOWorkerAgent {
 
     maxSpeed = 2;
     radius = 0.5;
+    waveRuntimeId = -1;
 
     neighborDist = 2.4;
     maxNeighbors = 8;
 
     locked = false;
     canBePush = 0;
+    isHero = 0;
+    canBePassedThroughByForwardAlly = 0;
 
     team = -1;
     onForward = 0;
@@ -297,12 +300,16 @@ export class RVOWorkerSimulator {
             floats[fi + 16] = a.team;
             floats[fi + 17] = a.onForward;
 
-            const ii = i * 4;
+            const ii = i * 7;
 
             ints[ii + 0] = a.maxNeighbors;
             ints[ii + 1] = a.locked ? 1 : 0;
             ints[ii + 2] = a.enableAllyOvertake ? 1 : 0;
             ints[ii + 3] = a.canBePush ? 1 : 0;
+            ints[ii + 4] = a.isHero ? 1 : 0;
+            ints[ii + 5] =
+                a.canBePassedThroughByForwardAlly ? 1 : 0;
+            ints[ii + 6] = Math.floor(a.waveRuntimeId);
         }
 
         this.pending = true;
@@ -366,7 +373,7 @@ export class RVOWorkerSimulator {
 
         this.idsBuffer = new Int32Array(this.bufferCapacity);
         this.floatsBuffer = new Float32Array(this.bufferCapacity * 18);
-        this.intsBuffer = new Int32Array(this.bufferCapacity * 4);
+        this.intsBuffer = new Int32Array(this.bufferCapacity * 7);
     }
 
     private sendObstaclesToWorker() {
@@ -590,6 +597,7 @@ function getAgentFromCache(index) {
             maxSpeed: 0,
             radius: 0,
             neighborDist: 0,
+            waveRuntimeId: -1,
 
             forwardX: 0,
             forwardZ: 1,
@@ -609,6 +617,8 @@ function getAgentFromCache(index) {
             maxNeighbors: 0,
             locked: false,
             canBePush: false,
+            isHero: false,
+            canBePassedThroughByForwardAlly: false,
             enableAllyOvertake: false,
 
             gridX: 0,
@@ -629,7 +639,7 @@ function buildAgents(ids, floats, ints, count) {
         const previousId = a.id;
 
         const fi = i * 18;
-        const ii = i * 4;
+        const ii = i * 7;
 
         a.id = ids[i];
 
@@ -668,6 +678,10 @@ function buildAgents(ids, floats, ints, count) {
         a.locked = ints[ii + 1] === 1;
         a.enableAllyOvertake = ints[ii + 2] === 1;
         a.canBePush = ints[ii + 3] === 1;
+        a.isHero = ints[ii + 4] === 1;
+        a.canBePassedThroughByForwardAlly =
+            ints[ii + 5] === 1;
+        a.waveRuntimeId = ints[ii + 6];
 
         a.gridX = 0;
         a.gridZ = 0;
@@ -725,6 +739,7 @@ function collectNeighbors(a, result, cellSize) {
                 const b = cell[i];
 
                 if (b === a) continue;
+                if (shouldIgnoreHeroAllyForwardPair(a, b)) continue;
 
                 const dx = b.x - a.x;
                 const dz = b.z - a.z;
@@ -745,6 +760,32 @@ function collectNeighbors(a, result, cellSize) {
 }
 
 const neighborScratch = [];
+
+function shouldIgnoreHeroAllyForwardPair(a, b) {
+    if (a.team < 0 || a.team !== b.team) return false;
+    if (
+        a.waveRuntimeId >= 0 &&
+        a.waveRuntimeId === b.waveRuntimeId
+    ) {
+        return false;
+    }
+
+    if (a.isHero === true || b.isHero === true) {
+        return a.onForward === 1 || b.onForward === 1;
+    }
+
+    if (
+        a.canBePassedThroughByForwardAlly === true &&
+        b.onForward === 1
+    ) {
+        return true;
+    }
+
+    return (
+        b.canBePassedThroughByForwardAlly === true &&
+        a.onForward === 1
+    );
+}
 
 function insertNearestNeighbor(origin, candidate, candidateDistSq, maxNeighbors, result) {
     let insertAt = result.length;

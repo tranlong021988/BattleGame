@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _dec5, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, DangerousThreatProgress, SmartResponseTier, SmartArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, DangerousThreatProgress, SmartResponseTier, SmartArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -142,8 +142,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec4 = property({
         min: 0,
         max: 1,
-        tooltip: 'Chance to immediately counter a newly spawned enemy wave after min spawn interval has elapsed. Higher AI can react faster without waiting for max spawn interval.'
+        tooltip: 'When countering a target in a clean lane with no ally blockers, chance to use normal forward as a flank strike instead of aggressive forward hero raid.'
       }), _dec5 = property({
+        min: 0,
+        max: 1,
+        tooltip: 'Chance to immediately counter a newly spawned enemy wave after min spawn interval has elapsed. Higher AI can react faster without waiting for max spawn interval.'
+      }), _dec6 = property({
         tooltip: 'Logs runtime counts for aggressive, normal, wait, and hard-skip decisions in an actual match.'
       }), _dec(_class3 = (_class4 = class SmartArmyBrain extends Component {
         constructor(...args) {
@@ -175,15 +179,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "aggressiveForwardChance", _descriptor13, this);
 
-          _initializerDefineProperty(this, "fastReactCounterChance", _descriptor14, this);
+          _initializerDefineProperty(this, "flankStrikeRatio", _descriptor14, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor15, this);
+          _initializerDefineProperty(this, "fastReactCounterChance", _descriptor15, this);
 
-          _initializerDefineProperty(this, "enableStateLog", _descriptor16, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor16, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor17, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor17, this);
 
-          _initializerDefineProperty(this, "enableDecisionStats", _descriptor18, this);
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor18, this);
+
+          _initializerDefineProperty(this, "enableDecisionStats", _descriptor19, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -550,7 +556,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             if (intel.allyCountInLane <= 0 && intel.allyBlockersFromSpawn <= 0) {
-              return true;
+              return Math.random() >= this.clamp01(this.flankStrikeRatio);
             }
           }
 
@@ -1438,35 +1444,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 0.25;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class4.prototype, "fastReactCounterChance", [_dec4], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class4.prototype, "flankStrikeRatio", [_dec4], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.5;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class4.prototype, "fastReactCounterChance", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.0;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class4.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class4.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class4.prototype, "enableStateLog", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class4.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class4.prototype, "enableDebugLog", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class4.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class4.prototype, "enableDecisionStats", [_dec5], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class4.prototype, "enableDecisionStats", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,

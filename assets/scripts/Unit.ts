@@ -28,6 +28,11 @@ export class Unit extends Component {
             'Allows this unit to be pushed by hard separation even while busy/engaged and locked.',
     })
     canBePush = false;
+    @property({
+        tooltip:
+            'Allows same-team forward/aggressive-forward units to pass through this unit in RVO avoidance.',
+    })
+    canBePassedThroughByForwardAlly = false;
 
     @property attackRange = 1;
     @property attackCheckIntervalFrames = 2;
@@ -60,6 +65,7 @@ export class Unit extends Component {
     unitTypeName = '';
     isHero = false;
     laneId = -1;
+    waveRuntimeId = -1;
 
     sim: any = null;
     agent: any = null;
@@ -271,8 +277,12 @@ export class Unit extends Component {
         if (!this.agent) return;
 
         this.agent.team = this.team;
+        this.agent.waveRuntimeId = this.waveRuntimeId;
         this.setAgentOnForward(this.onForward ? 1 : 0);
         this.agent.canBePush = this.canBePush ? 1 : 0;
+        this.agent.isHero = this.isHero ? 1 : 0;
+        this.agent.canBePassedThroughByForwardAlly =
+            this.canBePassedThroughByForwardAlly ? 1 : 0;
 
         this.agent.forwardX = this.forwardDir.x;
         this.agent.forwardZ = this.forwardDir.z;
@@ -283,6 +293,14 @@ export class Unit extends Component {
         this.agent.overtakeSideStrength = this.overtakeSideStrength;
         this.agent.overtakeSpeedDiff = this.overtakeSpeedDiff;
         this.agent.overtakeSeed = this.updateOffset % 2 === 0 ? 1 : -1;
+    }
+
+    public setWaveRuntimeId(id: number) {
+        this.waveRuntimeId = Math.floor(id);
+
+        if (this.agent) {
+            this.agent.waveRuntimeId = this.waveRuntimeId;
+        }
     }
 
     private applySteadyState() {
@@ -570,7 +588,9 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.laneId = -1;
+        this.setWaveRuntimeId(-1);
         this.aggressiveForward = false;
+        this.canBePassedThroughByForwardAlly = false;
         this.resetMoveIntentFacing();
 
         if (this.agent) {
