@@ -45,6 +45,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.neighborDist = 2.4;
           this.maxNeighbors = 8;
           this.locked = false;
+          this.canBePush = 0;
           this.team = -1;
           this.onForward = 0;
           this.forwardX = 0;
@@ -257,10 +258,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             floats[fi + 15] = a.overtakeSeed;
             floats[fi + 16] = a.team;
             floats[fi + 17] = a.onForward;
-            const ii = i * 3;
+            const ii = i * 4;
             ints[ii + 0] = a.maxNeighbors;
             ints[ii + 1] = a.locked ? 1 : 0;
             ints[ii + 2] = a.enableAllyOvertake ? 1 : 0;
+            ints[ii + 3] = a.canBePush ? 1 : 0;
           }
 
           this.pending = true;
@@ -307,7 +309,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.bufferCapacity = Math.max(count, this.bufferCapacity * 2, 64);
           this.idsBuffer = new Int32Array(this.bufferCapacity);
           this.floatsBuffer = new Float32Array(this.bufferCapacity * 18);
-          this.intsBuffer = new Int32Array(this.bufferCapacity * 3);
+          this.intsBuffer = new Int32Array(this.bufferCapacity * 4);
         }
 
         sendObstaclesToWorker() {
@@ -513,6 +515,7 @@ function getAgentFromCache(index) {
 
             maxNeighbors: 0,
             locked: false,
+            canBePush: false,
             enableAllyOvertake: false,
 
             gridX: 0,
@@ -533,7 +536,7 @@ function buildAgents(ids, floats, ints, count) {
         const previousId = a.id;
 
         const fi = i * 18;
-        const ii = i * 3;
+        const ii = i * 4;
 
         a.id = ids[i];
 
@@ -571,6 +574,7 @@ function buildAgents(ids, floats, ints, count) {
         a.maxNeighbors = ints[ii + 0];
         a.locked = ints[ii + 1] === 1;
         a.enableAllyOvertake = ints[ii + 2] === 1;
+        a.canBePush = ints[ii + 3] === 1;
 
         a.gridX = 0;
         a.gridZ = 0;
@@ -1146,6 +1150,10 @@ function applyVelocityAvoidance(agents, count, data) {
 
 }
 
+function canMoveInHardSeparation(a) {
+    return !a.locked || a.canBePush === true;
+}
+
 function moveAgents(agents, count, data) {
     const obstacleIterations = Math.max(
         0,
@@ -1197,8 +1205,8 @@ function hardSeparateAgents(agents, count, data) {
             const nx = dx / dist;
             const nz = dz / dist;
 
-            const aMovable = !a.locked;
-            const bMovable = !b.locked;
+            const aMovable = canMoveInHardSeparation(a);
+            const bMovable = canMoveInHardSeparation(b);
 
             if (aMovable && bMovable) {
                 const half = overlap * 0.5;
@@ -1229,7 +1237,7 @@ function solveObstaclesAgain(agents, count, data) {
     for (let i = 0; i < count; i++) {
         const a = agents[i];
 
-        if (a.locked) continue;
+        if (a.locked && a.canBePush !== true) continue;
 
         for (let k = 0; k < obstacleIterations; k++) {
             pushAgentOutOfObstacles(a);

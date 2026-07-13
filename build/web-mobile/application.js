@@ -45,12 +45,34 @@ System.register([], function (_export, _context) {
                 // assets: {
                 //      preloadBundles: [{ bundle: 'main', version: 'xxx' }],
                 // }
+                screen: {
+                  exactFitScreen: false
+                },
                 profiling: {
                   showFPS: this.showFPS
                 }
               }
             }).then(function () {
               return cc.game.run();
+            }).then(function () {
+              if (typeof window !== 'undefined' && window.__applyBattlePortraitLayout) {
+                var frame = window.__applyBattlePortraitLayout();
+
+                if (frame && cc.view) {
+                  if (cc.view.resizeWithBrowserSize) {
+                    cc.view.resizeWithBrowserSize(false);
+                  }
+
+                  if (cc.view.setFrameSize) {
+                    cc.view.setFrameSize(frame.width, frame.height);
+                  }
+
+                  if (cc.view.setDesignResolutionSize) {
+                    var showAllPolicy = cc.ResolutionPolicy && cc.ResolutionPolicy.SHOW_ALL !== undefined ? cc.ResolutionPolicy.SHOW_ALL : 2;
+                    cc.view.setDesignResolutionSize(720, 1280, showAllPolicy);
+                  }
+                }
+              }
             });
           }
         }]);

@@ -588,7 +588,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.forwardScannerUnit;
         }
 
-        tryResumeForward() {
+        tryResumeForward(beforeResume) {
+          if (beforeResume === void 0) {
+            beforeResume = null;
+          }
+
           if (this.released) return false;
           if (!this.freeHuntActive) return false;
           var aliveCount = 0;
@@ -606,6 +610,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           if (aliveCount <= 0) return false;
+
+          if (beforeResume) {
+            beforeResume(this);
+          }
+
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.initialForwardCombatGateActive = false;
@@ -615,10 +624,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             var _u = this.units[_i];
             if (!this.isUnitAlive(_u)) continue;
 
-            _u.enterWaveForwardMode(this.aggressiveForwardMode);
+            _u.enterWaveForwardMode(this.aggressiveForwardMode, true);
           }
 
           return true;
+        }
+
+        hasBackToLaneUnits() {
+          if (this.released) return false;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var u = this.units[i];
+            if (!this.isUnitAlive(u)) continue;
+            if (u.isBackToLaneActive()) return true;
+          }
+
+          return false;
         }
 
         refreshInitialForwardCombatGate() {
@@ -631,6 +652,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             if (!this.isUnitAlive(u)) continue;
             if (u.onBusy) continue;
             if (u.onForward) continue;
+            if (u.hasValidEnemyTarget()) continue;
+            if (u.isSoloAggressiveSkirmishActive()) continue;
             u.enterWaveForwardMode(this.aggressiveForwardMode);
           }
         }

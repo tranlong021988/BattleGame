@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -47,10 +47,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       FORWARD_LOOK_DOT_THRESHOLD = 0.98;
 
       _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Node), _dec3 = property({
+        tooltip: 'Allows this unit to be pushed by hard separation even while busy/engaged and locked.'
+      }), _dec4 = property({
         displayName: 'Aggressive Forward'
-      }), _dec4 = property(Vec3), _dec5 = property({
+      }), _dec5 = property(Vec3), _dec6 = property({
         displayName: 'Hero Guard Distance'
-      }), _dec6 = property({
+      }), _dec7 = property({
         displayName: 'Hero Guard Return Tolerance'
       }), _dec(_class = (_class2 = (_class3 = class Unit extends Component {
         constructor() {
@@ -70,35 +72,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "radius", _descriptor7, this);
 
-          _initializerDefineProperty(this, "attackRange", _descriptor8, this);
+          _initializerDefineProperty(this, "canBePush", _descriptor8, this);
 
-          _initializerDefineProperty(this, "attackCheckIntervalFrames", _descriptor9, this);
+          _initializerDefineProperty(this, "attackRange", _descriptor9, this);
 
-          _initializerDefineProperty(this, "targetSearchRange", _descriptor10, this);
+          _initializerDefineProperty(this, "attackCheckIntervalFrames", _descriptor10, this);
 
-          _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor11, this);
+          _initializerDefineProperty(this, "targetSearchRange", _descriptor11, this);
 
-          _initializerDefineProperty(this, "aggressiveForward", _descriptor12, this);
+          _initializerDefineProperty(this, "targetSearchIntervalFrames", _descriptor12, this);
 
-          _initializerDefineProperty(this, "forwardDir", _descriptor13, this);
+          _initializerDefineProperty(this, "aggressiveForward", _descriptor13, this);
 
-          _initializerDefineProperty(this, "onForward", _descriptor14, this);
+          _initializerDefineProperty(this, "forwardDir", _descriptor14, this);
 
-          _initializerDefineProperty(this, "isSteady", _descriptor15, this);
+          _initializerDefineProperty(this, "onForward", _descriptor15, this);
 
-          _initializerDefineProperty(this, "heroGuardDistance", _descriptor16, this);
+          _initializerDefineProperty(this, "isSteady", _descriptor16, this);
 
-          _initializerDefineProperty(this, "heroGuardReturnTolerance", _descriptor17, this);
+          _initializerDefineProperty(this, "heroGuardDistance", _descriptor17, this);
 
-          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor18, this);
+          _initializerDefineProperty(this, "heroGuardReturnTolerance", _descriptor18, this);
 
-          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor19, this);
+          _initializerDefineProperty(this, "enableAllyOvertake", _descriptor19, this);
 
-          _initializerDefineProperty(this, "overtakeSideRange", _descriptor20, this);
+          _initializerDefineProperty(this, "overtakeLookAhead", _descriptor20, this);
 
-          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor21, this);
+          _initializerDefineProperty(this, "overtakeSideRange", _descriptor21, this);
 
-          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor22, this);
+          _initializerDefineProperty(this, "overtakeSideStrength", _descriptor22, this);
+
+          _initializerDefineProperty(this, "overtakeSpeedDiff", _descriptor23, this);
 
           this.team = 0;
           this.unitTypeName = '';
@@ -123,6 +127,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.lastMoveIntentSamplePos = {
+            x: 0,
+            z: 0
+          };
           this.tempPos = new Vec3();
           this.visualYawCache = 0;
           this.visualYawCacheValid = false;
@@ -137,6 +145,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.retaliationTargetLifeId = -1;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.nearestEnemyQueryToken = 0;
 
           this.onNearestEnemyQueryResult = (target, token) => {
@@ -178,6 +189,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent.radius = this.radius;
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.onForward = !this.isSteady;
           this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
@@ -191,6 +205,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.lastMoveIntentSamplePos.x = p.x;
+          this.lastMoveIntentSamplePos.z = p.z;
           this.resetMoveIntentFacing();
           this.applyRuntimeAgentData();
           this.applySteadyState();
@@ -210,6 +226,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.backToLaneActive = false;
             this.initialYaw = this.getVisualEulerY();
 
             if (this.isHero) {
@@ -226,6 +243,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = useForwardPhase;
+          this.backToLaneActive = false;
           this.setAgentLocked(false);
           this.setAgentOnForward(useForwardPhase ? 1 : 0);
           this.setAgentStopped();
@@ -276,6 +294,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (!this.agent) return;
           this.agent.team = this.team;
           this.setAgentOnForward(this.onForward ? 1 : 0);
+          this.agent.canBePush = this.canBePush ? 1 : 0;
           this.agent.forwardX = this.forwardDir.x;
           this.agent.forwardZ = this.forwardDir.z;
           this.agent.enableAllyOvertake = this.enableAllyOvertake ? 1 : 0;
@@ -332,6 +351,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.retaliationTargetLifeId = target.lifeId;
           this.targetSearchConfirmedNoTarget = false;
           this.resetBusyLookCache();
+        }
+
+        isSoloAggressiveSkirmishActive() {
+          return this.soloAggressiveSkirmishActive;
+        }
+
+        isBackToLaneActive() {
+          return this.backToLaneActive;
         }
 
         setCachedNearestInRangeTarget(target) {
@@ -450,6 +477,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
           }), GameManager) : GameManager).instance;
+          var wasBackToLane = this.backToLaneActive;
+          var soloAggressive = gm ? gm.shouldUseSoloAggressiveSkirmish(this, attacker) : false;
 
           if (gm) {
             gm.onWaveCombatStarted(this, attacker, false);
@@ -462,6 +491,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.targetSearchConfirmedNoTarget = false;
           this.setRetaliationTarget(attacker);
           this.setCachedNearestInRangeTarget(null);
+          this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
+
+          if (this.onForward || wasBackToLane) {
+            this.onForward = false;
+            this.backToLaneActive = false;
+            this.setAgentOnForward(0);
+            this.setAgentLocked(false);
+            this.setAgentStopped();
+            this.resetMoveIntentFacing();
+          }
+
           return true;
         }
 
@@ -490,6 +530,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.props.resetForDespawn();
           }
 
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.laneId = -1;
@@ -532,6 +575,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.isSteady = false;
           this.onForward = false;
           this.aggressiveForward = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
           this.resetStableRotationPosition();
           this.targetSearchRange = Math.max(this.targetSearchRange, searchRange);
           this.invalidateNearestQueryResults();
@@ -554,6 +599,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         enterWaveCombatMode() {
           this.onForward = false;
           this.aggressiveForward = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
           this.resetStableRotationPosition();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -574,6 +621,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.onForward = false;
           this.aggressiveForward = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
           this.resetStableRotationPosition();
 
           if (searchRange > 0) {
@@ -592,12 +641,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        enterWaveForwardMode(aggressiveForward) {
+        enterWaveForwardMode(aggressiveForward, useBackToLanePhase) {
+          if (useBackToLanePhase === void 0) {
+            useBackToLanePhase = false;
+          }
+
           if (this.isSteady) return;
+
+          if (useBackToLanePhase && this.startBackToLanePhase(aggressiveForward)) {
+            return;
+          }
+
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.onForward = true;
           this.aggressiveForward = aggressiveForward;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
           this.resetStableRotationPosition();
           this.resetMoveIntentFacing();
           this.invalidateNearestQueryResults();
@@ -625,6 +686,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
             this.setAgentStopped();
@@ -640,6 +702,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentLocked(true);
             this.setAgentStopped();
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
           }
 
@@ -667,12 +730,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var _gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
               error: Error()
             }), GameManager) : GameManager).instance;
+            var soloAggressive = _gm ? _gm.shouldUseSoloAggressiveSkirmish(this, nearestInRange) : false;
+            this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
 
             if (_gm) {
               _gm.onWaveCombatStarted(this, nearestInRange);
             }
 
             this.onForward = false;
+            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
@@ -688,6 +754,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentStopped();
             this.returnToInitialYawSmooth(deltaTime);
             this.sync(deltaTime, false);
+            return;
+          }
+
+          this.tryResumeSoloForwardAfterAggressiveSkirmish();
+
+          if (this.updateBackToLanePhase(deltaTime)) {
             return;
           }
 
@@ -730,6 +802,83 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentStopped();
             this.sync(deltaTime, true);
           }
+        }
+
+        tryResumeSoloForwardAfterAggressiveSkirmish() {
+          if (this.onForward) return false;
+          if (this.onBusy) return false;
+          if (this.isSteady) return false;
+          if (this.hasValidEnemyTarget()) return false;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm || !gm.shouldResumeSoloForwardAfterAggressiveSkirmish(this)) {
+            return false;
+          }
+
+          this.enterWaveForwardMode(false, true);
+          return true;
+        }
+
+        startBackToLanePhase(aggressiveForward) {
+          if (!this.agent) return false;
+          if (this.laneId < 0) return false;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm) return false;
+          var dir = gm.getDirectionToLaneArea(this.laneId, this.agent.pos.x);
+          if (dir === 0) return false;
+          this.setEnemyTarget(null);
+          this.onBusy = false;
+          this.onForward = false;
+          this.aggressiveForward = aggressiveForward;
+          this.soloAggressiveSkirmishActive = false;
+          this.backToLaneActive = true;
+          this.backToLaneForwardAggressive = aggressiveForward;
+          this.resetStableRotationPosition();
+          this.resetMoveIntentFacing();
+          this.invalidateNearestQueryResults();
+          this.clearCachedTargets();
+          this.setAgentLocked(false);
+          this.setAgentOnForward(0);
+          this.setAgentPrefVelocity(dir * this.agent.maxSpeed, 0);
+          return true;
+        }
+
+        updateBackToLanePhase(deltaTime) {
+          if (!this.backToLaneActive) return false;
+
+          if (!this.agent || this.isSteady) {
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            return false;
+          }
+
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm || this.laneId < 0) {
+            this.enterWaveForwardMode(false);
+            return true;
+          }
+
+          var dir = gm.getDirectionToLaneArea(this.laneId, this.agent.pos.x);
+
+          if (dir === 0) {
+            var aggressiveForward = this.backToLaneForwardAggressive;
+            this.enterWaveForwardMode(aggressiveForward);
+            return true;
+          }
+
+          this.setAgentOnForward(0);
+          this.setAgentLocked(false);
+          this.setAgentPrefVelocity(dir * this.agent.maxSpeed, 0);
+          this.lookMoveIntentSmooth(deltaTime);
+          this.sync(deltaTime, false);
+          return true;
         }
 
         shouldRunAttackCheck() {
@@ -993,6 +1142,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
             if (!this.isValidEnemy(e)) continue;
+
+            if (this.shouldIgnoreAttackRangeTargetDuringAggressiveForward(e)) {
+              continue;
+            }
+
             var dx = e.agent.pos.x - this.agent.pos.x;
             var dz = e.agent.pos.z - this.agent.pos.z;
             var d = dx * dx + dz * dz;
@@ -1077,10 +1231,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (!this.agent) return false;
           if (!this.isValidEnemy(e, lifeId)) return false;
+
+          if (this.shouldIgnoreAttackRangeTargetDuringAggressiveForward(e)) {
+            return false;
+          }
+
           var dx = e.agent.pos.x - this.agent.pos.x;
           var dz = e.agent.pos.z - this.agent.pos.z;
           var effectiveRange = this.getEffectiveAttackRangeAgainst(e);
           return dx * dx + dz * dz <= effectiveRange * effectiveRange;
+        }
+
+        shouldIgnoreAttackRangeTargetDuringAggressiveForward(enemy) {
+          if (!this.onForward) return false;
+          if (!this.aggressiveForward) return false;
+          if (this.laneId < 0 || enemy.laneId < 0) return false;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          var ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
+          var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
+          return ownLane !== enemyLane;
         }
 
         getEffectiveAttackRangeAgainst(enemy) {
@@ -1168,10 +1339,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var velZ = this.agent.vel.z;
           var minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
           var velLenSq = velX * velX + velZ * velZ;
+          var minMove = Math.max(this.visualThreshold, this.moveThreshold);
 
-          if (velLenSq >= minVel * minVel) {
+          if (velLenSq >= minVel * minVel && this.hasMoveIntentVisualMovement(minMove)) {
             dx = velX;
             dz = velZ;
+            this.updateMoveIntentSamplePosition();
           }
 
           var lenSq = dx * dx + dz * dz;
@@ -1207,8 +1380,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var velZ = this.agent.vel.z;
           var minVel = Math.max(0.02, this.agent.maxSpeed * 0.05);
           var velLenSq = velX * velX + velZ * velZ;
+          var minMove = Math.max(this.visualThreshold, this.moveThreshold);
 
-          if (velLenSq >= minVel * minVel) {
+          if (velLenSq >= minVel * minVel && this.hasMoveIntentVisualMovement(minMove)) {
             dx = velX;
             dz = velZ;
           }
@@ -1229,6 +1403,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         lookDirectionSmooth(dx, dz, deltaTime) {
           if (dx * dx + dz * dz < 0.0001) return false;
           return this.applyFacingYaw(Math.atan2(dx, dz) * 180 / Math.PI, deltaTime);
+        }
+
+        hasMoveIntentVisualMovement(minMove) {
+          var current = this.node.worldPosition;
+          var dx = current.x - this.lastMoveIntentSamplePos.x;
+          var dz = current.z - this.lastMoveIntentSamplePos.z;
+          return dx * dx + dz * dz >= minMove * minMove;
+        }
+
+        updateMoveIntentSamplePosition() {
+          var current = this.node.worldPosition;
+          this.lastMoveIntentSamplePos.x = current.x;
+          this.lastMoveIntentSamplePos.z = current.z;
         }
 
         sync(deltaTime, rotateByVelocity) {
@@ -1268,7 +1455,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
-          var newY = this.lerpAngle(currentY, targetYaw, this.rotationSpeed * deltaTime);
+          var newY = this.lerpAngle(currentY, targetYaw, Math.max(0, Math.min(1, this.rotationSpeed * deltaTime)));
           this.setVisualYaw(newY);
           return true;
         }
@@ -1301,12 +1488,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var p = this.node.worldPosition;
           this.lastStablePos.x = p.x;
           this.lastStablePos.z = p.z;
+          this.lastMoveIntentSamplePos.x = p.x;
+          this.lastMoveIntentSamplePos.z = p.z;
         }
 
         resetMoveIntentFacing() {
           this.moveIntentFacingActive = true;
           this.lastMoveIntentDir.x = 0;
           this.lastMoveIntentDir.z = 0;
+          this.updateMoveIntentSamplePosition();
         }
 
         lerpAngle(a, b, t) {
@@ -1372,105 +1562,112 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 0.5;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "attackRange", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "canBePush", [_dec3], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return false;
+        }
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "attackRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "attackCheckIntervalFrames", [property], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "attackCheckIntervalFrames", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchRange", [property], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 60;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchIntervalFrames", [property], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "targetSearchIntervalFrames", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 6;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForward", [_dec3], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForward", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec4], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "forwardDir", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new Vec3(0, 0, 1);
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "onForward", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "isSteady", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "heroGuardDistance", [_dec5], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "heroGuardDistance", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "heroGuardReturnTolerance", [_dec6], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "heroGuardReturnTolerance", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.08;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "enableAllyOvertake", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "overtakeLookAhead", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2.2;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideRange", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.2;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSideStrength", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.75;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "overtakeSpeedDiff", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

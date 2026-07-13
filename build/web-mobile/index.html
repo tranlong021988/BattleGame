@@ -38,12 +38,12 @@
 
 </head>
 <body>
-  <div id="GameDiv" cc_exact_fit_screen="true">
+  <div id="GameDiv">
       <div id="Cocos3dGameContainer">
         <canvas id="GameCanvas" oncontextmenu="event.preventDefault()" tabindex="99"></canvas>
       </div>
     </div>
-  
+
 
 <!-- Polyfills bundle. -->
 
@@ -57,6 +57,75 @@
 <script src="src/import-map.json" type="systemjs-importmap" charset="utf-8"> </script>
 
 <script>
+    (function () {
+        var DESIGN_WIDTH = 720;
+        var DESIGN_HEIGHT = 1280;
+        var DESIGN_RATIO = DESIGN_WIDTH / DESIGN_HEIGHT;
+
+        window.__applyBattlePortraitLayout = function () {
+            var gameDiv = document.getElementById('GameDiv');
+            var container = document.getElementById('Cocos3dGameContainer');
+            var canvas = document.getElementById('GameCanvas');
+
+            if (!gameDiv || !container || !canvas) {
+                return null;
+            }
+
+            var viewportWidth = window.innerWidth || document.documentElement.clientWidth || DESIGN_WIDTH;
+            var viewportHeight = window.innerHeight || document.documentElement.clientHeight || DESIGN_HEIGHT;
+            var width = viewportWidth;
+            var height = viewportHeight;
+
+            if (viewportWidth > viewportHeight) {
+                height = viewportHeight;
+                width = height * DESIGN_RATIO;
+
+                if (width > viewportWidth) {
+                    width = viewportWidth;
+                    height = width / DESIGN_RATIO;
+                }
+            }
+
+            width = Math.max(1, Math.floor(width));
+            height = Math.max(1, Math.floor(height));
+
+            document.documentElement.style.width = '100%';
+            document.documentElement.style.height = '100%';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
+            document.body.style.overflow = 'hidden';
+            document.body.style.margin = '0';
+            document.body.style.display = 'flex';
+            document.body.style.alignItems = viewportWidth > viewportHeight ? 'center' : 'stretch';
+            document.body.style.justifyContent = viewportWidth > viewportHeight ? 'center' : 'stretch';
+
+            gameDiv.style.width = width + 'px';
+            gameDiv.style.height = height + 'px';
+            gameDiv.style.maxWidth = '100vw';
+            gameDiv.style.maxHeight = '100vh';
+            gameDiv.style.flex = '0 0 auto';
+            gameDiv.style.overflow = 'hidden';
+
+            container.style.width = '100%';
+            container.style.height = '100%';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.width = width;
+            canvas.height = height;
+
+            return { width: width, height: height };
+        };
+
+        window.__applyBattlePortraitLayout();
+        window.addEventListener('resize', function () {
+            window.__applyBattlePortraitLayout();
+        });
+        window.addEventListener('orientationchange', function () {
+            setTimeout(window.__applyBattlePortraitLayout, 50);
+        });
+    }());
+
     System.import('./index.js').catch(function(err) { console.error(err); })
 </script>
 
