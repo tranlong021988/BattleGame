@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitTypeToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, DangerousThreatProgress, SmartResponseTier, SmartArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattleWave, CounterSettings, unitFamilyToName, SmartLaneIntel, SmartWaveIntel, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class3, _class4, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _crd, ccclass, property, BattleWaveSpawnedEvent, ComparableThreatDistance, DeliberateLosingChoiceChance, DangerousThreatProgress, SmartResponseTier, SmartArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -25,8 +25,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfunitTypeToName(extras) {
-    _reporterNs.report("unitTypeToName", "./BattleTypes", _context.meta, extras);
+  function _reportPossibleCrUseOfunitFamilyToName(extras) {
+    _reporterNs.report("unitFamilyToName", "./BattleTypes", _context.meta, extras);
   }
 
   return {
@@ -45,7 +45,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_4) {
       CounterSettings = _unresolved_4.CounterSettings;
     }, function (_unresolved_5) {
-      unitTypeToName = _unresolved_5.unitTypeToName;
+      unitFamilyToName = _unresolved_5.unitFamilyToName;
     }],
     execute: function () {
       _crd = true;
@@ -545,9 +545,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, aggressiveForward);
           if (!spawned) return false;
           this.recordDecisionSpawn(aggressiveForward, 'response');
-          this.stateLog("RESPONSE wave=" + intel.wave.id + " " + ("target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+          this.stateLog("RESPONSE wave=" + intel.wave.id + " " + ("target=" + (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
             error: Error()
-          }), unitTypeToName) : unitTypeToName)(intel.wave.unitType) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " targetLane=" + intel.laneId + " ") + ("coverage=" + intel.coverage.toFixed(2) + " ") + ("unengaged=" + intel.unengaged + " ") + ("allyLane=" + intel.allyCountInLane + " ") + ("blockers=" + intel.allyBlockersFromSpawn + " ") + ("firstFromSpawn=" + intel.firstEnemyFromSpawn + " ") + ("progress=" + intel.progressToDefend.toFixed(2) + " ") + ("dangerous=" + intel.dangerousToDefend + " ") + ("response=" + SmartResponseTier[intel.responseTier] + " ") + ("struggling=" + intel.hasStrugglingAlly + " ") + ("score=" + intel.threatScore.toFixed(1) + " ") + "accurate=true " + ("aggressive=" + aggressiveForward));
+          }), unitFamilyToName) : unitFamilyToName)(intel.wave.family) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " targetLane=" + intel.laneId + " ") + ("coverage=" + intel.coverage.toFixed(2) + " ") + ("unengaged=" + intel.unengaged + " ") + ("allyLane=" + intel.allyCountInLane + " ") + ("blockers=" + intel.allyBlockersFromSpawn + " ") + ("firstFromSpawn=" + intel.firstEnemyFromSpawn + " ") + ("progress=" + intel.progressToDefend.toFixed(2) + " ") + ("dangerous=" + intel.dangerousToDefend + " ") + ("response=" + SmartResponseTier[intel.responseTier] + " ") + ("struggling=" + intel.hasStrugglingAlly + " ") + ("score=" + intel.threatScore.toFixed(1) + " ") + "accurate=true " + ("aggressive=" + aggressiveForward));
           return true;
         }
 
@@ -705,9 +705,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, false);
           if (!spawned) return false;
           this.recordDecisionSpawn(false, 'deliberate-mistake');
-          this.stateLog("DELIBERATE_MISTAKE wave=" + targetIntel.wave.id + " " + ("target=" + (_crd && unitTypeToName === void 0 ? (_reportPossibleCrUseOfunitTypeToName({
+          this.stateLog("DELIBERATE_MISTAKE wave=" + targetIntel.wave.id + " " + ("target=" + (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
             error: Error()
-          }), unitTypeToName) : unitTypeToName)(targetIntel.wave.unitType) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " ") + ("targetLane=" + targetIntel.laneId + " ") + ("kind=" + mistakeKind));
+          }), unitFamilyToName) : unitFamilyToName)(targetIntel.wave.family) + " ") + ("spawn=" + entry.name + " lane=" + laneId + " ") + ("targetLane=" + targetIntel.laneId + " ") + ("kind=" + mistakeKind));
           return true;
         }
 
@@ -748,7 +748,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
           if (!counter) return 1;
-          return counter.getCounterScore(attackerWave.unitType, defenderEntry.unitType);
+          return counter.getCounterScore(attackerWave.family, defenderEntry.family);
         }
 
         trySpawnAggressiveForward(reason) {
@@ -930,7 +930,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
           if (!counter) return 1;
-          return counter.getCounterScore(attackerWave.unitType, targetWave.unitType);
+          return counter.getCounterScore(attackerWave.family, targetWave.family);
         }
 
         getBestAvailableResponseTier(targetWave) {
@@ -1217,7 +1217,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
           if (!counter) return 1;
-          return counter.getCounterScore(entry.unitType, targetWave.unitType);
+          return counter.getCounterScore(entry.family, targetWave.family);
         }
 
         isRealCounterScore(score) {

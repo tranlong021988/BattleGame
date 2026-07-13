@@ -5,7 +5,7 @@
       "time": 1776667555102.3574
     },
     "scripts": {
-      "time": 1783911759000.2654,
+      "time": 1783939660918.6663,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -33,7 +33,7 @@
       "time": 1776667555102.3574
     },
     "scripts\\GameManager.ts": {
-      "time": 1783927419417.3738,
+      "time": 1783939733447.3296,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -68,21 +68,21 @@
       "time": 1776667555102.3574
     },
     "prefabs\\BlueUnit.prefab": {
-      "time": 1783494051716.0374,
+      "time": 1783940106612.459,
       "uuid": "509c71d7-875d-41a4-8772-e7bd7b6c63cf"
     },
     "prefabs\\RedUnit.prefab.meta": {
       "time": 1776667555102.3574
     },
     "prefabs\\RedUnit.prefab": {
-      "time": 1783494052317.9524,
+      "time": 1783940106612.459,
       "uuid": "e9fa7cb9-649b-4dac-a368-f9515b675d79"
     },
     "Test.scene.meta": {
       "time": 1782449159801.7705
     },
     "Test.scene": {
-      "time": 1783931932567.1826,
+      "time": 1783942637722.2983,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -110,7 +110,7 @@
       "time": 1776667555103.354
     },
     "scripts\\UnitProps.ts": {
-      "time": 1783407338397.7307,
+      "time": 1783939616766.294,
       "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
     },
     "Fighter.Body.low_Baked.001_vat.meta": {
@@ -285,7 +285,7 @@
       "time": 1778058099574.25
     },
     "scripts\\UnitSpawner.ts": {
-      "time": 1783927418741.3728,
+      "time": 1783939618608.026,
       "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
     },
     "scripts\\UnitBehavior.ts.meta": {
@@ -348,14 +348,14 @@
       "time": 1779937515215.9465
     },
     "scripts\\BattleTypes.ts": {
-      "time": 1779937515215.9465,
+      "time": 1783939616135.073,
       "uuid": "fe45a3a2-00d4-41f3-bfbc-35c0c7f5802a"
     },
     "scripts\\CounterSettings.ts.meta": {
       "time": 1779937515215.9465
     },
     "scripts\\CounterSettings.ts": {
-      "time": 1783582076255.332,
+      "time": 1783939660918.6663,
       "uuid": "05b5fa2b-3f44-4842-8e74-276cd2f32062"
     },
     "scripts\\DebugStats.ts.meta": {
@@ -390,7 +390,7 @@
       "time": 1780371682382.9636
     },
     "scripts\\BattleWave.ts": {
-      "time": 1783927720028.5396,
+      "time": 1783939618011.642,
       "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
     },
     "MiniMap.meta": {
@@ -488,14 +488,14 @@
       "time": 1780627383544.7751
     },
     "scripts\\BattleUnitDatabase.ts": {
-      "time": 1783927417531.213,
+      "time": 1783939617423.2969,
       "uuid": "6763c90e-a96e-4d4a-9859-896fdbcb348f"
     },
     "scripts\\TrueMiniMapPanel.ts.meta": {
       "time": 1781254284541.0247
     },
     "scripts\\TrueMiniMapPanel.ts": {
-      "time": 1782788886843.2307,
+      "time": 1783939817789.9856,
       "uuid": "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615"
     },
     "textures\\Square64.png.meta": {
@@ -768,7 +768,7 @@
       "time": 1782442356785.755
     },
     "scripts\\PlayerArmyController.ts": {
-      "time": 1783596074381.475,
+      "time": 1783940223146.7048,
       "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
     },
     "scripts\\LevelSettings.ts.meta": {
@@ -782,7 +782,7 @@
       "time": 1782816985582.194
     },
     "materials\\Banner.mtl": {
-      "time": 1783911758999.4805,
+      "time": 1783941157205.6326,
       "uuid": "4b85a778-d505-48a8-b551-ae35c97fdfb2"
     },
     "shaders\\UnlitBillboard.effect.meta": {
@@ -796,7 +796,7 @@
       "time": 1782817806185.7869
     },
     "prefabs\\Banner.prefab": {
-      "time": 1783419314397.0005,
+      "time": 1783941162780.946,
       "uuid": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36"
     },
     "materials\\Banner_LightArcher.mtl.meta": {
@@ -850,7 +850,7 @@
       "uuid": "72dca225-4e1f-4e51-b7a3-b863e9aa8904"
     },
     "prefabs\\Banner_LightArcher.prefab": {
-      "time": 1783313696473.1294,
+      "time": 1783941177918.2832,
       "uuid": "2d2d001b-3753-4074-b288-0bb6e75942ec"
     },
     "prefabs\\Banner_LightMace.prefab": {
@@ -870,7 +870,7 @@
       "uuid": "fbf3d158-e5d0-41ef-a409-a2f48eda64f4"
     },
     "scripts\\SmartArmyBrain.ts": {
-      "time": 1783925606054.527,
+      "time": 1783939784962.6477,
       "uuid": "176e839d-b955-4959-9b56-ef97c6316897"
     },
     "scripts\\SmartArmyBrain.ts.meta": {
@@ -887,7 +887,7 @@
       "time": 1783327068486.33
     },
     "materials\\Banner_Units.mtl": {
-      "time": 1783327433405.7651,
+      "time": 1783941229737.8293,
       "uuid": "cbd8bd0f-7682-4540-a443-a219835bb97a"
     },
     "MiniMap\\Units.png.meta": {

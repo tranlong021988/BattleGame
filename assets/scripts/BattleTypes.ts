@@ -1,46 +1,26 @@
 import { Enum } from 'cc';
 
-export enum UnitType {
-    LightSword = 0,
-    HeavySword = 1,
-
-    LightSpear = 2,
-    HeavySpear = 3,
-
-    LightMace = 4,
-    HeavyMace = 5,
-
-    LightArcher = 6,
-    HeavyArcher = 7,
-
-    LightCavalry = 8,
-    HeavyCavalry = 9,
-
-    LightMagic = 10,
-    HeavyMagic = 11,
+export enum UnitFamily {
+    Spear = 0,
+    Sword = 1,
+    Archer = 2,
+    Skirmisher = 3,
+    Cavalry = 4,
+    Axeman = 5,
+    Monk = 6,
 }
 
-Enum(UnitType);
+Enum(UnitFamily);
 
-export function unitTypeToName(type: UnitType): string {
-    switch (type) {
-        case UnitType.LightSword: return 'Light Sword';
-        case UnitType.HeavySword: return 'Heavy Sword';
-
-        case UnitType.LightSpear: return 'Light Spear';
-        case UnitType.HeavySpear: return 'Heavy Spear';
-
-        case UnitType.LightMace: return 'Light Mace';
-        case UnitType.HeavyMace: return 'Heavy Mace';
-
-        case UnitType.LightArcher: return 'Light Archer';
-        case UnitType.HeavyArcher: return 'Heavy Archer';
-
-        case UnitType.LightCavalry: return 'Light Cavalry';
-        case UnitType.HeavyCavalry: return 'Heavy Cavalry';
-
-        case UnitType.LightMagic: return 'Light Magic';
-        case UnitType.HeavyMagic: return 'Heavy Magic';
+export function unitFamilyToName(family: UnitFamily): string {
+    switch (family) {
+        case UnitFamily.Spear: return 'Spear';
+        case UnitFamily.Sword: return 'Sword';
+        case UnitFamily.Archer: return 'Archer';
+        case UnitFamily.Skirmisher: return 'Skirmisher';
+        case UnitFamily.Cavalry: return 'Cavalry';
+        case UnitFamily.Axeman: return 'Axeman';
+        case UnitFamily.Monk: return 'Monk';
     }
 
     return 'Unknown';

@@ -30,7 +30,7 @@ import { BattleSpatialGrid } from './BattleSpatialGrid';
 
 import { BattleWave } from './BattleWave';
 import { CounterSettings } from './CounterSettings';
-import { UnitType } from './BattleTypes';
+import { UnitFamily } from './BattleTypes';
 
 import {
     BattleUnitDatabase,
@@ -581,18 +581,12 @@ export class GameManager extends Component {
             !victim.isHero
         ) {
             const damageMul = counter.getDamageMultiplier(
-                killer.props.unitType,
-                victim.props.unitType
-            );
-
-            const receivedMul = counter.getReceivedDamageMultiplier(
-                killer.props.unitType,
-                victim.props.unitType
+                killer.props.family,
+                victim.props.family
             );
 
             isCounterKill =
-                damageMul > 1.0001 ||
-                receivedMul < 0.9999;
+                damageMul > 1.0001;
         }
 
         if (isCounterKill) {
@@ -1430,8 +1424,11 @@ export class GameManager extends Component {
                 team,
                 hero.unitTypeName,
                 hero.props
-                    ? hero.props.unitType
-                    : UnitType.LightSword
+                    ? hero.props.family
+                    : UnitFamily.Sword,
+                hero.props
+                    ? hero.props.tier
+                    : 1
             );
 
             heroWave =
@@ -2106,7 +2103,8 @@ export class GameManager extends Component {
             this.nextWaveId++,
             team,
             entry.name,
-            entry.unitType,
+            entry.family,
+            entry.tier,
             count,
             laneId
         );
@@ -2918,7 +2916,8 @@ export class GameManager extends Component {
         const unit = this.spawner.spawnUnit(
             entry.prefab,
             entry.name,
-            entry.unitType,
+            entry.family,
+            entry.tier,
             pos,
             0,
             this.node,
@@ -2965,7 +2964,8 @@ export class GameManager extends Component {
         const unit = this.spawner.spawnUnit(
             entry.prefab,
             entry.name,
-            entry.unitType,
+            entry.family,
+            entry.tier,
             pos,
             1,
             this.node,
@@ -3210,7 +3210,8 @@ export class GameManager extends Component {
             props.health = heroEntry.health;
             props.damage = heroEntry.damage;
             props.defense = heroEntry.defense;
-            props.unitType = heroEntry.unitType;
+            props.family = heroEntry.family;
+            props.tier = Math.max(1, Math.min(3, Math.floor(heroEntry.tier)));
             props.resetForSpawn();
         }
 
@@ -3248,7 +3249,8 @@ export class GameManager extends Component {
             hero,
             team,
             unitTypeName,
-            heroEntry.unitType
+            heroEntry.family,
+            heroEntry.tier
         );
 
         if (team === 0) {
@@ -3280,7 +3282,8 @@ export class GameManager extends Component {
         hero: Unit,
         team: number,
         unitTypeName: string,
-        unitType: UnitType
+        family: UnitFamily,
+        tier: number
     ) {
         const laneId =
             this.getHeroLaneId();
@@ -3303,7 +3306,8 @@ export class GameManager extends Component {
             this.nextWaveId++,
             team,
             unitTypeName,
-            unitType || UnitType.LightSword,
+            family,
+            tier,
             1,
             laneId
         );

@@ -6,7 +6,7 @@ import {
     Node,
     Prefab,
 } from 'cc';
-import { UnitType } from './BattleTypes';
+import { UnitFamily } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
 
@@ -30,8 +30,16 @@ export class UnitPrefabEntry {
     })
     waveBannerIconId: number = 0;
 
-    @property({ type: UnitType })
-    unitType: UnitType = UnitType.LightSword;
+    @property({ type: UnitFamily })
+    family: UnitFamily = UnitFamily.Spear;
+
+    @property({
+        min: 1,
+        max: 3,
+        step: 1,
+        tooltip: 'Upgrade tier for this family. Counter rules ignore tier and use Family only.',
+    })
+    tier: number = 1;
 
     @property({
         tooltip: 'Only unlocked entries can be selected or spawned by player, AI, debug, or direct spawn paths.'
@@ -102,8 +110,15 @@ export class HeroEntry {
     @property(Node)
     heroNode: Node | null = null;
 
-    @property({ type: UnitType })
-    unitType: UnitType = UnitType.LightSword;
+    @property({ type: UnitFamily })
+    family: UnitFamily = UnitFamily.Sword;
+
+    @property({
+        min: 1,
+        max: 3,
+        step: 1,
+    })
+    tier: number = 1;
 
     @property
     maxSpeed: number = 0;

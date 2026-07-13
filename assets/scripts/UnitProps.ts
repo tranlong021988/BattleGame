@@ -1,5 +1,5 @@
 import { _decorator, Component } from 'cc';
-import { UnitType } from './BattleTypes';
+import { UnitFamily } from './BattleTypes';
 import { HealthBar3D } from './HealthBar3D';
 
 const { ccclass, property } = _decorator;
@@ -7,8 +7,16 @@ const { ccclass, property } = _decorator;
 @ccclass('UnitProps')
 export class UnitProps extends Component {
 
-    @property({ type: UnitType })
-    unitType: UnitType = UnitType.LightSword;
+    @property({ type: UnitFamily })
+    family: UnitFamily = UnitFamily.Spear;
+
+    @property({
+        min: 1,
+        max: 3,
+        step: 1,
+        tooltip: 'Upgrade tier inside the same unit family. Counter rules use family; tier only changes stats/progression.',
+    })
+    tier: number = 1;
 
     @property
     maxHealth: number = 30;

@@ -608,14 +608,15 @@
     "__prefab": {
       "__id__": 39
     },
-    "unitType": 0,
     "maxHealth": 50,
     "damage": 20,
     "defense": 10,
     "healthBar": {
       "__id__": 33
     },
-    "_id": ""
+    "_id": "",
+    "family": 0,
+    "tier": 1
   },
   {
     "__type__": "cc.CompPrefabInfo",

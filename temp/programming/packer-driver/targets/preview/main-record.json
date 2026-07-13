@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 10714051.7302,
+      "mTimestamp": 23426349.6758,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3306,7 +3306,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1783927419417.3738,
+        "mtime": 1783939733447.3296,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -3494,11 +3494,11 @@
           "loc": {
             "start": {
               "line": 33,
-              "column": 25
+              "column": 27
             },
             "end": {
               "line": 33,
-              "column": 40
+              "column": 42
             }
           }
         },
@@ -3945,7 +3945,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/UnitProps.ts": {
       "mTimestamp": {
-        "mtime": 1783407338397.7307,
+        "mtime": 1783939616766.294,
         "uuid": "c92714ee-b02f-44a4-ac0b-25e52948a19f"
       },
       "chunkId": "da1dea4a52a9f65f14720115124da1747f7813fd",
@@ -3979,11 +3979,11 @@
           "loc": {
             "start": {
               "line": 2,
-              "column": 25
+              "column": 27
             },
             "end": {
               "line": 2,
-              "column": 40
+              "column": 42
             }
           }
         },
@@ -4176,7 +4176,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/UnitSpawner.ts": {
       "mTimestamp": {
-        "mtime": 1783927418741.3728,
+        "mtime": 1783939618608.026,
         "uuid": "6fc5265c-f2e8-478d-b01e-2a02f5a37b15"
       },
       "chunkId": "6c66322ce05674d0bc24e1c84c108eb1d87757af",
@@ -5188,7 +5188,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleTypes.ts": {
       "mTimestamp": {
-        "mtime": 1779937515215.9465,
+        "mtime": 1783939616135.073,
         "uuid": "fe45a3a2-00d4-41f3-bfbc-35c0c7f5802a"
       },
       "chunkId": "e79c0973b8cd5bffd474508edd78f4cf42ec0c95",
@@ -5240,7 +5240,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/CounterSettings.ts": {
       "mTimestamp": {
-        "mtime": 1783582076255.332,
+        "mtime": 1783939660918.6663,
         "uuid": "05b5fa2b-3f44-4842-8e74-276cd2f32062"
       },
       "chunkId": "dee523ab7ec709183fc95a30a4777390f6d5b637",
@@ -5274,11 +5274,11 @@
           "loc": {
             "start": {
               "line": 2,
-              "column": 25
+              "column": 27
             },
             "end": {
               "line": 2,
-              "column": 40
+              "column": 42
             }
           }
         }
@@ -6131,7 +6131,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1783927720028.5396,
+        "mtime": 1783939618011.642,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -6165,11 +6165,11 @@
           "loc": {
             "start": {
               "line": 3,
-              "column": 25
+              "column": 27
             },
             "end": {
               "line": 3,
-              "column": 40
+              "column": 42
             }
           }
         }
@@ -7337,7 +7337,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts": {
       "mTimestamp": {
-        "mtime": 1783927417531.213,
+        "mtime": 1783939617423.2969,
         "uuid": "6763c90e-a96e-4d4a-9859-896fdbcb348f"
       },
       "chunkId": "227f4ec588615be1e06e78c2255d3a85fe864d18",
@@ -7371,11 +7371,11 @@
           "loc": {
             "start": {
               "line": 9,
-              "column": 25
+              "column": 27
             },
             "end": {
               "line": 9,
-              "column": 40
+              "column": 42
             }
           }
         }
@@ -7465,7 +7465,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts": {
       "mTimestamp": {
-        "mtime": 1782788886843.2307,
+        "mtime": 1783939817789.9856,
         "uuid": "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615"
       },
       "chunkId": "6362e7daf8af0d883ef7e04d63ca00a919222726",
@@ -7527,11 +7527,11 @@
           "loc": {
             "start": {
               "line": 19,
-              "column": 25
+              "column": 27
             },
             "end": {
               "line": 19,
-              "column": 40
+              "column": 42
             }
           }
         },
@@ -8483,7 +8483,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/PlayerArmyController.ts": {
       "mTimestamp": {
-        "mtime": 1783596074381.475,
+        "mtime": 1783940223146.7048,
         "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
       },
       "chunkId": "ca43d7214a083b257bb741b899a2ab97fadae29e",
@@ -9028,7 +9028,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/SmartArmyBrain.ts": {
       "mTimestamp": {
-        "mtime": 1783925606054.527,
+        "mtime": 1783939784962.6477,
         "uuid": "176e839d-b955-4959-9b56-ef97c6316897"
       },
       "chunkId": "a2f6c0176ceee488bf32b6f816799e4dc07313ce",
@@ -9104,11 +9104,11 @@
           "loc": {
             "start": {
               "line": 5,
-              "column": 31
+              "column": 33
             },
             "end": {
               "line": 5,
-              "column": 46
+              "column": 48
             }
           }
         }

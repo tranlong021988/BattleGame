@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitType, HealthBar3D, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _crd, ccclass, property, UnitProps;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitFamily, HealthBar3D, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, UnitProps;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -9,8 +9,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
   function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
 
-  function _reportPossibleCrUseOfUnitType(extras) {
-    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  function _reportPossibleCrUseOfUnitFamily(extras) {
+    _reporterNs.report("UnitFamily", "./BattleTypes", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfHealthBar3D(extras) {
@@ -27,7 +27,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       _decorator = _cc._decorator;
       Component = _cc.Component;
     }, function (_unresolved_2) {
-      UnitType = _unresolved_2.UnitType;
+      UnitFamily = _unresolved_2.UnitFamily;
     }, function (_unresolved_3) {
       HealthBar3D = _unresolved_3.HealthBar3D;
     }],
@@ -44,24 +44,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       } = _decorator);
 
       _export("UnitProps", UnitProps = (_dec = ccclass('UnitProps'), _dec2 = property({
-        type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+        type: _crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
           error: Error()
-        }), UnitType) : UnitType
-      }), _dec3 = property(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+        }), UnitFamily) : UnitFamily
+      }), _dec3 = property({
+        min: 1,
+        max: 3,
+        step: 1,
+        tooltip: 'Upgrade tier inside the same unit family. Counter rules use family; tier only changes stats/progression.'
+      }), _dec4 = property(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
         error: Error()
       }), HealthBar3D) : HealthBar3D), _dec(_class = (_class2 = class UnitProps extends Component {
         constructor(...args) {
           super(...args);
 
-          _initializerDefineProperty(this, "unitType", _descriptor, this);
+          _initializerDefineProperty(this, "family", _descriptor, this);
 
-          _initializerDefineProperty(this, "maxHealth", _descriptor2, this);
+          _initializerDefineProperty(this, "tier", _descriptor2, this);
 
-          _initializerDefineProperty(this, "damage", _descriptor3, this);
+          _initializerDefineProperty(this, "maxHealth", _descriptor3, this);
 
-          _initializerDefineProperty(this, "defense", _descriptor4, this);
+          _initializerDefineProperty(this, "damage", _descriptor4, this);
 
-          _initializerDefineProperty(this, "healthBar", _descriptor5, this);
+          _initializerDefineProperty(this, "defense", _descriptor5, this);
+
+          _initializerDefineProperty(this, "healthBar", _descriptor6, this);
 
           this.health = 30;
         }
@@ -118,37 +125,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.healthBar.setDisplayActive(showUnitHealthBars && !this.isDead() && this.getHealthRatio() < 0.999);
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec2], {
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "family", [_dec2], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+          return (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitType) : UnitType).LightSword;
+          }), UnitFamily) : UnitFamily).Spear;
         }
-      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "maxHealth", [property], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 30;
-        }
-      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
+      }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "tier", [_dec3], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
+      }), _descriptor3 = _applyDecoratedDescriptor(_class2.prototype, "maxHealth", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 30;
+        }
+      }), _descriptor4 = _applyDecoratedDescriptor(_class2.prototype, "damage", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 1;
+        }
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "healthBar", [_dec3], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "healthBar", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,

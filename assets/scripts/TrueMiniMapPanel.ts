@@ -16,7 +16,7 @@ import {
 
 import { GameManager } from './GameManager';
 import { BattleWave } from './BattleWave';
-import { UnitType } from './BattleTypes';
+import { UnitFamily } from './BattleTypes';
 import { BattleInformationIconItem } from './BattleInformationIconItem';
 import { BattleCinematicCameraController } from './BattleCinematicCameraController';
 import { Unit } from './Unit';
@@ -26,8 +26,8 @@ const { ccclass, property } = _decorator;
 @ccclass('MiniMapUnitIconInfo')
 export class MiniMapUnitIconInfo {
 
-    @property({ type: UnitType })
-    unitType: UnitType = UnitType.LightSword;
+    @property({ type: UnitFamily })
+    family: UnitFamily = UnitFamily.Spear;
 
     @property(SpriteFrame)
     spriteFrame: SpriteFrame | null = null;
@@ -545,7 +545,7 @@ export class TrueMiniMapPanel extends Component {
         item.setup(
             this.getSpriteFrame(
                 wave.team,
-                wave.unitType
+                wave.family
             ),
             this.iconWidth,
             this.iconHeight,
@@ -2297,7 +2297,7 @@ export class TrueMiniMapPanel extends Component {
 
     private getSpriteFrame(
         team: number,
-        unitType: UnitType
+        family: UnitFamily
     ) {
 
         const list =
@@ -2308,7 +2308,7 @@ export class TrueMiniMapPanel extends Component {
         const spriteFrame =
             this.findSpriteFrameInList(
                 list,
-                unitType
+                family
             );
 
         if (spriteFrame) {
@@ -2331,14 +2331,14 @@ export class TrueMiniMapPanel extends Component {
             return heroSpriteFrame;
         }
 
-        const unitType =
+        const family =
             hero.props
-                ? hero.props.unitType
-                : UnitType.LightSword;
+                ? hero.props.family
+                : UnitFamily.Sword;
 
         return this.getSpriteFrame(
             team,
-            unitType
+            family
         );
     }
 
@@ -2372,7 +2372,7 @@ export class TrueMiniMapPanel extends Component {
 
     private findSpriteFrameInList(
         list: MiniMapUnitIconInfo[],
-        unitType: number
+        family: number
     ) {
 
         for (
@@ -2385,8 +2385,8 @@ export class TrueMiniMapPanel extends Component {
                 list[i];
 
             if (
-                info.unitType ===
-                unitType
+                info.family ===
+                family
             ) {
                 return info.spriteFrame;
             }

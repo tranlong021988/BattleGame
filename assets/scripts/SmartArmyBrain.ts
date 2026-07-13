@@ -2,7 +2,7 @@ import { _decorator, Component } from 'cc';
 import { GameManager, UnitPrefabEntry } from './GameManager';
 import { BattleWave } from './BattleWave';
 import { CounterSettings } from './CounterSettings';
-import { unitTypeToName } from './BattleTypes';
+import { unitFamilyToName } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
 const BattleWaveSpawnedEvent =
@@ -696,7 +696,7 @@ export class SmartArmyBrain extends Component {
 
         this.stateLog(
             `RESPONSE wave=${intel.wave.id} ` +
-            `target=${unitTypeToName(intel.wave.unitType)} ` +
+            `target=${unitFamilyToName(intel.wave.family)} ` +
             `spawn=${entry.name} lane=${laneId} targetLane=${intel.laneId} ` +
             `coverage=${intel.coverage.toFixed(2)} ` +
             `unengaged=${intel.unengaged} ` +
@@ -996,7 +996,7 @@ export class SmartArmyBrain extends Component {
 
         this.stateLog(
             `DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` +
-            `target=${unitTypeToName(targetIntel.wave.unitType)} ` +
+            `target=${unitFamilyToName(targetIntel.wave.family)} ` +
             `spawn=${entry.name} lane=${laneId} ` +
             `targetLane=${targetIntel.laneId} ` +
             `kind=${mistakeKind}`
@@ -1078,8 +1078,8 @@ export class SmartArmyBrain extends Component {
         if (!counter) return 1;
 
         return counter.getCounterScore(
-            attackerWave.unitType,
-            defenderEntry.unitType
+            attackerWave.family,
+            defenderEntry.family
         );
     }
 
@@ -1382,8 +1382,8 @@ export class SmartArmyBrain extends Component {
         if (!counter) return 1;
 
         return counter.getCounterScore(
-            attackerWave.unitType,
-            targetWave.unitType
+            attackerWave.family,
+            targetWave.family
         );
     }
 
@@ -1864,8 +1864,8 @@ export class SmartArmyBrain extends Component {
         if (!counter) return 1;
 
         return counter.getCounterScore(
-            entry.unitType,
-            targetWave.unitType
+            entry.family,
+            targetWave.family
         );
     }
 

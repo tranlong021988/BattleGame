@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitType, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -53,8 +53,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfUnitType(extras) {
-    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  function _reportPossibleCrUseOfUnitFamily(extras) {
+    _reporterNs.report("UnitFamily", "./BattleTypes", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfBattleUnitDatabase(extras) {
@@ -113,7 +113,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_12) {
       CounterSettings = _unresolved_12.CounterSettings;
     }, function (_unresolved_13) {
-      UnitType = _unresolved_13.UnitType;
+      UnitFamily = _unresolved_13.UnitFamily;
     }, function (_unresolved_14) {
       BattleUnitDatabase = _unresolved_14.BattleUnitDatabase;
     }, function (_unresolved_15) {
@@ -535,9 +535,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var isCounterKill = false;
 
           if (counter && !killer.isHero && !victim.isHero) {
-            var damageMul = counter.getDamageMultiplier(killer.props.unitType, victim.props.unitType);
-            var receivedMul = counter.getReceivedDamageMultiplier(killer.props.unitType, victim.props.unitType);
-            isCounterKill = damageMul > 1.0001 || receivedMul < 0.9999;
+            var damageMul = counter.getDamageMultiplier(killer.props.family, victim.props.family);
+            isCounterKill = damageMul > 1.0001;
           }
 
           if (isCounterKill) {
@@ -1077,9 +1076,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var heroWave = team === 0 ? this.teamAHeroWave : this.teamBHeroWave;
 
           if (!heroWave || heroWave.isDead()) {
-            this.registerHeroWave(hero, team, hero.unitTypeName, hero.props ? hero.props.unitType : (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+            this.registerHeroWave(hero, team, hero.unitTypeName, hero.props ? hero.props.family : (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitType) : UnitType).LightSword);
+            }), UnitFamily) : UnitFamily).Sword, hero.props ? hero.props.tier : 1);
             heroWave = team === 0 ? this.teamAHeroWave : this.teamBHeroWave;
           }
 
@@ -1552,7 +1551,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var laneId = this.resolveSpawnLaneId(requestedLaneId);
           var wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
-          }), BattleWave) : BattleWave)(this.nextWaveId++, team, entry.name, entry.unitType, count, laneId);
+          }), BattleWave) : BattleWave)(this.nextWaveId++, team, entry.name, entry.family, entry.tier, count, laneId);
           wave.setInitialForwardCombatReleaseThreshold(entry.maxUnitPerRow);
           this.waves.push(wave);
 
@@ -1996,7 +1995,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 0, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
+          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 0, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
 
           if (this.teamA.indexOf(unit) < 0) {
             this.teamA.push(unit);
@@ -2022,7 +2021,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.unitType, pos, 1, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
+          var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 1, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.defense);
 
           if (this.teamB.indexOf(unit) < 0) {
             this.teamB.push(unit);
@@ -2208,7 +2207,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             props.health = heroEntry.health;
             props.damage = heroEntry.damage;
             props.defense = heroEntry.defense;
-            props.unitType = heroEntry.unitType;
+            props.family = heroEntry.family;
+            props.tier = Math.max(1, Math.min(3, Math.floor(heroEntry.tier)));
             props.resetForSpawn();
           }
 
@@ -2229,7 +2229,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           hero.heroGuardDistance = heroEntry.guardDistance;
           hero.isSteady = true;
           hero.init(this.sim, team, unitTypeName, forwardX, forwardZ);
-          this.registerHeroWave(hero, team, unitTypeName, heroEntry.unitType);
+          this.registerHeroWave(hero, team, unitTypeName, heroEntry.family, heroEntry.tier);
 
           if (team === 0) {
             this.teamAHero = hero;
@@ -2248,7 +2248,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        registerHeroWave(hero, team, unitTypeName, unitType) {
+        registerHeroWave(hero, team, unitTypeName, family, tier) {
           var laneId = this.getHeroLaneId();
           var previousWave = team === 0 ? this.teamAHeroWave : this.teamBHeroWave;
 
@@ -2260,9 +2260,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           hero.laneId = laneId;
           var wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
-          }), BattleWave) : BattleWave)(this.nextWaveId++, team, unitTypeName, unitType || (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
-            error: Error()
-          }), UnitType) : UnitType).LightSword, 1, laneId);
+          }), BattleWave) : BattleWave)(this.nextWaveId++, team, unitTypeName, family, tier, 1, laneId);
           wave.addUnit(hero);
 
           if (team === 0) {

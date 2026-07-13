@@ -1,6 +1,6 @@
 import { Node, Vec3 } from 'cc';
 import { Unit } from './Unit';
-import { UnitType } from './BattleTypes';
+import { UnitFamily } from './BattleTypes';
 
 export class BattleWave {
 
@@ -11,7 +11,8 @@ export class BattleWave {
     team = 0;
 
     unitName = '';
-    unitType: UnitType = UnitType.LightSword;
+    family: UnitFamily = UnitFamily.Spear;
+    tier = 1;
 
     totalCount = 0;
     units: Unit[] = [];
@@ -44,14 +45,16 @@ export class BattleWave {
         id: number,
         team: number,
         unitName: string,
-        unitType: UnitType,
+        family: UnitFamily,
+        tier: number,
         totalCount: number,
         laneId: number = -1
     ) {
         this.id = id;
         this.team = team;
         this.unitName = unitName;
-        this.unitType = unitType;
+        this.family = family;
+        this.tier = Math.max(1, Math.min(3, Math.floor(tier)));
         this.totalCount = totalCount;
         this.laneId = laneId;
     }

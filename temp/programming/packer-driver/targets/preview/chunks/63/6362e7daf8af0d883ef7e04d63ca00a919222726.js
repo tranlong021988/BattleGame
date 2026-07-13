@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitType, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Layers, Layout, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3, GameManager, BattleWave, UnitFamily, BattleInformationIconItem, BattleCinematicCameraController, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _crd, ccclass, property, MiniMapUnitIconInfo, TrueMiniMapPanel;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -17,8 +17,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("BattleWave", "./BattleWave", _context.meta, extras);
   }
 
-  function _reportPossibleCrUseOfUnitType(extras) {
-    _reporterNs.report("UnitType", "./BattleTypes", _context.meta, extras);
+  function _reportPossibleCrUseOfUnitFamily(extras) {
+    _reporterNs.report("UnitFamily", "./BattleTypes", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfBattleInformationIconItem(extras) {
@@ -57,7 +57,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_3) {
       BattleWave = _unresolved_3.BattleWave;
     }, function (_unresolved_4) {
-      UnitType = _unresolved_4.UnitType;
+      UnitFamily = _unresolved_4.UnitFamily;
     }, function (_unresolved_5) {
       BattleInformationIconItem = _unresolved_5.BattleInformationIconItem;
     }, function (_unresolved_6) {
@@ -76,24 +76,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       } = _decorator);
 
       _export("MiniMapUnitIconInfo", MiniMapUnitIconInfo = (_dec = ccclass('MiniMapUnitIconInfo'), _dec2 = property({
-        type: _crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+        type: _crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
           error: Error()
-        }), UnitType) : UnitType
+        }), UnitFamily) : UnitFamily
       }), _dec3 = property(SpriteFrame), _dec(_class = (_class2 = class MiniMapUnitIconInfo {
         constructor() {
-          _initializerDefineProperty(this, "unitType", _descriptor, this);
+          _initializerDefineProperty(this, "family", _descriptor, this);
 
           _initializerDefineProperty(this, "spriteFrame", _descriptor2, this);
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "unitType", [_dec2], {
+      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "family", [_dec2], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+          return (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitType) : UnitType).LightSword;
+          }), UnitFamily) : UnitFamily).Spear;
         }
       }), _descriptor2 = _applyDecoratedDescriptor(_class2.prototype, "spriteFrame", [_dec3], {
         configurable: true,
@@ -384,7 +384,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var item = node.getComponent(_crd && BattleInformationIconItem === void 0 ? (_reportPossibleCrUseOfBattleInformationIconItem({
             error: Error()
           }), BattleInformationIconItem) : BattleInformationIconItem);
-          item.setup(this.getSpriteFrame(wave.team, wave.unitType), this.iconWidth, this.iconHeight, 0.5, wave.team === 1, this.getTeamIconTint(wave.team), this.getTeamFlashTint(wave.team));
+          item.setup(this.getSpriteFrame(wave.team, wave.family), this.iconWidth, this.iconHeight, 0.5, wave.team === 1, this.getTeamIconTint(wave.team), this.getTeamFlashTint(wave.team));
           root.addChild(node);
           node.setPosition(target);
           node.setScale(0, 0, 1);
@@ -1204,9 +1204,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        getSpriteFrame(team, unitType) {
+        getSpriteFrame(team, family) {
           var list = team === 0 ? this.teamAIcons : this.teamBIcons;
-          var spriteFrame = this.findSpriteFrameInList(list, unitType);
+          var spriteFrame = this.findSpriteFrameInList(list, family);
 
           if (spriteFrame) {
             return spriteFrame;
@@ -1222,10 +1222,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return heroSpriteFrame;
           }
 
-          var unitType = hero.props ? hero.props.unitType : (_crd && UnitType === void 0 ? (_reportPossibleCrUseOfUnitType({
+          var family = hero.props ? hero.props.family : (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitType) : UnitType).LightSword;
-          return this.getSpriteFrame(team, unitType);
+          }), UnitFamily) : UnitFamily).Sword;
+          return this.getSpriteFrame(team, family);
         }
 
         isHeroUnitAlive(hero) {
@@ -1245,11 +1245,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return team === 0 ? this.teamAFlashTint : this.teamBFlashTint;
         }
 
-        findSpriteFrameInList(list, unitType) {
+        findSpriteFrameInList(list, family) {
           for (var i = 0; i < list.length; i++) {
             var info = list[i];
 
-            if (info.unitType === unitType) {
+            if (info.family === family) {
               return info.spriteFrame;
             }
           }

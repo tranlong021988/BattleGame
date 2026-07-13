@@ -30,7 +30,7 @@ export class PlayerUnitIconBinding {
 
     @property({
         tooltip:
-            'Exact UnitPrefabEntry.name in BattleUnitDatabase, e.g. light_sword.',
+            'Exact UnitPrefabEntry.name in BattleUnitDatabase, e.g. sword_t1.',
     })
     unitName = '';
 }

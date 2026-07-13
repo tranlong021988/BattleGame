@@ -2,7 +2,7 @@ import { _decorator, Component, Prefab, Node, instantiate, Vec3 } from 'cc';
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
 import { UnitBehavior } from './UnitBehavior';
-import { UnitType } from './BattleTypes';
+import { UnitFamily } from './BattleTypes';
 
 const { ccclass } = _decorator;
 
@@ -68,7 +68,8 @@ export class UnitSpawner extends Component {
     spawnUnit(
         prefab: Prefab,
         unitTypeName: string,
-        unitType: UnitType,
+        family: UnitFamily,
+        tier: number,
         pos: Vec3,
         team: number,
         parent: Node,
@@ -102,7 +103,8 @@ export class UnitSpawner extends Component {
             canBePassedThroughByForwardAlly;
         unit.attackRange = Math.max(0, attackRange);
 
-        props.unitType = unitType;
+        props.family = family;
+        props.tier = Math.max(1, Math.min(3, Math.floor(tier)));
         props.maxHealth = health;
         props.damage = damage;
         props.defense = defense;

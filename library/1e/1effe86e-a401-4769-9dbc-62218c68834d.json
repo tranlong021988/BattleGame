@@ -20,10 +20,10 @@
         "__id__": 2
       },
       {
-        "__id__": 138
+        "__id__": 176
       },
       {
-        "__id__": 259
+        "__id__": 297
       },
       {
         "__id__": 43
@@ -32,52 +32,52 @@
         "__id__": 46
       },
       {
-        "__id__": 141
+        "__id__": 179
       },
       {
-        "__id__": 135
-      },
-      {
-        "__id__": 262
-      },
-      {
-        "__id__": 275
-      },
-      {
-        "__id__": 288
-      },
-      {
-        "__id__": 292
-      },
-      {
-        "__id__": 296
+        "__id__": 173
       },
       {
         "__id__": 300
       },
       {
-        "__id__": 90
+        "__id__": 313
       },
       {
-        "__id__": 54
+        "__id__": 326
       },
       {
-        "__id__": 304
+        "__id__": 330
       },
       {
-        "__id__": 306
+        "__id__": 334
       },
       {
-        "__id__": 308
+        "__id__": 338
       },
       {
-        "__id__": 310
+        "__id__": 96
+      },
+      {
+        "__id__": 60
+      },
+      {
+        "__id__": 342
+      },
+      {
+        "__id__": 344
+      },
+      {
+        "__id__": 346
+      },
+      {
+        "__id__": 348
       }
     ],
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 312
+      "__id__": 350
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -108,7 +108,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 319
+      "__id__": 357
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -149,13 +149,13 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 256
+        "__id__": 294
       },
       {
-        "__id__": 257
+        "__id__": 295
       },
       {
-        "__id__": 258
+        "__id__": 296
       }
     ],
     "_prefab": null,
@@ -1300,28 +1300,28 @@
         "__id__": 30
       },
       {
-        "__id__": 157
+        "__id__": 195
       },
       {
-        "__id__": 186
+        "__id__": 224
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 246
+        "__id__": 284
       },
       {
-        "__id__": 247
+        "__id__": 285
       },
       {
-        "__id__": 248
+        "__id__": 286
       },
       {
-        "__id__": 249
+        "__id__": 287
       },
       {
-        "__id__": 250
+        "__id__": 288
       }
     ],
     "_prefab": null,
@@ -1370,10 +1370,10 @@
     "_active": false,
     "_components": [
       {
-        "__id__": 155
+        "__id__": 193
       },
       {
-        "__id__": 156
+        "__id__": 194
       }
     ],
     "_prefab": null,
@@ -1434,7 +1434,7 @@
         "__id__": 41
       },
       {
-        "__id__": 154
+        "__id__": 192
       }
     ],
     "_prefab": null,
@@ -1779,7 +1779,7 @@
       "__id__": 42
     },
     "cinematicController": {
-      "__id__": 134
+      "__id__": 172
     },
     "background": {
       "__id__": 32
@@ -1792,36 +1792,36 @@
     },
     "teamAIcons": [
       {
-        "__id__": 144
+        "__id__": 182
       },
       {
-        "__id__": 145
+        "__id__": 183
       },
       {
-        "__id__": 146
+        "__id__": 184
       },
       {
-        "__id__": 147
+        "__id__": 185
       },
       {
-        "__id__": 148
+        "__id__": 186
       }
     ],
     "teamBIcons": [
       {
-        "__id__": 149
+        "__id__": 187
       },
       {
-        "__id__": 150
+        "__id__": 188
       },
       {
-        "__id__": 151
+        "__id__": 189
       },
       {
-        "__id__": 152
+        "__id__": 190
       },
       {
-        "__id__": 153
+        "__id__": 191
       }
     ],
     "teamAHeroIcon": {
@@ -1898,7 +1898,7 @@
       "__id__": 45
     },
     "cinematicController": {
-      "__id__": 134
+      "__id__": 172
     },
     "useWorkerRVO": true,
     "targetFrameRate": 60,
@@ -1953,7 +1953,7 @@
     "autoSpawnRandomLane": false,
     "waveBannerRefreshIntervalFrames": 12,
     "waveBannerCamera": {
-      "__id__": 143
+      "__id__": 181
     },
     "enableWaveBannerCameraVisibility": true,
     "hideWaveBannerInOrbitMode": true,
@@ -2057,32 +2057,12 @@
       "__expectedType__": "cc.Material"
     },
     "teamAHero": {
-      "__id__": 53
+      "__id__": 59
     },
     "teamBHero": {
-      "__id__": 89
+      "__id__": 95
     },
     "teamAUnits": [
-      {
-        "__id__": 124
-      },
-      {
-        "__id__": 125
-      },
-      {
-        "__id__": 126
-      },
-      {
-        "__id__": 127
-      },
-      {
-        "__id__": 128
-      }
-    ],
-    "teamBUnits": [
-      {
-        "__id__": 129
-      },
       {
         "__id__": 130
       },
@@ -2094,6 +2074,122 @@
       },
       {
         "__id__": 133
+      },
+      {
+        "__id__": 134
+      },
+      {
+        "__id__": 135
+      },
+      {
+        "__id__": 136
+      },
+      {
+        "__id__": 137
+      },
+      {
+        "__id__": 138
+      },
+      {
+        "__id__": 139
+      },
+      {
+        "__id__": 140
+      },
+      {
+        "__id__": 141
+      },
+      {
+        "__id__": 142
+      },
+      {
+        "__id__": 143
+      },
+      {
+        "__id__": 144
+      },
+      {
+        "__id__": 145
+      },
+      {
+        "__id__": 146
+      },
+      {
+        "__id__": 147
+      },
+      {
+        "__id__": 148
+      },
+      {
+        "__id__": 149
+      },
+      {
+        "__id__": 150
+      }
+    ],
+    "teamBUnits": [
+      {
+        "__id__": 151
+      },
+      {
+        "__id__": 152
+      },
+      {
+        "__id__": 153
+      },
+      {
+        "__id__": 154
+      },
+      {
+        "__id__": 155
+      },
+      {
+        "__id__": 156
+      },
+      {
+        "__id__": 157
+      },
+      {
+        "__id__": 158
+      },
+      {
+        "__id__": 159
+      },
+      {
+        "__id__": 160
+      },
+      {
+        "__id__": 161
+      },
+      {
+        "__id__": 162
+      },
+      {
+        "__id__": 163
+      },
+      {
+        "__id__": 164
+      },
+      {
+        "__id__": 165
+      },
+      {
+        "__id__": 166
+      },
+      {
+        "__id__": 167
+      },
+      {
+        "__id__": 168
+      },
+      {
+        "__id__": 169
+      },
+      {
+        "__id__": 170
+      },
+      {
+        "__id__": 171
       }
     ],
     "_id": "d7IxWV0bNKtJdMUYm6Wvmj"
@@ -2172,57 +2268,113 @@
       },
       {
         "__id__": 52
+      },
+      {
+        "__id__": 53
+      },
+      {
+        "__id__": 54
+      },
+      {
+        "__id__": 55
+      },
+      {
+        "__id__": 56
+      },
+      {
+        "__id__": 57
+      },
+      {
+        "__id__": 58
       }
     ],
     "_id": "19uM/rTCdIYarBGEFIPXYI"
   },
   {
     "__type__": "CounterRule",
-    "attackerType": 0,
-    "defenderType": 2,
+    "attackerFamily": 0,
+    "defenderFamily": 4,
     "damageMultiplier": 3,
-    "receivedDamageMultiplier": 1,
-    "note": "Light Sword hard-counters Light Spear"
+    "note": "Spear hard-counters Cavalry"
   },
   {
     "__type__": "CounterRule",
-    "attackerType": 2,
-    "defenderType": 8,
+    "attackerFamily": 0,
+    "defenderFamily": 4,
     "damageMultiplier": 3,
-    "receivedDamageMultiplier": 1,
-    "note": "Light Spear hard-counters Light Cavalry"
+    "note": "Cavalry hard-counters Archer"
   },
   {
     "__type__": "CounterRule",
-    "attackerType": 8,
-    "defenderType": 6,
+    "attackerFamily": 0,
+    "defenderFamily": 4,
     "damageMultiplier": 3,
-    "receivedDamageMultiplier": 1,
-    "note": "Light Cavalry hard-counters Light Archer"
+    "note": "Archer hard-counters Sword"
   },
   {
     "__type__": "CounterRule",
-    "attackerType": 6,
-    "defenderType": 4,
+    "attackerFamily": 0,
+    "defenderFamily": 4,
     "damageMultiplier": 3,
-    "receivedDamageMultiplier": 1,
-    "note": "Light Archer hard-counters Light Mace"
+    "note": "Archer hard-counters Spear"
   },
   {
     "__type__": "CounterRule",
-    "attackerType": 4,
-    "defenderType": 0,
+    "attackerFamily": 0,
+    "defenderFamily": 4,
     "damageMultiplier": 3,
-    "receivedDamageMultiplier": 1,
-    "note": "Light Mace hard-counters Light Sword"
+    "note": "Sword hard-counters Spear"
+  },
+  {
+    "__type__": "CounterRule",
+    "attackerFamily": 0,
+    "defenderFamily": 4,
+    "damageMultiplier": 3,
+    "note": "Skirmisher hard-counters Archer"
+  },
+  {
+    "__type__": "CounterRule",
+    "attackerFamily": 0,
+    "defenderFamily": 4,
+    "damageMultiplier": 3,
+    "note": "Skirmisher hard-counters Monk"
+  },
+  {
+    "__type__": "CounterRule",
+    "attackerFamily": 0,
+    "defenderFamily": 4,
+    "damageMultiplier": 3,
+    "note": "Axeman hard-counters Skirmisher"
+  },
+  {
+    "__type__": "CounterRule",
+    "attackerFamily": 0,
+    "defenderFamily": 4,
+    "damageMultiplier": 3,
+    "note": "Axeman hard-counters Sword"
+  },
+  {
+    "__type__": "CounterRule",
+    "attackerFamily": 0,
+    "defenderFamily": 4,
+    "damageMultiplier": 3,
+    "note": "Monk hard-counters Axeman"
+  },
+  {
+    "__type__": "CounterRule",
+    "attackerFamily": 0,
+    "defenderFamily": 4,
+    "damageMultiplier": 3,
+    "note": "Monk hard-counters Sword"
   },
   {
     "__type__": "HeroEntry",
     "name": "heroA",
     "heroNode": {
-      "__id__": 54
+      "__id__": 60
     },
-    "unitType": 0,
+    "family": 1,
+    "tier": 1,
     "maxSpeed": 5,
     "guardDistance": 6,
     "health": 500,
@@ -2240,25 +2392,25 @@
     },
     "_children": [
       {
-        "__id__": 55
+        "__id__": 61
       },
       {
-        "__id__": 80
+        "__id__": 86
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 84
+        "__id__": 90
       },
       {
-        "__id__": 86
+        "__id__": 92
       },
       {
-        "__id__": 87
+        "__id__": 93
       },
       {
-        "__id__": 88
+        "__id__": 94
       }
     ],
     "_prefab": null,
@@ -2295,17 +2447,17 @@
     "__type__": "cc.Node",
     "_objFlags": 0,
     "_parent": {
-      "__id__": 54
+      "__id__": 60
     },
     "_prefab": {
-      "__id__": 56
+      "__id__": 62
     },
     "__editorExtras__": {}
   },
   {
     "__type__": "cc.PrefabInfo",
     "root": {
-      "__id__": 55
+      "__id__": 61
     },
     "asset": {
       "__uuid__": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
@@ -2313,7 +2465,7 @@
     },
     "fileId": "89BsqabFhUiotUdrkH5ksL",
     "instance": {
-      "__id__": 57
+      "__id__": 63
     },
     "targetOverrides": null,
     "nestedPrefabInstanceRoots": null
@@ -2325,27 +2477,15 @@
     "mountedChildren": [],
     "mountedComponents": [
       {
-        "__id__": 58
+        "__id__": 64
       }
     ],
     "propertyOverrides": [
       {
-        "__id__": 62
+        "__id__": 68
       },
       {
-        "__id__": 64
-      },
-      {
-        "__id__": 65
-      },
-      {
-        "__id__": 66
-      },
-      {
-        "__id__": 67
-      },
-      {
-        "__id__": 69
+        "__id__": 70
       },
       {
         "__id__": 71
@@ -2360,9 +2500,6 @@
         "__id__": 75
       },
       {
-        "__id__": 76
-      },
-      {
         "__id__": 77
       },
       {
@@ -2370,6 +2507,21 @@
       },
       {
         "__id__": 79
+      },
+      {
+        "__id__": 81
+      },
+      {
+        "__id__": 82
+      },
+      {
+        "__id__": 83
+      },
+      {
+        "__id__": 84
+      },
+      {
+        "__id__": 85
       }
     ],
     "removedComponents": []
@@ -2377,11 +2529,11 @@
   {
     "__type__": "cc.MountedComponentsInfo",
     "targetInfo": {
-      "__id__": 59
+      "__id__": 65
     },
     "components": [
       {
-        "__id__": 60
+        "__id__": 66
       }
     ]
   },
@@ -2397,15 +2549,15 @@
     "_objFlags": 0,
     "__editorExtras__": {
       "mountedRoot": {
-        "__id__": 55
+        "__id__": 61
       }
     },
     "node": {
-      "__id__": 55
+      "__id__": 61
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 61
+      "__id__": 67
     },
     "_id": "4ed7uswCJGJL+eUUkADfyn"
   },
@@ -2416,7 +2568,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 63
+      "__id__": 69
     },
     "propertyPath": [
       "_name"
@@ -2432,7 +2584,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 63
+      "__id__": 69
     },
     "propertyPath": [
       "_lpos"
@@ -2447,7 +2599,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 63
+      "__id__": 69
     },
     "propertyPath": [
       "_lrot"
@@ -2463,7 +2615,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 63
+      "__id__": 69
     },
     "propertyPath": [
       "_euler"
@@ -2478,7 +2630,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 68
+      "__id__": 74
     },
     "propertyPath": [
       "playOnLoad"
@@ -2494,7 +2646,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 70
+      "__id__": 76
     },
     "propertyPath": [
       "_materials",
@@ -2514,19 +2666,19 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 70
+      "__id__": 76
     },
     "propertyPath": [
       "_skinningRoot"
     ],
     "value": {
-      "__id__": 55
+      "__id__": 61
     }
   },
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 68
+      "__id__": 74
     },
     "propertyPath": [
       "_enabled"
@@ -2536,7 +2688,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 74
+      "__id__": 80
     },
     "propertyPath": [
       "_enabled"
@@ -2552,7 +2704,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 63
+      "__id__": 69
     },
     "propertyPath": [
       "_active"
@@ -2562,7 +2714,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 70
+      "__id__": 76
     },
     "propertyPath": [
       "_shadowReceivingMode"
@@ -2572,7 +2724,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 70
+      "__id__": 76
     },
     "propertyPath": [
       "bakeSettings",
@@ -2583,7 +2735,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 70
+      "__id__": 76
     },
     "propertyPath": [
       "bakeSettings",
@@ -2594,7 +2746,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 70
+      "__id__": 76
     },
     "propertyPath": [
       "_enableMorph"
@@ -2607,16 +2759,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 54
+      "__id__": 60
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 81
+        "__id__": 87
       },
       {
-        "__id__": 83
+        "__id__": 89
       }
     ],
     "_prefab": null,
@@ -2655,7 +2807,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 80
+      "__id__": 86
     },
     "_enabled": true,
     "__prefab": null,
@@ -2667,7 +2819,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 82
+      "__id__": 88
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
@@ -2710,7 +2862,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 80
+      "__id__": 86
     },
     "_enabled": true,
     "__prefab": null,
@@ -2730,7 +2882,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 54
+      "__id__": 60
     },
     "_enabled": false,
     "__prefab": null,
@@ -2742,7 +2894,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 85
+      "__id__": 91
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -2785,12 +2937,12 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 54
+      "__id__": 60
     },
     "_enabled": true,
     "__prefab": null,
     "visualRoot": {
-      "__id__": 55
+      "__id__": 61
     },
     "visualYawOffset": 0,
     "rotationSpeed": 10,
@@ -2828,16 +2980,17 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 54
+      "__id__": 60
     },
     "_enabled": true,
     "__prefab": null,
-    "unitType": 0,
+    "family": 0,
+    "tier": 1,
     "maxHealth": 5000,
     "damage": 300,
     "defense": 100,
     "healthBar": {
-      "__id__": 83
+      "__id__": 89
     },
     "_id": "729xqq/VpKraMRNSopOJ7q"
   },
@@ -2847,7 +3000,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 54
+      "__id__": 60
     },
     "_enabled": true,
     "__prefab": null,
@@ -2859,9 +3012,10 @@
     "__type__": "HeroEntry",
     "name": "heroB",
     "heroNode": {
-      "__id__": 90
+      "__id__": 96
     },
-    "unitType": 0,
+    "family": 1,
+    "tier": 1,
     "maxSpeed": 5,
     "guardDistance": 6,
     "health": 500,
@@ -2879,25 +3033,25 @@
     },
     "_children": [
       {
-        "__id__": 91
+        "__id__": 97
       },
       {
-        "__id__": 115
+        "__id__": 121
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 119
+        "__id__": 125
       },
       {
-        "__id__": 121
+        "__id__": 127
       },
       {
-        "__id__": 122
+        "__id__": 128
       },
       {
-        "__id__": 123
+        "__id__": 129
       }
     ],
     "_prefab": null,
@@ -2934,17 +3088,17 @@
     "__type__": "cc.Node",
     "_objFlags": 0,
     "_parent": {
-      "__id__": 90
+      "__id__": 96
     },
     "_prefab": {
-      "__id__": 92
+      "__id__": 98
     },
     "__editorExtras__": {}
   },
   {
     "__type__": "cc.PrefabInfo",
     "root": {
-      "__id__": 91
+      "__id__": 97
     },
     "asset": {
       "__uuid__": "ed6bccd1-5a22-4f6b-a3ab-1ca604e1f035@a1a5a",
@@ -2952,7 +3106,7 @@
     },
     "fileId": "89BsqabFhUiotUdrkH5ksL",
     "instance": {
-      "__id__": 93
+      "__id__": 99
     },
     "targetOverrides": null,
     "nestedPrefabInstanceRoots": null
@@ -2964,27 +3118,15 @@
     "mountedChildren": [],
     "mountedComponents": [
       {
-        "__id__": 94
+        "__id__": 100
       }
     ],
     "propertyOverrides": [
       {
-        "__id__": 98
+        "__id__": 104
       },
       {
-        "__id__": 100
-      },
-      {
-        "__id__": 101
-      },
-      {
-        "__id__": 102
-      },
-      {
-        "__id__": 103
-      },
-      {
-        "__id__": 105
+        "__id__": 106
       },
       {
         "__id__": 107
@@ -2999,13 +3141,25 @@
         "__id__": 111
       },
       {
-        "__id__": 112
-      },
-      {
         "__id__": 113
       },
       {
         "__id__": 114
+      },
+      {
+        "__id__": 115
+      },
+      {
+        "__id__": 117
+      },
+      {
+        "__id__": 118
+      },
+      {
+        "__id__": 119
+      },
+      {
+        "__id__": 120
       }
     ],
     "removedComponents": []
@@ -3013,11 +3167,11 @@
   {
     "__type__": "cc.MountedComponentsInfo",
     "targetInfo": {
-      "__id__": 95
+      "__id__": 101
     },
     "components": [
       {
-        "__id__": 96
+        "__id__": 102
       }
     ]
   },
@@ -3033,15 +3187,15 @@
     "_objFlags": 0,
     "__editorExtras__": {
       "mountedRoot": {
-        "__id__": 91
+        "__id__": 97
       }
     },
     "node": {
-      "__id__": 91
+      "__id__": 97
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 97
+      "__id__": 103
     },
     "_id": "faZd4oi/RPFLYtfyq9QfU9"
   },
@@ -3052,7 +3206,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 99
+      "__id__": 105
     },
     "propertyPath": [
       "_name"
@@ -3068,7 +3222,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 99
+      "__id__": 105
     },
     "propertyPath": [
       "_lpos"
@@ -3083,7 +3237,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 99
+      "__id__": 105
     },
     "propertyPath": [
       "_lrot"
@@ -3099,7 +3253,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 99
+      "__id__": 105
     },
     "propertyPath": [
       "_euler"
@@ -3114,7 +3268,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 104
+      "__id__": 110
     },
     "propertyPath": [
       "playOnLoad"
@@ -3130,7 +3284,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 106
+      "__id__": 112
     },
     "propertyPath": [
       "_materials",
@@ -3150,19 +3304,19 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 106
+      "__id__": 112
     },
     "propertyPath": [
       "_skinningRoot"
     ],
     "value": {
-      "__id__": 91
+      "__id__": 97
     }
   },
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 104
+      "__id__": 110
     },
     "propertyPath": [
       "_enabled"
@@ -3172,7 +3326,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 110
+      "__id__": 116
     },
     "propertyPath": [
       "_enabled"
@@ -3188,7 +3342,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 99
+      "__id__": 105
     },
     "propertyPath": [
       "_active"
@@ -3198,7 +3352,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 106
+      "__id__": 112
     },
     "propertyPath": [
       "bakeSettings",
@@ -3209,7 +3363,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 106
+      "__id__": 112
     },
     "propertyPath": [
       "bakeSettings",
@@ -3220,7 +3374,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 106
+      "__id__": 112
     },
     "propertyPath": [
       "_enableMorph"
@@ -3233,16 +3387,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 90
+      "__id__": 96
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 116
+        "__id__": 122
       },
       {
-        "__id__": 118
+        "__id__": 124
       }
     ],
     "_prefab": null,
@@ -3281,7 +3435,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 115
+      "__id__": 121
     },
     "_enabled": true,
     "__prefab": null,
@@ -3293,7 +3447,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 117
+      "__id__": 123
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
@@ -3336,7 +3490,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 115
+      "__id__": 121
     },
     "_enabled": true,
     "__prefab": null,
@@ -3356,7 +3510,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 90
+      "__id__": 96
     },
     "_enabled": false,
     "__prefab": null,
@@ -3368,7 +3522,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 120
+      "__id__": 126
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -3411,12 +3565,12 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 90
+      "__id__": 96
     },
     "_enabled": true,
     "__prefab": null,
     "visualRoot": {
-      "__id__": 91
+      "__id__": 97
     },
     "visualYawOffset": 0,
     "rotationSpeed": 10,
@@ -3454,16 +3608,17 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 90
+      "__id__": 96
     },
     "_enabled": true,
     "__prefab": null,
-    "unitType": 0,
+    "family": 0,
+    "tier": 1,
     "maxHealth": 5000,
     "damage": 300,
     "defense": 100,
     "healthBar": {
-      "__id__": 118
+      "__id__": 124
     },
     "_id": "c41UIZ9xtB3pCiyOAYWv1I"
   },
@@ -3473,7 +3628,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 90
+      "__id__": 96
     },
     "_enabled": true,
     "__prefab": null,
@@ -3483,38 +3638,7 @@
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_sword",
-    "prefab": {
-      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
-      "__expectedType__": "cc.Prefab"
-    },
-    "waveBannerPrefab": {
-      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
-      "__expectedType__": "cc.Prefab"
-    },
-    "waveBannerIconId": 0,
-    "unitType": 0,
-    "unlocked": true,
-    "unitCount": 10,
-    "maxUnitPerRow": 8,
-    "squareFormationWidth": 4,
-    "spaceBetweenUnit": 1,
-    "spaceBetweenRow": 1.5,
-    "prewarmCount": 20,
-    "maxSpeed": 5,
-    "canBePush": false,
-    "canBePassedThroughByForwardAlly": false,
-    "attackRange": 0.5,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
-    "health": 110,
-    "damage": 5,
-    "defense": 2,
-    "combatPointCost": 10
-  },
-  {
-    "__type__": "UnitPrefabEntry",
-    "name": "light_spear",
+    "name": "spear_t1",
     "prefab": {
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
@@ -3524,7 +3648,8 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerIconId": 5,
-    "unitType": 2,
+    "family": 0,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3532,20 +3657,20 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 5.2,
+    "maxSpeed": 3,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 1,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
-    "health": 95,
-    "damage": 4.5,
+    "attackRange": 2,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.05,
+    "health": 100,
+    "damage": 12,
     "defense": 1,
     "combatPointCost": 10
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_mace",
+    "name": "spear_t2",
     "prefab": {
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
@@ -3554,8 +3679,73 @@
       "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
-    "waveBannerIconId": 4,
-    "unitType": 4,
+    "waveBannerIconId": 5,
+    "family": 0,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 2,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.05,
+    "health": 180,
+    "damage": 24,
+    "defense": 3,
+    "combatPointCost": 25
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "spear_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 0,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 2,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.05,
+    "health": 320,
+    "damage": 42,
+    "defense": 6,
+    "combatPointCost": 50
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "sword_t1",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 0,
+    "family": 1,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3563,20 +3753,84 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 4,
+    "maxSpeed": 3.5,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 0.5,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
+    "attackRange": 1,
+    "attackIntervalMin": 0.75,
+    "attackIntervalMax": 0.95,
     "health": 130,
-    "damage": 5.5,
-    "defense": 0,
-    "combatPointCost": 13
+    "damage": 22,
+    "defense": 4,
+    "combatPointCost": 15
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_archer",
+    "name": "sword_t2",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 0,
+    "family": 1,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.5,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.75,
+    "attackIntervalMax": 0.95,
+    "health": 220,
+    "damage": 40,
+    "defense": 8,
+    "combatPointCost": 35
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "sword_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 0,
+    "family": 1,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.5,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.75,
+    "attackIntervalMax": 0.95,
+    "health": 380,
+    "damage": 72,
+    "defense": 14,
+    "combatPointCost": 70
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "archer_t1",
     "prefab": {
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
@@ -3586,28 +3840,189 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerIconId": 6,
-    "unitType": 6,
+    "family": 2,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
     "squareFormationWidth": 4,
-    "spaceBetweenUnit": 0.5,
+    "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 4.5,
+    "maxSpeed": 3,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": true,
-    "attackRange": 5,
-    "attackIntervalMin": 0.8,
-    "attackIntervalMax": 0.85,
-    "health": 75,
-    "damage": 4,
+    "attackRange": 6,
+    "attackIntervalMin": 1.15,
+    "attackIntervalMax": 1.45,
+    "health": 85,
+    "damage": 25,
     "defense": 0,
-    "combatPointCost": 5
+    "combatPointCost": 20
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_cavalry",
+    "name": "archer_t2",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 6,
+    "family": 2,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 6.5,
+    "attackIntervalMin": 1.15,
+    "attackIntervalMax": 1.45,
+    "health": 140,
+    "damage": 48,
+    "defense": 1,
+    "combatPointCost": 45
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "archer_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 6,
+    "family": 2,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 7,
+    "attackIntervalMin": 1.15,
+    "attackIntervalMax": 1.45,
+    "health": 240,
+    "damage": 85,
+    "defense": 2,
+    "combatPointCost": 90
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "skirmisher_t1",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 3,
+    "tier": 1,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.2,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 5,
+    "attackIntervalMin": 1.05,
+    "attackIntervalMax": 1.35,
+    "health": 95,
+    "damage": 18,
+    "defense": 5,
+    "combatPointCost": 18
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "skirmisher_t2",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 3,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.2,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 5.5,
+    "attackIntervalMin": 1.05,
+    "attackIntervalMax": 1.35,
+    "health": 160,
+    "damage": 32,
+    "defense": 10,
+    "combatPointCost": 40
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "skirmisher_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 3,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.2,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 6,
+    "attackIntervalMin": 1.05,
+    "attackIntervalMax": 1.35,
+    "health": 270,
+    "damage": 58,
+    "defense": 18,
+    "combatPointCost": 80
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "cavalry_t1",
     "prefab": {
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
@@ -3617,7 +4032,8 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerIconId": 7,
-    "unitType": 8,
+    "family": 4,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3625,30 +4041,95 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 7,
+    "maxSpeed": 6,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 0.5,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
-    "health": 120,
-    "damage": 6,
-    "defense": 1,
-    "combatPointCost": 12
+    "attackRange": 1,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.1,
+    "health": 200,
+    "damage": 45,
+    "defense": 6,
+    "combatPointCost": 40
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_sword",
+    "name": "cavalry_t2",
     "prefab": {
-      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerPrefab": {
       "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
-    "waveBannerIconId": 0,
-    "unitType": 0,
+    "waveBannerIconId": 7,
+    "family": 4,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 6,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.1,
+    "health": 360,
+    "damage": 80,
+    "defense": 12,
+    "combatPointCost": 85
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "cavalry_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 7,
+    "family": 4,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 6,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.1,
+    "health": 650,
+    "damage": 145,
+    "defense": 22,
+    "combatPointCost": 170
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "axeman_t1",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 4,
+    "family": 5,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3656,20 +4137,180 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 5,
+    "maxSpeed": 3,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 0.5,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
-    "health": 110,
-    "damage": 5,
+    "attackRange": 1,
+    "attackIntervalMin": 0.95,
+    "attackIntervalMax": 1.25,
+    "health": 150,
+    "damage": 38,
     "defense": 2,
-    "combatPointCost": 10
+    "combatPointCost": 30
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_spear",
+    "name": "axeman_t2",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 4,
+    "family": 5,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.95,
+    "attackIntervalMax": 1.25,
+    "health": 260,
+    "damage": 68,
+    "defense": 5,
+    "combatPointCost": 65
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "axeman_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 4,
+    "family": 5,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.95,
+    "attackIntervalMax": 1.25,
+    "health": 460,
+    "damage": 120,
+    "defense": 9,
+    "combatPointCost": 130
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "monk_t1",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 6,
+    "tier": 1,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 5.5,
+    "attackIntervalMin": 1.35,
+    "attackIntervalMax": 1.75,
+    "health": 120,
+    "damage": 70,
+    "defense": 0,
+    "combatPointCost": 60
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "monk_t2",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 6,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 6.5,
+    "attackIntervalMin": 1.35,
+    "attackIntervalMax": 1.75,
+    "health": 200,
+    "damage": 130,
+    "defense": 1,
+    "combatPointCost": 120
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "monk_t3",
+    "prefab": {
+      "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 6,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 7,
+    "attackIntervalMin": 1.35,
+    "attackIntervalMax": 1.75,
+    "health": 340,
+    "damage": 240,
+    "defense": 2,
+    "combatPointCost": 245
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "spear_t1",
     "prefab": {
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
@@ -3679,7 +4320,8 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerIconId": 5,
-    "unitType": 2,
+    "family": 0,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3687,20 +4329,20 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 5.2,
+    "maxSpeed": 3,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 1,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
-    "health": 95,
-    "damage": 4.5,
+    "attackRange": 2,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.05,
+    "health": 100,
+    "damage": 12,
     "defense": 1,
     "combatPointCost": 10
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_mace",
+    "name": "spear_t2",
     "prefab": {
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
@@ -3709,8 +4351,73 @@
       "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
       "__expectedType__": "cc.Prefab"
     },
-    "waveBannerIconId": 4,
-    "unitType": 4,
+    "waveBannerIconId": 5,
+    "family": 0,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 2,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.05,
+    "health": 180,
+    "damage": 24,
+    "defense": 3,
+    "combatPointCost": 25
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "spear_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 0,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 2,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.05,
+    "health": 320,
+    "damage": 42,
+    "defense": 6,
+    "combatPointCost": 50
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "sword_t1",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 0,
+    "family": 1,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3718,20 +4425,84 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 4,
+    "maxSpeed": 3.5,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 0.5,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
+    "attackRange": 1,
+    "attackIntervalMin": 0.75,
+    "attackIntervalMax": 0.95,
     "health": 130,
-    "damage": 5.5,
-    "defense": 0,
-    "combatPointCost": 13
+    "damage": 22,
+    "defense": 4,
+    "combatPointCost": 15
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_archer",
+    "name": "sword_t2",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 0,
+    "family": 1,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.5,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.75,
+    "attackIntervalMax": 0.95,
+    "health": 220,
+    "damage": 40,
+    "defense": 8,
+    "combatPointCost": 35
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "sword_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 0,
+    "family": 1,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.5,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.75,
+    "attackIntervalMax": 0.95,
+    "health": 380,
+    "damage": 72,
+    "defense": 14,
+    "combatPointCost": 70
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "archer_t1",
     "prefab": {
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
@@ -3741,28 +4512,189 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerIconId": 6,
-    "unitType": 6,
+    "family": 2,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
     "squareFormationWidth": 4,
-    "spaceBetweenUnit": 0.5,
+    "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 4.5,
+    "maxSpeed": 3,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": true,
-    "attackRange": 5,
-    "attackIntervalMin": 0.8,
-    "attackIntervalMax": 0.85,
-    "health": 75,
-    "damage": 4,
+    "attackRange": 6,
+    "attackIntervalMin": 1.15,
+    "attackIntervalMax": 1.45,
+    "health": 85,
+    "damage": 25,
     "defense": 0,
-    "combatPointCost": 5
+    "combatPointCost": 20
   },
   {
     "__type__": "UnitPrefabEntry",
-    "name": "light_cavalry",
+    "name": "archer_t2",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 6,
+    "family": 2,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 6.5,
+    "attackIntervalMin": 1.15,
+    "attackIntervalMax": 1.45,
+    "health": 140,
+    "damage": 48,
+    "defense": 1,
+    "combatPointCost": 45
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "archer_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 6,
+    "family": 2,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 7,
+    "attackIntervalMin": 1.15,
+    "attackIntervalMax": 1.45,
+    "health": 240,
+    "damage": 85,
+    "defense": 2,
+    "combatPointCost": 90
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "skirmisher_t1",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 3,
+    "tier": 1,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.2,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 5,
+    "attackIntervalMin": 1.05,
+    "attackIntervalMax": 1.35,
+    "health": 95,
+    "damage": 18,
+    "defense": 5,
+    "combatPointCost": 18
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "skirmisher_t2",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 3,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.2,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 5.5,
+    "attackIntervalMin": 1.05,
+    "attackIntervalMax": 1.35,
+    "health": 160,
+    "damage": 32,
+    "defense": 10,
+    "combatPointCost": 40
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "skirmisher_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 3,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3.2,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 6,
+    "attackIntervalMin": 1.05,
+    "attackIntervalMax": 1.35,
+    "health": 270,
+    "damage": 58,
+    "defense": 18,
+    "combatPointCost": 80
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "cavalry_t1",
     "prefab": {
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
       "__expectedType__": "cc.Prefab"
@@ -3772,7 +4704,8 @@
       "__expectedType__": "cc.Prefab"
     },
     "waveBannerIconId": 7,
-    "unitType": 8,
+    "family": 4,
+    "tier": 1,
     "unlocked": true,
     "unitCount": 10,
     "maxUnitPerRow": 8,
@@ -3780,16 +4713,272 @@
     "spaceBetweenUnit": 1,
     "spaceBetweenRow": 1.5,
     "prewarmCount": 20,
-    "maxSpeed": 7,
+    "maxSpeed": 6,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 0.5,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.45,
+    "attackRange": 1,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.1,
+    "health": 200,
+    "damage": 45,
+    "defense": 6,
+    "combatPointCost": 40
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "cavalry_t2",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 7,
+    "family": 4,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 6,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.1,
+    "health": 360,
+    "damage": 80,
+    "defense": 12,
+    "combatPointCost": 85
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "cavalry_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 7,
+    "family": 4,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 6,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.85,
+    "attackIntervalMax": 1.1,
+    "health": 650,
+    "damage": 145,
+    "defense": 22,
+    "combatPointCost": 170
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "axeman_t1",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 4,
+    "family": 5,
+    "tier": 1,
+    "unlocked": true,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.95,
+    "attackIntervalMax": 1.25,
+    "health": 150,
+    "damage": 38,
+    "defense": 2,
+    "combatPointCost": 30
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "axeman_t2",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 4,
+    "family": 5,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.95,
+    "attackIntervalMax": 1.25,
+    "health": 260,
+    "damage": 68,
+    "defense": 5,
+    "combatPointCost": 65
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "axeman_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 4,
+    "family": 5,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
+    "attackRange": 1,
+    "attackIntervalMin": 0.95,
+    "attackIntervalMax": 1.25,
+    "health": 460,
+    "damage": 120,
+    "defense": 9,
+    "combatPointCost": 130
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "monk_t1",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 6,
+    "tier": 1,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 5.5,
+    "attackIntervalMin": 1.35,
+    "attackIntervalMax": 1.75,
     "health": 120,
-    "damage": 6,
+    "damage": 70,
+    "defense": 0,
+    "combatPointCost": 60
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "monk_t2",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 6,
+    "tier": 2,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 6.5,
+    "attackIntervalMin": 1.35,
+    "attackIntervalMax": 1.75,
+    "health": 200,
+    "damage": 130,
     "defense": 1,
-    "combatPointCost": 12
+    "combatPointCost": 120
+  },
+  {
+    "__type__": "UnitPrefabEntry",
+    "name": "monk_t3",
+    "prefab": {
+      "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerPrefab": {
+      "__uuid__": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+      "__expectedType__": "cc.Prefab"
+    },
+    "waveBannerIconId": 5,
+    "family": 6,
+    "tier": 3,
+    "unlocked": false,
+    "unitCount": 10,
+    "maxUnitPerRow": 8,
+    "squareFormationWidth": 4,
+    "spaceBetweenUnit": 1,
+    "spaceBetweenRow": 1.5,
+    "prewarmCount": 20,
+    "maxSpeed": 3,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": true,
+    "attackRange": 7,
+    "attackIntervalMin": 1.35,
+    "attackIntervalMax": 1.75,
+    "health": 340,
+    "damage": 240,
+    "defense": 2,
+    "combatPointCost": 245
   },
   {
     "__type__": "1cbcdGjxwFMXJTanym+R192",
@@ -3797,18 +4986,18 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 135
+      "__id__": 173
     },
     "_enabled": true,
     "__prefab": null,
     "mainCamera": {
-      "__id__": 136
+      "__id__": 174
     },
     "orbitRig": {
-      "__id__": 140
+      "__id__": 178
     },
     "topDownCameraDrag": {
-      "__id__": 139
+      "__id__": 177
     },
     "gameManager": {
       "__id__": 42
@@ -3847,7 +5036,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 134
+        "__id__": 172
       }
     ],
     "_prefab": null,
@@ -3886,7 +5075,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 137
+      "__id__": 175
     },
     "_enabled": true,
     "__prefab": null,
@@ -3932,13 +5121,13 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 138
+      "__id__": 176
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 136
+        "__id__": 174
       }
     ],
     "_prefab": null,
@@ -3981,13 +5170,13 @@
     },
     "_children": [
       {
-        "__id__": 137
+        "__id__": 175
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 139
+        "__id__": 177
       }
     ],
     "_prefab": null,
@@ -4026,12 +5215,12 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 138
+      "__id__": 176
     },
     "_enabled": true,
     "__prefab": null,
     "targetCamera": {
-      "__id__": 136
+      "__id__": 174
     },
     "enableDragX": true,
     "enableDragZ": true,
@@ -4065,12 +5254,12 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 141
+      "__id__": 179
     },
     "_enabled": true,
     "__prefab": null,
     "orbitCamera": {
-      "__id__": 142
+      "__id__": 180
     },
     "orbitSpeed": 20,
     "firstFocusLocalMoveSmooth": 4,
@@ -4091,13 +5280,13 @@
     },
     "_children": [
       {
-        "__id__": 142
+        "__id__": 180
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 140
+        "__id__": 178
       }
     ],
     "_prefab": null,
@@ -4136,13 +5325,13 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 141
+      "__id__": 179
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 143
+        "__id__": 181
       }
     ],
     "_prefab": null,
@@ -4181,7 +5370,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 142
+      "__id__": 180
     },
     "_enabled": false,
     "__prefab": null,
@@ -4223,7 +5412,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 0,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4231,7 +5420,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 2,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "c513c3d6-bb46-4592-8efd-b8d73c099863@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4239,7 +5428,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 4,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "b178349e-82da-4293-8dcd-3b05942bc79d@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4247,7 +5436,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 6,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "f4904146-35a2-41bf-8f22-cd622c2f0852@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4255,7 +5444,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 8,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "23926ca3-e531-4d19-8249-ca0aa068dbc1@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4263,7 +5452,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 0,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "d07a4161-d5c6-4ff6-b539-0d0ccd38b9f5@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4271,7 +5460,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 2,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "c513c3d6-bb46-4592-8efd-b8d73c099863@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4279,7 +5468,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 4,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "b178349e-82da-4293-8dcd-3b05942bc79d@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4287,7 +5476,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 6,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "f4904146-35a2-41bf-8f22-cd622c2f0852@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4295,7 +5484,7 @@
   },
   {
     "__type__": "MiniMapUnitIconInfo",
-    "unitType": 8,
+    "family": 0,
     "spriteFrame": {
       "__uuid__": "23926ca3-e531-4d19-8249-ca0aa068dbc1@f9941",
       "__expectedType__": "cc.SpriteFrame"
@@ -4393,28 +5582,28 @@
     },
     "_children": [
       {
-        "__id__": 158
+        "__id__": 196
       },
       {
-        "__id__": 166
+        "__id__": 204
       },
       {
-        "__id__": 174
+        "__id__": 212
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 182
+        "__id__": 220
       },
       {
-        "__id__": 183
+        "__id__": 221
       },
       {
-        "__id__": 184
+        "__id__": 222
       },
       {
-        "__id__": 185
+        "__id__": 223
       }
     ],
     "_prefab": null,
@@ -4453,23 +5642,23 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 157
+      "__id__": 195
     },
     "_children": [
       {
-        "__id__": 159
+        "__id__": 197
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 163
+        "__id__": 201
       },
       {
-        "__id__": 164
+        "__id__": 202
       },
       {
-        "__id__": 165
+        "__id__": 203
       }
     ],
     "_prefab": null,
@@ -4508,19 +5697,19 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 158
+      "__id__": 196
     },
     "_children": [],
     "_active": false,
     "_components": [
       {
-        "__id__": 160
+        "__id__": 198
       },
       {
-        "__id__": 161
+        "__id__": 199
       },
       {
-        "__id__": 162
+        "__id__": 200
       }
     ],
     "_prefab": null,
@@ -4559,7 +5748,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 159
+      "__id__": 197
     },
     "_enabled": true,
     "__prefab": null,
@@ -4581,7 +5770,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 159
+      "__id__": 197
     },
     "_enabled": true,
     "__prefab": null,
@@ -4620,7 +5809,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 159
+      "__id__": 197
     },
     "_enabled": true,
     "__prefab": null,
@@ -4650,7 +5839,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 158
+      "__id__": 196
     },
     "_enabled": true,
     "__prefab": null,
@@ -4672,7 +5861,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 158
+      "__id__": 196
     },
     "_enabled": true,
     "__prefab": null,
@@ -4711,7 +5900,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 158
+      "__id__": 196
     },
     "_enabled": true,
     "__prefab": null,
@@ -4741,23 +5930,23 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 157
+      "__id__": 195
     },
     "_children": [
       {
-        "__id__": 167
+        "__id__": 205
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 171
+        "__id__": 209
       },
       {
-        "__id__": 172
+        "__id__": 210
       },
       {
-        "__id__": 173
+        "__id__": 211
       }
     ],
     "_prefab": null,
@@ -4796,19 +5985,19 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 166
+      "__id__": 204
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 168
+        "__id__": 206
       },
       {
-        "__id__": 169
+        "__id__": 207
       },
       {
-        "__id__": 170
+        "__id__": 208
       }
     ],
     "_prefab": null,
@@ -4847,7 +6036,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 167
+      "__id__": 205
     },
     "_enabled": true,
     "__prefab": null,
@@ -4869,7 +6058,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 167
+      "__id__": 205
     },
     "_enabled": true,
     "__prefab": null,
@@ -4908,7 +6097,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 167
+      "__id__": 205
     },
     "_enabled": true,
     "__prefab": null,
@@ -4938,7 +6127,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 166
+      "__id__": 204
     },
     "_enabled": true,
     "__prefab": null,
@@ -4960,7 +6149,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 166
+      "__id__": 204
     },
     "_enabled": true,
     "__prefab": null,
@@ -4999,7 +6188,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 166
+      "__id__": 204
     },
     "_enabled": true,
     "__prefab": null,
@@ -5029,23 +6218,23 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 157
+      "__id__": 195
     },
     "_children": [
       {
-        "__id__": 175
+        "__id__": 213
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 179
+        "__id__": 217
       },
       {
-        "__id__": 180
+        "__id__": 218
       },
       {
-        "__id__": 181
+        "__id__": 219
       }
     ],
     "_prefab": null,
@@ -5084,19 +6273,19 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 174
+      "__id__": 212
     },
     "_children": [],
     "_active": false,
     "_components": [
       {
-        "__id__": 176
+        "__id__": 214
       },
       {
-        "__id__": 177
+        "__id__": 215
       },
       {
-        "__id__": 178
+        "__id__": 216
       }
     ],
     "_prefab": null,
@@ -5135,7 +6324,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 175
+      "__id__": 213
     },
     "_enabled": true,
     "__prefab": null,
@@ -5157,7 +6346,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 175
+      "__id__": 213
     },
     "_enabled": true,
     "__prefab": null,
@@ -5196,7 +6385,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 175
+      "__id__": 213
     },
     "_enabled": true,
     "__prefab": null,
@@ -5226,7 +6415,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 174
+      "__id__": 212
     },
     "_enabled": true,
     "__prefab": null,
@@ -5248,7 +6437,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 174
+      "__id__": 212
     },
     "_enabled": true,
     "__prefab": null,
@@ -5287,7 +6476,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 174
+      "__id__": 212
     },
     "_enabled": true,
     "__prefab": null,
@@ -5317,7 +6506,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 157
+      "__id__": 195
     },
     "_enabled": true,
     "__prefab": null,
@@ -5339,7 +6528,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 157
+      "__id__": 195
     },
     "_enabled": true,
     "__prefab": null,
@@ -5371,7 +6560,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 157
+      "__id__": 195
     },
     "_enabled": false,
     "__prefab": null,
@@ -5410,7 +6599,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 157
+      "__id__": 195
     },
     "_enabled": true,
     "__prefab": null,
@@ -5444,25 +6633,25 @@
     },
     "_children": [
       {
-        "__id__": 187
+        "__id__": 225
       },
       {
-        "__id__": 194
+        "__id__": 232
       },
       {
-        "__id__": 202
+        "__id__": 240
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 243
+        "__id__": 281
       },
       {
-        "__id__": 244
+        "__id__": 282
       },
       {
-        "__id__": 245
+        "__id__": 283
       }
     ],
     "_prefab": null,
@@ -5501,23 +6690,23 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 186
+      "__id__": 224
     },
     "_children": [
       {
-        "__id__": 188
+        "__id__": 226
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 191
+        "__id__": 229
       },
       {
-        "__id__": 192
+        "__id__": 230
       },
       {
-        "__id__": 193
+        "__id__": 231
       }
     ],
     "_prefab": null,
@@ -5556,16 +6745,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 187
+      "__id__": 225
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 189
+        "__id__": 227
       },
       {
-        "__id__": 190
+        "__id__": 228
       }
     ],
     "_prefab": null,
@@ -5604,7 +6793,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 188
+      "__id__": 226
     },
     "_enabled": true,
     "__prefab": null,
@@ -5626,7 +6815,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 188
+      "__id__": 226
     },
     "_enabled": true,
     "__prefab": null,
@@ -5691,7 +6880,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 187
+      "__id__": 225
     },
     "_enabled": true,
     "__prefab": null,
@@ -5713,7 +6902,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 187
+      "__id__": 225
     },
     "_enabled": true,
     "__prefab": null,
@@ -5743,7 +6932,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 187
+      "__id__": 225
     },
     "_enabled": true,
     "__prefab": null,
@@ -5782,23 +6971,23 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 186
+      "__id__": 224
     },
     "_children": [
       {
-        "__id__": 195
+        "__id__": 233
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 199
+        "__id__": 237
       },
       {
-        "__id__": 200
+        "__id__": 238
       },
       {
-        "__id__": 201
+        "__id__": 239
       }
     ],
     "_prefab": null,
@@ -5837,19 +7026,19 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 194
+      "__id__": 232
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 196
+        "__id__": 234
       },
       {
-        "__id__": 197
+        "__id__": 235
       },
       {
-        "__id__": 198
+        "__id__": 236
       }
     ],
     "_prefab": null,
@@ -5888,7 +7077,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 195
+      "__id__": 233
     },
     "_enabled": true,
     "__prefab": null,
@@ -5910,7 +7099,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 195
+      "__id__": 233
     },
     "_enabled": true,
     "__prefab": null,
@@ -5949,7 +7138,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 195
+      "__id__": 233
     },
     "_enabled": true,
     "__prefab": null,
@@ -5979,7 +7168,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 194
+      "__id__": 232
     },
     "_enabled": true,
     "__prefab": null,
@@ -6001,7 +7190,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 194
+      "__id__": 232
     },
     "_enabled": true,
     "__prefab": null,
@@ -6040,7 +7229,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 194
+      "__id__": 232
     },
     "_enabled": true,
     "__prefab": null,
@@ -6070,41 +7259,41 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 186
+      "__id__": 224
     },
     "_children": [
       {
-        "__id__": 203
+        "__id__": 241
       },
       {
-        "__id__": 209
+        "__id__": 247
       },
       {
-        "__id__": 215
+        "__id__": 253
       },
       {
-        "__id__": 221
+        "__id__": 259
       },
       {
-        "__id__": 227
+        "__id__": 265
       },
       {
-        "__id__": 233
+        "__id__": 271
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 239
+        "__id__": 277
       },
       {
-        "__id__": 240
+        "__id__": 278
       },
       {
-        "__id__": 241
+        "__id__": 279
       },
       {
-        "__id__": 242
+        "__id__": 280
       }
     ],
     "_prefab": null,
@@ -6143,20 +7332,20 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 202
+      "__id__": 240
     },
     "_children": [
       {
-        "__id__": 204
+        "__id__": 242
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 207
+        "__id__": 245
       },
       {
-        "__id__": 208
+        "__id__": 246
       }
     ],
     "_prefab": null,
@@ -6195,16 +7384,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 203
+      "__id__": 241
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 205
+        "__id__": 243
       },
       {
-        "__id__": 206
+        "__id__": 244
       }
     ],
     "_prefab": null,
@@ -6243,7 +7432,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 204
+      "__id__": 242
     },
     "_enabled": true,
     "__prefab": null,
@@ -6265,7 +7454,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 204
+      "__id__": 242
     },
     "_enabled": true,
     "__prefab": null,
@@ -6304,7 +7493,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 203
+      "__id__": 241
     },
     "_enabled": true,
     "__prefab": null,
@@ -6326,7 +7515,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 203
+      "__id__": 241
     },
     "_enabled": true,
     "__prefab": null,
@@ -6365,20 +7554,20 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 202
+      "__id__": 240
     },
     "_children": [
       {
-        "__id__": 210
+        "__id__": 248
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 213
+        "__id__": 251
       },
       {
-        "__id__": 214
+        "__id__": 252
       }
     ],
     "_prefab": null,
@@ -6417,16 +7606,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 209
+      "__id__": 247
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 211
+        "__id__": 249
       },
       {
-        "__id__": 212
+        "__id__": 250
       }
     ],
     "_prefab": null,
@@ -6465,7 +7654,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 210
+      "__id__": 248
     },
     "_enabled": true,
     "__prefab": null,
@@ -6487,7 +7676,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 210
+      "__id__": 248
     },
     "_enabled": true,
     "__prefab": null,
@@ -6526,7 +7715,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 209
+      "__id__": 247
     },
     "_enabled": true,
     "__prefab": null,
@@ -6548,7 +7737,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 209
+      "__id__": 247
     },
     "_enabled": true,
     "__prefab": null,
@@ -6587,20 +7776,20 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 202
+      "__id__": 240
     },
     "_children": [
       {
-        "__id__": 216
+        "__id__": 254
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 219
+        "__id__": 257
       },
       {
-        "__id__": 220
+        "__id__": 258
       }
     ],
     "_prefab": null,
@@ -6639,16 +7828,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 215
+      "__id__": 253
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 217
+        "__id__": 255
       },
       {
-        "__id__": 218
+        "__id__": 256
       }
     ],
     "_prefab": null,
@@ -6687,7 +7876,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 216
+      "__id__": 254
     },
     "_enabled": true,
     "__prefab": null,
@@ -6709,7 +7898,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 216
+      "__id__": 254
     },
     "_enabled": true,
     "__prefab": null,
@@ -6748,7 +7937,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 215
+      "__id__": 253
     },
     "_enabled": true,
     "__prefab": null,
@@ -6770,7 +7959,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 215
+      "__id__": 253
     },
     "_enabled": true,
     "__prefab": null,
@@ -6809,20 +7998,20 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 202
+      "__id__": 240
     },
     "_children": [
       {
-        "__id__": 222
+        "__id__": 260
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 225
+        "__id__": 263
       },
       {
-        "__id__": 226
+        "__id__": 264
       }
     ],
     "_prefab": null,
@@ -6861,16 +8050,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 221
+      "__id__": 259
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 223
+        "__id__": 261
       },
       {
-        "__id__": 224
+        "__id__": 262
       }
     ],
     "_prefab": null,
@@ -6909,7 +8098,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 222
+      "__id__": 260
     },
     "_enabled": true,
     "__prefab": null,
@@ -6931,7 +8120,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 222
+      "__id__": 260
     },
     "_enabled": true,
     "__prefab": null,
@@ -6970,7 +8159,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 221
+      "__id__": 259
     },
     "_enabled": true,
     "__prefab": null,
@@ -6992,7 +8181,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 221
+      "__id__": 259
     },
     "_enabled": true,
     "__prefab": null,
@@ -7031,20 +8220,20 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 202
+      "__id__": 240
     },
     "_children": [
       {
-        "__id__": 228
+        "__id__": 266
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 231
+        "__id__": 269
       },
       {
-        "__id__": 232
+        "__id__": 270
       }
     ],
     "_prefab": null,
@@ -7083,16 +8272,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 227
+      "__id__": 265
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 229
+        "__id__": 267
       },
       {
-        "__id__": 230
+        "__id__": 268
       }
     ],
     "_prefab": null,
@@ -7131,7 +8320,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 228
+      "__id__": 266
     },
     "_enabled": true,
     "__prefab": null,
@@ -7153,7 +8342,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 228
+      "__id__": 266
     },
     "_enabled": true,
     "__prefab": null,
@@ -7192,7 +8381,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 227
+      "__id__": 265
     },
     "_enabled": true,
     "__prefab": null,
@@ -7214,7 +8403,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 227
+      "__id__": 265
     },
     "_enabled": true,
     "__prefab": null,
@@ -7253,20 +8442,20 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 202
+      "__id__": 240
     },
     "_children": [
       {
-        "__id__": 234
+        "__id__": 272
       }
     ],
     "_active": true,
     "_components": [
       {
-        "__id__": 237
+        "__id__": 275
       },
       {
-        "__id__": 238
+        "__id__": 276
       }
     ],
     "_prefab": null,
@@ -7305,16 +8494,16 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
-      "__id__": 233
+      "__id__": 271
     },
     "_children": [],
     "_active": true,
     "_components": [
       {
-        "__id__": 235
+        "__id__": 273
       },
       {
-        "__id__": 236
+        "__id__": 274
       }
     ],
     "_prefab": null,
@@ -7353,7 +8542,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 234
+      "__id__": 272
     },
     "_enabled": true,
     "__prefab": null,
@@ -7375,7 +8564,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 234
+      "__id__": 272
     },
     "_enabled": true,
     "__prefab": null,
@@ -7414,7 +8603,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 233
+      "__id__": 271
     },
     "_enabled": true,
     "__prefab": null,
@@ -7436,7 +8625,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 233
+      "__id__": 271
     },
     "_enabled": true,
     "__prefab": null,
@@ -7475,7 +8664,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 202
+      "__id__": 240
     },
     "_enabled": true,
     "__prefab": null,
@@ -7497,7 +8686,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 202
+      "__id__": 240
     },
     "_enabled": true,
     "__prefab": null,
@@ -7529,7 +8718,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 202
+      "__id__": 240
     },
     "_enabled": false,
     "__prefab": null,
@@ -7568,7 +8757,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 202
+      "__id__": 240
     },
     "_enabled": true,
     "__prefab": null,
@@ -7598,7 +8787,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 186
+      "__id__": 224
     },
     "_enabled": true,
     "__prefab": null,
@@ -7620,7 +8809,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 186
+      "__id__": 224
     },
     "_enabled": true,
     "__prefab": null,
@@ -7650,7 +8839,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 186
+      "__id__": 224
     },
     "_enabled": true,
     "__prefab": null,
@@ -7815,33 +9004,33 @@
     "team": 0,
     "defaultLane": 1,
     "leftPicker": {
-      "__id__": 174
+      "__id__": 212
     },
     "midPicker": {
-      "__id__": 166
+      "__id__": 204
     },
     "rightPicker": {
-      "__id__": 158
+      "__id__": 196
     },
     "unitIcons": [
       {
-        "__id__": 251
+        "__id__": 289
       },
       {
-        "__id__": 252
+        "__id__": 290
       },
       {
-        "__id__": 253
+        "__id__": 291
       },
       {
-        "__id__": 254
+        "__id__": 292
       },
       {
-        "__id__": 255
+        "__id__": 293
       }
     ],
     "powerBarContainer": {
-      "__id__": 194
+      "__id__": 232
     },
     "coolDownDuration": 1,
     "doubleTapWindow": 0.25,
@@ -7852,37 +9041,37 @@
   {
     "__type__": "PlayerUnitIconBinding",
     "node": {
-      "__id__": 203
+      "__id__": 241
     },
-    "unitName": "light_sword"
+    "unitName": "sword_t1"
   },
   {
     "__type__": "PlayerUnitIconBinding",
     "node": {
-      "__id__": 209
+      "__id__": 247
     },
-    "unitName": "light_spear"
+    "unitName": "spear_t1"
   },
   {
     "__type__": "PlayerUnitIconBinding",
     "node": {
-      "__id__": 215
+      "__id__": 253
     },
-    "unitName": "light_archer"
+    "unitName": "archer_t1"
   },
   {
     "__type__": "PlayerUnitIconBinding",
     "node": {
-      "__id__": 221
+      "__id__": 259
     },
-    "unitName": "light_cavalry"
+    "unitName": "cavalry_t1"
   },
   {
     "__type__": "PlayerUnitIconBinding",
     "node": {
-      "__id__": 227
+      "__id__": 265
     },
-    "unitName": "light_mace"
+    "unitName": "axeman_t1"
   },
   {
     "__type__": "cc.UITransform",
@@ -7964,7 +9153,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 260
+        "__id__": 298
       }
     ],
     "_prefab": null,
@@ -8003,7 +9192,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 259
+      "__id__": 297
     },
     "_enabled": true,
     "__prefab": null,
@@ -8015,7 +9204,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 261
+      "__id__": 299
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@fc873",
@@ -8059,14 +9248,14 @@
       "__id__": 1
     },
     "_prefab": {
-      "__id__": 263
+      "__id__": 301
     },
     "__editorExtras__": {}
   },
   {
     "__type__": "cc.PrefabInfo",
     "root": {
-      "__id__": 262
+      "__id__": 300
     },
     "asset": {
       "__uuid__": "509c71d7-875d-41a4-8772-e7bd7b6c63cf",
@@ -8074,7 +9263,7 @@
     },
     "fileId": "08Ugh4lwdKgokwCHxVQdgl",
     "instance": {
-      "__id__": 264
+      "__id__": 302
     },
     "targetOverrides": []
   },
@@ -8086,19 +9275,19 @@
     "mountedComponents": [],
     "propertyOverrides": [
       {
-        "__id__": 265
+        "__id__": 303
       },
       {
-        "__id__": 267
+        "__id__": 305
       },
       {
-        "__id__": 269
+        "__id__": 307
       },
       {
-        "__id__": 271
+        "__id__": 309
       },
       {
-        "__id__": 273
+        "__id__": 311
       }
     ],
     "removedComponents": []
@@ -8106,7 +9295,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 266
+      "__id__": 304
     },
     "propertyPath": [
       "_name"
@@ -8122,7 +9311,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 268
+      "__id__": 306
     },
     "propertyPath": [
       "_lpos"
@@ -8143,7 +9332,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 270
+      "__id__": 308
     },
     "propertyPath": [
       "_lrot"
@@ -8165,7 +9354,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 272
+      "__id__": 310
     },
     "propertyPath": [
       "_euler"
@@ -8186,7 +9375,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 274
+      "__id__": 312
     },
     "propertyPath": [
       "visualThreshold"
@@ -8206,14 +9395,14 @@
       "__id__": 1
     },
     "_prefab": {
-      "__id__": 276
+      "__id__": 314
     },
     "__editorExtras__": {}
   },
   {
     "__type__": "cc.PrefabInfo",
     "root": {
-      "__id__": 275
+      "__id__": 313
     },
     "asset": {
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
@@ -8221,7 +9410,7 @@
     },
     "fileId": "d8mT9ldedJ6KOXr6hDv0TP",
     "instance": {
-      "__id__": 277
+      "__id__": 315
     },
     "targetOverrides": []
   },
@@ -8233,19 +9422,19 @@
     "mountedComponents": [],
     "propertyOverrides": [
       {
-        "__id__": 278
+        "__id__": 316
       },
       {
-        "__id__": 280
+        "__id__": 318
       },
       {
-        "__id__": 282
+        "__id__": 320
       },
       {
-        "__id__": 284
+        "__id__": 322
       },
       {
-        "__id__": 286
+        "__id__": 324
       }
     ],
     "removedComponents": []
@@ -8253,7 +9442,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 279
+      "__id__": 317
     },
     "propertyPath": [
       "_name"
@@ -8269,7 +9458,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 281
+      "__id__": 319
     },
     "propertyPath": [
       "_lpos"
@@ -8290,7 +9479,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 283
+      "__id__": 321
     },
     "propertyPath": [
       "_lrot"
@@ -8312,7 +9501,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 285
+      "__id__": 323
     },
     "propertyPath": [
       "_euler"
@@ -8333,7 +9522,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 287
+      "__id__": 325
     },
     "propertyPath": [
       "visualThreshold"
@@ -8358,10 +9547,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 289
+        "__id__": 327
       },
       {
-        "__id__": 291
+        "__id__": 329
       }
     ],
     "_prefab": null,
@@ -8400,7 +9589,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 288
+      "__id__": 326
     },
     "_enabled": true,
     "__prefab": null,
@@ -8412,7 +9601,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 290
+      "__id__": 328
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8455,7 +9644,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 288
+      "__id__": 326
     },
     "_enabled": true,
     "__prefab": null,
@@ -8474,10 +9663,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 293
+        "__id__": 331
       },
       {
-        "__id__": 295
+        "__id__": 333
       }
     ],
     "_prefab": null,
@@ -8516,7 +9705,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 292
+      "__id__": 330
     },
     "_enabled": true,
     "__prefab": null,
@@ -8528,7 +9717,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 294
+      "__id__": 332
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8571,7 +9760,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 292
+      "__id__": 330
     },
     "_enabled": true,
     "__prefab": null,
@@ -8590,10 +9779,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 297
+        "__id__": 335
       },
       {
-        "__id__": 299
+        "__id__": 337
       }
     ],
     "_prefab": null,
@@ -8632,7 +9821,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 296
+      "__id__": 334
     },
     "_enabled": true,
     "__prefab": null,
@@ -8644,7 +9833,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 298
+      "__id__": 336
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8687,7 +9876,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 296
+      "__id__": 334
     },
     "_enabled": true,
     "__prefab": null,
@@ -8706,10 +9895,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 301
+        "__id__": 339
       },
       {
-        "__id__": 303
+        "__id__": 341
       }
     ],
     "_prefab": null,
@@ -8748,7 +9937,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 300
+      "__id__": 338
     },
     "_enabled": true,
     "__prefab": null,
@@ -8760,7 +9949,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 302
+      "__id__": 340
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8803,7 +9992,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 300
+      "__id__": 338
     },
     "_enabled": true,
     "__prefab": null,
@@ -8822,7 +10011,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 305
+        "__id__": 343
       }
     ],
     "_prefab": null,
@@ -8861,7 +10050,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 304
+      "__id__": 342
     },
     "_enabled": true,
     "__prefab": null,
@@ -8900,7 +10089,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 307
+        "__id__": 345
       }
     ],
     "_prefab": null,
@@ -8939,7 +10128,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 306
+      "__id__": 344
     },
     "_enabled": true,
     "__prefab": null,
@@ -8978,7 +10167,7 @@
     "_active": false,
     "_components": [
       {
-        "__id__": 309
+        "__id__": 347
       }
     ],
     "_prefab": null,
@@ -9017,7 +10206,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 308
+      "__id__": 346
     },
     "_enabled": false,
     "__prefab": null,
@@ -9045,7 +10234,7 @@
     "_active": false,
     "_components": [
       {
-        "__id__": 311
+        "__id__": 349
       }
     ],
     "_prefab": null,
@@ -9084,7 +10273,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 310
+      "__id__": 348
     },
     "_enabled": false,
     "__prefab": null,
@@ -9096,7 +10285,7 @@
     },
     "armyBrains": [
       {
-        "__id__": 305
+        "__id__": 343
       }
     ],
     "allowCP": true,
@@ -9130,43 +10319,43 @@
     "instance": null,
     "targetOverrides": [
       {
-        "__id__": 313
+        "__id__": 351
       },
       {
-        "__id__": 316
+        "__id__": 354
       }
     ],
     "nestedPrefabInstanceRoots": [
       {
-        "__id__": 262
+        "__id__": 300
       },
       {
-        "__id__": 275
+        "__id__": 313
       },
       {
-        "__id__": 91
+        "__id__": 97
       },
       {
-        "__id__": 55
+        "__id__": 61
       }
     ]
   },
   {
     "__type__": "cc.TargetOverrideInfo",
     "source": {
-      "__id__": 262
+      "__id__": 300
     },
     "sourceInfo": {
-      "__id__": 314
+      "__id__": 352
     },
     "propertyPath": [
       "visualRoot"
     ],
     "target": {
-      "__id__": 262
+      "__id__": 300
     },
     "targetInfo": {
-      "__id__": 315
+      "__id__": 353
     }
   },
   {
@@ -9185,19 +10374,19 @@
   {
     "__type__": "cc.TargetOverrideInfo",
     "source": {
-      "__id__": 275
+      "__id__": 313
     },
     "sourceInfo": {
-      "__id__": 317
+      "__id__": 355
     },
     "propertyPath": [
       "visualRoot"
     ],
     "target": {
-      "__id__": 275
+      "__id__": 313
     },
     "targetInfo": {
-      "__id__": 318
+      "__id__": 356
     }
   },
   {
@@ -9216,28 +10405,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 320
+      "__id__": 358
     },
     "shadows": {
-      "__id__": 321
+      "__id__": 359
     },
     "_skybox": {
-      "__id__": 322
+      "__id__": 360
     },
     "fog": {
-      "__id__": 323
+      "__id__": 361
     },
     "octree": {
-      "__id__": 324
+      "__id__": 362
     },
     "skin": {
-      "__id__": 325
+      "__id__": 363
     },
     "lightProbeInfo": {
-      "__id__": 326
+      "__id__": 364
     },
     "postSettings": {
-      "__id__": 327
+      "__id__": 365
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false
