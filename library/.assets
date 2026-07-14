@@ -15,6 +15,7 @@
             "fonts\\GAMERIA",
             "MiniMap\\images",
             "scripts\\rvo",
+            "MiniMap\\images\\NewIcons",
             "shaders\\HealthBar.effect",
             "shaders\\UnlitBillboard.effect",
             "shaders\\VAT-Animation.effect",
@@ -130,7 +131,7 @@
             "MiniMap\\images\\spear-ico.png",
             "MiniMap\\images\\sword-ico-small.png",
             "MiniMap\\images\\sword-ico.png",
-            "MiniMap\\images\\NewIcons",
+            "MiniMap\\images\\NewIcons\\Icons-spritesheet.png",
             "MiniMap\\images\\NewIcons\\_0000_Axe-ico.png",
             "MiniMap\\images\\NewIcons\\_0001_Javelin-ico.png",
             "MiniMap\\images\\NewIcons\\_0002_Sword-ico.png",
@@ -138,8 +139,7 @@
             "MiniMap\\images\\NewIcons\\_0004_Horse-ico.png",
             "MiniMap\\images\\NewIcons\\_0005_Monk-ico.png",
             "MiniMap\\images\\NewIcons\\_0006_Archer-ico.png",
-            "MiniMap\\images\\NewIcons\\_0007_Mace-ico.png",
-            "MiniMap\\images\\NewIcons\\Icons-spritesheet.png"
+            "MiniMap\\images\\NewIcons\\_0007_Mace-ico.png"
         ]
     }
 }

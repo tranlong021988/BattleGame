@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-14 by the office Codex.
+Last updated: 2026-07-15 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -30,6 +30,75 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - `Unit` / `UnitBehavior` still own per-unit movement/combat state.
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
+
+## Latest 2026-07-15 Home Handoff
+
+Read this section before touching unit balance, `UNITSTATS.md`, or `BattleUnitDatabase`.
+
+### Balance Work Done Today
+
+- User provided a new stat sheet: `C:/Users/tranl/Downloads/gemini-code-1784047702194.md`.
+- That sheet defines unit count, health, attack, defense, range, and attack interval for T1-T3.
+- It does **not** define speed or combat point cost.
+- The project currently only references the seven active T1 entries in `assets/Test.scene`; T2/T3 values are recorded in `UNITSTATS.md` only for future upgrade/database work.
+
+Files intentionally updated:
+
+- `UNITSTATS.md`
+  - remains the human-readable source of truth;
+  - active T1 table now uses balance proposal v2;
+  - imported T1-T3 reference table is retained below the active T1 table.
+- `UNITSTATS_BALANCE_PROPOSAL.md`
+  - new balance proposal/case-study note file;
+  - explains goals, active T1 proposal values, and what to watch during playtests.
+- `assets/Test.scene`
+  - both Team A and Team B active `BattleUnitDatabase` entries were synced to active T1 balance v2;
+  - only active T1 entries were changed;
+  - no prefab, icon ID, family, tier, unlock, lane, AI, shader, or counter-rule data was intentionally changed.
+- `AI-CONTEX.md`
+  - updated to match the active v2 balance state.
+
+### Why Balance v2 Exists
+
+- First pass after importing the Gemini sheet and local v1 tuning still produced a playtest result where:
+  - melee units evaporated too quickly;
+  - ranged units dominated the battlefield;
+  - late game repeatedly ended with mostly ranged survivors;
+  - melee felt like disposable frontline rather than meaningful combat bodies.
+- Balance v2 therefore intentionally:
+  - increases melee durability, especially `Sword`, `Spear`, `Axeman`, and `Cavalry`;
+  - lowers ranged snowball potential by reducing `Archer` and `Skirmisher` count/DPS and making `Monk` slower and more fragile;
+  - keeps `Cavalry` as the main ranged punisher by improving approach survivability.
+
+### Current Active T1 Balance v2
+
+```text
+axeman_t1      count 10, cost 32, hp 145, atk 24, def 4, speed 3.0, range 1.0, interval 1.10-1.40
+skirmisher_t1  count  5, cost 22, hp  85, atk 14, def 7, speed 3.2, range 5.0, interval 1.55-1.95
+cavalry_t1     count 10, cost 45, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.05-1.35
+sword_t1       count 10, cost 22, hp 140, atk 20, def 7, speed 3.5, range 1.0, interval 0.85-1.15
+spear_t1       count 10, cost 15, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 0.90-1.20
+monk_t1        count  4, cost 60, hp  90, atk 34, def 0, speed 3.0, range 5.5, interval 2.10-2.60
+archer_t1      count  5, cost 24, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
+```
+
+### Current Balance Watchlist
+
+- If ranged still dominates late game, reduce Archer/Skirmisher count by 1 before touching melee damage.
+- If melee becomes too dominant, lower Sword/Axeman HP by `10` before buffing ranged damage.
+- If Cavalry crushes all ranged too reliably, lower HP to `160` before lowering speed or count.
+- If Archer feels useless, raise attack to `16` before shortening interval.
+- If Monk becomes irrelevant, lower interval to `1.95-2.35` before increasing attack.
+- Avoid changing counter rules while evaluating this stats pass; the goal is to test stats first, not reshape the counter graph.
+
+### Validation Done
+
+- Parsed `assets/Test.scene` through Cocos `__id__` references and verified:
+  - Team A and Team B each have exactly 7 active T1 entries;
+  - active entry order remains `axeman`, `skirmisher`, `cavalry`, `sword`, `spear`, `monk`, `archer`;
+  - A/B stats match exactly;
+  - active scene stats match `UNITSTATS.md` v2;
+  - `CounterSettings.rules` still has 11 rules with no missing/extra rules.
 
 ## Latest 2026-07-14 Office Handoff
 
@@ -84,18 +153,19 @@ The banner shader now samples sheet IDs left-to-right, top-to-bottom. The older 
 The active table is also in `UNITSTATS.md`.
 
 ```text
-axeman_t1      count 10, cost 30, hp 140, atk 35, def 2, speed 3.0, range 1.0, interval 0.5-1.0
-skirmisher_t1  count  7, cost 18, hp  95, atk 18, def 8, speed 3.2, range 5.0, interval 1.0-1.5
-cavalry_t1     count 10, cost 40, hp 160, atk 32, def 3, speed 6.0, range 1.0, interval 0.5-1.0
-sword_t1       count 10, cost 15, hp 130, atk 22, def 6, speed 3.5, range 1.0, interval 0.5-1.0
-spear_t1       count 10, cost 10, hp 100, atk 20, def 1, speed 3.0, range 2.0, interval 0.5-1.0
-monk_t1        count  4, cost 60, hp 110, atk 55, def 0, speed 3.0, range 5.5, interval 1.0-1.5
-archer_t1      count  6, cost 20, hp  85, atk 25, def 0, speed 3.0, range 6.0, interval 1.0-1.5
+axeman_t1      count 10, cost 32, hp 145, atk 24, def 4, speed 3.0, range 1.0, interval 1.10-1.40
+skirmisher_t1  count  5, cost 22, hp  85, atk 14, def 7, speed 3.2, range 5.0, interval 1.55-1.95
+cavalry_t1     count 10, cost 45, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.05-1.35
+sword_t1       count 10, cost 22, hp 140, atk 20, def 7, speed 3.5, range 1.0, interval 0.85-1.15
+spear_t1       count 10, cost 15, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 0.90-1.20
+monk_t1        count  4, cost 60, hp  90, atk 34, def 0, speed 3.0, range 5.5, interval 2.10-2.60
+archer_t1      count  5, cost 24, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
 ```
 
-- Ranged unit counts were reduced because ranged units can focus fire from long range before melee connects.
-- Ranged attack intervals were also slowed to `1.0-1.5` to reduce ranged dominance.
-- Melee attack intervals remain `0.5-1.0`.
+- Current active stats are balance proposal v2 from `UNITSTATS_BALANCE_PROPOSAL.md`, based on the imported `gemini-code-1784047702194.md` sheet plus local economy/combat tuning.
+- v2 was made after user test feedback: melee units evaporated too quickly and late game was consistently dominated by ranged survivors. The v2 direction is more melee durability plus lower ranged count/DPS.
+- The imported sheet did not define cost or speed. Speed remains preserved from the scene; cost was adjusted in balance proposal v1/v2.
+- Scene currently references only tier 1 entries. `UNITSTATS.md` records the latest T1-T3 values for future upgrade/database work.
 - Effective attack range in code is larger than Inspector `attackRange` because `Unit.getEffectiveAttackRangeAgainst()` adds attacker and defender radii:
 
 ```text
