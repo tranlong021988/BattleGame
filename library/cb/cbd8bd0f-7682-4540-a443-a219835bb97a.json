@@ -28,12 +28,11 @@
   "_props": [
     {
       "mainTexture": {
-        "__uuid__": "332671e6-6208-415d-a385-c0160f199fe8@6c48a",
+        "__uuid__": "1ea71a41-6974-45d9-b5de-b0b46c40bb6f@6c48a",
         "__expectedType__": "cc.Texture2D"
       },
       "sheetColumns": 3,
       "sheetRows": 3,
-      "iconId": 3,
       "backgroundColor": {
         "__type__": "cc.Color",
         "r": 0,

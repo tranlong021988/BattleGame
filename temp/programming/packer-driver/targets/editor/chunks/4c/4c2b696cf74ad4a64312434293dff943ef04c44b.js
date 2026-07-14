@@ -1608,11 +1608,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         getWaveBannerColorParams(team) {
           const color = this.getWaveBannerBackgroundColor(team);
           const params = team === 0 ? this.waveBannerTeamAColorParams : this.waveBannerTeamBColorParams;
-          params[0] = color.r / 255;
-          params[1] = color.g / 255;
-          params[2] = color.b / 255;
+          params[0] = this.srgbChannelToLinear(color.r / 255);
+          params[1] = this.srgbChannelToLinear(color.g / 255);
+          params[2] = this.srgbChannelToLinear(color.b / 255);
           params[3] = color.a / 255;
           return params;
+        }
+
+        srgbChannelToLinear(value) {
+          const v = Math.min(1, Math.max(0, value));
+          return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
         }
 
         getWaveBannerRenderers(node) {
@@ -1855,8 +1860,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (laneId < 0) return 0;
           const width = this.getLaneWidth();
           if (width <= 0) return 0;
-          const minX = this.getLaneMinX(laneId);
-          const maxX = this.getLaneMaxX(laneId);
+          const centerX = this.getLaneCenterX(laneId);
+          const coreHalfWidth = width * 0.25;
+          const minX = centerX - coreHalfWidth;
+          const maxX = centerX + coreHalfWidth;
           if (x < minX) return 1;
           if (x > maxX) return -1;
           return 0;

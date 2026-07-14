@@ -163,12 +163,14 @@ CCProgram billboard-fs %{
 
     return vec2(
       (column + uv.x) / columns,
-      (rows - 1.0 - row + uv.y) / rows
+      (row + uv.y) / rows
     );
   }
 
   vec4 frag () {
-    vec4 foreground = texture(mainTexture, sampleSheetUv(v_uv)) * v_tint;
+    vec4 foreground = texture(mainTexture, sampleSheetUv(v_uv));
+    foreground.rgb = SRGBToLinear(foreground.rgb);
+    foreground *= v_tint;
     float outAlpha =
       foreground.a +
       v_background.a * (1.0 - foreground.a);

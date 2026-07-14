@@ -153,5 +153,30 @@
       "mipfilter": "none",
       "wrapMode": "Clamp"
     }
+  },
+  "1ea71a41-6974-45d9-b5de-b0b46c40bb6f@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
+  },
+  "05ac3bf4-65d1-4d1c-b004-3b7664919eff@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
+  },
+  "d5e76994-5438-4f19-bd8c-822749f56bf7@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
+  },
+  "e0e0395a-e8d3-42a3-a0e7-c8770965a6e3@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
+  },
+  "315c5dac-a664-4762-a633-8b3665aca17b@6c48a": {
+    "texture": {
+      "mipfilter": "none"
+    }
   }
 }

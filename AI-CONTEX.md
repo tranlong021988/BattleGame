@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-14 by the home Codex.
+Last updated: 2026-07-14 by the office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -31,165 +31,136 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
 
-## Latest 2026-07-13 Office Handoff
+## Latest 2026-07-14 Office Handoff
 
-Read this section before touching unit database, counter rules, damage, player spawn UI, or SmartArmyBrain unit choice.
+Read this section before touching unit balance, `BattleUnitDatabase`, `CounterSettings`, banner visuals, or lane-return behavior.
 
-### 2026-07-14 Home Note: Current 5-Family Test Mode
+### Current Balance Source Of Truth
 
-- The project has been migrated structurally to `7 families x 3 tiers`, but the user is currently testing gameplay as the old 5-family troop set with `Axeman` replacing the old `Maceman`.
-- Keep only these tier-1 entries unlocked in `assets/Test.scene` unless the user explicitly starts testing the full 7-family design:
-  - `spear_t1`
-  - `sword_t1`
-  - `archer_t1`
-  - `cavalry_t1`
-  - `axeman_t1`
-- `Skirmisher`, `Monk`, and all tier 2/3 entries remain data-ready but locked for now.
-- For the current scene/runtime test, `CounterSettings.rules` is intentionally serialized as a closed 5-family loop using multiplier `3`:
+- `UNITSTATS.md` is now the human-readable balance source-of-truth.
+- When changing health, damage, defense, speed, range, unit count, cost, icon IDs, or attack interval:
+  1. Update `UNITSTATS.md`.
+  2. Sync the same values into both Team A and Team B `BattleUnitDatabase` entries in `assets/Test.scene`.
+  3. Re-validate the scene arrays and counter rules.
+- The current test intentionally uses **tier 1 only** for all seven families. This supersedes the older five-family test note.
+
+### Current Unit Database Test Setup
+
+- `assets/Test.scene` `BattleUnitDatabase.teamAUnits` and `teamBUnits` now contain only these 7 active tier-1 entries, in this exact Inspector order:
 
 ```text
-Spear > Cavalry
-Cavalry > Archer
-Archer > Axeman
-Axeman > Sword
-Sword > Spear
+axeman_t1
+skirmisher_t1
+cavalry_t1
+sword_t1
+spear_t1
+monk_t1
+archer_t1
 ```
 
-- Do not "repair" `assets/Test.scene` to the full 7-family counter matrix yet. The 7-family matrix exists as the future target/design, not the current gameplay test target.
-- On 2026-07-14, only stale `note` strings in `assets/Test.scene` were corrected:
-  - `Archer hard-counters Axeman`
-  - `Axeman hard-counters Sword`
-- No counter `attackerFamily`, `defenderFamily`, or `damageMultiplier` values were changed in that note cleanup.
+- All 7 active tier-1 entries are unlocked for both teams.
+- Tier 2 and tier 3 entries may still exist as serialized `UnitPrefabEntry` objects in `assets/Test.scene`, but they are not referenced by the active team arrays during this test. Do not delete raw scene objects just to "remove" tiers, because Cocos scene `__id__` references are index-based.
+- Existing prefabs were preserved. Team A still uses the current blue/team-A prefab reference; Team B uses the current red/team-B prefab reference.
+- PlayerArmyController was not part of today's balance test. Scene UI bindings may still include only the older five player icons. Do not treat that as a SmartArmyBrain/database bug.
 
-### Unit Families And Tiers
+### Current Icon IDs
 
-- The old `UnitType` enum was intentionally removed to avoid future ambiguity between old light/heavy troop types and the new design.
-- Current type model is:
-  - `UnitFamily`: `Spear`, `Sword`, `Archer`, `Skirmisher`, `Cavalry`, `Axeman`, `Monk`;
-  - `tier`: integer `1..3`.
-- `UnitProps`, `UnitPrefabEntry`, `HeroEntry`, and `BattleWave` now store `family` + `tier`.
-- `unitTypeName` still exists only as a string/name key for spawned units and UI bindings. Do not mistake it for the removed enum.
-- Counter logic is family-based only. Tier changes stats, not the counter table.
+Wave banner icon IDs are aligned with the active unit order:
+
+```text
+axeman_t1      -> 0
+skirmisher_t1  -> 1
+cavalry_t1     -> 2
+sword_t1       -> 3
+spear_t1       -> 4
+monk_t1        -> 5
+archer_t1      -> 6
+```
+
+The banner shader now samples sheet IDs left-to-right, top-to-bottom. The older bottom-up atlas assumption is outdated.
+
+### Current Tier-1 Stats
+
+The active table is also in `UNITSTATS.md`.
+
+```text
+axeman_t1      count 10, cost 30, hp 140, atk 35, def 2, speed 3.0, range 1.0, interval 0.5-1.0
+skirmisher_t1  count  7, cost 18, hp  95, atk 18, def 8, speed 3.2, range 5.0, interval 1.0-1.5
+cavalry_t1     count 10, cost 40, hp 160, atk 32, def 3, speed 6.0, range 1.0, interval 0.5-1.0
+sword_t1       count 10, cost 15, hp 130, atk 22, def 6, speed 3.5, range 1.0, interval 0.5-1.0
+spear_t1       count 10, cost 10, hp 100, atk 20, def 1, speed 3.0, range 2.0, interval 0.5-1.0
+monk_t1        count  4, cost 60, hp 110, atk 55, def 0, speed 3.0, range 5.5, interval 1.0-1.5
+archer_t1      count  6, cost 20, hp  85, atk 25, def 0, speed 3.0, range 6.0, interval 1.0-1.5
+```
+
+- Ranged unit counts were reduced because ranged units can focus fire from long range before melee connects.
+- Ranged attack intervals were also slowed to `1.0-1.5` to reduce ranged dominance.
+- Melee attack intervals remain `0.5-1.0`.
+- Effective attack range in code is larger than Inspector `attackRange` because `Unit.getEffectiveAttackRangeAgainst()` adds attacker and defender radii:
+
+```text
+effectiveRange = attackRange + attacker.radius + defender.radius
+```
 
 ### Damage And Counter Rules
 
-- `CounterSettings` now uses `attackerFamily`, `defenderFamily`, and `damageMultiplier`.
-- `receivedDamageMultiplier` was removed.
-- Unit-vs-unit damage is:
+- The old `UnitType` enum is gone. Active typing is `UnitFamily + tier`.
+- `unitTypeName` is only a string key/name for database/UI/spawn lookup; do not confuse it with the removed enum.
+- Unit-vs-unit damage remains:
 
 ```text
 max(1, attacker.damage - defender.defense) * familyCounterMultiplier
 ```
 
-- Hero-vs-anything remains special and does not use family counter rules; it uses `max(1, attack - defense)`.
-- `assets/scripts/CounterSettings.ts` default family counter rules use multiplier `3` for the future full 7-family setup:
-  - Spear > Cavalry
-  - Cavalry > Archer
-  - Archer > Sword
-  - Archer > Spear
-  - Sword > Spear
-  - Skirmisher > Archer
-  - Skirmisher > Monk
-  - Axeman > Skirmisher
-  - Axeman > Sword
-  - Monk > Axeman
-  - Monk > Sword
-- Important: `assets/Test.scene` currently serializes its own 5-rule closed-loop `CounterSettings.rules`, so the scene does not use the full default list above at runtime while those serialized rules remain present.
-
-### Current Scene Database
-
-- `assets/Test.scene` currently has 21 entries per team in `BattleUnitDatabase`: 7 families x 3 tiers.
-- The user is currently testing only the old/available tier-1 troop set. Current accepted unlock state in `assets/Test.scene`:
-  - unlocked: `spear_t1`, `sword_t1`, `archer_t1`, `cavalry_t1`, `axeman_t1`;
-  - locked: every tier 2/3 entry and the new families `skirmisher_*`, `monk_*`;
-  - this applies to both team A and team B.
-- Do not re-enable all 21 entries unless the user explicitly asks. The user wants to fill/test the current troop set first.
-- Both teams still use the existing temporary team prefab references:
-  - team A uses the old blue/team-A prefab reference;
-  - team B uses the old red/team-B prefab reference.
-- Banner icon IDs are no longer `family * 3 + tier` placeholders for the current five families. Current accepted `waveBannerIconId` mapping, used for all three tiers and both teams:
-  - Sword / `sword_*`: `0`
-  - Axeman / `axeman_*`: `4`
-  - Spear / `spear_*`: `5`
-  - Archer / `archer_*`: `6`
-  - Cavalry / `cavalry_*`: `7`
-- `Skirmisher` and `Monk` still do not have final user-provided banner icon IDs. They are locked right now; do not guess final icon IDs for them unless the user gives a mapping.
-- Player UI icon bindings were migrated from old names to tier-1 names:
-  - `sword_t1`
-  - `spear_t1`
-  - `archer_t1`
-  - `cavalry_t1`
-  - `axeman_t1`
-- Archer, Skirmisher, and Monk entries currently have `canBePassedThroughByForwardAlly = true`; melee entries are false.
-- Important data repair from the office session: after editing banner icon IDs, the scene was found with many `UnitPrefabEntry.family = 0` and `tier = 1` values serialized incorrectly. This was repaired by deriving `family` and `tier` from entry names such as `sword_t2`. If future edits appear to make every unit behave like Spear tier 1, check serialized `family/tier` in `assets/Test.scene` first.
-
-Current expected family/tier/name mapping:
+- Hero damage remains special and does not use family counter rules.
+- `assets/Test.scene` now serializes the full current GD counter rules with multiplier `3.0`:
 
 ```text
-spear_t1/t2/t3       -> family Spear(0), tier 1/2/3
-sword_t1/t2/t3       -> family Sword(1), tier 1/2/3
-archer_t1/t2/t3      -> family Archer(2), tier 1/2/3
-skirmisher_t1/t2/t3  -> family Skirmisher(3), tier 1/2/3
-cavalry_t1/t2/t3     -> family Cavalry(4), tier 1/2/3
-axeman_t1/t2/t3      -> family Axeman(5), tier 1/2/3
-monk_t1/t2/t3        -> family Monk(6), tier 1/2/3
+Spear > Cavalry
+Sword > Spear
+Archer > Sword
+Archer > Spear
+Skirmisher > Archer
+Skirmisher > Monk
+Cavalry > Archer
+Axeman > Skirmisher
+Axeman > Sword
+Monk > Axeman
+Monk > Sword
 ```
+
+- This replaces the older temporary five-rule loop. Do not restore the five-rule loop unless the user explicitly asks.
+
+### Banner Shader And Color Space
+
+- `assets/shaders/UnlitBillboard.effect` was adjusted today:
+  - sheet row order is now top-to-bottom (`iconId` reads left-to-right, top-to-bottom);
+  - sampled `mainTexture.rgb` is converted with `SRGBToLinear()` before tint/composite, matching Cocos `builtin-unlit` color-space handling.
+- `GameManager.getWaveBannerColorParams()` now converts team background color channels from sRGB to linear before sending `a_billboard_bg_color` through `setInstancedAttribute`.
+- These changes were made because banner colors looked too bright compared with the source icon sheet.
+
+### Freehunt To Back-To-Lane Behavior
+
+- `Unit.tryResumeForward()` still sends surviving units through the lightweight `backToLane -> forward` phase; there is still no slot-based regroup.
+- Before today's fix, `GameManager.getDirectionToLaneArea()` considered the entire lane width valid. Units could touch the lane edge and immediately forward, making waves appear to forward from a lane border.
+- It now uses the lane center core: `coreHalfWidth = laneWidth * 0.25`. In practice, units must enter the middle 50% of the lane before forward resumes.
+- This intentionally keeps the behavior lighter than full regroup, but avoids the "forward from lane edge" look.
 
 ### SmartArmyBrain Implications
 
-- SmartArmyBrain still chooses by affordability, unlock, family counter score, lane/path logic, coverage, and decision accuracy.
-- If no affordable unlocked real counter exists for a target, the accepted fallback is random affordable unlocked entry, regardless of `decisionAccuracy`.
-- Because counter score ignores tier, multiple tiers of the same family can tie. The AI chooses among affordable tied counter entries randomly.
-- Keep this behavior unless the user explicitly asks for tier-aware preference such as "prefer highest affordable tier".
+- SmartArmyBrain now has all 7 tier-1 families available and unlocked for AI tests.
+- Counter scoring is still family-based. Tier is not a counter dimension.
+- If no affordable unlocked real counter exists, accepted fallback remains random affordable unlocked entry.
+- Because only tier 1 is active in the scene arrays, there should be no tier tie behavior during the current test.
 
-### Validation
+### Validation Done Today
 
-- Static search found no remaining `UnitType`, `unitTypeToName`, `attackerType`, `defenderType`, or `receivedDamageMultiplier` in active source/scene/prefabs.
-- Cocos TypeScript command from Workspace Notes ran clean on the office machine after this refactor.
-
-### Exact Office Changes Made Today
-
-Files intentionally touched for the 7-family/3-tier refactor and follow-up data edits:
-
-- `assets/scripts/BattleTypes.ts`
-  - removed old `UnitType`;
-  - added `UnitFamily` and `unitFamilyToName()`.
-- `assets/scripts/UnitProps.ts`
-  - replaced serialized enum with `family` + `tier`;
-  - damage stats remain `maxHealth`, `damage`, `defense`.
-- `assets/scripts/BattleUnitDatabase.ts`
-  - `UnitPrefabEntry` now stores `family`, `tier`, `unlocked`, formation settings, pass-through flag, attack range/interval, health/damage/defense/cost;
-  - `HeroEntry` now stores `family` + `tier`;
-  - unlock remains enforced through existing database/GameManager paths.
-- `assets/scripts/CounterSettings.ts`
-  - rules are now family-vs-family only;
-  - `receivedDamageMultiplier` was removed;
-  - `calculateDamage()` uses `max(1, attack - defense) * damageMultiplier`.
-- `assets/scripts/BattleWave.ts`
-  - wave stores `family` and `tier` copied from the spawned entry.
-- `assets/scripts/UnitSpawner.ts`
-  - spawned units receive `family` and `tier` into `UnitProps`.
-- `assets/scripts/GameManager.ts`
-  - wave creation, unit spawning, hero registration, and counter-kill detection now use `family/tier`;
-  - `unitTypeName` remains only a string key/name for entries and kill UI.
-- `assets/scripts/SmartArmyBrain.ts`
-  - counter score and debug labels now use `UnitFamily`;
-  - tier is currently not a counter dimension.
-- `assets/scripts/TrueMiniMapPanel.ts`
-  - icon lookup was migrated from `unitType` to `family`; minimap is still not an active gameplay target.
-- `assets/scripts/PlayerArmyController.ts`
-  - tooltip updated to the new entry-name convention (`sword_t1`);
-  - scene icon bindings were migrated to the current five tier-1 entry names.
-- `assets/prefabs/BlueUnit.prefab` and `assets/prefabs/RedUnit.prefab`
-  - serialized `UnitProps` migrated from `unitType` to `family/tier`.
-- `assets/Test.scene`
-  - now contains 21 entries per team;
-  - only the five current tier-1 entries are unlocked;
-  - `waveBannerIconId` has been set for the five current families as described above.
-
-Known editor-generated noise:
-
-- `temp/asset-db/log/7-13-2026 11-31.log` appeared as modified and was not intentionally edited by this refactor.
+- Verified both team arrays contain exactly 7 active tier-1 entries in the expected order.
+- Verified active entry stats, icon IDs, unlock state, and attack intervals match `UNITSTATS.md`.
+- Verified `CounterSettings.rules` count is 11 and matches the GD rule list above.
+- Ran:
+  - `git diff --check -- assets/Test.scene UNITSTATS.md assets/scripts/GameManager.ts assets/shaders/UnlitBillboard.effect`
+  - Cocos TypeScript command from Workspace Notes.
 
 ## Latest 2026-07-13 Home Handoff
 
@@ -268,7 +239,7 @@ Rejected/reverted today:
 
 - Do not resurrect the attempted render/shader flag optimization from today. It caused banner/healthbar sort or disappearance issues.
 - In particular, do not casually change healthbar/banner depth state, render priority, material state, shadow receiving flags, or shader precision again unless the user explicitly asks and there is a focused verification plan.
-- Current `HealthBar.effect` and `UnlitBillboard.effect` should be treated as restored to the accepted high-precision/functionally stable path.
+- Current `HealthBar.effect` should remain on the accepted functionally stable path. `UnlitBillboard.effect` is also on the stable path, but it now includes the accepted 2026-07-14 atlas row-order and sRGB-to-linear fixes documented above.
 
 ## Accepted 2026-07-08 Home Changes
 
@@ -289,7 +260,7 @@ These changes were made after receiving the 2026-07-07 office handoff:
   - `getVisualEulerY()` reads the cache after it is initialized;
   - `setVisualYaw()` updates the cache when applying rotation.
 - The yaw cache reduced `getVisualEulerY()` profile cost in the slowdown trace, but did not significantly improve total frame time because total `Unit` cost is small compared with full frame cost.
-- The old five-entry light troop database from this period has been superseded by the 21-entry `UnitFamily + tier` database described in the 2026-07-13 office handoff. Trust the current scene/database Inspector if the user retunes unit counts later.
+- The old five-entry light troop database from this period has been superseded. Trust the latest 2026-07-14 section and `UNITSTATS.md`: the active test database arrays now contain 7 tier-1 entries, while tier 2/3 objects may remain serialized but inactive.
 
 Rejected/reverted on 2026-07-08:
 

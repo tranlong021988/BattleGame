@@ -2323,12 +2323,29 @@ export class GameManager extends Component {
                 ? this.waveBannerTeamAColorParams
                 : this.waveBannerTeamBColorParams;
 
-        params[0] = color.r / 255;
-        params[1] = color.g / 255;
-        params[2] = color.b / 255;
+        params[0] =
+            this.srgbChannelToLinear(color.r / 255);
+        params[1] =
+            this.srgbChannelToLinear(color.g / 255);
+        params[2] =
+            this.srgbChannelToLinear(color.b / 255);
         params[3] = color.a / 255;
 
         return params;
+    }
+
+    private srgbChannelToLinear(value: number) {
+        const v = Math.min(
+            1,
+            Math.max(0, value)
+        );
+
+        return v <= 0.04045
+            ? v / 12.92
+            : Math.pow(
+                (v + 0.055) / 1.055,
+                2.4
+            );
     }
 
     private getWaveBannerRenderers(node: Node) {
@@ -2788,10 +2805,14 @@ export class GameManager extends Component {
 
         if (width <= 0) return 0;
 
+        const centerX =
+            this.getLaneCenterX(laneId);
+        const coreHalfWidth =
+            width * 0.25;
         const minX =
-            this.getLaneMinX(laneId);
+            centerX - coreHalfWidth;
         const maxX =
-            this.getLaneMaxX(laneId);
+            centerX + coreHalfWidth;
 
         if (x < minX) return 1;
         if (x > maxX) return -1;

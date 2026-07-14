@@ -2037,7 +2037,156 @@
     "value": {
       "depends": [
         "06f2f072-60e0-4a08-8020-76c24d5c553a",
-        "332671e6-6208-415d-a385-c0160f199fe8@6c48a"
+        "1ea71a41-6974-45d9-b5de-b0b46c40bb6f@6c48a"
+      ]
+    },
+    "versionCode": 1
+  },
+  "a9a37ce0-60c4-4fa4-bc68-6effb063f140": {
+    "url": "db://assets/MiniMap/images/NewIcons",
+    "value": {},
+    "versionCode": 1
+  },
+  "88f362ef-dff2-4cb8-af38-6e9f5d21ab47": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0000_Axe-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "320912ba-6f55-4339-900b-b6776bdd6be9": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0001_Javelin-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "6724a95b-4524-4565-abae-62678bd89b5c": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0002_Sword-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "315c5dac-a664-4762-a633-8b3665aca17b": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0003_Spear-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "4f1ea256-f9a6-476d-9091-22bfdcb2727d": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0004_Horse-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "315c5dac-a664-4762-a633-8b3665aca17b@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0003_Spear-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "315c5dac-a664-4762-a633-8b3665aca17b"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e0e0395a-e8d3-42a3-a0e7-c8770965a6e3": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0005_Monk-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "320912ba-6f55-4339-900b-b6776bdd6be9@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0001_Javelin-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "320912ba-6f55-4339-900b-b6776bdd6be9"
+      ]
+    },
+    "versionCode": 1
+  },
+  "88f362ef-dff2-4cb8-af38-6e9f5d21ab47@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0000_Axe-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "88f362ef-dff2-4cb8-af38-6e9f5d21ab47"
+      ]
+    },
+    "versionCode": 1
+  },
+  "4f1ea256-f9a6-476d-9091-22bfdcb2727d@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0004_Horse-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "4f1ea256-f9a6-476d-9091-22bfdcb2727d"
+      ]
+    },
+    "versionCode": 1
+  },
+  "d5e76994-5438-4f19-bd8c-822749f56bf7": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0006_Archer-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "05ac3bf4-65d1-4d1c-b004-3b7664919eff": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0007_Mace-ico.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "6724a95b-4524-4565-abae-62678bd89b5c@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0002_Sword-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "6724a95b-4524-4565-abae-62678bd89b5c"
+      ]
+    },
+    "versionCode": 1
+  },
+  "05ac3bf4-65d1-4d1c-b004-3b7664919eff@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0007_Mace-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "05ac3bf4-65d1-4d1c-b004-3b7664919eff"
+      ]
+    },
+    "versionCode": 1
+  },
+  "d5e76994-5438-4f19-bd8c-822749f56bf7@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0006_Archer-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "d5e76994-5438-4f19-bd8c-822749f56bf7"
+      ]
+    },
+    "versionCode": 1
+  },
+  "e0e0395a-e8d3-42a3-a0e7-c8770965a6e3@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/_0005_Monk-ico.png@6c48a",
+    "value": {
+      "depends": [
+        "e0e0395a-e8d3-42a3-a0e7-c8770965a6e3"
+      ]
+    },
+    "versionCode": 1
+  },
+  "1ea71a41-6974-45d9-b5de-b0b46c40bb6f": {
+    "url": "db://assets/MiniMap/images/NewIcons/Icons-spritesheet.png",
+    "value": {
+      "depends": []
+    },
+    "versionCode": 1
+  },
+  "1ea71a41-6974-45d9-b5de-b0b46c40bb6f@6c48a": {
+    "url": "db://assets/MiniMap/images/NewIcons/Icons-spritesheet.png@6c48a",
+    "value": {
+      "depends": [
+        "1ea71a41-6974-45d9-b5de-b0b46c40bb6f"
       ]
     },
     "versionCode": 1
