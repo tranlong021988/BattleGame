@@ -124,6 +124,13 @@ export class SmartArmyBrain extends Component {
     @property({
         min: 0,
         max: 1,
+        tooltip: 'When an empty-lane aggressive raid is selected, chance to choose the fastest affordable unit. If the roll fails, the raid uses a random affordable unit instead.'
+    })
+    aggressiveFastestEntryChance = 1.0;
+
+    @property({
+        min: 0,
+        max: 1,
         tooltip: 'When countering a target in a clean lane with no ally blockers, chance to use normal forward as a flank strike instead of aggressive forward hero raid.'
     })
     flankStrikeRatio = 0.5;
@@ -286,7 +293,10 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
-        if (!this.spawnResponse(targetIntel!)) {
+        if (!this.spawnResponse(
+            targetIntel!,
+            'fast-react-response'
+        )) {
             return;
         }
 
@@ -348,7 +358,10 @@ export class SmartArmyBrain extends Component {
             this.findBestResponseTarget();
 
         if (responseTarget) {
-            if (!this.spawnResponse(responseTarget)) {
+            if (!this.spawnResponse(
+                responseTarget,
+                'response'
+            )) {
                 this.recordDecisionSkip('response-spawn-failed');
             }
             return;
@@ -661,7 +674,8 @@ export class SmartArmyBrain extends Component {
     }
 
     private spawnResponse(
-        intel: SmartWaveIntel
+        intel: SmartWaveIntel,
+        reason: string
     ) {
         if (!this.gameManager || !intel.wave) return false;
 
@@ -691,7 +705,16 @@ export class SmartArmyBrain extends Component {
 
         this.recordDecisionSpawn(
             aggressiveForward,
-            'response'
+            reason
+        );
+
+        this.recordTelemetrySpawnDecision(
+            spawned,
+            entry,
+            laneId,
+            aggressiveForward,
+            reason,
+            intel
         );
 
         this.stateLog(
@@ -709,7 +732,8 @@ export class SmartArmyBrain extends Component {
             `struggling=${intel.hasStrugglingAlly} ` +
             `score=${intel.threatScore.toFixed(1)} ` +
             `accurate=true ` +
-            `aggressive=${aggressiveForward}`
+            `aggressive=${aggressiveForward} ` +
+            `reason=${reason}`
         );
 
         return true;
@@ -837,6 +861,15 @@ export class SmartArmyBrain extends Component {
         this.recordDecisionSpawn(
             aggressiveForward,
             'naive'
+        );
+
+        this.recordTelemetrySpawnDecision(
+            spawned,
+            entry,
+            laneId,
+            aggressiveForward,
+            'naive',
+            null
         );
 
         this.stateLog(
@@ -994,6 +1027,15 @@ export class SmartArmyBrain extends Component {
             'deliberate-mistake'
         );
 
+        this.recordTelemetrySpawnDecision(
+            spawned,
+            entry,
+            laneId,
+            false,
+            `deliberate-mistake:${mistakeKind}`,
+            targetIntel
+        );
+
         this.stateLog(
             `DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` +
             `target=${unitFamilyToName(targetIntel.wave.family)} ` +
@@ -1098,8 +1140,13 @@ export class SmartArmyBrain extends Component {
             return false;
         }
 
+        const useFastest =
+            Math.random() <
+            this.clamp01(this.aggressiveFastestEntryChance);
         const entry =
-            this.getFastestAffordableEntry();
+            useFastest
+                ? this.getFastestAffordableEntry()
+                : this.getRandomAffordableEntry();
 
         if (!entry) return false;
 
@@ -1118,8 +1165,23 @@ export class SmartArmyBrain extends Component {
             'aggressive-empty-lane'
         );
 
+        const telemetryReason =
+            useFastest
+                ? 'aggressive-empty-lane-fastest'
+                : 'aggressive-empty-lane-random';
+
+        this.recordTelemetrySpawnDecision(
+            spawned,
+            entry,
+            laneId,
+            true,
+            telemetryReason,
+            null
+        );
+
         this.stateLog(
-            `AGGRESSIVE ${reason}: spawn=${entry.name} lane=${laneId}`
+            `AGGRESSIVE ${reason}: spawn=${entry.name} ` +
+            `lane=${laneId} fastest=${useFastest}`
         );
 
         return true;
@@ -1150,10 +1212,71 @@ export class SmartArmyBrain extends Component {
             'opening'
         );
 
+        this.recordTelemetrySpawnDecision(
+            spawned,
+            entry,
+            spawned.laneId,
+            aggressiveForward,
+            'opening',
+            null
+        );
+
         this.stateLog(
             `OPENING spawn=${entry.name} aggressive=${aggressiveForward}`
         );
         return true;
+    }
+
+    private recordTelemetrySpawnDecision(
+        wave: BattleWave | null,
+        entry: UnitPrefabEntry | null,
+        laneId: number,
+        aggressiveForward: boolean,
+        reason: string,
+        intel: SmartWaveIntel | null
+    ) {
+        if (!this.gameManager) return;
+        if (!wave || !entry) return;
+
+        const targetWave =
+            intel && intel.wave
+                ? intel.wave
+                : null;
+
+        this.gameManager.recordBattleTelemetryWaveSpawnDecision({
+            team: this.team,
+            waveId: wave.id,
+            frame: this.gameManager.frame,
+            time: this.elapsedTime,
+            reason,
+            aggressiveForward,
+            laneId,
+            unitName: entry.name,
+            family: entry.family,
+            familyName: unitFamilyToName(entry.family),
+            tier: entry.tier,
+            targetWaveId: targetWave ? targetWave.id : -1,
+            targetLaneId: intel ? intel.laneId : -1,
+            targetFamily: targetWave ? targetWave.family : -1,
+            targetFamilyName: targetWave
+                ? unitFamilyToName(targetWave.family)
+                : '',
+            responseTier: intel
+                ? SmartResponseTier[intel.responseTier]
+                : '',
+            allyBlockersFromSpawn: intel
+                ? intel.allyBlockersFromSpawn
+                : 0,
+            allyCountInLane: intel
+                ? intel.allyCountInLane
+                : 0,
+            firstEnemyFromSpawn: intel
+                ? intel.firstEnemyFromSpawn
+                : false,
+            coverage: intel ? intel.coverage : 0,
+            uncovered: intel ? intel.uncovered : 0,
+            threatScore: intel ? intel.threatScore : 0,
+        });
     }
 
     private getBestEmptyLane() {

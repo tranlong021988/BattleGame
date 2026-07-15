@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-15 by the home Codex.
+Last updated: 2026-07-15 by the office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -31,95 +31,19 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
 
-## Latest 2026-07-15 Home Handoff
+## Latest 2026-07-15 Office Handoff - Balance Telemetry And AI Spawn Policy
 
-Read this section before touching unit balance, `UNITSTATS.md`, or `BattleUnitDatabase`.
+This section supersedes older 7-unit / Skirmisher balance notes and earlier 2026-07-15 balance interpretations below. The important lesson from today's tests is: **do not judge unit balance from kill/CP stats alone before checking SmartArmyBrain spawn-policy bias**.
 
-### Balance Work Done Today
+### Active Unit System
 
-- User provided a new stat sheet: `C:/Users/tranl/Downloads/gemini-code-1784047702194.md`.
-- That sheet defines unit count, health, attack, defense, range, and attack interval for T1-T3.
-- It does **not** define speed or combat point cost.
-- The project currently only references the seven active T1 entries in `assets/Test.scene`; T2/T3 values are recorded in `UNITSTATS.md` only for future upgrade/database work.
-
-Files intentionally updated:
-
-- `UNITSTATS.md`
-  - remains the human-readable source of truth;
-  - active T1 table now uses balance proposal v2;
-  - imported T1-T3 reference table is retained below the active T1 table.
-- `UNITSTATS_BALANCE_PROPOSAL.md`
-  - new balance proposal/case-study note file;
-  - explains goals, active T1 proposal values, and what to watch during playtests.
-- `assets/Test.scene`
-  - both Team A and Team B active `BattleUnitDatabase` entries were synced to active T1 balance v2;
-  - only active T1 entries were changed;
-  - no prefab, icon ID, family, tier, unlock, lane, AI, shader, or counter-rule data was intentionally changed.
-- `AI-CONTEX.md`
-  - updated to match the active v2 balance state.
-
-### Why Balance v2 Exists
-
-- First pass after importing the Gemini sheet and local v1 tuning still produced a playtest result where:
-  - melee units evaporated too quickly;
-  - ranged units dominated the battlefield;
-  - late game repeatedly ended with mostly ranged survivors;
-  - melee felt like disposable frontline rather than meaningful combat bodies.
-- Balance v2 therefore intentionally:
-  - increases melee durability, especially `Sword`, `Spear`, `Axeman`, and `Cavalry`;
-  - lowers ranged snowball potential by reducing `Archer` and `Skirmisher` count/DPS and making `Monk` slower and more fragile;
-  - keeps `Cavalry` as the main ranged punisher by improving approach survivability.
-
-### Current Active T1 Balance v2
-
-```text
-axeman_t1      count 10, cost 32, hp 145, atk 24, def 4, speed 3.0, range 1.0, interval 1.10-1.40
-skirmisher_t1  count  5, cost 22, hp  85, atk 14, def 7, speed 3.2, range 5.0, interval 1.55-1.95
-cavalry_t1     count 10, cost 45, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.05-1.35
-sword_t1       count 10, cost 22, hp 140, atk 20, def 7, speed 3.5, range 1.0, interval 0.85-1.15
-spear_t1       count 10, cost 15, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 0.90-1.20
-monk_t1        count  4, cost 60, hp  90, atk 34, def 0, speed 3.0, range 5.5, interval 2.10-2.60
-archer_t1      count  5, cost 24, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
-```
-
-### Current Balance Watchlist
-
-- If ranged still dominates late game, reduce Archer/Skirmisher count by 1 before touching melee damage.
-- If melee becomes too dominant, lower Sword/Axeman HP by `10` before buffing ranged damage.
-- If Cavalry crushes all ranged too reliably, lower HP to `160` before lowering speed or count.
-- If Archer feels useless, raise attack to `16` before shortening interval.
-- If Monk becomes irrelevant, lower interval to `1.95-2.35` before increasing attack.
-- Avoid changing counter rules while evaluating this stats pass; the goal is to test stats first, not reshape the counter graph.
-
-### Validation Done
-
-- Parsed `assets/Test.scene` through Cocos `__id__` references and verified:
-  - Team A and Team B each have exactly 7 active T1 entries;
-  - active entry order remains `axeman`, `skirmisher`, `cavalry`, `sword`, `spear`, `monk`, `archer`;
-  - A/B stats match exactly;
-  - active scene stats match `UNITSTATS.md` v2;
-  - `CounterSettings.rules` still has 11 rules with no missing/extra rules.
-
-## Latest 2026-07-14 Office Handoff
-
-Read this section before touching unit balance, `BattleUnitDatabase`, `CounterSettings`, banner visuals, or lane-return behavior.
-
-### Current Balance Source Of Truth
-
-- `UNITSTATS.md` is now the human-readable balance source-of-truth.
-- When changing health, damage, defense, speed, range, unit count, cost, icon IDs, or attack interval:
-  1. Update `UNITSTATS.md`.
-  2. Sync the same values into both Team A and Team B `BattleUnitDatabase` entries in `assets/Test.scene`.
-  3. Re-validate the scene arrays and counter rules.
-- The current test intentionally uses **tier 1 only** for all seven families. This supersedes the older five-family test note.
-
-### Current Unit Database Test Setup
-
-- `assets/Test.scene` `BattleUnitDatabase.teamAUnits` and `teamBUnits` now contain only these 7 active tier-1 entries, in this exact Inspector order:
+- Active test scope now uses **6 tier-1 troop entries per team**.
+- `Skirmisher` was removed from the active unit system to reduce ranged saturation.
+- Legacy Skirmisher `UnitPrefabEntry` objects still exist inside `assets/Test.scene` as unreferenced serialized objects, renamed to `legacy_skirmisher_t1_disabled` and `unlocked=false`. Do not delete raw scene objects just to clean this up because Cocos scene references are index-based.
+- Active `BattleUnitDatabase.teamAUnits` and `teamBUnits` order:
 
 ```text
 axeman_t1
-skirmisher_t1
 cavalry_t1
 sword_t1
 spear_t1
@@ -127,79 +51,221 @@ monk_t1
 archer_t1
 ```
 
-- All 7 active tier-1 entries are unlocked for both teams.
-- Tier 2 and tier 3 entries may still exist as serialized `UnitPrefabEntry` objects in `assets/Test.scene`, but they are not referenced by the active team arrays during this test. Do not delete raw scene objects just to "remove" tiers, because Cocos scene `__id__` references are index-based.
-- Existing prefabs were preserved. Team A still uses the current blue/team-A prefab reference; Team B uses the current red/team-B prefab reference.
-- PlayerArmyController was not part of today's balance test. Scene UI bindings may still include only the older five player icons. Do not treat that as a SmartArmyBrain/database bug.
+### Active Stats
 
-### Current Icon IDs
-
-Wave banner icon IDs are aligned with the active unit order:
+These are also recorded in `UNITSTATS.md`, which remains the balance source of truth.
 
 ```text
-axeman_t1      -> 0
-skirmisher_t1  -> 1
-cavalry_t1     -> 2
-sword_t1       -> 3
-spear_t1       -> 4
-monk_t1        -> 5
-archer_t1      -> 6
+axeman_t1   count 10, cost 32, hp 150, atk 25, def 3, speed 3.0, range 1.0, interval 1.10-1.40
+cavalry_t1 count 10, cost 52, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.10-1.40
+sword_t1   count 10, cost 24, hp 145, atk 20, def 7, speed 3.5, range 1.0, interval 0.90-1.20
+spear_t1   count 10, cost 18, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 1.00-1.30
+monk_t1    count  3, cost 52, hp  90, atk 30, def 0, speed 3.0, range 5.5, interval 2.30-2.90
+archer_t1  count  5, cost 28, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
 ```
 
-The banner shader now samples sheet IDs left-to-right, top-to-bottom. The older bottom-up atlas assumption is outdated.
+No stat value was changed in the final part of today's session. The user explicitly questioned whether increasing Spear cost is meaningful because SmartArmyBrain does not "think" in cost-efficiency terms. Treat cost changes as economy/affordability pacing only, not as a precise AI preference control.
 
-### Current Tier-1 Stats
+### Active Counter Rules
 
-The active table is also in `UNITSTATS.md`.
-
-```text
-axeman_t1      count 10, cost 32, hp 145, atk 24, def 4, speed 3.0, range 1.0, interval 1.10-1.40
-skirmisher_t1  count  5, cost 22, hp  85, atk 14, def 7, speed 3.2, range 5.0, interval 1.55-1.95
-cavalry_t1     count 10, cost 45, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.05-1.35
-sword_t1       count 10, cost 22, hp 140, atk 20, def 7, speed 3.5, range 1.0, interval 0.85-1.15
-spear_t1       count 10, cost 15, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 0.90-1.20
-monk_t1        count  4, cost 60, hp  90, atk 34, def 0, speed 3.0, range 5.5, interval 2.10-2.60
-archer_t1      count  5, cost 24, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
-```
-
-- Current active stats are balance proposal v2 from `UNITSTATS_BALANCE_PROPOSAL.md`, based on the imported `gemini-code-1784047702194.md` sheet plus local economy/combat tuning.
-- v2 was made after user test feedback: melee units evaporated too quickly and late game was consistently dominated by ranged survivors. The v2 direction is more melee durability plus lower ranged count/DPS.
-- The imported sheet did not define cost or speed. Speed remains preserved from the scene; cost was adjusted in balance proposal v1/v2.
-- Scene currently references only tier 1 entries. `UNITSTATS.md` records the latest T1-T3 values for future upgrade/database work.
-- Effective attack range in code is larger than Inspector `attackRange` because `Unit.getEffectiveAttackRangeAgainst()` adds attacker and defender radii:
+- The active `CounterSettings.rules` list now has exactly 7 rules.
+- Cavalry intentionally counters both ranged families. This breaks the previous one-counter-per-family loop on purpose because fast units are the natural answer to ranged units, and Spear already hard-counters Cavalry.
 
 ```text
-effectiveRange = attackRange + attacker.radius + defender.radius
-```
-
-### Damage And Counter Rules
-
-- The old `UnitType` enum is gone. Active typing is `UnitFamily + tier`.
-- `unitTypeName` is only a string key/name for database/UI/spawn lookup; do not confuse it with the removed enum.
-- Unit-vs-unit damage remains:
-
-```text
-max(1, attacker.damage - defender.defense) * familyCounterMultiplier
-```
-
-- Hero damage remains special and does not use family counter rules.
-- `assets/Test.scene` now serializes the full current GD counter rules with multiplier `3.0`:
-
-```text
-Spear > Cavalry
-Sword > Spear
-Archer > Sword
-Archer > Spear
-Skirmisher > Archer
-Skirmisher > Monk
+Spear   > Cavalry
 Cavalry > Archer
-Axeman > Skirmisher
-Axeman > Sword
-Monk > Axeman
-Monk > Sword
+Cavalry > Monk
+Archer  > Spear
+Monk    > Axeman
+Axeman  > Sword
+Sword   > Spear
 ```
 
-- This replaces the older temporary five-rule loop. Do not restore the five-rule loop unless the user explicitly asks.
+- `CounterSettings.createDefaultRules()` was updated to match the scene.
+- Hard counter multiplier remains `3.0`.
+- Melee unit count is fixed at `10` for active balance passes. Do not reduce melee count to balance them; use HP, damage, defense, speed, interval, and cost instead.
+
+### SmartArmyBrain Spawn Policy Changes Today
+
+- `SmartArmyBrain.aggressiveForwardChance` still means: chance to attempt an empty-lane aggressive raid when the AI has no useful response target / opening / naive branch.
+- It should **not** also imply "always choose Cavalry".
+- Added `SmartArmyBrain.aggressiveFastestEntryChance`:
+  - `1.0`: empty-lane aggressive raid chooses the fastest affordable unit, matching old behavior;
+  - `0.0`: empty-lane aggressive raid chooses a random affordable unit;
+  - `0.5`: half fastest, half random.
+- `trySpawnAggressiveForward()` now rolls `aggressiveFastestEntryChance` after the aggressive raid branch has already been selected.
+- Telemetry reason now distinguishes:
+  - `aggressive-empty-lane-fastest`;
+  - `aggressive-empty-lane-random`.
+- This split is intentional because the previous behavior created indirect Cavalry bias: Cavalry is fastest, so every empty-lane aggressive raid was effectively Cavalry.
+- `LevelSettings` now scales the new knob with:
+  - `aggressiveFastestEntryChanceMin`;
+  - `aggressiveFastestEntryChanceMax`.
+- Defaults:
+  - `SmartArmyBrain.aggressiveFastestEntryChance = 1.0` to preserve behavior when LevelSettings is disabled;
+  - `LevelSettings` scales `0 -> 1`, so low levels can be random and high levels can prefer fastest raiders.
+
+### Telemetry Changes Today
+
+`BattleTelemetry` now records AI wave-spawn decision metadata in addition to unit combat aggregates.
+
+New report fields:
+
+- `waveSpawns`: one row per SmartArmyBrain wave spawn decision.
+- `spawnDecisionStats`: aggregate grouped by team, reason, aggressive flag, family, tier, and unit name.
+
+Each spawn decision includes:
+
+- `team`;
+- `waveId`;
+- `frame`;
+- `time`;
+- `reason`;
+- `aggressiveForward`;
+- `laneId`;
+- spawned `unitName`, `family`, `familyName`, `tier`;
+- target info when applicable: `targetWaveId`, `targetLaneId`, `targetFamily`, `targetFamilyName`;
+- tactical context when applicable: `responseTier`, `allyBlockersFromSpawn`, `allyCountInLane`, `firstEnemyFromSpawn`, `coverage`, `uncovered`, `threatScore`.
+
+Current reasons emitted by SmartArmyBrain:
+
+```text
+response
+fast-react-response
+aggressive-empty-lane-fastest
+aggressive-empty-lane-random
+opening
+naive
+deliberate-mistake:losing
+deliberate-mistake:neutral
+deliberate-mistake:weakest
+```
+
+Use `spawnDecisionStats` first when diagnosing why a family is overrepresented. Example: if Cavalry is high, check how much came from `Cavalry>Archer/Monk:response` versus `aggressive-empty-lane-fastest`.
+
+### Telemetry Results And Interpretation From Today's Tests
+
+Several 10-37 report batches were analyzed after adding spawn-decision telemetry.
+
+Important findings:
+
+- Hero-kill winner telemetry is working: recent batches resolved with `reason = hero-killed`.
+- Cavalry was overrepresented partly because it counters both ranged families:
+  - `Cavalry > Archer`;
+  - `Cavalry > Monk`.
+- Cavalry was also overrepresented by AI policy, not just balance stats:
+  - before the new knob, `aggressive-empty-lane` always selected `getFastestAffordableEntry()`;
+  - with current stats, fastest affordable unit is usually Cavalry;
+  - in one 10-report batch, `aggressive-empty-lane = 23`, and `22/23` were Cavalry.
+- When empty-lane aggressive raid did not appear, Cavalry and Spear both dropped noticeably:
+  - Cavalry went from roughly `64` waves to `46`;
+  - Spear went from roughly `64` waves to `46`;
+  - this confirmed the previous Cavalry/Spear spike was partly caused by AI policy.
+- With `aggressiveFastestEntryChance = 0.5` and `aggressiveForwardChance = 0.25`, telemetry showed:
+  - `aggressive-empty-lane-fastest = 14`;
+  - `aggressive-empty-lane-random = 14`;
+  - all fastest raids were Cavalry in that batch;
+  - random raids distributed across Archer/Sword/Monk/Spear and did not hit Cavalry in that sample.
+- Therefore the new knob works and should be kept.
+
+Current balance interpretation:
+
+- `Spear > Cavalry` is very strong in reports because Cavalry is naturally frequent:
+  - Cavalry counters both ranged units;
+  - fastest aggressive raids can add even more Cavalry;
+  - the opponent then correctly answers with Spear.
+- Do **not** immediately conclude "Spear is broken" from high Spear kill/CP. First check how many Cavalry waves AI policy created.
+- If Spear still needs a nerf after policy is accounted for, prefer small combat-stat tuning such as:
+  - slightly slower Spear attack interval;
+  - or slightly lower Spear damage/HP.
+- Be cautious with Spear cost as a balance lever:
+  - the user noted correctly that SmartArmyBrain does not currently evaluate "this unit is expensive, maybe choose something else";
+  - cost mostly affects affordability and late-match pacing, not tactical preference while enough CP exists.
+
+### Icon IDs
+
+- Icon IDs preserve the current sheet order instead of being renumbered:
+
+```text
+axeman_t1   -> 0
+cavalry_t1 -> 2
+sword_t1   -> 3
+spear_t1   -> 4
+monk_t1    -> 5
+archer_t1  -> 6
+```
+
+- Old Skirmisher icon slot `1` is intentionally unused.
+
+### Validation Expectations
+
+- `assets/Test.scene` should parse as JSON.
+- Team A and Team B active arrays should each have exactly 6 entries and no Skirmisher.
+- Active A/B stats should match exactly.
+- `CounterSettings.rules` should contain exactly the 7 active rules above.
+
+## Archived 2026-07-15 Home Handoff
+
+The old 7-unit balance pass with active Skirmisher and 11 counter rules is superseded by the current 6-unit cavalry anti-ranged pass above. Keep this in mind when reading older discussion/history in this file.
+
+### Battle Telemetry Added By Office Codex
+
+- `assets/scripts/BattleTelemetry.ts` was added as an aggregate, event-driven balance report helper.
+- `GameManager` now has official battle winner state:
+  - `battleWinnerResolved`;
+  - `battleWinnerTeam`;
+  - `battleLoserTeam`;
+  - `battleWinnerReason`.
+- Winner rules currently implemented:
+  - if a hero is killed first, that hero's team loses immediately and the other team wins; report reason is `hero-killed`;
+  - CP depletion is now an optional fallback, controlled by `enableNoAffordableSpawnWinnerFallback`;
+  - `enableNoAffordableSpawnWinnerFallback` defaults to `false` so balance telemetry keeps running until a hero-kill result instead of cutting off when one team cannot afford another spawn;
+  - if the fallback is enabled, combat point is enabled, and one team can no longer afford any valid spawn entry before any hero-kill result, that team is the loser and the other team is the winner; report reason is `first-team-cannot-afford-any-spawn`;
+  - if both teams become unable to afford a spawn on the same check, it is treated as a resolved draw-style result with `winnerTeam = -1` and `loserTeam = -1`;
+  - the winner check does **not** stop the match yet. It logs once and leaves gameplay running.
+- `GameManager` now has Inspector toggles:
+  - `enableBattleWinnerCheck` default `true`;
+  - `enableNoAffordableSpawnWinnerFallback` default `false`;
+  - `battleWinnerCheckIntervalFrames` default `1`;
+  - `enableBattleTelemetry` default `true`;
+  - `downloadBattleTelemetryOnEnd` default `true`;
+  - `storeBattleTelemetryReportsInBrowser` default `true`;
+  - `downloadSingleTelemetryDuringAutoReload` default `false`;
+  - `battleTelemetryStorageKey` default `battle-telemetry-batch`;
+  - `reloadPageAfterBattleTelemetryExport` default `true`;
+  - `battleTelemetryReloadDelaySeconds` default `1.5`;
+  - `logBattleTelemetryOnEnd` default `false`;
+  - `battleTelemetryFilePrefix`.
+- The telemetry report exports once when the winner rule resolves.
+- When browser reload is enabled, `GameManager` stores each report in `localStorage` and reloads the page after the telemetry export delay so unattended balance-test loops can start the next match automatically.
+- Per-match downloads are skipped during auto-reload by default because Chrome blocks repeated automatic downloads. Use browser console function `downloadBattleTelemetryBatch()` to download one combined JSON later, and `clearBattleTelemetryBatch()` to clear stored reports.
+- Report is downloaded as JSON in browser when enabled and is also stored on `window.__battleTelemetryReport` / `globalThis.__battleTelemetryReport`.
+- Current aggregates include:
+  - per team/unit type spawned count, death count, alive at end;
+  - total and average lifetime;
+  - total damage dealt/received;
+  - counter damage dealt/received;
+  - hero damage dealt by unit type, plus damage received from hero by unit type;
+  - kills, deaths, counter kills, deaths to counter;
+  - killed-by and killed-unit matrices by unit type;
+  - damage dealt/received matrices by unit type;
+  - config snapshot of active unit stats, CP, bounds, lane count, and counter rules.
+- Current AI spawn-policy telemetry also includes:
+  - `waveSpawns`, one row per SmartArmyBrain wave spawn decision;
+  - `spawnDecisionStats`, aggregate counts grouped by team, reason, aggressive flag, family, tier, and unit name;
+  - target/tactical context when applicable: target family/lane/wave, response tier, ally blockers from spawn, lane ally count, coverage, uncovered count, and threat score.
+  - This exists specifically to avoid misreading unit balance when SmartArmyBrain policy is actually over-spawning a family.
+- Hooks:
+  - `GameManager.spawnUnitForWave()` records spawn;
+  - `SmartArmyBrain` records wave-spawn decisions after successful AI spawns;
+  - `UnitBehavior.dealDamageToEnemy()` reports actual damage before applying damage;
+  - `GameManager.reportKill()` records kill/counter kill;
+  - `GameManager.notifyUnitWillDespawn()` records death/lifetime.
+- This is intentionally aggregate-only, not a per-frame or per-hit event log, to keep mobile/browser overhead low.
+
+## Archived 2026-07-14 Office Handoff
+
+The old 7-family balance setup from this section was removed to avoid contradicting the current 6-unit cavalry anti-ranged pass. The still-current non-balance notes from that day are kept below.
 
 ### Banner Shader And Color Space
 
@@ -215,22 +281,6 @@ Monk > Sword
 - Before today's fix, `GameManager.getDirectionToLaneArea()` considered the entire lane width valid. Units could touch the lane edge and immediately forward, making waves appear to forward from a lane border.
 - It now uses the lane center core: `coreHalfWidth = laneWidth * 0.25`. In practice, units must enter the middle 50% of the lane before forward resumes.
 - This intentionally keeps the behavior lighter than full regroup, but avoids the "forward from lane edge" look.
-
-### SmartArmyBrain Implications
-
-- SmartArmyBrain now has all 7 tier-1 families available and unlocked for AI tests.
-- Counter scoring is still family-based. Tier is not a counter dimension.
-- If no affordable unlocked real counter exists, accepted fallback remains random affordable unlocked entry.
-- Because only tier 1 is active in the scene arrays, there should be no tier tie behavior during the current test.
-
-### Validation Done Today
-
-- Verified both team arrays contain exactly 7 active tier-1 entries in the expected order.
-- Verified active entry stats, icon IDs, unlock state, and attack intervals match `UNITSTATS.md`.
-- Verified `CounterSettings.rules` count is 11 and matches the GD rule list above.
-- Ran:
-  - `git diff --check -- assets/Test.scene UNITSTATS.md assets/scripts/GameManager.ts assets/shaders/UnlitBillboard.effect`
-  - Cocos TypeScript command from Workspace Notes.
 
 ## Latest 2026-07-13 Home Handoff
 
@@ -250,29 +300,20 @@ Read this section before continuing gameplay AI or forward/freehunt work.
 
 ### SmartArmyBrain Telemetry
 
-- Added optional `SmartArmyBrain.enableDecisionStats`, disabled by default.
-- When enabled in Inspector, it logs actual-match counts for:
+- `SmartArmyBrain.enableDecisionStats` still exists and is disabled by default.
+- When enabled in Inspector, it logs coarse actual-match counts for:
   - aggressive spawns;
   - normal spawns;
   - intentional waits;
   - hard skips.
 - Percentages use `aggressive + normal + wait` as the denominator. `skip` is reported separately because max-wave / no-CP / failed-spawn gates are not tactical wait decisions.
-- Use this telemetry for concrete playtests instead of guessing theoretical probabilities.
-- Current scene values observed on 2026-07-13:
-  - `SmartArmyBrainA/B.decisionAccuracy = 1`;
-  - `aggressiveForwardChance = 0.25`;
-  - `fastReactCounterChance = 0.5`;
-  - `maxAliveWaves = 7`;
-  - `LevelSettings` node is disabled, so these serialized Brain values are not being overridden at runtime unless the user enables LevelSettings.
-- User tested with decision stats and observed normal-forward rate is near zero. This is expected with the current AI rules:
-  - before the team first reaches `maxAliveWaves`, `shouldSpawnAggressiveForward()` makes response/opening spawns aggressive;
-  - response spawning also forces aggressive when the target lane is clean, or when ally blockers are between spawn and target;
-  - with `decisionAccuracy = 1`, naive/random and deliberate-mistake paths rarely/never provide normal-forward diversity.
-- Do not change this yet without discussing with the user. The likely future tuning point is `SmartArmyBrain.shouldSpawnCounterAggressiveForward()`, especially the rule that a clean target lane forces aggressive.
+- This older console log is useful for quick sanity checks only.
+- For balance and AI-policy analysis, prefer the newer JSON `BattleTelemetry.spawnDecisionStats` / `waveSpawns` described in the latest 2026-07-15 section. It identifies exact spawn reason, target family, and whether empty-lane aggressive raid chose fastest or random.
+- Old 2026-07-13 observed Inspector values are stale and should not be treated as current truth. Always check `assets/Test.scene` and whether `LevelSettings` is enabled before interpreting AI behavior.
 
 ### Current Known Worktree Notes
 
-- `AI-CONTEX.md`, `SmartArmyBrain.ts`, and `Unit.ts` have active handoff/gameplay edits from this session.
+- `AI-CONTEX.md`, `SmartArmyBrain.ts`, `LevelSettings.ts`, `GameManager.ts`, `BattleTelemetry.ts`, scene/database files, and related gameplay files may have active handoff/gameplay edits from recent sessions.
 - Many `library/`, `temp/`, `profiles/`, and build files are still editor/generated noise. Do not clean/revert them unless the user explicitly asks.
 - Validation done after the telemetry and aggressive-forward filter changes:
   - `git diff --check -- AI-CONTEX.md assets/scripts/SmartArmyBrain.ts assets/scripts/Unit.ts`;
@@ -871,7 +912,11 @@ Recent trace interpretation to preserve:
   - spawn intervals;
   - max alive waves;
   - aggressive-forward chance;
+  - aggressive empty-lane fastest-entry chance;
   - fast-react counter chance.
+- `aggressiveForwardChance` and `aggressiveFastestEntryChance` are deliberately separate:
+  - `aggressiveForwardChance` decides whether the AI attempts an empty-lane raid;
+  - `aggressiveFastestEntryChance` decides whether that raid picks the fastest affordable entry or a random affordable entry.
 - `assets/Test.scene` often uses `LevelSettings` for testing. If it is enabled at `currentLevel = 300`, it overrides SmartArmyBrainB to final-level values at runtime even when the serialized SmartArmyBrainB component still shows lower values such as `decisionAccuracy = 0.1`.
 
 ## VAT / Spector

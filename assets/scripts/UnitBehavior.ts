@@ -79,12 +79,22 @@ export class UnitBehavior extends Component {
         const counter = CounterSettings.instance;
 
         let finalDamage = this.props.damage;
+        let isCounterDamage = false;
 
         if (
             counter &&
             !this.unit.isHero &&
             !enemy.isHero
         ) {
+            const damageMul =
+                counter.getDamageMultiplier(
+                    this.props.family,
+                    enemy.props.family
+                );
+
+            isCounterDamage =
+                damageMul > 1.0001;
+
             finalDamage = counter.calculateDamage(
                 this.props,
                 enemy.props
@@ -96,6 +106,26 @@ export class UnitBehavior extends Component {
             );
         }
 
+        const actualDamage =
+            Math.min(
+                Math.max(0, enemy.props.health),
+                Math.max(0, finalDamage)
+            );
+
+        const gm =
+            this.gameManager ||
+            GameManager.instance;
+
+        if (gm) {
+            gm.reportDamage(
+                this.unit,
+                enemy,
+                finalDamage,
+                actualDamage,
+                isCounterDamage
+            );
+        }
+
         enemy.props.takeDamage(finalDamage);
 
         if (!enemy.props.isDead()) {
@@ -103,10 +133,6 @@ export class UnitBehavior extends Component {
         }
 
         if (enemy.props.isDead()) {
-            const gm =
-                this.gameManager ||
-                GameManager.instance;
-
             if (gm) {
                 gm.reportKill(
                     this.unit,

@@ -7,25 +7,24 @@ If a unit stat changes, update this file first, then update both Team A and Team
 ## Current Test Scope
 
 - Current balance test uses tier 1 units only.
-- `BattleUnitDatabase.teamAUnits` and `BattleUnitDatabase.teamBUnits` should contain only these 7 tier 1 entries, in this order:
+- `BattleUnitDatabase.teamAUnits` and `BattleUnitDatabase.teamBUnits` should contain only these 6 tier 1 entries, in this order:
   1. `axeman_t1`
-  2. `skirmisher_t1`
-  3. `cavalry_t1`
-  4. `sword_t1`
-  5. `spear_t1`
-  6. `monk_t1`
-  7. `archer_t1`
-- All 7 tier 1 entries are unlocked for both teams.
+  2. `cavalry_t1`
+  3. `sword_t1`
+  4. `spear_t1`
+  5. `monk_t1`
+  6. `archer_t1`
+- All 6 active tier 1 entries are unlocked for both teams.
+- Skirmisher is intentionally removed from the active unit system for this balance pass. Legacy serialized scene objects may remain, but they must not be referenced by active team arrays.
 - Tier 2 and tier 3 entries may remain serialized in the scene file, but they should not be referenced by the active team arrays during this test.
 
 ## Icon IDs
 
-Icon IDs follow the same order as the active unit list.
+Icon IDs preserve the existing icon sheet order. Skirmisher's old icon slot `1` is intentionally unused.
 
 | Unit | Icon ID |
 | --- | ---: |
 | `axeman_t1` | 0 |
-| `skirmisher_t1` | 1 |
 | `cavalry_t1` | 2 |
 | `sword_t1` | 3 |
 | `spear_t1` | 4 |
@@ -34,17 +33,16 @@ Icon IDs follow the same order as the active unit list.
 
 ## Active Tier 1 Stats
 
-These values are the active balance proposal v2 from `UNITSTATS_BALANCE_PROPOSAL.md`.
+These values are the active cavalry-anti-ranged balance pass.
 
 | Unit | Family | Unit Count | Cost | Health | Attack | Defense | Speed | Range | Attack Interval |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 32 | 145 | 24 | 4 | 3.0 | 1.0 | 1.10-1.40 |
-| `skirmisher_t1` | Skirmisher | 5 | 22 | 85 | 14 | 7 | 3.2 | 5.0 | 1.55-1.95 |
-| `cavalry_t1` | Cavalry | 10 | 45 | 170 | 24 | 5 | 6.0 | 1.0 | 1.05-1.35 |
-| `sword_t1` | Sword | 10 | 22 | 140 | 20 | 7 | 3.5 | 1.0 | 0.85-1.15 |
-| `spear_t1` | Spear | 10 | 15 | 125 | 16 | 4 | 3.0 | 2.0 | 0.90-1.20 |
-| `monk_t1` | Monk | 4 | 60 | 90 | 34 | 0 | 3.0 | 5.5 | 2.10-2.60 |
-| `archer_t1` | Archer | 5 | 24 | 80 | 15 | 0 | 3.0 | 6.0 | 1.50-1.90 |
+| `axeman_t1` | Axeman | 10 | 32 | 150 | 25 | 3 | 3.0 | 1.0 | 1.10-1.40 |
+| `cavalry_t1` | Cavalry | 10 | 52 | 170 | 24 | 5 | 6.0 | 1.0 | 1.10-1.40 |
+| `sword_t1` | Sword | 10 | 24 | 145 | 20 | 7 | 3.5 | 1.0 | 0.90-1.20 |
+| `spear_t1` | Spear | 10 | 18 | 125 | 16 | 4 | 3.0 | 2.0 | 1.00-1.30 |
+| `monk_t1` | Monk | 3 | 52 | 90 | 30 | 0 | 3.0 | 5.5 | 2.30-2.90 |
+| `archer_t1` | Archer | 5 | 28 | 80 | 15 | 0 | 3.0 | 6.0 | 1.50-1.90 |
 
 ## Imported T1-T3 Stat Reference
 
@@ -61,9 +59,6 @@ The current scene only references tier 1 entries during this test. Tier 2 and ti
 | Archer | 1 | 6 | 85 | 18 | 0 | 6.0 | 1.20-1.50 |
 | Archer | 2 | 6 | 140 | 35 | 1 | 6.5 | 1.10-1.40 |
 | Archer | 3 | 6 | 240 | 62 | 2 | 7.0 | 1.00-1.30 |
-| Skirmisher | 1 | 5 | 95 | 16 | 8 | 5.0 | 1.30-1.60 |
-| Skirmisher | 2 | 5 | 160 | 30 | 15 | 5.5 | 1.20-1.50 |
-| Skirmisher | 3 | 5 | 270 | 54 | 26 | 6.0 | 1.10-1.40 |
 | Cavalry | 1 | 10 | 150 | 28 | 3 | 1.0 | 1.00-1.30 |
 | Cavalry | 2 | 10 | 270 | 52 | 6 | 1.0 | 0.90-1.20 |
 | Cavalry | 3 | 10 | 480 | 92 | 10 | 1.0 | 0.80-1.10 |
@@ -84,30 +79,27 @@ damage = max(1, attacker.attack - defender.defense) * counterMultiplier
 
 Hard counter multiplier: `3.0`.
 
-Active `CounterSettings.rules`:
+Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally counters both ranged families because fast units are the natural answer to ranged units:
 
 | Attacker | Defender |
 | --- | --- |
 | Spear | Cavalry |
-| Sword | Spear |
-| Archer | Sword |
-| Archer | Spear |
-| Skirmisher | Archer |
-| Skirmisher | Monk |
 | Cavalry | Archer |
-| Axeman | Skirmisher |
-| Axeman | Sword |
+| Cavalry | Monk |
+| Archer | Spear |
 | Monk | Axeman |
-| Monk | Sword |
+| Axeman | Sword |
+| Sword | Spear |
 
 ## Balance Notes
 
 - Ranged troops use smaller wave sizes because the battle logic lets multiple ranged units focus fire from long range before melee can connect.
-- Current ranged wave sizes:
+- Current active ranged wave sizes:
   - Archer: `5`
-  - Skirmisher: `5`
-  - Monk: `4`
-- Keep Cavalry at `10` for now, but its cost is higher because speed and full wave size make it strong against ranged units.
+  - Monk: `3`
+- Skirmisher is inactive in this pass to reduce ranged saturation.
+- Melee unit count is fixed at `10` for active balance passes.
+- Cavalry is the dedicated anti-ranged answer and counters both Archer and Monk. Its cost is higher because it keeps full melee wave size plus high speed.
 - In code, effective attack range includes unit radii:
 
 ```text

@@ -2190,5 +2190,10 @@
       ]
     },
     "versionCode": 1
+  },
+  "efefbddb-804d-4a8c-98da-68618b2263c6": {
+    "url": "db://assets/scripts/BattleTelemetry.ts",
+    "value": {},
+    "versionCode": 1
   }
 }

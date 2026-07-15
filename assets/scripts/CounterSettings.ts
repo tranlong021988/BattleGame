@@ -144,10 +144,10 @@ export class CounterSettings extends Component {
         );
 
         this.addRule(
-            UnitFamily.Archer,
-            UnitFamily.Sword,
+            UnitFamily.Cavalry,
+            UnitFamily.Monk,
             hardCounter,
-            'Archer hard-counters Sword'
+            'Cavalry hard-counters Monk'
         );
 
         this.addRule(
@@ -158,31 +158,10 @@ export class CounterSettings extends Component {
         );
 
         this.addRule(
-            UnitFamily.Sword,
-            UnitFamily.Spear,
-            hardCounter,
-            'Sword hard-counters Spear'
-        );
-
-        this.addRule(
-            UnitFamily.Skirmisher,
-            UnitFamily.Archer,
-            hardCounter,
-            'Skirmisher hard-counters Archer'
-        );
-
-        this.addRule(
-            UnitFamily.Skirmisher,
             UnitFamily.Monk,
-            hardCounter,
-            'Skirmisher hard-counters Monk'
-        );
-
-        this.addRule(
             UnitFamily.Axeman,
-            UnitFamily.Skirmisher,
             hardCounter,
-            'Axeman hard-counters Skirmisher'
+            'Monk hard-counters Axeman'
         );
 
         this.addRule(
@@ -193,17 +172,10 @@ export class CounterSettings extends Component {
         );
 
         this.addRule(
-            UnitFamily.Monk,
-            UnitFamily.Axeman,
-            hardCounter,
-            'Monk hard-counters Axeman'
-        );
-
-        this.addRule(
-            UnitFamily.Monk,
             UnitFamily.Sword,
+            UnitFamily.Spear,
             hardCounter,
-            'Monk hard-counters Sword'
+            'Sword hard-counters Spear'
         );
     }
 }

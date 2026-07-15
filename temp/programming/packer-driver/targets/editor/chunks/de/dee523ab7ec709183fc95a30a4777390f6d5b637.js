@@ -178,9 +178,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitFamily) : UnitFamily).Archer, hardCounter, 'Cavalry hard-counters Archer');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Archer, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+          }), UnitFamily) : UnitFamily).Cavalry, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Sword, hardCounter, 'Archer hard-counters Sword');
+          }), UnitFamily) : UnitFamily).Monk, hardCounter, 'Cavalry hard-counters Monk');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Archer, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
@@ -188,24 +188,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitFamily) : UnitFamily).Spear, hardCounter, 'Archer hard-counters Spear');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Sword, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+          }), UnitFamily) : UnitFamily).Monk, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Spear, hardCounter, 'Sword hard-counters Spear');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Skirmisher, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer, hardCounter, 'Skirmisher hard-counters Archer');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Skirmisher, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Monk, hardCounter, 'Skirmisher hard-counters Monk');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Axeman, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Skirmisher, hardCounter, 'Axeman hard-counters Skirmisher');
+          }), UnitFamily) : UnitFamily).Axeman, hardCounter, 'Monk hard-counters Axeman');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Axeman, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
@@ -213,14 +198,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitFamily) : UnitFamily).Sword, hardCounter, 'Axeman hard-counters Sword');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Monk, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+          }), UnitFamily) : UnitFamily).Sword, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Axeman, hardCounter, 'Monk hard-counters Axeman');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Monk, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Sword, hardCounter, 'Monk hard-counters Sword');
+          }), UnitFamily) : UnitFamily).Spear, hardCounter, 'Sword hard-counters Spear');
         }
 
       }, _class6.instance = null, _class6), (_descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "autoCreateDefaultRules", [property], {

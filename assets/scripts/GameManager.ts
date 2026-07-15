@@ -31,6 +31,12 @@ import { BattleSpatialGrid } from './BattleSpatialGrid';
 import { BattleWave } from './BattleWave';
 import { CounterSettings } from './CounterSettings';
 import { UnitFamily } from './BattleTypes';
+import {
+    BattleTelemetry,
+    BattleTelemetryCounterRuleSnapshot,
+    BattleTelemetryUnitSnapshot,
+    BattleTelemetryWaveSpawnDecision,
+} from './BattleTelemetry';
 
 import {
     BattleUnitDatabase,
@@ -77,6 +83,80 @@ export class GameManager extends Component {
         tooltip: 'Allow URL query params ?stats=1 or ?profiler=1 to show the Cocos profiler overlay in browser builds.',
     })
     allowProfilerStatsQueryParam = true;
+
+    @property({
+        tooltip:
+            'Check battle winner rules. Hero killed always resolves the battle. Optional CP fallback is controlled separately.',
+    })
+    enableBattleWinnerCheck = true;
+
+    @property({
+        tooltip:
+            'Fallback winner rule for economy-only tests: if enabled, the first team that can no longer afford any valid spawn entry loses. Keep off when collecting hero-kill balance telemetry.',
+    })
+    enableNoAffordableSpawnWinnerFallback = false;
+
+    @property({
+        min: 1,
+        tooltip:
+            'Frames between CP fallback winner checks. Hero-death winner is event-driven and does not wait for this interval.',
+    })
+    battleWinnerCheckIntervalFrames = 1;
+
+    @property({
+        tooltip:
+            'Collect aggregate battle telemetry and export a JSON report when the battle winner rule is reached.',
+    })
+    enableBattleTelemetry = true;
+
+    @property({
+        tooltip:
+            'Automatically download the battle telemetry JSON in browser preview/build when the temporary winner condition is reached.',
+    })
+    downloadBattleTelemetryOnEnd = true;
+
+    @property({
+        tooltip:
+            'When auto-reload is enabled, store each telemetry report in browser localStorage so Chrome does not block repeated automatic downloads.',
+    })
+    storeBattleTelemetryReportsInBrowser = true;
+
+    @property({
+        tooltip:
+            'If false, auto-reload batch tests skip per-match downloads and only store reports for a later one-file batch export.',
+    })
+    downloadSingleTelemetryDuringAutoReload = false;
+
+    @property({
+        tooltip:
+            'localStorage key used for accumulated browser telemetry reports.',
+    })
+    battleTelemetryStorageKey = 'battle-telemetry-batch';
+
+    @property({
+        tooltip:
+            'Reload the browser page after telemetry export. Useful for unattended repeated browser balance tests.',
+    })
+    reloadPageAfterBattleTelemetryExport = true;
+
+    @property({
+        min: 0,
+        tooltip:
+            'Seconds to wait after triggering telemetry JSON download before reloading the browser page.',
+    })
+    battleTelemetryReloadDelaySeconds = 1.5;
+
+    @property({
+        tooltip:
+            'Also print the full telemetry object to console. The report is always kept on window.__battleTelemetryReport when available.',
+    })
+    logBattleTelemetryOnEnd = false;
+
+    @property({
+        tooltip:
+            'Output file prefix for downloaded battle telemetry reports.',
+    })
+    battleTelemetryFilePrefix = 'battle-telemetry';
 
     teamAHero: Unit | null = null;
     teamBHero: Unit | null = null;
@@ -159,6 +239,10 @@ export class GameManager extends Component {
 
     combatPoint = [0, 0];
     initialCombatPoint = [0, 0];
+    battleWinnerResolved = false;
+    battleWinnerTeam = -1;
+    battleLoserTeam = -1;
+    battleWinnerReason = '';
 
     @property
     enableAutoSpawn = true;
@@ -274,6 +358,9 @@ export class GameManager extends Component {
         new WeakMap();
     private readonly fallbackTeamABannerColor = new Color(0, 70, 255, 255);
     private readonly fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
+    private readonly battleTelemetry =
+        new BattleTelemetry();
+    private battleElapsedTime = 0;
 
     start() {
         GameManager.instance = this;
@@ -306,11 +393,17 @@ export class GameManager extends Component {
         this.counterKillCount[1] = 0;
 
         this.spawnWaveTimer = 0;
+        this.battleElapsedTime = 0;
 
         this.resetCombatPoint();
 
         this.createSimulator();
         this.buildPrefabMaps();
+        this.resetBattleTelemetry();
+        this.installBattleTelemetryBatchHelpers(
+            this.battleTelemetryStorageKey ||
+            'battle-telemetry-batch'
+        );
 
         this.spatialGrid.cellSize = this.spatialGridCellSize;
 
@@ -425,6 +518,10 @@ export class GameManager extends Component {
 
         this.combatPoint[0] = this.initialCombatPoint[0];
         this.combatPoint[1] = this.initialCombatPoint[1];
+        this.battleWinnerResolved = false;
+        this.battleWinnerTeam = -1;
+        this.battleLoserTeam = -1;
+        this.battleWinnerReason = '';
     }
 
     private createSimulator() {
@@ -497,6 +594,7 @@ export class GameManager extends Component {
 
     update(deltaTime: number) {
         this.frame++;
+        this.battleElapsedTime += deltaTime;
 
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
@@ -538,6 +636,7 @@ export class GameManager extends Component {
         this.processWaveBanners();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
+        this.processBattleWinnerCondition();
 
         this.refreshBattleStatsUI();
     }
@@ -593,6 +692,12 @@ export class GameManager extends Component {
             this.counterKillCount[killerTeam]++;
         }
 
+        this.battleTelemetry.recordKill(
+            killer,
+            victim,
+            isCounterKill
+        );
+
         if (!killer.isHero) {
             this.addCombatPointFromVictim(
                 killerTeam,
@@ -602,6 +707,22 @@ export class GameManager extends Component {
         }
 
         this.requestBattleStatsUIRefresh();
+    }
+
+    public reportDamage(
+        attacker: Unit | null,
+        victim: Unit | null,
+        damage: number,
+        actualDamage: number,
+        isCounterDamage: boolean
+    ) {
+        this.battleTelemetry.recordDamage(
+            attacker,
+            victim,
+            damage,
+            actualDamage,
+            isCounterDamage
+        );
     }
 
     public onWaveCombatStarted(
@@ -1519,6 +1640,372 @@ export class GameManager extends Component {
         return false;
     }
 
+    private resetBattleTelemetry() {
+        this.battleTelemetry.reset(
+            this.enableBattleTelemetry,
+            this.createBattleTelemetryStartConfig()
+        );
+    }
+
+    public recordBattleTelemetryWaveSpawnDecision(
+        decision: BattleTelemetryWaveSpawnDecision
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        this.battleTelemetry.recordWaveSpawnDecision(
+            decision
+        );
+    }
+
+    private processBattleWinnerCondition() {
+        if (!this.enableBattleWinnerCheck) return;
+        if (this.hasBattleWinner()) return;
+        if (!this.enableNoAffordableSpawnWinnerFallback) return;
+        if (!this.isCombatPointEnabled()) return;
+        if (
+            !this.shouldRunFrameInterval(
+                this.battleWinnerCheckIntervalFrames
+            )
+        ) {
+            return;
+        }
+
+        const teamACanSpawn =
+            this.canAffordAnySpawnEntry(0);
+        const teamBCanSpawn =
+            this.canAffordAnySpawnEntry(1);
+
+        if (teamACanSpawn && teamBCanSpawn) {
+            return;
+        }
+
+        const loserTeam =
+            !teamACanSpawn && !teamBCanSpawn
+                ? -1
+                : teamACanSpawn
+                    ? 1
+                    : 0;
+        const winnerTeam =
+            loserTeam < 0
+                ? -1
+                : loserTeam === 0
+                    ? 1
+                    : 0;
+        const reason =
+            'first-team-cannot-afford-any-spawn';
+
+        this.resolveBattleWinner(
+            winnerTeam,
+            loserTeam,
+            reason
+        );
+    }
+
+    private resolveBattleWinner(
+        winnerTeam: number,
+        loserTeam: number,
+        reason: string
+    ) {
+        if (!this.enableBattleWinnerCheck) return;
+        if (this.hasBattleWinner()) return;
+
+        this.battleWinnerTeam = winnerTeam;
+        this.battleLoserTeam = loserTeam;
+        this.battleWinnerReason = reason;
+        this.battleWinnerResolved = true;
+
+        console.log(
+            `[BattleWinner] winnerTeam=${winnerTeam}, ` +
+            `loserTeam=${loserTeam}, reason=${reason}`
+        );
+
+        if (
+            !this.enableBattleTelemetry ||
+            !this.battleTelemetry.isEnabled() ||
+            this.battleTelemetry.hasEnded()
+        ) {
+            return;
+        }
+
+        const report =
+            this.battleTelemetry.finish(
+                winnerTeam,
+                loserTeam,
+                reason,
+                this.frame,
+                this.battleElapsedTime,
+                this.combatPoint,
+                this.aliveCount,
+                this.deathCount,
+                this.killCount,
+                this.counterKillCount
+            );
+
+        this.storeBattleTelemetryReportInBrowser(report);
+
+        const shouldDownloadSingleReport =
+            this.downloadBattleTelemetryOnEnd &&
+            (
+                !this.reloadPageAfterBattleTelemetryExport ||
+                this.downloadSingleTelemetryDuringAutoReload
+            );
+
+        if (
+            this.downloadBattleTelemetryOnEnd &&
+            !shouldDownloadSingleReport
+        ) {
+            console.log(
+                '[BattleTelemetry] single report download skipped ' +
+                'during auto-reload batch mode. Use ' +
+                'downloadBattleTelemetryBatch() later.'
+            );
+        }
+
+        this.battleTelemetry.exportReport(
+            report,
+            this.battleTelemetryFilePrefix,
+            shouldDownloadSingleReport,
+            this.logBattleTelemetryOnEnd
+        );
+
+        this.scheduleBattleTelemetryPageReload();
+    }
+
+    public hasBattleWinner() {
+        return this.battleWinnerResolved;
+    }
+
+    private storeBattleTelemetryReportInBrowser(report: any) {
+        if (!this.storeBattleTelemetryReportsInBrowser) return;
+        if (!report) return;
+        if (typeof localStorage === 'undefined') return;
+
+        const key =
+            this.battleTelemetryStorageKey ||
+            'battle-telemetry-batch';
+
+        try {
+            const existingText =
+                localStorage.getItem(key);
+            let reports =
+                existingText
+                    ? JSON.parse(existingText)
+                    : [];
+
+            if (!Array.isArray(reports)) {
+                reports = [];
+            }
+
+            reports.push(report);
+            localStorage.setItem(
+                key,
+                JSON.stringify(reports)
+            );
+
+            this.installBattleTelemetryBatchHelpers(key);
+
+            console.log(
+                `[BattleTelemetry] stored report ${reports.length} ` +
+                `in localStorage key "${key}".`
+            );
+        } catch (error) {
+            console.warn(
+                '[BattleTelemetry] Failed to store report batch.',
+                error
+            );
+        }
+    }
+
+    private installBattleTelemetryBatchHelpers(key: string) {
+        const globalObject =
+            globalThis as any;
+
+        globalObject.downloadBattleTelemetryBatch =
+            () => this.downloadStoredBattleTelemetryBatch(key);
+        globalObject.clearBattleTelemetryBatch =
+            () => {
+                if (typeof localStorage === 'undefined') return;
+                localStorage.removeItem(key);
+                console.log(
+                    `[BattleTelemetry] cleared localStorage key "${key}".`
+                );
+            };
+    }
+
+    private downloadStoredBattleTelemetryBatch(key: string) {
+        if (typeof localStorage === 'undefined') return;
+        if (typeof document === 'undefined') return;
+        if (typeof Blob === 'undefined') return;
+        if (typeof URL === 'undefined') return;
+
+        const raw =
+            localStorage.getItem(key);
+
+        if (!raw) {
+            console.warn(
+                `[BattleTelemetry] no stored reports at "${key}".`
+            );
+            return;
+        }
+
+        try {
+            const reports =
+                JSON.parse(raw);
+            const payload = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                count: Array.isArray(reports)
+                    ? reports.length
+                    : 0,
+                reports,
+            };
+            const json =
+                JSON.stringify(payload, null, 2);
+            const blob =
+                new Blob(
+                    [json],
+                    { type: 'application/json' }
+                );
+            const url =
+                URL.createObjectURL(blob);
+            const link =
+                document.createElement('a');
+
+            link.href = url;
+            link.download =
+                `${this.battleTelemetryFilePrefix || 'battle-telemetry'}-batch-` +
+                `${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setTimeout(
+                () => URL.revokeObjectURL(url),
+                0
+            );
+        } catch (error) {
+            console.warn(
+                '[BattleTelemetry] Failed to download stored batch.',
+                error
+            );
+        }
+    }
+
+    private scheduleBattleTelemetryPageReload() {
+        if (!this.reloadPageAfterBattleTelemetryExport) return;
+        if (!this.enableBattleTelemetry) return;
+        if (typeof window === 'undefined') return;
+        if (!window.location) return;
+
+        const delayMs =
+            Math.max(
+                0,
+                this.battleTelemetryReloadDelaySeconds
+            ) * 1000;
+
+        console.log(
+            `[BattleTelemetry] reload page in ` +
+            `${(delayMs / 1000).toFixed(2)}s.`
+        );
+
+        window.setTimeout(
+            () => {
+                window.location.reload();
+            },
+            delayMs
+        );
+    }
+
+    private createBattleTelemetryStartConfig() {
+        return {
+            startedAt: new Date().toISOString(),
+            battleBounds: {
+                minX: this.battleMinX,
+                maxX: this.battleMaxX,
+                minZ: this.battleMinZ,
+                maxZ: this.battleMaxZ,
+            },
+            laneCount: this.getSafeLaneCount(),
+            initialCombatPoint: [
+                this.initialCombatPoint[0],
+                this.initialCombatPoint[1],
+            ],
+            unitStats:
+                this.createBattleTelemetryUnitStatsSnapshot(),
+            counterRules:
+                this.createBattleTelemetryCounterRuleSnapshot(),
+        };
+    }
+
+    private createBattleTelemetryUnitStatsSnapshot():
+        BattleTelemetryUnitSnapshot[] {
+        const result: BattleTelemetryUnitSnapshot[] = [];
+
+        for (let team = 0; team <= 1; team++) {
+            const entries =
+                this.getDatabaseTeamEntries(team);
+
+            for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i];
+
+                if (!entry) continue;
+
+                result.push({
+                    team,
+                    name: entry.name,
+                    family: entry.family,
+                    familyName:
+                        UnitFamily[entry.family] ??
+                        String(entry.family),
+                    tier: entry.tier,
+                    unitCount: entry.unitCount,
+                    cost: entry.combatPointCost,
+                    health: entry.health,
+                    attack: entry.damage,
+                    defense: entry.defense,
+                    speed: entry.maxSpeed,
+                    range: entry.attackRange,
+                    attackIntervalMin:
+                        entry.attackIntervalMin,
+                    attackIntervalMax:
+                        entry.attackIntervalMax,
+                });
+            }
+        }
+
+        return result;
+    }
+
+    private createBattleTelemetryCounterRuleSnapshot():
+        BattleTelemetryCounterRuleSnapshot[] {
+        const counter =
+            CounterSettings.instance;
+
+        if (!counter) return [];
+
+        const result: BattleTelemetryCounterRuleSnapshot[] = [];
+
+        for (let i = 0; i < counter.rules.length; i++) {
+            const rule = counter.rules[i];
+
+            if (!rule) continue;
+
+            result.push({
+                attackerFamily: rule.attackerFamily,
+                attackerFamilyName:
+                    UnitFamily[rule.attackerFamily] ??
+                    String(rule.attackerFamily),
+                defenderFamily: rule.defenderFamily,
+                defenderFamilyName:
+                    UnitFamily[rule.defenderFamily] ??
+                    String(rule.defenderFamily),
+                damageMultiplier: rule.damageMultiplier,
+            });
+        }
+
+        return result;
+    }
+
     private isAliveUnit(unit: Unit | null) {
         if (!unit) return false;
         if (!unit.node.activeInHierarchy) return false;
@@ -1730,6 +2217,12 @@ export class GameManager extends Component {
     }
 
     private notifyUnitWillDespawn(unit: Unit) {
+        this.battleTelemetry.recordDespawn(
+            unit,
+            this.frame,
+            this.battleElapsedTime
+        );
+
         const wave =
             BattleWave.getWaveForUnit(unit);
 
@@ -2716,6 +3209,17 @@ export class GameManager extends Component {
         unit.aggressiveForward = aggressiveForward;
 
         wave.addUnit(unit);
+
+        this.battleTelemetry.recordSpawn(
+            unit,
+            team,
+            entry.name,
+            entry.family,
+            entry.tier,
+            wave.id,
+            this.frame,
+            this.battleElapsedTime
+        );
     }
 
     public resolveSpawnLaneId(
@@ -3158,6 +3662,14 @@ export class GameManager extends Component {
                 this.aliveCount[1] = 0;
             }
 
+        }
+
+        if (team === 0 || team === 1) {
+            this.resolveBattleWinner(
+                team === 0 ? 1 : 0,
+                team,
+                'hero-killed'
+            );
         }
 
         this.removeUnitAgentFromSimulator(unit);

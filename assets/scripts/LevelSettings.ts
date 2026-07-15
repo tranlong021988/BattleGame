@@ -112,6 +112,20 @@ export class LevelSettings extends Component {
     @property({
         min: 0,
         max: 1,
+        tooltip: 'At low levels, empty-lane aggressive raids can use random affordable units. At high levels, they can prefer the fastest affordable raider more often.'
+    })
+    aggressiveFastestEntryChanceMin = 0;
+
+    @property({
+        min: 0,
+        max: 1,
+        tooltip: 'Final-level chance that an empty-lane aggressive raid picks the fastest affordable unit instead of a random affordable unit.'
+    })
+    aggressiveFastestEntryChanceMax = 1;
+
+    @property({
+        min: 0,
+        max: 1,
         tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
     })
     aggressiveForwardUnlockAt = 0.45;
@@ -225,6 +239,12 @@ export class LevelSettings extends Component {
                     this.lerp(
                         this.aggressiveForwardChanceMin,
                         this.aggressiveForwardChanceMax,
+                        raidT
+                    );
+                brain.aggressiveFastestEntryChance =
+                    this.lerp(
+                        this.aggressiveFastestEntryChanceMin,
+                        this.aggressiveFastestEntryChanceMax,
                         raidT
                     );
             }

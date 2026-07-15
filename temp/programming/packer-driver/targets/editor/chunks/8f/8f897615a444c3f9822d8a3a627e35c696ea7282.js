@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, GameManager, SmartArmyBrain, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _crd, ccclass, property, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, GameManager, SmartArmyBrain, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _crd, ccclass, property, LevelSettings;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -89,8 +89,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       }), _dec18 = property({
         min: 0,
         max: 1,
-        tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
+        tooltip: 'At low levels, empty-lane aggressive raids can use random affordable units. At high levels, they can prefer the fastest affordable raider more often.'
       }), _dec19 = property({
+        min: 0,
+        max: 1,
+        tooltip: 'Final-level chance that an empty-lane aggressive raid picks the fastest affordable unit instead of a random affordable unit.'
+      }), _dec20 = property({
+        min: 0,
+        max: 1,
+        tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
+      }), _dec21 = property({
         tooltip: 'Apply SmartArmyBrain fast-react chance curve. The maximum defaults to immediate reaction at the final level.'
       }), _dec(_class = (_class2 = class LevelSettings extends Component {
         constructor(...args) {
@@ -140,13 +148,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "aggressiveForwardChanceMax", _descriptor22, this);
 
-          _initializerDefineProperty(this, "aggressiveForwardUnlockAt", _descriptor23, this);
+          _initializerDefineProperty(this, "aggressiveFastestEntryChanceMin", _descriptor23, this);
 
-          _initializerDefineProperty(this, "allowFastReact", _descriptor24, this);
+          _initializerDefineProperty(this, "aggressiveFastestEntryChanceMax", _descriptor24, this);
 
-          _initializerDefineProperty(this, "fastReactCounterChanceMin", _descriptor25, this);
+          _initializerDefineProperty(this, "aggressiveForwardUnlockAt", _descriptor25, this);
 
-          _initializerDefineProperty(this, "fastReactCounterChanceMax", _descriptor26, this);
+          _initializerDefineProperty(this, "allowFastReact", _descriptor26, this);
+
+          _initializerDefineProperty(this, "fastReactCounterChanceMin", _descriptor27, this);
+
+          _initializerDefineProperty(this, "fastReactCounterChanceMax", _descriptor28, this);
         }
 
         onLoad() {
@@ -193,6 +205,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               const unlockAt = this.clamp01(this.aggressiveForwardUnlockAt);
               const raidT = unlockAt >= 1 ? t >= 1 ? 1 : 0 : this.clamp01((t - unlockAt) / (1 - unlockAt));
               brain.aggressiveForwardChance = this.lerp(this.aggressiveForwardChanceMin, this.aggressiveForwardChanceMax, raidT);
+              brain.aggressiveFastestEntryChance = this.lerp(this.aggressiveFastestEntryChanceMin, this.aggressiveFastestEntryChanceMax, raidT);
             }
 
             if (this.allowFastReact) {
@@ -421,28 +434,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function () {
           return 0.25;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardUnlockAt", [_dec18], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 0.45;
-        }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "allowFastReact", [_dec19], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return true;
-        }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMin", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveFastestEntryChanceMin", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMax", [property], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveFastestEntryChanceMax", [_dec19], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 1;
+        }
+      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardUnlockAt", [_dec20], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.45;
+        }
+      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "allowFastReact", [_dec21], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor27 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMin", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0;
+        }
+      }), _descriptor28 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

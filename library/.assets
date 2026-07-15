@@ -23,6 +23,7 @@
             "scripts\\BattleCinematicCameraController.ts",
             "scripts\\BattleInformationIconItem.ts",
             "scripts\\BattleSpatialGrid.ts",
+            "scripts\\BattleTelemetry.ts",
             "scripts\\BattleTypes.ts",
             "scripts\\BattleUnitDatabase.ts",
             "scripts\\BattleWave.ts",

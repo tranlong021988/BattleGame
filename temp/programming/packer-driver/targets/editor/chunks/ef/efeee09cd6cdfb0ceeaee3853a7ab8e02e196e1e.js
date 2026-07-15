@@ -121,11 +121,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
           let finalDamage = this.props.damage;
+          let isCounterDamage = false;
 
           if (counter && !this.unit.isHero && !enemy.isHero) {
+            const damageMul = counter.getDamageMultiplier(this.props.family, enemy.props.family);
+            isCounterDamage = damageMul > 1.0001;
             finalDamage = counter.calculateDamage(this.props, enemy.props);
           } else {
             finalDamage = Math.max(1, this.props.damage - enemy.props.defense);
+          }
+
+          const actualDamage = Math.min(Math.max(0, enemy.props.health), Math.max(0, finalDamage));
+          const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (gm) {
+            gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage);
           }
 
           enemy.props.takeDamage(finalDamage);
@@ -135,10 +147,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (enemy.props.isDead()) {
-            const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-              error: Error()
-            }), GameManager) : GameManager).instance;
-
             if (gm) {
               gm.reportKill(this.unit, enemy);
               gm.despawnUnit(enemy);
