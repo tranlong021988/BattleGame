@@ -3639,12 +3639,12 @@
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 2,
-    "attackIntervalMin": 1,
-    "attackIntervalMax": 1.3,
+    "attackIntervalMin": 1.1,
+    "attackIntervalMax": 1.4,
     "health": 125,
     "damage": 16,
     "defense": 4,
-    "combatPointCost": 18
+    "combatPointCost": 20
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3831,12 +3831,12 @@
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 2,
-    "attackIntervalMin": 1,
-    "attackIntervalMax": 1.3,
+    "attackIntervalMin": 1.1,
+    "attackIntervalMax": 1.4,
     "health": 125,
     "damage": 16,
     "defense": 4,
-    "combatPointCost": 18
+    "combatPointCost": 20
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -8986,7 +8986,7 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 1,
+    "decisionAccuracy": 0.5,
     "attackCounterCoverageRatio": 0.7,
     "ignoreNearlyDeadWaveRatio": 0.2,
     "rescueAllyAliveRatio": 0.35,
@@ -9065,7 +9065,7 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 1,
+    "decisionAccuracy": 0.5,
     "attackCounterCoverageRatio": 0.7,
     "ignoreNearlyDeadWaveRatio": 0.2,
     "rescueAllyAliveRatio": 0.35,

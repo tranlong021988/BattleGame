@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-15 by the office Codex.
+Last updated: 2026-07-15 by the home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -31,7 +31,7 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
 
-## Latest 2026-07-15 Office Handoff - Balance Telemetry And AI Spawn Policy
+## Latest 2026-07-15 Home Handoff - T1 Balance Telemetry And Spear Adjustment
 
 This section supersedes older 7-unit / Skirmisher balance notes and earlier 2026-07-15 balance interpretations below. The important lesson from today's tests is: **do not judge unit balance from kill/CP stats alone before checking SmartArmyBrain spawn-policy bias**.
 
@@ -59,12 +59,23 @@ These are also recorded in `UNITSTATS.md`, which remains the balance source of t
 axeman_t1   count 10, cost 32, hp 150, atk 25, def 3, speed 3.0, range 1.0, interval 1.10-1.40
 cavalry_t1 count 10, cost 52, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.10-1.40
 sword_t1   count 10, cost 24, hp 145, atk 20, def 7, speed 3.5, range 1.0, interval 0.90-1.20
-spear_t1   count 10, cost 18, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 1.00-1.30
+spear_t1   count 10, cost 20, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 1.10-1.40
 monk_t1    count  3, cost 52, hp  90, atk 30, def 0, speed 3.0, range 5.5, interval 2.30-2.90
 archer_t1  count  5, cost 28, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
 ```
 
-No stat value was changed in the final part of today's session. The user explicitly questioned whether increasing Spear cost is meaningful because SmartArmyBrain does not "think" in cost-efficiency terms. Treat cost changes as economy/affordability pacing only, not as a precise AI preference control.
+Today's accepted stat change:
+
+```text
+spear_t1:
+  cost: 18 -> 20
+  attackIntervalMin: 1.00 -> 1.10
+  attackIntervalMax: 1.30 -> 1.40
+```
+
+Only Spear was changed. Spear HP, damage, defense, speed, range, and unit count were intentionally left unchanged. The change was applied to `UNITSTATS.md` and both Team A/B `spear_t1` entries in `assets/Test.scene`.
+
+The user correctly noted that SmartArmyBrain does not currently evaluate cost efficiency directly. Treat the Spear cost increase as an economy/affordability pacing knob, while the interval increase is the direct combat nerf.
 
 ### Active Counter Rules
 
@@ -143,44 +154,78 @@ deliberate-mistake:weakest
 
 Use `spawnDecisionStats` first when diagnosing why a family is overrepresented. Example: if Cavalry is high, check how much came from `Cavalry>Archer/Monk:response` versus `aggressive-empty-lane-fastest`.
 
-### Telemetry Results And Interpretation From Today's Tests
+### Balance Problem, Cause, Solution, Results
 
-Several 10-37 report batches were analyzed after adding spawn-decision telemetry.
+Current balance task: tune tier-1 unit stats/cost so the counter pairs stay reasonably stable. The user and the office Codex tested `decisionAccuracy = 1.0` first and saw the `Spear > Cavalry` pair dominate. The home test then used `decisionAccuracy = 0.5` to see whether a weaker/noisier AI still overproduces the same pair.
 
-Important findings:
+Problem:
 
-- Hero-kill winner telemetry is working: recent batches resolved with `reason = hero-killed`.
-- Cavalry was overrepresented partly because it counters both ranged families:
-  - `Cavalry > Archer`;
-  - `Cavalry > Monk`.
-- Cavalry was also overrepresented by AI policy, not just balance stats:
-  - before the new knob, `aggressive-empty-lane` always selected `getFastestAffordableEntry()`;
-  - with current stats, fastest affordable unit is usually Cavalry;
-  - in one 10-report batch, `aggressive-empty-lane = 23`, and `22/23` were Cavalry.
-- When empty-lane aggressive raid did not appear, Cavalry and Spear both dropped noticeably:
-  - Cavalry went from roughly `64` waves to `46`;
-  - Spear went from roughly `64` waves to `46`;
-  - this confirmed the previous Cavalry/Spear spike was partly caused by AI policy.
-- With `aggressiveFastestEntryChance = 0.5` and `aggressiveForwardChance = 0.25`, telemetry showed:
-  - `aggressive-empty-lane-fastest = 14`;
-  - `aggressive-empty-lane-random = 14`;
-  - all fastest raids were Cavalry in that batch;
-  - random raids distributed across Archer/Sword/Monk/Spear and did not hit Cavalry in that sample.
-- Therefore the new knob works and should be kept.
+- Raw counter kill share made `Spear > Cavalry` look much larger than the other counter pairs.
+- Before the Spear adjustment, one `decisionAccuracy = 0.5` batch had:
+  - 11 reports;
+  - winrate `Team0 6` / `Team1 5`;
+  - average duration about `101s`;
+  - `Spear > Cavalry = 30.7%` of tracked counter-rule kills;
+  - grouped `Cavalry > Ranged = 13.4%` (`Cavalry > Archer 7.0%` + `Cavalry > Monk 6.4%`).
+
+Cause / statistical interpretation:
+
+- Do not read `30.7%` as "Spear is 2x stronger than everything else" without normalization.
+- Cavalry is a funnel/exposure unit:
+  - Cavalry counters both active ranged families: Archer and Monk;
+  - Spear is the only hard counter to Cavalry;
+  - therefore two AI response channels can create Cavalry, while Cavalry deaths by hard counter mostly collapse into one pair: `Spear > Cavalry`.
+- In the pre-adjustment `decisionAccuracy = 0.5` batch:
+  - AI response spawns were almost symmetric: `Spear > Cavalry = 26`, while `Cavalry > Archer + Cavalry > Monk = 28`;
+  - spawned unit exposure was not symmetric: Cavalry had about `620` spawned units versus `Archer + Monk = 312`;
+  - normalized by spawned victims, `Spear` killed about `306/620 = 49.4%` of spawned Cavalry, while Cavalry killed about `(70+64)/312 = 42.9%` of spawned ranged units.
+- Conclusion: the high raw `Spear > Cavalry` share was partly real counter strength, but heavily amplified by Cavalry exposure and the two-ranged-family funnel.
+
+Implemented solution:
+
+- Keep the counter graph unchanged.
+- Keep melee unit count fixed at `10`.
+- Do **not** buff Cavalry, because that risks making Archer/Monk disappear too quickly.
+- Apply a small Spear-only nerf:
+  - `combatPointCost 18 -> 20`;
+  - `attackIntervalMin 1.00 -> 1.10`;
+  - `attackIntervalMax 1.30 -> 1.40`.
+- No other active unit stat was changed.
+
+Result after the Spear adjustment:
+
+- New `decisionAccuracy = 0.5` batch:
+  - 10 reports;
+  - winrate `Team0 5` / `Team1 5`;
+  - average duration about `108s`;
+  - average wave spawns remained about `26.9`;
+  - report config confirmed Spear `cost 20`, interval `1.10-1.40`.
+- `Spear > Cavalry` moved in the intended direction:
+  - raw share `30.7% -> 26.9%`;
+  - kills per report about `27.8 -> 24.7`;
+  - Spear kills / Cavalry spawned dropped from about `49.4%` to about `41.2%`.
+- This is a good result: Cavalry exposure was still high in the new batch, but Spear killed a smaller portion of it.
+
+New watch item:
+
+- `Monk > Axeman` rose in the post-adjustment batch:
+  - `Monk > Axeman = 24.4%`;
+  - Monk was spawned `51` waves in 10 reports;
+  - AI response spawn `Monk -> Axeman = 32`.
+- Do **not** immediately nerf Monk from this single batch. This may be spawn-policy/random distribution from `decisionAccuracy = 0.5`.
+- If a second batch confirms Monk is consistently too strong, prefer a tiny Monk-only nerf:
+  - either `damage 30 -> 28`;
+  - or `attackInterval 2.30-2.90 -> 2.45-3.05`.
+- Do not change both damage and interval at once unless telemetry clearly demands it.
 
 Current balance interpretation:
 
-- `Spear > Cavalry` is very strong in reports because Cavalry is naturally frequent:
-  - Cavalry counters both ranged units;
-  - fastest aggressive raids can add even more Cavalry;
-  - the opponent then correctly answers with Spear.
-- Do **not** immediately conclude "Spear is broken" from high Spear kill/CP. First check how many Cavalry waves AI policy created.
-- If Spear still needs a nerf after policy is accounted for, prefer small combat-stat tuning such as:
-  - slightly slower Spear attack interval;
-  - or slightly lower Spear damage/HP.
-- Be cautious with Spear cost as a balance lever:
-  - the user noted correctly that SmartArmyBrain does not currently evaluate "this unit is expensive, maybe choose something else";
-  - cost mostly affects affordability and late-match pacing, not tactical preference while enough CP exists.
+- Keep the Spear nerf.
+- The counter graph is broadly healthy when grouped by role:
+  - after grouping `Cavalry > Archer` and `Cavalry > Monk` as `Cavalry > Ranged`, most non-funnel groups are in a plausible band;
+  - `Spear > Cavalry` is still the highest, but much less extreme after the adjustment;
+  - `Monk > Axeman` is the next item to verify.
+- Continue using `spawnDecisionStats` and `waveSpawns` before changing stats. Raw kill totals alone are not reliable because wave size, target exposure, and AI spawn policy strongly affect the totals.
 
 ### Icon IDs
 

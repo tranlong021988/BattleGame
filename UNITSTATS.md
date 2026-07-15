@@ -40,7 +40,7 @@ These values are the active cavalry-anti-ranged balance pass.
 | `axeman_t1` | Axeman | 10 | 32 | 150 | 25 | 3 | 3.0 | 1.0 | 1.10-1.40 |
 | `cavalry_t1` | Cavalry | 10 | 52 | 170 | 24 | 5 | 6.0 | 1.0 | 1.10-1.40 |
 | `sword_t1` | Sword | 10 | 24 | 145 | 20 | 7 | 3.5 | 1.0 | 0.90-1.20 |
-| `spear_t1` | Spear | 10 | 18 | 125 | 16 | 4 | 3.0 | 2.0 | 1.00-1.30 |
+| `spear_t1` | Spear | 10 | 20 | 125 | 16 | 4 | 3.0 | 2.0 | 1.10-1.40 |
 | `monk_t1` | Monk | 3 | 52 | 90 | 30 | 0 | 3.0 | 5.5 | 2.30-2.90 |
 | `archer_t1` | Archer | 5 | 28 | 80 | 15 | 0 | 3.0 | 6.0 | 1.50-1.90 |
 
@@ -100,6 +100,16 @@ Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally cou
 - Skirmisher is inactive in this pass to reduce ranged saturation.
 - Melee unit count is fixed at `10` for active balance passes.
 - Cavalry is the dedicated anti-ranged answer and counters both Archer and Monk. Its cost is higher because it keeps full melee wave size plus high speed.
+- Latest accepted Spear adjustment:
+  - `combatPointCost 18 -> 20`;
+  - `attackInterval 1.00-1.30 -> 1.10-1.40`.
+- Reason for the Spear adjustment:
+  - telemetry with `decisionAccuracy = 0.5` showed `Spear > Cavalry` raw counter-kill share at `30.7%`;
+  - this was partly a Cavalry exposure/funnel effect because Cavalry counters both ranged units, while Spear is the only hard counter to Cavalry;
+  - the small Spear nerf reduced `Spear > Cavalry` raw share to `26.9%` in the next 10-report batch while keeping winrate at `5-5`.
+- Watch next:
+  - `Monk > Axeman` rose to `24.4%` in the post-Spear-adjustment batch;
+  - run another batch before nerfing Monk, because this may be `decisionAccuracy = 0.5` spawn distribution noise.
 - In code, effective attack range includes unit radii:
 
 ```text
