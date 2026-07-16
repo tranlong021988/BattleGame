@@ -41,7 +41,7 @@ These values are the active cavalry-anti-ranged balance pass.
 | `cavalry_t1` | Cavalry | 10 | 52 | 170 | 24 | 5 | 6.0 | 0.35 | 0.0 | 1.10-1.40 |
 | `sword_t1` | Sword | 10 | 24 | 145 | 20 | 7 | 3.5 | 0.35 | 0.0 | 0.90-1.20 |
 | `spear_t1` | Spear | 10 | 20 | 125 | 16 | 4 | 3.0 | 1.0 | 0.0 | 1.10-1.40 |
-| `monk_t1` | Monk | 2 | 52 | 90 | 28 | 0 | 3.0 | 5.5 | 0.5 | 2.30-2.90 |
+| `monk_t1` | Monk | 2 | 52 | 90 | 28 | 0 | 3.0 | 5.5 | 0.75 | 2.30-2.90 |
 | `archer_t1` | Archer | 5 | 28 | 80 | 15 | 0 | 3.0 | 6.0 | 0.0 | 1.50-1.90 |
 
 ## Imported T1-T3 Stat Reference
@@ -79,7 +79,7 @@ damage = max(1, attacker.attack - defender.defense) * counterMultiplier
 
 Hard counter multiplier: `3.0`.
 
-Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally counters both ranged families because fast units are the natural answer to ranged units:
+Active `CounterSettings.rules` use an asymmetric loop. Cavalry remains the premium mobile answer to ranged units, while Archer also counters Monk as a cheaper anti-support answer:
 
 | Attacker | Defender |
 | --- | --- |
@@ -87,6 +87,7 @@ Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally cou
 | Cavalry | Archer |
 | Cavalry | Monk |
 | Archer | Spear |
+| Archer | Monk |
 | Monk | Axeman |
 | Axeman | Sword |
 | Sword | Spear |
@@ -97,10 +98,11 @@ Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally cou
 - Current active ranged wave sizes:
   - Archer: `5`
   - Monk: `2`
-- Monk currently has `damageRadius = 0.5`, measured from the primary target body edge, so nearby enemies can take area damage on each Monk attack tick.
+- Monk currently has `damageRadius = 0.75`, measured from the primary target body edge, so nearby enemies can take area damage on each Monk attack tick.
+- Archer now also hard-counters Monk as a cheaper anti-support answer. Cavalry remains a premium anti-ranged/anti-support answer.
 - Skirmisher is inactive in this pass to reduce ranged saturation.
 - Melee unit count is fixed at `10` for active balance passes.
-- Cavalry is the dedicated anti-ranged answer and counters both Archer and Monk. Its cost is higher because it keeps full melee wave size plus high speed.
+- Cavalry is the premium anti-ranged answer and counters both Archer and Monk. Its cost is higher because it keeps full melee wave size plus high speed.
 - Latest accepted Spear adjustment:
   - `combatPointCost 18 -> 20`;
   - `attackInterval 1.00-1.30 -> 1.10-1.40`.
@@ -110,6 +112,9 @@ Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally cou
   - the small Spear nerf reduced `Spear > Cavalry` raw share to `26.9%` in the next 10-report batch while keeping winrate at `5-5`.
 - Latest accepted Monk test adjustment:
   - `damage 30 -> 28`.
+- Latest accepted anti-support adjustment:
+  - add `Archer > Monk` hard counter;
+  - `Monk damageRadius 0.5 -> 0.75`.
 - Reason for the Monk adjustment:
   - `Monk > Axeman` remained high in the post-Spear-adjustment report reviewed by the office Codex;
   - only Monk damage was changed, not Monk interval, HP, cost, range, speed, or unit count.

@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-16 by the office Codex.
+Last updated: 2026-07-17 by home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -30,6 +30,369 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - `Unit` / `UnitBehavior` still own per-unit movement/combat state.
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
+
+## Latest 2026-07-17 Home Handoff - Anti-Support Counter, Real Telemetry, And Wave-Level Simulator
+
+This section supersedes the older 2026-07-16 balance diagnosis where Cavalry was the only answer to both ranged families. Keep the older notes for history, but treat this section, `UNITSTATS.md`, `assets/Test.scene`, and `tools/balance_wave_simulator.py` as the current balance context.
+
+### Accepted Source Changes Today
+
+Implemented and verified:
+
+- `UNITSTATS.md`
+  - `monk_t1 damageRadius 0.5 -> 0.75`.
+  - Added `Archer > Monk` hard counter.
+  - Updated balance notes so Cavalry is described as a **premium** anti-ranged / anti-support answer, not the only anti-ranged answer.
+- `assets/Test.scene`
+  - Both Team A and Team B `monk_t1.damageRadius = 0.75`.
+  - Added Inspector counter rule:
+    - `attackerFamily = Archer`
+    - `defenderFamily = Monk`
+    - `damageMultiplier = 3`
+    - note: `Archer hard-counters Monk`
+  - Scene JSON was parsed after the edit; `CounterSettings.rules` resolves to `8` rules.
+- `assets/scripts/CounterSettings.ts`
+  - Default rules now include `Archer > Monk` so code defaults match scene/inspector data.
+- `tools/balance_wave_simulator.py`
+  - New standalone simulator tool for discussion/balance direction only.
+  - It is not part of Cocos runtime and must not be treated as gameplay code.
+  - It reads `assets/Test.scene` for current inspector values and runs an approximate wave-level model.
+
+Current active tier-1 stats:
+
+```text
+axeman_t1   count 10, cost 32, hp 150, atk 25, def 3, speed 3.0, range 0.35, damageRadius 0.0, interval 1.10-1.40
+cavalry_t1 count 10, cost 52, hp 170, atk 24, def 5, speed 6.0, range 0.35, damageRadius 0.0, interval 1.10-1.40
+sword_t1   count 10, cost 24, hp 145, atk 20, def 7, speed 3.5, range 0.35, damageRadius 0.0, interval 0.90-1.20
+spear_t1   count 10, cost 20, hp 125, atk 16, def 4, speed 3.0, range 1.00, damageRadius 0.0, interval 1.10-1.40
+monk_t1    count  2, cost 52, hp  90, atk 28, def 0, speed 3.0, range 5.50, damageRadius 0.75, interval 2.30-2.90
+archer_t1  count  5, cost 28, hp  80, atk 15, def 0, speed 3.0, range 6.00, damageRadius 0.0, interval 1.50-1.90
+```
+
+Current hard counter rules:
+
+```text
+Spear   > Cavalry
+Cavalry > Archer
+Cavalry > Monk
+Archer  > Spear
+Archer  > Monk
+Monk    > Axeman
+Axeman  > Sword
+Sword   > Spear
+```
+
+Design intent after this change:
+
+- `Cavalry > Monk` remains the premium, mobile anti-support answer.
+- `Archer > Monk` is the cheaper economic anti-support answer.
+- This reduces the old `Ranged -> Cavalry -> Spear` funnel where Cavalry had to answer both Archer and Monk alone, which then over-fed Spear counters.
+- Monk was given a small AoE/radius increase because it now has an extra cheaper counter.
+
+### Why This Direction Was Chosen
+
+The user asked whether counters should always mean "cheap unit kills expensive unit." We compared the current system to AoE2-style design and arrived at a more useful principle:
+
+- Some counters should be economic counters: cheaper, specialized, and profitable when used correctly.
+- Some counters can be premium counters: more expensive but faster, more flexible, or safer.
+- A cheap target can still be worth an expensive counter if it has high battlefield threat, e.g. ranged/support damage over time, splash, or ability to damage many units while protected.
+
+Telemetry-based effective-value estimate before the change showed:
+
+```text
+Spear > Cavalry: economically very good.
+Cavalry > Monk: acceptable because Monk is expensive and high threat.
+Archer > Spear / Axeman > Sword / Sword > Spear: acceptable after threat adjustment.
+Cavalry > Archer: still questionable as a pure economic counter.
+Monk > Axeman: close to neutral / slightly questionable.
+```
+
+The practical change was not to make every counter cheaper than its target. Instead, we added `Archer > Monk` so Monk has both:
+
+- a cheap economic counter (`Archer`);
+- a premium tactical counter (`Cavalry`).
+
+### New Wave-Level Simulator Tool
+
+File:
+
+```text
+tools/balance_wave_simulator.py
+```
+
+Purpose:
+
+- Fast discussion aid for balance direction.
+- Not a replacement for real Cocos telemetry.
+- Not integrated into game runtime.
+- Should not be used as proof that a gameplay change is final.
+
+What it reads from `assets/Test.scene`:
+
+- active `BattleUnitDatabase` entries;
+- unit stats, cost, damage, range, speed, damage radius, intervals;
+- active `CounterSettings.rules`;
+- initial CP;
+- lane count, spawn Z, battle X bounds;
+- `SmartArmyBrain` settings such as spawn interval, max alive waves, decision accuracy, coverage ratio, aggressive chance, fast-react chance.
+
+What it approximates:
+
+- wave spawn in lanes;
+- z-axis movement by speed;
+- attack range and effective radius;
+- ranged waves firing from behind ally frontline;
+- melee waves slowed/blocked by ally frontline;
+- normal-forward lane jump behavior;
+- aggressive-forward being less likely to lane jump;
+- wave-level damage from alive unit count, interval, defense, and counter multiplier;
+- Monk splash via `damageRadius` mapped into expected extra wave damage;
+- CP economy, max alive wave, response, fast-react response, opening, aggressive-empty-lane;
+- counter attempts with `hit`, `lastKill`, and `targetGone` metrics.
+
+Known limits:
+
+- It is wave-level, not unit-level.
+- It does not simulate RVO, exact formation, exact unit positions, exact projectiles, animation timing, or real target search intervals.
+- Results are directional. Use it to decide what is worth testing in the real game, not as a final balance verdict.
+
+Useful commands from repo root:
+
+```powershell
+# Baseline with current scene values
+& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\balance_wave_simulator.py --matches 1000 --seed 20260717
+
+# Temporarily remove Archer > Monk for comparison
+& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\balance_wave_simulator.py --matches 1000 --seed 20260717 --remove-rule Archer:Monk
+
+# Temporarily override Monk damage radius
+& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\balance_wave_simulator.py --matches 1000 --seed 20260717 --override-entry monk_t1:damage_radius:0.5
+
+# Temporarily test stat options
+& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\balance_wave_simulator.py --matches 1000 --seed 20260717 --override-entry spear_t1:cost:22
+& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\balance_wave_simulator.py --matches 1000 --seed 20260717 --override-entry spear_t1:damage:15
+```
+
+CLI override fields currently supported:
+
+```text
+count
+cost
+health
+damage
+defense
+speed
+attack_range
+damage_radius
+attack_interval
+```
+
+### Simulator Results To Preserve
+
+After implementing `Archer > Monk` and `Monk damageRadius = 0.75`, the wave-level simulator baseline with `1000` matches, seed `20260717`, `dt = 0.2` produced:
+
+```text
+winners:
+Team0 452
+Team1 533
+Draw  15
+
+expected wins:
+Team0 458.7
+Team1 541.3
+
+avg duration: 97.39s
+avg spawns/match: 26.49
+```
+
+Spawn mix in simulator:
+
+```text
+Cavalry ~22.35%
+Spear   ~19.63%
+Monk    ~18.32%
+Archer  ~16.58%
+Axeman  ~11.79%
+Sword   ~11.33%
+```
+
+Important simulator counter attempts:
+
+```text
+Archer > Monk:
+attempts 1531
+hit 44.7%
+lastKill 24.0%
+targetGone 80.3%
+
+Cavalry > Monk:
+attempts 1399
+hit 58.3%
+lastKill 55.0%
+targetGone 86.1%
+```
+
+Interpretation:
+
+- Archer now works as an economic anti-Monk answer.
+- Cavalry remains the stronger premium anti-Monk answer.
+- This is acceptable and intentional.
+
+### Real 50-Report Telemetry After The Change
+
+The user collected 50 real reports from:
+
+```text
+C:\Users\tranl\Downloads\battle-telemetry-2026-07-16T17-40-50-075Z.json
+...
+C:\Users\tranl\Downloads\battle-telemetry-2026-07-16T18-49-10-637Z.json
+```
+
+Real batch result:
+
+```text
+winner by current game report:
+Team0 24
+Team1 26
+
+reason:
+first-team-cannot-afford-any-spawn 49
+hero-killed 1
+```
+
+End-state soft estimate from final snapshots:
+
+```text
+Team0 expected wins: 24.84
+Team1 expected wins: 25.16
+```
+
+This is a very balanced batch. The current CP fallback still cuts most matches early, so do not over-read hard winner labels. The soft estimate is more useful for unit-system balance.
+
+Real spawn mix:
+
+```text
+Spear   274  22.10%
+Cavalry 255  20.56%
+Archer  214  17.26%
+Monk    209  16.85%
+Sword   153  12.34%
+Axeman  135  10.89%
+```
+
+Real unit economy:
+
+```text
+Cavalry dmg/CP 13.02, kill/CP 0.091, dmg/wave 676.8
+Monk    dmg/CP 13.75, kill/CP 0.086, dmg/wave 715.2
+Archer  dmg/CP 13.37, kill/CP 0.106, dmg/wave 374.4
+Spear   dmg/CP 47.93, kill/CP 0.297, dmg/wave 958.5
+Axeman  dmg/CP 21.70, kill/CP 0.161, dmg/wave 694.4
+Sword   dmg/CP 37.49, kill/CP 0.262, dmg/wave 899.7
+```
+
+Real top kill pairs:
+
+```text
+Spear   > Cavalry 1293
+Sword   > Spear    601
+Monk    > Axeman   592
+Axeman  > Sword    528
+Cavalry > Archer   395
+Archer  > Spear    340
+```
+
+Real counter attempts:
+
+```text
+Spear   > Cavalry attempts 249, hit 67.9%, last 38.2%, gone 74.7%
+Monk    > Axeman  attempts 199, hit 49.7%, last 19.1%, gone 64.8%
+Cavalry > Archer  attempts 138, hit 58.7%, last 43.5%, gone 60.9%
+Sword   > Spear   attempts 134, hit 61.9%, last 38.1%, gone 61.2%
+Archer  > Spear   attempts 131, hit 60.3%, last 26.0%, gone 48.9%
+Axeman  > Sword   attempts 122, hit 71.3%, last 33.6%, gone 74.6%
+Archer  > Monk    attempts  56, hit 33.9%, last 30.4%, gone 57.1%
+Cavalry > Monk    attempts  38, hit 50.0%, last 47.4%, gone 81.6%
+```
+
+Interpretation:
+
+- The `Archer > Monk` addition is working but not overpowering.
+- Cavalry is still the more reliable premium anti-Monk solution.
+- Archer/Monk/Cavalry spawn shares moved in the desired direction.
+- Spear remains the highest economic-efficiency unit because Cavalry remains a frequent target, but the batch is still balanced overall.
+
+### Spear Nerf Options Tested In Simulator
+
+The user asked to test two possible Spear nerfs with the new simulator before changing real stats:
+
+```text
+Option A: spear_t1 cost 20 -> 22
+Option B: spear_t1 damage 16 -> 15
+```
+
+Both were tested with `1000` matches, seed `20260717`.
+
+Baseline:
+
+```text
+Team0 452
+Team1 533
+Draw  15
+expected Team0 458.7 / Team1 541.3
+```
+
+Spear cost `22`:
+
+```text
+Team0 439
+Team1 546
+Draw  15
+expected Team0 446.6 / Team1 553.4
+```
+
+Spear damage `15`:
+
+```text
+Team0 452
+Team1 538
+Draw  10
+expected Team0 460.1 / Team1 539.9
+```
+
+Conclusion:
+
+- Do **not** apply either Spear nerf yet.
+- `cost 22` looked worse in the simulator.
+- `damage 15` reduced `Spear > Cavalry` kills but did not improve overall balance enough to justify changing live stats.
+- The real 50-report batch is already near 50/50, so further stat changes should be conservative.
+
+### Current Recommendation
+
+Do not change stats immediately.
+
+Next best step:
+
+1. Keep current accepted stats/rules:
+   - `Archer > Monk`;
+   - `Monk damageRadius = 0.75`;
+   - Spear stays cost `20`, damage `16`.
+2. If more validation is needed, run another real batch or use the simulator to test larger conceptual changes first.
+3. If the user wants cleaner balance data, improve the test winner rule:
+   - do not end as soon as one side cannot afford a spawn;
+   - ignore/disable hero for balance tests;
+   - end when a side has no non-hero troops alive and cannot afford any valid spawn.
+4. When using telemetry, prefer soft end-state estimate over raw `first-team-cannot-afford-any-spawn` winner because the fallback often cuts off the final counter wave.
+
+### Tooling / Environment Note
+
+On this home machine, `git status` failed with:
+
+```text
+fatal: detected dubious ownership in repository at 'F:/Github/BattleGame'
+```
+
+This is an environment ownership issue, not a source issue. Do not infer repository cleanliness from this handoff. If git checks are needed, configure `safe.directory` deliberately or run from the matching user account.
 
 ## Latest 2026-07-16 Office Handoff - Balance Method, Economy Telemetry, And Current Diagnosis
 
@@ -69,7 +432,7 @@ axeman_t1   count 10, cost 32, hp 150, atk 25, def 3, speed 3.0, range 0.35, dam
 cavalry_t1 count 10, cost 52, hp 170, atk 24, def 5, speed 6.0, range 0.35, damageRadius 0.0, interval 1.10-1.40
 sword_t1   count 10, cost 24, hp 145, atk 20, def 7, speed 3.5, range 0.35, damageRadius 0.0, interval 0.90-1.20
 spear_t1   count 10, cost 20, hp 125, atk 16, def 4, speed 3.0, range 1.00, damageRadius 0.0, interval 1.10-1.40
-monk_t1    count  2, cost 52, hp  90, atk 28, def 0, speed 3.0, range 5.50, damageRadius 0.5, interval 2.30-2.90
+monk_t1    count  2, cost 52, hp  90, atk 28, def 0, speed 3.0, range 5.50, damageRadius 0.75, interval 2.30-2.90
 archer_t1  count  5, cost 28, hp  80, atk 15, def 0, speed 3.0, range 6.00, damageRadius 0.0, interval 1.50-1.90
 ```
 
@@ -90,6 +453,7 @@ Spear   > Cavalry
 Cavalry > Archer
 Cavalry > Monk
 Archer  > Spear
+Archer  > Monk
 Monk    > Axeman
 Axeman  > Sword
 Sword   > Spear
@@ -99,8 +463,8 @@ Hard counter multiplier is `3.0`.
 
 Important design implication:
 
-- Cavalry intentionally counters **both** ranged families, Archer and Monk.
-- This creates a funnel: ranged presence tends to force Cavalry, and Cavalry presence tends to force Spear.
+- Cavalry still counters **both** ranged families, Archer and Monk, but Archer now also counters Monk as the cheaper anti-support answer.
+- This reduces, but does not remove, the old funnel where ranged presence tended to force Cavalry and Cavalry presence tended to force Spear.
 - Therefore high `Spear > Cavalry` numbers may mean Spear is overtuned, but may also mean Cavalry is overexposed because it has two response jobs.
 
 ### Implemented Today: Economy Telemetry
@@ -194,13 +558,14 @@ High-level result:
 
 Important source setting:
 
-- `GameManager.enableNoAffordableSpawnWinnerFallback` is currently `false`.
-- Because of that, the match does not resolve when one team can no longer afford any unit. It continues until hero death.
-- This is useful when we specifically want hero-kill reports, but it can hide the earlier economic loss point.
+- `GameManager.enableNoAffordableSpawnWinnerFallback` is currently `true` in `assets/Test.scene` on the home machine.
+- This means the current scene is set up for pure unit/economy balance tests: if one team can no longer afford any valid spawn entry before a hero-kill result, that team loses with reason `first-team-cannot-afford-any-spawn`.
+- This intentionally catches the earlier economic loss point instead of waiting for the later hero death symptom.
+- If the next test is about final gameplay feel / hero defense, turn this setting back off.
 
 Recommended test switch:
 
-- For pure unit/economy balance batches, strongly consider enabling `enableNoAffordableSpawnWinnerFallback = true`.
+- For pure unit/economy balance batches, use `enableNoAffordableSpawnWinnerFallback = true`.
 - For final gameplay feel / hero defense tests, keep hero-kill resolution if desired.
 
 ### Diagnosis: What Is Actually Happening
@@ -272,6 +637,7 @@ Do this order, not random stat poking:
 1. Decide the next test mode:
    - If testing unit/economy balance: enable `enableNoAffordableSpawnWinnerFallback`.
    - If testing final hero pressure: keep hero-kill resolution.
+   - Current home scene is now set to the unit/economy balance mode.
 2. Run another same-CP / same-accuracy batch with current stats and economy telemetry.
 3. Diagnose `Ranged -> Cavalry -> Spear` specifically:
    - How many Cavalry waves were spawned as response to Archer vs Monk?

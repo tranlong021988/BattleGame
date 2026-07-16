@@ -41,10 +41,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.averageLifetime = 0;
           this.totalDamageDealt = 0;
           this.totalDamageReceived = 0;
+          this.totalAoeDamageDealt = 0;
+          this.totalAoeDamageReceived = 0;
           this.totalCounterDamageDealt = 0;
           this.totalCounterDamageReceived = 0;
           this.totalHeroDamageDealt = 0;
           this.totalDamageReceivedFromHero = 0;
+          this.waveSpawnCount = 0;
+          this.totalCombatPointSpent = 0;
+          this.totalCombatPointEarned = 0;
+          this.netCombatPoint = 0;
+          this.damagePerCombatPointSpent = 0;
+          this.killsPerCombatPointSpent = 0;
+          this.heroDamagePerCombatPointSpent = 0;
+          this.lifetimePerCombatPointSpent = 0;
           this.totalKills = 0;
           this.totalDeaths = 0;
           this.totalCounterKills = 0;
@@ -81,6 +91,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.unitStats = new Map();
           this.waveSpawnDecisionStats = new Map();
           this.waveSpawns = [];
+          this.snapshots = [];
+          this.finalSnapshot = null;
+          this.diagnosticEvents = [];
+          this.waveSpawnFrameById = new Map();
+          this.waveSpawnTimeById = new Map();
           this.spawnInfoByUnit = new WeakMap();
           this.activeSpawnInfos = new Set();
           this.totalDamage = [0, 0];
@@ -88,6 +103,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.totalKills = [0, 0];
           this.totalDeaths = [0, 0];
           this.totalCounterKills = [0, 0];
+          this.firstDamageByFrameTeam = [0, 0];
+          this.firstKillByFrameTeam = [0, 0];
+          this.firstHeroDamageByFrameTeam = [0, 0];
+          this.lastDamageFrame = -1;
+          this.lastKillFrame = -1;
+          this.lastHeroDamageFrame = -1;
+          this.maxSnapshots = 240;
+          this.maxDiagnosticEvents = 3000;
+          this.droppedDiagnosticEventCount = 0;
           this.nextSpawnId = 1;
         }
 
@@ -99,6 +123,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.unitStats.clear();
           this.waveSpawnDecisionStats.clear();
           this.waveSpawns.length = 0;
+          this.snapshots.length = 0;
+          this.finalSnapshot = null;
+          this.diagnosticEvents.length = 0;
+          this.waveSpawnFrameById.clear();
+          this.waveSpawnTimeById.clear();
           this.spawnInfoByUnit = new WeakMap();
           this.activeSpawnInfos.clear();
           this.totalDamage[0] = 0;
@@ -111,7 +140,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.totalDeaths[1] = 0;
           this.totalCounterKills[0] = 0;
           this.totalCounterKills[1] = 0;
+          this.firstDamageByFrameTeam[0] = 0;
+          this.firstDamageByFrameTeam[1] = 0;
+          this.firstKillByFrameTeam[0] = 0;
+          this.firstKillByFrameTeam[1] = 0;
+          this.firstHeroDamageByFrameTeam[0] = 0;
+          this.firstHeroDamageByFrameTeam[1] = 0;
+          this.lastDamageFrame = -1;
+          this.lastKillFrame = -1;
+          this.lastHeroDamageFrame = -1;
+          this.droppedDiagnosticEventCount = 0;
           this.nextSpawnId = 1;
+        }
+
+        configureDiagnostics(maxSnapshots, maxDiagnosticEvents) {
+          this.maxSnapshots = Math.max(0, Math.floor(maxSnapshots));
+          this.maxDiagnosticEvents = Math.max(0, Math.floor(maxDiagnosticEvents));
         }
 
         isEnabled() {
@@ -120,6 +164,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         hasEnded() {
           return this.ended;
+        }
+
+        getTotalDamage(team) {
+          return this.totalDamage[this.clampTeam(team)];
+        }
+
+        getTotalHeroDamage(team) {
+          return this.totalHeroDamage[this.clampTeam(team)];
         }
 
         recordSpawn(unit, team, unitName, family, tier, waveId, frame, time) {
@@ -146,11 +198,114 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           stats.spawnedCount++;
         }
 
+        recordWaveSpawnEvent(event) {
+          if (!this.isEnabled()) return;
+          if (!event) return;
+          const waveId = Number.isFinite(event.waveId) ? Math.floor(event.waveId) : -1;
+
+          if (waveId >= 0) {
+            this.waveSpawnFrameById.set(waveId, Math.floor(event.frame || 0));
+            this.waveSpawnTimeById.set(waveId, Number.isFinite(event.time) ? event.time : 0);
+          }
+
+          this.pushDiagnosticEvent({ ...event,
+            type: event.type || 'wave-spawn'
+          });
+        }
+
+        recordCombatPointSpent(team, unitName, family, tier, amount, waveId, frame, time) {
+          if (!this.isEnabled()) return;
+          const spent = Math.max(0, Number.isFinite(amount) ? amount : 0);
+          if (spent <= 0) return;
+          const stats = this.getOrCreateStats(team, unitName, family, tier);
+          stats.waveSpawnCount++;
+          stats.totalCombatPointSpent += spent;
+          this.pushDiagnosticEvent({
+            type: 'cp-spent',
+            frame,
+            time,
+            team: this.clampTeam(team),
+            waveId,
+            unitName: unitName || 'unknown',
+            familyName: (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
+              error: Error()
+            }), unitFamilyToName) : unitFamilyToName)(family),
+            amount: spent
+          });
+        }
+
+        recordCombatPointEarned(killer, victim, amount, isCounterKill, frame, time) {
+          if (!this.isEnabled()) return;
+          if (!killer || !killer.props) return;
+          const earned = Math.max(0, Number.isFinite(amount) ? amount : 0);
+          if (earned <= 0) return;
+          const killerStats = this.getOrCreateStatsForUnit(killer);
+          killerStats.totalCombatPointEarned += earned;
+          this.pushDiagnosticEvent({
+            type: 'cp-earned',
+            frame,
+            time,
+            team: this.clampTeam(killer.team),
+            waveId: this.getUnitWaveId(killer),
+            unitName: killer.unitTypeName || 'unknown',
+            familyName: killerStats.familyName,
+            victimTeam: victim && Number.isFinite(victim.team) ? this.clampTeam(victim.team) : undefined,
+            victimWaveId: this.getUnitWaveId(victim),
+            victimUnitName: victim && victim.unitTypeName ? victim.unitTypeName : '',
+            victimFamilyName: victim && victim.props ? (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
+              error: Error()
+            }), unitFamilyToName) : unitFamilyToName)(victim.props.family) : '',
+            amount: earned,
+            isCounter: isCounterKill
+          });
+        }
+
+        recordSnapshot(snapshot) {
+          if (!this.isEnabled()) return;
+          if (!snapshot) return;
+          if (this.maxSnapshots <= 0) return;
+          if (this.snapshots.length >= this.maxSnapshots) return;
+          this.snapshots.push(snapshot);
+        }
+
+        recordFinalSnapshot(snapshot) {
+          if (!this.isEnabled()) return;
+          if (!snapshot) return;
+          this.finalSnapshot = snapshot;
+        }
+
         recordWaveSpawnDecision(decision) {
           if (!this.isEnabled()) return;
           if (!decision) return;
           const normalized = this.normalizeWaveSpawnDecision(decision);
+          const targetSpawnFrame = this.waveSpawnFrameById.get(normalized.targetWaveId);
+          const targetSpawnTime = this.waveSpawnTimeById.get(normalized.targetWaveId);
+
+          if (targetSpawnFrame !== undefined) {
+            normalized.targetWaveSpawnFrame = targetSpawnFrame;
+            normalized.responseDelayFrames = normalized.frame - targetSpawnFrame;
+          }
+
+          if (targetSpawnTime !== undefined) {
+            normalized.responseDelaySeconds = normalized.time - targetSpawnTime;
+          }
+
           this.waveSpawns.push(normalized);
+          this.pushDiagnosticEvent({
+            type: 'spawn-decision',
+            frame: normalized.frame,
+            time: normalized.time,
+            team: normalized.team,
+            waveId: normalized.waveId,
+            laneId: normalized.laneId,
+            unitName: normalized.unitName,
+            familyName: normalized.familyName,
+            targetWaveId: normalized.targetWaveId,
+            targetLaneId: normalized.targetLaneId,
+            targetFamilyName: normalized.targetFamilyName,
+            reason: normalized.reason,
+            aggressiveForward: normalized.aggressiveForward
+          });
           const key = `T${normalized.team}:` + `${normalized.reason}:` + `${normalized.aggressiveForward ? 'aggressive' : 'normal'}:` + `${normalized.familyName}:` + `t${normalized.tier}:` + `${normalized.unitName}`;
           let stats = this.waveSpawnDecisionStats.get(key);
 
@@ -174,7 +329,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        recordDamage(attacker, victim, damage, actualDamage, isCounterDamage) {
+        recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage = false, frame = -1, time = 0) {
           if (!this.isEnabled()) return;
           if (!attacker || !victim) return;
           if (!attacker.props || !victim.props) return;
@@ -184,6 +339,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           const victimStats = this.getOrCreateStatsForUnit(victim);
           attackerStats.totalDamageDealt += dealt;
           victimStats.totalDamageReceived += dealt;
+
+          if (isAreaDamage) {
+            attackerStats.totalAoeDamageDealt += dealt;
+            victimStats.totalAoeDamageReceived += dealt;
+          }
 
           if (isCounterDamage) {
             attackerStats.totalCounterDamageDealt += dealt;
@@ -203,9 +363,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.addRecordValue(attackerStats.damageDealtToUnitType, victimStats.key, dealt);
           this.addRecordValue(victimStats.damageReceivedFromUnitType, attackerStats.key, dealt);
+          this.recordDamageOrder(this.clampTeam(attacker.team), frame, victim.isHero);
+
+          if (victim.isHero || isAreaDamage) {
+            this.pushDiagnosticEvent({
+              type: victim.isHero ? 'hero-damage' : 'area-damage',
+              frame,
+              time,
+              team: this.clampTeam(attacker.team),
+              waveId: this.getUnitWaveId(attacker),
+              unitName: attacker.unitTypeName || 'unknown',
+              familyName: attackerStats.familyName,
+              damage,
+              actualDamage: dealt,
+              isCounter: isCounterDamage,
+              isArea: isAreaDamage,
+              victimTeam: this.clampTeam(victim.team),
+              victimWaveId: this.getUnitWaveId(victim),
+              victimUnitName: victim.unitTypeName || 'unknown',
+              victimFamilyName: victimStats.familyName
+            });
+          }
         }
 
-        recordKill(killer, victim, isCounterKill) {
+        recordKill(killer, victim, isCounterKill, frame = -1, time = 0) {
           if (!this.isEnabled()) return;
           if (!killer || !victim) return;
           if (!killer.props || !victim.props) return;
@@ -223,6 +404,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.addRecordValue(killerStats.killedUnitType, victimStats.key, 1);
           this.addRecordValue(victimStats.killedByUnitType, killerStats.key, 1);
+          this.recordFirstTeamInFrame(this.firstKillByFrameTeam, this.clampTeam(killer.team), frame, 'kill');
+          this.pushDiagnosticEvent({
+            type: victim.isHero ? 'hero-kill' : 'kill',
+            frame,
+            time,
+            team: this.clampTeam(killer.team),
+            waveId: this.getUnitWaveId(killer),
+            unitName: killer.unitTypeName || 'unknown',
+            familyName: killerStats.familyName,
+            isCounter: isCounterKill,
+            victimTeam: this.clampTeam(victim.team),
+            victimWaveId: this.getUnitWaveId(victim),
+            victimUnitName: victim.unitTypeName || 'unknown',
+            victimFamilyName: victimStats.familyName
+          });
         }
 
         recordDespawn(unit, frame, time) {
@@ -251,6 +447,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           });
           const unitTypes = Array.from(this.unitStats.values()).map(stats => {
             stats.averageLifetime = stats.spawnedCount > 0 ? stats.totalLifetime / stats.spawnedCount : 0;
+            stats.netCombatPoint = stats.totalCombatPointEarned - stats.totalCombatPointSpent;
+            const spent = Math.max(0.0001, stats.totalCombatPointSpent);
+            stats.damagePerCombatPointSpent = stats.totalDamageDealt / spent;
+            stats.killsPerCombatPointSpent = stats.totalKills / spent;
+            stats.heroDamagePerCombatPointSpent = stats.totalHeroDamageDealt / spent;
+            stats.lifetimePerCombatPointSpent = stats.totalLifetime / spent;
             return stats;
           }).sort((a, b) => a.team - b.team || a.family - b.family || a.tier - b.tier || a.name.localeCompare(b.name));
           const spawnDecisionStats = Array.from(this.waveSpawnDecisionStats.values()).sort((a, b) => a.team - b.team || a.reason.localeCompare(b.reason) || Number(a.aggressiveForward) - Number(b.aggressiveForward) || a.family - b.family || a.unitName.localeCompare(b.unitName));
@@ -293,6 +495,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             config: this.startConfig,
             waveSpawns: this.waveSpawns.slice(),
             spawnDecisionStats,
+            diagnostics: {
+              limits: {
+                maxSnapshots: this.maxSnapshots,
+                maxDiagnosticEvents: this.maxDiagnosticEvents,
+                droppedDiagnosticEventCount: this.droppedDiagnosticEventCount
+              },
+              frameOrderStats: {
+                firstDamageByFrameTeam: this.firstDamageByFrameTeam.slice(),
+                firstKillByFrameTeam: this.firstKillByFrameTeam.slice(),
+                firstHeroDamageByFrameTeam: this.firstHeroDamageByFrameTeam.slice()
+              },
+              snapshots: this.snapshots.slice(),
+              finalSnapshot: this.finalSnapshot,
+              events: this.diagnosticEvents.slice()
+            },
             unitTypes
           };
         }
@@ -391,8 +608,71 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             firstEnemyFromSpawn: !!decision.firstEnemyFromSpawn,
             coverage: Number.isFinite(decision.coverage) ? decision.coverage : 0,
             uncovered: Number.isFinite(decision.uncovered) ? decision.uncovered : 0,
-            threatScore: Number.isFinite(decision.threatScore) ? decision.threatScore : 0
+            threatScore: Number.isFinite(decision.threatScore) ? decision.threatScore : 0,
+            targetWaveSpawnFrame: Number.isFinite(decision.targetWaveSpawnFrame) ? Math.floor(decision.targetWaveSpawnFrame) : undefined,
+            responseDelayFrames: Number.isFinite(decision.responseDelayFrames) ? Math.floor(decision.responseDelayFrames) : undefined,
+            responseDelaySeconds: Number.isFinite(decision.responseDelaySeconds) ? decision.responseDelaySeconds : undefined,
+            decisionPath: decision.decisionPath || '',
+            decisionAccuracy: Number.isFinite(decision.decisionAccuracy) ? decision.decisionAccuracy : undefined,
+            accuracyRoll: Number.isFinite(decision.accuracyRoll) ? decision.accuracyRoll : undefined,
+            accurateDecision: decision.accurateDecision === undefined ? undefined : !!decision.accurateDecision,
+            deliberateMistakeRoll: Number.isFinite(decision.deliberateMistakeRoll) ? decision.deliberateMistakeRoll : undefined,
+            deliberateMistake: decision.deliberateMistake === undefined ? undefined : !!decision.deliberateMistake,
+            aggressiveForwardChance: Number.isFinite(decision.aggressiveForwardChance) ? decision.aggressiveForwardChance : undefined,
+            aggressiveRoll: Number.isFinite(decision.aggressiveRoll) ? decision.aggressiveRoll : undefined,
+            aggressiveSource: decision.aggressiveSource || '',
+            flankStrikeRatio: Number.isFinite(decision.flankStrikeRatio) ? decision.flankStrikeRatio : undefined,
+            flankStrikeRoll: Number.isFinite(decision.flankStrikeRoll) ? decision.flankStrikeRoll : undefined,
+            aggressiveFastestEntryChance: Number.isFinite(decision.aggressiveFastestEntryChance) ? decision.aggressiveFastestEntryChance : undefined,
+            aggressiveFastestRoll: Number.isFinite(decision.aggressiveFastestRoll) ? decision.aggressiveFastestRoll : undefined,
+            aggressiveUseFastest: decision.aggressiveUseFastest === undefined ? undefined : !!decision.aggressiveUseFastest,
+            fastReactCounterChance: Number.isFinite(decision.fastReactCounterChance) ? decision.fastReactCounterChance : undefined,
+            fastReactRoll: Number.isFinite(decision.fastReactRoll) ? decision.fastReactRoll : undefined,
+            aliveWaveCountAtDecision: Number.isFinite(decision.aliveWaveCountAtDecision) ? Math.floor(decision.aliveWaveCountAtDecision) : undefined,
+            affordableEntryCount: Number.isFinite(decision.affordableEntryCount) ? Math.floor(decision.affordableEntryCount) : undefined,
+            activeEnemyIntelCount: Number.isFinite(decision.activeEnemyIntelCount) ? Math.floor(decision.activeEnemyIntelCount) : undefined
           };
+        }
+
+        recordDamageOrder(team, frame, victimIsHero) {
+          this.recordFirstTeamInFrame(this.firstDamageByFrameTeam, team, frame, 'damage');
+          if (!victimIsHero) return;
+          this.recordFirstTeamInFrame(this.firstHeroDamageByFrameTeam, team, frame, 'hero-damage');
+        }
+
+        recordFirstTeamInFrame(target, team, frame, kind) {
+          if (!Number.isFinite(frame) || frame < 0) return;
+
+          if (kind === 'damage') {
+            if (this.lastDamageFrame === frame) return;
+            this.lastDamageFrame = frame;
+          } else if (kind === 'kill') {
+            if (this.lastKillFrame === frame) return;
+            this.lastKillFrame = frame;
+          } else if (kind === 'hero-damage') {
+            if (this.lastHeroDamageFrame === frame) return;
+            this.lastHeroDamageFrame = frame;
+          }
+
+          target[team]++;
+        }
+
+        getUnitWaveId(unit) {
+          if (!unit) return -1;
+          if (!Number.isFinite(unit.waveRuntimeId)) return -1;
+          return Math.floor(unit.waveRuntimeId);
+        }
+
+        pushDiagnosticEvent(event) {
+          if (!event) return;
+          if (this.maxDiagnosticEvents <= 0) return;
+
+          if (this.diagnosticEvents.length >= this.maxDiagnosticEvents) {
+            this.droppedDiagnosticEventCount++;
+            return;
+          }
+
+          this.diagnosticEvents.push(event);
         }
 
         clampTeam(team) {

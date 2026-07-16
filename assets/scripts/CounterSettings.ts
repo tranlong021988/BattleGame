@@ -152,6 +152,13 @@ export class CounterSettings extends Component {
 
         this.addRule(
             UnitFamily.Archer,
+            UnitFamily.Monk,
+            hardCounter,
+            'Archer hard-counters Monk'
+        );
+
+        this.addRule(
+            UnitFamily.Archer,
             UnitFamily.Spear,
             hardCounter,
             'Archer hard-counters Spear'

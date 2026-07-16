@@ -211,6 +211,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.affordableEntries = [];
           this.bestEntryBuffer = [];
           this.counterCandidateBuffer = [];
+          this.pendingDecisionTelemetry = null;
         }
 
         start() {
@@ -268,7 +269,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (Math.random() > this.clamp01(this.fastReactCounterChance)) {
+          this.clearTelemetryDecisionContext();
+          const fastReactChance = this.clamp01(this.fastReactCounterChance);
+          const fastReactRoll = Math.random();
+
+          if (fastReactRoll > fastReactChance) {
             return;
           }
 
@@ -291,12 +296,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (!this.rollAccurateDecision()) {
+          const accuracyRoll = Math.random();
+          const accurateDecision = accuracyRoll < this.getDecisionAccuracy();
+
+          if (!accurateDecision) {
             this.debugLog('Fast react skip: inaccurate decision.');
             return;
           }
 
           this.rebuildIntel();
+          this.beginTelemetryDecisionContext('fast-react-response', aliveWaveCount, {
+            fastReactCounterChance: fastReactChance,
+            fastReactRoll,
+            decisionAccuracy: this.getDecisionAccuracy(),
+            accuracyRoll,
+            accurateDecision,
+            activeEnemyIntelCount: this.activeEnemyIntelCount
+          });
           const targetIntel = this.findIntelForWave(wave);
 
           if (!this.isResponseCandidate(targetIntel)) {
@@ -315,6 +331,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         thinkAndSpawn() {
           if (!this.gameManager) return;
+          this.clearTelemetryDecisionContext();
           const aliveWaveCount = this.getAliveWaveCount(this.team);
           this.refreshMaxAliveWaveReached(aliveWaveCount);
 
@@ -332,13 +349,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          const accurateDecision = this.rollAccurateDecision();
+          const accuracyRoll = Math.random();
+          const accurateDecision = accuracyRoll < this.getDecisionAccuracy();
+          this.beginTelemetryDecisionContext('think', aliveWaveCount, {
+            decisionAccuracy: this.getDecisionAccuracy(),
+            accuracyRoll,
+            accurateDecision
+          });
 
           if (!accurateDecision) {
-            const deliberateMistake = Math.random() < 1 - this.getDecisionAccuracy();
+            const deliberateMistakeRoll = Math.random();
+            const deliberateMistake = deliberateMistakeRoll < 1 - this.getDecisionAccuracy();
+            this.updateTelemetryDecisionContext({
+              decisionPath: deliberateMistake ? 'deliberate-mistake' : 'naive',
+              deliberateMistakeRoll,
+              deliberateMistake
+            });
 
             if (deliberateMistake) {
               this.rebuildIntel();
+              this.updateTelemetryDecisionContext({
+                activeEnemyIntelCount: this.activeEnemyIntelCount
+              });
 
               if (this.spawnDeliberatelyBadWave()) {
                 return;
@@ -353,9 +385,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.rebuildIntel();
+          this.updateTelemetryDecisionContext({
+            activeEnemyIntelCount: this.activeEnemyIntelCount
+          });
           const responseTarget = this.findBestResponseTarget();
 
           if (responseTarget) {
+            this.updateTelemetryDecisionContext({
+              decisionPath: 'response'
+            });
+
             if (!this.spawnResponse(responseTarget, 'response')) {
               this.recordDecisionSkip('response-spawn-failed');
             }
@@ -363,11 +402,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
+          this.updateTelemetryDecisionContext({
+            decisionPath: 'aggressive-empty-lane'
+          });
+
           if (this.trySpawnAggressiveForward('No reachable response target')) {
             return;
           }
 
           if (this.activeEnemyIntelCount <= 0 && this.spawnOpeningWaveIfNoEnemyWave) {
+            this.updateTelemetryDecisionContext({
+              decisionPath: 'opening'
+            });
             this.spawnOpeningWave();
             return;
           }
@@ -559,15 +605,33 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         shouldSpawnCounterAggressiveForward(intel, spawnLaneId) {
           if (spawnLaneId === intel.laneId) {
             if (intel.allyBlockersFromSpawn > 0) {
+              this.updateTelemetryDecisionContext({
+                aggressiveSource: 'ally-blocker-force-aggressive',
+                aggressiveForwardChance: this.clamp01(this.aggressiveForwardChance)
+              });
               return true;
             }
 
             if (intel.allyCountInLane <= 0 && intel.allyBlockersFromSpawn <= 0) {
-              return Math.random() >= this.clamp01(this.flankStrikeRatio);
+              const flankStrikeRatio = this.clamp01(this.flankStrikeRatio);
+              const flankStrikeRoll = Math.random();
+              const aggressive = flankStrikeRoll >= flankStrikeRatio;
+              this.updateTelemetryDecisionContext({
+                aggressiveSource: aggressive ? 'clean-lane-hero-raid' : 'clean-lane-flank-strike',
+                aggressiveForwardChance: this.clamp01(this.aggressiveForwardChance),
+                flankStrikeRatio,
+                flankStrikeRoll
+              });
+              return aggressive;
             }
           }
 
-          return this.shouldSpawnAggressiveForward();
+          const aggressive = this.shouldSpawnAggressiveForward();
+          this.updateTelemetryDecisionContext({
+            aggressiveSource: aggressive ? 'pre-max-alive-default' : 'post-max-alive-default',
+            aggressiveForwardChance: this.clamp01(this.aggressiveForwardChance)
+          });
+          return aggressive;
         }
 
         chooseEntryForTarget(intel) {
@@ -621,7 +685,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!entry) return false;
           const laneCount = this.gameManager.getSafeLaneCount();
           const laneId = laneCount > 0 ? Math.floor(Math.random() * laneCount) : -1;
-          const aggressiveForward = Math.random() < this.clamp01(this.aggressiveForwardChance);
+          const aggressiveForwardChance = this.clamp01(this.aggressiveForwardChance);
+          const aggressiveRoll = Math.random();
+          const aggressiveForward = aggressiveRoll < aggressiveForwardChance;
+          this.updateTelemetryDecisionContext({
+            decisionPath: 'naive',
+            aggressiveForwardChance,
+            aggressiveRoll,
+            aggressiveSource: 'naive-random-roll'
+          });
           const spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, aggressiveForward);
           if (!spawned) return false;
           this.recordDecisionSpawn(aggressiveForward, 'naive');
@@ -710,6 +782,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const laneId = randomLaneId >= 0 ? randomLaneId : targetIntel.laneId;
           const spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, false);
           if (!spawned) return false;
+          this.updateTelemetryDecisionContext({
+            aggressiveSource: 'deliberate-mistake-normal',
+            aggressiveForwardChance: this.clamp01(this.aggressiveForwardChance),
+            aggressiveRoll: undefined,
+            flankStrikeRoll: undefined,
+            aggressiveFastestRoll: undefined,
+            aggressiveUseFastest: undefined
+          });
           this.recordDecisionSpawn(false, 'deliberate-mistake');
           this.recordTelemetrySpawnDecision(spawned, entry, laneId, false, `deliberate-mistake:${mistakeKind}`, targetIntel);
           this.stateLog(`DELIBERATE_MISTAKE wave=${targetIntel.wave.id} ` + `target=${(_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
@@ -760,8 +840,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         trySpawnAggressiveForward(reason) {
           if (!this.gameManager) return false;
+          const aggressiveForwardChance = this.clamp01(this.aggressiveForwardChance);
+          const aggressiveRoll = Math.random();
+          this.updateTelemetryDecisionContext({
+            decisionPath: 'aggressive-empty-lane',
+            aggressiveForwardChance,
+            aggressiveRoll,
+            aggressiveSource: 'empty-lane-roll'
+          });
 
-          if (Math.random() > this.clamp01(this.aggressiveForwardChance)) {
+          if (aggressiveRoll > aggressiveForwardChance) {
             return false;
           }
 
@@ -771,7 +859,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
-          const useFastest = Math.random() < this.clamp01(this.aggressiveFastestEntryChance);
+          const aggressiveFastestEntryChance = this.clamp01(this.aggressiveFastestEntryChance);
+          const aggressiveFastestRoll = Math.random();
+          const useFastest = aggressiveFastestRoll < aggressiveFastestEntryChance;
+          this.updateTelemetryDecisionContext({
+            aggressiveFastestEntryChance,
+            aggressiveFastestRoll,
+            aggressiveUseFastest: useFastest
+          });
           const entry = useFastest ? this.getFastestAffordableEntry() : this.getRandomAffordableEntry();
           if (!entry) return false;
           const spawned = this.gameManager.spawnWaveByEntry(this.team, entry, laneId, true);
@@ -788,6 +883,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const entry = this.getRandomAffordableEntry();
           if (!entry) return false;
           const aggressiveForward = this.shouldSpawnAggressiveForward();
+          this.updateTelemetryDecisionContext({
+            decisionPath: 'opening',
+            aggressiveForwardChance: this.clamp01(this.aggressiveForwardChance),
+            aggressiveSource: aggressiveForward ? 'opening-pre-max-alive' : 'opening-post-max-alive',
+            aggressiveRoll: undefined,
+            flankStrikeRoll: undefined,
+            aggressiveFastestRoll: undefined,
+            aggressiveUseFastest: undefined
+          });
           const spawned = this.gameManager.spawnWaveByEntry(this.team, entry, -1, aggressiveForward);
           if (!spawned) return false;
           this.recordDecisionSpawn(aggressiveForward, 'opening');
@@ -800,6 +904,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.gameManager) return;
           if (!wave || !entry) return;
           const targetWave = intel && intel.wave ? intel.wave : null;
+          const telemetryContext = this.consumeTelemetryDecisionContext();
           this.gameManager.recordBattleTelemetryWaveSpawnDecision({
             team: this.team,
             waveId: wave.id,
@@ -826,7 +931,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             firstEnemyFromSpawn: intel ? intel.firstEnemyFromSpawn : false,
             coverage: intel ? intel.coverage : 0,
             uncovered: intel ? intel.uncovered : 0,
-            threatScore: intel ? intel.threatScore : 0
+            threatScore: intel ? intel.threatScore : 0,
+            ...telemetryContext
           });
         }
 
@@ -1334,6 +1440,34 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         rollAccurateDecision() {
           return Math.random() < this.getDecisionAccuracy();
+        }
+
+        beginTelemetryDecisionContext(decisionPath, aliveWaveCount, extra = {}) {
+          this.pendingDecisionTelemetry = {
+            decisionPath,
+            aliveWaveCountAtDecision: aliveWaveCount,
+            affordableEntryCount: this.affordableEntries.length,
+            activeEnemyIntelCount: this.activeEnemyIntelCount,
+            ...extra
+          };
+        }
+
+        updateTelemetryDecisionContext(values) {
+          if (!this.pendingDecisionTelemetry) {
+            this.pendingDecisionTelemetry = {};
+          }
+
+          Object.assign(this.pendingDecisionTelemetry, values);
+        }
+
+        consumeTelemetryDecisionContext() {
+          const context = this.pendingDecisionTelemetry || {};
+          this.pendingDecisionTelemetry = null;
+          return context;
+        }
+
+        clearTelemetryDecisionContext() {
+          this.pendingDecisionTelemetry = null;
         }
 
         clamp01(v) {

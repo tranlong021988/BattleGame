@@ -103,7 +103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return instantiate(prefab);
         }
 
-        spawnUnit(prefab, unitTypeName, family, tier, pos, team, parent, maxSpeed, canBePush, canBePassedThroughByForwardAlly, attackRange, attackIntervalMin, attackIntervalMax, health, damage, defense) {
+        spawnUnit(prefab, unitTypeName, family, tier, pos, team, parent, maxSpeed, canBePush, canBePassedThroughByForwardAlly, attackRange, attackIntervalMin, attackIntervalMax, health, damage, damageRadius, defense) {
           const node = this.getNode(prefab);
 
           if (node.parent !== parent) {
@@ -130,6 +130,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           props.tier = Math.max(1, Math.min(3, Math.floor(tier)));
           props.maxHealth = health;
           props.damage = damage;
+          props.damageRadius = Math.max(0, damageRadius);
           props.defense = defense;
           props.resetForSpawn();
           const forwardX = 0;
