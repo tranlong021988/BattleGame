@@ -117,6 +117,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         dealDamageToEnemy(enemy) {
+          this.applyDamageToEnemy(enemy, false);
+          this.dealAreaDamageAround(enemy);
+          this.finishDamagedEnemy(enemy);
+        }
+
+        applyDamageToEnemy(enemy, isAreaDamage) {
           const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
@@ -137,23 +143,69 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), GameManager) : GameManager).instance;
 
           if (gm) {
-            gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage);
+            gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage, isAreaDamage);
           }
 
           enemy.props.takeDamage(finalDamage);
+        }
+
+        finishDamagedEnemy(enemy) {
+          if (!enemy || !enemy.props) return;
 
           if (!enemy.props.isDead()) {
             enemy.reactToAttacker(this.unit);
+            return;
           }
 
-          if (enemy.props.isDead()) {
-            if (gm) {
-              gm.reportKill(this.unit, enemy);
-              gm.despawnUnit(enemy);
-            }
+          const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          const wasCurrentTarget = this.unit.getValidEnemyTarget() === enemy;
 
+          if (gm) {
+            gm.reportKill(this.unit, enemy);
+            gm.despawnUnit(enemy);
+          }
+
+          if (wasCurrentTarget) {
             this.unit.clearEnemy();
           }
+        }
+
+        dealAreaDamageAround(primaryTarget) {
+          const damageRadius = Math.max(0, this.props.damageRadius);
+          if (damageRadius <= 0) return;
+          if (!primaryTarget || !primaryTarget.agent) return;
+          const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm) return;
+          const maxEnemyRadius = gm.spatialGrid ? gm.spatialGrid.getMaxEnemyRadius(this.unit.team) : primaryTarget.radius;
+          const queryRadius = Math.max(0, primaryTarget.radius) + damageRadius + Math.max(0, maxEnemyRadius);
+          const enemies = gm.spatialGrid ? gm.spatialGrid.queryEnemies(this.unit.team, primaryTarget.agent.pos.x, primaryTarget.agent.pos.z, queryRadius) : this.getEnemyListFallback(gm);
+          const centerX = primaryTarget.agent.pos.x;
+          const centerZ = primaryTarget.agent.pos.z;
+
+          for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            if (!enemy || enemy === primaryTarget) continue;
+            if (!enemy.agent) continue;
+            if (!enemy.props || enemy.props.isDead()) continue;
+            const effectiveRadius = Math.max(0, primaryTarget.radius) + damageRadius + Math.max(0, enemy.radius);
+            const dx = enemy.agent.pos.x - centerX;
+            const dz = enemy.agent.pos.z - centerZ;
+
+            if (dx * dx + dz * dz > effectiveRadius * effectiveRadius) {
+              continue;
+            }
+
+            this.applyDamageToEnemy(enemy, true);
+            this.finishDamagedEnemy(enemy);
+          }
+        }
+
+        getEnemyListFallback(gm) {
+          return this.unit.team === 0 ? gm.teamB : gm.teamA;
         }
 
         randomizeNextAttackInterval() {

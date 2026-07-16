@@ -82,6 +82,13 @@ export class UnitPrefabEntry {
     @property
     attackRange: number = 1.2;
 
+    @property({
+        min: 0,
+        tooltip:
+            'Area damage radius measured from the attacked enemy body edge. 0 means single-target damage only.',
+    })
+    damageRadius: number = 0;
+
     @property
     attackIntervalMin: number = 0.4;
 

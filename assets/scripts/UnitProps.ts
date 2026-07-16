@@ -24,6 +24,13 @@ export class UnitProps extends Component {
     @property
     damage: number = 1;
 
+    @property({
+        min: 0,
+        tooltip:
+            'Area damage radius measured from the primary target body edge. 0 means single-target damage only.',
+    })
+    damageRadius: number = 0;
+
     @property
     defense: number = 0;
 

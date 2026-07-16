@@ -2,7 +2,7 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-15 by the home Codex.
+Last updated: 2026-07-16 by the office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
@@ -31,16 +31,27 @@ node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\nod
 - There is no regroup-to-slot formation movement in the accepted flow. The only accepted lane-return behavior is the lightweight per-unit `freehunt -> forward` back-to-lane phase described below.
 - Minimap is not a current gameplay target. The user said they do not intend to use minimap in the game. Avoid treating minimap as an active performance suspect unless the user explicitly re-enables it.
 
-## Latest 2026-07-15 Home Handoff - T1 Balance Telemetry And Spear Adjustment
+## Latest 2026-07-16 Office Handoff - Balance Method, Economy Telemetry, And Current Diagnosis
 
-This section supersedes older 7-unit / Skirmisher balance notes and earlier 2026-07-15 balance interpretations below. The important lesson from today's tests is: **do not judge unit balance from kill/CP stats alone before checking SmartArmyBrain spawn-policy bias**.
+This section supersedes the older 2026-07-15 balance interpretation below. Keep the archived notes for history, but treat this section and `UNITSTATS.md` as the current working context. The core lesson from today: **define "balanced enough" before changing more stats, and diagnose the AI/economy flow before blaming one unit stat**.
 
-### Active Unit System
+### What "Balanced Enough" Means Now
 
-- Active test scope now uses **6 tier-1 troop entries per team**.
-- `Skirmisher` was removed from the active unit system to reduce ranged saturation.
-- Legacy Skirmisher `UnitPrefabEntry` objects still exist inside `assets/Test.scene` as unreferenced serialized objects, renamed to `legacy_skirmisher_t1_disabled` and `unlocked=false`. Do not delete raw scene objects just to clean this up because Cocos scene references are index-based.
-- Active `BattleUnitDatabase.teamAUnits` and `teamBUnits` order:
+Do not chase perfect 50/50 in every small batch. The user wants a game where troop choice matters, mistakes are punished, and later levels can become harder through enemy CP and AI accuracy.
+
+Use these criteria:
+
+- **Unit-system balance test**: both teams use the same `SmartArmyBrain`, same `decisionAccuracy`, same CP, same database. Over 30-50 matches, `40%-60%` winrate is good, `35%-65%` can still be acceptable with randomness, and repeated `70%-30%` or `9-1` batches need investigation.
+- **Difficulty test**: AI/CP are intentionally different. Enemy winrate should increase with level because `decisionAccuracy` and enemy CP increase. A hard level can be lopsided; that is not the same as a unit-system balance bug.
+- **Counter value**: choosing the correct counter must be visibly and statistically better than choosing wrong.
+- **No auto-value unit**: no unit should be good in almost every situation regardless of enemy composition.
+- **No hidden snowball loop**: if `Ranged -> Cavalry -> Spear` repeatedly creates an unavoidable economy collapse, diagnose that loop directly instead of only nerfing the last unit in the chain.
+
+### Current Active Unit System
+
+Current test scope is still **6 tier-1 troop entries per team**. Skirmisher is inactive for this balance pass.
+
+Active `BattleUnitDatabase.teamAUnits` and `teamBUnits` order:
 
 ```text
 axeman_t1
@@ -51,36 +62,28 @@ monk_t1
 archer_t1
 ```
 
-### Active Stats
-
-These are also recorded in `UNITSTATS.md`, which remains the balance source of truth.
+`UNITSTATS.md` is the stat source of truth. Current active stats:
 
 ```text
-axeman_t1   count 10, cost 32, hp 150, atk 25, def 3, speed 3.0, range 1.0, interval 1.10-1.40
-cavalry_t1 count 10, cost 52, hp 170, atk 24, def 5, speed 6.0, range 1.0, interval 1.10-1.40
-sword_t1   count 10, cost 24, hp 145, atk 20, def 7, speed 3.5, range 1.0, interval 0.90-1.20
-spear_t1   count 10, cost 20, hp 125, atk 16, def 4, speed 3.0, range 2.0, interval 1.10-1.40
-monk_t1    count  3, cost 52, hp  90, atk 30, def 0, speed 3.0, range 5.5, interval 2.30-2.90
-archer_t1  count  5, cost 28, hp  80, atk 15, def 0, speed 3.0, range 6.0, interval 1.50-1.90
+axeman_t1   count 10, cost 32, hp 150, atk 25, def 3, speed 3.0, range 0.35, damageRadius 0.0, interval 1.10-1.40
+cavalry_t1 count 10, cost 52, hp 170, atk 24, def 5, speed 6.0, range 0.35, damageRadius 0.0, interval 1.10-1.40
+sword_t1   count 10, cost 24, hp 145, atk 20, def 7, speed 3.5, range 0.35, damageRadius 0.0, interval 0.90-1.20
+spear_t1   count 10, cost 20, hp 125, atk 16, def 4, speed 3.0, range 1.00, damageRadius 0.0, interval 1.10-1.40
+monk_t1    count  2, cost 52, hp  90, atk 28, def 0, speed 3.0, range 5.50, damageRadius 0.5, interval 2.30-2.90
+archer_t1  count  5, cost 28, hp  80, atk 15, def 0, speed 3.0, range 6.00, damageRadius 0.0, interval 1.50-1.90
 ```
 
-Today's accepted stat change:
+Important range note:
 
 ```text
-spear_t1:
-  cost: 18 -> 20
-  attackIntervalMin: 1.00 -> 1.10
-  attackIntervalMax: 1.30 -> 1.40
+effectiveRange = attackRange + attacker.radius + defender.radius
 ```
 
-Only Spear was changed. Spear HP, damage, defense, speed, range, and unit count were intentionally left unchanged. The change was applied to `UNITSTATS.md` and both Team A/B `spear_t1` entries in `assets/Test.scene`.
+So even melee `range 0.35` is not literal center-to-center distance.
 
-The user correctly noted that SmartArmyBrain does not currently evaluate cost efficiency directly. Treat the Spear cost increase as an economy/affordability pacing knob, while the interval increase is the direct combat nerf.
+### Current Counter Rules
 
-### Active Counter Rules
-
-- The active `CounterSettings.rules` list now has exactly 7 rules.
-- Cavalry intentionally counters both ranged families. This breaks the previous one-counter-per-family loop on purpose because fast units are the natural answer to ranged units, and Spear already hard-counters Cavalry.
+Active `CounterSettings.rules`:
 
 ```text
 Spear   > Cavalry
@@ -92,144 +95,210 @@ Axeman  > Sword
 Sword   > Spear
 ```
 
-- `CounterSettings.createDefaultRules()` was updated to match the scene.
-- Hard counter multiplier remains `3.0`.
-- Melee unit count is fixed at `10` for active balance passes. Do not reduce melee count to balance them; use HP, damage, defense, speed, interval, and cost instead.
+Hard counter multiplier is `3.0`.
 
-### SmartArmyBrain Spawn Policy Changes Today
+Important design implication:
 
-- `SmartArmyBrain.aggressiveForwardChance` still means: chance to attempt an empty-lane aggressive raid when the AI has no useful response target / opening / naive branch.
-- It should **not** also imply "always choose Cavalry".
-- Added `SmartArmyBrain.aggressiveFastestEntryChance`:
-  - `1.0`: empty-lane aggressive raid chooses the fastest affordable unit, matching old behavior;
-  - `0.0`: empty-lane aggressive raid chooses a random affordable unit;
-  - `0.5`: half fastest, half random.
-- `trySpawnAggressiveForward()` now rolls `aggressiveFastestEntryChance` after the aggressive raid branch has already been selected.
-- Telemetry reason now distinguishes:
-  - `aggressive-empty-lane-fastest`;
-  - `aggressive-empty-lane-random`.
-- This split is intentional because the previous behavior created indirect Cavalry bias: Cavalry is fastest, so every empty-lane aggressive raid was effectively Cavalry.
-- `LevelSettings` now scales the new knob with:
-  - `aggressiveFastestEntryChanceMin`;
-  - `aggressiveFastestEntryChanceMax`.
-- Defaults:
-  - `SmartArmyBrain.aggressiveFastestEntryChance = 1.0` to preserve behavior when LevelSettings is disabled;
-  - `LevelSettings` scales `0 -> 1`, so low levels can be random and high levels can prefer fastest raiders.
+- Cavalry intentionally counters **both** ranged families, Archer and Monk.
+- This creates a funnel: ranged presence tends to force Cavalry, and Cavalry presence tends to force Spear.
+- Therefore high `Spear > Cavalry` numbers may mean Spear is overtuned, but may also mean Cavalry is overexposed because it has two response jobs.
 
-### Telemetry Changes Today
+### Implemented Today: Economy Telemetry
 
-`BattleTelemetry` now records AI wave-spawn decision metadata in addition to unit combat aggregates.
+Reason:
 
-New report fields:
+- The user challenged the previous diagnosis that hero damage/hero-line pressure was the main reason for victory.
+- We needed to know whether the losing side was truly being raided early, or whether it had already lost the resource/army war and the hero death was only the final symptom.
 
-- `waveSpawns`: one row per SmartArmyBrain wave spawn decision.
-- `spawnDecisionStats`: aggregate grouped by team, reason, aggressive flag, family, tier, and unit name.
+Implemented in `BattleTelemetry.ts` / `GameManager.ts`:
 
-Each spawn decision includes:
+- `recordCombatPointSpent(...)`
+- `recordCombatPointEarned(...)`
+- per-unit-type fields:
+  - `waveSpawnCount`
+  - `totalCombatPointSpent`
+  - `totalCombatPointEarned`
+  - `netCombatPoint`
+  - `damagePerCombatPointSpent`
+  - `killsPerCombatPointSpent`
+  - `heroDamagePerCombatPointSpent`
+  - `lifetimePerCombatPointSpent`
+- diagnostic events:
+  - `cp-spent`
+  - `cp-earned`
 
-- `team`;
-- `waveId`;
-- `frame`;
-- `time`;
-- `reason`;
-- `aggressiveForward`;
-- `laneId`;
-- spawned `unitName`, `family`, `familyName`, `tier`;
-- target info when applicable: `targetWaveId`, `targetLaneId`, `targetFamily`, `targetFamilyName`;
-- tactical context when applicable: `responseTier`, `allyBlockersFromSpawn`, `allyCountInLane`, `firstEnemyFromSpawn`, `coverage`, `uncovered`, `threatScore`.
+Result:
 
-Current reasons emitted by SmartArmyBrain:
+- Typecheck passed after implementation.
+- The new telemetry works and appears in exported reports.
+- In the most recent 10-report batch, `totalCombatPointEarned` was `0` for all unit types because CP reward was effectively disabled in that test setup. That is expected for this batch and means the useful economy fields are currently CP spent and efficiency per CP spent.
+
+### Current Telemetry Method
+
+Telemetry now provides:
+
+- Match result:
+  - `winnerTeam`, `loserTeam`, reason, duration.
+- Team final state:
+  - CP, alive count, death/kill/counter-kill count, total damage, total hero damage.
+- Config snapshot:
+  - active unit stats, CP, bounds, lane count, counter rules.
+- Unit-type aggregate:
+  - spawn count, wave spawn count, deaths, alive at end;
+  - total/average lifetime;
+  - damage dealt/received;
+  - counter damage dealt/received;
+  - hero damage dealt;
+  - area damage dealt/received;
+  - kills, deaths, counter kills, deaths to counter;
+  - killed-by and killed-unit matrices;
+  - damage dealt/received matrices;
+  - CP spent/earned/net and per-CP efficiency.
+- SmartArmyBrain policy telemetry:
+  - `waveSpawns`: one row per AI spawn decision;
+  - `spawnDecisionStats`: aggregated by team, reason, aggressive flag, family, tier, unit name;
+  - target context: target wave/lane/family;
+  - tactical context: `responseTier`, `allyBlockersFromSpawn`, `allyCountInLane`, `firstEnemyFromSpawn`, `coverage`, `uncovered`, `threatScore`, `decisionAccuracy`, `accuracyRoll`, `aggressiveSource`.
+- Diagnostic events:
+  - `wave-spawn`, `spawn-decision`, `kill`, `hero-damage`, `hero-kill`, `area-damage`, `cp-spent`, `cp-earned`, hero registration.
+
+Use telemetry like this:
+
+1. First check if a batch is a **unit-system balance test** or **difficulty test**.
+2. Check winner distribution, then CP/alive state at match end.
+3. If a unit looks strong, check:
+   - spawn count and CP spent;
+   - target exposure;
+   - damage/CP, kill/CP, heroDamage/CP;
+   - who spawned it and why via `spawnDecisionStats` / `waveSpawns`;
+   - whether the unit is strong by stat or merely overrepresented by AI policy.
+4. Do not diagnose from raw kills alone.
+
+### Result From Latest 10-Report Batch
+
+Files analyzed:
 
 ```text
-response
-fast-react-response
-aggressive-empty-lane-fastest
-aggressive-empty-lane-random
-opening
-naive
-deliberate-mistake:losing
-deliberate-mistake:neutral
-deliberate-mistake:weakest
+battle-telemetry-2026-07-16T11-30-58-102Z.json
+...
+battle-telemetry-2026-07-16T11-47-07-082Z.json
 ```
 
-Use `spawnDecisionStats` first when diagnosing why a family is overrepresented. Example: if Cavalry is high, check how much came from `Cavalry>Archer/Monk:response` versus `aggressive-empty-lane-fastest`.
+High-level result:
 
-### Balance Problem, Cause, Solution, Results
+- Team 0 won `9/10`.
+- All 10 ended with reason `hero-killed`.
+- At the exact end, loser had enough CP to spawn the cheapest unit in `0/10` matches.
+- Winner still had enough CP to spawn in `4/10` matches.
+- Therefore current result is better read as: **losing side already collapsed economically / militarily; hero death came after that**.
 
-Current balance task: tune tier-1 unit stats/cost so the counter pairs stay reasonably stable. The user and the office Codex tested `decisionAccuracy = 1.0` first and saw the `Spear > Cavalry` pair dominate. The home test then used `decisionAccuracy = 0.5` to see whether a weaker/noisier AI still overproduces the same pair.
+Important source setting:
 
-Problem:
+- `GameManager.enableNoAffordableSpawnWinnerFallback` is currently `false`.
+- Because of that, the match does not resolve when one team can no longer afford any unit. It continues until hero death.
+- This is useful when we specifically want hero-kill reports, but it can hide the earlier economic loss point.
 
-- Raw counter kill share made `Spear > Cavalry` look much larger than the other counter pairs.
-- Before the Spear adjustment, one `decisionAccuracy = 0.5` batch had:
-  - 11 reports;
-  - winrate `Team0 6` / `Team1 5`;
-  - average duration about `101s`;
-  - `Spear > Cavalry = 30.7%` of tracked counter-rule kills;
-  - grouped `Cavalry > Ranged = 13.4%` (`Cavalry > Archer 7.0%` + `Cavalry > Monk 6.4%`).
+Recommended test switch:
 
-Cause / statistical interpretation:
+- For pure unit/economy balance batches, strongly consider enabling `enableNoAffordableSpawnWinnerFallback = true`.
+- For final gameplay feel / hero defense tests, keep hero-kill resolution if desired.
 
-- Do not read `30.7%` as "Spear is 2x stronger than everything else" without normalization.
-- Cavalry is a funnel/exposure unit:
-  - Cavalry counters both active ranged families: Archer and Monk;
-  - Spear is the only hard counter to Cavalry;
-  - therefore two AI response channels can create Cavalry, while Cavalry deaths by hard counter mostly collapse into one pair: `Spear > Cavalry`.
-- In the pre-adjustment `decisionAccuracy = 0.5` batch:
-  - AI response spawns were almost symmetric: `Spear > Cavalry = 26`, while `Cavalry > Archer + Cavalry > Monk = 28`;
-  - spawned unit exposure was not symmetric: Cavalry had about `620` spawned units versus `Archer + Monk = 312`;
-  - normalized by spawned victims, `Spear` killed about `306/620 = 49.4%` of spawned Cavalry, while Cavalry killed about `(70+64)/312 = 42.9%` of spawned ranged units.
-- Conclusion: the high raw `Spear > Cavalry` share was partly real counter strength, but heavily amplified by Cavalry exposure and the two-ranged-family funnel.
+### Diagnosis: What Is Actually Happening
 
-Implemented solution:
+Counter rules are functioning. The kill matrix confirms:
 
-- Keep the counter graph unchanged.
-- Keep melee unit count fixed at `10`.
-- Do **not** buff Cavalry, because that risks making Archer/Monk disappear too quickly.
-- Apply a small Spear-only nerf:
-  - `combatPointCost 18 -> 20`;
-  - `attackIntervalMin 1.00 -> 1.10`;
-  - `attackIntervalMax 1.30 -> 1.40`.
-- No other active unit stat was changed.
+- Spear kills Cavalry heavily.
+- Archer kills Spear.
+- Cavalry kills Archer and Monk.
+- Monk kills Axeman.
+- Axeman kills Sword.
+- Sword kills Spear.
 
-Result after the Spear adjustment:
+But the economy loop is suspicious:
 
-- New `decisionAccuracy = 0.5` batch:
-  - 10 reports;
-  - winrate `Team0 5` / `Team1 5`;
-  - average duration about `108s`;
-  - average wave spawns remained about `26.9`;
-  - report config confirmed Spear `cost 20`, interval `1.10-1.40`.
-- `Spear > Cavalry` moved in the intended direction:
-  - raw share `30.7% -> 26.9%`;
-  - kills per report about `27.8 -> 24.7`;
-  - Spear kills / Cavalry spawned dropped from about `49.4%` to about `41.2%`.
-- This is a good result: Cavalry exposure was still high in the new batch, but Spear killed a smaller portion of it.
+```text
+Archer/Monk pressure
+-> AI needs Cavalry because Cavalry counters both ranged families
+-> opponent has many reasons to spawn Spear
+-> Spear is cheap and farms exposed Cavalry efficiently
+-> one side can run out of CP/units before hero death
+```
 
-New watch item:
+The user explicitly called out this loop, and that interpretation is correct. Do not reduce this to "Cavalry counter kill is high" or "Spear is simply OP" without checking exposure and spawn cause.
 
-- `Monk > Axeman` rose in the post-adjustment batch:
-  - `Monk > Axeman = 24.4%`;
-  - Monk was spawned `51` waves in 10 reports;
-  - AI response spawn `Monk -> Axeman = 32`.
-- Do **not** immediately nerf Monk from this single batch. This may be spawn-policy/random distribution from `decisionAccuracy = 0.5`.
-- If a second batch confirms Monk is consistently too strong, prefer a tiny Monk-only nerf:
-  - either `damage 30 -> 28`;
-  - or `attackInterval 2.30-2.90 -> 2.45-3.05`.
-- Do not change both damage and interval at once unless telemetry clearly demands it.
+Latest combined efficiency from the 10-report batch, excluding heroes:
 
-Current balance interpretation:
+```text
+Spear   waves 54, spent 1080, kills 517, deaths 504, damage/CP 70.68, kill/CP 0.479
+Sword   waves 25, spent  600, kills 199, deaths 215, damage/CP 45.70, kill/CP 0.332
+Axeman  waves 22, spent  704, kills 138, deaths 153, damage/CP 26.39, kill/CP 0.196
+Archer  waves 39, spent 1092, kills 231, deaths 163, damage/CP 24.35, kill/CP 0.212
+Monk    waves 48, spent 2496, kills 203, deaths  94, damage/CP 16.08, kill/CP 0.081
+Cavalry waves 68, spent 3536, kills 372, deaths 613, damage/CP 14.94, kill/CP 0.105
+```
 
-- Keep the Spear nerf.
-- The counter graph is broadly healthy when grouped by role:
-  - after grouping `Cavalry > Archer` and `Cavalry > Monk` as `Cavalry > Ranged`, most non-funnel groups are in a plausible band;
-  - `Spear > Cavalry` is still the highest, but much less extreme after the adjustment;
-  - `Monk > Axeman` is the next item to verify.
-- Continue using `spawnDecisionStats` and `waveSpawns` before changing stats. Raw kill totals alone are not reliable because wave size, target exposure, and AI spawn policy strongly affect the totals.
+Interpretation:
+
+- Spear is currently the most CP-efficient killer by a large margin.
+- Cavalry is expensive and overexposed because it is the answer to two ranged families.
+- Monk AOE is active, but Monk is not currently the most efficient kill/CP unit. Do not keep nerfing Monk just because ranged pressure feels scary.
+
+Monk AOE check:
+
+- AOE is working.
+- In the latest analyzed 10-report batch, diagnostic `area-damage` events were present; total area damage from Monk was about `27.6k`.
+- Earlier confusion came from reading the wrong aggregate key shape. Trust the `totalAoeDamageDealt` fields and `area-damage` events.
+
+### What Was Achieved Today
+
+Achieved:
+
+- CP/economy telemetry now exists and exported correctly.
+- We now know the latest 10-report batch's hero death is mostly a late symptom of earlier CP/army collapse.
+- We established a practical balance definition instead of endless test-adjust-test.
+- We identified the likely systemic loop: `Ranged -> Cavalry -> Spear`.
+
+Not achieved / still open:
+
+- Unit balance is not "done".
+- The latest 9-1 Team 0 result is not acceptable for a same-accuracy/same-CP unit-system test unless a source bias or random-seed explanation is found.
+- We have not yet changed stats after the latest economy diagnosis.
+- We have not yet decided whether to enable CP fallback as the default balance-test winner rule.
+
+### Next Recommended Steps
+
+Do this order, not random stat poking:
+
+1. Decide the next test mode:
+   - If testing unit/economy balance: enable `enableNoAffordableSpawnWinnerFallback`.
+   - If testing final hero pressure: keep hero-kill resolution.
+2. Run another same-CP / same-accuracy batch with current stats and economy telemetry.
+3. Diagnose `Ranged -> Cavalry -> Spear` specifically:
+   - How many Cavalry waves were spawned as response to Archer vs Monk?
+   - How many Spear waves were spawned as response to Cavalry?
+   - How much Spear damage/kill came specifically from Cavalry?
+   - Did the losing side spend too much CP on Cavalry and then lose those waves to Spear?
+4. If the loop remains too strong, prefer a systemic fix before stacking more Monk nerfs:
+   - reduce Spear's economy efficiency slightly;
+   - or adjust Cavalry exposure / response policy;
+   - or split ranged counters later if design allows.
+5. Do not change multiple stats at once unless the user explicitly wants a broad rebalance pass.
+
+### Current Open Risk For The Other Codex
+
+Be careful with statements like "Monk is OP", "Cavalry is weak", or "Spear is OP". The more accurate current diagnosis is:
+
+```text
+Cavalry has two counter jobs, so it appears often.
+Spear has one very valuable prey, Cavalry, and is cheap.
+That creates a CP-efficiency loop that can collapse one side before hero death.
+```
+
+This distinction matters because the wrong fix can cause another balance loop.
 
 ### Icon IDs
 
-- Icon IDs preserve the current sheet order instead of being renumbered:
+Icon IDs preserve the current sheet order instead of being renumbered:
 
 ```text
 axeman_t1   -> 0
@@ -240,12 +309,12 @@ monk_t1    -> 5
 archer_t1  -> 6
 ```
 
-- Old Skirmisher icon slot `1` is intentionally unused.
+Old Skirmisher icon slot `1` is intentionally unused.
 
 ### Validation Expectations
 
 - `assets/Test.scene` should parse as JSON.
-- Team A and Team B active arrays should each have exactly 6 entries and no Skirmisher.
+- Team A and Team B active arrays should each have exactly 6 entries and no active Skirmisher.
 - Active A/B stats should match exactly.
 - `CounterSettings.rules` should contain exactly the 7 active rules above.
 
@@ -353,7 +422,7 @@ Read this section before continuing gameplay AI or forward/freehunt work.
   - hard skips.
 - Percentages use `aggressive + normal + wait` as the denominator. `skip` is reported separately because max-wave / no-CP / failed-spawn gates are not tactical wait decisions.
 - This older console log is useful for quick sanity checks only.
-- For balance and AI-policy analysis, prefer the newer JSON `BattleTelemetry.spawnDecisionStats` / `waveSpawns` described in the latest 2026-07-15 section. It identifies exact spawn reason, target family, and whether empty-lane aggressive raid chose fastest or random.
+- For balance and AI-policy analysis, prefer the newer JSON `BattleTelemetry.spawnDecisionStats` / `waveSpawns` / economy fields described in the latest 2026-07-16 section. It identifies exact spawn reason, target family, CP spend/efficiency, and whether empty-lane aggressive raid chose fastest or random.
 - Old 2026-07-13 observed Inspector values are stale and should not be treated as current truth. Always check `assets/Test.scene` and whether `LevelSettings` is enabled before interpreting AI behavior.
 
 ### Current Known Worktree Notes
@@ -416,7 +485,7 @@ These changes were made after receiving the 2026-07-07 office handoff:
   - `getVisualEulerY()` reads the cache after it is initialized;
   - `setVisualYaw()` updates the cache when applying rotation.
 - The yaw cache reduced `getVisualEulerY()` profile cost in the slowdown trace, but did not significantly improve total frame time because total `Unit` cost is small compared with full frame cost.
-- The old five-entry light troop database from this period has been superseded. Trust the latest 2026-07-14 section and `UNITSTATS.md`: the active test database arrays now contain 7 tier-1 entries, while tier 2/3 objects may remain serialized but inactive.
+- The old five-entry light troop database from this period has been superseded. Trust the latest 2026-07-16 section and `UNITSTATS.md`: the active test database arrays now contain 6 tier-1 entries, while inactive/legacy serialized objects may remain in the scene.
 
 Rejected/reverted on 2026-07-08:
 

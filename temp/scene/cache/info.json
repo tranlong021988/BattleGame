@@ -1,11 +1,11 @@
 {
     "systemInfo": {
         "arch": "x64",
-        "cpu": "12th Gen Intel(R) Core(TM) i5-12500H",
-        "version": "Windows 11 Home Single Language"
+        "cpu": "Intel(R) Core(TM) i5-14600K",
+        "version": "Windows 10 Pro"
     },
     "sceneListMap": {
         "1effe86e-a401-4769-9dbc-62218c68834d": "F:\\Github\\BattleGame\\assets\\Test.scene"
     },
-    "deviceMd5": "2467913b3f95d220d4308bae0dc3e91d"
+    "deviceMd5": "dc798b681c19e8dec71306ebca781618"
 }

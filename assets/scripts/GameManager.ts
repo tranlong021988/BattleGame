@@ -158,6 +158,27 @@ export class GameManager extends Component {
     })
     battleTelemetryFilePrefix = 'battle-telemetry';
 
+    @property({
+        min: 1,
+        tooltip:
+            'Frames between diagnostic battle snapshots in telemetry. These snapshots record team, hero, wave, and lane state for post-match diagnosis.',
+    })
+    battleTelemetrySnapshotIntervalFrames = 60;
+
+    @property({
+        min: 0,
+        tooltip:
+            'Maximum diagnostic snapshots stored in one telemetry report. Set 0 to disable snapshots while keeping aggregate telemetry.',
+    })
+    battleTelemetryMaxSnapshots = 240;
+
+    @property({
+        min: 0,
+        tooltip:
+            'Maximum chronological diagnostic events stored in one telemetry report. Includes spawn decisions, hero damage, area damage, and kills.',
+    })
+    battleTelemetryMaxDiagnosticEvents = 3000;
+
     teamAHero: Unit | null = null;
     teamBHero: Unit | null = null;
 
@@ -636,6 +657,7 @@ export class GameManager extends Component {
         this.processWaveBanners();
         this.pruneDeadWaves();
         this.processHeroForwardUnlock();
+        this.recordBattleTelemetrySnapshotIfNeeded();
         this.processBattleWinnerCondition();
 
         this.refreshBattleStatsUI();
@@ -695,12 +717,14 @@ export class GameManager extends Component {
         this.battleTelemetry.recordKill(
             killer,
             victim,
-            isCounterKill
+            isCounterKill,
+            this.frame,
+            this.battleElapsedTime
         );
 
         if (!killer.isHero) {
             this.addCombatPointFromVictim(
-                killerTeam,
+                killer,
                 victim,
                 isCounterKill
             );
@@ -714,14 +738,18 @@ export class GameManager extends Component {
         victim: Unit | null,
         damage: number,
         actualDamage: number,
-        isCounterDamage: boolean
+        isCounterDamage: boolean,
+        isAreaDamage: boolean = false
     ) {
         this.battleTelemetry.recordDamage(
             attacker,
             victim,
             damage,
             actualDamage,
-            isCounterDamage
+            isCounterDamage,
+            isAreaDamage,
+            this.frame,
+            this.battleElapsedTime
         );
     }
 
@@ -1645,6 +1673,10 @@ export class GameManager extends Component {
             this.enableBattleTelemetry,
             this.createBattleTelemetryStartConfig()
         );
+        this.battleTelemetry.configureDiagnostics(
+            this.battleTelemetryMaxSnapshots,
+            this.battleTelemetryMaxDiagnosticEvents
+        );
     }
 
     public recordBattleTelemetryWaveSpawnDecision(
@@ -1655,6 +1687,119 @@ export class GameManager extends Component {
         this.battleTelemetry.recordWaveSpawnDecision(
             decision
         );
+    }
+
+    private recordBattleTelemetrySnapshotIfNeeded() {
+        if (!this.enableBattleTelemetry) return;
+        if (!this.battleTelemetry.isEnabled()) return;
+        if (
+            !this.shouldRunFrameInterval(
+                this.battleTelemetrySnapshotIntervalFrames
+            )
+        ) {
+            return;
+        }
+
+        this.battleTelemetry.recordSnapshot(
+            this.createBattleTelemetrySnapshot()
+        );
+    }
+
+    private createBattleTelemetrySnapshot() {
+        return {
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            teams: [
+                this.createBattleTelemetryTeamSnapshot(0),
+                this.createBattleTelemetryTeamSnapshot(1),
+            ],
+        };
+    }
+
+    private createBattleTelemetryTeamSnapshot(team: number) {
+        const waves: any[] = [];
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave) continue;
+            if (wave.team !== team) continue;
+            if (wave.isDeadRuntime(this.frame)) continue;
+
+            waves.push(
+                this.createBattleTelemetryWaveSnapshot(wave)
+            );
+        }
+
+        return {
+            team,
+            combatPoint: this.combatPoint[team] || 0,
+            aliveCount: this.aliveCount[team] || 0,
+            waveCount: waves.length,
+            heroHealthRatio:
+                this.getBattleTelemetryHeroHealthRatio(team),
+            killCount: this.killCount[team] || 0,
+            counterKillCount:
+                this.counterKillCount[team] || 0,
+            totalDamage:
+                this.battleTelemetry.getTotalDamage(team),
+            totalHeroDamage:
+                this.battleTelemetry.getTotalHeroDamage(team),
+            waves,
+        };
+    }
+
+    private createBattleTelemetryWaveSnapshot(
+        wave: BattleWave
+    ) {
+        let busyCount = 0;
+        let targetCount = 0;
+        let forwardCount = 0;
+
+        for (let i = 0; i < wave.units.length; i++) {
+            const unit = wave.units[i];
+
+            if (!this.isAliveUnit(unit)) continue;
+
+            if (unit.onBusy) busyCount++;
+            if (unit.hasValidEnemyTarget()) targetCount++;
+            if (unit.onForward) forwardCount++;
+        }
+
+        return {
+            waveId: wave.id,
+            team: wave.team,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            family: wave.family,
+            familyName:
+                UnitFamily[wave.family] ??
+                String(wave.family),
+            tier: wave.tier,
+            totalCount: wave.totalCount,
+            aliveCount:
+                wave.getRuntimeAliveCount(this.frame),
+            busyCount,
+            targetCount,
+            forwardCount,
+            healthRatio:
+                wave.getRuntimeHealthRatio(this.frame),
+            forwardMode: wave.isForwardMode(),
+            aggressiveForward:
+                wave.isAggressiveForwardMode(),
+        };
+    }
+
+    private getBattleTelemetryHeroHealthRatio(team: number) {
+        const hero =
+            team === 0
+                ? this.teamAHero
+                : this.teamBHero;
+
+        if (!this.isAliveUnit(hero)) return 0;
+        if (!hero!.props) return 0;
+
+        return hero!.props.getHealthRatio();
     }
 
     private processBattleWinnerCondition() {
@@ -1726,6 +1871,10 @@ export class GameManager extends Component {
         ) {
             return;
         }
+
+        this.battleTelemetry.recordFinalSnapshot(
+            this.createBattleTelemetrySnapshot()
+        );
 
         const report =
             this.battleTelemetry.finish(
@@ -1962,6 +2111,7 @@ export class GameManager extends Component {
                     cost: entry.combatPointCost,
                     health: entry.health,
                     attack: entry.damage,
+                    damageRadius: entry.damageRadius,
                     defense: entry.defense,
                     speed: entry.maxSpeed,
                     range: entry.attackRange,
@@ -2017,12 +2167,14 @@ export class GameManager extends Component {
     }
 
     private addCombatPointFromVictim(
-        killerTeam: number,
+        killer: Unit,
         victim: Unit,
         isCounterKill: boolean
     ) {
         if (!this.isCombatPointEnabled()) return;
         if (!this.unitDatabase) return;
+
+        const killerTeam = killer.team;
 
         const bountyValue = this.getVictimBountyValue(victim);
         if (bountyValue <= 0) return;
@@ -2034,6 +2186,14 @@ export class GameManager extends Component {
             );
 
         this.addCombatPoint(killerTeam, reward);
+        this.battleTelemetry.recordCombatPointEarned(
+            killer,
+            victim,
+            reward,
+            isCounterKill,
+            this.frame,
+            this.battleElapsedTime
+        );
     }
 
     private getVictimBountyValue(victim: Unit) {
@@ -2633,6 +2793,33 @@ export class GameManager extends Component {
             wave,
             entry
         );
+
+        this.battleTelemetry.recordWaveSpawnEvent({
+            type: 'wave-spawn',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team,
+            waveId: wave.id,
+            laneId,
+            unitName: entry.name,
+            familyName:
+                UnitFamily[entry.family] ??
+                String(entry.family),
+            aggressiveForward,
+        });
+
+        if (spendCost && this.isCombatPointEnabled()) {
+            this.battleTelemetry.recordCombatPointSpent(
+                team,
+                entry.name,
+                entry.family,
+                entry.tier,
+                cost,
+                wave.id,
+                this.frame,
+                this.battleElapsedTime
+            );
+        }
 
         this.node.emit(
             BattleWaveSpawnedEvent,
@@ -3454,6 +3641,7 @@ export class GameManager extends Component {
             entry.attackIntervalMax,
             entry.health,
             entry.damage,
+            entry.damageRadius,
             entry.defense
         );
 
@@ -3502,6 +3690,7 @@ export class GameManager extends Component {
             entry.attackIntervalMax,
             entry.health,
             entry.damage,
+            entry.damageRadius,
             entry.defense
         );
 
@@ -3852,6 +4041,20 @@ export class GameManager extends Component {
         } else {
             this.teamBHeroWave = wave;
         }
+
+        this.battleTelemetry.recordWaveSpawnEvent({
+            type: 'hero-wave-register',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team,
+            waveId: wave.id,
+            laneId,
+            unitName: unitTypeName,
+            familyName:
+                UnitFamily[family] ??
+                String(family),
+            aggressiveForward: false,
+        });
     }
 
     private ensureBattleWaveRegistered(

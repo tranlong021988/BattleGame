@@ -76,6 +76,15 @@ export class UnitBehavior extends Component {
     }
 
     private dealDamageToEnemy(enemy: Unit) {
+        this.applyDamageToEnemy(enemy, false);
+        this.dealAreaDamageAround(enemy);
+        this.finishDamagedEnemy(enemy);
+    }
+
+    private applyDamageToEnemy(
+        enemy: Unit,
+        isAreaDamage: boolean
+    ) {
         const counter = CounterSettings.instance;
 
         let finalDamage = this.props.damage;
@@ -122,28 +131,112 @@ export class UnitBehavior extends Component {
                 enemy,
                 finalDamage,
                 actualDamage,
-                isCounterDamage
+                isCounterDamage,
+                isAreaDamage
             );
         }
 
         enemy.props.takeDamage(finalDamage);
+    }
+
+    private finishDamagedEnemy(enemy: Unit) {
+        if (!enemy || !enemy.props) return;
 
         if (!enemy.props.isDead()) {
             enemy.reactToAttacker(this.unit);
+            return;
         }
 
-        if (enemy.props.isDead()) {
-            if (gm) {
-                gm.reportKill(
-                    this.unit,
-                    enemy
-                );
+        const gm =
+            this.gameManager ||
+            GameManager.instance;
+        const wasCurrentTarget =
+            this.unit.getValidEnemyTarget() === enemy;
 
-                gm.despawnUnit(enemy);
-            }
+        if (gm) {
+            gm.reportKill(
+                this.unit,
+                enemy
+            );
 
+            gm.despawnUnit(enemy);
+        }
+
+        if (wasCurrentTarget) {
             this.unit.clearEnemy();
         }
+    }
+
+    private dealAreaDamageAround(
+        primaryTarget: Unit
+    ) {
+        const damageRadius =
+            Math.max(0, this.props.damageRadius);
+
+        if (damageRadius <= 0) return;
+        if (!primaryTarget || !primaryTarget.agent) return;
+
+        const gm =
+            this.gameManager ||
+            GameManager.instance;
+
+        if (!gm) return;
+
+        const maxEnemyRadius =
+            gm.spatialGrid
+                ? gm.spatialGrid.getMaxEnemyRadius(
+                    this.unit.team
+                )
+                : primaryTarget.radius;
+        const queryRadius =
+            Math.max(0, primaryTarget.radius) +
+            damageRadius +
+            Math.max(0, maxEnemyRadius);
+        const enemies =
+            gm.spatialGrid
+                ? gm.spatialGrid.queryEnemies(
+                    this.unit.team,
+                    primaryTarget.agent.pos.x,
+                    primaryTarget.agent.pos.z,
+                    queryRadius
+                )
+                : this.getEnemyListFallback(gm);
+
+        const centerX = primaryTarget.agent.pos.x;
+        const centerZ = primaryTarget.agent.pos.z;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+
+            if (!enemy || enemy === primaryTarget) continue;
+            if (!enemy.agent) continue;
+            if (!enemy.props || enemy.props.isDead()) continue;
+
+            const effectiveRadius =
+                Math.max(0, primaryTarget.radius) +
+                damageRadius +
+                Math.max(0, enemy.radius);
+            const dx = enemy.agent.pos.x - centerX;
+            const dz = enemy.agent.pos.z - centerZ;
+
+            if (
+                dx * dx + dz * dz >
+                effectiveRadius * effectiveRadius
+            ) {
+                continue;
+            }
+
+            this.applyDamageToEnemy(enemy, true);
+            this.finishDamagedEnemy(enemy);
+        }
+    }
+
+    private getEnemyListFallback(
+        gm: GameManager
+    ): Unit[] {
+        return this.unit.team === 0
+            ? gm.teamB
+            : gm.teamA;
     }
 
     private randomizeNextAttackInterval() {

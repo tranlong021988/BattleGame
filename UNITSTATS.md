@@ -35,14 +35,14 @@ Icon IDs preserve the existing icon sheet order. Skirmisher's old icon slot `1` 
 
 These values are the active cavalry-anti-ranged balance pass.
 
-| Unit | Family | Unit Count | Cost | Health | Attack | Defense | Speed | Range | Attack Interval |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 32 | 150 | 25 | 3 | 3.0 | 1.0 | 1.10-1.40 |
-| `cavalry_t1` | Cavalry | 10 | 52 | 170 | 24 | 5 | 6.0 | 1.0 | 1.10-1.40 |
-| `sword_t1` | Sword | 10 | 24 | 145 | 20 | 7 | 3.5 | 1.0 | 0.90-1.20 |
-| `spear_t1` | Spear | 10 | 20 | 125 | 16 | 4 | 3.0 | 2.0 | 1.10-1.40 |
-| `monk_t1` | Monk | 3 | 52 | 90 | 30 | 0 | 3.0 | 5.5 | 2.30-2.90 |
-| `archer_t1` | Archer | 5 | 28 | 80 | 15 | 0 | 3.0 | 6.0 | 1.50-1.90 |
+| Unit | Family | Unit Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `axeman_t1` | Axeman | 10 | 32 | 150 | 25 | 3 | 3.0 | 0.35 | 0.0 | 1.10-1.40 |
+| `cavalry_t1` | Cavalry | 10 | 52 | 170 | 24 | 5 | 6.0 | 0.35 | 0.0 | 1.10-1.40 |
+| `sword_t1` | Sword | 10 | 24 | 145 | 20 | 7 | 3.5 | 0.35 | 0.0 | 0.90-1.20 |
+| `spear_t1` | Spear | 10 | 20 | 125 | 16 | 4 | 3.0 | 1.0 | 0.0 | 1.10-1.40 |
+| `monk_t1` | Monk | 2 | 52 | 90 | 28 | 0 | 3.0 | 5.5 | 0.5 | 2.30-2.90 |
+| `archer_t1` | Archer | 5 | 28 | 80 | 15 | 0 | 3.0 | 6.0 | 0.0 | 1.50-1.90 |
 
 ## Imported T1-T3 Stat Reference
 
@@ -96,7 +96,8 @@ Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally cou
 - Ranged troops use smaller wave sizes because the battle logic lets multiple ranged units focus fire from long range before melee can connect.
 - Current active ranged wave sizes:
   - Archer: `5`
-  - Monk: `3`
+  - Monk: `2`
+- Monk currently has `damageRadius = 0.5`, measured from the primary target body edge, so nearby enemies can take area damage on each Monk attack tick.
 - Skirmisher is inactive in this pass to reduce ranged saturation.
 - Melee unit count is fixed at `10` for active balance passes.
 - Cavalry is the dedicated anti-ranged answer and counters both Archer and Monk. Its cost is higher because it keeps full melee wave size plus high speed.
@@ -107,13 +108,23 @@ Active `CounterSettings.rules` use an asymmetric loop. Cavalry intentionally cou
   - telemetry with `decisionAccuracy = 0.5` showed `Spear > Cavalry` raw counter-kill share at `30.7%`;
   - this was partly a Cavalry exposure/funnel effect because Cavalry counters both ranged units, while Spear is the only hard counter to Cavalry;
   - the small Spear nerf reduced `Spear > Cavalry` raw share to `26.9%` in the next 10-report batch while keeping winrate at `5-5`.
+- Latest accepted Monk test adjustment:
+  - `damage 30 -> 28`.
+- Reason for the Monk adjustment:
+  - `Monk > Axeman` remained high in the post-Spear-adjustment report reviewed by the office Codex;
+  - only Monk damage was changed, not Monk interval, HP, cost, range, speed, or unit count.
 - Watch next:
-  - `Monk > Axeman` rose to `24.4%` in the post-Spear-adjustment batch;
-  - run another batch before nerfing Monk, because this may be `decisionAccuracy = 0.5` spawn distribution noise.
+  - run another batch before changing Monk again;
+  - if `Monk > Axeman` remains high, consider a tiny interval nerf later instead of stacking multiple changes at once.
 - In code, effective attack range includes unit radii:
 
 ```text
 effectiveRange = attackRange + attacker.radius + defender.radius
 ```
+
+- Current melee visual pass:
+  - Sword/Axeman/Cavalry attack range: `0.35`;
+  - Spear attack range: `1.0`;
+  - ranged attack ranges unchanged.
 
 This makes ranged units feel stronger than their Inspector range alone suggests.

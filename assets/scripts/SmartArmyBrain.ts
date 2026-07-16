@@ -172,6 +172,8 @@ export class SmartArmyBrain extends Component {
     private affordableEntries: UnitPrefabEntry[] = [];
     private bestEntryBuffer: UnitPrefabEntry[] = [];
     private counterCandidateBuffer: SmartWaveIntel[] = [];
+    private pendingDecisionTelemetry:
+        Record<string, number | string | boolean | undefined> | null = null;
 
     start() {
         this.randomizeNextInterval();
@@ -250,10 +252,13 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
-        if (
-            Math.random() >
-            this.clamp01(this.fastReactCounterChance)
-        ) {
+        this.clearTelemetryDecisionContext();
+
+        const fastReactChance =
+            this.clamp01(this.fastReactCounterChance);
+        const fastReactRoll = Math.random();
+
+        if (fastReactRoll > fastReactChance) {
             return;
         }
 
@@ -278,12 +283,30 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
-        if (!this.rollAccurateDecision()) {
+        const accuracyRoll = Math.random();
+        const accurateDecision =
+            accuracyRoll < this.getDecisionAccuracy();
+
+        if (!accurateDecision) {
             this.debugLog('Fast react skip: inaccurate decision.');
             return;
         }
 
         this.rebuildIntel();
+
+        this.beginTelemetryDecisionContext(
+            'fast-react-response',
+            aliveWaveCount,
+            {
+                fastReactCounterChance: fastReactChance,
+                fastReactRoll,
+                decisionAccuracy: this.getDecisionAccuracy(),
+                accuracyRoll,
+                accurateDecision,
+                activeEnemyIntelCount:
+                    this.activeEnemyIntelCount,
+            }
+        );
 
         const targetIntel =
             this.findIntelForWave(wave);
@@ -311,6 +334,8 @@ export class SmartArmyBrain extends Component {
     private thinkAndSpawn() {
         if (!this.gameManager) return;
 
+        this.clearTelemetryDecisionContext();
+
         const aliveWaveCount =
             this.getAliveWaveCount(this.team);
 
@@ -330,16 +355,40 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
+        const accuracyRoll = Math.random();
         const accurateDecision =
-            this.rollAccurateDecision();
+            accuracyRoll < this.getDecisionAccuracy();
+
+        this.beginTelemetryDecisionContext(
+            'think',
+            aliveWaveCount,
+            {
+                decisionAccuracy: this.getDecisionAccuracy(),
+                accuracyRoll,
+                accurateDecision,
+            }
+        );
 
         if (!accurateDecision) {
+            const deliberateMistakeRoll = Math.random();
             const deliberateMistake =
-                Math.random() <
+                deliberateMistakeRoll <
                 1 - this.getDecisionAccuracy();
+
+            this.updateTelemetryDecisionContext({
+                decisionPath: deliberateMistake
+                    ? 'deliberate-mistake'
+                    : 'naive',
+                deliberateMistakeRoll,
+                deliberateMistake,
+            });
 
             if (deliberateMistake) {
                 this.rebuildIntel();
+                this.updateTelemetryDecisionContext({
+                    activeEnemyIntelCount:
+                        this.activeEnemyIntelCount,
+                });
 
                 if (this.spawnDeliberatelyBadWave()) {
                     return;
@@ -353,11 +402,19 @@ export class SmartArmyBrain extends Component {
         }
 
         this.rebuildIntel();
+        this.updateTelemetryDecisionContext({
+            activeEnemyIntelCount:
+                this.activeEnemyIntelCount,
+        });
 
         const responseTarget =
             this.findBestResponseTarget();
 
         if (responseTarget) {
+            this.updateTelemetryDecisionContext({
+                decisionPath: 'response',
+            });
+
             if (!this.spawnResponse(
                 responseTarget,
                 'response'
@@ -367,6 +424,10 @@ export class SmartArmyBrain extends Component {
             return;
         }
 
+        this.updateTelemetryDecisionContext({
+            decisionPath: 'aggressive-empty-lane',
+        });
+
         if (this.trySpawnAggressiveForward('No reachable response target')) {
             return;
         }
@@ -375,6 +436,9 @@ export class SmartArmyBrain extends Component {
             this.activeEnemyIntelCount <= 0 &&
             this.spawnOpeningWaveIfNoEnemyWave
         ) {
+            this.updateTelemetryDecisionContext({
+                decisionPath: 'opening',
+            });
             this.spawnOpeningWave();
             return;
         }
@@ -745,6 +809,12 @@ export class SmartArmyBrain extends Component {
     ) {
         if (spawnLaneId === intel.laneId) {
             if (intel.allyBlockersFromSpawn > 0) {
+                this.updateTelemetryDecisionContext({
+                    aggressiveSource:
+                        'ally-blocker-force-aggressive',
+                    aggressiveForwardChance:
+                        this.clamp01(this.aggressiveForwardChance),
+                });
                 return true;
             }
 
@@ -752,12 +822,40 @@ export class SmartArmyBrain extends Component {
                 intel.allyCountInLane <= 0 &&
                 intel.allyBlockersFromSpawn <= 0
             ) {
-                return Math.random() >=
+                const flankStrikeRatio =
                     this.clamp01(this.flankStrikeRatio);
+                const flankStrikeRoll = Math.random();
+                const aggressive =
+                    flankStrikeRoll >= flankStrikeRatio;
+
+                this.updateTelemetryDecisionContext({
+                    aggressiveSource:
+                        aggressive
+                            ? 'clean-lane-hero-raid'
+                            : 'clean-lane-flank-strike',
+                    aggressiveForwardChance:
+                        this.clamp01(this.aggressiveForwardChance),
+                    flankStrikeRatio,
+                    flankStrikeRoll,
+                });
+
+                return aggressive;
             }
         }
 
-        return this.shouldSpawnAggressiveForward();
+        const aggressive =
+            this.shouldSpawnAggressiveForward();
+
+        this.updateTelemetryDecisionContext({
+            aggressiveSource:
+                aggressive
+                    ? 'pre-max-alive-default'
+                    : 'post-max-alive-default',
+            aggressiveForwardChance:
+                this.clamp01(this.aggressiveForwardChance),
+        });
+
+        return aggressive;
     }
 
     private chooseEntryForTarget(
@@ -844,9 +942,18 @@ export class SmartArmyBrain extends Component {
             laneCount > 0
                 ? Math.floor(Math.random() * laneCount)
                 : -1;
-        const aggressiveForward =
-            Math.random() <
+        const aggressiveForwardChance =
             this.clamp01(this.aggressiveForwardChance);
+        const aggressiveRoll = Math.random();
+        const aggressiveForward =
+            aggressiveRoll < aggressiveForwardChance;
+
+        this.updateTelemetryDecisionContext({
+            decisionPath: 'naive',
+            aggressiveForwardChance,
+            aggressiveRoll,
+            aggressiveSource: 'naive-random-roll',
+        });
 
         const spawned =
             this.gameManager.spawnWaveByEntry(
@@ -1022,6 +1129,16 @@ export class SmartArmyBrain extends Component {
 
         if (!spawned) return false;
 
+        this.updateTelemetryDecisionContext({
+            aggressiveSource: 'deliberate-mistake-normal',
+            aggressiveForwardChance:
+                this.clamp01(this.aggressiveForwardChance),
+            aggressiveRoll: undefined,
+            flankStrikeRoll: undefined,
+            aggressiveFastestRoll: undefined,
+            aggressiveUseFastest: undefined,
+        });
+
         this.recordDecisionSpawn(
             false,
             'deliberate-mistake'
@@ -1129,7 +1246,18 @@ export class SmartArmyBrain extends Component {
         reason: string
     ) {
         if (!this.gameManager) return false;
-        if (Math.random() > this.clamp01(this.aggressiveForwardChance)) {
+        const aggressiveForwardChance =
+            this.clamp01(this.aggressiveForwardChance);
+        const aggressiveRoll = Math.random();
+
+        this.updateTelemetryDecisionContext({
+            decisionPath: 'aggressive-empty-lane',
+            aggressiveForwardChance,
+            aggressiveRoll,
+            aggressiveSource: 'empty-lane-roll',
+        });
+
+        if (aggressiveRoll > aggressiveForwardChance) {
             return false;
         }
 
@@ -1140,9 +1268,19 @@ export class SmartArmyBrain extends Component {
             return false;
         }
 
-        const useFastest =
-            Math.random() <
+        const aggressiveFastestEntryChance =
             this.clamp01(this.aggressiveFastestEntryChance);
+        const aggressiveFastestRoll =
+            Math.random();
+        const useFastest =
+            aggressiveFastestRoll <
+            aggressiveFastestEntryChance;
+
+        this.updateTelemetryDecisionContext({
+            aggressiveFastestEntryChance,
+            aggressiveFastestRoll,
+            aggressiveUseFastest: useFastest,
+        });
         const entry =
             useFastest
                 ? this.getFastestAffordableEntry()
@@ -1197,6 +1335,19 @@ export class SmartArmyBrain extends Component {
 
         const aggressiveForward =
             this.shouldSpawnAggressiveForward();
+        this.updateTelemetryDecisionContext({
+            decisionPath: 'opening',
+            aggressiveForwardChance:
+                this.clamp01(this.aggressiveForwardChance),
+            aggressiveSource:
+                aggressiveForward
+                    ? 'opening-pre-max-alive'
+                    : 'opening-post-max-alive',
+            aggressiveRoll: undefined,
+            flankStrikeRoll: undefined,
+            aggressiveFastestRoll: undefined,
+            aggressiveUseFastest: undefined,
+        });
         const spawned =
             this.gameManager.spawnWaveByEntry(
                 this.team,
@@ -1242,6 +1393,8 @@ export class SmartArmyBrain extends Component {
             intel && intel.wave
                 ? intel.wave
                 : null;
+        const telemetryContext =
+            this.consumeTelemetryDecisionContext();
 
         this.gameManager.recordBattleTelemetryWaveSpawnDecision({
             team: this.team,
@@ -1276,6 +1429,7 @@ export class SmartArmyBrain extends Component {
             coverage: intel ? intel.coverage : 0,
             uncovered: intel ? intel.uncovered : 0,
             threatScore: intel ? intel.threatScore : 0,
+            ...telemetryContext,
         });
     }
 
@@ -2076,6 +2230,48 @@ export class SmartArmyBrain extends Component {
     private rollAccurateDecision() {
         return Math.random() <
             this.getDecisionAccuracy();
+    }
+
+    private beginTelemetryDecisionContext(
+        decisionPath: string,
+        aliveWaveCount: number,
+        extra:
+            Record<string, number | string | boolean | undefined> =
+                {}
+    ) {
+        this.pendingDecisionTelemetry = {
+            decisionPath,
+            aliveWaveCountAtDecision: aliveWaveCount,
+            affordableEntryCount: this.affordableEntries.length,
+            activeEnemyIntelCount: this.activeEnemyIntelCount,
+            ...extra,
+        };
+    }
+
+    private updateTelemetryDecisionContext(
+        values:
+            Record<string, number | string | boolean | undefined>
+    ) {
+        if (!this.pendingDecisionTelemetry) {
+            this.pendingDecisionTelemetry = {};
+        }
+
+        Object.assign(
+            this.pendingDecisionTelemetry,
+            values
+        );
+    }
+
+    private consumeTelemetryDecisionContext() {
+        const context =
+            this.pendingDecisionTelemetry || {};
+
+        this.pendingDecisionTelemetry = null;
+        return context;
+    }
+
+    private clearTelemetryDecisionContext() {
+        this.pendingDecisionTelemetry = null;
     }
 
     private clamp01(v: number) {

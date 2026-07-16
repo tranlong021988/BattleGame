@@ -81,6 +81,7 @@ export class UnitSpawner extends Component {
         attackIntervalMax: number,
         health: number,
         damage: number,
+        damageRadius: number,
         defense: number
     ): Unit {
         const node = this.getNode(prefab);
@@ -107,6 +108,7 @@ export class UnitSpawner extends Component {
         props.tier = Math.max(1, Math.min(3, Math.floor(tier)));
         props.maxHealth = health;
         props.damage = damage;
+        props.damageRadius = Math.max(0, damageRadius);
         props.defense = defense;
         props.resetForSpawn();
 

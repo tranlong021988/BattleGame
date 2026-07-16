@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, NEAREST_QUERY_ASSIGN_IF_EMPTY, NEAREST_QUERY_REPLACE_SHARED_BUSY, NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -45,6 +45,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         property
       } = _decorator);
       FORWARD_LOOK_DOT_THRESHOLD = 0.98;
+      NEAREST_QUERY_ASSIGN_IF_EMPTY = 0;
+      NEAREST_QUERY_REPLACE_SHARED_BUSY = 1;
+      NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION = 2;
 
       _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Node), _dec3 = property({
         tooltip: 'Allows this unit to be pushed by hard separation even while busy/engaged and locked.'
@@ -148,12 +151,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.busyLookSettled = false;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
+          this.enemyFromSharedWaveTarget = false;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
           this.nearestEnemyQueryToken = 0;
+          this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
 
           this.onNearestEnemyQueryResult = (target, token) => {
             if (token !== this.nearestEnemyQueryToken) {
@@ -161,11 +166,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             }
 
             const validTarget = this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null;
-            this.completeTargetSearch(validTarget);
-
-            if (!this.hasValidEnemyTarget()) {
-              this.setEnemyTarget(validTarget);
-            }
+            this.applyNearestEnemyQueryResult(validTarget, this.nearestEnemyQueryMode);
           };
         }
 
@@ -344,11 +345,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        setEnemyTarget(target) {
+        setEnemyTarget(target, fromSharedWaveTarget = false) {
           this.enemy = target;
           this.enemyLifeId = target ? target.lifeId : -1;
           this.retaliationTarget = null;
           this.retaliationTargetLifeId = -1;
+          this.enemyFromSharedWaveTarget = !!target && fromSharedWaveTarget;
           this.resetBusyLookCache();
 
           if (target) {
@@ -361,6 +363,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.enemyLifeId = target.lifeId;
           this.retaliationTarget = target;
           this.retaliationTargetLifeId = target.lifeId;
+          this.enemyFromSharedWaveTarget = false;
           this.targetSearchConfirmedNoTarget = false;
           this.resetBusyLookCache();
         }
@@ -381,6 +384,36 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         completeTargetSearch(target) {
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = !target && !this.hasValidEnemyTarget();
+        }
+
+        applyNearestEnemyQueryResult(target, mode) {
+          this.completeTargetSearch(target);
+
+          if (mode === NEAREST_QUERY_REPLACE_SHARED_BUSY) {
+            const currentTarget = this.getValidEnemyTarget();
+
+            if (this.enemyFromSharedWaveTarget && currentTarget && currentTarget.onBusy && target) {
+              this.setEnemyTarget(target, target === currentTarget);
+            } else if (!currentTarget && target) {
+              this.setEnemyTarget(target);
+            }
+
+            return;
+          }
+
+          if (mode === NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION) {
+            if (target && !target.onBusy) {
+              this.setEnemyTarget(target);
+            } else if (!this.hasValidEnemyTarget()) {
+              this.setEnemyTarget(target);
+            }
+
+            return;
+          }
+
+          if (!this.hasValidEnemyTarget()) {
+            this.setEnemyTarget(target);
+          }
         }
 
         clearCachedTargets() {
@@ -494,14 +527,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (gm) {
             gm.onWaveCombatStarted(this, attacker, false);
-          } // A result requested before retaliation must not replace the
-          // attacker when the worker responds later.
+          }
 
+          const chaseTarget = this.getPreferredRetaliationChaseTarget(attacker);
+          const chaseAttacker = chaseTarget === attacker; // Ignore older worker results after this damage reaction chooses
+          // a fresh chase target.
 
           this.nearestEnemyQueryToken++;
+          this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
-          this.setRetaliationTarget(attacker);
+
+          if (chaseAttacker) {
+            this.setRetaliationTarget(attacker);
+          } else {
+            this.setEnemyTarget(chaseTarget);
+          }
+
           this.setCachedNearestInRangeTarget(null);
           this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
 
@@ -515,6 +557,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return true;
+        }
+
+        getPreferredRetaliationChaseTarget(attacker) {
+          if (this.isValidEnemyWithinAttackRange(attacker)) {
+            return attacker;
+          }
+
+          const nearest = this.findNearestEnemy();
+
+          if (nearest && nearest !== attacker && !nearest.onBusy) {
+            return nearest;
+          }
+
+          return attacker;
         }
 
         setForwardDir(x, z) {
@@ -778,9 +834,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.setAgentOnForward(0);
+          this.refreshBorrowedBusyTargetIfNeeded();
+          this.refreshRetaliationTargetIfNeeded();
 
           if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(this.getSharedWaveTarget());
+            const sharedTarget = this.getSharedWaveTarget();
+            this.setEnemyTarget(sharedTarget, !!sharedTarget);
 
             if (!this.hasValidEnemyTarget()) {
               this.refreshNearestEnemyTargetThrottled();
@@ -918,17 +977,52 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
+          this.requestNearestEnemyTarget(NEAREST_QUERY_ASSIGN_IF_EMPTY);
+        }
+
+        requestNearestEnemyTarget(mode) {
           const queryToken = ++this.nearestEnemyQueryToken;
+          this.nearestEnemyQueryMode = mode;
           this.targetSearchPending = true;
           this.targetSearchConfirmedNoTarget = false;
           const queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
           if (queued) return;
           const target = this.findNearestEnemy();
-          this.completeTargetSearch(target);
+          this.applyNearestEnemyQueryResult(target, mode);
+        }
 
-          if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(target);
+        refreshBorrowedBusyTargetIfNeeded() {
+          if (!this.shouldRunTargetSearch()) {
+            return false;
           }
+
+          if (!this.enemyFromSharedWaveTarget) {
+            return false;
+          }
+
+          const target = this.getValidEnemyTarget();
+
+          if (!target || !target.onBusy) {
+            return false;
+          }
+
+          this.requestNearestEnemyTarget(NEAREST_QUERY_REPLACE_SHARED_BUSY);
+          return true;
+        }
+
+        refreshRetaliationTargetIfNeeded() {
+          if (!this.shouldRunTargetSearch()) {
+            return false;
+          }
+
+          const target = this.getValidEnemyTarget();
+
+          if (!target || target !== this.retaliationTarget || target.lifeId !== this.retaliationTargetLifeId) {
+            return false;
+          }
+
+          this.requestNearestEnemyTarget(NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION);
+          return true;
         }
 
         updateForwardPrefVelocity() {

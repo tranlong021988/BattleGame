@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitFamily, HealthBar3D, _dec, _dec2, _dec3, _dec4, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _crd, ccclass, property, UnitProps;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, UnitFamily, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _crd, ccclass, property, UnitProps;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -52,7 +52,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         max: 3,
         step: 1,
         tooltip: 'Upgrade tier inside the same unit family. Counter rules use family; tier only changes stats/progression.'
-      }), _dec4 = property(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
+      }), _dec4 = property({
+        min: 0,
+        tooltip: 'Area damage radius measured from the primary target body edge. 0 means single-target damage only.'
+      }), _dec5 = property(_crd && HealthBar3D === void 0 ? (_reportPossibleCrUseOfHealthBar3D({
         error: Error()
       }), HealthBar3D) : HealthBar3D), _dec(_class = (_class2 = class UnitProps extends Component {
         constructor() {
@@ -66,9 +69,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "damage", _descriptor4, this);
 
-          _initializerDefineProperty(this, "defense", _descriptor5, this);
+          _initializerDefineProperty(this, "damageRadius", _descriptor5, this);
 
-          _initializerDefineProperty(this, "healthBar", _descriptor6, this);
+          _initializerDefineProperty(this, "defense", _descriptor6, this);
+
+          _initializerDefineProperty(this, "healthBar", _descriptor7, this);
 
           this.health = 30;
         }
@@ -155,14 +160,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
+      }), _descriptor5 = _applyDecoratedDescriptor(_class2.prototype, "damageRadius", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "healthBar", [_dec4], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "defense", [property], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0;
+        }
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "healthBar", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
