@@ -127,61 +127,59 @@ export class CounterSettings extends Component {
     private createDefaultRules() {
         this.rules.length = 0;
 
-        const hardCounter = 3.0;
-
         this.addRule(
             UnitFamily.Spear,
             UnitFamily.Cavalry,
-            hardCounter,
-            'Spear hard-counters Cavalry'
+            2.4,
+            'Spear counters Cavalry, but via multiplier instead of high general stats'
         );
 
         this.addRule(
             UnitFamily.Cavalry,
             UnitFamily.Archer,
-            hardCounter,
-            'Cavalry hard-counters Archer'
+            3.2,
+            'Cavalry counters Archer'
         );
 
         this.addRule(
             UnitFamily.Cavalry,
             UnitFamily.Monk,
-            hardCounter,
-            'Cavalry hard-counters Monk'
+            3.2,
+            'Cavalry counters Monk'
         );
 
         this.addRule(
             UnitFamily.Archer,
             UnitFamily.Monk,
-            hardCounter,
-            'Archer hard-counters Monk'
+            1.8,
+            'Archer pressures Monk without deleting it instantly'
         );
 
         this.addRule(
             UnitFamily.Archer,
             UnitFamily.Spear,
-            hardCounter,
-            'Archer hard-counters Spear'
+            3.2,
+            'Archer counters Spear when protected by range/frontline'
         );
 
         this.addRule(
             UnitFamily.Monk,
             UnitFamily.Axeman,
-            hardCounter,
-            'Monk hard-counters Axeman'
+            3.2,
+            'Monk counters Axeman with limited low-count AoE'
         );
 
         this.addRule(
             UnitFamily.Axeman,
             UnitFamily.Sword,
-            hardCounter,
+            2.7,
             'Axeman hard-counters Sword'
         );
 
         this.addRule(
             UnitFamily.Sword,
             UnitFamily.Spear,
-            hardCounter,
+            3,
             'Sword hard-counters Spear'
         );
     }

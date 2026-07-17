@@ -12,6 +12,7 @@ import {
     Material,
     game,
     profiler,
+    director,
 } from 'cc';
 
 import { Unit } from './Unit';
@@ -59,6 +60,9 @@ const BattleWaveSpawnedEvent =
 export class GameManager extends Component {
 
     static instance: GameManager | null = null;
+    private static originalDirectorTick:
+        ((deltaTime: number) => void) | null = null;
+    private static directorTimeScaleOwner: GameManager | null = null;
 
     @property(BattleUnitDatabase)
     unitDatabase: BattleUnitDatabase | null = null;
@@ -73,6 +77,19 @@ export class GameManager extends Component {
         tooltip: 'Target frame rate for mobile performance tests. Use 30, 45, or 60. Set 0 or lower to keep the engine default.',
     })
     targetFrameRate = 60;
+
+    @property({
+        min: 0.1,
+        tooltip:
+            'Global battle speed multiplier for faster telemetry tests. 1 = normal speed. Values above 1 speed up Cocos update/schedule time; RVO is sub-stepped so large dt is not simply clamped away.',
+    })
+    battleTimeScale = 1;
+
+    @property({
+        tooltip:
+            'Reset the global Cocos scheduler time scale back to 1 when this GameManager is destroyed. Keep enabled unless another system owns global time scale.',
+    })
+    resetBattleTimeScaleOnDestroy = true;
 
     @property({
         tooltip: 'Show the built-in Cocos profiler overlay in build/preview. Keep off for normal release tests unless you need on-device FPS/drawcall stats.',
@@ -92,7 +109,7 @@ export class GameManager extends Component {
 
     @property({
         tooltip:
-            'Fallback winner rule for economy-only tests: if enabled, the first team that can no longer afford any valid spawn entry loses. Keep off when collecting hero-kill balance telemetry.',
+            'Fallback winner rule for economy-only tests: if enabled, a team loses only when it has no non-hero units alive and can no longer afford any valid spawn entry.',
     })
     enableNoAffordableSpawnWinnerFallback = false;
 
@@ -386,6 +403,7 @@ export class GameManager extends Component {
     start() {
         GameManager.instance = this;
         this.applyTargetFrameRate();
+        this.installBattleTimeScaleHook();
         this.applyProfilerStats();
 
         this.teamA.length = 0;
@@ -485,6 +503,10 @@ export class GameManager extends Component {
             GameManager.instance = null;
         }
 
+        if (this.resetBattleTimeScaleOnDestroy) {
+            this.uninstallBattleTimeScaleHook();
+        }
+
         this.unregisterWaveBannerCameraEvents();
 
         if (this.sim && this.sim.destroy) {
@@ -564,6 +586,57 @@ export class GameManager extends Component {
         game.frameRate = fps;
     }
 
+    private getSafeBattleTimeScale() {
+        if (
+            typeof this.battleTimeScale !== 'number' ||
+            !isFinite(this.battleTimeScale)
+        ) {
+            return 1;
+        }
+
+        return Math.max(0.1, this.battleTimeScale);
+    }
+
+    private installBattleTimeScaleHook() {
+        GameManager.directorTimeScaleOwner = this;
+
+        if (GameManager.originalDirectorTick) {
+            return;
+        }
+
+        const originalTick =
+            director.tick.bind(director);
+
+        GameManager.originalDirectorTick = originalTick;
+
+        director.tick = ((deltaTime: number) => {
+            const owner =
+                GameManager.directorTimeScaleOwner;
+            const scale =
+                owner && owner.isValid
+                    ? owner.getSafeBattleTimeScale()
+                    : 1;
+
+            originalTick(deltaTime * scale);
+        }) as typeof director.tick;
+    }
+
+    private uninstallBattleTimeScaleHook() {
+        if (
+            GameManager.directorTimeScaleOwner === this
+        ) {
+            GameManager.directorTimeScaleOwner = null;
+        }
+
+        if (!GameManager.originalDirectorTick) {
+            return;
+        }
+
+        director.tick =
+            GameManager.originalDirectorTick as typeof director.tick;
+        GameManager.originalDirectorTick = null;
+    }
+
     private applyProfilerStats() {
         const queryState =
             this.getProfilerStatsQueryState();
@@ -626,12 +699,7 @@ export class GameManager extends Component {
                 this.rvoUpdateFrameOffset
             )
         ) {
-            const safeDt = Math.min(
-                deltaTime,
-                Math.max(0.001, this.maxRvoStepDeltaTime)
-            );
-
-            this.sim.step(safeDt);
+            this.stepRvoSimulation(deltaTime);
         }
 
         if (
@@ -675,6 +743,25 @@ export class GameManager extends Component {
             safeInterval;
 
         return (this.frame + phase) % safeInterval === 0;
+    }
+
+    private stepRvoSimulation(deltaTime: number) {
+        if (!this.sim || typeof this.sim.step !== 'function') {
+            return;
+        }
+
+        if (
+            typeof deltaTime !== 'number' ||
+            !isFinite(deltaTime) ||
+            deltaTime <= 0
+        ) {
+            return;
+        }
+
+        const maxStep =
+            Math.max(0.001, this.maxRvoStepDeltaTime);
+
+        this.sim.step(deltaTime, maxStep);
     }
 
     public reportKill(
@@ -1819,17 +1906,26 @@ export class GameManager extends Component {
             this.canAffordAnySpawnEntry(0);
         const teamBCanSpawn =
             this.canAffordAnySpawnEntry(1);
+        const teamAHasTroops =
+            this.getAliveNonHeroUnitCount(0) > 0;
+        const teamBHasTroops =
+            this.getAliveNonHeroUnitCount(1) > 0;
 
-        if (teamACanSpawn && teamBCanSpawn) {
+        const teamAEliminated =
+            !teamACanSpawn && !teamAHasTroops;
+        const teamBEliminated =
+            !teamBCanSpawn && !teamBHasTroops;
+
+        if (!teamAEliminated && !teamBEliminated) {
             return;
         }
 
         const loserTeam =
-            !teamACanSpawn && !teamBCanSpawn
+            teamAEliminated && teamBEliminated
                 ? -1
-                : teamACanSpawn
-                    ? 1
-                    : 0;
+                : teamAEliminated
+                    ? 0
+                    : 1;
         const winnerTeam =
             loserTeam < 0
                 ? -1
@@ -1837,13 +1933,37 @@ export class GameManager extends Component {
                     ? 1
                     : 0;
         const reason =
-            'first-team-cannot-afford-any-spawn';
+            'team-eliminated-and-cannot-afford-spawn';
 
         this.resolveBattleWinner(
             winnerTeam,
             loserTeam,
             reason
         );
+    }
+
+    private getAliveNonHeroUnitCount(team: number) {
+        const units =
+            team === 0
+                ? this.teamA
+                : team === 1
+                    ? this.teamB
+                    : null;
+
+        if (!units) return 0;
+
+        let count = 0;
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!this.isAliveUnit(unit)) continue;
+            if (unit.isHero) continue;
+
+            count++;
+        }
+
+        return count;
     }
 
     private resolveBattleWinner(

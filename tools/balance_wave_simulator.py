@@ -154,6 +154,8 @@ class MatchResult:
     waves: Tuple[int, int]
     spawn_counts: Counter = field(default_factory=Counter)
     spawn_reasons: Counter = field(default_factory=Counter)
+    damage_by_family: Counter = field(default_factory=Counter)
+    cp_spent_by_family: Counter = field(default_factory=Counter)
     kill_pairs: Counter = field(default_factory=Counter)
     lane_engagements: Counter = field(default_factory=Counter)
     counter_attempts: List[CounterAttempt] = field(default_factory=list)
@@ -307,6 +309,8 @@ class WaveSimulator:
         ]
         self.spawn_counts: Counter = Counter()
         self.spawn_reasons: Counter = Counter()
+        self.damage_by_family: Counter = Counter()
+        self.cp_spent_by_family: Counter = Counter()
         self.kill_pairs: Counter = Counter()
         self.lane_engagements: Counter = Counter()
         self.counter_attempts: Dict[int, CounterAttempt] = {}
@@ -457,6 +461,7 @@ class WaveSimulator:
         self.waves.append(wave)
         self.spawn_counts[(team, entry.name)] += 1
         self.spawn_reasons[reason] += 1
+        self.cp_spent_by_family[entry.family_name] += entry.cost
         if target is not None:
             self.counter_attempts[wave.id] = CounterAttempt(
                 team=team,
@@ -632,6 +637,7 @@ class WaveSimulator:
             actual = min(target.hp, max(0.0, amount))
             target.hp -= amount
             source.dealt_damage += actual
+            self.damage_by_family[source.entry.family_name] += actual
             attempt = self.counter_attempts.get(source.id)
             if attempt and attempt.target_wave_id == target.id:
                 attempt.counter_hit_target = True
@@ -742,6 +748,8 @@ class WaveSimulator:
             waves=(len(self.alive_waves(0)), len(self.alive_waves(1))),
             spawn_counts=self.spawn_counts.copy(),
             spawn_reasons=self.spawn_reasons.copy(),
+            damage_by_family=self.damage_by_family.copy(),
+            cp_spent_by_family=self.cp_spent_by_family.copy(),
             kill_pairs=self.kill_pairs.copy(),
             lane_engagements=self.lane_engagements.copy(),
             counter_attempts=list(self.counter_attempts.values()),
@@ -756,6 +764,8 @@ def summarize(results: Sequence[MatchResult]) -> None:
     winner_counts = Counter(result.winner for result in results)
     spawn_counts: Counter = Counter()
     spawn_reasons: Counter = Counter()
+    damage_by_family: Counter = Counter()
+    cp_spent_by_family: Counter = Counter()
     kill_pairs: Counter = Counter()
     lane_engagements: Counter = Counter()
     attempts: List[CounterAttempt] = []
@@ -763,6 +773,8 @@ def summarize(results: Sequence[MatchResult]) -> None:
     for result in results:
         spawn_counts.update(result.spawn_counts)
         spawn_reasons.update(result.spawn_reasons)
+        damage_by_family.update(result.damage_by_family)
+        cp_spent_by_family.update(result.cp_spent_by_family)
         kill_pairs.update(result.kill_pairs)
         lane_engagements.update(result.lane_engagements)
         attempts.extend(result.counter_attempts)
@@ -803,6 +815,25 @@ def summarize(results: Sequence[MatchResult]) -> None:
     print("\nspawn units:")
     for (team, name), count in spawn_counts.most_common():
         print(f"  team{team} {name:16s} {count:6d} {count / max(1, total_spawns) * 100:6.2f}%")
+
+    total_damage = sum(damage_by_family.values())
+    total_cp_spent = sum(cp_spent_by_family.values())
+    global_damage_per_cp = total_damage / max(1.0, total_cp_spent)
+    print("\ndamage per CP:")
+    print(
+        f"  {'GLOBAL':8s} damage={total_damage:10.1f} "
+        f"cp={total_cp_spent:8.1f} dmg/cp={global_damage_per_cp:7.2f}"
+    )
+    for family in sorted(cp_spent_by_family):
+        damage = damage_by_family[family]
+        spent = cp_spent_by_family[family]
+        damage_per_cp = damage / max(1.0, spent)
+        relative = damage_per_cp / max(0.0001, global_damage_per_cp) * 100.0
+        print(
+            f"  {family:8s} damage={damage:10.1f} "
+            f"cp={spent:8.1f} dmg/cp={damage_per_cp:7.2f} "
+            f"rel={relative:6.1f}%"
+        )
 
     print("\nkill pairs:")
     for (attacker, defender), count in kill_pairs.most_common(12):
@@ -846,6 +877,142 @@ def summarize(results: Sequence[MatchResult]) -> None:
             )
 
 
+def estimate_wave_power(entry: UnitEntry) -> Dict[str, float]:
+    total_hp = entry.health * entry.count
+    interval = max(0.05, entry.attack_interval)
+    raw_dps = entry.count * max(1.0, entry.damage) / interval
+    splash_bonus = 1.0 + min(0.75, max(0.0, entry.damage_radius) / 2.0)
+    range_bonus = 1.0 + min(0.45, max(0.0, entry.attack_range - 0.35) * 0.06)
+    speed_bonus = 1.0 + min(0.35, max(0.0, entry.speed - 3.0) * 0.08)
+    defense_bonus = 1.0 + min(0.35, max(0.0, entry.defense) * 0.04)
+    power = math.sqrt(total_hp * raw_dps) * splash_bonus * range_bonus * speed_bonus * defense_bonus
+    return {
+        "hp": total_hp,
+        "raw_dps": raw_dps * splash_bonus,
+        "power": power,
+        "power_per_cp": power / max(1.0, entry.cost),
+    }
+
+
+def unique_entries(config: SceneConfig) -> List[UnitEntry]:
+    result: List[UnitEntry] = []
+    seen = set()
+    for entry in config.entries_by_team[0] + config.entries_by_team[1]:
+        if entry.name in seen:
+            continue
+        seen.add(entry.name)
+        result.append(entry)
+    return result
+
+
+def run_direct_duel(
+    config: SceneConfig,
+    attacker_entry: UnitEntry,
+    defender_entry: UnitEntry,
+    dt: float,
+    max_time: float,
+    unit_radius: float,
+) -> Tuple[str, float, float]:
+    rng = random.Random(12345)
+    sim = WaveSimulator(
+        config=config,
+        rng=rng,
+        dt=dt,
+        max_time=max_time,
+        unit_radius=unit_radius,
+        normal_lane_jump=False,
+        melee_shield_blocks=False,
+    )
+    lane = config.lane_count // 2
+    a = Wave(
+        id=1,
+        team=0,
+        entry=attacker_entry,
+        lane=lane,
+        z=config.team_spawn_z[0],
+        aggressive=False,
+        spawn_time=0.0,
+        response_reason="duel",
+    )
+    b = Wave(
+        id=2,
+        team=1,
+        entry=defender_entry,
+        lane=lane,
+        z=config.team_spawn_z[1],
+        aggressive=False,
+        spawn_time=0.0,
+        response_reason="duel",
+    )
+    sim.waves = [a, b]
+
+    while sim.time < max_time and a.alive and b.alive:
+        sim.apply_combat()
+        sim.move_waves()
+        sim.time += dt
+
+    if a.alive and not b.alive:
+        return attacker_entry.family_name, a.alive_ratio, sim.time
+    if b.alive and not a.alive:
+        return defender_entry.family_name, b.alive_ratio, sim.time
+    return "Draw", max(a.alive_ratio, b.alive_ratio), sim.time
+
+
+def print_design_report(
+    config: SceneConfig,
+    dt: float,
+    max_time: float,
+    unit_radius: float,
+) -> None:
+    entries = unique_entries(config)
+    print("\nwave power index:")
+    print(
+        "  "
+        f"{'Unit':8s} {'Cost':>6s} {'HP':>8s} {'DPS*':>8s} "
+        f"{'Power':>8s} {'P/CP':>8s}"
+    )
+    for entry in entries:
+        stats = estimate_wave_power(entry)
+        print(
+            "  "
+            f"{entry.family_name:8s} {entry.cost:6.1f} "
+            f"{stats['hp']:8.1f} {stats['raw_dps']:8.1f} "
+            f"{stats['power']:8.1f} {stats['power_per_cp']:8.2f}"
+        )
+    print("  DPS* includes the simple splash expectation used by this simulator.")
+
+    print("\ndirect counter duel check:")
+    for (attacker_family, defender_family), multiplier in sorted(config.counters.items()):
+        attacker = next((entry for entry in entries if entry.family == attacker_family), None)
+        defender = next((entry for entry in entries if entry.family == defender_family), None)
+        if not attacker or not defender:
+            continue
+        winner, hp_left, duration = run_direct_duel(
+            config,
+            attacker,
+            defender,
+            dt,
+            max_time,
+            unit_radius,
+        )
+        ok = winner == attacker.family_name
+        cost_note = (
+            "cheaper"
+            if attacker.cost < defender.cost
+            else "equal"
+            if attacker.cost == defender.cost
+            else "costlier"
+        )
+        print(
+            "  "
+            f"{attacker.family_name:8s}>{defender.family_name:8s} "
+            f"mul={multiplier:4.2f} attackerCost={attacker.cost:5.1f} "
+            f"defenderCost={defender.cost:5.1f} {cost_note:8s} "
+            f"winner={winner:8s} hpLeft={hp_left * 100:5.1f}% "
+            f"time={duration:5.1f}s {'OK' if ok else 'FAIL'}"
+        )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run wave-level balance simulation.")
     parser.add_argument("--scene", default="assets/Test.scene", help="Path to Cocos scene JSON.")
@@ -883,7 +1050,15 @@ def parse_args() -> argparse.Namespace:
         "--add-rule",
         action="append",
         default=[],
-        help="Temporarily add a counter rule, e.g. Archer:Monk.",
+        help=(
+            "Temporarily add/override a counter rule, e.g. Archer:Monk "
+            "or Archer:Monk:2.5."
+        ),
+    )
+    parser.add_argument(
+        "--no-design-report",
+        action="store_true",
+        help="Skip wave power and direct counter duel report.",
     )
     return parser.parse_args()
 
@@ -894,6 +1069,21 @@ def parse_rule(value: str) -> Tuple[int, int]:
         return FAMILY_IDS[attacker], FAMILY_IDS[defender]
     except Exception as exc:
         raise ValueError(f"Invalid rule '{value}'. Use Attacker:Defender.") from exc
+
+
+def parse_rule_with_multiplier(value: str) -> Tuple[int, int, float]:
+    parts = value.split(":")
+    if len(parts) == 2:
+        attacker, defender = parts
+        multiplier = 3.0
+    elif len(parts) == 3:
+        attacker, defender, raw_multiplier = parts
+        multiplier = float(raw_multiplier)
+    else:
+        raise ValueError(
+            f"Invalid rule '{value}'. Use Attacker:Defender[:Multiplier]."
+        )
+    return FAMILY_IDS[attacker], FAMILY_IDS[defender], multiplier
 
 
 def apply_entry_override(config: SceneConfig, value: str) -> None:
@@ -952,7 +1142,8 @@ def main() -> None:
     for value in args.remove_rule:
         config.counters.pop(parse_rule(value), None)
     for value in args.add_rule:
-        config.counters[parse_rule(value)] = 3.0
+        attacker, defender, multiplier = parse_rule_with_multiplier(value)
+        config.counters[(attacker, defender)] = multiplier
 
     results: List[MatchResult] = []
     for index in range(args.matches):
@@ -978,6 +1169,8 @@ def main() -> None:
             for a, b in sorted(config.counters)
         )
     )
+    if not args.no_design_report:
+        print_design_report(config, args.dt, args.max_time, args.unit_radius)
     summarize(results)
 
 

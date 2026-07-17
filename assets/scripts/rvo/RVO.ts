@@ -703,7 +703,61 @@ export class RVOSimulator {
         return !a.locked || a.canBePush === 1;
     }
 
-    step(deltaTime?: number) {
+    step(
+        deltaTime?: number,
+        maxSubStepDeltaTime?: number
+    ) {
+        const totalDt =
+            this.getSafeTotalDeltaTime(deltaTime);
+        const maxStep =
+            this.getSafeMaxSubStepDeltaTime(
+                maxSubStepDeltaTime
+            );
+
+        let remaining = totalDt;
+        let guard = 0;
+
+        while (remaining > 0.000001 && guard < 32) {
+            const dt = Math.min(remaining, maxStep);
+            this.stepOnce(dt);
+            remaining -= dt;
+            guard++;
+        }
+
+        return true;
+    }
+
+    private getSafeTotalDeltaTime(deltaTime?: number) {
+        if (
+            typeof deltaTime !== 'number' ||
+            !isFinite(deltaTime) ||
+            deltaTime <= 0
+        ) {
+            return this.timeStep;
+        }
+
+        return Math.max(this.minStepDeltaTime, deltaTime);
+    }
+
+    private getSafeMaxSubStepDeltaTime(
+        maxSubStepDeltaTime?: number
+    ) {
+        if (
+            typeof maxSubStepDeltaTime !== 'number' ||
+            !isFinite(maxSubStepDeltaTime) ||
+            maxSubStepDeltaTime <= 0
+        ) {
+            return this.maxStepDeltaTime;
+        }
+
+        return this.clamp(
+            maxSubStepDeltaTime,
+            this.minStepDeltaTime,
+            this.maxStepDeltaTime
+        );
+    }
+
+    private stepOnce(deltaTime?: number) {
         const dt = this.getSafeDeltaTime(deltaTime);
 
         this.buildGrid();

@@ -208,7 +208,10 @@ export class RVOWorkerSimulator {
         );
     }
 
-    step(deltaTime?: number) {
+    step(
+        deltaTime?: number,
+        maxSubStepDeltaTime?: number
+    ) {
         if (this.fallbackSimulator) {
             this.fallbackSimulator.cellSize =
                 this.cellSize;
@@ -221,7 +224,10 @@ export class RVOWorkerSimulator {
             this.fallbackSimulator.obstacleSolveIterations =
                 this.obstacleSolveIterations;
 
-            return this.fallbackSimulator.step(deltaTime);
+            return this.fallbackSimulator.step(
+                deltaTime,
+                maxSubStepDeltaTime
+            );
         }
 
         if (!this.worker) return false;
@@ -234,7 +240,10 @@ export class RVOWorkerSimulator {
                 this.activateMainThreadFallback();
 
                 return this.fallbackSimulator
-                    ? this.fallbackSimulator.step(deltaTime)
+                    ? this.fallbackSimulator.step(
+                        deltaTime,
+                        maxSubStepDeltaTime
+                    )
                     : false;
             }
 
@@ -249,7 +258,10 @@ export class RVOWorkerSimulator {
                 this.activateMainThreadFallback();
 
                 return this.fallbackSimulator
-                    ? this.fallbackSimulator.step(deltaTime)
+                    ? this.fallbackSimulator.step(
+                        deltaTime,
+                        maxSubStepDeltaTime
+                    )
                     : false;
             }
 
@@ -258,7 +270,24 @@ export class RVOWorkerSimulator {
 
         if (this.agents.length <= 0) return false;
 
-        const safeDeltaTime = this.getSafeDeltaTime(deltaTime);
+        const totalDeltaTime =
+            this.getSafeTotalDeltaTime(deltaTime);
+        const maxStepDeltaTime =
+            this.getSafeMaxSubStepDeltaTime(
+                maxSubStepDeltaTime
+            );
+        const subSteps =
+            Math.max(
+                1,
+                Math.min(
+                    32,
+                    Math.ceil(
+                        totalDeltaTime / maxStepDeltaTime
+                    )
+                )
+            );
+        const safeDeltaTime =
+            totalDeltaTime / subSteps;
 
         if (this.obstacleDirty) {
             this.sendObstaclesToWorker();
@@ -327,6 +356,7 @@ export class RVOWorkerSimulator {
 
                 cellSize: this.cellSize,
                 timeStep: safeDeltaTime,
+                subSteps,
                 obstacleSolveIterations:
                     this.obstacleSolveIterations,
 
@@ -346,7 +376,10 @@ export class RVOWorkerSimulator {
             this.activateMainThreadFallback();
 
             return this.fallbackSimulator
-                ? this.fallbackSimulator.step(deltaTime)
+                ? this.fallbackSimulator.step(
+                    deltaTime,
+                    maxSubStepDeltaTime
+                )
                 : false;
         }
 
@@ -357,6 +390,38 @@ export class RVOWorkerSimulator {
         this.intsBuffer = null;
 
         return true;
+    }
+
+    private getSafeTotalDeltaTime(deltaTime?: number) {
+        if (
+            typeof deltaTime !== 'number' ||
+            !isFinite(deltaTime) ||
+            deltaTime <= 0
+        ) {
+            return this.timeStep;
+        }
+
+        return Math.max(this.minStepDeltaTime, deltaTime);
+    }
+
+    private getSafeMaxSubStepDeltaTime(
+        maxSubStepDeltaTime?: number
+    ) {
+        if (
+            typeof maxSubStepDeltaTime !== 'number' ||
+            !isFinite(maxSubStepDeltaTime) ||
+            maxSubStepDeltaTime <= 0
+        ) {
+            return this.maxStepDeltaTime;
+        }
+
+        return Math.max(
+            this.minStepDeltaTime,
+            Math.min(
+                this.maxStepDeltaTime,
+                maxSubStepDeltaTime
+            )
+        );
     }
 
     private ensureBuffers(count: number) {
@@ -1404,10 +1469,18 @@ function step(data) {
         data.count
     );
 
-    applyVelocityAvoidance(agents, data.count, data);
-    moveAgents(agents, data.count, data);
-    hardSeparateAgents(agents, data.count, data);
-    solveObstaclesAgain(agents, data.count, data);
+    const subSteps =
+        Math.max(
+            1,
+            Math.min(32, data.subSteps || 1)
+        );
+
+    for (let i = 0; i < subSteps; i++) {
+        applyVelocityAvoidance(agents, data.count, data);
+        moveAgents(agents, data.count, data);
+        hardSeparateAgents(agents, data.count, data);
+        solveObstaclesAgain(agents, data.count, data);
+    }
 
     writeResultToFloats(
         agents,
