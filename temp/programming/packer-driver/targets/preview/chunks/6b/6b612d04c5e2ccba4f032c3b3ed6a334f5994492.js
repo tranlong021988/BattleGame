@@ -165,47 +165,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         createDefaultRules() {
           this.rules.length = 0;
-          var hardCounter = 3.0;
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Spear, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry, hardCounter, 'Spear hard-counters Cavalry');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer, hardCounter, 'Cavalry hard-counters Archer');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Monk, hardCounter, 'Cavalry hard-counters Monk');
+          }), UnitFamily) : UnitFamily).Cavalry, 2.1, 'Hard counter: Spear punishes Cavalry.');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Archer, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Monk, hardCounter, 'Archer hard-counters Monk');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear, hardCounter, 'Archer hard-counters Spear');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Monk, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Axeman, hardCounter, 'Monk hard-counters Axeman');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Axeman, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Sword, hardCounter, 'Axeman hard-counters Sword');
-          this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Sword, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear, hardCounter, 'Sword hard-counters Spear');
+          }), UnitFamily) : UnitFamily).Spear, 1.45, 'Soft-hard counter: Archer punishes Spear to keep cheap Spear from becoming too cost-efficient.');
         }
 
       }, _class6.instance = null, _class6), (_descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "autoCreateDefaultRules", [property], {

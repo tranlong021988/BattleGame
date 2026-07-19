@@ -7,6 +7,15 @@ const FORWARD_LOOK_DOT_THRESHOLD = 0.98;
 const NEAREST_QUERY_ASSIGN_IF_EMPTY = 0;
 const NEAREST_QUERY_REPLACE_SHARED_BUSY = 1;
 const NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION = 2;
+const UNIT_FAMILY_ARCHER = 2;
+const UNIT_FAMILY_MONK = 6;
+const RANGED_DANGER_RANGE_RATIO = 0.5;
+const RANGED_SAFE_MIN_RANGE_RATIO = 0.7;
+const RANGED_COMBAT_MOVE_SPEED_RATIO = 0.75;
+const RANGED_YIELD_LOOK_BEHIND = 2.8;
+const RANGED_YIELD_SIDE_RANGE = 1.35;
+const RANGED_YIELD_SIDE_SPEED_RATIO = 0.55;
+const RANGED_YIELD_BACK_SPEED_RATIO = 0.12;
 
 @ccclass('Unit')
 export class Unit extends Component {
@@ -106,6 +115,10 @@ export class Unit extends Component {
     private soloAggressiveSkirmishActive = false;
     private backToLaneActive = false;
     private backToLaneForwardAggressive = false;
+    private rangedCombatMoveX = 0;
+    private rangedCombatMoveZ = 0;
+    private rangedKiteActive = false;
+    private rangedCombatDecisionTargetLifeId = -1;
     private nearestEnemyQueryToken = 0;
     private nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
     private readonly onNearestEnemyQueryResult = (
@@ -167,6 +180,7 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive = false;
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
+        this.resetRangedCombatMovement();
 
         this.onForward = !this.isSteady;
         this.setForwardDir(forwardX, forwardZ);
@@ -198,6 +212,7 @@ export class Unit extends Component {
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
+        this.resetRangedCombatMovement();
 
         if (value) {
             this.setEnemyTarget(null);
@@ -223,6 +238,7 @@ export class Unit extends Component {
         this.onBusy = false;
         this.onForward = useForwardPhase;
         this.backToLaneActive = false;
+        this.resetRangedCombatMovement();
 
         this.setAgentLocked(false);
         this.setAgentOnForward(useForwardPhase ? 1 : 0);
@@ -345,6 +361,7 @@ export class Unit extends Component {
         this.enemyFromSharedWaveTarget =
             !!target && fromSharedWaveTarget;
         this.resetBusyLookCache();
+        this.resetRangedCombatMovement();
 
         if (target) {
             this.targetSearchConfirmedNoTarget = false;
@@ -359,6 +376,7 @@ export class Unit extends Component {
         this.enemyFromSharedWaveTarget = false;
         this.targetSearchConfirmedNoTarget = false;
         this.resetBusyLookCache();
+        this.resetRangedCombatMovement();
     }
 
     public isSoloAggressiveSkirmishActive() {
@@ -367,6 +385,19 @@ export class Unit extends Component {
 
     public isBackToLaneActive() {
         return this.backToLaneActive;
+    }
+
+    public isRangedCombatUnit() {
+        if (!this.props) return false;
+
+        return this.props.family === UNIT_FAMILY_ARCHER ||
+            this.props.family === UNIT_FAMILY_MONK;
+    }
+
+    public isCurrentEnemyInAttackRange() {
+        return this.isValidEnemyWithinAttackRange(
+            this.getValidEnemyTarget()
+        );
     }
 
     private setCachedNearestInRangeTarget(target: Unit | null) {
@@ -680,6 +711,7 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive = false;
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
+        this.resetRangedCombatMovement();
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.laneId = -1;
@@ -711,6 +743,7 @@ export class Unit extends Component {
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
+        this.resetRangedCombatMovement();
 
         if (this.agent) {
             this.setAgentStopped();
@@ -727,6 +760,7 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive = false;
         this.backToLaneActive = false;
         this.resetStableRotationPosition();
+        this.resetRangedCombatMovement();
         this.targetSearchRange = Math.max(
             this.targetSearchRange,
             searchRange
@@ -755,6 +789,7 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive = false;
         this.backToLaneActive = false;
         this.resetStableRotationPosition();
+        this.resetRangedCombatMovement();
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -776,6 +811,7 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive = false;
         this.backToLaneActive = false;
         this.resetStableRotationPosition();
+        this.resetRangedCombatMovement();
 
         if (searchRange > 0) {
             this.targetSearchRange = Math.max(
@@ -820,6 +856,7 @@ export class Unit extends Component {
         this.backToLaneForwardAggressive = false;
         this.resetStableRotationPosition();
         this.resetMoveIntentFacing();
+        this.resetRangedCombatMovement();
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -849,6 +886,7 @@ export class Unit extends Component {
             this.onBusy = false;
             this.onForward = false;
             this.backToLaneActive = false;
+            this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
             this.setAgentStopped();
@@ -874,6 +912,15 @@ export class Unit extends Component {
             if (!busyEnemy) {
                 this.clearEnemy();
             } else {
+                if (
+                    this.updateRangedBusyCombat(
+                        busyEnemy,
+                        deltaTime
+                    )
+                ) {
+                    return;
+                }
+
                 if (!this.shouldSkipBusyLookAndSync(busyEnemy)) {
                     const rotated =
                         this.lookAtTargetSmooth(
@@ -1053,6 +1100,7 @@ export class Unit extends Component {
         this.backToLaneForwardAggressive = aggressiveForward;
         this.resetStableRotationPosition();
         this.resetMoveIntentFacing();
+        this.resetRangedCombatMovement();
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -1566,8 +1614,10 @@ export class Unit extends Component {
             const dx = e.agent!.pos.x - this.agent.pos.x;
             const dz = e.agent!.pos.z - this.agent.pos.z;
             const d = dx * dx + dz * dz;
+            const effectiveRange =
+                this.getEffectiveAttackRangeAgainst(e);
 
-            if (!this.isValidEnemyWithinAttackRange(e)) continue;
+            if (d > effectiveRange * effectiveRange) continue;
 
             if (d < bestDistSq) {
                 bestDistSq = d;
@@ -1724,6 +1774,16 @@ export class Unit extends Component {
             : gm.teamA;
     }
 
+    private getAllyList() {
+        const gm = GameManager.instance;
+
+        if (!gm) return [];
+
+        return this.team === 0
+            ? gm.teamA
+            : gm.teamB;
+    }
+
     private getNearbyEnemyList(radius: number) {
         if (!this.agent) return [];
 
@@ -1739,6 +1799,389 @@ export class Unit extends Component {
         }
 
         return this.getEnemyList();
+    }
+
+    private getNearbyAllyList(radius: number) {
+        if (!this.agent) return [];
+
+        const gm = GameManager.instance;
+
+        if (gm && gm.spatialGrid) {
+            return gm.spatialGrid.queryAllies(
+                this.team,
+                this.agent.pos.x,
+                this.agent.pos.z,
+                radius
+            );
+        }
+
+        return this.getAllyList();
+    }
+
+    private updateRangedBusyCombat(
+        target: Unit,
+        deltaTime: number
+    ) {
+        if (!this.isRangedCombatUnit()) {
+            return false;
+        }
+
+        if (!this.agent || !target.agent) {
+            return false;
+        }
+
+        if (this.isMeleeEnemyEngagingThis(target)) {
+            this.resetRangedCombatMovement();
+            this.setAgentOnForward(0);
+            this.setAgentLocked(true);
+            this.setAgentStopped();
+
+            const rotated =
+                this.lookAtTargetSmooth(
+                    target,
+                    deltaTime
+                );
+
+            this.sync(deltaTime, false);
+            this.updateBusyLookSettled(
+                target,
+                rotated
+            );
+
+            return true;
+        }
+
+        if (
+            this.shouldRunTargetSearch() ||
+            this.rangedCombatDecisionTargetLifeId !== target.lifeId
+        ) {
+            this.refreshRangedCombatMovement(
+                target
+            );
+        }
+
+        this.setAgentOnForward(0);
+        this.setAgentLocked(false);
+
+        const hasMovement =
+            this.hasRangedCombatMovement();
+
+        if (hasMovement) {
+            this.setAgentPrefVelocity(
+                this.rangedCombatMoveX,
+                this.rangedCombatMoveZ
+            );
+        } else {
+            this.setAgentStopped();
+        }
+
+        const rotated =
+            hasMovement
+                ? this.lookDirectionSmooth(
+                    this.rangedCombatMoveX,
+                    this.rangedCombatMoveZ,
+                    deltaTime
+                )
+                : this.lookAtTargetSmooth(
+                    target,
+                    deltaTime
+                );
+
+        this.sync(deltaTime, false);
+
+        if (!hasMovement) {
+            this.updateBusyLookSettled(
+                target,
+                rotated
+            );
+        } else {
+            this.resetBusyLookCache();
+        }
+
+        return true;
+    }
+
+    public isRangedCombatRepositioning() {
+        return this.isRangedCombatUnit() &&
+            this.onBusy &&
+            this.hasRangedCombatMovement();
+    }
+
+    private isSameLogicLaneAs(
+        ally: Unit
+    ) {
+        if (this.laneId < 0 || ally.laneId < 0) {
+            return false;
+        }
+
+        const gm = GameManager.instance;
+
+        if (!gm) {
+            return this.laneId === ally.laneId;
+        }
+
+        return gm.clampLaneId(this.laneId) ===
+            gm.clampLaneId(ally.laneId);
+    }
+
+    private isMeleeEnemyEngagingThis(
+        enemy: Unit
+    ) {
+        if (!this.agent || !enemy.agent) return false;
+        if (!this.isValidEnemy(enemy)) return false;
+        if (enemy.isRangedCombatUnit()) return false;
+
+        const dx =
+            this.agent.pos.x - enemy.agent.pos.x;
+        const dz =
+            this.agent.pos.z - enemy.agent.pos.z;
+        const range =
+            enemy.getEffectiveAttackRangeAgainst(this);
+
+        return dx * dx + dz * dz <=
+            range * range;
+    }
+
+    private refreshRangedCombatMovement(
+        target: Unit
+    ) {
+        this.rangedCombatDecisionTargetLifeId =
+            target.lifeId;
+        this.rangedCombatMoveX = 0;
+        this.rangedCombatMoveZ = 0;
+
+        if (!this.agent || !target.agent) {
+            this.rangedKiteActive = false;
+            return;
+        }
+
+        const dx =
+            target.agent.pos.x - this.agent.pos.x;
+        const dz =
+            target.agent.pos.z - this.agent.pos.z;
+        const dist =
+            Math.sqrt(dx * dx + dz * dz);
+        const range =
+            Math.max(0.001, this.attackRange);
+        const dangerDistance =
+            range * RANGED_DANGER_RANGE_RATIO;
+        const safeMinDistance =
+            range * RANGED_SAFE_MIN_RANGE_RATIO;
+
+        if (
+            dist < dangerDistance ||
+            (
+                this.rangedKiteActive &&
+                dist < safeMinDistance
+            )
+        ) {
+            this.rangedKiteActive = true;
+            this.setRangedCombatMoveAwayFrom(
+                dx,
+                dz
+            );
+            return;
+        }
+
+        this.rangedKiteActive = false;
+
+        if (dist > range) {
+            this.setRangedCombatMoveToward(
+                dx,
+                dz
+            );
+            return;
+        }
+
+        if (this.hasForwardMeleeAllyBehind()) {
+            this.setRangedCombatYieldMovement();
+        }
+    }
+
+    private setRangedCombatMoveAwayFrom(
+        targetDx: number,
+        targetDz: number
+    ) {
+        let x = -targetDx;
+        let z = -targetDz;
+        const len = Math.sqrt(x * x + z * z);
+
+        if (len <= 0.0001) {
+            x = -this.forwardDir.x;
+            z = -this.forwardDir.z;
+        } else {
+            x /= len;
+            z /= len;
+        }
+
+        const speed =
+            this.getRangedCombatMoveSpeed();
+
+        this.rangedCombatMoveX = x * speed;
+        this.rangedCombatMoveZ = z * speed;
+    }
+
+    private setRangedCombatMoveToward(
+        targetDx: number,
+        targetDz: number
+    ) {
+        const len =
+            Math.sqrt(
+                targetDx * targetDx +
+                targetDz * targetDz
+            );
+
+        if (len <= 0.0001) return;
+
+        const speed =
+            this.getRangedCombatMoveSpeed();
+
+        this.rangedCombatMoveX =
+            targetDx / len * speed;
+        this.rangedCombatMoveZ =
+            targetDz / len * speed;
+    }
+
+    private setRangedCombatYieldMovement() {
+        if (!this.agent) return;
+
+        const gm = GameManager.instance;
+
+        if (!gm || this.laneId < 0) return;
+
+        const laneId =
+            gm.clampLaneId(this.laneId);
+        const laneCenterX =
+            gm.getLaneCenterX(laneId);
+        const laneMinX =
+            gm.getLaneMinX(laneId) +
+            Math.max(0, this.radius);
+        const laneMaxX =
+            gm.getLaneMaxX(laneId) -
+            Math.max(0, this.radius);
+        let side =
+            this.updateOffset % 2 === 0 ? 1 : -1;
+
+        if (
+            Math.abs(this.agent.pos.x - laneCenterX) > 0.05
+        ) {
+            side =
+                this.agent.pos.x >= laneCenterX ? 1 : -1;
+        }
+
+        if (
+            side > 0 &&
+            this.agent.pos.x >= laneMaxX - 0.05
+        ) {
+            return;
+        }
+
+        if (
+            side < 0 &&
+            this.agent.pos.x <= laneMinX + 0.05
+        ) {
+            return;
+        }
+
+        const speed =
+            Math.max(0, this.agent.maxSpeed);
+
+        this.rangedCombatMoveX =
+            side *
+            speed *
+            RANGED_YIELD_SIDE_SPEED_RATIO;
+        this.rangedCombatMoveZ =
+            -this.forwardDir.z *
+            speed *
+            RANGED_YIELD_BACK_SPEED_RATIO;
+    }
+
+    private hasForwardMeleeAllyBehind() {
+        if (!this.agent) return false;
+
+        const allies =
+            this.getNearbyAllyList(
+                RANGED_YIELD_LOOK_BEHIND +
+                RANGED_YIELD_SIDE_RANGE +
+                Math.max(0, this.radius)
+            );
+
+        for (let i = 0; i < allies.length; i++) {
+            const ally = allies[i];
+
+            if (!this.isForwardMeleeAllyBlocker(ally)) {
+                continue;
+            }
+
+            const dx =
+                ally.agent!.pos.x - this.agent.pos.x;
+            const dz =
+                ally.agent!.pos.z - this.agent.pos.z;
+            const forwardDist =
+                dx * this.forwardDir.x +
+                dz * this.forwardDir.z;
+
+            if (forwardDist > 0.35) continue;
+            if (forwardDist < -RANGED_YIELD_LOOK_BEHIND) continue;
+
+            const sideDist =
+                dx * this.forwardDir.z -
+                dz * this.forwardDir.x;
+            const sideRange =
+                RANGED_YIELD_SIDE_RANGE +
+                Math.max(0, this.radius) +
+                Math.max(0, ally.radius);
+
+            if (Math.abs(sideDist) > sideRange) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private isForwardMeleeAllyBlocker(
+        ally: Unit | null
+    ) {
+        if (!ally || ally === this) return false;
+        if (ally.team !== this.team) return false;
+        if (!ally.node.activeInHierarchy) return false;
+        if (!ally.agent) return false;
+        if (!ally.props || ally.props.isDead()) return false;
+        if (ally.waveRuntimeId === this.waveRuntimeId) return false;
+        if (!this.isSameLogicLaneAs(ally)) return false;
+        if (!ally.onForward) return false;
+        if (ally.isRangedCombatUnit()) return false;
+
+        const dot =
+            ally.forwardDir.x * this.forwardDir.x +
+            ally.forwardDir.z * this.forwardDir.z;
+
+        return dot > 0.5;
+    }
+
+    private getRangedCombatMoveSpeed() {
+        if (!this.agent) return 0;
+
+        return Math.max(0, this.agent.maxSpeed) *
+            RANGED_COMBAT_MOVE_SPEED_RATIO;
+    }
+
+    private hasRangedCombatMovement() {
+        return this.rangedCombatMoveX *
+            this.rangedCombatMoveX +
+            this.rangedCombatMoveZ *
+            this.rangedCombatMoveZ >
+            0.0001;
+    }
+
+    private resetRangedCombatMovement() {
+        this.rangedCombatMoveX = 0;
+        this.rangedCombatMoveZ = 0;
+        this.rangedKiteActive = false;
+        this.rangedCombatDecisionTargetLifeId = -1;
     }
 
     private lookAtTargetSmooth(target: Unit, deltaTime: number) {

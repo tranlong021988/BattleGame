@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, NEAREST_QUERY_ASSIGN_IF_EMPTY, NEAREST_QUERY_REPLACE_SHARED_BUSY, NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, NEAREST_QUERY_ASSIGN_IF_EMPTY, NEAREST_QUERY_REPLACE_SHARED_BUSY, NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION, UNIT_FAMILY_ARCHER, UNIT_FAMILY_MONK, RANGED_DANGER_RANGE_RATIO, RANGED_SAFE_MIN_RANGE_RATIO, RANGED_COMBAT_MOVE_SPEED_RATIO, RANGED_YIELD_LOOK_BEHIND, RANGED_YIELD_SIDE_RANGE, RANGED_YIELD_SIDE_SPEED_RATIO, RANGED_YIELD_BACK_SPEED_RATIO, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -48,6 +48,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       NEAREST_QUERY_ASSIGN_IF_EMPTY = 0;
       NEAREST_QUERY_REPLACE_SHARED_BUSY = 1;
       NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION = 2;
+      UNIT_FAMILY_ARCHER = 2;
+      UNIT_FAMILY_MONK = 6;
+      RANGED_DANGER_RANGE_RATIO = 0.5;
+      RANGED_SAFE_MIN_RANGE_RATIO = 0.7;
+      RANGED_COMBAT_MOVE_SPEED_RATIO = 0.75;
+      RANGED_YIELD_LOOK_BEHIND = 2.8;
+      RANGED_YIELD_SIDE_RANGE = 1.35;
+      RANGED_YIELD_SIDE_SPEED_RATIO = 0.55;
+      RANGED_YIELD_BACK_SPEED_RATIO = 0.12;
 
       _export("Unit", Unit = (_dec = ccclass('Unit'), _dec2 = property(Node), _dec3 = property({
         tooltip: 'Allows this unit to be pushed by hard separation even while busy/engaged and locked.'
@@ -157,6 +166,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
+          this.rangedCombatMoveX = 0;
+          this.rangedCombatMoveZ = 0;
+          this.rangedKiteActive = false;
+          this.rangedCombatDecisionTargetLifeId = -1;
           this.nearestEnemyQueryToken = 0;
           this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
 
@@ -198,6 +211,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
+          this.resetRangedCombatMovement();
           this.onForward = !this.isSteady;
           this.setForwardDir(forwardX, forwardZ);
           this.updateOffset = Math.floor(Math.random() * 1000);
@@ -227,6 +241,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (!this.agent) return;
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
+          this.resetRangedCombatMovement();
 
           if (value) {
             this.setEnemyTarget(null);
@@ -250,6 +265,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onBusy = false;
           this.onForward = useForwardPhase;
           this.backToLaneActive = false;
+          this.resetRangedCombatMovement();
           this.setAgentLocked(false);
           this.setAgentOnForward(useForwardPhase ? 1 : 0);
           this.setAgentStopped();
@@ -360,6 +376,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.retaliationTargetLifeId = -1;
           this.enemyFromSharedWaveTarget = !!target && fromSharedWaveTarget;
           this.resetBusyLookCache();
+          this.resetRangedCombatMovement();
 
           if (target) {
             this.targetSearchConfirmedNoTarget = false;
@@ -374,6 +391,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.enemyFromSharedWaveTarget = false;
           this.targetSearchConfirmedNoTarget = false;
           this.resetBusyLookCache();
+          this.resetRangedCombatMovement();
         }
 
         isSoloAggressiveSkirmishActive() {
@@ -382,6 +400,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         isBackToLaneActive() {
           return this.backToLaneActive;
+        }
+
+        isRangedCombatUnit() {
+          if (!this.props) return false;
+          return this.props.family === UNIT_FAMILY_ARCHER || this.props.family === UNIT_FAMILY_MONK;
+        }
+
+        isCurrentEnemyInAttackRange() {
+          return this.isValidEnemyWithinAttackRange(this.getValidEnemyTarget());
         }
 
         setCachedNearestInRangeTarget(target) {
@@ -609,6 +636,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
+          this.resetRangedCombatMovement();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.laneId = -1;
@@ -638,6 +666,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onBusy = false;
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
+          this.resetRangedCombatMovement();
 
           if (this.agent) {
             this.setAgentStopped();
@@ -656,6 +685,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.resetStableRotationPosition();
+          this.resetRangedCombatMovement();
           this.targetSearchRange = Math.max(this.targetSearchRange, searchRange);
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -680,6 +710,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.resetStableRotationPosition();
+          this.resetRangedCombatMovement();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
 
@@ -702,6 +733,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.resetStableRotationPosition();
+          this.resetRangedCombatMovement();
 
           if (searchRange > 0) {
             this.targetSearchRange = Math.max(this.targetSearchRange, searchRange);
@@ -739,6 +771,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.backToLaneForwardAggressive = false;
           this.resetStableRotationPosition();
           this.resetMoveIntentFacing();
+          this.resetRangedCombatMovement();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
 
@@ -765,6 +798,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.onBusy = false;
             this.onForward = false;
             this.backToLaneActive = false;
+            this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
             this.setAgentStopped();
@@ -790,6 +824,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!busyEnemy) {
               this.clearEnemy();
             } else {
+              if (this.updateRangedBusyCombat(busyEnemy, deltaTime)) {
+                return;
+              }
+
               if (!this.shouldSkipBusyLookAndSync(busyEnemy)) {
                 var rotated = this.lookAtTargetSmooth(busyEnemy, deltaTime);
                 this.setAgentStopped();
@@ -920,6 +958,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.backToLaneForwardAggressive = aggressiveForward;
           this.resetStableRotationPosition();
           this.resetMoveIntentFacing();
+          this.resetRangedCombatMovement();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.setAgentLocked(false);
@@ -1266,7 +1305,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var dx = e.agent.pos.x - this.agent.pos.x;
             var dz = e.agent.pos.z - this.agent.pos.z;
             var d = dx * dx + dz * dz;
-            if (!this.isValidEnemyWithinAttackRange(e)) continue;
+            var effectiveRange = this.getEffectiveAttackRangeAgainst(e);
+            if (d > effectiveRange * effectiveRange) continue;
 
             if (d < bestDistSq) {
               bestDistSq = d;
@@ -1390,6 +1430,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.team === 0 ? gm.teamB : gm.teamA;
         }
 
+        getAllyList() {
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm) return [];
+          return this.team === 0 ? gm.teamA : gm.teamB;
+        }
+
         getNearbyEnemyList(radius) {
           if (!this.agent) return [];
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
@@ -1401,6 +1449,246 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return this.getEnemyList();
+        }
+
+        getNearbyAllyList(radius) {
+          if (!this.agent) return [];
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (gm && gm.spatialGrid) {
+            return gm.spatialGrid.queryAllies(this.team, this.agent.pos.x, this.agent.pos.z, radius);
+          }
+
+          return this.getAllyList();
+        }
+
+        updateRangedBusyCombat(target, deltaTime) {
+          if (!this.isRangedCombatUnit()) {
+            return false;
+          }
+
+          if (!this.agent || !target.agent) {
+            return false;
+          }
+
+          if (this.isMeleeEnemyEngagingThis(target)) {
+            this.resetRangedCombatMovement();
+            this.setAgentOnForward(0);
+            this.setAgentLocked(true);
+            this.setAgentStopped();
+
+            var _rotated = this.lookAtTargetSmooth(target, deltaTime);
+
+            this.sync(deltaTime, false);
+            this.updateBusyLookSettled(target, _rotated);
+            return true;
+          }
+
+          if (this.shouldRunTargetSearch() || this.rangedCombatDecisionTargetLifeId !== target.lifeId) {
+            this.refreshRangedCombatMovement(target);
+          }
+
+          this.setAgentOnForward(0);
+          this.setAgentLocked(false);
+          var hasMovement = this.hasRangedCombatMovement();
+
+          if (hasMovement) {
+            this.setAgentPrefVelocity(this.rangedCombatMoveX, this.rangedCombatMoveZ);
+          } else {
+            this.setAgentStopped();
+          }
+
+          var rotated = hasMovement ? this.lookDirectionSmooth(this.rangedCombatMoveX, this.rangedCombatMoveZ, deltaTime) : this.lookAtTargetSmooth(target, deltaTime);
+          this.sync(deltaTime, false);
+
+          if (!hasMovement) {
+            this.updateBusyLookSettled(target, rotated);
+          } else {
+            this.resetBusyLookCache();
+          }
+
+          return true;
+        }
+
+        isRangedCombatRepositioning() {
+          return this.isRangedCombatUnit() && this.onBusy && this.hasRangedCombatMovement();
+        }
+
+        isSameLogicLaneAs(ally) {
+          if (this.laneId < 0 || ally.laneId < 0) {
+            return false;
+          }
+
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm) {
+            return this.laneId === ally.laneId;
+          }
+
+          return gm.clampLaneId(this.laneId) === gm.clampLaneId(ally.laneId);
+        }
+
+        isMeleeEnemyEngagingThis(enemy) {
+          if (!this.agent || !enemy.agent) return false;
+          if (!this.isValidEnemy(enemy)) return false;
+          if (enemy.isRangedCombatUnit()) return false;
+          var dx = this.agent.pos.x - enemy.agent.pos.x;
+          var dz = this.agent.pos.z - enemy.agent.pos.z;
+          var range = enemy.getEffectiveAttackRangeAgainst(this);
+          return dx * dx + dz * dz <= range * range;
+        }
+
+        refreshRangedCombatMovement(target) {
+          this.rangedCombatDecisionTargetLifeId = target.lifeId;
+          this.rangedCombatMoveX = 0;
+          this.rangedCombatMoveZ = 0;
+
+          if (!this.agent || !target.agent) {
+            this.rangedKiteActive = false;
+            return;
+          }
+
+          var dx = target.agent.pos.x - this.agent.pos.x;
+          var dz = target.agent.pos.z - this.agent.pos.z;
+          var dist = Math.sqrt(dx * dx + dz * dz);
+          var range = Math.max(0.001, this.attackRange);
+          var dangerDistance = range * RANGED_DANGER_RANGE_RATIO;
+          var safeMinDistance = range * RANGED_SAFE_MIN_RANGE_RATIO;
+
+          if (dist < dangerDistance || this.rangedKiteActive && dist < safeMinDistance) {
+            this.rangedKiteActive = true;
+            this.setRangedCombatMoveAwayFrom(dx, dz);
+            return;
+          }
+
+          this.rangedKiteActive = false;
+
+          if (dist > range) {
+            this.setRangedCombatMoveToward(dx, dz);
+            return;
+          }
+
+          if (this.hasForwardMeleeAllyBehind()) {
+            this.setRangedCombatYieldMovement();
+          }
+        }
+
+        setRangedCombatMoveAwayFrom(targetDx, targetDz) {
+          var x = -targetDx;
+          var z = -targetDz;
+          var len = Math.sqrt(x * x + z * z);
+
+          if (len <= 0.0001) {
+            x = -this.forwardDir.x;
+            z = -this.forwardDir.z;
+          } else {
+            x /= len;
+            z /= len;
+          }
+
+          var speed = this.getRangedCombatMoveSpeed();
+          this.rangedCombatMoveX = x * speed;
+          this.rangedCombatMoveZ = z * speed;
+        }
+
+        setRangedCombatMoveToward(targetDx, targetDz) {
+          var len = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
+          if (len <= 0.0001) return;
+          var speed = this.getRangedCombatMoveSpeed();
+          this.rangedCombatMoveX = targetDx / len * speed;
+          this.rangedCombatMoveZ = targetDz / len * speed;
+        }
+
+        setRangedCombatYieldMovement() {
+          if (!this.agent) return;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          if (!gm || this.laneId < 0) return;
+          var laneId = gm.clampLaneId(this.laneId);
+          var laneCenterX = gm.getLaneCenterX(laneId);
+          var laneMinX = gm.getLaneMinX(laneId) + Math.max(0, this.radius);
+          var laneMaxX = gm.getLaneMaxX(laneId) - Math.max(0, this.radius);
+          var side = this.updateOffset % 2 === 0 ? 1 : -1;
+
+          if (Math.abs(this.agent.pos.x - laneCenterX) > 0.05) {
+            side = this.agent.pos.x >= laneCenterX ? 1 : -1;
+          }
+
+          if (side > 0 && this.agent.pos.x >= laneMaxX - 0.05) {
+            return;
+          }
+
+          if (side < 0 && this.agent.pos.x <= laneMinX + 0.05) {
+            return;
+          }
+
+          var speed = Math.max(0, this.agent.maxSpeed);
+          this.rangedCombatMoveX = side * speed * RANGED_YIELD_SIDE_SPEED_RATIO;
+          this.rangedCombatMoveZ = -this.forwardDir.z * speed * RANGED_YIELD_BACK_SPEED_RATIO;
+        }
+
+        hasForwardMeleeAllyBehind() {
+          if (!this.agent) return false;
+          var allies = this.getNearbyAllyList(RANGED_YIELD_LOOK_BEHIND + RANGED_YIELD_SIDE_RANGE + Math.max(0, this.radius));
+
+          for (var i = 0; i < allies.length; i++) {
+            var ally = allies[i];
+
+            if (!this.isForwardMeleeAllyBlocker(ally)) {
+              continue;
+            }
+
+            var dx = ally.agent.pos.x - this.agent.pos.x;
+            var dz = ally.agent.pos.z - this.agent.pos.z;
+            var forwardDist = dx * this.forwardDir.x + dz * this.forwardDir.z;
+            if (forwardDist > 0.35) continue;
+            if (forwardDist < -RANGED_YIELD_LOOK_BEHIND) continue;
+            var sideDist = dx * this.forwardDir.z - dz * this.forwardDir.x;
+            var sideRange = RANGED_YIELD_SIDE_RANGE + Math.max(0, this.radius) + Math.max(0, ally.radius);
+
+            if (Math.abs(sideDist) > sideRange) {
+              continue;
+            }
+
+            return true;
+          }
+
+          return false;
+        }
+
+        isForwardMeleeAllyBlocker(ally) {
+          if (!ally || ally === this) return false;
+          if (ally.team !== this.team) return false;
+          if (!ally.node.activeInHierarchy) return false;
+          if (!ally.agent) return false;
+          if (!ally.props || ally.props.isDead()) return false;
+          if (ally.waveRuntimeId === this.waveRuntimeId) return false;
+          if (!this.isSameLogicLaneAs(ally)) return false;
+          if (!ally.onForward) return false;
+          if (ally.isRangedCombatUnit()) return false;
+          var dot = ally.forwardDir.x * this.forwardDir.x + ally.forwardDir.z * this.forwardDir.z;
+          return dot > 0.5;
+        }
+
+        getRangedCombatMoveSpeed() {
+          if (!this.agent) return 0;
+          return Math.max(0, this.agent.maxSpeed) * RANGED_COMBAT_MOVE_SPEED_RATIO;
+        }
+
+        hasRangedCombatMovement() {
+          return this.rangedCombatMoveX * this.rangedCombatMoveX + this.rangedCombatMoveZ * this.rangedCombatMoveZ > 0.0001;
+        }
+
+        resetRangedCombatMovement() {
+          this.rangedCombatMoveX = 0;
+          this.rangedCombatMoveZ = 0;
+          this.rangedKiteActive = false;
+          this.rangedCombatDecisionTargetLifeId = -1;
         }
 
         lookAtTargetSmooth(target, deltaTime) {

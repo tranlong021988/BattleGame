@@ -2,9 +2,198 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-17 by office Codex.
+Last updated: 2026-07-18 by home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
+
+## Latest 2026-07-18 Home Handoff - Natural Stats Reset And BattleArmyBrain
+
+This section supersedes the 2026-07-17 SmartArmyBrain hard-counter balance
+direction below.
+
+The user reset the balance process from fundamentals. The active goal is now to
+build a coherent **system of natural unit strength**, not isolated hard-counter
+pairs.
+
+### Active Stats
+
+`UNITSTATS.md` and `assets/Test.scene` have been synced to the new natural
+strength candidate:
+
+| Unit | Count | Cost | HP | Damage | Defense | Speed | Range | Radius | Interval |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Axeman | 10 | 44 | 180 | 26 | 5 | 3.1 | 0.35 | 0 | 0.58-0.68 |
+| Cavalry | 10 | 60 | 210 | 26 | 8 | 6.5 | 0.35 | 0 | 0.56-0.66 |
+| Sword | 10 | 38 | 160 | 20 | 8 | 3.4 | 0.35 | 0 | 0.50-0.60 |
+| Spear | 10 | 32 | 165 | 20 | 6 | 3.0 | 0.80 | 0 | 0.55-0.65 |
+| Monk | 2 | 40 | 65 | 38 | 0 | 2.7 | 5.20 | 0.85 | 2.90-3.50 |
+| Archer | 4 | 34 | 70 | 17 | 0 | 3.8 | 6.50 | 0 | 1.25-1.55 |
+
+Natural ladder intent:
+
+```text
+Cavalry > Axeman > Sword > Spear
+```
+
+Archer/Monk are weak when caught alone and should only be valuable behind a
+frontline. Monk is treated like a small siege/AoE unit, not a normal ranged DPS
+unit.
+
+### Counter Rules
+
+`CounterSettings` now has only one active rule:
+
+```text
+Spear > Cavalry = 2.1
+```
+
+Old scene `CounterRule` objects remain serialized only as inactive legacy
+objects with multiplier `1`; `CounterSettings.rules` references only the
+Spear>Cavalry rule.
+
+### New AI Direction
+
+New files:
+
+- `assets/scripts/BattlefieldEvaluator.ts`
+- `assets/scripts/BattleArmyBrain.ts`
+
+`BattlefieldEvaluator` is a pure TypeScript evaluator, not a Cocos Component. It
+does not update every frame. It is rebuilt only when `BattleArmyBrain` reaches a
+spawn decision interval.
+
+`BattleArmyBrain` is the intended replacement direction for `SmartArmyBrain`.
+It reads evaluator output and tries to choose the cheapest sufficient response
+using:
+
+- enemy threat power from HP, alive count, damage tempo, role, and hero-line
+  progress;
+- coverage power from living ally waves, not historical assignments;
+- target-local frontline shield checks for ranged spawn safety;
+- lane traffic and the rule that direct lane spawning is blocked when there are
+  already at least two useful ally waves ahead unless rescue/danger rules apply;
+- Cavalry dive checks against exposed ranged targets;
+- Monk only when enemy clustering/frontline conditions make AoE sensible.
+
+Important: `BattleArmyBrain` was added as a new component script but not forcibly
+serialized onto scene nodes. To test it, add/enable `BattleArmyBrain` on the AI
+brain node(s), assign `GameManager`, set `team`, and disable the corresponding
+`SmartArmyBrain` component to avoid double-spawning.
+
+### 2026-07-18 Follow-up: Opening Spear/Cavalry Overuse
+
+User reported early matches spawning too much Spear/Cavalry. Diagnosis:
+
+- `BattlefieldEvaluator.choosePressureEntry()` rewarded speed too heavily
+  (`entry.maxSpeed * 4`), so Cavalry was selected for generic opening pressure.
+- Once Cavalry appeared, the only hard counter (`Spear > Cavalry`) correctly
+  pulled Spear into the match, creating an opening Spear/Cavalry loop.
+- `chooseEntryForTarget()` also gave a very large "sufficient force" bonus,
+  making expensive overkill responses too attractive.
+
+Fix applied:
+
+- generic pressure/opening now prefers Sword/Axeman and penalizes Spear/Cavalry
+  unless they are selected by target-specific logic;
+- response scoring now uses a much smaller sufficient-force bonus and adds an
+  overshoot penalty, so it should prefer efficient/cost-sensible answers over
+  expensive overkill.
+
+### 2026-07-18 Follow-up: Ranged Under-Spawn
+
+User sent 10 real telemetry files from BattleArmyBrain testing. Visual report
+was that Archer/Monk almost never spawn; the telemetry confirmed it:
+
+| Unit | Wave spawns | Share |
+| --- | ---: | ---: |
+| Axeman | 68 | 29.3% |
+| Spear | 60 | 25.9% |
+| Sword | 50 | 21.6% |
+| Cavalry | 41 | 17.7% |
+| Monk | 9 | 3.9% |
+| Archer | 4 | 1.7% |
+
+Ranged total was only 13/232 wave spawns = **5.6%**. The reason was not simply
+bad unit stats:
+
+- generic pressure/opening intentionally avoids ranged because ranged should not
+  lead a lane alone;
+- target-response logic treated ranged as a main answer to a threat, where its
+  low wave count and support role lose to melee/power units;
+- ranged safety checks require a real melee frontline, so valid opportunities
+  were rare unless there was a dedicated support branch.
+
+Fix applied:
+
+- `BattleArmyBrain` now tries `ranged-support` after direct target response and
+  before generic pressure.
+- `BattlefieldEvaluator.findBestRangedSupportTarget()` finds enemy lanes where
+  allied melee frontline already exists and ranged support is useful.
+- `BattlefieldEvaluator.chooseRangedSupportEntry()` chooses Archer as safe backline
+  DPS, and Monk only when enemy clustering/alive count makes AoE sensible.
+- `BattleArmyBrain.maxRangedSupportWavesPerLane` defaults to `2` to prevent
+  support ranged spam in one lane.
+
+Expected visual result: Archer/Monk should appear more often behind an existing
+frontline, not as opening lane leaders. Monk should still be rarer than Archer
+and mostly appear in clustered fights.
+
+Verification notes:
+
+- `assets/Test.scene` JSON still parses.
+- No local TypeScript compiler is installed in this project (`package.json` has
+  no build/typecheck script and `node_modules/.bin` has no `tsc`), so Cocos Editor
+  compile/playtest is still required.
+
+### 2026-07-19 Follow-up: Ranged Unit Behavior Before More Stat Balance
+
+User identified a more fundamental ranged-unit problem: Archer/Monk were still
+using melee-style behavior, only with longer `attackRange`.
+
+Observed/expected problem:
+
+- Ranged waves forward into combat, stop when `onBusy`, and become physical
+  blockers for allied melee waves behind them.
+- Melee allies then split around ranged units, get stuck behind them, or fail to
+  protect them naturally.
+- When enemy melee reaches ranged units directly, ranged units used to stand and
+  fight like melee, which makes low-health/slow-interval ranged units evaporate.
+- Previous attempts to solve this by letting allies pass through ranged units,
+  shrinking pass radius, or making ranged pushable looked visually wrong or did
+  not solve formation collapse.
+
+Fix applied:
+
+- `Unit.ts` now treats `UnitFamily.Archer` and `UnitFamily.Monk` as ranged combat
+  units.
+- Ranged units still remain `onBusy` and attack through `UnitBehavior`, but while
+  busy they are no longer locked as immovable melee blockers.
+- Ranged combat movement decisions are refreshed only on
+  `targetSearchIntervalFrames` or when target changes; frames between decisions
+  only apply cached velocity for smooth movement.
+- Kiting rule is implicit and has no new inspector knobs:
+  - danger distance = `30% * attackRange`;
+  - if enemy is inside that distance, ranged retreats;
+  - retreat continues until enemy is at least `70% * attackRange` away;
+  - if target slips beyond `100% * attackRange`, ranged advances enough to regain
+    range.
+- Yield rule:
+  - if a ranged unit is busy and detects a forward-moving allied melee wave
+    behind it, it side-steps toward the lane edge plus a small backward drift;
+  - this is intended to open the lane center for melee without pass-through
+    visuals.
+- `BattleSpatialGrid` now exposes `queryAllies()` so ranged yield checks can use
+  the same grid instead of full-list scans.
+- `UnitBehavior` skips ranged attacks when the current target is outside attack
+  range, preventing kite/yield movement from creating out-of-range damage.
+- `BattleArmyBrain` now spawns `ranged-support` as normal forward, not aggressive
+  forward, so support ranged is less likely to become the frontline.
+
+Important design note:
+
+This is a behavior fix, not a stat-balance fix. Do not judge Archer/Monk stats
+again until this behavior has been playtested, because their survivability and
+damage uptime should change materially when they stop acting like melee blockers.
 
 ## Latest 2026-07-17 Office Handoff - Real Telemetry After System Balance Candidate 1
 
@@ -1082,6 +1271,135 @@ Recent trace interpretation to preserve:
   - `16:32`: avg `4.171ms`, p95 `7.239ms`, p99 `9.231ms`, `116` frames over `8.33ms`, `6` over `16.67ms`.
   - Earlier 2026-07-02/06 normal traces often had avg around `1.1-1.8ms`, p95 around `1.5-4.2ms`, and very few frames over `8.33ms`.
   - Conclusion: today's accepted transform/write guards help, but the current state is still borderline for mobile-browser headroom and should not be called "done" for VFX scaling.
+
+### 2026-07-19/20 Performance Audit After BattleArmyBrain / Ranged / Telemetry Updates
+
+Context:
+
+- User sent `Trace-20260719T222410.json.gz`.
+- Test condition: browser performance trace, game speed x2, DevTools CPU slowdown 4x.
+- User asked to estimate real gameplay performance without telemetry and decide whether anything should move to worker.
+- Important scene state at audit time:
+  - `GameManager.enableBattleTelemetry = false`;
+  - `downloadBattleTelemetryOnEnd = false`;
+  - `storeBattleTelemetryReportsInBrowser = false`;
+  - `reloadPageAfterBattleTelemetryExport = false`;
+  - `SpectorDebugger` node/component disabled;
+  - `LevelSettings` node disabled;
+  - `useWorkerRVO = true`;
+  - `useWorkerSpatialTargetQuery = true`;
+  - `spatialGridUpdateInterval = 20`;
+  - `battleTimeScale = 1` in scene, though the trace/test itself was described as speed x2.
+
+Trace findings:
+
+- Ignore the initial `CpuProfiler::StartProfiling` spike. In this trace it creates a very large artificial profiler-start frame.
+- After excluding the profiler-start artifact:
+  - `FireAnimationFrame` avg about `4.72ms`;
+  - p95 about `11.58ms`;
+  - p99 about `18.76ms`;
+  - about `70 / 4552` frames over `16.67ms`;
+  - about `4 / 4552` frames over `33.33ms`.
+- Under slowdown 4x, this is acceptable for a 30 FPS mobile-browser target and often still under 60 FPS budget, but p99/hitches still need watching once VFX/UI content grows.
+- `BattleArmyBrain` / `BattlefieldEvaluator` are not proven bottlenecks:
+  - `BattlefieldEvaluator.rebuild()` sampled around only a few ms total over the whole trace;
+  - `BattleArmyBrain.thinkAndSpawn()` was also only a few ms total;
+  - individual support branches such as `trySpawnAntiSpearArcherSupport()` and `trySpawnClusterMonkSupport()` were negligible.
+- Do not move `BattlefieldEvaluator` to worker at this point:
+  - it runs only on spawn decisions, not every frame;
+  - data volume is small;
+  - moving it would add scene snapshot packing/serialization and more async state for little measurable gain.
+- Worker threads were not hot:
+  - RVO worker was mostly idle and short bursts only;
+  - target-search worker was also light;
+  - observed cost was more on main-thread message packing/postMessage and Cocos transform/render sync than on worker computation.
+- Main-thread areas to keep watching:
+  - `Unit.update` / `Unit.sync`;
+  - `BattleSpatialGrid.flushNearestWorkerRequests`;
+  - `BattleSpatialGrid.queryGrid`;
+  - RVO bridge `step`;
+  - Cocos engine render/transform paths such as `bufferSubData`, UBO update, `updateTransform`, `fillMeshVertices3D`, `updateInstancedWorldMatrix`;
+  - GC, especially MajorGC when telemetry/VFX/damage numbers are enabled.
+
+Implemented optimization in `assets/scripts/BattleSpatialGrid.ts`:
+
+- Target-search worker no longer receives the full unit snapshot on every query batch.
+- Main thread now tracks:
+  - `targetSnapshotVersion`;
+  - `workerTargetSnapshotVersion`.
+- `BattleSpatialGrid.build()` increments `targetSnapshotVersion` after rebuilding the spatial snapshot.
+- `flushNearestWorkerRequests()` sends the unit snapshot only when the worker version is stale.
+- The worker keeps its own cached team grids and reuses them for later query batches that do not include a snapshot.
+- If the worker receives a query before any snapshot has ever arrived, it safely returns no target for each request instead of throwing.
+- `targetSnapshot` and packed request data were changed from `Float64Array` to `Float32Array`.
+- Worker result buffer was changed from `Float64Array` to `Int32Array` because results are request id, target id, and target life id.
+- Why this is safe:
+  - battlefield coordinates are small, so `Float32Array` precision is enough;
+  - query result ids/life ids are integers;
+  - worker target validity is still checked on main thread through `unitsById` and `lifeId`;
+  - fallback path remains unchanged.
+- Expected effect:
+  - lower postMessage payload size for most target-search batches;
+  - less cloning/serialization pressure;
+  - lower GC/packing pressure around `flushNearestWorkerRequests`;
+  - no gameplay-rule change.
+
+Implemented optimization in `assets/scripts/GameManager.ts`:
+
+- Added early `enableBattleTelemetry` guards around telemetry calls that were still reached from gameplay methods:
+  - damage;
+  - kill;
+  - combat point earned/spent;
+  - despawn;
+  - unit spawn;
+  - wave spawn event;
+  - hero wave register event.
+- Purpose:
+  - when `Enable Battle Telemetry = false`, telemetry should be truly off from `GameManager` call sites instead of entering `BattleTelemetry` just to return.
+- Gameplay counts still work:
+  - `killCount`;
+  - `counterKillCount`;
+  - CP reward logic;
+  - UI refresh requests.
+- Do not remove `BattleTelemetry` itself; it is still useful for balance testing.
+- For performance captures meant to represent real gameplay, keep `enableBattleTelemetry = false` and the download/store/reload toggles off.
+
+Implemented micro-optimization in `assets/scripts/Unit.ts`:
+
+- In `findNearestEnemyInAttackRange()`, the enemy distance is now computed once and reused for the effective attack-range check.
+- Previous flow computed distance, then called `isValidEnemyWithinAttackRange()`, which computed distance/effective range again.
+- This is small but valid because attack-range checks run across many units at intervals.
+- Behavior should be unchanged:
+  - `isValidEnemy(e)` and aggressive-forward lane ignore checks still happen before distance comparison;
+  - effective range still uses `attackRange + self.radius + enemy.radius`.
+
+Verification performed:
+
+- `BattleSpatialGrid.workerSource()` was extracted and executed in a Node smoke test:
+  - first query sent a snapshot and returned the expected nearest enemy;
+  - second query sent no snapshot and still returned the expected nearest enemy from the worker cache.
+- Brace/paren/bracket balance check passed for:
+  - `assets/scripts/BattleSpatialGrid.ts`;
+  - `assets/scripts/Unit.ts`;
+  - `assets/scripts/GameManager.ts`.
+- `git diff --check` passed for the edited files.
+- Local TypeScript compiler could not be run because this checkout currently has no local `typescript` / `tsc` binary. Do not claim full compile verification until Cocos/TS build is run.
+
+Important follow-up:
+
+- Run a new real build trace with telemetry off and compare against `Trace-20260719T222410`.
+- Expected improvement should show mainly around:
+  - `postMessage`;
+  - `BattleSpatialGrid.flushNearestWorkerRequests`;
+  - target worker request packing;
+  - GC pressure around target-search batches.
+- Do not expect this change to reduce Cocos render/transform sync cost.
+- If the new trace is still borderline, next useful investigation should isolate:
+  - renderer/object render count;
+  - transform dirty propagation;
+  - movement/RVO bridge;
+  - GC allocations in hot unit/ranged-combat paths.
+- Avoid broad rewrites or new worker systems until another trace proves a specific hot area.
 
 ## LevelSettings
 

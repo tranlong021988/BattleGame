@@ -580,12 +580,14 @@
     "visualYawOffset": 0,
     "rotationSpeed": 5,
     "moveThreshold": 0.2,
-    "visualThreshold": 0.03,
+    "visualThreshold": 0.1,
     "moveSpeed": 7,
     "radius": 0.5,
+    "canBePush": false,
+    "canBePassedThroughByForwardAlly": false,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 10,
-    "targetSearchRange": 6,
+    "targetSearchRange": 16,
     "targetSearchIntervalFrames": 30,
     "aggressiveForward": false,
     "forwardDir": {
@@ -621,15 +623,16 @@
     "__prefab": {
       "__id__": 40
     },
+    "family": 0,
+    "tier": 1,
     "maxHealth": 50,
     "damage": 20,
+    "damageRadius": 0,
     "defense": 10,
     "healthBar": {
       "__id__": 34
     },
-    "_id": "",
-    "family": 0,
-    "tier": 1
+    "_id": ""
   },
   {
     "__type__": "cc.CompPrefabInfo",

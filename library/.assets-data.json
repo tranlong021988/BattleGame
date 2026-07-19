@@ -156,6 +156,7 @@
         "89dbf6bc-f175-4f38-b295-7565a1a58ad8",
         "360c09ec-bbac-4350-9ea8-2786553038bf",
         "176e839d-b955-4959-9b56-ef97c6316897",
+        "63f56bb6-0d87-4821-9112-c55dc0dd8b65",
         "87939c1f-6d4f-4b28-bf4f-2f4644884683",
         "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
       ]
@@ -2193,6 +2194,16 @@
   },
   "efefbddb-804d-4a8c-98da-68618b2263c6": {
     "url": "db://assets/scripts/BattleTelemetry.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "63f56bb6-0d87-4821-9112-c55dc0dd8b65": {
+    "url": "db://assets/scripts/BattleArmyBrain.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "4d5b72ea-f842-4c3b-a2fe-25c5b30f4e51": {
+    "url": "db://assets/scripts/BattlefieldEvaluator.ts",
     "value": {},
     "versionCode": 1
   }

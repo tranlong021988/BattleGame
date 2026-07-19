@@ -105,9 +105,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
+          if (this.unit.isRangedCombatRepositioning()) {
+            return;
+          }
+
           this.attackTimer += deltaTime;
 
           if (this.attackTimer < this.nextAttackInterval) {
+            return;
+          }
+
+          if (this.unit.isRangedCombatUnit() && !this.unit.isCurrentEnemyInAttackRange()) {
             return;
           }
 

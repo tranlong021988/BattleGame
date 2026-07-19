@@ -530,7 +530,39 @@ System.register(["cc"], function (_export, _context) {
           return !a.locked || a.canBePush === 1;
         }
 
-        step(deltaTime) {
+        step(deltaTime, maxSubStepDeltaTime) {
+          const totalDt = this.getSafeTotalDeltaTime(deltaTime);
+          const maxStep = this.getSafeMaxSubStepDeltaTime(maxSubStepDeltaTime);
+          let remaining = totalDt;
+          let guard = 0;
+
+          while (remaining > 0.000001 && guard < 32) {
+            const dt = Math.min(remaining, maxStep);
+            this.stepOnce(dt);
+            remaining -= dt;
+            guard++;
+          }
+
+          return true;
+        }
+
+        getSafeTotalDeltaTime(deltaTime) {
+          if (typeof deltaTime !== 'number' || !isFinite(deltaTime) || deltaTime <= 0) {
+            return this.timeStep;
+          }
+
+          return Math.max(this.minStepDeltaTime, deltaTime);
+        }
+
+        getSafeMaxSubStepDeltaTime(maxSubStepDeltaTime) {
+          if (typeof maxSubStepDeltaTime !== 'number' || !isFinite(maxSubStepDeltaTime) || maxSubStepDeltaTime <= 0) {
+            return this.maxStepDeltaTime;
+          }
+
+          return this.clamp(maxSubStepDeltaTime, this.minStepDeltaTime, this.maxStepDeltaTime);
+        }
+
+        stepOnce(deltaTime) {
           const dt = this.getSafeDeltaTime(deltaTime);
           this.buildGrid(); // ===== VELOCITY =====
 

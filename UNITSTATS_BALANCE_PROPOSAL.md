@@ -2,6 +2,10 @@
 
 Date: 2026-07-17
 
+> Superseded on 2026-07-18 by the natural-strength reset in `UNITSTATS.md`.
+> Keep this file as historical reasoning only; do not use these numbers or
+> SmartArmyBrain counter assumptions as the active balance source.
+
 This document records the reasoning for the current 6-unit tier-1 balance
 candidate. `UNITSTATS.md` is the numeric source of truth.
 

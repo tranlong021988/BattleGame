@@ -195,14 +195,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return Math.max(this.minStepDeltaTime, Math.min(this.maxStepDeltaTime, deltaTime));
         }
 
-        step(deltaTime) {
+        step(deltaTime, maxSubStepDeltaTime) {
           if (this.fallbackSimulator) {
             this.fallbackSimulator.cellSize = this.cellSize;
             this.fallbackSimulator.timeStep = this.timeStep;
             this.fallbackSimulator.minStepDeltaTime = this.minStepDeltaTime;
             this.fallbackSimulator.maxStepDeltaTime = this.maxStepDeltaTime;
             this.fallbackSimulator.obstacleSolveIterations = this.obstacleSolveIterations;
-            return this.fallbackSimulator.step(deltaTime);
+            return this.fallbackSimulator.step(deltaTime, maxSubStepDeltaTime);
           }
 
           if (!this.worker) return false;
@@ -210,7 +210,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.workerReady) {
             if (Date.now() - this.workerCreatedAtMs >= RVOWorkerSimulator.workerResponseTimeoutMs) {
               this.activateMainThreadFallback();
-              return this.fallbackSimulator ? this.fallbackSimulator.step(deltaTime) : false;
+              return this.fallbackSimulator ? this.fallbackSimulator.step(deltaTime, maxSubStepDeltaTime) : false;
             }
 
             return false;
@@ -219,14 +219,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.pending) {
             if (Date.now() - this.pendingSinceMs >= RVOWorkerSimulator.workerResponseTimeoutMs) {
               this.activateMainThreadFallback();
-              return this.fallbackSimulator ? this.fallbackSimulator.step(deltaTime) : false;
+              return this.fallbackSimulator ? this.fallbackSimulator.step(deltaTime, maxSubStepDeltaTime) : false;
             }
 
             return false;
           }
 
           if (this.agents.length <= 0) return false;
-          const safeDeltaTime = this.getSafeDeltaTime(deltaTime);
+          const totalDeltaTime = this.getSafeTotalDeltaTime(deltaTime);
+          const maxStepDeltaTime = this.getSafeMaxSubStepDeltaTime(maxSubStepDeltaTime);
+          const subSteps = Math.max(1, Math.min(32, Math.ceil(totalDeltaTime / maxStepDeltaTime)));
+          const safeDeltaTime = totalDeltaTime / subSteps;
 
           if (this.obstacleDirty) {
             this.sendObstaclesToWorker();
@@ -285,6 +288,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               count,
               cellSize: this.cellSize,
               timeStep: safeDeltaTime,
+              subSteps,
               obstacleSolveIterations: this.obstacleSolveIterations,
               useBounds: this.useBounds ? 1 : 0,
               minX: this.minX,
@@ -296,7 +300,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.pending = false;
             this.pendingSinceMs = 0;
             this.activateMainThreadFallback();
-            return this.fallbackSimulator ? this.fallbackSimulator.step(deltaTime) : false;
+            return this.fallbackSimulator ? this.fallbackSimulator.step(deltaTime, maxSubStepDeltaTime) : false;
           } // Sau transfer, buffer bị detach.
           // Sẽ được gán lại khi Worker trả kết quả.
 
@@ -305,6 +309,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.floatsBuffer = null;
           this.intsBuffer = null;
           return true;
+        }
+
+        getSafeTotalDeltaTime(deltaTime) {
+          if (typeof deltaTime !== 'number' || !isFinite(deltaTime) || deltaTime <= 0) {
+            return this.timeStep;
+          }
+
+          return Math.max(this.minStepDeltaTime, deltaTime);
+        }
+
+        getSafeMaxSubStepDeltaTime(maxSubStepDeltaTime) {
+          if (typeof maxSubStepDeltaTime !== 'number' || !isFinite(maxSubStepDeltaTime) || maxSubStepDeltaTime <= 0) {
+            return this.maxStepDeltaTime;
+          }
+
+          return Math.max(this.minStepDeltaTime, Math.min(this.maxStepDeltaTime, maxSubStepDeltaTime));
         }
 
         ensureBuffers(count) {
@@ -1310,10 +1330,18 @@ function step(data) {
         data.count
     );
 
-    applyVelocityAvoidance(agents, data.count, data);
-    moveAgents(agents, data.count, data);
-    hardSeparateAgents(agents, data.count, data);
-    solveObstaclesAgain(agents, data.count, data);
+    const subSteps =
+        Math.max(
+            1,
+            Math.min(32, data.subSteps || 1)
+        );
+
+    for (let i = 0; i < subSteps; i++) {
+        applyVelocityAvoidance(agents, data.count, data);
+        moveAgents(agents, data.count, data);
+        hardSeparateAgents(agents, data.count, data);
+        solveObstaclesAgain(agents, data.count, data);
+    }
 
     writeResultToFloats(
         agents,

@@ -63,9 +63,22 @@ export class UnitBehavior extends Component {
             return;
         }
 
+        if (
+            this.unit.isRangedCombatRepositioning()
+        ) {
+            return;
+        }
+
         this.attackTimer += deltaTime;
 
         if (this.attackTimer < this.nextAttackInterval) {
+            return;
+        }
+
+        if (
+            this.unit.isRangedCombatUnit() &&
+            !this.unit.isCurrentEnemyInAttackRange()
+        ) {
             return;
         }
 
