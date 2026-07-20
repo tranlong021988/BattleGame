@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, GameManager, SmartArmyBrain, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _crd, ccclass, property, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, GameManager, SmartArmyBrain, BattleArmyBrain, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _crd, ccclass, property, LevelSettings;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -15,6 +15,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
   function _reportPossibleCrUseOfSmartArmyBrain(extras) {
     _reporterNs.report("SmartArmyBrain", "./SmartArmyBrain", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfBattleArmyBrain(extras) {
+    _reporterNs.report("BattleArmyBrain", "./BattleArmyBrain", _context.meta, extras);
   }
 
   return {
@@ -31,6 +35,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       GameManager = _unresolved_2.GameManager;
     }, function (_unresolved_3) {
       SmartArmyBrain = _unresolved_3.SmartArmyBrain;
+    }, function (_unresolved_4) {
+      BattleArmyBrain = _unresolved_4.BattleArmyBrain;
     }],
     execute: function () {
       _crd = true;
@@ -57,48 +63,52 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           error: Error()
         }), SmartArmyBrain) : SmartArmyBrain]
       }), _dec7 = property({
-        tooltip: 'Apply initial Combat Point curve to the selected team.'
+        type: [_crd && BattleArmyBrain === void 0 ? (_reportPossibleCrUseOfBattleArmyBrain({
+          error: Error()
+        }), BattleArmyBrain) : BattleArmyBrain]
       }), _dec8 = property({
-        tooltip: 'Apply the SmartArmyBrain accuracy curve. At accuracy A: smart=A, deliberate mistake=(1-A)^2, random=A*(1-A). Start near 0.1 to keep the easiest AI weak without locking it into deterministic troop loops.'
+        tooltip: 'Apply initial Combat Point curve to the selected team.'
       }), _dec9 = property({
-        min: 0,
-        max: 1,
-        tooltip: 'Decision Accuracy at level 1. Default 0.1 keeps the AI extremely weak but allows enough variation to avoid the Accuracy 0 troop loop.'
+        tooltip: 'Apply the SmartArmyBrain accuracy curve. At accuracy A: smart=A, deliberate mistake=(1-A)^2, random=A*(1-A). Start near 0.1 to keep the easiest AI weak without locking it into deterministic troop loops.'
       }), _dec10 = property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at the final level. Use 1 for fully intelligent target, counter-unit, and lane decisions.'
+        tooltip: 'Decision Accuracy at level 1. Default 0.1 keeps the AI extremely weak but allows enough variation to avoid the Accuracy 0 troop loop.'
       }), _dec11 = property({
-        tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
-      }), _dec12 = property({
-        displayName: 'Easy Spawn Delay Min',
-        tooltip: 'Shortest delay between spawn decisions at level 1.'
-      }), _dec13 = property({
-        displayName: 'Easy Spawn Delay Max',
-        tooltip: 'Longest delay between spawn decisions at level 1. Keep this greater than or equal to Easy Spawn Delay Min.'
-      }), _dec14 = property({
-        displayName: 'Hard Spawn Delay Min',
-        tooltip: 'Shortest delay between spawn decisions at the final level. Lower values make the AI react more frequently.'
-      }), _dec15 = property({
-        displayName: 'Hard Spawn Delay Max',
-        tooltip: 'Longest delay between spawn decisions at the final level. Keep this greater than or equal to Hard Spawn Delay Min.'
-      }), _dec16 = property({
-        tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
-      }), _dec17 = property({
-        tooltip: 'Apply Aggressive Forward curve. Higher levels unlock more lane-empty raid attempts.'
-      }), _dec18 = property({
         min: 0,
         max: 1,
-        tooltip: 'At low levels, empty-lane aggressive raids can use random affordable units. At high levels, they can prefer the fastest affordable raider more often.'
+        tooltip: 'Decision Accuracy at the final level. Use 1 for fully intelligent target, counter-unit, and lane decisions.'
+      }), _dec12 = property({
+        tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
+      }), _dec13 = property({
+        displayName: 'Easy Spawn Delay Min',
+        tooltip: 'Shortest delay between spawn decisions at level 1.'
+      }), _dec14 = property({
+        displayName: 'Easy Spawn Delay Max',
+        tooltip: 'Longest delay between spawn decisions at level 1. Keep this greater than or equal to Easy Spawn Delay Min.'
+      }), _dec15 = property({
+        displayName: 'Hard Spawn Delay Min',
+        tooltip: 'Shortest delay between spawn decisions at the final level. Lower values make the AI react more frequently.'
+      }), _dec16 = property({
+        displayName: 'Hard Spawn Delay Max',
+        tooltip: 'Longest delay between spawn decisions at the final level. Keep this greater than or equal to Hard Spawn Delay Min.'
+      }), _dec17 = property({
+        tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
+      }), _dec18 = property({
+        tooltip: 'Apply Aggressive Forward curve. Higher levels unlock more lane-empty raid attempts.'
       }), _dec19 = property({
         min: 0,
         max: 1,
-        tooltip: 'Final-level chance that an empty-lane aggressive raid picks the fastest affordable unit instead of a random affordable unit.'
+        tooltip: 'At low levels, empty-lane aggressive raids can use random affordable units. At high levels, they can prefer the fastest affordable raider more often.'
       }), _dec20 = property({
         min: 0,
         max: 1,
-        tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
+        tooltip: 'Final-level chance that an empty-lane aggressive raid picks the fastest affordable unit instead of a random affordable unit.'
       }), _dec21 = property({
+        min: 0,
+        max: 1,
+        tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
+      }), _dec22 = property({
         tooltip: 'Apply SmartArmyBrain fast-react chance curve. The maximum defaults to immediate reaction at the final level.'
       }), _dec(_class = (_class2 = class LevelSettings extends Component {
         constructor() {
@@ -114,51 +124,53 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           _initializerDefineProperty(this, "armyBrains", _descriptor5, this);
 
-          _initializerDefineProperty(this, "allowCP", _descriptor6, this);
+          _initializerDefineProperty(this, "battleArmyBrains", _descriptor6, this);
 
-          _initializerDefineProperty(this, "initialCombatPointMin", _descriptor7, this);
+          _initializerDefineProperty(this, "allowCP", _descriptor7, this);
 
-          _initializerDefineProperty(this, "initialCombatPointMax", _descriptor8, this);
+          _initializerDefineProperty(this, "initialCombatPointMin", _descriptor8, this);
 
-          _initializerDefineProperty(this, "allowDecisionAccuracy", _descriptor9, this);
+          _initializerDefineProperty(this, "initialCombatPointMax", _descriptor9, this);
 
-          _initializerDefineProperty(this, "decisionAccuracyMin", _descriptor10, this);
+          _initializerDefineProperty(this, "allowDecisionAccuracy", _descriptor10, this);
 
-          _initializerDefineProperty(this, "decisionAccuracyMax", _descriptor11, this);
+          _initializerDefineProperty(this, "decisionAccuracyMin", _descriptor11, this);
 
-          _initializerDefineProperty(this, "allowInterval", _descriptor12, this);
+          _initializerDefineProperty(this, "decisionAccuracyMax", _descriptor12, this);
 
-          _initializerDefineProperty(this, "minSpawnIntervalMinLevel", _descriptor13, this);
+          _initializerDefineProperty(this, "allowInterval", _descriptor13, this);
 
-          _initializerDefineProperty(this, "maxSpawnIntervalMinLevel", _descriptor14, this);
+          _initializerDefineProperty(this, "minSpawnIntervalMinLevel", _descriptor14, this);
 
-          _initializerDefineProperty(this, "minSpawnIntervalMaxLevel", _descriptor15, this);
+          _initializerDefineProperty(this, "maxSpawnIntervalMinLevel", _descriptor15, this);
 
-          _initializerDefineProperty(this, "maxSpawnIntervalMaxLevel", _descriptor16, this);
+          _initializerDefineProperty(this, "minSpawnIntervalMaxLevel", _descriptor16, this);
 
-          _initializerDefineProperty(this, "allowMaxWave", _descriptor17, this);
+          _initializerDefineProperty(this, "maxSpawnIntervalMaxLevel", _descriptor17, this);
 
-          _initializerDefineProperty(this, "maxAliveWavesMin", _descriptor18, this);
+          _initializerDefineProperty(this, "allowMaxWave", _descriptor18, this);
 
-          _initializerDefineProperty(this, "maxAliveWavesMax", _descriptor19, this);
+          _initializerDefineProperty(this, "maxAliveWavesMin", _descriptor19, this);
 
-          _initializerDefineProperty(this, "allowAggressive", _descriptor20, this);
+          _initializerDefineProperty(this, "maxAliveWavesMax", _descriptor20, this);
 
-          _initializerDefineProperty(this, "aggressiveForwardChanceMin", _descriptor21, this);
+          _initializerDefineProperty(this, "allowAggressive", _descriptor21, this);
 
-          _initializerDefineProperty(this, "aggressiveForwardChanceMax", _descriptor22, this);
+          _initializerDefineProperty(this, "aggressiveForwardChanceMin", _descriptor22, this);
 
-          _initializerDefineProperty(this, "aggressiveFastestEntryChanceMin", _descriptor23, this);
+          _initializerDefineProperty(this, "aggressiveForwardChanceMax", _descriptor23, this);
 
-          _initializerDefineProperty(this, "aggressiveFastestEntryChanceMax", _descriptor24, this);
+          _initializerDefineProperty(this, "aggressiveFastestEntryChanceMin", _descriptor24, this);
 
-          _initializerDefineProperty(this, "aggressiveForwardUnlockAt", _descriptor25, this);
+          _initializerDefineProperty(this, "aggressiveFastestEntryChanceMax", _descriptor25, this);
 
-          _initializerDefineProperty(this, "allowFastReact", _descriptor26, this);
+          _initializerDefineProperty(this, "aggressiveForwardUnlockAt", _descriptor26, this);
 
-          _initializerDefineProperty(this, "fastReactCounterChanceMin", _descriptor27, this);
+          _initializerDefineProperty(this, "allowFastReact", _descriptor27, this);
 
-          _initializerDefineProperty(this, "fastReactCounterChanceMax", _descriptor28, this);
+          _initializerDefineProperty(this, "fastReactCounterChanceMin", _descriptor28, this);
+
+          _initializerDefineProperty(this, "fastReactCounterChanceMax", _descriptor29, this);
         }
 
         onLoad() {
@@ -169,7 +181,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var team = this.clampTeam(this.targetTeam);
           var t = this.getDifficulty01();
           var manager = this.getGameManager();
-          var brains = this.getTargetSmartArmyBrains(team);
+          var smartBrains = this.getTargetSmartArmyBrains(team);
+          var battleBrains = this.getTargetBattleArmyBrains(team);
 
           if (this.allowCP && manager && manager.unitDatabase) {
             var cp = Math.round(this.lerp(this.initialCombatPointMin, this.initialCombatPointMax, t));
@@ -184,8 +197,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             manager.combatPoint[team] = cp;
           }
 
-          for (var i = 0; i < brains.length; i++) {
-            var brain = brains[i];
+          for (var i = 0; i < smartBrains.length; i++) {
+            var brain = smartBrains[i];
             if (!brain) continue;
 
             if (this.allowDecisionAccuracy) {
@@ -210,6 +223,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
             if (this.allowFastReact) {
               brain.fastReactCounterChance = this.lerp(this.fastReactCounterChanceMin, this.fastReactCounterChanceMax, t);
+            }
+          }
+
+          for (var _i = 0; _i < battleBrains.length; _i++) {
+            var _brain = battleBrains[_i];
+            if (!_brain) continue;
+
+            if (this.allowDecisionAccuracy) {
+              _brain.decisionAccuracy = this.clamp01(this.lerp(this.decisionAccuracyMin, this.decisionAccuracyMax, t));
+            }
+
+            if (this.allowInterval) {
+              _brain.minSpawnInterval = this.lerp(this.minSpawnIntervalMinLevel, this.minSpawnIntervalMaxLevel, t);
+              _brain.maxSpawnInterval = this.lerp(this.maxSpawnIntervalMinLevel, this.maxSpawnIntervalMaxLevel, t);
+            }
+
+            if (this.allowMaxWave) {
+              _brain.maxAliveWaves = Math.round(this.lerp(this.maxAliveWavesMin, this.maxAliveWavesMax, t));
             }
           }
         }
@@ -247,11 +278,41 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             error: Error()
           }), SmartArmyBrain) : SmartArmyBrain);
 
-          for (var _i = 0; _i < brains.length; _i++) {
-            var _brain = brains[_i];
-            if (!_brain) continue;
-            if (this.clampTeam(_brain.team) !== team) continue;
-            result.push(_brain);
+          for (var _i2 = 0; _i2 < brains.length; _i2++) {
+            var _brain2 = brains[_i2];
+            if (!_brain2) continue;
+            if (this.clampTeam(_brain2.team) !== team) continue;
+            result.push(_brain2);
+          }
+
+          return result;
+        }
+
+        getTargetBattleArmyBrains(team) {
+          var result = [];
+
+          for (var i = 0; i < this.battleArmyBrains.length; i++) {
+            var brain = this.battleArmyBrains[i];
+            if (!brain) continue;
+            if (this.clampTeam(brain.team) !== team) continue;
+            result.push(brain);
+          }
+
+          if (result.length > 0) {
+            return result;
+          }
+
+          var scene = director.getScene();
+          if (!scene) return result;
+          var brains = scene.getComponentsInChildren(_crd && BattleArmyBrain === void 0 ? (_reportPossibleCrUseOfBattleArmyBrain({
+            error: Error()
+          }), BattleArmyBrain) : BattleArmyBrain);
+
+          for (var _i3 = 0; _i3 < brains.length; _i3++) {
+            var _brain3 = brains[_i3];
+            if (!_brain3) continue;
+            if (this.clampTeam(_brain3.team) !== team) continue;
+            result.push(_brain3);
           }
 
           return result;
@@ -315,161 +376,168 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "allowCP", [_dec7], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class2.prototype, "battleArmyBrains", [_dec7], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return [];
+        }
+      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "allowCP", [_dec8], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class2.prototype, "initialCombatPointMin", [property], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "initialCombatPointMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 70;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class2.prototype, "initialCombatPointMax", [property], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "initialCombatPointMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 180;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "allowDecisionAccuracy", [_dec8], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "allowDecisionAccuracy", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMin", [_dec9], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMin", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMax", [_dec10], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMax", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "allowInterval", [_dec11], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "allowInterval", [_dec12], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMinLevel", [_dec12], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMinLevel", [_dec13], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5.0;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMinLevel", [_dec13], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMinLevel", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 6.0;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMaxLevel", [_dec14], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "minSpawnIntervalMaxLevel", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2.7;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMaxLevel", [_dec15], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "maxSpawnIntervalMaxLevel", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3.7;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "allowMaxWave", [_dec16], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "allowMaxWave", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWavesMin", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWavesMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWavesMax", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "maxAliveWavesMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 15;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "allowAggressive", [_dec17], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "allowAggressive", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChanceMin", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChanceMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChanceMax", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardChanceMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveFastestEntryChanceMin", [_dec18], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveFastestEntryChanceMin", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveFastestEntryChanceMax", [_dec19], {
+      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveFastestEntryChanceMax", [_dec20], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardUnlockAt", [_dec20], {
+      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "aggressiveForwardUnlockAt", [_dec21], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.45;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "allowFastReact", [_dec21], {
+      }), _descriptor27 = _applyDecoratedDescriptor(_class2.prototype, "allowFastReact", [_dec22], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor27 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMin", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor28 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMax", [property], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class2.prototype, "fastReactCounterChanceMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

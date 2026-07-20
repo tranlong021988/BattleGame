@@ -42,9 +42,11 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.nextRequestId = 1;
           this.unitIds = new WeakMap();
           this.unitsById = new Map();
-          this.targetSnapshot = new Float64Array(0);
+          this.targetSnapshot = new Float32Array(0);
           this.targetSnapshotLength = 0;
-          this.packedRequestData = new Float64Array(0);
+          this.targetSnapshotVersion = 0;
+          this.workerTargetSnapshotVersion = -1;
+          this.packedRequestData = new Float32Array(0);
           this.pendingNearestRequests = [];
           this.activeNearestRequests = new Map();
           this.nearestRequestPool = [];
@@ -63,6 +65,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.teamBMaxRadius = 0;
           this.fillGrid(this.teamAGrid, this.teamAActiveCells, teamA, 0);
           this.fillGrid(this.teamBGrid, this.teamBActiveCells, teamB, 1);
+          this.targetSnapshotVersion++;
         }
 
         destroy() {
@@ -88,9 +91,11 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.teamAMaxRadius = 0;
           this.teamBMaxRadius = 0;
           this.unitsById.clear();
-          this.targetSnapshot = new Float64Array(0);
+          this.targetSnapshot = new Float32Array(0);
           this.targetSnapshotLength = 0;
-          this.packedRequestData = new Float64Array(0);
+          this.targetSnapshotVersion = 0;
+          this.workerTargetSnapshotVersion = -1;
+          this.packedRequestData = new Float32Array(0);
         }
 
         fillGrid(grid, activeCells, units, team) {
@@ -129,7 +134,14 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
         }
 
         queryEnemies(team, x, z, radius) {
-          const enemyGrid = this.getEnemyGrid(team);
+          return this.queryGrid(this.getEnemyGrid(team), x, z, radius);
+        }
+
+        queryAllies(team, x, z, radius) {
+          return this.queryGrid(this.getAllyGrid(team), x, z, radius);
+        }
+
+        queryGrid(grid, x, z, radius) {
           this.tempResult.length = 0;
           const cellRange = Math.ceil(radius / this.cellSize);
           const cx = Math.floor(x / this.cellSize);
@@ -138,7 +150,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           for (let gx = cx - cellRange; gx <= cx + cellRange; gx++) {
             for (let gz = cz - cellRange; gz <= cz + cellRange; gz++) {
-              const list = enemyGrid.get(this.getKey(gx, gz));
+              const list = grid.get(this.getKey(gx, gz));
               if (!list) continue;
 
               for (let i = 0; i < list.length; i++) {
@@ -301,8 +313,6 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.ensurePackedRequestCapacity(packedCapacity);
           const packedRequests = this.packedRequestData;
           let packedLength = 0;
-          const unitData = this.targetSnapshot.subarray(0, this.targetSnapshotLength);
-          const unitLength = this.targetSnapshotLength;
 
           for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
@@ -330,15 +340,24 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
 
           try {
             const seq = ++this.workerSeq;
+            const needsSnapshot = this.workerTargetSnapshotVersion !== this.targetSnapshotVersion;
+            const unitData = needsSnapshot ? this.targetSnapshot.subarray(0, this.targetSnapshotLength) : null;
+            const unitLength = needsSnapshot ? this.targetSnapshotLength : 0;
             this.worker.postMessage({
               type: 'findNearestBatch',
               seq,
               cellSize: this.cellSize,
+              snapshotVersion: this.targetSnapshotVersion,
               units: unitData,
               unitLength,
               requests: requestData,
               requestLength: packedLength
             });
+
+            if (needsSnapshot) {
+              this.workerTargetSnapshotVersion = this.targetSnapshotVersion;
+            }
+
             this.armWorkerResponseTimeout(seq);
           } catch (err) {
             this.failWorkerAndCompleteRequests();
@@ -465,6 +484,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           this.clearWorkerResponseTimeout();
           this.workerFailed = true;
           this.workerReady = false;
+          this.workerTargetSnapshotVersion = -1;
 
           if (this.worker) {
             this.worker.terminate();
@@ -570,7 +590,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           }
 
           const capacity = Math.max(length, this.targetSnapshot.length * 2, 256);
-          const next = new Float64Array(capacity);
+          const next = new Float32Array(capacity);
           next.set(this.targetSnapshot.subarray(0, this.targetSnapshotLength));
           this.targetSnapshot = next;
         }
@@ -581,7 +601,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           }
 
           const capacity = Math.max(length, this.packedRequestData.length * 2, 128);
-          this.packedRequestData = new Float64Array(capacity);
+          this.packedRequestData = new Float32Array(capacity);
         }
 
         createWorker() {
@@ -591,6 +611,7 @@ System.register(["__unresolved_0", "cc"], function (_export, _context) {
           }
 
           try {
+            this.workerTargetSnapshotVersion = -1;
             const blob = new Blob([this.workerSource()], {
               type: 'application/javascript'
             });
@@ -659,7 +680,8 @@ var teamAGrid = Object.create(null);
 var teamBGrid = Object.create(null);
 var teamAGridKeys = [];
 var teamBGridKeys = [];
-var resultBuffer = new Float64Array(0);
+var resultBuffer = new Int32Array(0);
+var hasSnapshot = false;
 var bestId = 0;
 var bestLifeId = 0;
 var bestDistSq = Infinity;
@@ -836,7 +858,7 @@ function ensureResultCapacity(length) {
         64
     );
 
-    resultBuffer = new Float64Array(capacity);
+    resultBuffer = new Int32Array(capacity);
 
     return resultBuffer;
 }
@@ -847,28 +869,54 @@ self.onmessage = function(event) {
     if (!data) return;
 
     if (data.type === 'findNearestBatch') {
-        var units = data.units || [];
-        var unitLength = data.unitLength || units.length;
+        var units = data.units || null;
+        var unitLength = data.unitLength || 0;
         var requests = data.requests || [];
         var requestLength = data.requestLength || requests.length;
         var cellSize = Math.max(0.001, data.cellSize || 4);
         var requestCount = Math.floor(requestLength / 5);
-        var teamA = buildGrid(
-            units,
-            unitLength,
-            0,
-            cellSize,
-            teamAGrid,
-            teamAGridKeys
-        );
-        var teamB = buildGrid(
-            units,
-            unitLength,
-            1,
-            cellSize,
-            teamBGrid,
-            teamBGridKeys
-        );
+
+        if (units && unitLength > 0) {
+            buildGrid(
+                units,
+                unitLength,
+                0,
+                cellSize,
+                teamAGrid,
+                teamAGridKeys
+            );
+            buildGrid(
+                units,
+                unitLength,
+                1,
+                cellSize,
+                teamBGrid,
+                teamBGridKeys
+            );
+            hasSnapshot = true;
+        }
+
+        if (!hasSnapshot) {
+            var emptyResults = ensureResultCapacity(
+                requestCount * 3
+            );
+            var emptyLength = 0;
+
+            for (var emptyI = 0; emptyI < requestLength; emptyI += 5) {
+                emptyResults[emptyLength++] = requests[emptyI];
+                emptyResults[emptyLength++] = 0;
+                emptyResults[emptyLength++] = 0;
+            }
+
+            self.postMessage({
+                type: 'findNearestBatchResult',
+                seq: data.seq,
+                results: emptyResults.subarray(0, emptyLength)
+            });
+
+            return;
+        }
+
         var results = ensureResultCapacity(
             requestCount * 3
         );
@@ -881,8 +929,8 @@ self.onmessage = function(event) {
             var z = requests[i + 3];
             var radius = requests[i + 4];
             var grid = team === 0
-                ? teamB
-                : teamA;
+                ? teamBGrid
+                : teamAGrid;
 
             results[resultLength++] = requestId;
             results[resultLength++] =
@@ -951,6 +999,10 @@ self.postMessage({ type: 'ready' });
 
         getEnemyGrid(team) {
           return team === 0 ? this.teamBGrid : this.teamAGrid;
+        }
+
+        getAllyGrid(team) {
+          return team === 0 ? this.teamAGrid : this.teamBGrid;
         }
 
       });

@@ -2,9 +2,296 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-18 by home Codex.
+Last updated: 2026-07-20 by office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
+
+## Latest 2026-07-20 Office Handoff - BattleArmyBrain Accuracy, Telemetry Result, And Hidden Matchup Suspicion
+
+This is a design/diagnosis handoff, not just a changelog. Read this before
+touching `BattleArmyBrain`, `BattlefieldEvaluator`, counter rules, or unit stats.
+
+### Work Done Today
+
+1. Restored `decisionAccuracy` for the active `BattleArmyBrain`.
+
+Reason:
+
+- The current active AI direction is `BattleArmyBrain` + `BattlefieldEvaluator`,
+  while older difficulty/accuracy work lived mostly in `SmartArmyBrain`.
+- User wants production AI to be imperfect: not always a perfect counter-bot.
+- Production max intelligence is expected around `70-80%`, with difficulty later
+  coming from enemy CP/level scaling too.
+
+Implementation:
+
+- `assets/scripts/BattleArmyBrain.ts`
+  - added inspector property `decisionAccuracy`, default `0.8`;
+  - every spawn decision rolls once;
+  - accurate roll uses the current tactical evaluator path unchanged;
+  - inaccurate roll is split into two branches:
+    - deliberate wrong choice (`reason = imperfect-wrong`);
+    - valid random choice (`reason = imperfect-random`).
+- With `decisionAccuracy = 0.8`, intended distribution is about:
+
+```text
+80% tactical
+10% deliberately wrong
+10% random
+```
+
+Important implementation detail:
+
+- Deliberately wrong is based on active `CounterSettings`, not hard-coded unit
+  names. The brain looks for an enemy wave whose family hard-counters one of the
+  affordable entries. Examples with current rules:
+  - enemy Spear can bait a wrong Cavalry response;
+  - enemy Archer can bait a wrong Spear response.
+- If no valid losing hard-counter candidate exists, the wrong branch falls back
+  to random. This avoids waiting/stalling and avoids inventing extra logic.
+
+2. Connected `LevelSettings` to the active `BattleArmyBrain`.
+
+Reason:
+
+- `LevelSettings` still targeted `SmartArmyBrain` only.
+- If used later, level curves would not affect the active brain.
+
+Implementation:
+
+- `assets/scripts/LevelSettings.ts`
+  - added optional `battleArmyBrains: BattleArmyBrain[]`;
+  - if the explicit list is empty, it searches scene `BattleArmyBrain`
+    components by team;
+  - `allowDecisionAccuracy`, `allowInterval`, and `allowMaxWave` now apply to
+    `BattleArmyBrain`;
+  - old `SmartArmyBrain` support is kept for backward compatibility.
+
+Important nuance:
+
+- Old SmartArmyBrain-only fields such as aggressive/fast-react curves are not
+  applied to `BattleArmyBrain`.
+- If `LevelSettings` is enabled, it can override serialized
+  `BattleArmyBrain.decisionAccuracy` at runtime according to the level curve.
+
+3. Serialized current scene values.
+
+- `assets/Test.scene`
+  - active Team 0/Team 1 `BattleArmyBrain` components now serialize
+    `decisionAccuracy = 0.8`.
+
+4. Telemetry note clarified.
+
+- Telemetry is only for test.
+- Real gameplay can and should keep `enableBattleTelemetry = false`.
+- Decision metadata (`decisionAccuracy`, `accuracyRoll`, `accurateDecision`,
+  `deliberateMistake`) is recorded only when telemetry is enabled and should not
+  be used as gameplay state.
+
+### Verification
+
+- TypeScript check passed with:
+
+```powershell
+node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\bin\tsc' --noEmit --skipLibCheck --module esnext
+```
+
+- `assets/Test.scene` JSON parse passed.
+
+### Telemetry Batch Reviewed Today
+
+User provided 52 telemetry reports from:
+
+```text
+battle-telemetry-2026-07-20T10-24... through 11-23...
+```
+
+High-level result:
+
+```text
+Team 0 wins: 29
+Team 1 wins: 23
+End reason for all: team-eliminated-and-cannot-afford-spawn
+Team 0 total damage: 744,692
+Team 1 total damage: 745,898
+Team 0 total kills: 4,464
+Team 1 total kills: 4,422
+Team 0 avg end CP: 14.5
+Team 1 avg end CP: 14.1
+```
+
+Interpretation:
+
+- Compared with the previous 20-report batch where Team 1 won 16/20, this is
+  much more symmetric.
+- The current imperfect decision system appears to reduce rigid response bias.
+- Do not immediately change unit stats based only on team winrate; this batch is
+  reasonably balanced at team level.
+
+Actual accuracy branch distribution:
+
+```text
+Total spawn decisions: 1,222
+Accurate: 998 (~81.7%)
+Imperfect random: 140 (~11.5%)
+Imperfect wrong: 84 (~6.9%)
+```
+
+Important:
+
+- The wrong branch is below the intended 10% because some rolls found no valid
+  hard-counter-losing candidate and fell back to random.
+- This is expected from the current implementation and current limited
+  hard-counter graph.
+
+### Current Unit Economy From Batch
+
+Damage/CP from the 52-report batch:
+
+| Unit | Waves | Damage/CP | K/D | Notes |
+| --- | ---: | ---: | ---: | --- |
+| Axeman | 261 | 35.37 | 1.02 | Highest damage/CP; needs diagnosis before cost change. |
+| Spear | 205 | 33.16 | 0.82 | High due to hard-countering Cavalry. |
+| Sword | 261 | 30.12 | 0.69 | Baseline melee, many deaths. |
+| Cavalry | 139 | 26.75 | 1.07 | Strategic speed value, often punished by Spear. |
+| Archer | 210 | 24.91 | 2.21 | High K/D from safe backline, not overpowered by damage/CP. |
+| Monk | 146 | 21.64 | 1.86 | AoE/support, low damage/CP after previous tuning. |
+
+Current read:
+
+- Ranged units no longer look overpowered by damage/CP.
+- Archer/Monk still have high K/D because they survive behind frontline; that is
+  acceptable unless visual/player feel says otherwise.
+- Axeman looks too profitable, but do not fix by cost first until the spawn
+  reason is understood.
+
+### Axeman Spawn Diagnosis
+
+The user correctly pushed back on immediately raising Axeman cost.
+
+Telemetry for Axeman:
+
+```text
+Axeman total waves: 261
+response: 240
+imperfect-random: 20
+pressure: 1
+```
+
+Response targets:
+
+```text
+Axeman response to Sword: 179
+Axeman response to Spear: 61
+```
+
+Diagnosis:
+
+- Axeman is not being spammed by random.
+- The evaluator is deliberately choosing Axeman as the best response, mainly
+  into Sword and Spear.
+- This means the next investigation should focus on `BattlefieldEvaluator`
+  scoring, not cost.
+
+### Important Suspicion: Hidden Matchup Multipliers In BattlefieldEvaluator
+
+User's design intent:
+
+- Hard counters should live in explicit `CounterSettings`.
+- Natural melee hierarchy should come from visible stats, not hidden
+  multipliers.
+- Axeman is intended as the strongest melee infantry naturally, not as an
+  explicit counter to Sword.
+- Spear should be weak/general-purpose poor, but kept valuable through
+  hard-countering Cavalry.
+
+Current source does more than that.
+
+`assets/scripts/BattlefieldEvaluator.ts` has hidden matchup factors in
+`getMatchupFactor()`:
+
+```text
+Axeman > Sword/Spear = 1.25
+Sword > Spear        = 1.15
+Spear vs non-Cavalry = 0.82
+Cavalry vs exposed ranged = 1.55 / blocked = 0.55
+Monk/Archer role factors also exist
+```
+
+This is probably why Axeman is too attractive as a response:
+
+- Axeman already has strong natural stats;
+- then evaluator adds `1.25` vs Sword and Spear;
+- AI therefore sees Axeman as solving too many melee problems.
+
+Git evidence:
+
+- `git blame` shows these lines were introduced with commit:
+
+```text
+198822b2 done balance t1
+Author/commit time: 2026-07-20 00:23:24 +0700
+```
+
+- `assets/scripts/BattlefieldEvaluator.ts` was added in that commit.
+- Git author is `tranlong021988`; repository history cannot distinguish whether
+  this came from home Codex or office Codex.
+- Office Codex did not add these hidden multipliers during the
+  `decisionAccuracy` work. They were already present when accuracy was restored.
+
+Actionable guidance for next Codex:
+
+- Do not defend these hidden multipliers as "counter rules" without discussing
+  with the user.
+- The user was surprised by them and considers this a serious transparency
+  issue.
+- Before changing unit costs, decide whether to remove/reduce these hidden
+  natural-ladder multipliers.
+
+Likely next step:
+
+1. Remove or neutralize melee natural-ladder hidden multipliers:
+
+```text
+Remove/reduce:
+Axeman > Sword/Spear = 1.25
+Sword > Spear = 1.15
+Spear vs non-Cavalry = 0.82
+```
+
+2. Keep explicit `CounterSettings` hard counters:
+
+```text
+Spear > Cavalry
+Archer > Spear
+```
+
+3. Consider keeping role/reachability logic only when it describes actual
+   battlefield reachability:
+
+```text
+Cavalry vs exposed ranged
+Ranged support safety
+Monk cluster/AoE preference
+```
+
+4. Retest 30-50 telemetry reports before changing Axeman cost.
+
+### Trust / Process Note
+
+The user is frustrated by hidden logic and local symptom chasing. Future Codex
+sessions should:
+
+- always distinguish explicit `CounterSettings` from evaluator-only scoring
+  multipliers;
+- mention any hidden multiplier/heuristic before relying on it for diagnosis;
+- avoid "just tweak one stat" when telemetry indicates AI scoring is the cause;
+- when proposing balance changes, state whether the change affects:
+  - visible unit stats;
+  - explicit counter rules;
+  - hidden evaluator scoring;
+  - spawn decision randomness;
+  - telemetry-only reporting.
 
 ## Latest 2026-07-18 Home Handoff - Natural Stats Reset And BattleArmyBrain
 
@@ -22,12 +309,39 @@ strength candidate:
 
 | Unit | Count | Cost | HP | Damage | Defense | Speed | Range | Radius | Interval |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Axeman | 10 | 44 | 180 | 26 | 5 | 3.1 | 0.35 | 0 | 0.58-0.68 |
-| Cavalry | 10 | 60 | 210 | 26 | 8 | 6.5 | 0.35 | 0 | 0.56-0.66 |
-| Sword | 10 | 38 | 160 | 20 | 8 | 3.4 | 0.35 | 0 | 0.50-0.60 |
-| Spear | 10 | 32 | 165 | 20 | 6 | 3.0 | 0.80 | 0 | 0.55-0.65 |
-| Monk | 2 | 40 | 65 | 38 | 0 | 2.7 | 5.20 | 0.85 | 2.90-3.50 |
-| Archer | 4 | 34 | 70 | 17 | 0 | 3.8 | 6.50 | 0 | 1.25-1.55 |
+| Axeman | 10 | 44 | 180 | 26 | 5 | 4.65 | 0.35 | 0 | 0.333333-0.40 |
+| Cavalry | 10 | 60 | 210 | 26 | 8 | 9.75 | 0.35 | 0 | 0.373333-0.44 |
+| Sword | 10 | 38 | 160 | 20 | 8 | 5.10 | 0.35 | 0 | 0.333333-0.40 |
+| Spear | 10 | 38 | 165 | 20 | 6 | 4.50 | 0.35 | 0 | 0.333333-0.40 |
+| Monk | 2 | 40 | 65 | 38 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
+| Archer | 4 | 34 | 70 | 17 | 0 | 5.70 | 6.50 | 0 | 0.833333-1.033333 |
+
+### 2026-07-20 Tempo Adjustment
+
+The user liked `GameManager.battleTimeScale = 2` for feel, but asked for a
+production-style `1.5x` combat tempo adjustment instead of relying on global
+time scale.
+
+Applied in `assets/Test.scene` and `UNITSTATS.md`:
+
+- unit `maxSpeed` x `1.5`;
+- attack interval min/max divided by `1.5`;
+- enabled `BattleArmyBrain` spawn intervals divided by `1.5`
+  (`2.5-5.0 -> 1.666667-3.333333`);
+- disabled legacy `SmartArmyBrain` intervals and `LevelSettings` interval
+  fields were also updated to avoid stale Inspector values if toggled later;
+- `PlayerArmyController.coolDownDuration` in scene changed
+  `1.0 -> 0.666667`.
+
+Not changed:
+
+- HP, damage, defense, CP cost, attack range, damage radius, unit count, and
+  counter multipliers.
+
+Watch next playtest for target/forward scan misses. Because this pass changes
+real movement distance per frame but does not automatically halve every
+frame-based throttle, fast units may need lower target/forward scan intervals
+if visual misses appear.
 
 Natural ladder intent:
 

@@ -1,6 +1,7 @@
 import { _decorator, Component, director } from 'cc';
 import { GameManager } from './GameManager';
 import { SmartArmyBrain } from './SmartArmyBrain';
+import { BattleArmyBrain } from './BattleArmyBrain';
 
 const { ccclass, property } = _decorator;
 
@@ -27,6 +28,9 @@ export class LevelSettings extends Component {
 
     @property({ type: [SmartArmyBrain] })
     armyBrains: SmartArmyBrain[] = [];
+
+    @property({ type: [BattleArmyBrain] })
+    battleArmyBrains: BattleArmyBrain[] = [];
 
     @property({
         tooltip: 'Apply initial Combat Point curve to the selected team.'
@@ -153,8 +157,10 @@ export class LevelSettings extends Component {
 
         const manager =
             this.getGameManager();
-        const brains =
+        const smartBrains =
             this.getTargetSmartArmyBrains(team);
+        const battleBrains =
+            this.getTargetBattleArmyBrains(team);
 
         if (
             this.allowCP &&
@@ -180,8 +186,8 @@ export class LevelSettings extends Component {
             manager.combatPoint[team] = cp;
         }
 
-        for (let i = 0; i < brains.length; i++) {
-            const brain = brains[i];
+        for (let i = 0; i < smartBrains.length; i++) {
+            const brain = smartBrains[i];
 
             if (!brain) continue;
 
@@ -255,6 +261,49 @@ export class LevelSettings extends Component {
                         this.fastReactCounterChanceMin,
                         this.fastReactCounterChanceMax,
                         t
+                );
+            }
+        }
+
+        for (let i = 0; i < battleBrains.length; i++) {
+            const brain = battleBrains[i];
+
+            if (!brain) continue;
+
+            if (this.allowDecisionAccuracy) {
+                brain.decisionAccuracy =
+                    this.clamp01(
+                        this.lerp(
+                            this.decisionAccuracyMin,
+                            this.decisionAccuracyMax,
+                            t
+                        )
+                    );
+            }
+
+            if (this.allowInterval) {
+                brain.minSpawnInterval =
+                    this.lerp(
+                        this.minSpawnIntervalMinLevel,
+                        this.minSpawnIntervalMaxLevel,
+                        t
+                    );
+                brain.maxSpawnInterval =
+                    this.lerp(
+                        this.maxSpawnIntervalMinLevel,
+                        this.maxSpawnIntervalMaxLevel,
+                        t
+                    );
+            }
+
+            if (this.allowMaxWave) {
+                brain.maxAliveWaves =
+                    Math.round(
+                        this.lerp(
+                            this.maxAliveWavesMin,
+                            this.maxAliveWavesMax,
+                            t
+                        )
                     );
             }
         }
@@ -304,6 +353,44 @@ export class LevelSettings extends Component {
         const brains =
             scene.getComponentsInChildren(
                 SmartArmyBrain
+            );
+
+        for (let i = 0; i < brains.length; i++) {
+            const brain = brains[i];
+
+            if (!brain) continue;
+            if (this.clampTeam(brain.team) !== team) continue;
+
+            result.push(brain);
+        }
+
+        return result;
+    }
+
+    private getTargetBattleArmyBrains(team: number) {
+        const result: BattleArmyBrain[] = [];
+
+        for (let i = 0; i < this.battleArmyBrains.length; i++) {
+            const brain = this.battleArmyBrains[i];
+
+            if (!brain) continue;
+            if (this.clampTeam(brain.team) !== team) continue;
+
+            result.push(brain);
+        }
+
+        if (result.length > 0) {
+            return result;
+        }
+
+        const scene =
+            director.getScene();
+
+        if (!scene) return result;
+
+        const brains =
+            scene.getComponentsInChildren(
+                BattleArmyBrain
             );
 
         for (let i = 0; i < brains.length; i++) {

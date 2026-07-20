@@ -421,8 +421,8 @@
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
-      "shaders\\VAT-Animation.effect": [
-        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\unlit-vs.chunk",
+      "shaders\\UnlitBillboard.effect": [
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\billboard-vs.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\input.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode-base.chunk",
@@ -439,11 +439,11 @@
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local-batched.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\world-transform.chunk",
-        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\unlit-fs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\billboard-fs.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\output-standard.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\aces.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\gamma.chunk",
-        "chunks\\unlit-vs.chunk",
+        "chunks\\billboard-vs.chunk",
         "chunks\\legacy\\input.chunk",
         "chunks\\legacy\\decode.chunk",
         "chunks\\legacy\\decode-base.chunk",
@@ -460,7 +460,7 @@
         "chunks\\builtin\\uniforms\\cc-local-batched.chunk",
         "chunks\\builtin\\uniforms\\cc-local.chunk",
         "chunks\\builtin\\functionalities\\world-transform.chunk",
-        "chunks\\unlit-fs.chunk",
+        "chunks\\billboard-fs.chunk",
         "chunks\\legacy\\output-standard.chunk",
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"
@@ -509,8 +509,8 @@
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"
       ],
-      "shaders\\UnlitBillboard.effect": [
-        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\billboard-vs.chunk",
+      "shaders\\VAT-Animation.effect": [
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\unlit-vs.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\input.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\decode-base.chunk",
@@ -527,11 +527,11 @@
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local-batched.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\uniforms\\cc-local.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\builtin\\functionalities\\world-transform.chunk",
-        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\billboard-fs.chunk",
+        "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\unlit-fs.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\legacy\\output-standard.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\aces.chunk",
         "C:\\ProgramData\\cocos\\editors\\Creator\\3.8.8\\resources\\resources\\3d\\engine\\editor\\assets\\chunks\\common\\color\\gamma.chunk",
-        "chunks\\billboard-vs.chunk",
+        "chunks\\unlit-vs.chunk",
         "chunks\\legacy\\input.chunk",
         "chunks\\legacy\\decode.chunk",
         "chunks\\legacy\\decode-base.chunk",
@@ -548,7 +548,7 @@
         "chunks\\builtin\\uniforms\\cc-local-batched.chunk",
         "chunks\\builtin\\uniforms\\cc-local.chunk",
         "chunks\\builtin\\functionalities\\world-transform.chunk",
-        "chunks\\billboard-fs.chunk",
+        "chunks\\unlit-fs.chunk",
         "chunks\\legacy\\output-standard.chunk",
         "chunks\\common\\color\\aces.chunk",
         "chunks\\common\\color\\gamma.chunk"

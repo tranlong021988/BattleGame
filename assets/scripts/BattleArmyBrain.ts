@@ -5,6 +5,7 @@ import {
     BattlefieldWaveIntel,
 } from './BattlefieldEvaluator';
 import { unitFamilyToName } from './BattleTypes';
+import { CounterSettings } from './CounterSettings';
 
 const { ccclass, property } = _decorator;
 
@@ -34,6 +35,14 @@ export class BattleArmyBrain extends Component {
 
     @property
     maxAliveWaves = 7;
+
+    @property({
+        min: 0,
+        max: 1,
+        tooltip:
+            'Chance to use the tactical evaluator. The remaining chance is split evenly between deliberately wrong counter choices and random valid choices.',
+    })
+    decisionAccuracy = 0.8;
 
     @property({
         tooltip:
@@ -72,6 +81,9 @@ export class BattleArmyBrain extends Component {
     private nextInterval = 3;
     private evaluator = new BattlefieldEvaluator();
     private affordableEntries: UnitPrefabEntry[] = [];
+    private currentAccuracyRoll = 0;
+    private currentAccurateDecision = true;
+    private currentDeliberateMistake = false;
 
     start() {
         this.randomizeNextInterval();
@@ -128,6 +140,19 @@ export class BattleArmyBrain extends Component {
             return;
         }
 
+        this.currentAccuracyRoll = Math.random();
+        this.currentAccurateDecision =
+            this.currentAccuracyRoll <
+            this.getDecisionAccuracy();
+        this.currentDeliberateMistake =
+            !this.currentAccurateDecision &&
+            this.currentAccuracyRoll <
+                this.getDecisionAccuracy() +
+                (
+                    1 -
+                    this.getDecisionAccuracy()
+                ) * 0.5;
+
         this.evaluator.coverageTargetRatio =
             Math.max(0, this.coverageTargetRatio);
         this.evaluator.rescueAllyAliveRatio =
@@ -141,6 +166,19 @@ export class BattleArmyBrain extends Component {
             gameManager,
             this.team
         );
+
+        if (!this.currentAccurateDecision) {
+            if (
+                this.currentDeliberateMistake &&
+                this.trySpawnDeliberatelyWrongWave()
+            ) {
+                return;
+            }
+
+            if (this.trySpawnRandomWave()) {
+                return;
+            }
+        }
 
         if (this.trySpawnAntiSpearArcherSupport()) {
             return;
@@ -211,6 +249,90 @@ export class BattleArmyBrain extends Component {
         }
 
         this.trySpawnPressureWave();
+    }
+
+    private trySpawnDeliberatelyWrongWave() {
+        let bestTarget: BattlefieldWaveIntel | null = null;
+        let bestEntry: UnitPrefabEntry | null = null;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < this.evaluator.enemyCount; i++) {
+            const target =
+                this.evaluator.enemies[i];
+
+            if (!target || !target.wave || !target.entry) {
+                continue;
+            }
+            if (target.aliveCount <= 0) continue;
+            if (target.healthRatio <= 0.08) continue;
+
+            const entry =
+                this.getWorstAffordableEntryForTarget(
+                    target
+                );
+
+            if (!entry) continue;
+
+            const score =
+                target.threatScore +
+                target.progressToDefend * 120 +
+                Math.random() * 0.001;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestTarget = target;
+                bestEntry = entry;
+            }
+        }
+
+        if (!bestTarget || !bestEntry) {
+            return false;
+        }
+
+        const gameManager =
+            this.gameManager;
+
+        if (!gameManager) return false;
+
+        const laneId =
+            gameManager.clampLaneId(
+                bestTarget.laneId >= 0
+                    ? bestTarget.laneId
+                    : bestTarget.visualLaneId
+            );
+
+        return this.spawn(
+            bestEntry,
+            laneId,
+            false,
+            'imperfect-wrong',
+            bestTarget
+        );
+    }
+
+    private trySpawnRandomWave() {
+        const laneId =
+            this.getRandomLaneId();
+
+        if (laneId < 0) {
+            this.stateLog('WAIT imperfect no lane.');
+            return false;
+        }
+
+        const entry =
+            this.getRandomAffordableEntry();
+
+        if (!entry) {
+            this.stateLog('WAIT imperfect no entry.');
+            return false;
+        }
+
+        return this.spawn(
+            entry,
+            laneId,
+            false,
+            'imperfect-random'
+        );
     }
 
     private trySpawnAntiSpearArcherSupport() {
@@ -433,6 +555,10 @@ export class BattleArmyBrain extends Component {
                 ? target.threatScore
                 : 0,
             decisionPath: reason,
+            decisionAccuracy: this.getDecisionAccuracy(),
+            accuracyRoll: this.currentAccuracyRoll,
+            accurateDecision: this.currentAccurateDecision,
+            deliberateMistake: this.currentDeliberateMistake,
             aliveWaveCountAtDecision:
                 this.getAliveWaveCount(),
             affordableEntryCount:
@@ -494,6 +620,78 @@ export class BattleArmyBrain extends Component {
         this.nextInterval =
             min +
             Math.random() * (max - min);
+    }
+
+    private getRandomLaneId() {
+        const gameManager =
+            this.gameManager;
+
+        if (!gameManager) return -1;
+
+        const laneCount =
+            gameManager.getSafeLaneCount();
+
+        if (laneCount <= 0) return -1;
+
+        return gameManager.clampLaneId(
+            Math.floor(Math.random() * laneCount)
+        );
+    }
+
+    private getRandomAffordableEntry() {
+        if (this.affordableEntries.length <= 0) {
+            return null;
+        }
+
+        return this.affordableEntries[
+            Math.floor(
+                Math.random() *
+                this.affordableEntries.length
+            )
+        ];
+    }
+
+    private getWorstAffordableEntryForTarget(
+        target: BattlefieldWaveIntel
+    ) {
+        if (!target.entry) return null;
+
+        const counter =
+            CounterSettings.instance;
+
+        if (!counter) return null;
+
+        let worst: UnitPrefabEntry | null = null;
+        let worstScore = 1;
+
+        for (let i = 0; i < this.affordableEntries.length; i++) {
+            const entry =
+                this.affordableEntries[i];
+            const reverseCounter =
+                counter.getCounterScore(
+                    target.entry.family,
+                    entry.family
+                );
+
+            if (reverseCounter <= 1.0001) {
+                continue;
+            }
+
+            const score =
+                reverseCounter +
+                Math.random() * 0.001;
+
+            if (score > worstScore) {
+                worstScore = score;
+                worst = entry;
+            }
+        }
+
+        return worst;
+    }
+
+    private getDecisionAccuracy() {
+        return this.clamp01(this.decisionAccuracy);
     }
 
     private clamp01(value: number) {

@@ -53,12 +53,25 @@ Design intent:
 
 | Unit | Family | Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 44 | 180 | 26 | 5 | 3.1 | 0.35 | 0.0 | 0.50-0.60 |
-| `cavalry_t1` | Cavalry | 10 | 60 | 210 | 26 | 8 | 6.5 | 0.35 | 0.0 | 0.56-0.66 |
-| `sword_t1` | Sword | 10 | 38 | 160 | 20 | 8 | 3.4 | 0.35 | 0.0 | 0.50-0.60 |
-| `spear_t1` | Spear | 10 | 38 | 165 | 20 | 6 | 3.0 | 0.35 | 0.0 | 0.50-0.60 |
-| `monk_t1` | Monk | 2 | 40 | 65 | 38 | 0 | 2.7 | 5.20 | 0.85 | 2.90-3.50 |
-| `archer_t1` | Archer | 4 | 34 | 70 | 17 | 0 | 3.8 | 6.50 | 0.0 | 1.25-1.55 |
+| `axeman_t1` | Axeman | 10 | 44 | 180 | 26 | 5 | 4.65 | 0.35 | 0.0 | 0.333333-0.40 |
+| `cavalry_t1` | Cavalry | 10 | 60 | 210 | 26 | 8 | 9.75 | 0.35 | 0.0 | 0.373333-0.44 |
+| `sword_t1` | Sword | 10 | 38 | 160 | 20 | 8 | 5.10 | 0.35 | 0.0 | 0.333333-0.40 |
+| `spear_t1` | Spear | 10 | 38 | 165 | 20 | 6 | 4.50 | 0.35 | 0.0 | 0.333333-0.40 |
+| `monk_t1` | Monk | 2 | 40 | 65 | 38 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
+| `archer_t1` | Archer | 4 | 34 | 70 | 17 | 0 | 5.70 | 6.50 | 0.0 | 0.833333-1.033333 |
+
+### 2026-07-20 Tempo Adjustment
+
+The active scene was adjusted to make combat tempo about `1.5x` faster without
+using `GameManager.battleTimeScale`:
+
+- unit `maxSpeed` values were multiplied by `1.5`;
+- attack intervals were divided by `1.5`;
+- `BattleArmyBrain` scene spawn intervals were divided by `1.5`;
+- player spawn cooldown in `assets/Test.scene` was divided by `1.5`.
+
+Health, damage, defense, cost, range, unit count, and counter multipliers were
+not changed by this tempo pass.
 
 ## Counter Rules
 

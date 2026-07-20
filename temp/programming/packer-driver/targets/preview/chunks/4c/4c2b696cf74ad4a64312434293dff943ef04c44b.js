@@ -709,7 +709,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.counterKillCount[killerTeam]++;
           }
 
-          this.battleTelemetry.recordKill(killer, victim, isCounterKill, this.frame, this.battleElapsedTime);
+          if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordKill(killer, victim, isCounterKill, this.frame, this.battleElapsedTime);
+          }
 
           if (!killer.isHero) {
             this.addCombatPointFromVictim(killer, victim, isCounterKill);
@@ -723,6 +725,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             isAreaDamage = false;
           }
 
+          if (!this.enableBattleTelemetry) return;
           this.battleTelemetry.recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, this.frame, this.battleElapsedTime);
         }
 
@@ -1336,6 +1339,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleTelemetry.recordWaveSpawnDecision(decision);
         }
 
+        getBattleElapsedTime() {
+          return this.battleElapsedTime;
+        }
+
         recordBattleTelemetrySnapshotIfNeeded() {
           if (!this.enableBattleTelemetry) return;
           if (!this.battleTelemetry.isEnabled()) return;
@@ -1676,7 +1683,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (bountyValue <= 0) return;
           var reward = this.unitDatabase.calculateKillRewardFromBounty(bountyValue, isCounterKill);
           this.addCombatPoint(killerTeam, reward);
-          this.battleTelemetry.recordCombatPointEarned(killer, victim, reward, isCounterKill, this.frame, this.battleElapsedTime);
+
+          if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordCombatPointEarned(killer, victim, reward, isCounterKill, this.frame, this.battleElapsedTime);
+          }
         }
 
         getVictimBountyValue(victim) {
@@ -1801,7 +1811,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         notifyUnitWillDespawn(unit) {
-          this.battleTelemetry.recordDespawn(unit, this.frame, this.battleElapsedTime);
+          if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordDespawn(unit, this.frame, this.battleElapsedTime);
+          }
+
           var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
@@ -2001,13 +2014,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.requestSpatialGridRebuild();
         }
 
-        spawnWaveByEntry(team, entry, laneId, aggressiveForward) {
+        spawnWaveByEntry(team, entry, laneId, aggressiveForward, spawnReason) {
           if (laneId === void 0) {
             laneId = -1;
           }
 
           if (aggressiveForward === void 0) {
             aggressiveForward = false;
+          }
+
+          if (spawnReason === void 0) {
+            spawnReason = '';
           }
 
           if (!this.isValidSpawnEntry(entry)) {
@@ -2015,12 +2032,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           var baseZ = team === 0 ? this.teamASpawnZ : this.teamBSpawnZ;
-          var wave = this.spawnEntryFormation(team, entry, baseZ, true, laneId, aggressiveForward);
+          var wave = this.spawnEntryFormation(team, entry, baseZ, true, laneId, aggressiveForward, spawnReason);
           this.requestSpatialGridRebuild();
           return wave;
         }
 
-        spawnWaveByName(team, unitName, laneId, aggressiveForward) {
+        spawnWaveByName(team, unitName, laneId, aggressiveForward, spawnReason) {
           if (laneId === void 0) {
             laneId = -1;
           }
@@ -2029,20 +2046,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             aggressiveForward = false;
           }
 
+          if (spawnReason === void 0) {
+            spawnReason = '';
+          }
+
           var entry = this.getTeamEntry(team, unitName);
           if (!entry) return null;
-          return this.spawnWaveByEntry(team, entry, laneId, aggressiveForward);
+          return this.spawnWaveByEntry(team, entry, laneId, aggressiveForward, spawnReason);
         }
 
-        spawnEntryFormation(team, entry, baseZ, spendCost, requestedLaneId, aggressiveForward) {
-          var _entry$family2;
-
+        spawnEntryFormation(team, entry, baseZ, spendCost, requestedLaneId, aggressiveForward, spawnReason) {
           if (requestedLaneId === void 0) {
             requestedLaneId = -1;
           }
 
           if (aggressiveForward === void 0) {
             aggressiveForward = false;
+          }
+
+          if (spawnReason === void 0) {
+            spawnReason = '';
           }
 
           if (!this.isValidSpawnEntry(entry)) {
@@ -2076,22 +2099,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.assignWaveBanner(wave, entry);
-          this.battleTelemetry.recordWaveSpawnEvent({
-            type: 'wave-spawn',
-            frame: this.frame,
-            time: this.battleElapsedTime,
-            team,
-            waveId: wave.id,
-            laneId,
-            unitName: entry.name,
-            familyName: (_entry$family2 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-              error: Error()
-            }), UnitFamily) : UnitFamily)[entry.family]) != null ? _entry$family2 : String(entry.family),
-            aggressiveForward
-          });
+
+          if (this.enableBattleTelemetry) {
+            var _entry$family2;
+
+            this.battleTelemetry.recordWaveSpawnEvent({
+              type: 'wave-spawn',
+              frame: this.frame,
+              time: this.battleElapsedTime,
+              team,
+              waveId: wave.id,
+              laneId,
+              unitName: entry.name,
+              familyName: (_entry$family2 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+                error: Error()
+              }), UnitFamily) : UnitFamily)[entry.family]) != null ? _entry$family2 : String(entry.family),
+              aggressiveForward,
+              reason: spawnReason
+            });
+          }
 
           if (spendCost && this.isCombatPointEnabled()) {
-            this.battleTelemetry.recordCombatPointSpent(team, entry.name, entry.family, entry.tier, cost, wave.id, this.frame, this.battleElapsedTime);
+            if (this.enableBattleTelemetry) {
+              this.battleTelemetry.recordCombatPointSpent(team, entry.name, entry.family, entry.tier, cost, wave.id, this.frame, this.battleElapsedTime);
+            }
           }
 
           this.node.emit(BattleWaveSpawnedEvent, wave);
@@ -2387,7 +2418,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           unit.laneId = laneId;
           unit.aggressiveForward = aggressiveForward;
           wave.addUnit(unit);
-          this.battleTelemetry.recordSpawn(unit, team, entry.name, entry.family, entry.tier, wave.id, this.frame, this.battleElapsedTime);
+
+          if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordSpawn(unit, team, entry.name, entry.family, entry.tier, wave.id, this.frame, this.battleElapsedTime);
+          }
         }
 
         resolveSpawnLaneId(requestedLaneId) {
@@ -2793,8 +2827,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         registerHeroWave(hero, team, unitTypeName, family, tier) {
-          var _family;
-
           var laneId = this.getHeroLaneId();
           var previousWave = team === 0 ? this.teamAHeroWave : this.teamBHeroWave;
 
@@ -2815,19 +2847,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.teamBHeroWave = wave;
           }
 
-          this.battleTelemetry.recordWaveSpawnEvent({
-            type: 'hero-wave-register',
-            frame: this.frame,
-            time: this.battleElapsedTime,
-            team,
-            waveId: wave.id,
-            laneId,
-            unitName: unitTypeName,
-            familyName: (_family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-              error: Error()
-            }), UnitFamily) : UnitFamily)[family]) != null ? _family : String(family),
-            aggressiveForward: false
-          });
+          if (this.enableBattleTelemetry) {
+            var _family;
+
+            this.battleTelemetry.recordWaveSpawnEvent({
+              type: 'hero-wave-register',
+              frame: this.frame,
+              time: this.battleElapsedTime,
+              team,
+              waveId: wave.id,
+              laneId,
+              unitName: unitTypeName,
+              familyName: (_family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+                error: Error()
+              }), UnitFamily) : UnitFamily)[family]) != null ? _family : String(family),
+              aggressiveForward: false
+            });
+          }
         }
 
         ensureBattleWaveRegistered(wave) {
