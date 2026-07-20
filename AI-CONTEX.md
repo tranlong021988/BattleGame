@@ -2,9 +2,620 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-20 by office Codex.
+Last updated: 2026-07-21 by home Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
+
+## Latest 2026-07-21 Home Handoff - Clean Balance Rules, Visible Stats, Live-Force BattleArmyBrain
+
+This is the current end-of-day state after the home Codex session. Read this
+before touching `BattlefieldEvaluator`, `BattleArmyBrain`, `UNITSTATS.md`,
+`CounterSettings`, or the unit database in `assets/Test.scene`.
+
+### Current Design Principle
+
+Balance must be explainable from visible data:
+
+- Unit strength comes from visible stats:
+  - health;
+  - damage;
+  - defense;
+  - max speed;
+  - attack range;
+  - damage radius;
+  - attack interval;
+  - unit count;
+  - combat point cost.
+- Explicit counter multipliers live only in `CounterSettings`.
+- `BattlefieldEvaluator` may use tactical checks such as lane pressure,
+  reachability, frontline safety, ally blockers, cluster density, target
+  progress toward hero line, and coverage need.
+- `BattlefieldEvaluator` must not hide matchup multipliers or secret balance
+  rules. If a future balance change acts like a multiplier, discuss it with
+  the user and put it in an explicit source-of-truth.
+
+This rule was also added to the Cocos performance/balance skill in:
+
+- `C:/Users/tranl/.codex/skills/cocos-performance-optimize-skills/SKILL.md`;
+- `cocos-performance-optimize-skills/SKILL.md`.
+
+### Problem 1 - Hidden Evaluator Multipliers Broke Trust
+
+Problem:
+
+- `BattlefieldEvaluator.getMatchupFactor()` contained many hidden matchup
+  adjustments outside `CounterSettings`.
+- Telemetry and balance discussions became hard to trust because observed
+  behavior was not purely explained by visible stats plus explicit counter
+  rules.
+
+Removed hidden evaluator factors:
+
+```text
+Spear > Cavalry hard-coded fallback = 2.1
+Archer > Spear hard-coded fallback = 1.45
+Cavalry vs exposed/blocked ranged = 1.55 / 0.55
+Axeman > Sword/Spear = 1.25
+Sword > Spear = 1.15
+Spear vs non-Cavalry = 0.82
+Monk role multiplier based on cluster/safety
+Archer role multiplier based on safety
+```
+
+Current code:
+
+- `getMatchupFactor()` returns only
+  `CounterSettings.instance.getCounterScore(entry.family, target.entry.family)`
+  when that score is above `1`.
+- Without an explicit counter rule, matchup factor is `1`.
+
+Result:
+
+- AI decisions are now easier to explain.
+- Balance tuning should use visible stats/cost or explicit `CounterSettings`,
+  not private evaluator tricks.
+
+### Problem 2 - Removing Hidden Modifiers Required Visible Stat Compensation
+
+Problem:
+
+- Removing the hidden `Spear vs non-Cavalry = 0.82` penalty made Spear more
+  generally attractive than intended.
+- Spear is supposed to be weaker than Sword in natural melee value while still
+  punishing Cavalry through explicit `CounterSettings`.
+
+Visible stats change applied:
+
+```text
+spear_t1 health: 165 -> 150
+```
+
+Files updated:
+
+- `UNITSTATS.md`;
+- Team A and Team B entries in `assets/Test.scene`.
+
+Result:
+
+- Natural raw-power ladder still matches the intended melee hierarchy:
+
+```text
+Cavalry > Axeman > Sword > Spear
+```
+
+### Problem 3 - Direct Response Was Too Generic, Then Too Rigid
+
+Initial problem after removing hidden multipliers:
+
+- `chooseEntryForTarget()` let all affordable units compete mostly through a
+  generic power/cost score.
+- That allowed odd perfect-AI responses such as Cavalry or Archer into ordinary
+  melee targets.
+
+First fix:
+
+- Added `getDirectResponseRoleRank(entry, target)`.
+- Direct response excludes ranged entries; Archer/Monk remain support-specific
+  choices.
+- Role ranks express tactical preference, for example:
+  - Spear is preferred into Cavalry;
+  - Axeman is preferred into Sword;
+  - Cavalry is preferred into exposed ranged units.
+
+Second problem:
+
+- The first role-rank implementation acted as a hard gate.
+- That made perfect AI too rigid. Example: a nearly dead Cavalry still forced a
+  Spear response even if Sword/Axeman was already sufficient and more reusable.
+
+Current fix:
+
+- `getDirectResponseRoleRank()` is no longer a hard gate among valid direct
+  response candidates.
+- It now feeds `getDirectResponseRoleBias()`, a bounded policy bias.
+- All valid non-ranged direct responders compete in a live-force score.
+
+Current direct-response score considers:
+
+- missing coverage against the selected target;
+- candidate coverage from visible stats plus explicit `CounterSettings`;
+- CP cost;
+- overkill waste;
+- underpowered penalty;
+- small role bias;
+- secondary utility against nearby enemy waves already in the evaluator
+  buffers.
+
+Important:
+
+- This is AI policy, not combat damage.
+- It does not add hidden combat multipliers.
+- It keeps target choice and lane choice priorities intact.
+
+### Problem 4 - Sword Spawned Too Much Because Power/Cost Was Inverted
+
+User report:
+
+- After initial policy fixes, Sword was visibly over-spawning.
+
+Diagnosis:
+
+- Raw evaluator power was correct:
+
+```text
+Cavalry > Axeman > Sword > Spear
+```
+
+- But `basePower / cost` was wrong:
+
+```text
+Old power/cost: Sword > Cavalry > Axeman > Spear
+```
+
+Because `BattleArmyBrain` tries to choose a sufficient economical response,
+Sword was behaving like the best deal.
+
+Visible cost correction applied:
+
+```text
+sword_t1 cost: 38 -> 42
+spear_t1 cost: 38 -> 41
+```
+
+Files updated:
+
+- `UNITSTATS.md`;
+- Team A and Team B database entries in `assets/Test.scene`.
+
+Verified approximate evaluator `basePower / cost` after the change:
+
+```text
+Cavalry 32.20
+Axeman  31.94
+Sword   29.45
+Spear   27.85
+```
+
+Result from the next 10 telemetry reports:
+
+```text
+Total wave spawns: 230
+decisionAccuracy: 100%
+
+Axeman  91 = 39.6%
+Monk    35 = 15.2%
+Archer  35 = 15.2%
+Spear   29 = 12.6%
+Sword   27 = 11.7%
+Cavalry 13 =  5.7%
+```
+
+Conclusion:
+
+- Sword spam was fixed.
+- New visible issue: Axeman became the main default melee answer.
+
+### Problem 5 - Axeman Mirror Loop And Need For Multi-Target Thinking
+
+Observed from the 10-report batch after cost correction:
+
+- Axeman dropped into the role that Sword previously occupied.
+- The most frequent response was:
+
+```text
+response|axeman_t1 -> Axeman : 62
+```
+
+User's design point:
+
+- A smart AI should not only ask "what unit counters this one target?"
+- It should ask "can this one spawned wave solve a local group of problems?"
+- Example: if there are multiple enemy Axeman waves near each other, Cavalry
+  may be the smart expensive answer because one Cavalry wave can handle more
+  than one Axeman threat.
+- This idea must be generic, not hardcoded as Cavalry vs Axeman.
+
+Current implementation:
+
+- `getSecondaryDirectResponseUtility()` now gives multi-target value to a
+  candidate if it has true surplus coverage after the primary target.
+- "True surplus" means:
+
+```text
+primaryCoveragePower > primaryMissingCoverage
+```
+
+- Barely sufficient units do not get treated as if they can solve two fights.
+- Secondary enemy waves are only considered if they are:
+  - same lane or adjacent lane;
+  - near the primary target on the forward axis;
+  - alive and still relevant.
+- The utility uses real coverage power from visible stats plus explicit
+  `CounterSettings`.
+- The total bonus is capped so it cannot override the main target/lane priority
+  by itself.
+
+Expected tactical behavior:
+
+- Isolated Axeman:
+  - AI can still choose a cheaper Axeman/Sword-style response if sufficient.
+- Axeman cluster:
+  - Cavalry can become attractive if it has enough surplus force to solve the
+    current Axeman and remain useful against nearby threats.
+- Same principle applies to all non-ranged direct response candidates.
+
+### Current Active Counter Rules
+
+Only explicit counter multipliers currently expected:
+
+```text
+Spear  > Cavalry = 2.1
+Archer > Spear   = 1.45
+```
+
+Do not add fallback versions of these into evaluator code. Keep them in
+`CounterSettings`.
+
+### Current Test Recommendation
+
+Next useful test:
+
+- Run another small telemetry batch with `decisionAccuracy = 1`.
+- Check whether:
+  - Sword remains low after cost correction;
+  - Axeman no longer dominates as a mirror response;
+  - Cavalry appears more often specifically when enemy threats are clustered or
+    locally reusable;
+  - Spear still appears mostly for real Cavalry pressure;
+  - Archer still appears through `anti-spear-archer`;
+  - Monk still appears through `cluster-monk-support`, not as a generic direct
+    response.
+
+If Axeman still dominates:
+
+- First inspect telemetry pairs and target context.
+- Do not add a hidden `Cavalry > Axeman` multiplier.
+- Prefer one of these explicit approaches:
+  - adjust visible Axeman/Sword/Cavalry cost or stats;
+  - adjust direct-response policy weights in a documented way;
+  - add a user-approved explicit counter rule if the design genuinely calls
+    for it.
+
+### Verification Done
+
+Commands passed after the latest changes:
+
+```text
+node "C:/ProgramData/cocos/editors/Creator/3.8.8/resources/app.asar.unpacked/node_modules/typescript/bin/tsc" --noEmit --skipLibCheck --module esnext
+git -c safe.directory=F:/Github/BattleGame diff --check
+```
+
+`assets/Test.scene` was also parsed as JSON after the unit cost changes.
+
+## Detail 2026-07-21 Home Fix - Removed Hidden Evaluator Multipliers
+
+This update is important for trust and future balance work.
+
+Problem:
+
+- `BattlefieldEvaluator.getMatchupFactor()` contained hidden matchup/scoring
+  multipliers outside the explicit `CounterSettings` rule system.
+- These hidden factors made telemetry and AI decisions harder to trust because
+  natural unit strength was no longer coming only from visible stats.
+- The user explicitly rejected this pattern. Do not repeat it.
+
+Removed from `assets/scripts/BattlefieldEvaluator.ts`:
+
+```text
+Spear > Cavalry hard-coded fallback = 2.1
+Archer > Spear hard-coded fallback = 1.45
+Cavalry vs exposed/blocked ranged = 1.55 / 0.55
+Axeman > Sword/Spear = 1.25
+Sword > Spear = 1.15
+Spear vs non-Cavalry = 0.82
+Monk role multiplier based on cluster/safety
+Archer role multiplier based on safety
+```
+
+Current rule after this fix:
+
+- `getMatchupFactor()` only reads `CounterSettings.instance.getCounterScore()`.
+- If there is no `CounterSettings`, no target entry, or no explicit multiplier
+  above `1`, it returns `1`.
+- Hard counters/matchup multipliers must live in `CounterSettings`, not in
+  private evaluator branches.
+- Natural strength must come from visible stats: health, damage, defense, speed,
+  range, damage radius, attack interval, unit count, and cost.
+
+Still allowed:
+
+- Tactical reachability/safety checks such as ranged spawn safety, lane traffic,
+  ally blockers, enemy spear blockers, monk cluster target selection, and
+  cavalry dive viability may remain, but they must not secretly act as matchup
+  damage/coverage multipliers unless the user approves that explicitly.
+
+Skill rule updated:
+
+- Added "Keep balance rules explicit" to both:
+  - local installed skill:
+    `C:/Users/tranl/.codex/skills/cocos-performance-optimize-skills/SKILL.md`;
+  - repo copy:
+    `cocos-performance-optimize-skills/SKILL.md`.
+- Future Codex sessions must state whether a proposed balance-affecting change
+  is a visible stat, explicit rule, tactical reachability check, or hidden
+  scoring modifier. Hidden scoring requires user approval first.
+
+Stats follow-up:
+
+- Do not immediately change unit stats just to compensate for the removed hidden
+  multipliers.
+- Current visible-stat power order still matches the intended melee ladder:
+
+```text
+Cavalry > Axeman > Sword > Spear
+```
+
+- Recommended next test is 30-50 telemetry reports with the cleaned evaluator.
+- If Axeman remains too profitable after hidden multipliers are gone, prefer
+  small visible stat/cost changes such as:
+  - Axeman cost `44 -> 46-48`, or
+  - Axeman damage `26 -> 24-25`, or
+  - Axeman attack interval slightly slower.
+- If Spear becomes too weak outside its hard-counter role, prefer a visible
+  adjustment such as speed `4.50 -> 4.65` or defense `6 -> 7`, not an evaluator
+  penalty/bonus.
+- If Archer no longer appears enough against Spear, adjust `CounterSettings`
+  (`Archer > Spear`) or explicit ranged-support selection thresholds, not hidden
+  coverage multipliers.
+
+Applied visible stat compensation:
+
+```text
+spear_t1 health: 165 -> 150
+```
+
+Reason:
+
+- removing `Spear vs non-Cavalry = 0.82` makes Spear more attractive in the
+  evaluator unless compensated through visible stats;
+- lowering HP keeps Spear clearly weaker than Sword in general combat while
+  preserving its explicit `Spear > Cavalry` role through `CounterSettings`.
+
+### 2026-07-21 BattleArmyBrain Policy Fix After Clean Evaluator Telemetry
+
+User provided 22 telemetry reports after the hidden multiplier removal and
+`spear_t1 health = 150`.
+
+Important report context:
+
+- report stats confirmed `spear_t1 health = 150`;
+- explicit counter rules were only:
+  - `Spear > Cavalry = 2.1`;
+  - `Archer > Spear = 1.45`;
+- every recorded spawn decision had `decisionAccuracy = 1`;
+- therefore this batch represents perfect tactical AI, not production-noisy AI.
+
+Observed issue:
+
+- The spawn mix was no longer Axeman-heavy, but direct `response` decisions were
+  still too generic.
+- Examples from telemetry:
+  - `response|sword_t1->Sword`;
+  - `response|cavalry_t1->Sword`;
+  - `response|archer_t1->Sword`;
+  - `response|sword_t1->Axeman`.
+- This showed that `chooseEntryForTarget()` was still letting all affordable
+  entries compete in one generic power/cost formula.
+- Even without hidden matchup multipliers, Cavalry/Archer could still look like
+  acceptable main responses to ordinary melee because their power/cost score was
+  close enough.
+
+Fix history in `assets/scripts/BattlefieldEvaluator.ts`:
+
+- Added `getDirectResponseRoleRank(entry, target)`.
+- Earlier, `chooseEntryForTarget()` used this as a hard gate: only the best
+  available role rank could compete.
+- That hard gate was later removed because it made perfect AI too rigid and
+  too "counter-bot": a nearly-dead Cavalry still forced Spear even when another
+  melee wave had enough real force and better follow-up value.
+- Current code uses the rank only as a bounded role bias inside a live-force
+  score.
+- Direct response bias tiers are:
+
+```text
+Target Cavalry:
+  rank 0 Spear
+  rank 1 Sword/Axeman
+  rank 2 Cavalry
+
+Target Spear:
+  rank 0 Sword
+  rank 1 Axeman
+  rank 2 Spear
+  Archer is not a generic direct response here; Archer>Spear is handled by the
+  explicit anti-spear support branch.
+
+Target Sword:
+  rank 0 Axeman
+  rank 1 Sword
+  rank 2 Spear/Cavalry
+
+Target Axeman:
+  rank 0 Axeman
+  rank 1 Sword
+  rank 2 Cavalry/Spear
+
+Target Archer/Monk:
+  rank 0 Cavalry
+  rank 1 Sword/Axeman
+  rank 2 Spear
+```
+
+Ranged policy after this fix:
+
+- Archer/Monk should not be selected as generic direct response into Sword or
+  Axeman.
+- Archer still appears through `anti-spear-archer` when Spear is the target and
+  ranged spawn is safe.
+- Monk still appears through `cluster-monk-support` when clustered melee combat
+  justifies AoE.
+- Generic `ranged-support` remains separate from direct response.
+
+Scoring change:
+
+- Direct responses are no longer selected by role rank first.
+- All valid non-ranged direct responders compete in one live-force score.
+- A candidate around `90%` of needed coverage is treated as usable.
+- The score now considers:
+  - current missing coverage against the chosen target;
+  - candidate coverage from visible stats plus explicit `CounterSettings`;
+  - CP cost;
+  - overkill waste;
+  - small role bias;
+  - secondary utility against other nearby/important enemy waves already in the
+    evaluator snapshot.
+- This is intended to let AI pick a sufficient, cheaper, more reusable answer
+  instead of blindly spawning the textbook counter into a weak target.
+
+Important distinction:
+
+- This is an AI policy/routing fix, not a hidden matchup multiplier.
+- It does not change combat damage.
+- It does not add any evaluator-only counter bonus.
+- It keeps natural strength in visible stats and explicit counters in
+  `CounterSettings`.
+- The secondary utility is not a combat modifier. It only helps AI choose a
+  spawn that is still useful after the current target dies.
+
+Recommended next test:
+
+- Run 30-50 telemetry reports with `decisionAccuracy = 1` first to confirm the
+  perfect-AI policy no longer produces odd direct responses.
+- Then test production `decisionAccuracy = 0.8`.
+- Watch specifically:
+  - whether `response|cavalry_t1->Sword` drops sharply;
+  - whether `response|archer_t1->Sword/Axeman` disappears;
+  - whether `anti-spear-archer|archer_t1->Spear` still appears;
+  - whether `cluster-monk-support` still appears only in dense melee fights;
+  - whether Sword becomes the normal answer to Sword and Axeman becomes the
+    stronger melee answer instead of universal response.
+
+Smoke-test follow-up:
+
+- User sent 7 reports after the first role-rank policy fix and observed too
+  many Sword spawns.
+- The reports confirmed the issue:
+
+```text
+Sword   119 / 180 waves = 66.1%
+Archer   29 / 180 waves = 16.1%
+Monk     17 / 180 waves =  9.4%
+Spear    13 / 180 waves =  7.2%
+Cavalry   2 / 180 waves =  1.1%
+```
+
+- Cause: `Target Sword` originally ranked `Sword` above `Axeman`, so perfect AI
+  created a Sword-vs-Sword mirror loop.
+- Fix: `Target Sword` now ranks `Axeman` first and `Sword` second.
+- This should reduce Sword mirror spam and bring Axeman back as the visible-stat
+  stronger melee response to Sword.
+- This is still a role-policy fix, not a hidden multiplier and not a stats
+  change.
+
+Follow-up after user request:
+
+- User wanted the max-accuracy AI to read actual battlefield force, not just
+  hard/soft counter labels.
+- Example: if an enemy Cavalry has only about one third of its combat force
+  left, AI should not be forced to spawn a full Spear wave if Sword/Axeman can
+  finish it and remain useful against other threats.
+- Implemented by removing the hard `bestRoleRank` gate from
+  `chooseEntryForTarget()`.
+- Preserved existing target and lane priorities:
+  - target selection still favors higher threat, better progress toward hero
+    line, missing coverage, and struggling ally situations;
+  - `chooseSpawnLaneForTarget()` still decides lane using the existing
+    direct-lane/flank/blocked-lane rules;
+  - Archer/Monk are still not generic direct responders and remain routed
+    through support-specific branches.
+- New helper:
+  - `getDirectResponseRoleBias()` gives a small transparent AI-policy bias to
+    role-appropriate melee choices;
+  - `getSecondaryDirectResponseUtility()` scans the existing evaluator enemy
+    buffers and scores how reusable the candidate is against other active
+    enemy waves, especially same/adjacent lane threats.
+- No new snapshot, no new worker, no new hidden multiplier.
+- Follow-up refinement: secondary utility now uses only true surplus force.
+  A candidate gets multi-target value only if its coverage against the primary
+  target is greater than the current missing coverage for that target. This
+  prevents "barely enough" units from being treated as if they can solve two
+  fights at once.
+- Multi-target value is local and generic:
+  - only same-lane or adjacent-lane enemy waves are considered;
+  - enemy waves must also be reasonably near the primary target on the forward
+    axis;
+  - the score uses real coverage power from visible stats plus explicit
+    `CounterSettings`;
+  - the total bonus is capped so it cannot override the main target/lane
+    priority by itself.
+- Intended visual/tactical result:
+  - against one isolated Axeman, AI can still pick a cheaper Axeman/Sword-style
+    response if sufficient;
+  - against a cluster such as one healthy Axeman plus another weak/nearby
+    Axeman, Cavalry can become attractive because one Cavalry wave has enough
+    surplus force to solve more than one threat;
+  - this same principle applies to all non-ranged direct response candidates,
+    not only Cavalry vs Axeman.
+
+Power/cost follow-up:
+
+- User observed Sword still spawning too much.
+- Calculating with current `BattlefieldEvaluator.getEntryBasePower()` showed
+  raw power was correct but `power/cost` was not:
+
+```text
+Raw power: Cavalry > Axeman > Sword > Spear
+Old power/cost: Sword > Cavalry > Axeman > Spear
+```
+
+- Applied broad visible cost correction instead of evaluator multipliers:
+
+```text
+sword_t1 cost: 38 -> 42
+spear_t1 cost: 38 -> 41
+```
+
+- After this pass, approximate evaluator `basePower / cost` is:
+
+```text
+Cavalry 32.20
+Axeman  31.94
+Sword   29.45
+Spear   27.85
+```
+
+- Updated both `UNITSTATS.md` and Team A/B database entries in
+  `assets/Test.scene`.
 
 ## Latest 2026-07-20 Office Handoff - BattleArmyBrain Accuracy, Telemetry Result, And Hidden Matchup Suspicion
 
@@ -312,7 +923,7 @@ strength candidate:
 | Axeman | 10 | 44 | 180 | 26 | 5 | 4.65 | 0.35 | 0 | 0.333333-0.40 |
 | Cavalry | 10 | 60 | 210 | 26 | 8 | 9.75 | 0.35 | 0 | 0.373333-0.44 |
 | Sword | 10 | 38 | 160 | 20 | 8 | 5.10 | 0.35 | 0 | 0.333333-0.40 |
-| Spear | 10 | 38 | 165 | 20 | 6 | 4.50 | 0.35 | 0 | 0.333333-0.40 |
+| Spear | 10 | 38 | 150 | 20 | 6 | 4.50 | 0.35 | 0 | 0.333333-0.40 |
 | Monk | 2 | 40 | 65 | 38 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
 | Archer | 4 | 34 | 70 | 17 | 0 | 5.70 | 6.50 | 0 | 0.833333-1.033333 |
 

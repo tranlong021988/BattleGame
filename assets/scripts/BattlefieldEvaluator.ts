@@ -238,6 +238,13 @@ export class BattlefieldEvaluator {
 
         for (let i = 0; i < affordableEntries.length; i++) {
             const entry = affordableEntries[i];
+            const roleRank =
+                this.getDirectResponseRoleRank(
+                    entry,
+                    target
+                );
+
+            if (roleRank >= 99) continue;
 
             if (
                 !this.isEntryViableForTarget(
@@ -276,8 +283,10 @@ export class BattlefieldEvaluator {
                         this.coverageTargetRatio -
                         target.coveragePower
                 );
-            const enough =
-                coveragePower >= neededPower;
+            const neededSafe =
+                Math.max(1, neededPower);
+            const needRatio =
+                coveragePower / neededSafe;
             const efficiency =
                 coveragePower / cost;
             const projectedCoverageRatio =
@@ -291,20 +300,38 @@ export class BattlefieldEvaluator {
                     0,
                     projectedCoverageRatio -
                         this.coverageTargetRatio
-                ) * 140;
-            const sufficientBonus =
-                enough ? 120 : 0;
+                ) * 180;
+            const nearEnoughScore =
+                needRatio >= 0.9
+                    ? 500
+                    : needRatio * 350;
+            const underPowerPenalty =
+                Math.max(
+                    0,
+                    0.9 - needRatio
+                ) * 300;
+            const roleBias =
+                this.getDirectResponseRoleBias(
+                    roleRank,
+                    target
+                );
+            const secondaryUtility =
+                this.getSecondaryDirectResponseUtility(
+                    gameManager,
+                    team,
+                    entry,
+                    target,
+                    coveragePower,
+                    neededPower
+                );
             const score =
-                sufficientBonus +
-                efficiency * 120 +
-                Math.min(
-                    180,
-                    coveragePower /
-                        Math.max(1, neededPower) *
-                        80
-                ) -
-                cost * 0.75 -
-                overshootPenalty;
+                nearEnoughScore +
+                efficiency * 8 -
+                cost * 12 -
+                overshootPenalty -
+                underPowerPenalty +
+                roleBias +
+                secondaryUtility;
 
             if (score > this.choice.score) {
                 this.choice.entry = entry;
@@ -1227,87 +1254,203 @@ export class BattlefieldEvaluator {
         return true;
     }
 
-    private getMatchupFactor(
+    private getDirectResponseRoleRank(
         entry: UnitPrefabEntry,
         target: BattlefieldWaveIntel
     ) {
-        if (!target.entry) return 1;
+        if (!target.entry) return 99;
 
         const attacker =
             entry.family;
         const defender =
             target.entry.family;
+
+        if (this.isRangedFamily(attacker)) {
+            return 99;
+        }
+
+        if (defender === UnitFamily.Cavalry) {
+            if (attacker === UnitFamily.Spear) return 0;
+            if (attacker === UnitFamily.Sword) return 1;
+            if (attacker === UnitFamily.Axeman) return 1;
+            if (attacker === UnitFamily.Cavalry) return 2;
+
+            return 99;
+        }
+
+        if (defender === UnitFamily.Spear) {
+            if (attacker === UnitFamily.Sword) return 0;
+            if (attacker === UnitFamily.Axeman) return 1;
+            if (attacker === UnitFamily.Spear) return 2;
+
+            return 99;
+        }
+
+        if (defender === UnitFamily.Sword) {
+            if (attacker === UnitFamily.Axeman) return 0;
+            if (attacker === UnitFamily.Sword) return 1;
+            if (attacker === UnitFamily.Spear) return 2;
+            if (attacker === UnitFamily.Cavalry) return 2;
+
+            return 99;
+        }
+
+        if (defender === UnitFamily.Axeman) {
+            if (attacker === UnitFamily.Axeman) return 0;
+            if (attacker === UnitFamily.Sword) return 1;
+            if (attacker === UnitFamily.Cavalry) return 2;
+            if (attacker === UnitFamily.Spear) return 2;
+
+            return 99;
+        }
+
+        if (this.isRangedFamily(defender)) {
+            if (attacker === UnitFamily.Cavalry) return 0;
+            if (attacker === UnitFamily.Sword) return 1;
+            if (attacker === UnitFamily.Axeman) return 1;
+            if (attacker === UnitFamily.Spear) return 2;
+
+            return 99;
+        }
+
+        return 99;
+    }
+
+    private getDirectResponseRoleBias(
+        roleRank: number,
+        target: BattlefieldWaveIntel
+    ) {
+        if (roleRank <= 0) {
+            return target.dangerousToDefend ? 80 : 55;
+        }
+
+        if (roleRank === 1) {
+            return target.dangerousToDefend ? 45 : 28;
+        }
+
+        return target.dangerousToDefend ? 18 : 6;
+    }
+
+    private getSecondaryDirectResponseUtility(
+        gameManager: GameManager,
+        team: number,
+        entry: UnitPrefabEntry,
+        primaryTarget: BattlefieldWaveIntel,
+        primaryCoveragePower: number,
+        primaryNeededPower: number
+    ) {
+        const transferablePower =
+            Math.max(
+                0,
+                primaryCoveragePower -
+                    primaryNeededPower
+            );
+
+        if (transferablePower <= 0) {
+            return 0;
+        }
+
+        let utility = 0;
+
+        for (let i = 0; i < this.enemyCount; i++) {
+            const enemy = this.enemies[i];
+
+            if (enemy === primaryTarget) continue;
+            if (!enemy.wave || !enemy.entry) continue;
+            if (enemy.aliveCount <= 0) continue;
+            if (enemy.healthRatio <= 0.08) continue;
+
+            const laneDistance =
+                Math.abs(
+                    enemy.visualLaneId -
+                    primaryTarget.visualLaneId
+                );
+
+            if (laneDistance > 1) {
+                continue;
+            }
+
+            const zDistance =
+                Math.abs(
+                    enemy.centerZ -
+                    primaryTarget.centerZ
+                );
+
+            if (zDistance > 7) {
+                continue;
+            }
+
+            const laneFactor =
+                laneDistance <= 0
+                    ? 1
+                    : 0.65;
+            const zFactor =
+                Math.max(
+                    0.25,
+                    1 - zDistance / 8
+                );
+            const coveragePower =
+                this.getEntryCoveragePower(
+                    gameManager,
+                    team,
+                    entry,
+                    enemy
+                );
+            const neededPower =
+                Math.max(
+                    1,
+                    enemy.threatPower *
+                        this.coverageTargetRatio -
+                        enemy.coveragePower
+                );
+            const transferableCoverage =
+                Math.min(
+                    transferablePower,
+                    coveragePower,
+                    neededPower
+                );
+
+            if (transferableCoverage <= 0) {
+                continue;
+            }
+
+            const threatWeight =
+                Math.min(
+                    1.5,
+                    enemy.threatScore / 500
+                );
+
+            utility +=
+                transferableCoverage /
+                Math.max(1, entry.combatPointCost) *
+                threatWeight *
+                laneFactor *
+                zFactor *
+                36;
+        }
+
+        return Math.min(320, utility);
+    }
+
+    private getMatchupFactor(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel
+    ) {
         const counter =
             CounterSettings.instance;
 
-        if (counter) {
-            const counterScore =
-                counter.getCounterScore(
-                    attacker,
-                    defender
-                );
-
-            if (counterScore > 1.0001) {
-                return counterScore;
-            }
+        if (!target.entry || !counter) {
+            return 1;
         }
 
-        if (
-            attacker === UnitFamily.Spear &&
-            defender === UnitFamily.Cavalry
-        ) {
-            return 2.1;
-        }
+        const counterScore =
+            counter.getCounterScore(
+                entry.family,
+                target.entry.family
+            );
 
-        if (
-            attacker === UnitFamily.Archer &&
-            defender === UnitFamily.Spear
-        ) {
-            return 1.45;
-        }
-
-        if (
-            attacker === UnitFamily.Cavalry &&
-            this.isRangedFamily(defender)
-        ) {
-            return target.enemyMeleeBlockersFromSpawn <= 1 &&
-                !target.hasEnemySpearBlockerFromSpawn
-                    ? 1.55
-                    : 0.55;
-        }
-
-        if (
-            attacker === UnitFamily.Axeman &&
-            (
-                defender === UnitFamily.Sword ||
-                defender === UnitFamily.Spear
-            )
-        ) {
-            return 1.25;
-        }
-
-        if (
-            attacker === UnitFamily.Sword &&
-            defender === UnitFamily.Spear
-        ) {
-            return 1.15;
-        }
-
-        if (
-            attacker === UnitFamily.Spear &&
-            defender !== UnitFamily.Cavalry
-        ) {
-            return 0.82;
-        }
-
-        if (attacker === UnitFamily.Monk) {
-            return this.isRangedSpawnSafe(target)
-                ? 0.9 + Math.min(0.65, target.clusterScore * 0.2)
-                : 0.35;
-        }
-
-        if (attacker === UnitFamily.Archer) {
-            return this.isRangedSpawnSafe(target) ? 1.05 : 0.35;
+        if (counterScore > 1.0001) {
+            return counterScore;
         }
 
         return 1;

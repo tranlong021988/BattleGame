@@ -37,8 +37,9 @@ raw hard-counter multiplier.
 
 Design intent:
 
-- Spear shares Sword cost in the current test pass, but trades lower defense,
-  speed, and general melee value for its Cavalry hard-counter role.
+- Spear stays slightly cheaper than Sword in the current test pass, but trades
+  lower defense, speed, and general melee value for its Cavalry hard-counter
+  role.
 - Sword is the balanced melee baseline.
 - Axeman is the strongest melee infantry, with high damage/HP but weaker
   defense and slower attack tempo than Sword.
@@ -55,8 +56,8 @@ Design intent:
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `axeman_t1` | Axeman | 10 | 44 | 180 | 26 | 5 | 4.65 | 0.35 | 0.0 | 0.333333-0.40 |
 | `cavalry_t1` | Cavalry | 10 | 60 | 210 | 26 | 8 | 9.75 | 0.35 | 0.0 | 0.373333-0.44 |
-| `sword_t1` | Sword | 10 | 38 | 160 | 20 | 8 | 5.10 | 0.35 | 0.0 | 0.333333-0.40 |
-| `spear_t1` | Spear | 10 | 38 | 165 | 20 | 6 | 4.50 | 0.35 | 0.0 | 0.333333-0.40 |
+| `sword_t1` | Sword | 10 | 42 | 160 | 20 | 8 | 5.10 | 0.35 | 0.0 | 0.333333-0.40 |
+| `spear_t1` | Spear | 10 | 41 | 150 | 20 | 6 | 4.50 | 0.35 | 0.0 | 0.333333-0.40 |
 | `monk_t1` | Monk | 2 | 40 | 65 | 38 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
 | `archer_t1` | Archer | 4 | 34 | 70 | 17 | 0 | 5.70 | 6.50 | 0.0 | 0.833333-1.033333 |
 
@@ -72,6 +73,33 @@ using `GameManager.battleTimeScale`:
 
 Health, damage, defense, cost, range, unit count, and counter multipliers were
 not changed by this tempo pass.
+
+### 2026-07-21 Power/Cost Ladder Adjustment
+
+Sword was over-selected by `BattleArmyBrain` because its evaluated
+`power/cost` was slightly higher than Cavalry and Axeman. The broad correction
+keeps combat stats unchanged and adjusts cost so both raw power and
+`power/cost` follow the intended melee ladder:
+
+```text
+Cavalry > Axeman > Sword > Spear
+```
+
+Applied cost changes:
+
+```text
+sword_t1: 38 -> 42
+spear_t1: 38 -> 41
+```
+
+Approximate evaluator `basePower / cost` after this pass:
+
+```text
+Cavalry 32.20
+Axeman  31.94
+Sword   29.45
+Spear   27.85
+```
 
 ## Counter Rules
 

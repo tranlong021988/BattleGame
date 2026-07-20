@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattlefieldEvaluator, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _crd, ccclass, property, BattleArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattlefieldEvaluator, unitFamilyToName, CounterSettings, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _crd, ccclass, property, BattleArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -29,6 +29,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("unitFamilyToName", "./BattleTypes", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfCounterSettings(extras) {
+    _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -44,6 +48,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       BattlefieldEvaluator = _unresolved_3.BattlefieldEvaluator;
     }, function (_unresolved_4) {
       unitFamilyToName = _unresolved_4.unitFamilyToName;
+    }, function (_unresolved_5) {
+      CounterSettings = _unresolved_5.CounterSettings;
     }],
     execute: function () {
       _crd = true;
@@ -60,12 +66,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _export("BattleArmyBrain", BattleArmyBrain = (_dec = ccclass('BattleArmyBrain'), _dec2 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
         error: Error()
       }), GameManager) : GameManager), _dec3 = property({
-        tooltip: 'Power coverage target for the selected enemy wave. 1 means enough estimated force; values above 1 ask for a small reserve.'
+        min: 0,
+        max: 1,
+        tooltip: 'Chance to use the tactical evaluator. The remaining chance is split evenly between deliberately wrong counter choices and random valid choices.'
       }), _dec4 = property({
-        tooltip: 'If an ally wave covering the target drops below this health ratio, BattleArmyBrain may reinforce even when coverage exists.'
+        tooltip: 'Power coverage target for the selected enemy wave. 1 means enough estimated force; values above 1 ask for a small reserve.'
       }), _dec5 = property({
-        tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
+        tooltip: 'If an ally wave covering the target drops below this health ratio, BattleArmyBrain may reinforce even when coverage exists.'
       }), _dec6 = property({
+        tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
+      }), _dec7 = property({
         tooltip: 'Maximum Archer/Monk support waves allowed in one lane before BattleArmyBrain looks elsewhere.'
       }), _dec(_class = (_class2 = class BattleArmyBrain extends Component {
         constructor(...args) {
@@ -87,19 +97,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "maxAliveWaves", _descriptor8, this);
 
-          _initializerDefineProperty(this, "coverageTargetRatio", _descriptor9, this);
+          _initializerDefineProperty(this, "decisionAccuracy", _descriptor9, this);
 
-          _initializerDefineProperty(this, "rescueAllyAliveRatio", _descriptor10, this);
+          _initializerDefineProperty(this, "coverageTargetRatio", _descriptor10, this);
 
-          _initializerDefineProperty(this, "laneAllyAheadLimit", _descriptor11, this);
+          _initializerDefineProperty(this, "rescueAllyAliveRatio", _descriptor11, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor12, this);
+          _initializerDefineProperty(this, "laneAllyAheadLimit", _descriptor12, this);
 
-          _initializerDefineProperty(this, "maxRangedSupportWavesPerLane", _descriptor13, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor13, this);
 
-          _initializerDefineProperty(this, "enableStateLog", _descriptor14, this);
+          _initializerDefineProperty(this, "maxRangedSupportWavesPerLane", _descriptor14, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor15, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor15, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor16, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -107,6 +119,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattlefieldEvaluator) : BattlefieldEvaluator)();
           this.affordableEntries = [];
+          this.currentAccuracyRoll = 0;
+          this.currentAccurateDecision = true;
+          this.currentDeliberateMistake = false;
         }
 
         start() {
@@ -149,10 +164,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
+          this.currentAccuracyRoll = Math.random();
+          this.currentAccurateDecision = this.currentAccuracyRoll < this.getDecisionAccuracy();
+          this.currentDeliberateMistake = !this.currentAccurateDecision && this.currentAccuracyRoll < this.getDecisionAccuracy() + (1 - this.getDecisionAccuracy()) * 0.5;
           this.evaluator.coverageTargetRatio = Math.max(0, this.coverageTargetRatio);
           this.evaluator.rescueAllyAliveRatio = this.clamp01(this.rescueAllyAliveRatio);
           this.evaluator.laneAllyAheadLimit = Math.max(0, Math.floor(this.laneAllyAheadLimit));
           this.evaluator.rebuild(gameManager, this.team);
+
+          if (!this.currentAccurateDecision) {
+            if (this.currentDeliberateMistake && this.trySpawnDeliberatelyWrongWave()) {
+              return;
+            }
+
+            if (this.trySpawnRandomWave()) {
+              return;
+            }
+          }
 
           if (this.trySpawnAntiSpearArcherSupport()) {
             return;
@@ -190,6 +218,59 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.trySpawnPressureWave();
+        }
+
+        trySpawnDeliberatelyWrongWave() {
+          let bestTarget = null;
+          let bestEntry = null;
+          let bestScore = -Infinity;
+
+          for (let i = 0; i < this.evaluator.enemyCount; i++) {
+            const target = this.evaluator.enemies[i];
+
+            if (!target || !target.wave || !target.entry) {
+              continue;
+            }
+
+            if (target.aliveCount <= 0) continue;
+            if (target.healthRatio <= 0.08) continue;
+            const entry = this.getWorstAffordableEntryForTarget(target);
+            if (!entry) continue;
+            const score = target.threatScore + target.progressToDefend * 120 + Math.random() * 0.001;
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestTarget = target;
+              bestEntry = entry;
+            }
+          }
+
+          if (!bestTarget || !bestEntry) {
+            return false;
+          }
+
+          const gameManager = this.gameManager;
+          if (!gameManager) return false;
+          const laneId = gameManager.clampLaneId(bestTarget.laneId >= 0 ? bestTarget.laneId : bestTarget.visualLaneId);
+          return this.spawn(bestEntry, laneId, false, 'imperfect-wrong', bestTarget);
+        }
+
+        trySpawnRandomWave() {
+          const laneId = this.getRandomLaneId();
+
+          if (laneId < 0) {
+            this.stateLog('WAIT imperfect no lane.');
+            return false;
+          }
+
+          const entry = this.getRandomAffordableEntry();
+
+          if (!entry) {
+            this.stateLog('WAIT imperfect no entry.');
+            return false;
+          }
+
+          return this.spawn(entry, laneId, false, 'imperfect-random');
         }
 
         trySpawnAntiSpearArcherSupport() {
@@ -281,6 +362,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             uncovered: target ? Math.max(0, this.coverageTargetRatio - target.coverageRatio) : 0,
             threatScore: target ? target.threatScore : 0,
             decisionPath: reason,
+            decisionAccuracy: this.getDecisionAccuracy(),
+            accuracyRoll: this.currentAccuracyRoll,
+            accurateDecision: this.currentAccurateDecision,
+            deliberateMistake: this.currentDeliberateMistake,
             aliveWaveCountAtDecision: this.getAliveWaveCount(),
             affordableEntryCount: this.affordableEntries.length,
             activeEnemyIntelCount: this.evaluator.enemyCount
@@ -318,6 +403,54 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const min = Math.max(0.05, this.minSpawnInterval);
           const max = Math.max(min, this.maxSpawnInterval);
           this.nextInterval = min + Math.random() * (max - min);
+        }
+
+        getRandomLaneId() {
+          const gameManager = this.gameManager;
+          if (!gameManager) return -1;
+          const laneCount = gameManager.getSafeLaneCount();
+          if (laneCount <= 0) return -1;
+          return gameManager.clampLaneId(Math.floor(Math.random() * laneCount));
+        }
+
+        getRandomAffordableEntry() {
+          if (this.affordableEntries.length <= 0) {
+            return null;
+          }
+
+          return this.affordableEntries[Math.floor(Math.random() * this.affordableEntries.length)];
+        }
+
+        getWorstAffordableEntryForTarget(target) {
+          if (!target.entry) return null;
+          const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          if (!counter) return null;
+          let worst = null;
+          let worstScore = 1;
+
+          for (let i = 0; i < this.affordableEntries.length; i++) {
+            const entry = this.affordableEntries[i];
+            const reverseCounter = counter.getCounterScore(target.entry.family, entry.family);
+
+            if (reverseCounter <= 1.0001) {
+              continue;
+            }
+
+            const score = reverseCounter + Math.random() * 0.001;
+
+            if (score > worstScore) {
+              worstScore = score;
+              worst = entry;
+            }
+          }
+
+          return worst;
+        }
+
+        getDecisionAccuracy() {
+          return this.clamp01(this.decisionAccuracy);
         }
 
         clamp01(value) {
@@ -390,49 +523,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 7;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "coverageTargetRatio", [_dec3], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracy", [_dec3], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.8;
+        }
+      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "coverageTargetRatio", [_dec4], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.05;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class2.prototype, "rescueAllyAliveRatio", [_dec4], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "rescueAllyAliveRatio", [_dec5], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.35;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class2.prototype, "laneAllyAheadLimit", [_dec5], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "laneAllyAheadLimit", [_dec6], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class2.prototype, "maxRangedSupportWavesPerLane", [_dec6], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "maxRangedSupportWavesPerLane", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

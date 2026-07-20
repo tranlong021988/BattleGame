@@ -31,6 +31,12 @@ Use this skill to audit and optimize Cocos Creator projects with a bias toward m
    - Performance changes must not silently alter AI, combat rules, target validity, pooling lifecycle, or visual expectations.
    - If logic is fragile, add guards and narrow tests/checks instead of a broad rewrite.
 
+5. Keep balance rules explicit.
+   - Do not hide gameplay balance changes inside evaluators, performance helpers, workers, caches, or "scoring" utilities.
+   - Hard counters and matchup multipliers must live in the project's explicit rule/source-of-truth system, such as `CounterSettings`, not in private evaluator branches.
+   - Natural unit strength must come from visible stats such as health, damage, defense, speed, range, count, interval, and cost.
+   - Before adding any heuristic that changes AI spawn choice or combat outcome, state whether it is a visible stat, explicit rule, tactical reachability check, or hidden scoring modifier. Ask the user before adding hidden scoring that can affect balance.
+
 ## Coding Discipline Overlay
 
 Inspired by the public `CLAUDE.md` from `multica-ai/andrej-karpathy-skills`; use this as a general caution layer before changing code.

@@ -3572,7 +3572,7 @@
     "health": 160,
     "damage": 20,
     "defense": 8,
-    "combatPointCost": 38
+    "combatPointCost": 42
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3602,10 +3602,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
-    "health": 165,
+    "health": 150,
     "damage": 20,
     "defense": 6,
-    "combatPointCost": 38
+    "combatPointCost": 41
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3770,7 +3770,7 @@
     "health": 160,
     "damage": 20,
     "defense": 8,
-    "combatPointCost": 38
+    "combatPointCost": 42
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3800,10 +3800,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
-    "health": 165,
+    "health": 150,
     "damage": 20,
     "defense": 6,
-    "combatPointCost": 38
+    "combatPointCost": 41
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -8954,7 +8954,7 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 0.8,
+    "decisionAccuracy": 1,
     "coverageTargetRatio": 1.05,
     "rescueAllyAliveRatio": 0.35,
     "laneAllyAheadLimit": 2,
@@ -9066,7 +9066,7 @@
     "maxBrainDeltaTime": 0.1,
     "enableMaxAliveWaveLimit": true,
     "maxAliveWaves": 7,
-    "decisionAccuracy": 0.8,
+    "decisionAccuracy": 1,
     "coverageTargetRatio": 1.05,
     "rescueAllyAliveRatio": 0.35,
     "laneAllyAheadLimit": 2,

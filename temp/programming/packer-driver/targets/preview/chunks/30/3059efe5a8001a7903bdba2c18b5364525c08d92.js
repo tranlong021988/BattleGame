@@ -224,6 +224,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           for (var i = 0; i < affordableEntries.length; i++) {
             var entry = affordableEntries[i];
+            var roleRank = this.getDirectResponseRoleRank(entry, target);
+            if (roleRank >= 99) continue;
 
             if (!this.isEntryViableForTarget(entry, target)) {
               continue;
@@ -238,12 +240,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
             var cost = Math.max(1, entry.combatPointCost);
             var neededPower = Math.max(0, target.threatPower * this.coverageTargetRatio - target.coveragePower);
-            var enough = coveragePower >= neededPower;
+            var neededSafe = Math.max(1, neededPower);
+            var needRatio = coveragePower / neededSafe;
             var efficiency = coveragePower / cost;
             var projectedCoverageRatio = (target.coveragePower + coveragePower) / Math.max(1, target.threatPower);
-            var overshootPenalty = Math.max(0, projectedCoverageRatio - this.coverageTargetRatio) * 140;
-            var sufficientBonus = enough ? 120 : 0;
-            var score = sufficientBonus + efficiency * 120 + Math.min(180, coveragePower / Math.max(1, neededPower) * 80) - cost * 0.75 - overshootPenalty;
+            var overshootPenalty = Math.max(0, projectedCoverageRatio - this.coverageTargetRatio) * 180;
+            var nearEnoughScore = needRatio >= 0.9 ? 500 : needRatio * 350;
+            var underPowerPenalty = Math.max(0, 0.9 - needRatio) * 300;
+            var roleBias = this.getDirectResponseRoleBias(roleRank, target);
+            var secondaryUtility = this.getSecondaryDirectResponseUtility(gameManager, team, entry, target, coveragePower, neededPower);
+            var score = nearEnoughScore + efficiency * 8 - cost * 12 - overshootPenalty - underPowerPenalty + roleBias + secondaryUtility;
 
             if (score > this.choice.score) {
               this.choice.entry = entry;
@@ -752,80 +758,172 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return true;
         }
 
-        getMatchupFactor(entry, target) {
-          if (!target.entry) return 1;
+        getDirectResponseRoleRank(entry, target) {
+          if (!target.entry) return 99;
           var attacker = entry.family;
           var defender = target.entry.family;
+
+          if (this.isRangedFamily(attacker)) {
+            return 99;
+          }
+
+          if (defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Cavalry) {
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Spear) return 0;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Sword) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Axeman) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Cavalry) return 2;
+            return 99;
+          }
+
+          if (defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Spear) {
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Sword) return 0;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Axeman) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Spear) return 2;
+            return 99;
+          }
+
+          if (defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Sword) {
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Axeman) return 0;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Sword) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Spear) return 2;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Cavalry) return 2;
+            return 99;
+          }
+
+          if (defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Axeman) {
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Axeman) return 0;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Sword) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Cavalry) return 2;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Spear) return 2;
+            return 99;
+          }
+
+          if (this.isRangedFamily(defender)) {
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Cavalry) return 0;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Sword) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Axeman) return 1;
+            if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Spear) return 2;
+            return 99;
+          }
+
+          return 99;
+        }
+
+        getDirectResponseRoleBias(roleRank, target) {
+          if (roleRank <= 0) {
+            return target.dangerousToDefend ? 80 : 55;
+          }
+
+          if (roleRank === 1) {
+            return target.dangerousToDefend ? 45 : 28;
+          }
+
+          return target.dangerousToDefend ? 18 : 6;
+        }
+
+        getSecondaryDirectResponseUtility(gameManager, team, entry, primaryTarget, primaryCoveragePower, primaryNeededPower) {
+          var transferablePower = Math.max(0, primaryCoveragePower - primaryNeededPower);
+
+          if (transferablePower <= 0) {
+            return 0;
+          }
+
+          var utility = 0;
+
+          for (var i = 0; i < this.enemyCount; i++) {
+            var enemy = this.enemies[i];
+            if (enemy === primaryTarget) continue;
+            if (!enemy.wave || !enemy.entry) continue;
+            if (enemy.aliveCount <= 0) continue;
+            if (enemy.healthRatio <= 0.08) continue;
+            var laneDistance = Math.abs(enemy.visualLaneId - primaryTarget.visualLaneId);
+
+            if (laneDistance > 1) {
+              continue;
+            }
+
+            var zDistance = Math.abs(enemy.centerZ - primaryTarget.centerZ);
+
+            if (zDistance > 7) {
+              continue;
+            }
+
+            var laneFactor = laneDistance <= 0 ? 1 : 0.65;
+            var zFactor = Math.max(0.25, 1 - zDistance / 8);
+            var coveragePower = this.getEntryCoveragePower(gameManager, team, entry, enemy);
+            var neededPower = Math.max(1, enemy.threatPower * this.coverageTargetRatio - enemy.coveragePower);
+            var transferableCoverage = Math.min(transferablePower, coveragePower, neededPower);
+
+            if (transferableCoverage <= 0) {
+              continue;
+            }
+
+            var threatWeight = Math.min(1.5, enemy.threatScore / 500);
+            utility += transferableCoverage / Math.max(1, entry.combatPointCost) * threatWeight * laneFactor * zFactor * 36;
+          }
+
+          return Math.min(320, utility);
+        }
+
+        getMatchupFactor(entry, target) {
           var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
 
-          if (counter) {
-            var counterScore = counter.getCounterScore(attacker, defender);
-
-            if (counterScore > 1.0001) {
-              return counterScore;
-            }
+          if (!target.entry || !counter) {
+            return 1;
           }
 
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear && defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry) {
-            return 2.1;
-          }
+          var counterScore = counter.getCounterScore(entry.family, target.entry.family);
 
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer && defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear) {
-            return 1.45;
-          }
-
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry && this.isRangedFamily(defender)) {
-            return target.enemyMeleeBlockersFromSpawn <= 1 && !target.hasEnemySpearBlockerFromSpawn ? 1.55 : 0.55;
-          }
-
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Axeman && (defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Sword || defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear)) {
-            return 1.25;
-          }
-
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Sword && defender === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear) {
-            return 1.15;
-          }
-
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear && defender !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry) {
-            return 0.82;
-          }
-
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Monk) {
-            return this.isRangedSpawnSafe(target) ? 0.9 + Math.min(0.65, target.clusterScore * 0.2) : 0.35;
-          }
-
-          if (attacker === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer) {
-            return this.isRangedSpawnSafe(target) ? 1.05 : 0.35;
+          if (counterScore > 1.0001) {
+            return counterScore;
           }
 
           return 1;
