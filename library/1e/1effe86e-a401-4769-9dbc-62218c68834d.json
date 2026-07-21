@@ -1911,11 +1911,8 @@
     "battleWinnerCheckIntervalFrames": 1,
     "enableBattleTelemetry": true,
     "downloadBattleTelemetryOnEnd": true,
-    "storeBattleTelemetryReportsInBrowser": true,
-    "downloadSingleTelemetryDuringAutoReload": true,
-    "battleTelemetryStorageKey": "battle-telemetry-batch",
     "reloadPageAfterBattleTelemetryExport": true,
-    "battleTelemetryReloadDelaySeconds": 1.5,
+    "battleTelemetryReloadDelaySeconds": 2,
     "logBattleTelemetryOnEnd": true,
     "battleTelemetryFilePrefix": "battle-telemetry",
     "battleTelemetrySnapshotIntervalFrames": 60,
@@ -2051,8 +2048,8 @@
     "_enabled": true,
     "__prefab": null,
     "enableCombatPoint": true,
-    "teamAInitialCombatPoint": 500,
-    "teamBInitialCombatPoint": 500,
+    "teamAInitialCombatPoint": 800,
+    "teamBInitialCombatPoint": 800,
     "killRewardCostWeight": 0,
     "counterKillRewardCostWeight": 0,
     "teamAWaveBannerBackgroundColor": {
@@ -2194,7 +2191,7 @@
     "__type__": "CounterRule",
     "attackerFamily": 0,
     "defenderFamily": 4,
-    "damageMultiplier": 2.1,
+    "damageMultiplier": 5.5,
     "note": "Hard counter: Spear punishes Cavalry."
   },
   {
@@ -3503,10 +3500,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
-    "health": 180,
-    "damage": 26,
+    "health": 185,
+    "damage": 27,
     "defense": 5,
-    "combatPointCost": 44
+    "combatPointCost": 48
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3536,8 +3533,8 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.373333,
     "attackIntervalMax": 0.44,
-    "health": 210,
-    "damage": 26,
+    "health": 220,
+    "damage": 38,
     "defense": 8,
     "combatPointCost": 60
   },
@@ -3570,9 +3567,9 @@
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
     "health": 160,
-    "damage": 20,
+    "damage": 21,
     "defense": 8,
-    "combatPointCost": 42
+    "combatPointCost": 43
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3602,10 +3599,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
-    "health": 150,
-    "damage": 20,
+    "health": 145,
+    "damage": 18,
     "defense": 6,
-    "combatPointCost": 41
+    "combatPointCost": 38
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3636,9 +3633,9 @@
     "attackIntervalMin": 1.933333,
     "attackIntervalMax": 2.333333,
     "health": 65,
-    "damage": 38,
+    "damage": 32,
     "defense": 0,
-    "combatPointCost": 40
+    "combatPointCost": 31
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3671,7 +3668,7 @@
     "health": 70,
     "damage": 17,
     "defense": 0,
-    "combatPointCost": 34
+    "combatPointCost": 32
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3701,10 +3698,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
-    "health": 180,
-    "damage": 26,
+    "health": 185,
+    "damage": 27,
     "defense": 5,
-    "combatPointCost": 44
+    "combatPointCost": 48
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3734,8 +3731,8 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.373333,
     "attackIntervalMax": 0.44,
-    "health": 210,
-    "damage": 26,
+    "health": 220,
+    "damage": 38,
     "defense": 8,
     "combatPointCost": 60
   },
@@ -3768,9 +3765,9 @@
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
     "health": 160,
-    "damage": 20,
+    "damage": 21,
     "defense": 8,
-    "combatPointCost": 42
+    "combatPointCost": 43
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3800,10 +3797,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.333333,
     "attackIntervalMax": 0.4,
-    "health": 150,
-    "damage": 20,
+    "health": 145,
+    "damage": 18,
     "defense": 6,
-    "combatPointCost": 41
+    "combatPointCost": 38
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3834,9 +3831,9 @@
     "attackIntervalMin": 1.933333,
     "attackIntervalMax": 2.333333,
     "health": 65,
-    "damage": 38,
+    "damage": 32,
     "defense": 0,
-    "combatPointCost": 40
+    "combatPointCost": 31
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3869,7 +3866,7 @@
     "health": 70,
     "damage": 17,
     "defense": 0,
-    "combatPointCost": 34
+    "combatPointCost": 32
   },
   {
     "__type__": "1cbcdGjxwFMXJTanym+R192",
@@ -8928,7 +8925,7 @@
     "aggressiveFastestEntryChance": 0.5,
     "flankStrikeRatio": 0.5,
     "fastReactCounterChance": 0.5,
-    "spawnOpeningWaveIfNoEnemyWave": true,
+    "spawnOpeningWaveIfNoEnemyWave": false,
     "enableStateLog": false,
     "enableDebugLog": false,
     "enableDecisionStats": false,
@@ -8960,6 +8957,7 @@
     "laneAllyAheadLimit": 2,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "maxRangedSupportWavesPerLane": 3,
+    "maxConsecutiveMeleeWavesPerLane": 2,
     "enableStateLog": false,
     "enableDebugLog": false,
     "_id": "1enI9FlU1PYIx+HW9BNAj/"
@@ -9040,7 +9038,7 @@
     "aggressiveFastestEntryChance": 0.5,
     "flankStrikeRatio": 0.5,
     "fastReactCounterChance": 0.5,
-    "spawnOpeningWaveIfNoEnemyWave": true,
+    "spawnOpeningWaveIfNoEnemyWave": false,
     "enableStateLog": false,
     "enableDebugLog": false,
     "enableDecisionStats": false,
@@ -9072,6 +9070,7 @@
     "laneAllyAheadLimit": 2,
     "spawnOpeningWaveIfNoEnemyWave": true,
     "maxRangedSupportWavesPerLane": 3,
+    "maxConsecutiveMeleeWavesPerLane": 2,
     "enableStateLog": false,
     "enableDebugLog": false,
     "_id": "44jD/hPPJE/qSYmhXRdy7H"

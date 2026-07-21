@@ -4,7 +4,7 @@ import {
     BattlefieldEvaluator,
     BattlefieldWaveIntel,
 } from './BattlefieldEvaluator';
-import { unitFamilyToName } from './BattleTypes';
+import { UnitFamily, unitFamilyToName } from './BattleTypes';
 import { CounterSettings } from './CounterSettings';
 
 const { ccclass, property } = _decorator;
@@ -71,6 +71,13 @@ export class BattleArmyBrain extends Component {
     })
     maxRangedSupportWavesPerLane = 2;
 
+    @property({
+        min: 1,
+        tooltip:
+            'Maximum consecutive melee waves this brain may spawn into the same lane. Ranged waves use their own support rules.',
+    })
+    maxConsecutiveMeleeWavesPerLane = 2;
+
     @property
     enableStateLog = false;
 
@@ -84,6 +91,10 @@ export class BattleArmyBrain extends Component {
     private currentAccuracyRoll = 0;
     private currentAccurateDecision = true;
     private currentDeliberateMistake = false;
+    private lastMeleeSpawnLaneId = -1;
+    private consecutiveMeleeSpawnLaneCount = 0;
+    private spawnedOpeningWave = false;
+    private hasSeenEnemyWave = false;
 
     start() {
         this.randomizeNextInterval();
@@ -167,6 +178,52 @@ export class BattleArmyBrain extends Component {
             this.team
         );
 
+        if (this.evaluator.enemyCount > 0) {
+            this.hasSeenEnemyWave = true;
+        }
+
+        if (this.evaluator.enemyCount <= 0) {
+            if (!this.spawnOpeningWaveIfNoEnemyWave) {
+                this.stateLog('WAIT no enemy and opening disabled.');
+                return;
+            }
+
+            if (
+                this.spawnedOpeningWave &&
+                !this.hasSeenEnemyWave
+            ) {
+                this.stateLog(
+                    'WAIT opening wave already spawned.'
+                );
+                return;
+            }
+
+            const openingDecision =
+                this.evaluator.chooseSnapshotSpawnDecision(
+                    gameManager,
+                    this.team,
+                    this.affordableEntries,
+                    this.maxRangedSupportWavesPerLane,
+                    this.getBlockedMeleeLaneId()
+                );
+
+            if (
+                openingDecision.entry &&
+                openingDecision.laneId >= 0 &&
+                this.spawn(
+                    openingDecision.entry,
+                    openingDecision.laneId,
+                    openingDecision.aggressiveForward,
+                    openingDecision.reason,
+                    openingDecision.target
+                )
+            ) {
+                this.spawnedOpeningWave = true;
+            }
+
+            return;
+        }
+
         if (!this.currentAccurateDecision) {
             if (
                 this.currentDeliberateMistake &&
@@ -185,49 +242,47 @@ export class BattleArmyBrain extends Component {
                 gameManager,
                 this.team,
                 this.affordableEntries,
-                this.maxRangedSupportWavesPerLane
+                this.maxRangedSupportWavesPerLane,
+                this.getBlockedMeleeLaneId()
             );
-
-        if (
-            this.evaluator.enemyCount <= 0 &&
-            !this.spawnOpeningWaveIfNoEnemyWave
-        ) {
-            this.stateLog('WAIT no enemy and opening disabled.');
-            return;
-        }
 
         if (
             decision.entry &&
             decision.laneId >= 0
         ) {
-            this.spawn(
+            if (this.spawn(
                 decision.entry,
                 decision.laneId,
                 decision.aggressiveForward,
                 decision.reason,
                 decision.target
-            );
-            return;
+            )) {
+                return;
+            }
         }
 
         const fallbackDecision =
             this.evaluator.chooseFallbackSpawnDecision(
                 gameManager,
-                this.affordableEntries
+                this.team,
+                this.affordableEntries,
+                this.maxRangedSupportWavesPerLane,
+                this.getBlockedMeleeLaneId()
             );
 
         if (
             fallbackDecision.entry &&
             fallbackDecision.laneId >= 0
         ) {
-            this.spawn(
+            if (this.spawn(
                 fallbackDecision.entry,
                 fallbackDecision.laneId,
                 fallbackDecision.aggressiveForward,
                 fallbackDecision.reason,
                 fallbackDecision.target
-            );
-            return;
+            )) {
+                return;
+            }
         }
 
         this.stateLog(
@@ -295,19 +350,23 @@ export class BattleArmyBrain extends Component {
     }
 
     private trySpawnRandomWave() {
-        const laneId =
-            this.getRandomLaneId();
-
-        if (laneId < 0) {
-            this.stateLog('WAIT imperfect no lane.');
-            return false;
-        }
-
         const entry =
             this.getRandomAffordableEntry();
 
         if (!entry) {
             this.stateLog('WAIT imperfect no entry.');
+            return false;
+        }
+
+        const laneId =
+            this.getRandomLaneId(
+                this.isMeleeEntry(entry)
+                    ? this.getBlockedMeleeLaneId()
+                    : -1
+            );
+
+        if (laneId < 0) {
+            this.stateLog('WAIT imperfect no lane.');
             return false;
         }
 
@@ -330,6 +389,12 @@ export class BattleArmyBrain extends Component {
             this.gameManager;
 
         if (!gameManager) return false;
+        if (
+            this.isMeleeEntry(entry) &&
+            laneId === this.getBlockedMeleeLaneId()
+        ) {
+            return false;
+        }
 
         const spawned =
             gameManager.spawnWaveByEntry(
@@ -341,6 +406,11 @@ export class BattleArmyBrain extends Component {
             );
 
         if (!spawned) return false;
+
+        this.recordSpawnLaneHistory(
+            entry,
+            laneId
+        );
 
         gameManager.recordBattleTelemetryWaveSpawnDecision({
             team: this.team,
@@ -455,7 +525,9 @@ export class BattleArmyBrain extends Component {
             Math.random() * (max - min);
     }
 
-    private getRandomLaneId() {
+    private getRandomLaneId(
+        blockedLaneId = -1
+    ) {
         const gameManager =
             this.gameManager;
 
@@ -466,9 +538,65 @@ export class BattleArmyBrain extends Component {
 
         if (laneCount <= 0) return -1;
 
+        if (
+            blockedLaneId >= 0 &&
+            laneCount > 1
+        ) {
+            const roll =
+                Math.floor(
+                    Math.random() * (laneCount - 1)
+                );
+            const laneId =
+                roll >= blockedLaneId
+                    ? roll + 1
+                    : roll;
+
+            return gameManager.clampLaneId(laneId);
+        }
+
         return gameManager.clampLaneId(
             Math.floor(Math.random() * laneCount)
         );
+    }
+
+    private isMeleeEntry(
+        entry: UnitPrefabEntry
+    ) {
+        return entry.family !== UnitFamily.Archer &&
+            entry.family !== UnitFamily.Monk;
+    }
+
+    private getBlockedMeleeLaneId() {
+        if (this.lastMeleeSpawnLaneId < 0) {
+            return -1;
+        }
+
+        return this.consecutiveMeleeSpawnLaneCount >=
+            Math.max(
+                1,
+                Math.floor(
+                    this.maxConsecutiveMeleeWavesPerLane
+                )
+            )
+                ? this.lastMeleeSpawnLaneId
+                : -1;
+    }
+
+    private recordSpawnLaneHistory(
+        entry: UnitPrefabEntry,
+        laneId: number
+    ) {
+        if (!this.isMeleeEntry(entry)) {
+            return;
+        }
+
+        if (laneId === this.lastMeleeSpawnLaneId) {
+            this.consecutiveMeleeSpawnLaneCount++;
+            return;
+        }
+
+        this.lastMeleeSpawnLaneId = laneId;
+        this.consecutiveMeleeSpawnLaneCount = 1;
     }
 
     private getRandomAffordableEntry() {

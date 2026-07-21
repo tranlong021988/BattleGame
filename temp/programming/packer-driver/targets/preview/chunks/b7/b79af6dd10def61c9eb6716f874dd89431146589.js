@@ -674,6 +674,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
+        disengageCurrentEnemyForChase() {
+          if (!this.hasValidEnemyTarget()) {
+            this.clearEnemy();
+            return false;
+          }
+
+          this.onBusy = false;
+          this.resetBusyLookCache();
+          this.resetRangedCombatMovement();
+
+          if (this.agent) {
+            this.setAgentLocked(this.isSteady);
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
+          }
+
+          return true;
+        }
+
         enterFreeHuntMode(searchRange) {
           if (searchRange === void 0) {
             searchRange = this.targetSearchRange;

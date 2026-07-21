@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15", "__unresolved_16"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, director, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleTelemetry, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _descriptor55, _descriptor56, _descriptor57, _descriptor58, _descriptor59, _descriptor60, _descriptor61, _descriptor62, _descriptor63, _descriptor64, _descriptor65, _descriptor66, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, director, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleTelemetry, BattleUnitDatabase, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _descriptor55, _descriptor56, _descriptor57, _descriptor58, _descriptor59, _descriptor60, _descriptor61, _descriptor62, _descriptor63, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -180,37 +180,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec13 = property({
         tooltip: 'Automatically download the battle telemetry JSON in browser preview/build when the temporary winner condition is reached.'
       }), _dec14 = property({
-        tooltip: 'When auto-reload is enabled, store each telemetry report in browser localStorage so Chrome does not block repeated automatic downloads.'
+        tooltip: 'Reload the browser page after telemetry export. This does not store reports in localStorage or skip per-match downloads.'
       }), _dec15 = property({
-        tooltip: 'If false, auto-reload batch tests skip per-match downloads and only store reports for a later one-file batch export.'
-      }), _dec16 = property({
-        tooltip: 'localStorage key used for accumulated browser telemetry reports.'
-      }), _dec17 = property({
-        tooltip: 'Reload the browser page after telemetry export. Useful for unattended repeated browser balance tests.'
-      }), _dec18 = property({
         min: 0,
         tooltip: 'Seconds to wait after triggering telemetry JSON download before reloading the browser page.'
-      }), _dec19 = property({
+      }), _dec16 = property({
         tooltip: 'Also print the full telemetry object to console. The report is always kept on window.__battleTelemetryReport when available.'
-      }), _dec20 = property({
+      }), _dec17 = property({
         tooltip: 'Output file prefix for downloaded battle telemetry reports.'
-      }), _dec21 = property({
+      }), _dec18 = property({
         min: 1,
         tooltip: 'Frames between diagnostic battle snapshots in telemetry. These snapshots record team, hero, wave, and lane state for post-match diagnosis.'
-      }), _dec22 = property({
+      }), _dec19 = property({
         min: 0,
         tooltip: 'Maximum diagnostic snapshots stored in one telemetry report. Set 0 to disable snapshots while keeping aggregate telemetry.'
-      }), _dec23 = property({
+      }), _dec20 = property({
         min: 0,
         tooltip: 'Maximum chronological diagnostic events stored in one telemetry report. Includes spawn decisions, hero damage, area damage, and kills.'
-      }), _dec24 = property(Label), _dec25 = property(Label), _dec26 = property(Label), _dec27 = property(Label), _dec28 = property(Label), _dec29 = property(Label), _dec30 = property(Label), _dec31 = property(Label), _dec32 = property(Label), _dec33 = property(Label), _dec34 = property({
+      }), _dec21 = property(Label), _dec22 = property(Label), _dec23 = property(Label), _dec24 = property(Label), _dec25 = property(Label), _dec26 = property(Label), _dec27 = property(Label), _dec28 = property(Label), _dec29 = property(Label), _dec30 = property(Label), _dec31 = property({
         min: 1,
         tooltip: 'Frames between safety wave-banner holder refresh checks. Set to 1 to refresh every frame.'
-      }), _dec35 = property(Camera), _dec36 = property({
+      }), _dec32 = property(Camera), _dec33 = property({
         type: [_crd && ObstacleCircle === void 0 ? (_reportPossibleCrUseOfObstacleCircle({
           error: Error()
         }), ObstacleCircle) : ObstacleCircle]
-      }), _dec37 = property({
+      }), _dec34 = property({
         type: [_crd && ObstacleRect === void 0 ? (_reportPossibleCrUseOfObstacleRect({
           error: Error()
         }), ObstacleRect) : ObstacleRect]
@@ -244,78 +238,72 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "downloadBattleTelemetryOnEnd", _descriptor13, this);
 
-          _initializerDefineProperty(this, "storeBattleTelemetryReportsInBrowser", _descriptor14, this);
+          _initializerDefineProperty(this, "reloadPageAfterBattleTelemetryExport", _descriptor14, this);
 
-          _initializerDefineProperty(this, "downloadSingleTelemetryDuringAutoReload", _descriptor15, this);
+          _initializerDefineProperty(this, "battleTelemetryReloadDelaySeconds", _descriptor15, this);
 
-          _initializerDefineProperty(this, "battleTelemetryStorageKey", _descriptor16, this);
+          _initializerDefineProperty(this, "logBattleTelemetryOnEnd", _descriptor16, this);
 
-          _initializerDefineProperty(this, "reloadPageAfterBattleTelemetryExport", _descriptor17, this);
+          _initializerDefineProperty(this, "battleTelemetryFilePrefix", _descriptor17, this);
 
-          _initializerDefineProperty(this, "battleTelemetryReloadDelaySeconds", _descriptor18, this);
+          _initializerDefineProperty(this, "battleTelemetrySnapshotIntervalFrames", _descriptor18, this);
 
-          _initializerDefineProperty(this, "logBattleTelemetryOnEnd", _descriptor19, this);
+          _initializerDefineProperty(this, "battleTelemetryMaxSnapshots", _descriptor19, this);
 
-          _initializerDefineProperty(this, "battleTelemetryFilePrefix", _descriptor20, this);
-
-          _initializerDefineProperty(this, "battleTelemetrySnapshotIntervalFrames", _descriptor21, this);
-
-          _initializerDefineProperty(this, "battleTelemetryMaxSnapshots", _descriptor22, this);
-
-          _initializerDefineProperty(this, "battleTelemetryMaxDiagnosticEvents", _descriptor23, this);
+          _initializerDefineProperty(this, "battleTelemetryMaxDiagnosticEvents", _descriptor20, this);
 
           this.teamAHero = null;
           this.teamBHero = null;
 
-          _initializerDefineProperty(this, "battleMinX", _descriptor24, this);
+          _initializerDefineProperty(this, "battleMinX", _descriptor21, this);
 
-          _initializerDefineProperty(this, "battleMaxX", _descriptor25, this);
+          _initializerDefineProperty(this, "battleMaxX", _descriptor22, this);
 
-          _initializerDefineProperty(this, "battleMinZ", _descriptor26, this);
+          _initializerDefineProperty(this, "battleMinZ", _descriptor23, this);
 
-          _initializerDefineProperty(this, "battleMaxZ", _descriptor27, this);
+          _initializerDefineProperty(this, "battleMaxZ", _descriptor24, this);
 
-          _initializerDefineProperty(this, "updateInterval", _descriptor28, this);
+          _initializerDefineProperty(this, "updateInterval", _descriptor25, this);
 
-          _initializerDefineProperty(this, "rvoUpdateFrameOffset", _descriptor29, this);
+          _initializerDefineProperty(this, "rvoUpdateFrameOffset", _descriptor26, this);
 
-          _initializerDefineProperty(this, "maxRvoStepDeltaTime", _descriptor30, this);
+          _initializerDefineProperty(this, "maxRvoStepDeltaTime", _descriptor27, this);
 
           this.frame = 0;
 
-          _initializerDefineProperty(this, "visualSmooth", _descriptor31, this);
+          _initializerDefineProperty(this, "visualSmooth", _descriptor28, this);
 
-          _initializerDefineProperty(this, "spatialGridCellSize", _descriptor32, this);
+          _initializerDefineProperty(this, "spatialGridCellSize", _descriptor29, this);
 
-          _initializerDefineProperty(this, "spatialGridUpdateInterval", _descriptor33, this);
+          _initializerDefineProperty(this, "spatialGridUpdateInterval", _descriptor30, this);
 
-          _initializerDefineProperty(this, "spatialGridUpdateFrameOffset", _descriptor34, this);
+          _initializerDefineProperty(this, "spatialGridUpdateFrameOffset", _descriptor31, this);
 
-          _initializerDefineProperty(this, "useWorkerSpatialTargetQuery", _descriptor35, this);
+          _initializerDefineProperty(this, "useWorkerSpatialTargetQuery", _descriptor32, this);
 
           this.spatialGrid = new (_crd && BattleSpatialGrid === void 0 ? (_reportPossibleCrUseOfBattleSpatialGrid({
             error: Error()
           }), BattleSpatialGrid) : BattleSpatialGrid)();
 
-          _initializerDefineProperty(this, "teamAAliveLabel", _descriptor36, this);
+          _initializerDefineProperty(this, "teamAAliveLabel", _descriptor33, this);
 
-          _initializerDefineProperty(this, "teamADeathLabel", _descriptor37, this);
+          _initializerDefineProperty(this, "teamADeathLabel", _descriptor34, this);
 
-          _initializerDefineProperty(this, "teamBAliveLabel", _descriptor38, this);
+          _initializerDefineProperty(this, "teamBAliveLabel", _descriptor35, this);
 
-          _initializerDefineProperty(this, "teamBDeathLabel", _descriptor39, this);
+          _initializerDefineProperty(this, "teamBDeathLabel", _descriptor36, this);
 
-          _initializerDefineProperty(this, "teamAKillLabel", _descriptor40, this);
+          _initializerDefineProperty(this, "teamAKillLabel", _descriptor37, this);
 
-          _initializerDefineProperty(this, "teamBKillLabel", _descriptor41, this);
+          _initializerDefineProperty(this, "teamBKillLabel", _descriptor38, this);
 
-          _initializerDefineProperty(this, "teamACounterKillLabel", _descriptor42, this);
+          _initializerDefineProperty(this, "teamACounterKillLabel", _descriptor39, this);
 
-          _initializerDefineProperty(this, "teamBCounterKillLabel", _descriptor43, this);
+          _initializerDefineProperty(this, "teamBCounterKillLabel", _descriptor40, this);
 
-          _initializerDefineProperty(this, "teamACombatPointLabel", _descriptor44, this);
+          _initializerDefineProperty(this, "teamACombatPointLabel", _descriptor41, this);
 
-          _initializerDefineProperty(this, "teamBCombatPointLabel", _descriptor45, this);
+          _initializerDefineProperty(this, "teamBCombatPointLabel", _descriptor42, this);
 
           this.aliveCount = [0, 0];
           this.deathCount = [0, 0];
@@ -328,49 +316,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleLoserTeam = -1;
           this.battleWinnerReason = '';
 
-          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor46, this);
+          _initializerDefineProperty(this, "enableAutoSpawn", _descriptor43, this);
 
-          _initializerDefineProperty(this, "spawnImmediatelyOnStart", _descriptor47, this);
+          _initializerDefineProperty(this, "spawnImmediatelyOnStart", _descriptor44, this);
 
-          _initializerDefineProperty(this, "prewarmOnStart", _descriptor48, this);
+          _initializerDefineProperty(this, "prewarmOnStart", _descriptor45, this);
 
-          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor49, this);
+          _initializerDefineProperty(this, "spawnWaveInterval", _descriptor46, this);
 
-          _initializerDefineProperty(this, "maxAutoSpawnDeltaTime", _descriptor50, this);
+          _initializerDefineProperty(this, "maxAutoSpawnDeltaTime", _descriptor47, this);
 
-          _initializerDefineProperty(this, "teamASpawnZ", _descriptor51, this);
+          _initializerDefineProperty(this, "teamASpawnZ", _descriptor48, this);
 
-          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor52, this);
+          _initializerDefineProperty(this, "teamBSpawnZ", _descriptor49, this);
 
-          _initializerDefineProperty(this, "formationZNoise", _descriptor53, this);
+          _initializerDefineProperty(this, "formationZNoise", _descriptor50, this);
 
-          _initializerDefineProperty(this, "centerGapWidth", _descriptor54, this);
+          _initializerDefineProperty(this, "centerGapWidth", _descriptor51, this);
 
-          _initializerDefineProperty(this, "enableLaneSpawn", _descriptor55, this);
+          _initializerDefineProperty(this, "enableLaneSpawn", _descriptor52, this);
 
-          _initializerDefineProperty(this, "laneCount", _descriptor56, this);
+          _initializerDefineProperty(this, "laneCount", _descriptor53, this);
 
-          _initializerDefineProperty(this, "defaultSpawnLane", _descriptor57, this);
+          _initializerDefineProperty(this, "defaultSpawnLane", _descriptor54, this);
 
-          _initializerDefineProperty(this, "autoSpawnRandomLane", _descriptor58, this);
+          _initializerDefineProperty(this, "autoSpawnRandomLane", _descriptor55, this);
 
-          _initializerDefineProperty(this, "waveBannerRefreshIntervalFrames", _descriptor59, this);
+          _initializerDefineProperty(this, "waveBannerRefreshIntervalFrames", _descriptor56, this);
 
-          _initializerDefineProperty(this, "waveBannerCamera", _descriptor60, this);
+          _initializerDefineProperty(this, "waveBannerCamera", _descriptor57, this);
 
-          _initializerDefineProperty(this, "enableWaveBannerCameraVisibility", _descriptor61, this);
+          _initializerDefineProperty(this, "enableWaveBannerCameraVisibility", _descriptor58, this);
 
-          _initializerDefineProperty(this, "hideWaveBannerInOrbitMode", _descriptor62, this);
+          _initializerDefineProperty(this, "hideWaveBannerInOrbitMode", _descriptor59, this);
 
-          _initializerDefineProperty(this, "waveBannerHideFovBelow", _descriptor63, this);
+          _initializerDefineProperty(this, "waveBannerHideFovBelow", _descriptor60, this);
 
-          _initializerDefineProperty(this, "waveBannerShowFovAbove", _descriptor64, this);
+          _initializerDefineProperty(this, "waveBannerShowFovAbove", _descriptor61, this);
 
           this.spawnWaveTimer = 0;
 
-          _initializerDefineProperty(this, "circleObstacles", _descriptor65, this);
+          _initializerDefineProperty(this, "circleObstacles", _descriptor62, this);
 
-          _initializerDefineProperty(this, "rectObstacles", _descriptor66, this);
+          _initializerDefineProperty(this, "rectObstacles", _descriptor63, this);
 
           this.sim = null;
           this.teamA = [];
@@ -442,7 +430,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.createSimulator();
           this.buildPrefabMaps();
           this.resetBattleTelemetry();
-          this.installBattleTelemetryBatchHelpers(this.battleTelemetryStorageKey || 'battle-telemetry-batch');
           this.spatialGrid.cellSize = this.spatialGridCellSize;
           this.sim.setBattlefield(this.battleMinX, this.battleMaxX, this.battleMinZ, this.battleMaxZ);
           this.spawner = this.getComponent(_crd && UnitSpawner === void 0 ? (_reportPossibleCrUseOfUnitSpawner({
@@ -1284,6 +1271,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!wave) continue;
             if (wave.team !== enemyTeam) continue;
             if (wave.isDead()) continue;
+            if (wave.hasEngagedRuntime(this.frame)) continue;
             wave.forceForwardMode();
           }
         }
@@ -1487,91 +1475,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.battleTelemetry.recordFinalSnapshot(this.createBattleTelemetrySnapshot());
           var report = this.battleTelemetry.finish(winnerTeam, loserTeam, reason, this.frame, this.battleElapsedTime, this.combatPoint, this.aliveCount, this.deathCount, this.killCount, this.counterKillCount);
-          this.storeBattleTelemetryReportInBrowser(report);
-          var shouldDownloadSingleReport = this.downloadBattleTelemetryOnEnd && (!this.reloadPageAfterBattleTelemetryExport || this.downloadSingleTelemetryDuringAutoReload);
-
-          if (this.downloadBattleTelemetryOnEnd && !shouldDownloadSingleReport) {
-            console.log('[BattleTelemetry] single report download skipped ' + 'during auto-reload batch mode. Use ' + 'downloadBattleTelemetryBatch() later.');
-          }
-
-          this.battleTelemetry.exportReport(report, this.battleTelemetryFilePrefix, shouldDownloadSingleReport, this.logBattleTelemetryOnEnd);
+          this.battleTelemetry.exportReport(report, this.battleTelemetryFilePrefix, this.downloadBattleTelemetryOnEnd, this.logBattleTelemetryOnEnd);
           this.scheduleBattleTelemetryPageReload();
         }
 
         hasBattleWinner() {
           return this.battleWinnerResolved;
-        }
-
-        storeBattleTelemetryReportInBrowser(report) {
-          if (!this.storeBattleTelemetryReportsInBrowser) return;
-          if (!report) return;
-          if (typeof localStorage === 'undefined') return;
-          var key = this.battleTelemetryStorageKey || 'battle-telemetry-batch';
-
-          try {
-            var existingText = localStorage.getItem(key);
-            var reports = existingText ? JSON.parse(existingText) : [];
-
-            if (!Array.isArray(reports)) {
-              reports = [];
-            }
-
-            reports.push(report);
-            localStorage.setItem(key, JSON.stringify(reports));
-            this.installBattleTelemetryBatchHelpers(key);
-            console.log("[BattleTelemetry] stored report " + reports.length + " " + ("in localStorage key \"" + key + "\"."));
-          } catch (error) {
-            console.warn('[BattleTelemetry] Failed to store report batch.', error);
-          }
-        }
-
-        installBattleTelemetryBatchHelpers(key) {
-          var globalObject = globalThis;
-
-          globalObject.downloadBattleTelemetryBatch = () => this.downloadStoredBattleTelemetryBatch(key);
-
-          globalObject.clearBattleTelemetryBatch = () => {
-            if (typeof localStorage === 'undefined') return;
-            localStorage.removeItem(key);
-            console.log("[BattleTelemetry] cleared localStorage key \"" + key + "\".");
-          };
-        }
-
-        downloadStoredBattleTelemetryBatch(key) {
-          if (typeof localStorage === 'undefined') return;
-          if (typeof document === 'undefined') return;
-          if (typeof Blob === 'undefined') return;
-          if (typeof URL === 'undefined') return;
-          var raw = localStorage.getItem(key);
-
-          if (!raw) {
-            console.warn("[BattleTelemetry] no stored reports at \"" + key + "\".");
-            return;
-          }
-
-          try {
-            var reports = JSON.parse(raw);
-            var payload = {
-              version: 1,
-              exportedAt: new Date().toISOString(),
-              count: Array.isArray(reports) ? reports.length : 0,
-              reports
-            };
-            var json = JSON.stringify(payload, null, 2);
-            var blob = new Blob([json], {
-              type: 'application/json'
-            });
-            var url = URL.createObjectURL(blob);
-            var link = document.createElement('a');
-            link.href = url;
-            link.download = (this.battleTelemetryFilePrefix || 'battle-telemetry') + "-batch-" + (new Date().toISOString().replace(/[:.]/g, '-') + ".json");
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 0);
-          } catch (error) {
-            console.warn('[BattleTelemetry] Failed to download stored batch.', error);
-          }
         }
 
         scheduleBattleTelemetryPageReload() {
@@ -3045,371 +2954,350 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "storeBattleTelemetryReportsInBrowser", [_dec14], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "reloadPageAfterBattleTelemetryExport", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "downloadSingleTelemetryDuringAutoReload", [_dec15], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryReloadDelaySeconds", [_dec15], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 2;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "logBattleTelemetryOnEnd", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryStorageKey", [_dec16], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 'battle-telemetry-batch';
-        }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "reloadPageAfterBattleTelemetryExport", [_dec17], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return true;
-        }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryReloadDelaySeconds", [_dec18], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1.5;
-        }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "logBattleTelemetryOnEnd", [_dec19], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return false;
-        }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryFilePrefix", [_dec20], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryFilePrefix", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 'battle-telemetry';
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetrySnapshotIntervalFrames", [_dec21], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetrySnapshotIntervalFrames", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 60;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryMaxSnapshots", [_dec22], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryMaxSnapshots", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 240;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryMaxDiagnosticEvents", [_dec23], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "battleTelemetryMaxDiagnosticEvents", [_dec20], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3000;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "battleMinX", [property], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class2.prototype, "battleMinX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -28;
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxX", [property], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxX", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 28;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "battleMinZ", [property], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class2.prototype, "battleMinZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -18;
         }
-      }), _descriptor27 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxZ", [property], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class2.prototype, "battleMaxZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 18;
         }
-      }), _descriptor28 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
+      }), _descriptor25 = _applyDecoratedDescriptor(_class2.prototype, "updateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor29 = _applyDecoratedDescriptor(_class2.prototype, "rvoUpdateFrameOffset", [property], {
+      }), _descriptor26 = _applyDecoratedDescriptor(_class2.prototype, "rvoUpdateFrameOffset", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor30 = _applyDecoratedDescriptor(_class2.prototype, "maxRvoStepDeltaTime", [property], {
+      }), _descriptor27 = _applyDecoratedDescriptor(_class2.prototype, "maxRvoStepDeltaTime", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.05;
         }
-      }), _descriptor31 = _applyDecoratedDescriptor(_class2.prototype, "visualSmooth", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class2.prototype, "visualSmooth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 16;
         }
-      }), _descriptor32 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridCellSize", [property], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridCellSize", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 4;
         }
-      }), _descriptor33 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridUpdateInterval", [property], {
+      }), _descriptor30 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridUpdateInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridUpdateFrameOffset", [property], {
+      }), _descriptor31 = _applyDecoratedDescriptor(_class2.prototype, "spatialGridUpdateFrameOffset", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class2.prototype, "useWorkerSpatialTargetQuery", [property], {
+      }), _descriptor32 = _applyDecoratedDescriptor(_class2.prototype, "useWorkerSpatialTargetQuery", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class2.prototype, "teamAAliveLabel", [_dec24], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class2.prototype, "teamAAliveLabel", [_dec21], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class2.prototype, "teamADeathLabel", [_dec25], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class2.prototype, "teamADeathLabel", [_dec22], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class2.prototype, "teamBAliveLabel", [_dec26], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class2.prototype, "teamBAliveLabel", [_dec23], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class2.prototype, "teamBDeathLabel", [_dec27], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class2.prototype, "teamBDeathLabel", [_dec24], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class2.prototype, "teamAKillLabel", [_dec28], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class2.prototype, "teamAKillLabel", [_dec25], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class2.prototype, "teamBKillLabel", [_dec29], {
+      }), _descriptor38 = _applyDecoratedDescriptor(_class2.prototype, "teamBKillLabel", [_dec26], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class2.prototype, "teamACounterKillLabel", [_dec30], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class2.prototype, "teamACounterKillLabel", [_dec27], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "teamBCounterKillLabel", [_dec31], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class2.prototype, "teamBCounterKillLabel", [_dec28], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "teamACombatPointLabel", [_dec32], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class2.prototype, "teamACombatPointLabel", [_dec29], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "teamBCombatPointLabel", [_dec33], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class2.prototype, "teamBCombatPointLabel", [_dec30], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class2.prototype, "enableAutoSpawn", [property], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class2.prototype, "enableAutoSpawn", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class2.prototype, "spawnImmediatelyOnStart", [property], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class2.prototype, "spawnImmediatelyOnStart", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor48 = _applyDecoratedDescriptor(_class2.prototype, "prewarmOnStart", [property], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class2.prototype, "prewarmOnStart", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor49 = _applyDecoratedDescriptor(_class2.prototype, "spawnWaveInterval", [property], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class2.prototype, "spawnWaveInterval", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor50 = _applyDecoratedDescriptor(_class2.prototype, "maxAutoSpawnDeltaTime", [property], {
+      }), _descriptor47 = _applyDecoratedDescriptor(_class2.prototype, "maxAutoSpawnDeltaTime", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor51 = _applyDecoratedDescriptor(_class2.prototype, "teamASpawnZ", [property], {
+      }), _descriptor48 = _applyDecoratedDescriptor(_class2.prototype, "teamASpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return -20;
         }
-      }), _descriptor52 = _applyDecoratedDescriptor(_class2.prototype, "teamBSpawnZ", [property], {
+      }), _descriptor49 = _applyDecoratedDescriptor(_class2.prototype, "teamBSpawnZ", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor53 = _applyDecoratedDescriptor(_class2.prototype, "formationZNoise", [property], {
+      }), _descriptor50 = _applyDecoratedDescriptor(_class2.prototype, "formationZNoise", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor54 = _applyDecoratedDescriptor(_class2.prototype, "centerGapWidth", [property], {
+      }), _descriptor51 = _applyDecoratedDescriptor(_class2.prototype, "centerGapWidth", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor55 = _applyDecoratedDescriptor(_class2.prototype, "enableLaneSpawn", [property], {
+      }), _descriptor52 = _applyDecoratedDescriptor(_class2.prototype, "enableLaneSpawn", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor56 = _applyDecoratedDescriptor(_class2.prototype, "laneCount", [property], {
+      }), _descriptor53 = _applyDecoratedDescriptor(_class2.prototype, "laneCount", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor57 = _applyDecoratedDescriptor(_class2.prototype, "defaultSpawnLane", [property], {
+      }), _descriptor54 = _applyDecoratedDescriptor(_class2.prototype, "defaultSpawnLane", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor58 = _applyDecoratedDescriptor(_class2.prototype, "autoSpawnRandomLane", [property], {
+      }), _descriptor55 = _applyDecoratedDescriptor(_class2.prototype, "autoSpawnRandomLane", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor59 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerRefreshIntervalFrames", [_dec34], {
+      }), _descriptor56 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerRefreshIntervalFrames", [_dec31], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 12;
         }
-      }), _descriptor60 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerCamera", [_dec35], {
+      }), _descriptor57 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerCamera", [_dec32], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor61 = _applyDecoratedDescriptor(_class2.prototype, "enableWaveBannerCameraVisibility", [property], {
+      }), _descriptor58 = _applyDecoratedDescriptor(_class2.prototype, "enableWaveBannerCameraVisibility", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor62 = _applyDecoratedDescriptor(_class2.prototype, "hideWaveBannerInOrbitMode", [property], {
+      }), _descriptor59 = _applyDecoratedDescriptor(_class2.prototype, "hideWaveBannerInOrbitMode", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor63 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerHideFovBelow", [property], {
+      }), _descriptor60 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerHideFovBelow", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 35;
         }
-      }), _descriptor64 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerShowFovAbove", [property], {
+      }), _descriptor61 = _applyDecoratedDescriptor(_class2.prototype, "waveBannerShowFovAbove", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 38;
         }
-      }), _descriptor65 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec36], {
+      }), _descriptor62 = _applyDecoratedDescriptor(_class2.prototype, "circleObstacles", [_dec33], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor66 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec37], {
+      }), _descriptor63 = _applyDecoratedDescriptor(_class2.prototype, "rectObstacles", [_dec34], {
         configurable: true,
         enumerable: true,
         writable: true,

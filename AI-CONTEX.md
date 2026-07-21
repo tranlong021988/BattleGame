@@ -2,9 +2,673 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-21 end-of-day by office Codex.
+Last updated: 2026-07-22 home Codex - full-day balance handoff after strict response revert.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
+
+## Latest 2026-07-22 Home Full-Day Balance Handoff
+
+This is the current handoff after the home Codex session on 2026-07-22. The
+main topic was `BattleArmyBrain` / `BattlefieldEvaluator` balance behavior,
+especially the tendency to over-spawn one unit type when the AI tries to be
+"smart".
+
+### Current High-Level Goal
+
+The active balance direction is:
+
+- build a visible-stat unit system, not a pile of hidden matchup rules;
+- use `BattleArmyBrain` + `BattlefieldEvaluator` as the current AI stack;
+- treat the melee ladder as guidance, not an absolute closed counter loop;
+- make AI decisions from battlefield snapshot data:
+  - target danger;
+  - live target power;
+  - existing ally coverage;
+  - lane congestion;
+  - ranged support legality;
+  - visible cost and visible combat stats;
+- keep explicit hard/soft-hard counter damage only in `CounterSettings`.
+
+Important user constraint:
+
+- Do not introduce hidden multipliers or hidden matchup corrections in
+  `BattlefieldEvaluator`.
+- If a unit is overused, diagnose whether the cause is visible stats,
+  pressure selection, lane routing, support rules, CP affordability, or
+  telemetry interpretation.
+- If a heuristic materially changes battle balance, describe it plainly before
+  coding. Do not bury it as a "minor score tweak".
+
+### Current Accepted AI Stack
+
+Use `BattleArmyBrain`, not the old `ArmyBrain`/`SmartArmyBrain` path.
+
+Current active behavior in `assets/scripts/BattleArmyBrain.ts`:
+
+- spawn timing still uses `minSpawnInterval`, `maxSpawnInterval`, and
+  `maxBrainDeltaTime`;
+- `decisionAccuracy` controls whether the brain uses the tactical evaluator or
+  intentionally makes an imperfect/random decision;
+- `coverageTargetRatio`, `rescueAllyAliveRatio`, `laneAllyAheadLimit`, and
+  `maxRangedSupportWavesPerLane` are copied into the evaluator before each
+  decision;
+- `maxConsecutiveMeleeWavesPerLane = 2` blocks more than two consecutive melee
+  spawns by the same brain into the same lane;
+- ranged spawns do not increment or reset the melee consecutive-lane history;
+- all spawn paths go through `spawn(...)`, so tactical, fallback, random, and
+  deliberate mistake decisions are all guarded by the same blocked-melee-lane
+  check;
+- opening no-enemy pressure has a guard:
+  - before this brain has ever seen an enemy wave, it may spawn only one
+    opening wave;
+  - after it has seen enemies at least once, later no-enemy pressure is allowed
+    again for late-game cleanup/push behavior.
+
+Why the opening guard exists:
+
+- With faster test tempo, a brain could previously spawn one opening wave,
+  reach the next interval before seeing enemies, and spawn another near-immediate
+  opening wave.
+- The user saw this as possible duplicate opening spawn.
+- The guard prevents repeated early empty-map pressure without disabling
+  late-game pressure after a battlefield clear.
+
+### Current Battlefield Evaluator Shape
+
+Current active behavior in `assets/scripts/BattlefieldEvaluator.ts`:
+
+- Snapshot rebuild scans existing valid waves and fills reusable lane/enemy/ally
+  intel buffers.
+- Lane intel includes:
+  - allied wave count;
+  - allied melee wave count;
+  - enemy wave count;
+  - traffic count.
+- Enemy wave intel includes live values such as:
+  - alive count/ratio;
+  - runtime health ratio;
+  - base power;
+  - threat power;
+  - coverage power/ratio;
+  - progress toward the defending hero side;
+  - same-lane enemies standing ahead of the target.
+
+Target priority:
+
+- starts from live coverage gap:
+  `target.threatPower * coverageTargetRatio - target.coveragePower`;
+- adds pressure for unengaged targets;
+- adds rescue pressure when an ally covering the target is struggling;
+- adds more danger pressure if the target has passed
+  `dangerousThreatProgress = 0.75`;
+- reduces priority for rear enemies when other same-lane enemies are in front,
+  so the AI focuses the front of the battleline first.
+
+Direct melee response scoring:
+
+- candidate force comes from visible stats via `getEntryCoveragePower(...)`;
+- required force is based on `target.threatPower * coverageTargetRatio` minus
+  current `coveragePower`;
+- `targetLivePowerRatio` is computed from live `target.basePower` divided by
+  full-wave base power;
+- if the target explicitly hard-counters the candidate and is still strong
+  enough (`targetLivePowerRatio > 0.35`), the candidate is rejected;
+- hard-counter bonus is scaled by target urgency/condition, so hard counters
+  matter most against healthy, dangerous, or rescue-needed targets;
+- useful candidate power is capped near the uncovered need, so huge overkill
+  does not get unlimited reward;
+- cost is a meaningful penalty, but not a hard dominant selector;
+- overshoot is penalized;
+- melee ladder bias is small and scales down against weakened targets.
+
+Current direct-response policy:
+
+- This is a dynamic/economical scoring system, not a hard "always cheapest"
+  selector.
+- It should sometimes use Sword/Axeman to clean up weakened Cavalry if live
+  force says that is enough.
+- It should still strongly prefer Spear into healthy/dangerous Cavalry because
+  that is an explicit `CounterSettings` rule.
+
+Ranged support behavior:
+
+- Ranged units are support, not normal empty-lane pressure.
+- Ranged spawn is allowed only if the target lane/situation is safe enough:
+  - there must be frontline support;
+  - global ranged support count must be below melee support count;
+  - per-target ranged support cap must not be exceeded;
+  - the latest ranged support in that lane must not already be the same family;
+  - Archer needs at least one engaged frontline support wave;
+  - Monk normally needs two engaged frontline support waves;
+  - a full-strength ranged hard counter can be prioritized, but still goes
+    through ranged support legality.
+- Ranged fallback no longer bypasses support rules.
+
+Lane routing / anti-pileup:
+
+- If the direct lane is not blocked, melee can respond there.
+- If the direct lane is blocked by the consecutive melee lane guard, evaluator
+  looks for a flank lane.
+- If a lane already has at least 3 allied melee waves and the target has another
+  same-lane enemy in front of it, direct-lane response is blocked and flank is
+  preferred.
+- Pressure fallback uses an empty lane only.
+- Pressure lane scoring prefers empty lanes and penalizes total traffic,
+  allied melee traffic, and allied wave traffic.
+
+Pressure entry selection:
+
+- `choosePressureEntry(...)` tries economical non-Cavalry melee first.
+- Cavalry can be used for pressure only if no non-Cavalry melee is affordable.
+- Ranged units are not selected as pressure entries.
+
+### Explicit Counter Rules And Current Stats
+
+Explicit damage multipliers live in `CounterSettings` and scene data:
+
+```text
+Spear  > Cavalry = 5.5
+Archer > Spear   = 1.45
+```
+
+Current active tier-1 unit stats are documented in `UNITSTATS.md` and mirrored
+for both Team A and Team B in `assets/Test.scene`:
+
+```text
+axeman_t1:  count=10 cost=48 health=185 damage=27 defense=5 speed=4.65 range=0.35 interval=0.333333-0.40
+cavalry_t1: count=10 cost=60 health=220 damage=38 defense=8 speed=9.75 range=0.35 interval=0.373333-0.44
+sword_t1:   count=10 cost=43 health=160 damage=21 defense=8 speed=5.10 range=0.35 interval=0.333333-0.40
+spear_t1:   count=10 cost=38 health=145 damage=18 defense=6 speed=4.50 range=0.35 interval=0.333333-0.40
+monk_t1:    count=2  cost=31 health=65  damage=32 defense=0 speed=4.05 range=5.20 interval=1.933333-2.333333 damageRadius=0.85
+archer_t1:  count=4  cost=32 health=70  damage=17 defense=0 speed=5.70 range=6.50 interval=0.833333-1.033333
+```
+
+Current intended visible ladder:
+
+```text
+Cavalry > Axeman > Sword > Spear > Archer > Monk
+```
+
+Approximate values recorded in `UNITSTATS.md` after the latest accepted stats
+pass:
+
+```text
+Power/CP:  Cavalry 39.85 > Axeman 30.25 > Sword 29.48 > Spear 28.03 > Archer 7.75 > Monk 6.88
+DPS/CP:    Cavalry 15.57 > Axeman 15.34 > Sword 13.32 > Spear 12.92 > Archer 2.28 > Monk 0.97
+Damage/CP: Cavalry  6.33 > Axeman  5.63 > Sword  4.88 > Spear  4.74 > Archer 2.13 > Monk 2.06
+```
+
+Important caveat:
+
+- These are visible-stat estimates. Real Cocos telemetry has priority because
+  movement, lane routing, body blocking, ranged yield/kiting, target selection,
+  and CP timing change outcomes.
+
+### Telemetry Workflow Current State
+
+Current accepted telemetry behavior in `assets/scripts/GameManager.ts`:
+
+- one battle = one downloaded JSON report;
+- after export, the browser reloads after
+  `battleTelemetryReloadDelaySeconds = 2`;
+- no localStorage batch storage;
+- no old `downloadBattleTelemetryBatch()` / `clearBattleTelemetryBatch()`;
+- final report is still assigned to `window.__battleTelemetryReport` by
+  `BattleTelemetry.exportReport(...)`.
+
+Use this for unattended real-match balance loops:
+
+```text
+enableBattleTelemetry = true
+downloadBattleTelemetryOnEnd = true
+reloadPageAfterBattleTelemetryExport = true
+battleTelemetryReloadDelaySeconds = 2
+```
+
+The user reported that previous telemetry sometimes did not download/reload.
+The current source now exports directly at winner resolution, then schedules
+reload. Do not bring back localStorage batching unless the user explicitly asks.
+
+### Today's Telemetry / Visual Findings
+
+Reports and visual testing today produced these conclusions:
+
+- The old hidden multiplier approach damaged trust in telemetry and diagnosis.
+  It must not be repeated.
+- Spear needed to be a clearer hard counter to Cavalry, so the explicit
+  `Spear > Cavalry` multiplier is currently `5.5`.
+- `Archer > Spear = 1.45` exists to stop cheap Spear from becoming too
+  generally efficient, but Archer must still respect ranged support rules.
+- Cavalry overuse was traced partly to pressure/opening/fallback decisions, not
+  only to direct target response.
+- Sword overuse was previously tied to visible `power/cost` being too favorable,
+  so a broad visible stats pass adjusted cost/damage/health.
+- Strict "cheapest sufficient response" was tested at the end of the session
+  and produced immediate Spear spam from both teams. It is reverted.
+
+### Reverted Today - Strict Cheapest Sufficient Response
+
+The reverted experiment:
+
+- changed direct-response sufficiency to use `target.basePower` instead of
+  `target.threatPower`;
+- put all sufficient non-ranged candidates into a high score band;
+- made `cost * 1000` dominate selection inside that band;
+- used hard-counter, reusable power, and ladder only as small tie-breakers.
+
+Observed result:
+
+- both teams spawned Spear too much;
+- Spear became the universal cheap cleanup answer.
+
+Current accepted state after revert:
+
+- `requiredPower` is again based on `target.threatPower * coverageTargetRatio`
+  minus current coverage;
+- there is no `targetPriority * 1000` / `cost * 1000` score band;
+- no `targetCombatPower` strict-sufficiency branch remains;
+- dynamic/economical scoring stays, but cost is not allowed to dominate the
+  whole decision by itself.
+
+Do not reapply this experiment without a broader design discussion. If the user
+asks again for "cheapest enough", first address why cheap Spear becomes the
+cleanup default, possibly by adding visible role constraints or improving
+pressure/cleanup classification rather than burying another hidden multiplier.
+
+### Current Known Risk / Next Best Step
+
+The next session should test the reverted scorer before changing more stats.
+
+If over-spawn remains, diagnose in this order:
+
+1. Look at telemetry reason strings:
+   - `snapshot-opening-pressure`;
+   - `snapshot-pressure-fallback`;
+   - `snapshot-live-force-response`;
+   - `snapshot-hard-counter`;
+   - `snapshot-ranged-counter-support`;
+   - `snapshot-ranged-strategic-support`;
+   - `imperfect-random`;
+   - `imperfect-wrong`.
+2. Separate pressure spawns from direct-response spawns. They have different
+   causes.
+3. For direct-response overuse, inspect:
+   - target family;
+   - target live power ratio;
+   - candidate family;
+   - whether reverse hard-counter rejection applied;
+   - whether coverage already existed.
+4. For pressure overuse, inspect:
+   - empty lane availability;
+   - blocked melee lane id;
+   - `choosePressureEntryByEconomy(...)`;
+   - whether non-Cavalry pressure preference is too narrow.
+5. Only after source-level cause is clear should stats be changed again.
+
+### Verification Done After Final Revert
+
+After reverting strict cheapest sufficient response:
+
+```powershell
+node "C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\bin\tsc" --noEmit --skipLibCheck --module esnext
+git -c safe.directory=F:/Github/BattleGame diff --check -- assets/scripts/BattlefieldEvaluator.ts AI-CONTEX.md
+rg -n "targetCombatPower|targetPriority \* 1000|cost \* 1000" assets/scripts/BattlefieldEvaluator.ts
+```
+
+Result:
+
+- TypeScript check passed.
+- `git diff --check` had no whitespace errors, only normal CRLF/LF warnings.
+- No strict-sufficiency markers remained in `BattlefieldEvaluator.ts`.
+
+## Latest 2026-07-22 Home Update - Telemetry Per-Match Download And Reload
+
+User reported that telemetry sometimes did not download and the page sometimes
+did not reload. The accepted behavior is now:
+
+- after each resolved battle, download one telemetry JSON report;
+- wait briefly;
+- reload the browser page for the next test;
+- do not store reports in browser `localStorage`;
+- do not use the old batch export helpers.
+
+Source changed:
+
+- `assets/scripts/GameManager.ts`
+- `assets/Test.scene`
+
+Runtime behavior:
+
+- `GameManager.resolveBattleWinner(...)` now calls
+  `battleTelemetry.exportReport(...)` directly with
+  `downloadBattleTelemetryOnEnd`.
+- After export, `GameManager` calls `scheduleBattleTelemetryPageReload()`.
+- The old `shouldDownloadSingleReport` branch was removed.
+- The old localStorage batch-store path was removed.
+- The old `downloadBattleTelemetryBatch()` / `clearBattleTelemetryBatch()`
+  helper installation was removed.
+- Page reload remains, but is independent from localStorage/batch mode and does
+  not skip the per-match download.
+
+Scene state:
+
+- Removed obsolete serialized telemetry batch keys from `GameManager`:
+  - `storeBattleTelemetryReportsInBrowser`;
+  - `downloadSingleTelemetryDuringAutoReload`;
+  - `battleTelemetryStorageKey`.
+- Current scene keeps:
+  - `downloadBattleTelemetryOnEnd = true`;
+  - `reloadPageAfterBattleTelemetryExport = true`;
+  - `battleTelemetryReloadDelaySeconds = 2`.
+
+Current expected test workflow:
+
+- Set `enableBattleTelemetry = true`.
+- Set `downloadBattleTelemetryOnEnd = true`.
+- Run one match.
+- When winner logic resolves, browser should download one
+  `battle-telemetry-*.json` file, wait about 2 seconds, then reload.
+
+## Latest 2026-07-22 Home Update - Reverted Strict Cheapest Sufficient Response
+
+An experiment changed direct-response scoring into a strict rule:
+"choose the cheapest available unit that is strong enough to win." User tested
+it and immediately saw both teams over-spawn Spear. That experiment is reverted.
+
+Current accepted state:
+
+- direct-response scoring is back to the dynamic/economical score described
+  below;
+- cost is a meaningful penalty, not a dominant hard selector;
+- `requiredPower` is again based on `target.threatPower` and current
+  `coveragePower`;
+- `targetLivePowerRatio`, dynamic hard-counter scaling, and reverse-counter
+  guard remain accepted;
+- do not reapply strict cheapest-sufficient selection without first solving why
+  Spear becomes the universal cleanup answer.
+
+## Latest 2026-07-22 Home Update - Dynamic Economical Response
+
+User clarified the intended AI policy:
+
+- The melee ladder is only an initial guideline.
+- Final direct-response decisions must use the live battlefield snapshot.
+- Example: if an enemy Cavalry wave has already lost most of its force, AI
+  should not blindly spawn a full Spear hard counter if Sword/Axeman can finish
+  it more economically and remain useful afterward.
+- Hard counters remain explicit combat rules in `CounterSettings`, not hidden
+  evaluator multipliers.
+
+Source changed:
+
+- `assets/scripts/BattlefieldEvaluator.ts`
+
+Evaluator direct-response scoring now:
+
+- computes `targetLivePowerRatio` from the same live-force formula used by the
+  battlefield snapshot:
+  `target.basePower / fullTargetBasePower`;
+- uses `usefulPower`, capped near the currently missing coverage, so huge
+  overkill does not keep receiving unlimited score;
+- scales hard-counter bonus by target urgency/condition:
+  - healthy, dangerous, or ally-rescue targets still favor explicit hard
+    counters;
+  - badly weakened targets no longer force textbook hard-counter responses;
+- applies reverse-counter rejection/penalty using live power ratio instead of
+  health alone, so a nearly dead hard-counter target can still be cleaned up by
+  another sufficient unit;
+- reduces melee ladder bias and scales it down further when the target is weak;
+- adds a small reusable economy score from visible stats only, so naturally
+  efficient units can win when they are sufficient.
+
+Important design rule:
+
+- Do not reintroduce a hard "best role rank" gate for direct responses.
+- Do not add hidden matchup multipliers inside `BattlefieldEvaluator`.
+- If telemetry still overuses one unit, first inspect whether visible
+  `power/cost`, lane pressure, or support rules explain it before changing
+  stats.
+
+Expected visual/tactical result:
+
+- Full/healthy Cavalry still invites Spear because `Spear > Cavalry` is an
+  explicit hard counter.
+- Weak Cavalry can be answered by Sword/Axeman if their visible live-force
+  coverage is already enough.
+- Cavalry should not be selected into healthy Spear because the evaluator checks
+  the reverse explicit counter direction.
+
+### Opening Spawn Guard
+
+User observed that at match start one side could appear to spawn two waves very
+close together.
+
+Diagnosis:
+
+- Scene has one enabled `BattleArmyBrain` per team and disabled
+  `SmartArmyBrain` components.
+- `GameManager.enableAutoSpawn` is disabled in the active scene, so the old
+  GameManager auto-spawn path is not the cause.
+- The likely behavior was a fast brain spawning `snapshot-opening-pressure`
+  once, then reaching its next interval before it had ever seen an enemy wave.
+  Since `enemyCount` was still `0`, it could spawn another opening-pressure
+  wave.
+- With current scene intervals (`minSpawnInterval = 1.666667`) and faster test
+  game speeds, this can visually look like a duplicate opening spawn.
+
+Fix in `assets/scripts/BattleArmyBrain.ts`:
+
+- Added per-brain runtime flags:
+  - `spawnedOpeningWave`;
+  - `hasSeenEnemyWave`.
+- If this brain has not seen any enemy wave yet:
+  - it may spawn at most one `snapshot-opening-pressure` wave;
+  - after that, it waits instead of spawning repeated opening waves.
+- Once the brain has seen an enemy wave at least once, later no-enemy states are
+  allowed to use pressure behavior again. This preserves late-game pressure
+  after a side clears the battlefield.
+
+## Latest 2026-07-21 Home Update - Counter-Aware Economy Pressure
+
+This update follows telemetry where Cavalry was still spawned too often after
+the lane anti-pileup rule started working. The user also observed that Spear
+barely beat Cavalry in direct combat, leaving only a few Spear units alive.
+
+### Findings From 14 Telemetry Reports
+
+- Reports all used explicit rules:
+  - `Spear > Cavalry = 4.5`;
+  - `Archer > Spear = 1.45`.
+- Cavalry was still the second most spawned unit:
+  - `113 / 517` wave spawns, about `21.9%`.
+- The lane anti-pileup rule worked:
+  - no team spawned more than 2 consecutive melee waves into the same lane.
+- The remaining Cavalry overuse came mostly from AI selection:
+  - many Cavalry spawns were `snapshot-opening-pressure` or
+    `snapshot-pressure-fallback`, meaning no concrete target existed;
+  - some `snapshot-live-force-response` decisions still selected
+    `cavalry_t1 -> Spear`, because the evaluator measured candidate-to-target
+    power but did not strongly account for the target countering the candidate
+    back through explicit `CounterSettings`.
+
+### Source Changes
+
+Files:
+
+- `assets/scripts/BattlefieldEvaluator.ts`
+- `assets/scripts/CounterSettings.ts`
+- `assets/Test.scene`
+- `UNITSTATS.md`
+
+Counter rule change:
+
+```text
+Spear > Cavalry: 4.5 -> 5.5
+```
+
+Reason:
+
+- With current visible stats and formula
+  `damage = max(1, attack - defense) * multiplier`, `4.5` made Spear only
+  slightly faster than Cavalry.
+- `5.5` makes Spear kill a Cavalry unit in about 4 hits instead of 5, so the
+  hard-counter role is visible without adding hidden evaluator damage.
+
+Evaluator changes:
+
+- Direct response now checks the reverse explicit counter direction.
+- If the target hard-counters the candidate and the target is still reasonably
+  healthy, the candidate is rejected.
+  - Important example: `Cavalry` should not be selected as a normal response
+    into a healthy `Spear` wave.
+- If the target is already badly weakened, that candidate can still be used as
+  cleanup, but receives a score penalty.
+- Empty-lane/opening/fallback pressure no longer chooses Cavalry as the default
+  "strongest pressure" wave.
+- Pressure selection first evaluates non-Cavalry melee by economy score. Only
+  if no non-Cavalry melee is available can Cavalry be used for pressure.
+
+### Design Intent
+
+- Cavalry remains the strongest power-speed unit and still appears against
+  concrete tactical targets, especially exposed ranged units.
+- Cavalry should not be the automatic empty-lane pressure default.
+- Hard-counter knowledge must come from explicit `CounterSettings` in both
+  directions:
+  - candidate counters target: bonus/viable;
+  - target counters candidate: reject or heavily penalize.
+- Do not add hidden matchup multipliers inside `BattlefieldEvaluator`.
+
+### Next Test Focus
+
+- Check whether `cavalry_t1` drops mainly in:
+  - `snapshot-opening-pressure`;
+  - `snapshot-pressure-fallback`;
+  - `snapshot-live-force-response` into `Spear`.
+- Check whether `Spear > Cavalry` now feels visibly like a hard counter in
+  wave-vs-wave combat.
+- Recheck total damage/cost after telemetry:
+  raw damage/cost is unchanged by counter multipliers, but counter damage/cost
+  should now make Spear meaningfully efficient against Cavalry.
+
+## Latest 2026-07-21 Home Update - BattleArmyBrain Anti-Pileup And Frontline Priority
+
+This update was made after the user observed that perfect/near-perfect
+`BattleArmyBrain` could repeatedly spawn too many waves into one lane, including
+cases where the first several waves of both teams appeared in the same lane.
+
+### User Direction
+
+Current tactical language is "doi pho" / response, not a closed hard-counter
+loop. The AI should still use visible force and economy estimates, but lane
+choice must now respect front order and traffic:
+
+- Do not spawn more than 2 consecutive melee waves into the same lane.
+- Ranged waves keep their own support rules and do not count toward that melee
+  consecutive-lane limit.
+- Within one lane, response priority decreases from the front of the battleline
+  to the rear. The enemy wave closest to this team's spawn/hero side is more
+  urgent than enemy waves standing behind it.
+- If a rear enemy is less urgent and the direct lane already has enough melee
+  presence, prefer a neighboring empty lane to create a flank instead of adding
+  more melee traffic to the same lane.
+- If all enemies are already sufficiently handled, spawn an economical melee
+  pressure wave into an empty lane. Cavalry is not the default pressure pick.
+- If all lanes are occupied/full and no enemy currently needs more melee
+  response, the AI may spawn legal ranged support if support rules are
+  satisfied; otherwise it waits.
+
+### Source Changes
+
+Files:
+
+- `assets/scripts/BattleArmyBrain.ts`
+- `assets/scripts/BattlefieldEvaluator.ts`
+
+`BattleArmyBrain` changes:
+
+- Added `maxConsecutiveMeleeWavesPerLane`, default `2`.
+- Tracks only successful melee spawns with:
+  - `lastMeleeSpawnLaneId`;
+  - `consecutiveMeleeSpawnLaneCount`.
+- Ranged spawns do not reset or increment this melee history.
+- Tactical, fallback, random, and deliberate-mistake spawn paths all pass
+  through the same final `spawn(...)` guard, so a blocked melee lane cannot be
+  used by an alternate branch.
+- If a tactical decision picks a blocked melee lane, `spawn(...)` returns false
+  and the brain continues to fallback instead of pretending a spawn happened.
+
+`BattlefieldEvaluator` changes:
+
+- Lane intel now tracks `allyMeleeWaveCount`.
+- Enemy wave intel now tracks `sameLaneEnemyAheadCount`.
+- Target priority is reduced for rear enemy waves in the same lane:
+  a target with enemy waves standing ahead of it receives a lower priority
+  score, so the AI naturally focuses the front line first.
+- Direct-lane melee response is blocked when:
+  - the lane already has at least 3 allied melee waves; and
+  - the target has one or more same-lane enemy waves ahead of it.
+- When direct melee response is blocked, the evaluator tries an open adjacent
+  lane as a flank.
+- Pressure fallback now first tries economical non-Cavalry melee into an empty
+  lane only.
+- The previous fallback behavior that could target an existing enemy lane as a
+  generic last-resort path was removed to avoid reviving lane pileups.
+- Ranged fallback is now support-only: it still obeys existing ranged safety,
+  support capacity, same-family lane-repeat, and per-target support cap rules.
+  It does not use flank lanes and does not become aggressive forward.
+
+### Important Compatibility Notes
+
+- This update intentionally does not change ranged support rules:
+  - Archer requires a safe engaged frontline shield;
+  - Monk requires stronger support conditions;
+  - ranged support does not spawn into empty/flank lanes;
+  - ranged support does not use aggressive forward.
+- The anti-pileup limit is per `BattleArmyBrain` instance, not a global
+  cross-team rule.
+- Existing `laneAllyAheadLimit` coverage logic still exists. The new lane-full
+  rule is an additional guard for rear targets in an already melee-heavy lane.
+- Opening pressure with no enemy uses economy pressure, not strongest absolute
+  pressure, and avoids the blocked consecutive melee lane where possible.
+
+### Expected Visual Result
+
+- The AI should stop producing long same-lane melee streaks such as 5-7 melee
+  waves in a row into one lane.
+- When a lane already has a thick frontline, the AI should prefer the frontmost
+  enemy or look for a side lane instead of answering rear enemies through the
+  same crowded lane.
+- If every real threat is already covered, AI pressure should appear as a melee
+  push in an empty lane rather than another body added to a congested lane.
+- If all lanes are occupied and support is already enough, waiting is now a
+  valid intelligent outcome.
+
+### Validation
+
+Typecheck passed:
+
+```powershell
+node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\bin\tsc' --noEmit --skipLibCheck --module esnext
+```
+
+`git diff --check` on the touched TS files reported no whitespace errors, only
+normal Windows CRLF/LF warnings.
+
+### Next Test Focus
+
+Run AI-vs-AI with `decisionAccuracy = 1` first and inspect telemetry:
+
+- Check consecutive melee spawns by `team + laneId + family`.
+- Confirm no team gets more than 2 consecutive melee wave spawns in the same
+  lane unless the Inspector value is changed.
+- Check whether pressure fallback reason `snapshot-pressure-fallback` appears
+  mostly in empty lanes.
+- Check whether ranged reasons still obey support behavior:
+  - `snapshot-ranged-counter-support`;
+  - `snapshot-ranged-strategic-support`.
+- If the AI waits while all lanes are full, verify whether ranged support was
+  legally unavailable before treating it as a bug.
 
 ## Latest 2026-07-21 End-Of-Day Office Handoff - Logic Audit Fixes
 
@@ -250,6 +914,8 @@ rangedWaveAlive < meleeWaveAlive
 
 Late-game no-spawn fallback:
 
+Superseded by the 2026-07-21 Home anti-pileup update above:
+
 - Test observation: both teams could still show CP in UI but stop spawning near
   the end of a match.
 - Diagnosis: current costs allow Archer at 34 CP, while the cheapest melee
@@ -257,16 +923,15 @@ Late-game no-spawn fallback:
   "safe behind engaged melee frontline", a team with 34-40 CP could afford only
   ranged, but ranged had no legal support target, so the snapshot returned no
   decision and `BattleArmyBrain` waited forever.
-- Fix: after the main snapshot decision returns empty, `BattleArmyBrain` now
-  calls `BattlefieldEvaluator.chooseFallbackSpawnDecision(...)`.
-  - First fallback choice is a melee pressure wave
-    (`snapshot-pressure-fallback`), preserving normal AI pressure.
-  - If no melee is affordable but some ranged unit is affordable, it may spawn
-    one last-resort ranged wave (`snapshot-last-resort-ranged`) as normal
-    forward, not aggressive forward.
-  - This last-resort ranged path is not "ranged support"; it exists only to
-    prevent a softlock where the team has spendable CP but no legal support
-    target.
+- Current fallback behavior:
+  - after the main snapshot decision returns empty, `BattleArmyBrain` calls
+    `BattlefieldEvaluator.chooseFallbackSpawnDecision(...)`;
+  - first fallback choice is strongest affordable melee pressure into an empty
+    lane only (`snapshot-pressure-fallback`);
+  - if no empty pressure lane is available, ranged may spawn only through the
+    normal ranged-support legality checks;
+  - the old `snapshot-last-resort-ranged` path was removed because it bypassed
+    the support concept and could create confusing non-support ranged behavior.
 
 Melee policy after this update:
 
@@ -576,12 +1241,101 @@ Expected tactical behavior:
 Only explicit counter multipliers currently expected:
 
 ```text
-Spear  > Cavalry = 2.1
+Spear  > Cavalry = 5.5
 Archer > Spear   = 1.45
 ```
 
 Do not add fallback versions of these into evaluator code. Keep them in
 `CounterSettings`.
+
+2026-07-21 home correction:
+
+- `Spear > Cavalry` used to be `2.1`, but that was mathematically too weak
+  after the visible stats ladder was changed.
+- With current stats and formula
+  `damage = max(1, attack - defense) * multiplier`, Spear at `2.1` dealt only
+  `21` damage per hit to Cavalry, while Cavalry dealt `32` damage per hit back
+  to Spear.
+- The active visible rule is now `5.5`. It was raised from `4.5` after real
+  tests showed Spear was only barely winning Cavalry, leaving too few units
+  alive to read as a hard counter.
+
+### 2026-07-21 Home Stats Pass - Cost And Damage/Cost Ladder
+
+User requested a broader stat pass because the previous values made the
+evaluated power ladder correct, but raw damage-per-cost and DPS-per-cost did
+not follow the same order. That mismatch made lower-ladder units look like
+better damage bargains and encouraged repeated spawn bias.
+
+Goal:
+
+```text
+Cavalry > Axeman > Sword > Spear > Archer > Monk
+```
+
+The above order should hold for:
+
+- cost;
+- evaluator power;
+- evaluator power per CP;
+- DPS per CP;
+- raw wave damage per CP.
+
+Important design note:
+
+- This is a visible-stat pass only.
+- It does not add any hidden evaluator multiplier.
+- It does not change `CounterSettings`.
+- Ranged units remain low standalone power/support units; Monk keeps higher
+  per-hit damage and AoE identity, but is no longer a better damage-per-cost
+  bargain than Archer.
+
+Applied active stats:
+
+```text
+cavalry_t1: cost 60, health 220, damage 38
+axeman_t1:  cost 48, health 185, damage 27
+sword_t1:   cost 43, health 160, damage 21
+spear_t1:   cost 38, health 145, damage 18
+archer_t1:  cost 32, health 70,  damage 17
+monk_t1:    cost 31, health 65,  damage 32
+```
+
+Unchanged in this pass:
+
+- unit counts;
+- defense;
+- speed;
+- range;
+- damage radius;
+- attack intervals;
+- explicit counter multipliers.
+
+Verified from `assets/Test.scene` after patch:
+
+```text
+Cost:      Cavalry > Axeman > Sword > Spear > Archer > Monk
+Power:     Cavalry > Axeman > Sword > Spear > Archer > Monk
+Power/CP:  Cavalry > Axeman > Sword > Spear > Archer > Monk
+DPS/CP:    Cavalry > Axeman > Sword > Spear > Archer > Monk
+Damage/CP: Cavalry > Axeman > Sword > Spear > Archer > Monk
+```
+
+Approximate current values:
+
+```text
+Cavalry cost=60 hp=220 dmg=38 power=2391.0 p/c=39.85 dps/c=15.57 dmg/c=6.33
+Axeman  cost=48 hp=185 dmg=27 power=1452.1 p/c=30.25 dps/c=15.34 dmg/c=5.63
+Sword   cost=43 hp=160 dmg=21 power=1267.5 p/c=29.48 dps/c=13.32 dmg/c=4.88
+Spear   cost=38 hp=145 dmg=18 power=1065.2 p/c=28.03 dps/c=12.92 dmg/c=4.74
+Archer  cost=32 hp=70  dmg=17 power=248.0  p/c=7.75  dps/c=2.28  dmg/c=2.13
+Monk    cost=31 hp=65  dmg=32 power=213.3  p/c=6.88  dps/c=0.97  dmg/c=2.06
+```
+
+Files updated:
+
+- `UNITSTATS.md`;
+- Team A and Team B unit database entries in `assets/Test.scene`.
 
 ### Current Test Recommendation
 
@@ -1273,15 +2027,16 @@ unit.
 
 ### Counter Rules
 
-`CounterSettings` now has only one active rule:
+Historical 2026-07-18 snapshot, superseded by the current rules near the top
+of this file: at that time `CounterSettings` had only one active rule:
 
 ```text
 Spear > Cavalry = 2.1
 ```
 
-Old scene `CounterRule` objects remain serialized only as inactive legacy
-objects with multiplier `1`; `CounterSettings.rules` references only the
-Spear>Cavalry rule.
+This is not the current active counter state. The current source uses the
+explicit active rules documented near the top of this handoff and in
+`UNITSTATS.md`.
 
 ### New AI Direction
 
@@ -1295,8 +2050,8 @@ does not update every frame. It is rebuilt only when `BattleArmyBrain` reaches a
 spawn decision interval.
 
 `BattleArmyBrain` is the intended replacement direction for `SmartArmyBrain`.
-It reads evaluator output and tries to choose the cheapest sufficient response
-using:
+It reads evaluator output and tries to choose an economical sufficient-enough
+response using:
 
 - enemy threat power from HP, alive count, damage tempo, role, and hero-line
   progress;
@@ -1307,10 +2062,9 @@ using:
 - Cavalry dive checks against exposed ranged targets;
 - Monk only when enemy clustering/frontline conditions make AoE sensible.
 
-Important: `BattleArmyBrain` was added as a new component script but not forcibly
-serialized onto scene nodes. To test it, add/enable `BattleArmyBrain` on the AI
-brain node(s), assign `GameManager`, set `team`, and disable the corresponding
-`SmartArmyBrain` component to avoid double-spawning.
+Historical setup note: `BattleArmyBrain` was originally added as a new
+component script. In the current scene, use the active `BattleArmyBrain` setup
+and keep old AI brain components disabled to avoid double-spawning.
 
 ### 2026-07-18 Follow-up: Opening Spear/Cavalry Overuse
 
@@ -1832,16 +2586,14 @@ The old 7-unit balance pass with active Skirmisher and 11 counter rules is super
   - `battleWinnerCheckIntervalFrames` default `1`;
   - `enableBattleTelemetry` default `true`;
   - `downloadBattleTelemetryOnEnd` default `true`;
-  - `storeBattleTelemetryReportsInBrowser` default `true`;
-  - `downloadSingleTelemetryDuringAutoReload` default `false`;
-  - `battleTelemetryStorageKey` default `battle-telemetry-batch`;
   - `reloadPageAfterBattleTelemetryExport` default `true`;
-  - `battleTelemetryReloadDelaySeconds` default `1.5`;
+  - `battleTelemetryReloadDelaySeconds` default `2`;
   - `logBattleTelemetryOnEnd` default `false`;
   - `battleTelemetryFilePrefix`.
 - The telemetry report exports once when the winner rule resolves.
-- When browser reload is enabled, `GameManager` stores each report in `localStorage` and reloads the page after the telemetry export delay so unattended balance-test loops can start the next match automatically.
-- Per-match downloads are skipped during auto-reload by default because Chrome blocks repeated automatic downloads. Use browser console function `downloadBattleTelemetryBatch()` to download one combined JSON later, and `clearBattleTelemetryBatch()` to clear stored reports.
+- 2026-07-22 update: browser localStorage batch mode was removed. The current
+  accepted workflow is one JSON download per resolved battle, then browser
+  reload after a short delay.
 - Report is downloaded as JSON in browser when enabled and is also stored on `window.__battleTelemetryReport` / `globalThis.__battleTelemetryReport`.
 - Current aggregates include:
   - per team/unit type spawned count, death count, alive at end;
@@ -2514,8 +3266,8 @@ Context:
 - Important scene state at audit time:
   - `GameManager.enableBattleTelemetry = false`;
   - `downloadBattleTelemetryOnEnd = false`;
-  - `storeBattleTelemetryReportsInBrowser = false`;
-  - `reloadPageAfterBattleTelemetryExport = false`;
+  - old telemetry batch/reload fields were disabled at that time, and were
+    later removed entirely on 2026-07-22;
   - `SpectorDebugger` node/component disabled;
   - `LevelSettings` node disabled;
   - `useWorkerRVO = true`;

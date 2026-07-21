@@ -32,14 +32,14 @@ Cavalry > Axeman > Sword > Spear
 
 Archer and Monk are intentionally weak when caught alone, but valuable behind a
 frontline. `BattleArmyBrain` should treat this as a soft-counter ecology and
-choose the cheapest sufficient response based on battlefield evaluation, not by
-raw hard-counter multiplier.
+choose an economical sufficient-enough response based on battlefield
+evaluation, not by raw hard-counter multiplier.
 
 Design intent:
 
-- Spear stays slightly cheaper than Sword in the current test pass, but trades
-  lower defense, speed, and general melee value for its Cavalry hard-counter
-  role.
+- Spear is cheaper than Sword in the current test pass, but trades lower
+  damage, health, defense, speed, and general melee value for its Cavalry
+  hard-counter role.
 - Sword is the balanced melee baseline.
 - Axeman is the strongest melee infantry, with high damage/HP but weaker
   defense and slower attack tempo than Sword.
@@ -54,12 +54,12 @@ Design intent:
 
 | Unit | Family | Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 44 | 180 | 26 | 5 | 4.65 | 0.35 | 0.0 | 0.333333-0.40 |
-| `cavalry_t1` | Cavalry | 10 | 60 | 210 | 26 | 8 | 9.75 | 0.35 | 0.0 | 0.373333-0.44 |
-| `sword_t1` | Sword | 10 | 42 | 160 | 20 | 8 | 5.10 | 0.35 | 0.0 | 0.333333-0.40 |
-| `spear_t1` | Spear | 10 | 41 | 150 | 20 | 6 | 4.50 | 0.35 | 0.0 | 0.333333-0.40 |
-| `monk_t1` | Monk | 2 | 40 | 65 | 38 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
-| `archer_t1` | Archer | 4 | 34 | 70 | 17 | 0 | 5.70 | 6.50 | 0.0 | 0.833333-1.033333 |
+| `axeman_t1` | Axeman | 10 | 48 | 185 | 27 | 5 | 4.65 | 0.35 | 0.0 | 0.333333-0.40 |
+| `cavalry_t1` | Cavalry | 10 | 60 | 220 | 38 | 8 | 9.75 | 0.35 | 0.0 | 0.373333-0.44 |
+| `sword_t1` | Sword | 10 | 43 | 160 | 21 | 8 | 5.10 | 0.35 | 0.0 | 0.333333-0.40 |
+| `spear_t1` | Spear | 10 | 38 | 145 | 18 | 6 | 4.50 | 0.35 | 0.0 | 0.333333-0.40 |
+| `monk_t1` | Monk | 2 | 31 | 65 | 32 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
+| `archer_t1` | Archer | 4 | 32 | 70 | 17 | 0 | 5.70 | 6.50 | 0.0 | 0.833333-1.033333 |
 
 ### 2026-07-20 Tempo Adjustment
 
@@ -78,8 +78,8 @@ not changed by this tempo pass.
 
 Sword was over-selected by `BattleArmyBrain` because its evaluated
 `power/cost` was slightly higher than Cavalry and Axeman. The broad correction
-keeps combat stats unchanged and adjusts cost so both raw power and
-`power/cost` follow the intended melee ladder:
+first adjusted cost so both raw power and `power/cost` followed the intended
+melee ladder:
 
 ```text
 Cavalry > Axeman > Sword > Spear
@@ -101,6 +101,38 @@ Sword   29.45
 Spear   27.85
 ```
 
+### 2026-07-21 Cost And Damage/Cost Ladder Adjustment
+
+User then requested a broader pass so cost, raw damage per CP, and DPS per CP
+also follow the same visible strength ladder. This avoids cases where a lower
+ladder unit looks like the best damage bargain and becomes over-spawned by the
+AI.
+
+Current target ordering:
+
+```text
+Cavalry > Axeman > Sword > Spear > Archer > Monk
+```
+
+Applied active stat changes:
+
+```text
+cavalry_t1: health 210 -> 220, damage 26 -> 38
+axeman_t1: cost 44 -> 48, health 180 -> 185, damage 26 -> 27
+sword_t1: cost 42 -> 43, damage 20 -> 21
+spear_t1: cost 41 -> 38, health 150 -> 145, damage 20 -> 18
+archer_t1: cost 34 -> 32
+monk_t1: cost 40 -> 31, damage 38 -> 32
+```
+
+Approximate evaluator result after this pass:
+
+```text
+Power/CP: Cavalry 39.85 > Axeman 30.25 > Sword 29.48 > Spear 28.03 > Archer 7.75 > Monk 6.88
+DPS/CP:   Cavalry 15.57 > Axeman 15.34 > Sword 13.32 > Spear 12.92 > Archer 2.28 > Monk 0.97
+Damage/CP:Cavalry  6.33 > Axeman  5.63 > Sword  4.88 > Spear  4.74 > Archer 2.13 > Monk 2.06
+```
+
 ## Counter Rules
 
 Damage formula:
@@ -113,8 +145,17 @@ Active rules:
 
 | Attacker | Defender | Multiplier | Intent |
 | --- | --- | ---: | --- |
-| Spear | Cavalry | 2.1 | Hard counter. Spear should punish Cavalry without turning every other matchup into a multiplier game. |
+| Spear | Cavalry | 5.5 | Hard counter. Spear needs a visibly stronger edge against Cavalry than the previous near-even 4.5 value; this makes Spear kill Cavalry in about 4 hits instead of 5. |
 | Archer | Spear | 1.45 | Soft-hard counter. Archer should punish Spear enough to stop cheap Spear from being the best all-purpose economy unit. |
+
+Current Spear-vs-Cavalry combat check:
+
+```text
+Spear -> Cavalry: max(1, 18 - 8) * 5.5 = 55 damage/hit, about 4 hits per Cavalry
+Cavalry -> Spear: max(1, 38 - 6) = 32 damage/hit, about 5 hits per Spear
+Spear raw damage/cost: 4.74
+Spear counter damage/cost vs Cavalry: 14.47
+```
 
 ## Validation Notes
 
@@ -123,7 +164,7 @@ Active rules:
   verdict on this new system.
 - `BattleArmyBrain` is the intended AI for this candidate. It uses
   `BattlefieldEvaluator` to score threat, coverage, frontline safety, lane
-  traffic, and cheapest sufficient response.
+  traffic, and economical sufficient-enough response.
 - Ranged units should be tested in two contexts:
   - exposed/no frontline: they should lose badly;
   - protected/frontline present: they should contribute meaningful damage.

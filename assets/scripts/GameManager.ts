@@ -134,25 +134,7 @@ export class GameManager extends Component {
 
     @property({
         tooltip:
-            'When auto-reload is enabled, store each telemetry report in browser localStorage so Chrome does not block repeated automatic downloads.',
-    })
-    storeBattleTelemetryReportsInBrowser = true;
-
-    @property({
-        tooltip:
-            'If false, auto-reload batch tests skip per-match downloads and only store reports for a later one-file batch export.',
-    })
-    downloadSingleTelemetryDuringAutoReload = false;
-
-    @property({
-        tooltip:
-            'localStorage key used for accumulated browser telemetry reports.',
-    })
-    battleTelemetryStorageKey = 'battle-telemetry-batch';
-
-    @property({
-        tooltip:
-            'Reload the browser page after telemetry export. Useful for unattended repeated browser balance tests.',
+            'Reload the browser page after telemetry export. This does not store reports in localStorage or skip per-match downloads.',
     })
     reloadPageAfterBattleTelemetryExport = true;
 
@@ -161,7 +143,7 @@ export class GameManager extends Component {
         tooltip:
             'Seconds to wait after triggering telemetry JSON download before reloading the browser page.',
     })
-    battleTelemetryReloadDelaySeconds = 1.5;
+    battleTelemetryReloadDelaySeconds = 2;
 
     @property({
         tooltip:
@@ -439,10 +421,6 @@ export class GameManager extends Component {
         this.createSimulator();
         this.buildPrefabMaps();
         this.resetBattleTelemetry();
-        this.installBattleTelemetryBatchHelpers(
-            this.battleTelemetryStorageKey ||
-            'battle-telemetry-batch'
-        );
 
         this.spatialGrid.cellSize = this.spatialGridCellSize;
 
@@ -2019,30 +1997,10 @@ export class GameManager extends Component {
                 this.counterKillCount
             );
 
-        this.storeBattleTelemetryReportInBrowser(report);
-
-        const shouldDownloadSingleReport =
-            this.downloadBattleTelemetryOnEnd &&
-            (
-                !this.reloadPageAfterBattleTelemetryExport ||
-                this.downloadSingleTelemetryDuringAutoReload
-            );
-
-        if (
-            this.downloadBattleTelemetryOnEnd &&
-            !shouldDownloadSingleReport
-        ) {
-            console.log(
-                '[BattleTelemetry] single report download skipped ' +
-                'during auto-reload batch mode. Use ' +
-                'downloadBattleTelemetryBatch() later.'
-            );
-        }
-
         this.battleTelemetry.exportReport(
             report,
             this.battleTelemetryFilePrefix,
-            shouldDownloadSingleReport,
+            this.downloadBattleTelemetryOnEnd,
             this.logBattleTelemetryOnEnd
         );
 
@@ -2051,122 +2009,6 @@ export class GameManager extends Component {
 
     public hasBattleWinner() {
         return this.battleWinnerResolved;
-    }
-
-    private storeBattleTelemetryReportInBrowser(report: any) {
-        if (!this.storeBattleTelemetryReportsInBrowser) return;
-        if (!report) return;
-        if (typeof localStorage === 'undefined') return;
-
-        const key =
-            this.battleTelemetryStorageKey ||
-            'battle-telemetry-batch';
-
-        try {
-            const existingText =
-                localStorage.getItem(key);
-            let reports =
-                existingText
-                    ? JSON.parse(existingText)
-                    : [];
-
-            if (!Array.isArray(reports)) {
-                reports = [];
-            }
-
-            reports.push(report);
-            localStorage.setItem(
-                key,
-                JSON.stringify(reports)
-            );
-
-            this.installBattleTelemetryBatchHelpers(key);
-
-            console.log(
-                `[BattleTelemetry] stored report ${reports.length} ` +
-                `in localStorage key "${key}".`
-            );
-        } catch (error) {
-            console.warn(
-                '[BattleTelemetry] Failed to store report batch.',
-                error
-            );
-        }
-    }
-
-    private installBattleTelemetryBatchHelpers(key: string) {
-        const globalObject =
-            globalThis as any;
-
-        globalObject.downloadBattleTelemetryBatch =
-            () => this.downloadStoredBattleTelemetryBatch(key);
-        globalObject.clearBattleTelemetryBatch =
-            () => {
-                if (typeof localStorage === 'undefined') return;
-                localStorage.removeItem(key);
-                console.log(
-                    `[BattleTelemetry] cleared localStorage key "${key}".`
-                );
-            };
-    }
-
-    private downloadStoredBattleTelemetryBatch(key: string) {
-        if (typeof localStorage === 'undefined') return;
-        if (typeof document === 'undefined') return;
-        if (typeof Blob === 'undefined') return;
-        if (typeof URL === 'undefined') return;
-
-        const raw =
-            localStorage.getItem(key);
-
-        if (!raw) {
-            console.warn(
-                `[BattleTelemetry] no stored reports at "${key}".`
-            );
-            return;
-        }
-
-        try {
-            const reports =
-                JSON.parse(raw);
-            const payload = {
-                version: 1,
-                exportedAt: new Date().toISOString(),
-                count: Array.isArray(reports)
-                    ? reports.length
-                    : 0,
-                reports,
-            };
-            const json =
-                JSON.stringify(payload, null, 2);
-            const blob =
-                new Blob(
-                    [json],
-                    { type: 'application/json' }
-                );
-            const url =
-                URL.createObjectURL(blob);
-            const link =
-                document.createElement('a');
-
-            link.href = url;
-            link.download =
-                `${this.battleTelemetryFilePrefix || 'battle-telemetry'}-batch-` +
-                `${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-
-            setTimeout(
-                () => URL.revokeObjectURL(url),
-                0
-            );
-        } catch (error) {
-            console.warn(
-                '[BattleTelemetry] Failed to download stored batch.',
-                error
-            );
-        }
     }
 
     private scheduleBattleTelemetryPageReload() {
