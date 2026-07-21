@@ -37,13 +37,14 @@ export class BattlefieldWaveIntel {
     dangerousToDefend = false;
     allyAheadCount = 0;
     allyFrontlineCount = 0;
+    engagedAllyFrontlineCount = 0;
     frontlineBlockPower = 0;
     frontlineHealthRatio = 0;
     allyBlockersFromSpawn = 0;
     enemyMeleeBlockersFromSpawn = 0;
     hasEnemySpearBlockerFromSpawn = false;
     hasStrugglingAlly = false;
-    clusterScore = 1;
+    hasEngaged = false;
 
     reset() {
         this.wave = null;
@@ -65,27 +66,32 @@ export class BattlefieldWaveIntel {
         this.dangerousToDefend = false;
         this.allyAheadCount = 0;
         this.allyFrontlineCount = 0;
+        this.engagedAllyFrontlineCount = 0;
         this.frontlineBlockPower = 0;
         this.frontlineHealthRatio = 0;
         this.allyBlockersFromSpawn = 0;
         this.enemyMeleeBlockersFromSpawn = 0;
         this.hasEnemySpearBlockerFromSpawn = false;
         this.hasStrugglingAlly = false;
-        this.clusterScore = 1;
+        this.hasEngaged = false;
     }
 }
 
-export class BattleEntryChoice {
+export class BattleSpawnDecision {
     entry: UnitPrefabEntry | null = null;
+    target: BattlefieldWaveIntel | null = null;
+    laneId = -1;
+    aggressiveForward = false;
+    reason = '';
     score = -Infinity;
-    coveragePower = 0;
-    projectedCoverageRatio = 0;
 
     reset() {
         this.entry = null;
+        this.target = null;
+        this.laneId = -1;
+        this.aggressiveForward = false;
+        this.reason = '';
         this.score = -Infinity;
-        this.coveragePower = 0;
-        this.projectedCoverageRatio = 0;
     }
 }
 
@@ -101,7 +107,710 @@ export class BattlefieldEvaluator {
     enemyCount = 0;
     allyCount = 0;
 
-    private choice = new BattleEntryChoice();
+    private spawnDecision = new BattleSpawnDecision();
+
+    chooseSnapshotSpawnDecision(
+        gameManager: GameManager,
+        team: number,
+        affordableEntries: UnitPrefabEntry[],
+        maxRangedSupportPerTarget: number
+    ) {
+        this.spawnDecision.reset();
+
+        if (affordableEntries.length <= 0) {
+            return this.spawnDecision;
+        }
+
+        if (this.enemyCount <= 0) {
+            return this.chooseOpeningPressureDecision(
+                gameManager,
+                affordableEntries
+            );
+        }
+
+        const rangedSupportCount =
+            this.countRangedSupportAllies();
+        const meleeSupportCount =
+            this.countMeleeWaves(
+                this.allies,
+                this.allyCount
+            );
+        const currentCombatPoint =
+            gameManager.getCombatPoint(team);
+
+        for (let i = 0; i < this.enemyCount; i++) {
+            const target = this.enemies[i];
+
+            if (!this.isActionableTarget(target)) {
+                continue;
+            }
+
+            const targetPriority =
+                this.getSnapshotTargetPriority(
+                    target
+                );
+
+            if (targetPriority <= 0) continue;
+
+            const hasFullStrengthRangedHardCounter =
+                this.hasAffordableFullStrengthRangedHardCounter(
+                    affordableEntries,
+                    target
+                );
+
+            for (let j = 0; j < affordableEntries.length; j++) {
+                const entry = affordableEntries[j];
+                const score =
+                    this.scoreSnapshotEntryForTarget(
+                        gameManager,
+                        team,
+                        entry,
+                        target,
+                        targetPriority,
+                        currentCombatPoint,
+                        rangedSupportCount,
+                        meleeSupportCount,
+                        maxRangedSupportPerTarget,
+                        hasFullStrengthRangedHardCounter
+                    );
+
+                if (score <= this.spawnDecision.score) {
+                    continue;
+                }
+
+                const laneId =
+                    this.chooseSpawnLaneForTarget(
+                        gameManager,
+                        team,
+                        target,
+                        entry
+                    );
+
+                if (laneId < 0) {
+                    continue;
+                }
+
+                this.spawnDecision.entry = entry;
+                this.spawnDecision.target = target;
+                this.spawnDecision.laneId = laneId;
+                this.spawnDecision.aggressiveForward =
+                    this.shouldSpawnAggressive(
+                        entry,
+                        target,
+                        laneId
+                    );
+                this.spawnDecision.reason =
+                    this.getSnapshotDecisionReason(
+                        entry,
+                        target
+                    );
+                this.spawnDecision.score = score;
+            }
+        }
+
+        return this.spawnDecision;
+    }
+
+    private chooseOpeningPressureDecision(
+        gameManager: GameManager,
+        affordableEntries: UnitPrefabEntry[]
+    ) {
+        const laneId =
+            this.choosePressureLane(gameManager);
+
+        if (laneId < 0) {
+            return this.spawnDecision;
+        }
+
+        const entry =
+            this.choosePressureEntry(affordableEntries);
+
+        if (!entry) {
+            return this.spawnDecision;
+        }
+
+        this.spawnDecision.entry = entry;
+        this.spawnDecision.laneId = laneId;
+        this.spawnDecision.aggressiveForward = true;
+        this.spawnDecision.reason = 'snapshot-opening-pressure';
+        this.spawnDecision.score = 1;
+
+        return this.spawnDecision;
+    }
+
+    chooseFallbackSpawnDecision(
+        gameManager: GameManager,
+        affordableEntries: UnitPrefabEntry[]
+    ) {
+        this.spawnDecision.reset();
+
+        let entry =
+            this.choosePressureEntry(affordableEntries);
+        let reason = 'snapshot-pressure-fallback';
+        let aggressiveForward = true;
+
+        if (!entry) {
+            entry =
+                this.chooseLastResortEntry(
+                    affordableEntries
+                );
+            reason = 'snapshot-last-resort-ranged';
+            aggressiveForward = false;
+        }
+
+        if (!entry) {
+            return this.spawnDecision;
+        }
+
+        const target =
+            this.chooseFallbackTarget();
+        const laneId =
+            target
+                ? gameManager.clampLaneId(
+                    target.visualLaneId >= 0
+                        ? target.visualLaneId
+                        : target.laneId
+                )
+                : this.choosePressureLane(gameManager);
+
+        if (laneId < 0) {
+            return this.spawnDecision;
+        }
+
+        this.spawnDecision.entry = entry;
+        this.spawnDecision.target = target;
+        this.spawnDecision.laneId = laneId;
+        this.spawnDecision.aggressiveForward =
+            aggressiveForward;
+        this.spawnDecision.reason = reason;
+        this.spawnDecision.score = 1;
+
+        return this.spawnDecision;
+    }
+
+    private isActionableTarget(
+        target: BattlefieldWaveIntel
+    ) {
+        if (!target.wave || !target.entry) return false;
+        if (target.aliveCount <= 0) return false;
+        if (target.healthRatio <= 0.08) return false;
+
+        return true;
+    }
+
+    private getSnapshotTargetPriority(
+        target: BattlefieldWaveIntel
+    ) {
+        const liveGapRatio =
+            target.threatPower > 0
+                ? (
+                    target.threatPower *
+                    this.coverageTargetRatio -
+                    target.coveragePower
+                ) / target.threatPower
+                : 0;
+        const needsHelp =
+            Math.max(0, liveGapRatio);
+        const unengagedPressure =
+            target.hasEngaged ? 0 : 180;
+        const rescuePressure =
+            target.hasStrugglingAlly ? 220 : 0;
+        const dangerPressure =
+            target.dangerousToDefend
+                ? 450 + target.progressToDefend * 280
+                : target.progressToDefend * 160;
+
+        if (
+            needsHelp <= 0 &&
+            !target.dangerousToDefend &&
+            !target.hasStrugglingAlly
+        ) {
+            return 0;
+        }
+
+        return target.threatPower *
+            (0.35 + needsHelp) +
+            unengagedPressure +
+            rescuePressure +
+            dangerPressure;
+    }
+
+    private scoreSnapshotEntryForTarget(
+        gameManager: GameManager,
+        team: number,
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel,
+        targetPriority: number,
+        currentCombatPoint: number,
+        rangedSupportCount: number,
+        meleeSupportCount: number,
+        maxRangedSupportPerTarget: number,
+        hasFullStrengthRangedHardCounter: boolean
+    ) {
+        if (!target.entry) return -Infinity;
+
+        const ranged =
+            this.isRangedFamily(entry.family);
+        const hardCounter =
+            this.isHardCounterEntryForTarget(
+                entry,
+                target
+            );
+
+        if (ranged) {
+            if (
+                !this.isSnapshotRangedSupportAllowed(
+                    entry,
+                    target,
+                    rangedSupportCount,
+                    meleeSupportCount,
+                    maxRangedSupportPerTarget,
+                    hasFullStrengthRangedHardCounter
+                )
+            ) {
+                return -Infinity;
+            }
+        }
+
+        if (
+            !this.isEntryViableForTarget(
+                entry,
+                target
+            )
+        ) {
+            return -Infinity;
+        }
+
+        const candidatePower =
+            this.getEntryCoveragePower(
+                gameManager,
+                team,
+                entry,
+                target
+            );
+
+        if (candidatePower <= 0) {
+            return -Infinity;
+        }
+
+        if (ranged) {
+            return this.scoreSnapshotRangedSupportEntry(
+                entry,
+                target,
+                targetPriority,
+                candidatePower,
+                hardCounter
+            );
+        }
+
+        const requiredPower =
+            Math.max(
+                1,
+                target.threatPower *
+                    this.coverageTargetRatio -
+                    target.coveragePower
+            );
+        const liveGapPower =
+            Math.max(0, requiredPower);
+        const targetPower =
+            Math.max(1, target.threatPower);
+        const needRatio =
+            candidatePower / Math.max(1, liveGapPower);
+        const powerRatio =
+            candidatePower / targetPower;
+        const cost =
+            Math.max(1, entry.combatPointCost);
+        const cpRatio =
+            currentCombatPoint / cost;
+        const canComfortablyAfford =
+            cpRatio >= 1.7;
+        const isHoldingSpawn =
+            needRatio < 0.75;
+        const overshoot =
+            Math.max(0, needRatio - 1.25);
+        const targetIsRanged =
+            this.isRangedFamily(target.entry.family);
+        const overshootPenaltyScale =
+            targetIsRanged
+                ? 70
+                : hardCounter
+                    ? 120
+                    : 280;
+        const economyPreference =
+            canComfortablyAfford ? 4.5 : 9.5;
+        const hardCounterBonus =
+            hardCounter ? 650 : 0;
+        const holdingPenalty =
+            isHoldingSpawn ? 180 : 0;
+        const strongEnoughBonus =
+            powerRatio >= 1
+                ? 220
+                : powerRatio * 120;
+        const fitScore =
+            needRatio >= 0.95
+                ? 480
+                : needRatio * 360;
+
+        return targetPriority +
+            fitScore +
+            strongEnoughBonus +
+            hardCounterBonus +
+            candidatePower / cost * 14 -
+            cost * economyPreference -
+            overshoot * overshootPenaltyScale -
+            holdingPenalty +
+            this.getSnapshotMeleeLadderBias(
+                entry,
+                target,
+                canComfortablyAfford
+            ) +
+            Math.random() * 0.001;
+    }
+
+    private scoreSnapshotRangedSupportEntry(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel,
+        targetPriority: number,
+        candidatePower: number,
+        hardCounter: boolean
+    ) {
+        const cost =
+            Math.max(1, entry.combatPointCost);
+        const fullStrengthCounter =
+            hardCounter &&
+            this.isFullStrengthTarget(target);
+        const baseSupportScore =
+            targetPriority +
+            candidatePower / cost * 20 -
+            cost;
+
+        if (fullStrengthCounter) {
+            return 1000000 +
+                baseSupportScore +
+                Math.random() * 0.001;
+        }
+
+        if (entry.family === UnitFamily.Archer) {
+            return 800000 +
+                baseSupportScore +
+                Math.random() * 0.001;
+        }
+
+        if (entry.family === UnitFamily.Monk) {
+            return 900000 +
+                baseSupportScore +
+                Math.random() * 0.001;
+        }
+
+        return -Infinity;
+    }
+
+    private isFullStrengthTarget(
+        target: BattlefieldWaveIntel
+    ) {
+        return target.aliveRatio >= 0.95 &&
+            target.healthRatio >= 0.95;
+    }
+
+    private getRequiredFrontlineCountForRangedSupport(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel
+    ) {
+        if (
+            this.isHardCounterEntryForTarget(
+                entry,
+                target
+            ) &&
+            this.isFullStrengthTarget(target)
+        ) {
+            return 1;
+        }
+
+        if (entry.family === UnitFamily.Monk) {
+            return 2;
+        }
+
+        if (entry.family === UnitFamily.Archer) {
+            return 1;
+        }
+
+        return Infinity;
+    }
+
+    private hasRecentSameRangedSupportInLane(
+        laneId: number,
+        family: UnitFamily
+    ) {
+        let latestWaveId = -1;
+        let latestFamily = -1;
+
+        for (let i = 0; i < this.allyCount; i++) {
+            const ally = this.allies[i];
+
+            if (!ally.wave || !ally.entry) continue;
+            if (!this.isRangedFamily(ally.entry.family)) {
+                continue;
+            }
+            if (ally.visualLaneId !== laneId) {
+                continue;
+            }
+            if (ally.wave.id <= latestWaveId) {
+                continue;
+            }
+
+            latestWaveId = ally.wave.id;
+            latestFamily = ally.entry.family;
+        }
+
+        return latestFamily === family;
+    }
+
+    private hasRangedSupportLaneRoleRoom(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel
+    ) {
+        if (
+            target.engagedAllyFrontlineCount <
+            this.getRequiredFrontlineCountForRangedSupport(
+                entry,
+                target
+            )
+        ) {
+            return false;
+        }
+
+        return !this.hasRecentSameRangedSupportInLane(
+            target.visualLaneId,
+            entry.family
+        );
+    }
+
+    private isSnapshotRangedSupportAllowed(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel,
+        rangedSupportCount: number,
+        meleeSupportCount: number,
+        maxRangedSupportPerTarget: number,
+        hasFullStrengthRangedHardCounter: boolean
+    ) {
+        if (!this.isRangedSpawnSafe(target)) {
+            return false;
+        }
+
+        if (
+            !this.hasRangedSupportCapacity(
+                rangedSupportCount,
+                meleeSupportCount
+            )
+        ) {
+            return false;
+        }
+
+        if (
+            this.countRangedSupportForTarget(target) >=
+            Math.max(
+                0,
+                Math.floor(maxRangedSupportPerTarget)
+            )
+        ) {
+            return false;
+        }
+
+        if (
+            !this.hasRangedSupportLaneRoleRoom(
+                entry,
+                target
+            )
+        ) {
+            return false;
+        }
+
+        if (
+            this.isHardCounterEntryForTarget(
+                entry,
+                target
+            ) &&
+            this.isFullStrengthTarget(target)
+        ) {
+            return true;
+        }
+
+        if (
+            entry.family === UnitFamily.Monk &&
+            hasFullStrengthRangedHardCounter
+        ) {
+            return false;
+        }
+
+        return entry.family === UnitFamily.Monk ||
+            entry.family === UnitFamily.Archer;
+    }
+
+    private hasAffordableFullStrengthRangedHardCounter(
+        affordableEntries: UnitPrefabEntry[],
+        target: BattlefieldWaveIntel
+    ) {
+        if (!this.isFullStrengthTarget(target)) {
+            return false;
+        }
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (!this.isRangedFamily(entry.family)) {
+                continue;
+            }
+
+            if (entry.family === UnitFamily.Monk) {
+                continue;
+            }
+
+            if (
+                this.isHardCounterEntryForTarget(
+                    entry,
+                    target
+                )
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private getSnapshotMeleeLadderBias(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel,
+        canComfortablyAfford: boolean
+    ) {
+        if (!target.entry) return 0;
+        if (this.isRangedFamily(entry.family)) return 0;
+
+        if (this.isRangedFamily(target.entry.family)) {
+            return entry.family === UnitFamily.Cavalry
+                ? 360
+                : 40;
+        }
+
+        const attackerRank =
+            this.getMeleeLadderRank(entry.family);
+        const defenderRank =
+            this.getMeleeLadderRank(target.entry.family);
+
+        if (attackerRank < 0 || defenderRank < 0) {
+            return 0;
+        }
+
+        const rankDelta =
+            attackerRank - defenderRank;
+        const costDelta =
+            entry.combatPointCost -
+            target.entry.combatPointCost;
+
+        if (rankDelta === 1) {
+            if (
+                costDelta > 8 &&
+                !canComfortablyAfford
+            ) {
+                return 80;
+            }
+
+            return 360;
+        }
+
+        if (rankDelta === 0) {
+            return 90;
+        }
+
+        if (rankDelta > 1) {
+            return canComfortablyAfford
+                ? 40
+                : -110;
+        }
+
+        return -80;
+    }
+
+    private getMeleeLadderRank(
+        family: UnitFamily
+    ) {
+        if (family === UnitFamily.Spear) return 0;
+        if (family === UnitFamily.Sword) return 1;
+        if (family === UnitFamily.Axeman) return 2;
+        if (family === UnitFamily.Cavalry) return 3;
+
+        return -1;
+    }
+
+    private getSnapshotDecisionReason(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel
+    ) {
+        if (
+            this.isRangedFamily(entry.family)
+        ) {
+            return this.isHardCounterEntryForTarget(
+                entry,
+                target
+            )
+                ? 'snapshot-ranged-counter-support'
+                : 'snapshot-ranged-strategic-support';
+        }
+
+        if (
+            this.isHardCounterEntryForTarget(
+                entry,
+                target
+            )
+        ) {
+            return 'snapshot-hard-counter';
+        }
+
+        return 'snapshot-live-force-response';
+    }
+
+    private countRangedSupportAllies() {
+        let count = 0;
+
+        for (let i = 0; i < this.allyCount; i++) {
+            const ally = this.allies[i];
+
+            if (!ally.entry) continue;
+            if (!this.isRangedFamily(ally.entry.family)) {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    private hasRangedSupportCapacity(
+        rangedSupportCount: number,
+        meleeSupportCount: number
+    ) {
+        return rangedSupportCount <
+            meleeSupportCount;
+    }
+
+    private isHardCounterEntryForTarget(
+        entry: UnitPrefabEntry,
+        target: BattlefieldWaveIntel
+    ) {
+        if (!target.entry) return false;
+
+        const counter =
+            CounterSettings.instance;
+
+        if (!counter) return false;
+
+        return counter.getCounterScore(
+            entry.family,
+            target.entry.family
+        ) > 1.0001;
+    }
+
     rebuild(
         gameManager: GameManager,
         team: number
@@ -174,178 +883,6 @@ export class BattlefieldEvaluator {
         }
     }
 
-    findBestTarget(
-        gameManager: GameManager,
-        team: number,
-        affordableEntries: UnitPrefabEntry[]
-    ) {
-        let best: BattlefieldWaveIntel | null = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < this.enemyCount; i++) {
-            const enemy = this.enemies[i];
-
-            if (!enemy.wave || !enemy.entry) continue;
-            if (enemy.aliveCount <= 0) continue;
-            if (enemy.healthRatio <= 0.08) continue;
-
-            const choice =
-                this.chooseEntryForTarget(
-                    gameManager,
-                    team,
-                    enemy,
-                    affordableEntries
-                );
-
-            if (!choice.entry) continue;
-
-            const uncovered =
-                Math.max(
-                    0,
-                    this.coverageTargetRatio -
-                        enemy.coverageRatio
-                );
-            const rescueScore =
-                enemy.hasStrugglingAlly ? 180 : 0;
-            const dangerousScore =
-                enemy.dangerousToDefend
-                    ? 500 + enemy.progressToDefend * 300
-                    : enemy.progressToDefend * 90;
-            const score =
-                enemy.threatScore +
-                uncovered * enemy.threatPower +
-                rescueScore +
-                dangerousScore;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = enemy;
-            }
-        }
-
-        return best;
-    }
-
-    chooseEntryForTarget(
-        gameManager: GameManager,
-        team: number,
-        target: BattlefieldWaveIntel,
-        affordableEntries: UnitPrefabEntry[]
-    ) {
-        this.choice.reset();
-
-        if (!target.entry) return this.choice;
-
-        for (let i = 0; i < affordableEntries.length; i++) {
-            const entry = affordableEntries[i];
-            const roleRank =
-                this.getDirectResponseRoleRank(
-                    entry,
-                    target
-                );
-
-            if (roleRank >= 99) continue;
-
-            if (
-                !this.isEntryViableForTarget(
-                    entry,
-                    target
-                )
-            ) {
-                continue;
-            }
-
-            const coveragePower =
-                this.getEntryCoveragePower(
-                    gameManager,
-                    team,
-                    entry,
-                    target
-                );
-
-            if (coveragePower <= 0) continue;
-
-            if (
-                !this.wouldImproveCoverage(
-                    target,
-                    coveragePower
-                )
-            ) {
-                continue;
-            }
-
-            const cost =
-                Math.max(1, entry.combatPointCost);
-            const neededPower =
-                Math.max(
-                    0,
-                    target.threatPower *
-                        this.coverageTargetRatio -
-                        target.coveragePower
-                );
-            const neededSafe =
-                Math.max(1, neededPower);
-            const needRatio =
-                coveragePower / neededSafe;
-            const efficiency =
-                coveragePower / cost;
-            const projectedCoverageRatio =
-                (
-                    target.coveragePower +
-                    coveragePower
-                ) /
-                Math.max(1, target.threatPower);
-            const overshootPenalty =
-                Math.max(
-                    0,
-                    projectedCoverageRatio -
-                        this.coverageTargetRatio
-                ) * 180;
-            const nearEnoughScore =
-                needRatio >= 0.9
-                    ? 500
-                    : needRatio * 350;
-            const underPowerPenalty =
-                Math.max(
-                    0,
-                    0.9 - needRatio
-                ) * 300;
-            const roleBias =
-                this.getDirectResponseRoleBias(
-                    roleRank,
-                    target
-                );
-            const secondaryUtility =
-                this.getSecondaryDirectResponseUtility(
-                    gameManager,
-                    team,
-                    entry,
-                    target,
-                    coveragePower,
-                    neededPower
-                );
-            const score =
-                nearEnoughScore +
-                efficiency * 8 -
-                cost * 12 -
-                overshootPenalty -
-                underPowerPenalty +
-                roleBias +
-                secondaryUtility;
-
-            if (score > this.choice.score) {
-                this.choice.entry = entry;
-                this.choice.score = score;
-                this.choice.coveragePower =
-                    coveragePower;
-                this.choice.projectedCoverageRatio =
-                    projectedCoverageRatio;
-            }
-        }
-
-        return this.choice;
-    }
-
     chooseSpawnLaneForTarget(
         gameManager: GameManager,
         team: number,
@@ -355,9 +892,7 @@ export class BattlefieldEvaluator {
         if (!target.wave) return -1;
 
         const directLane =
-            target.laneId >= 0
-                ? target.laneId
-                : target.visualLaneId;
+            this.getTacticalLaneId(target);
         const lane =
             this.lanes[directLane];
         const directBlocked =
@@ -365,6 +900,12 @@ export class BattlefieldEvaluator {
                 lane,
                 target
             );
+
+        if (this.isRangedFamily(entry.family)) {
+            return this.isRangedSpawnSafe(target)
+                ? directLane
+                : -1;
+        }
 
         if (
             !directBlocked ||
@@ -384,10 +925,6 @@ export class BattlefieldEvaluator {
             return flankLane;
         }
 
-        if (this.isRangedFamily(entry.family)) {
-            return -1;
-        }
-
         return -1;
     }
 
@@ -399,8 +936,7 @@ export class BattlefieldEvaluator {
         if (!target.entry) return true;
 
         if (this.isRangedFamily(entry.family)) {
-            return target.frontlineBlockPower > 0 &&
-                target.progressToDefend < 0.55;
+            return false;
         }
 
         if (
@@ -480,57 +1016,53 @@ export class BattlefieldEvaluator {
         return best;
     }
 
-    findBestRangedSupportTarget(
-        affordableEntries: UnitPrefabEntry[],
-        maxRangedSupportPerLane: number
+    private chooseLastResortEntry(
+        affordableEntries: UnitPrefabEntry[]
     ) {
-        if (
-            !this.hasAffordableRangedEntry(
-                affordableEntries
-            )
-        ) {
-            return null;
+        let best: UnitPrefabEntry | null = null;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+            const cost =
+                Math.max(1, entry.combatPointCost);
+            const power =
+                this.getEntryBasePower(
+                    entry,
+                    Math.max(1, entry.unitCount),
+                    1,
+                    1
+                );
+            const score =
+                power / cost -
+                cost * 0.05 +
+                Math.random() * 0.001;
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = entry;
+            }
         }
 
+        return best;
+    }
+
+    private chooseFallbackTarget() {
         let best: BattlefieldWaveIntel | null = null;
         let bestScore = -Infinity;
-        const supportLimit =
-            Math.max(
-                0,
-                Math.floor(maxRangedSupportPerLane)
-            );
 
         for (let i = 0; i < this.enemyCount; i++) {
             const target = this.enemies[i];
 
             if (!target.wave || !target.entry) continue;
             if (target.aliveCount <= 0) continue;
-            if (target.healthRatio <= 0.1) continue;
-            if (!this.isRangedSpawnSafe(target)) continue;
+            if (target.healthRatio <= 0.08) continue;
 
-            const currentSupport =
-                this.countRangedSupportForTarget(
-                    target
-                );
-
-            if (currentSupport >= supportLimit) {
-                continue;
-            }
-
-            const coveragePressure =
-                Math.max(
-                    0,
-                    1.45 - target.coverageRatio
-                );
             const score =
-                target.threatPower *
-                (
-                    0.4 +
-                    Math.min(0.8, target.clusterScore * 0.2)
-                ) +
-                coveragePressure * 180 -
-                currentSupport * 120 +
-                target.progressToDefend * 60;
+                target.progressToDefend * 180 +
+                target.threatPower * 0.2 +
+                (target.hasEngaged ? 0 : 40) +
+                Math.random() * 0.001;
 
             if (score > bestScore) {
                 bestScore = score;
@@ -539,304 +1071,6 @@ export class BattlefieldEvaluator {
         }
 
         return best;
-    }
-
-    findBestAntiSpearArcherTarget(
-        affordableEntries: UnitPrefabEntry[],
-        maxRangedSupportPerLane: number
-    ) {
-        if (!this.hasAffordableArcherEntry(affordableEntries)) {
-            return null;
-        }
-
-        let best: BattlefieldWaveIntel | null = null;
-        let bestScore = -Infinity;
-        const supportLimit =
-            Math.max(
-                0,
-                Math.floor(maxRangedSupportPerLane)
-            );
-
-        for (let i = 0; i < this.enemyCount; i++) {
-            const target = this.enemies[i];
-
-            if (!target.wave || !target.entry) continue;
-            if (target.entry.family !== UnitFamily.Spear) continue;
-            if (target.aliveCount <= 0) continue;
-            if (target.healthRatio <= 0.1) continue;
-            if (!this.isRangedSpawnSafe(target)) continue;
-
-            const currentSupport =
-                this.countRangedSupportForTarget(
-                    target
-                );
-
-            if (currentSupport >= supportLimit) {
-                continue;
-            }
-
-            if (
-                target.coverageRatio >=
-                    this.coverageTargetRatio &&
-                !target.hasStrugglingAlly &&
-                !target.dangerousToDefend
-            ) {
-                continue;
-            }
-
-            const coveragePressure =
-                Math.max(
-                    0,
-                    this.coverageTargetRatio -
-                        target.coverageRatio
-                );
-            const score =
-                target.threatPower +
-                coveragePressure * target.threatPower * 0.65 +
-                target.progressToDefend * 120 +
-                (target.hasStrugglingAlly ? 180 : 0) +
-                (target.dangerousToDefend ? 260 : 0) -
-                currentSupport * 180;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = target;
-            }
-        }
-
-        return best;
-    }
-
-    findBestClusterMonkTarget(
-        affordableEntries: UnitPrefabEntry[],
-        maxRangedSupportPerLane: number
-    ) {
-        if (!this.hasAffordableMonkEntry(affordableEntries)) {
-            return null;
-        }
-
-        let best: BattlefieldWaveIntel | null = null;
-        let bestScore = -Infinity;
-        const supportLimit =
-            Math.max(
-                0,
-                Math.floor(maxRangedSupportPerLane)
-            );
-
-        for (let i = 0; i < this.enemyCount; i++) {
-            const target = this.enemies[i];
-
-            if (!target.wave || !target.entry) continue;
-            if (target.aliveCount < 6) continue;
-            if (target.healthRatio <= 0.12) continue;
-            if (target.clusterScore < 2.35) continue;
-            if (!this.isRangedSpawnSafe(target)) continue;
-            if (
-                this.countMeleeWaves(
-                    this.enemies,
-                    this.enemyCount
-                ) < 4
-            ) {
-                continue;
-            }
-            if (
-                this.countMeleeWaves(
-                    this.allies,
-                    this.allyCount
-                ) < 4
-            ) {
-                continue;
-            }
-
-            const currentSupport =
-                this.countRangedSupportForTarget(
-                    target
-                );
-
-            if (currentSupport >= supportLimit) {
-                continue;
-            }
-
-            if (
-                target.coverageRatio >= 1.2 &&
-                !target.hasStrugglingAlly &&
-                !target.dangerousToDefend
-            ) {
-                continue;
-            }
-
-            const score =
-                target.threatPower *
-                    Math.min(1.5, target.clusterScore * 0.55) +
-                Math.max(0, 1.2 - target.coverageRatio) *
-                    target.threatPower * 0.45 +
-                target.progressToDefend * 90 +
-                (target.hasStrugglingAlly ? 140 : 0) +
-                (target.dangerousToDefend ? 180 : 0) -
-                currentSupport * 160;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = target;
-            }
-        }
-
-        return best;
-    }
-
-    chooseClusterMonkEntry(
-        affordableEntries: UnitPrefabEntry[],
-        target: BattlefieldWaveIntel
-    ) {
-        let best: UnitPrefabEntry | null = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < affordableEntries.length; i++) {
-            const entry = affordableEntries[i];
-
-            if (entry.family !== UnitFamily.Monk) {
-                continue;
-            }
-
-            const basePower =
-                this.getEntryBasePower(
-                    entry,
-                    Math.max(1, entry.unitCount),
-                    1,
-                    target.aliveCount
-                );
-            const matchup =
-                this.getMatchupFactor(
-                    entry,
-                    target
-                );
-            const cost =
-                Math.max(1, entry.combatPointCost);
-            const score =
-                basePower * matchup / cost +
-                target.clusterScore * 18 +
-                target.aliveCount * 0.8;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = entry;
-            }
-        }
-
-        return best;
-    }
-
-    chooseAntiSpearArcherEntry(
-        affordableEntries: UnitPrefabEntry[],
-        target: BattlefieldWaveIntel
-    ) {
-        let best: UnitPrefabEntry | null = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < affordableEntries.length; i++) {
-            const entry = affordableEntries[i];
-
-            if (entry.family !== UnitFamily.Archer) {
-                continue;
-            }
-
-            const basePower =
-                this.getEntryBasePower(
-                    entry,
-                    Math.max(1, entry.unitCount),
-                    1,
-                    target.aliveCount
-                );
-            const matchup =
-                this.getMatchupFactor(
-                    entry,
-                    target
-                );
-            const cost =
-                Math.max(1, entry.combatPointCost);
-            const score =
-                basePower * matchup / cost +
-                entry.attackRange * 4;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = entry;
-            }
-        }
-
-        return best;
-    }
-
-    chooseRangedSupportEntry(
-        affordableEntries: UnitPrefabEntry[],
-        target: BattlefieldWaveIntel
-    ) {
-        let best: UnitPrefabEntry | null = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < affordableEntries.length; i++) {
-            const entry = affordableEntries[i];
-
-            if (!this.isRangedFamily(entry.family)) {
-                continue;
-            }
-
-            if (
-                entry.family === UnitFamily.Monk &&
-                (
-                    target.clusterScore < 1.55 ||
-                    target.aliveCount < 6
-                )
-            ) {
-                continue;
-            }
-
-            const basePower =
-                this.getEntryBasePower(
-                    entry,
-                    Math.max(1, entry.unitCount),
-                    1,
-                    target.aliveCount
-                );
-            const cost =
-                Math.max(1, entry.combatPointCost);
-            const roleScore =
-                entry.family === UnitFamily.Monk
-                    ? target.clusterScore * 80 +
-                        target.aliveCount * 4
-                    : entry.attackRange * 12 +
-                        target.progressToDefend * 40;
-            const score =
-                basePower / cost * 80 +
-                roleScore -
-                cost * 0.35;
-
-            if (score > bestScore) {
-                bestScore = score;
-                best = entry;
-            }
-        }
-
-        return best;
-    }
-
-    chooseRangedSupportLane(
-        gameManager: GameManager,
-        target: BattlefieldWaveIntel
-    ) {
-        if (target.visualLaneId >= 0) {
-            return gameManager.clampLaneId(
-                target.visualLaneId
-            );
-        }
-
-        if (target.laneId >= 0) {
-            return gameManager.clampLaneId(
-                target.laneId
-            );
-        }
-
-        return -1;
     }
 
     private getPressureRoleScore(
@@ -861,52 +1095,6 @@ export class BattlefieldEvaluator {
         return 0;
     }
 
-    private hasAffordableRangedEntry(
-        affordableEntries: UnitPrefabEntry[]
-    ) {
-        for (let i = 0; i < affordableEntries.length; i++) {
-            if (
-                this.isRangedFamily(
-                    affordableEntries[i].family
-                )
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private hasAffordableArcherEntry(
-        affordableEntries: UnitPrefabEntry[]
-    ) {
-        for (let i = 0; i < affordableEntries.length; i++) {
-            if (
-                affordableEntries[i].family ===
-                UnitFamily.Archer
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private hasAffordableMonkEntry(
-        affordableEntries: UnitPrefabEntry[]
-    ) {
-        for (let i = 0; i < affordableEntries.length; i++) {
-            if (
-                affordableEntries[i].family ===
-                UnitFamily.Monk
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private fillWaveIntel(
         gameManager: GameManager,
         intel: BattlefieldWaveIntel,
@@ -922,6 +1110,10 @@ export class BattlefieldEvaluator {
         intel.aliveRatio = wave.getAliveRatio();
         intel.healthRatio =
             wave.getRuntimeHealthRatio(
+                gameManager.frame
+            );
+        intel.hasEngaged =
+            wave.hasEngagedRuntime(
                 gameManager.frame
             );
 
@@ -1006,10 +1198,6 @@ export class BattlefieldEvaluator {
         team: number,
         target: BattlefieldWaveIntel
     ) {
-        target.clusterScore =
-            this.getEnemyClusterScore(
-                target
-            );
         target.allyBlockersFromSpawn =
             this.countAllyBlockersFromSpawnToTarget(
                 gameManager,
@@ -1033,6 +1221,7 @@ export class BattlefieldEvaluator {
         target.hasStrugglingAlly = false;
         target.allyAheadCount = 0;
         target.allyFrontlineCount = 0;
+        target.engagedAllyFrontlineCount = 0;
         target.frontlineBlockPower = 0;
         target.frontlineHealthRatio = 0;
 
@@ -1065,6 +1254,11 @@ export class BattlefieldEvaluator {
                     (0.65 + ally.healthRatio * 0.7);
 
                 target.allyFrontlineCount++;
+
+                if (ally.hasEngaged) {
+                    target.engagedAllyFrontlineCount++;
+                }
+
                 target.frontlineBlockPower +=
                     blockPower;
                 target.frontlineHealthRatio +=
@@ -1234,12 +1428,6 @@ export class BattlefieldEvaluator {
                 return false;
             }
 
-            if (
-                entry.family === UnitFamily.Monk &&
-                target.clusterScore < 1.35
-            ) {
-                return false;
-            }
         }
 
         if (
@@ -1252,184 +1440,6 @@ export class BattlefieldEvaluator {
         }
 
         return true;
-    }
-
-    private getDirectResponseRoleRank(
-        entry: UnitPrefabEntry,
-        target: BattlefieldWaveIntel
-    ) {
-        if (!target.entry) return 99;
-
-        const attacker =
-            entry.family;
-        const defender =
-            target.entry.family;
-
-        if (this.isRangedFamily(attacker)) {
-            return 99;
-        }
-
-        if (defender === UnitFamily.Cavalry) {
-            if (attacker === UnitFamily.Spear) return 0;
-            if (attacker === UnitFamily.Sword) return 1;
-            if (attacker === UnitFamily.Axeman) return 1;
-            if (attacker === UnitFamily.Cavalry) return 2;
-
-            return 99;
-        }
-
-        if (defender === UnitFamily.Spear) {
-            if (attacker === UnitFamily.Sword) return 0;
-            if (attacker === UnitFamily.Axeman) return 1;
-            if (attacker === UnitFamily.Spear) return 2;
-
-            return 99;
-        }
-
-        if (defender === UnitFamily.Sword) {
-            if (attacker === UnitFamily.Axeman) return 0;
-            if (attacker === UnitFamily.Sword) return 1;
-            if (attacker === UnitFamily.Spear) return 2;
-            if (attacker === UnitFamily.Cavalry) return 2;
-
-            return 99;
-        }
-
-        if (defender === UnitFamily.Axeman) {
-            if (attacker === UnitFamily.Axeman) return 0;
-            if (attacker === UnitFamily.Sword) return 1;
-            if (attacker === UnitFamily.Cavalry) return 2;
-            if (attacker === UnitFamily.Spear) return 2;
-
-            return 99;
-        }
-
-        if (this.isRangedFamily(defender)) {
-            if (attacker === UnitFamily.Cavalry) return 0;
-            if (attacker === UnitFamily.Sword) return 1;
-            if (attacker === UnitFamily.Axeman) return 1;
-            if (attacker === UnitFamily.Spear) return 2;
-
-            return 99;
-        }
-
-        return 99;
-    }
-
-    private getDirectResponseRoleBias(
-        roleRank: number,
-        target: BattlefieldWaveIntel
-    ) {
-        if (roleRank <= 0) {
-            return target.dangerousToDefend ? 80 : 55;
-        }
-
-        if (roleRank === 1) {
-            return target.dangerousToDefend ? 45 : 28;
-        }
-
-        return target.dangerousToDefend ? 18 : 6;
-    }
-
-    private getSecondaryDirectResponseUtility(
-        gameManager: GameManager,
-        team: number,
-        entry: UnitPrefabEntry,
-        primaryTarget: BattlefieldWaveIntel,
-        primaryCoveragePower: number,
-        primaryNeededPower: number
-    ) {
-        const transferablePower =
-            Math.max(
-                0,
-                primaryCoveragePower -
-                    primaryNeededPower
-            );
-
-        if (transferablePower <= 0) {
-            return 0;
-        }
-
-        let utility = 0;
-
-        for (let i = 0; i < this.enemyCount; i++) {
-            const enemy = this.enemies[i];
-
-            if (enemy === primaryTarget) continue;
-            if (!enemy.wave || !enemy.entry) continue;
-            if (enemy.aliveCount <= 0) continue;
-            if (enemy.healthRatio <= 0.08) continue;
-
-            const laneDistance =
-                Math.abs(
-                    enemy.visualLaneId -
-                    primaryTarget.visualLaneId
-                );
-
-            if (laneDistance > 1) {
-                continue;
-            }
-
-            const zDistance =
-                Math.abs(
-                    enemy.centerZ -
-                    primaryTarget.centerZ
-                );
-
-            if (zDistance > 7) {
-                continue;
-            }
-
-            const laneFactor =
-                laneDistance <= 0
-                    ? 1
-                    : 0.65;
-            const zFactor =
-                Math.max(
-                    0.25,
-                    1 - zDistance / 8
-                );
-            const coveragePower =
-                this.getEntryCoveragePower(
-                    gameManager,
-                    team,
-                    entry,
-                    enemy
-                );
-            const neededPower =
-                Math.max(
-                    1,
-                    enemy.threatPower *
-                        this.coverageTargetRatio -
-                        enemy.coveragePower
-                );
-            const transferableCoverage =
-                Math.min(
-                    transferablePower,
-                    coveragePower,
-                    neededPower
-                );
-
-            if (transferableCoverage <= 0) {
-                continue;
-            }
-
-            const threatWeight =
-                Math.min(
-                    1.5,
-                    enemy.threatScore / 500
-                );
-
-            utility +=
-                transferableCoverage /
-                Math.max(1, entry.combatPointCost) *
-                threatWeight *
-                laneFactor *
-                zFactor *
-                36;
-        }
-
-        return Math.min(320, utility);
     }
 
     private getMatchupFactor(
@@ -1481,31 +1491,6 @@ export class BattlefieldEvaluator {
         return 0.55;
     }
 
-    private wouldImproveCoverage(
-        target: BattlefieldWaveIntel,
-        addedCoveragePower: number
-    ) {
-        if (target.hasStrugglingAlly) return true;
-        if (target.coveragePower <= 0.0001) return true;
-
-        const required =
-            target.threatPower *
-            this.coverageTargetRatio;
-        const currentError =
-            Math.abs(required - target.coveragePower);
-        const projectedError =
-            Math.abs(
-                required -
-                (
-                    target.coveragePower +
-                    addedCoveragePower
-                )
-            );
-
-        return projectedError <
-            currentError - 0.0001;
-    }
-
     private isDirectLaneSpawnBlocked(
         lane: BattlefieldLaneIntel | undefined,
         target: BattlefieldWaveIntel
@@ -1527,8 +1512,11 @@ export class BattlefieldEvaluator {
             return false;
         }
 
-        return target.frontlineHealthRatio >= 0.45 &&
-            target.frontlineBlockPower > 0;
+        if (target.engagedAllyFrontlineCount <= 0) {
+            return false;
+        }
+
+        return target.frontlineBlockPower > 0;
     }
 
     private countRangedSupportForTarget(
@@ -1741,40 +1729,6 @@ export class BattlefieldEvaluator {
             z <= maxZ;
     }
 
-    private getEnemyClusterScore(
-        target: BattlefieldWaveIntel
-    ) {
-        let score = 1;
-
-        for (let i = 0; i < this.enemyCount; i++) {
-            const enemy = this.enemies[i];
-
-            if (enemy === target) continue;
-
-            const laneDistance =
-                Math.abs(
-                    enemy.visualLaneId -
-                    target.visualLaneId
-                );
-            const zDistance =
-                Math.abs(
-                    enemy.centerZ -
-                    target.centerZ
-                );
-
-            if (laneDistance <= 1 && zDistance <= 4) {
-                score += 0.35;
-            }
-        }
-
-        score += Math.min(
-            0.8,
-            target.aliveCount / 10
-        );
-
-        return score;
-    }
-
     private getWaveCenter(
         wave: BattleWave,
         intel: BattlefieldWaveIntel
@@ -1874,5 +1828,13 @@ export class BattlefieldEvaluator {
         for (let i = this.lanes.length; i < laneCount; i++) {
             this.lanes.push(new BattlefieldLaneIntel());
         }
+    }
+
+    private getTacticalLaneId(
+        target: BattlefieldWaveIntel
+    ) {
+        return target.visualLaneId >= 0
+            ? target.visualLaneId
+            : target.laneId;
     }
 }

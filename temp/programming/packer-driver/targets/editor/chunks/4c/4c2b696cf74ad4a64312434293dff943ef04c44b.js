@@ -1264,6 +1264,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!wave) continue;
             if (wave.team !== enemyTeam) continue;
             if (wave.isDead()) continue;
+            if (wave.hasEngagedRuntime(this.frame)) continue;
             wave.forceForwardMode();
           }
         }

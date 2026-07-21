@@ -67,7 +67,7 @@ export class BattleArmyBrain extends Component {
 
     @property({
         tooltip:
-            'Maximum Archer/Monk support waves allowed in one lane before BattleArmyBrain looks elsewhere.',
+            'Maximum Archer/Monk support waves allowed near one target lane before BattleArmyBrain looks elsewhere.',
     })
     maxRangedSupportWavesPerLane = 2;
 
@@ -180,61 +180,13 @@ export class BattleArmyBrain extends Component {
             }
         }
 
-        if (this.trySpawnAntiSpearArcherSupport()) {
-            return;
-        }
-
-        if (this.trySpawnClusterMonkSupport()) {
-            return;
-        }
-
-        const target =
-            this.evaluator.findBestTarget(
+        const decision =
+            this.evaluator.chooseSnapshotSpawnDecision(
                 gameManager,
                 this.team,
-                this.affordableEntries
+                this.affordableEntries,
+                this.maxRangedSupportWavesPerLane
             );
-
-        if (target) {
-            const choice =
-                this.evaluator.chooseEntryForTarget(
-                    gameManager,
-                    this.team,
-                    target,
-                    this.affordableEntries
-                );
-
-            if (choice.entry) {
-                const laneId =
-                    this.evaluator.chooseSpawnLaneForTarget(
-                        gameManager,
-                        this.team,
-                        target,
-                        choice.entry
-                    );
-
-                if (laneId >= 0) {
-                    const aggressive =
-                        this.evaluator.shouldSpawnAggressive(
-                            choice.entry,
-                            target,
-                            laneId
-                        );
-
-                    if (
-                        this.spawn(
-                            choice.entry,
-                            laneId,
-                            aggressive,
-                            'response',
-                            target
-                        )
-                    ) {
-                        return;
-                    }
-                }
-            }
-        }
 
         if (
             this.evaluator.enemyCount <= 0 &&
@@ -244,11 +196,43 @@ export class BattleArmyBrain extends Component {
             return;
         }
 
-        if (this.trySpawnRangedSupport()) {
+        if (
+            decision.entry &&
+            decision.laneId >= 0
+        ) {
+            this.spawn(
+                decision.entry,
+                decision.laneId,
+                decision.aggressiveForward,
+                decision.reason,
+                decision.target
+            );
             return;
         }
 
-        this.trySpawnPressureWave();
+        const fallbackDecision =
+            this.evaluator.chooseFallbackSpawnDecision(
+                gameManager,
+                this.affordableEntries
+            );
+
+        if (
+            fallbackDecision.entry &&
+            fallbackDecision.laneId >= 0
+        ) {
+            this.spawn(
+                fallbackDecision.entry,
+                fallbackDecision.laneId,
+                fallbackDecision.aggressiveForward,
+                fallbackDecision.reason,
+                fallbackDecision.target
+            );
+            return;
+        }
+
+        this.stateLog(
+            'WAIT no useful snapshot or fallback spawn.'
+        );
     }
 
     private trySpawnDeliberatelyWrongWave() {
@@ -296,9 +280,9 @@ export class BattleArmyBrain extends Component {
 
         const laneId =
             gameManager.clampLaneId(
-                bestTarget.laneId >= 0
-                    ? bestTarget.laneId
-                    : bestTarget.visualLaneId
+                bestTarget.visualLaneId >= 0
+                    ? bestTarget.visualLaneId
+                    : bestTarget.laneId
             );
 
         return this.spawn(
@@ -332,157 +316,6 @@ export class BattleArmyBrain extends Component {
             laneId,
             false,
             'imperfect-random'
-        );
-    }
-
-    private trySpawnAntiSpearArcherSupport() {
-        const gameManager =
-            this.gameManager;
-
-        if (!gameManager) return false;
-
-        const target =
-            this.evaluator.findBestAntiSpearArcherTarget(
-                this.affordableEntries,
-                this.maxRangedSupportWavesPerLane
-            );
-
-        if (!target) return false;
-
-        const entry =
-            this.evaluator.chooseAntiSpearArcherEntry(
-                this.affordableEntries,
-                target
-            );
-
-        if (!entry) return false;
-
-        const laneId =
-            this.evaluator.chooseRangedSupportLane(
-                gameManager,
-                target
-            );
-
-        if (laneId < 0) return false;
-
-        return this.spawn(
-            entry,
-            laneId,
-            false,
-            'anti-spear-archer',
-            target
-        );
-    }
-
-    private trySpawnClusterMonkSupport() {
-        const gameManager =
-            this.gameManager;
-
-        if (!gameManager) return false;
-
-        const target =
-            this.evaluator.findBestClusterMonkTarget(
-                this.affordableEntries,
-                this.maxRangedSupportWavesPerLane
-            );
-
-        if (!target) return false;
-
-        const entry =
-            this.evaluator.chooseClusterMonkEntry(
-                this.affordableEntries,
-                target
-            );
-
-        if (!entry) return false;
-
-        const laneId =
-            this.evaluator.chooseRangedSupportLane(
-                gameManager,
-                target
-            );
-
-        if (laneId < 0) return false;
-
-        return this.spawn(
-            entry,
-            laneId,
-            false,
-            'cluster-monk-support',
-            target
-        );
-    }
-
-    private trySpawnRangedSupport() {
-        const gameManager =
-            this.gameManager;
-
-        if (!gameManager) return false;
-
-        const target =
-            this.evaluator.findBestRangedSupportTarget(
-                this.affordableEntries,
-                this.maxRangedSupportWavesPerLane
-            );
-
-        if (!target) return false;
-
-        const entry =
-            this.evaluator.chooseRangedSupportEntry(
-                this.affordableEntries,
-                target
-            );
-
-        if (!entry) return false;
-
-        const laneId =
-            this.evaluator.chooseRangedSupportLane(
-                gameManager,
-                target
-            );
-
-        if (laneId < 0) return false;
-
-        return this.spawn(
-            entry,
-            laneId,
-            false,
-            'ranged-support',
-            target
-        );
-    }
-
-    private trySpawnPressureWave() {
-        const gameManager =
-            this.gameManager;
-
-        if (!gameManager) return false;
-
-        const laneId =
-            this.evaluator.choosePressureLane(
-                gameManager
-            );
-
-        if (laneId < 0) {
-            this.stateLog('WAIT no pressure lane.');
-            return false;
-        }
-
-        const entry =
-            this.evaluator.choosePressureEntry(
-                this.affordableEntries
-            );
-
-        if (!entry) {
-            this.stateLog('WAIT no pressure entry.');
-            return false;
-        }
-
-        return this.spawn(
-            entry,
-            laneId,
-            true,
-            'pressure'
         );
     }
 

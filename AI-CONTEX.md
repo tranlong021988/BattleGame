@@ -2,11 +2,318 @@
 
 Handoff for the other Codex session working on `BattleGame`.
 
-Last updated: 2026-07-21 by home Codex.
+Last updated: 2026-07-21 end-of-day by office Codex.
 
 This file should describe the current accepted source and design. It is not a full history log. Always read the current source before editing. If this file conflicts with source, trust source first and update this file.
 
-## Latest 2026-07-21 Home Handoff - Clean Balance Rules, Visible Stats, Live-Force BattleArmyBrain
+## Latest 2026-07-21 End-Of-Day Office Handoff - Logic Audit Fixes
+
+This section records the accepted state after a broad logic audit requested by
+the user. It is not just a changelog. The goal was to find real behavioral
+conflicts instead of hiding symptoms with tuning constants.
+
+### User Direction
+
+The user explicitly accepted:
+
+- Back-to-lane after freehunt before returning to forward is acceptable.
+- Fixes should address root logic, not add magic thresholds or narrow constants
+  to make a test pass.
+- The user strongly dislikes "small patch" fixes that mask architecture
+  conflicts and then create a new bug elsewhere.
+
+### Runtime Source Of Truth
+
+- The active scene uses `BattleArmyBrain` + `BattlefieldEvaluator`.
+- `SmartArmyBrain` components are still present in the scene but disabled.
+- `LevelSettings` node is inactive/disabled in `assets/Test.scene`.
+- Always check `assets/Test.scene` before diagnosing AI, because handoff history
+  contains many older SmartArmyBrain notes.
+
+### Fix 1 - AI Tactical Lane Source
+
+Problem found:
+
+- `BattlefieldEvaluator` calculated safety/coverage/frontline using
+  `visualLaneId`, but `chooseSpawnLaneForTarget()` preferred `laneId`.
+- Because `laneId` is metadata updated by interval and can lag behind the
+  visual position of the wave, AI could evaluate one lane but spawn in another.
+- Visual symptom: AI appears to see a covered target in mid but spawns support
+  or counter into left/right, especially after messy freehunt/back-to-lane.
+
+Fix applied:
+
+- `BattlefieldEvaluator.chooseSpawnLaneForTarget()` now uses a single tactical
+  lane helper that prefers `visualLaneId`.
+- `BattleArmyBrain.trySpawnDeliberatelyWrongWave()` also uses `visualLaneId`
+  first so low-accuracy/wrong decisions do not revive stale lane metadata.
+
+Files:
+
+- `assets/scripts/BattlefieldEvaluator.ts`
+- `assets/scripts/BattleArmyBrain.ts`
+
+Expected behavior:
+
+- AI decisions should now spawn into the same lane that the evaluator used for
+  frontline/ranged-safety/coverage checks.
+
+Watch while testing:
+
+- Ranged support should not appear in a lane that does not visibly contain the
+  melee shield it is supposed to support.
+- Counter waves should target the lane where the target wave is visually
+  located, not where its old `laneId` metadata still says it is.
+
+### Fix 2 - Hero Phase Must Not Reset Active Combat
+
+Problem found:
+
+- When one team's hero unlocks forward, `GameManager.forceEnemyWavesToForward()`
+  forced all enemy waves into forward mode.
+- That included waves already fighting/freehunting.
+- Visual symptom: units could suddenly stop an ongoing fight or appear to
+  "remember a different order" when hero phase began.
+
+Fix applied:
+
+- `forceEnemyWavesToForward()` now skips waves whose runtime state currently
+  has at least one engaged/busy unit.
+- Idle enemy waves may still be pushed back into forward, preserving the
+  current hero-phase direction without interrupting active combat.
+
+File:
+
+- `assets/scripts/GameManager.ts`
+
+Expected behavior:
+
+- Hero phase no longer forcibly breaks existing combat.
+- Waves already fighting continue their fight naturally.
+
+Watch while testing:
+
+- If a wave is not busy but has only a chase target, it can still be force-
+  forwarded by hero phase. That is currently accepted because the bug was
+  specifically combat interruption, not chase interruption.
+
+### Fix 3 - Melee Damage Must Respect Attack Range
+
+Problem found:
+
+- `UnitBehavior.update()` checked attack range only for ranged attackers.
+- Melee units that were already `onBusy` could continue dealing damage after a
+  ranged target kited/repositioned out of melee range.
+- Visual symptom observed by user: ranged unit runs away from melee but still
+  dies as if the melee attacker is hitting from far away.
+
+Fix applied:
+
+- All attackers now check `isCurrentEnemyInAttackRange()` before applying
+  damage.
+- If the current target is no longer in range, the unit calls
+  `disengageCurrentEnemyForChase()`.
+- `disengageCurrentEnemyForChase()` clears only the busy/locked combat state and
+  keeps the current target, so the unit resumes chasing rather than forgetting
+  or standing still.
+
+Files:
+
+- `assets/scripts/UnitBehavior.ts`
+- `assets/scripts/Unit.ts`
+
+Expected behavior:
+
+- A melee unit no longer deals damage to a target that has escaped melee range.
+- It should unlock, chase the same target, and re-engage only when range is
+  valid again.
+- Ranged attackers continue to obey range as before.
+
+Watch while testing:
+
+- A chasing melee should not lose its target immediately after disengage.
+- If the target dies or is pooled, `lifeId` target validation should reject the
+  stale reference as before.
+
+### Explicit Non-Fix
+
+Back-to-lane after freehunt remains active and accepted:
+
+- `BattleWave.tryResumeForward()` still resumes via `enterWaveForwardMode(...,
+  true)`.
+- `Unit.startBackToLanePhase()` can still move units horizontally back into
+  their lane area before forward.
+- Do not remove this unless the user reopens the design.
+
+### Validation
+
+Typecheck passed after the fixes:
+
+```powershell
+node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\bin\tsc' --noEmit --skipLibCheck --module esnext
+```
+
+`git diff --check` on the touched TS files reported no whitespace errors, only
+normal Windows CRLF/LF warnings.
+
+### Next Recommended Tests
+
+1. Run a normal AI-vs-AI battle with telemetry on.
+2. Watch lane-specific support/counter spawns:
+   - target visual lane should match spawned lane;
+   - ranged support should be behind real engaged melee.
+3. Create/check a ranged kite case:
+   - melee engages ranged;
+   - ranged moves out of melee range;
+   - melee should stop damaging, unlock, chase, then re-engage only when close.
+4. Trigger hero phase:
+   - waves already fighting should continue fighting;
+   - idle waves may still return to forward.
+
+## 2026-07-21 Office Update - BattleArmyBrain Uses One Snapshot Decision Pipeline
+
+The active `BattleArmyBrain` runtime flow was refactored after user feedback
+that repeated narrow fixes had created branch-order conflicts and ranged/Axeman
+spawn bias.
+
+Current accepted AI direction:
+
+- `BattleArmyBrain.thinkAndSpawn()` now uses one tactical decision call:
+  `BattlefieldEvaluator.chooseSnapshotSpawnDecision(...)`.
+- The old runtime sequence:
+  `anti-spear-archer -> cluster-monk-support -> direct response ->
+  ranged-support -> pressure`
+  was removed from `BattleArmyBrain`.
+- Legacy direct-response helpers such as `findBestTarget()`,
+  `chooseEntryForTarget()`, `findBestRangedSupportTarget()`, and old role-rank
+  bias helpers were removed from `BattlefieldEvaluator` so future Codex
+  sessions do not accidentally revive the old split-branch flow.
+- `BattlefieldEvaluator` now decides by scanning the live snapshot of existing
+  enemy/allied waves:
+  - enemy alive count and HP ratio;
+  - wave power from visible stats;
+  - progress toward own hero/spawn line;
+  - whether the enemy wave is already engaged;
+  - allied frontline/blocking power between spawn and target;
+  - ranged safety;
+  - explicit `CounterSettings` hard-counter score only.
+- `coveragePower/coverageRatio` names still exist in code, but they now serve
+  as live snapshot force estimates from current allied waves, not as the old
+  standalone decision branch.
+
+Ranged rules after this update:
+
+- Ranged units are support, not generic direct response.
+- Ranged support is allowed only when it is behind allied melee/frontline waves
+  in the same target lane that are already engaged.
+- Ranged support selection is now rule-based, not cluster-score based:
+  - if there is 1 engaged melee/frontline shield in that lane, Archer may spawn
+    as support;
+  - if there are 2 or more engaged melee/frontline shields in that lane, Monk may
+    spawn as AoE support;
+  - if the target is a full-strength hard-counter target and the dedicated
+    ranged hard-counter is affordable, that hard-counter is prioritized. Current
+    example: Archer answers full-strength Spear.
+- Ranged support must spawn in the direct lane of the target. It must not use
+  flank/empty lanes.
+- Ranged support must not use `aggressiveForward`; aggressive forward is for
+  melee pressure/response only.
+- There is no fixed global ranged cap. Ranged support capacity is derived from
+  the live snapshot for that team:
+
+```text
+rangedWaveAlive < meleeWaveAlive
+```
+
+- Existing `maxRangedSupportWavesPerLane` remains as a local cap near one
+  target lane to avoid repeated ranged support into the same target area.
+- The evaluator also blocks spawning the same ranged family consecutively in the
+  same visual lane. Example: Archer -> Archer in the same lane is blocked;
+  Archer -> Monk is allowed if Monk's 2-frontline shield condition is satisfied.
+- Do not reintroduce `maxRangedSupportWavesTotal`; it was removed because the
+  intended rule depends on current melee coverage, not an inspector constant.
+- Do not reintroduce fixed Monk gates such as "team must have at least 3 melee
+  waves", `clusterScore >= ...`, `aliveCount >= ...`, or hidden cluster-score
+  math. `clusterScore/getEnemyClusterScore` were removed from
+  `BattlefieldEvaluator` on 2026-07-21 because they sent the project back into
+  a test-tweak-test loop.
+- Ranged support uses priority bands inside the evaluator so eligible ranged
+  support does not lose to generic melee scoring:
+  - full-strength ranged hard-counter support is highest priority;
+  - Monk support with 2+ engaged melee shields is next;
+  - Archer support with 1+ engaged melee shield is next.
+- If a test seems to show one tick spawning both a melee wave and a ranged wave,
+  verify telemetry by `team + frame + reason`. In the current scene, the old
+  `SmartArmyBrain` components are disabled and the active `BattleArmyBrain`
+  path makes one snapshot decision per brain tick. Same-frame melee+ranged can
+  happen when Team A and Team B both think on the same frame.
+
+Late-game no-spawn fallback:
+
+- Test observation: both teams could still show CP in UI but stop spawning near
+  the end of a match.
+- Diagnosis: current costs allow Archer at 34 CP, while the cheapest melee
+  wave is Spear at 41 CP. After ranged support was correctly restricted to
+  "safe behind engaged melee frontline", a team with 34-40 CP could afford only
+  ranged, but ranged had no legal support target, so the snapshot returned no
+  decision and `BattleArmyBrain` waited forever.
+- Fix: after the main snapshot decision returns empty, `BattleArmyBrain` now
+  calls `BattlefieldEvaluator.chooseFallbackSpawnDecision(...)`.
+  - First fallback choice is a melee pressure wave
+    (`snapshot-pressure-fallback`), preserving normal AI pressure.
+  - If no melee is affordable but some ranged unit is affordable, it may spawn
+    one last-resort ranged wave (`snapshot-last-resort-ranged`) as normal
+    forward, not aggressive forward.
+  - This last-resort ranged path is not "ranged support"; it exists only to
+    prevent a softlock where the team has spendable CP but no legal support
+    target.
+
+Melee policy after this update:
+
+- Hard counters still come only from `CounterSettings`.
+- Natural melee ladder is used as AI selection policy, not as hidden damage:
+
+```text
+Cavalry > Axeman > Sword > Spear
+```
+
+- The evaluator favors the next useful step in this ladder when it is enough,
+  so Sword can appear against Spear instead of Axeman eating every melee
+  response.
+- It only jumps multiple ladder steps when the team can comfortably afford it;
+  otherwise it may choose an equal/weaker holding unit because the game has no
+  CP income/interest mechanic.
+- Cavalry receives a special selection preference against ranged targets, with
+  reduced overkill penalty, because slow melee chasing ranged was a known bad
+  tactical result.
+
+Validation done:
+
+- Typecheck passed with:
+
+```powershell
+node 'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\bin\tsc' --noEmit --skipLibCheck --module esnext
+```
+
+Important next test:
+
+- Run telemetry with `decisionAccuracy = 1` first.
+- Check spawn reason distribution:
+  - `snapshot-hard-counter`;
+  - `snapshot-ranged-counter-support`;
+  - `snapshot-ranged-strategic-support`;
+  - `snapshot-live-force-response`;
+  - `snapshot-opening-pressure`.
+- Specifically verify:
+  - ranged total does not exceed the intended team-level cap except from
+    already-existing waves;
+  - Sword appears as an economical answer to Spear when Archer support is
+    capped/unsafe;
+  - Axeman no longer becomes the universal response;
+  - Cavalry still appears against exposed ranged and, when CP is high enough,
+    against Axeman.
+
+## 2026-07-21 Home Handoff - Clean Balance Rules, Visible Stats, Live-Force BattleArmyBrain
 
 This is the current end-of-day state after the home Codex session. Read this
 before touching `BattlefieldEvaluator`, `BattleArmyBrain`, `UNITSTATS.md`,

@@ -356,7 +356,17 @@ export class RVOSimulator {
             ) {
                 continue;
             }
-            if (!this.isAllyOvertakeBlocker(b)) continue;
+            const fasterThanBlocker =
+                a.waveRuntimeId !== b.waveRuntimeId &&
+                a.maxSpeed >
+                b.maxSpeed + a.overtakeSpeedDiff;
+
+            if (
+                !fasterThanBlocker &&
+                !this.isAllyOvertakeBlocker(b)
+            ) {
+                continue;
+            }
 
             const dx = b.pos.x - a.pos.x;
             const dz = b.pos.z - a.pos.z;

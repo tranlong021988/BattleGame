@@ -75,10 +75,8 @@ export class UnitBehavior extends Component {
             return;
         }
 
-        if (
-            this.unit.isRangedCombatUnit() &&
-            !this.unit.isCurrentEnemyInAttackRange()
-        ) {
+        if (!this.unit.isCurrentEnemyInAttackRange()) {
+            this.unit.disengageCurrentEnemyForChase();
             return;
         }
 

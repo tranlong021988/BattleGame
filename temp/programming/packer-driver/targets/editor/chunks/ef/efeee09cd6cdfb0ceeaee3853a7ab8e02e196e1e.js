@@ -115,7 +115,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (this.unit.isRangedCombatUnit() && !this.unit.isCurrentEnemyInAttackRange()) {
+          if (!this.unit.isCurrentEnemyInAttackRange()) {
+            this.unit.disengageCurrentEnemyForChase();
             return;
           }
 

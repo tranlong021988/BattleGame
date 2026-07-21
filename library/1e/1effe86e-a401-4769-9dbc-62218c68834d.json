@@ -8959,7 +8959,7 @@
     "rescueAllyAliveRatio": 0.35,
     "laneAllyAheadLimit": 2,
     "spawnOpeningWaveIfNoEnemyWave": true,
-    "maxRangedSupportWavesPerLane": 2,
+    "maxRangedSupportWavesPerLane": 3,
     "enableStateLog": false,
     "enableDebugLog": false,
     "_id": "1enI9FlU1PYIx+HW9BNAj/"
@@ -9071,7 +9071,7 @@
     "rescueAllyAliveRatio": 0.35,
     "laneAllyAheadLimit": 2,
     "spawnOpeningWaveIfNoEnemyWave": true,
-    "maxRangedSupportWavesPerLane": 2,
+    "maxRangedSupportWavesPerLane": 3,
     "enableStateLog": false,
     "enableDebugLog": false,
     "_id": "44jD/hPPJE/qSYmhXRdy7H"

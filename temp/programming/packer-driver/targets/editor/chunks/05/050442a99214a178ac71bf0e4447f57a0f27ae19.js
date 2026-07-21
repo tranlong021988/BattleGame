@@ -979,7 +979,11 @@ function applyAllyOvertake(a, neighbors) {
         if (a.maxSpeed + a.overtakeSpeedDiff < b.maxSpeed) {
             continue;
         }
-        if (!isAllyOvertakeBlocker(b)) continue;
+        const fasterThanBlocker =
+            a.waveRuntimeId !== b.waveRuntimeId &&
+            a.maxSpeed > b.maxSpeed + a.overtakeSpeedDiff;
+
+        if (!fasterThanBlocker && !isAllyOvertakeBlocker(b)) continue;
 
         const dx = b.x - a.x;
         const dz = b.z - a.z;

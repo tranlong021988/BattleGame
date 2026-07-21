@@ -304,7 +304,12 @@ System.register(["cc"], function (_export, _context) {
               continue;
             }
 
-            if (!this.isAllyOvertakeBlocker(b)) continue;
+            var fasterThanBlocker = a.waveRuntimeId !== b.waveRuntimeId && a.maxSpeed > b.maxSpeed + a.overtakeSpeedDiff;
+
+            if (!fasterThanBlocker && !this.isAllyOvertakeBlocker(b)) {
+              continue;
+            }
+
             var dx = b.pos.x - a.pos.x;
             var dz = b.pos.z - a.pos.z;
             var forwardDist = dx * a.forwardX + dz * a.forwardZ;

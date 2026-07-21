@@ -1704,6 +1704,7 @@ export class GameManager extends Component {
             if (!wave) continue;
             if (wave.team !== enemyTeam) continue;
             if (wave.isDead()) continue;
+            if (wave.hasEngagedRuntime(this.frame)) continue;
 
             wave.forceForwardMode();
         }
