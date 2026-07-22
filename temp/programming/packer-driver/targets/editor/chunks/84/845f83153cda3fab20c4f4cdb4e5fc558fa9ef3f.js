@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattlefieldEvaluator, UnitFamily, unitFamilyToName, CounterSettings, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattlefieldEvaluator, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -21,6 +21,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("BattlefieldEvaluator", "./BattlefieldEvaluator", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfBattleSpawnDecision(extras) {
+    _reporterNs.report("BattleSpawnDecision", "./BattlefieldEvaluator", _context.meta, extras);
+  }
+
   function _reportPossibleCrUseOfBattlefieldWaveIntel(extras) {
     _reporterNs.report("BattlefieldWaveIntel", "./BattlefieldEvaluator", _context.meta, extras);
   }
@@ -31,10 +35,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
   function _reportPossibleCrUseOfunitFamilyToName(extras) {
     _reporterNs.report("unitFamilyToName", "./BattleTypes", _context.meta, extras);
-  }
-
-  function _reportPossibleCrUseOfCounterSettings(extras) {
-    _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
   }
 
   return {
@@ -53,8 +53,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_4) {
       UnitFamily = _unresolved_4.UnitFamily;
       unitFamilyToName = _unresolved_4.unitFamilyToName;
-    }, function (_unresolved_5) {
-      CounterSettings = _unresolved_5.CounterSettings;
     }],
     execute: function () {
       _crd = true;
@@ -73,7 +71,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), GameManager) : GameManager), _dec3 = property({
         min: 0,
         max: 1,
-        tooltip: 'Chance to use the tactical evaluator. The remaining chance is split evenly between deliberately wrong counter choices and random valid choices.'
+        tooltip: 'Chance to keep the evaluator unit choice. Failed rolls keep the same target/lane but choose a deliberately poor unit response.'
       }), _dec4 = property({
         tooltip: 'Power coverage target for the selected enemy wave. 1 means enough estimated force; values above 1 ask for a small reserve.'
       }), _dec5 = property({
@@ -81,7 +79,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec6 = property({
         tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
       }), _dec7 = property({
-        tooltip: 'Maximum Archer/Monk support waves allowed near one target lane before BattleArmyBrain looks elsewhere.'
+        tooltip: 'Maximum Archer/Monk support waves allowed near one target lane at full decision accuracy. Lower accuracy scales this limit down.'
       }), _dec8 = property({
         min: 1,
         tooltip: 'Maximum consecutive melee waves this brain may spawn into the same lane. Ranged waves use their own support rules.'
@@ -180,7 +178,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.currentAccuracyRoll = Math.random();
           this.currentAccurateDecision = this.currentAccuracyRoll < this.getDecisionAccuracy();
-          this.currentDeliberateMistake = !this.currentAccurateDecision && this.currentAccuracyRoll < this.getDecisionAccuracy() + (1 - this.getDecisionAccuracy()) * 0.5;
+          this.currentDeliberateMistake = false;
           this.evaluator.coverageTargetRatio = Math.max(0, this.coverageTargetRatio);
           this.evaluator.rescueAllyAliveRatio = this.clamp01(this.rescueAllyAliveRatio);
           this.evaluator.laneAllyAheadLimit = Math.max(0, Math.floor(this.laneAllyAheadLimit));
@@ -201,37 +199,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return;
             }
 
-            const openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane, this.getBlockedMeleeLaneId());
+            const openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, 0, this.getBlockedMeleeLaneId());
 
-            if (openingDecision.entry && openingDecision.laneId >= 0 && this.spawn(openingDecision.entry, openingDecision.laneId, openingDecision.aggressiveForward, openingDecision.reason, openingDecision.target)) {
+            if (openingDecision.entry && openingDecision.laneId >= 0 && this.trySpawnDecisionWithAccuracy(openingDecision)) {
               this.spawnedOpeningWave = true;
             }
 
             return;
           }
 
-          if (!this.currentAccurateDecision) {
-            if (this.currentDeliberateMistake && this.trySpawnDeliberatelyWrongWave()) {
-              return;
-            }
-
-            if (this.trySpawnRandomWave()) {
-              return;
-            }
-          }
-
-          const decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane, this.getBlockedMeleeLaneId());
+          const effectiveRangedSupportLimit = this.getEffectiveRangedSupportLimit();
+          const decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, effectiveRangedSupportLimit, this.getBlockedMeleeLaneId());
 
           if (decision.entry && decision.laneId >= 0) {
-            if (this.spawn(decision.entry, decision.laneId, decision.aggressiveForward, decision.reason, decision.target)) {
+            if (this.trySpawnDecisionWithAccuracy(decision)) {
               return;
             }
           }
 
-          const fallbackDecision = this.evaluator.chooseFallbackSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane, this.getBlockedMeleeLaneId());
+          const fallbackDecision = this.evaluator.chooseFallbackSpawnDecision(gameManager, this.team, this.affordableEntries, effectiveRangedSupportLimit, this.getBlockedMeleeLaneId());
 
           if (fallbackDecision.entry && fallbackDecision.laneId >= 0) {
-            if (this.spawn(fallbackDecision.entry, fallbackDecision.laneId, fallbackDecision.aggressiveForward, fallbackDecision.reason, fallbackDecision.target)) {
+            if (this.trySpawnDecisionWithAccuracy(fallbackDecision)) {
               return;
             }
           }
@@ -239,60 +228,40 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.stateLog('WAIT no useful snapshot or fallback spawn.');
         }
 
-        trySpawnDeliberatelyWrongWave() {
-          let bestTarget = null;
-          let bestEntry = null;
-          let bestScore = -Infinity;
-
-          for (let i = 0; i < this.evaluator.enemyCount; i++) {
-            const target = this.evaluator.enemies[i];
-
-            if (!target || !target.wave || !target.entry) {
-              continue;
-            }
-
-            if (target.aliveCount <= 0) continue;
-            if (target.healthRatio <= 0.08) continue;
-            const entry = this.getWorstAffordableEntryForTarget(target);
-            if (!entry) continue;
-            const score = target.threatScore + target.progressToDefend * 120 + Math.random() * 0.001;
-
-            if (score > bestScore) {
-              bestScore = score;
-              bestTarget = target;
-              bestEntry = entry;
-            }
-          }
-
-          if (!bestTarget || !bestEntry) {
-            return false;
-          }
-
+        trySpawnDecisionWithAccuracy(decision) {
           const gameManager = this.gameManager;
-          if (!gameManager) return false;
-          const laneId = gameManager.clampLaneId(bestTarget.visualLaneId >= 0 ? bestTarget.visualLaneId : bestTarget.laneId);
-          return this.spawn(bestEntry, laneId, false, 'imperfect-wrong', bestTarget);
-        }
 
-        trySpawnRandomWave() {
-          const entry = this.getRandomAffordableEntry();
-
-          if (!entry) {
-            this.stateLog('WAIT imperfect no entry.');
+          if (!gameManager || !decision.entry) {
             return false;
           }
 
-          const laneId = this.getRandomLaneId(this.isMeleeEntry(entry) ? this.getBlockedMeleeLaneId() : -1);
+          let entry = decision.entry;
+          let aggressiveForward = decision.aggressiveForward;
+          let reason = decision.reason;
+          let intendedEntry = null;
+          const target = decision.target;
+          const appliesAccuracy = !!target;
+          this.currentDeliberateMistake = false;
 
-          if (laneId < 0) {
-            this.stateLog('WAIT imperfect no lane.');
-            return false;
+          if (!this.currentAccurateDecision) {
+            const wrongEntry = appliesAccuracy ? this.evaluator.chooseWrongResponseEntry(target, entry, this.affordableEntries, decision.laneId, this.getBlockedMeleeLaneId()) : this.evaluator.choosePoorGenericEntry(entry, this.affordableEntries, decision.laneId, this.getBlockedMeleeLaneId());
+
+            if (!wrongEntry) {
+              this.stateLog('WAIT inaccurate no poor response.');
+              return false;
+            }
+
+            intendedEntry = entry;
+            entry = wrongEntry;
+            aggressiveForward = target ? this.evaluator.shouldSpawnAggressive(entry, target, decision.laneId) : decision.aggressiveForward;
+            reason = decision.reason + (appliesAccuracy ? '-accuracy-wrong' : '-accuracy-poor');
+            this.currentDeliberateMistake = true;
           }
 
-          return this.spawn(entry, laneId, false, 'imperfect-random');
+          return this.spawn(entry, decision.laneId, aggressiveForward, reason, target, intendedEntry);
         }
 
-        spawn(entry, laneId, aggressiveForward, reason, target = null) {
+        spawn(entry, laneId, aggressiveForward, reason, target = null, intendedEntry = null) {
           const gameManager = this.gameManager;
           if (!gameManager) return false;
 
@@ -300,6 +269,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
+          const combatPointAtDecision = gameManager.getCombatPoint(this.team);
+          const enemyTeam = this.team === 0 ? 1 : 0;
+          const enemyCombatPointAtDecision = gameManager.getCombatPoint(enemyTeam);
+          const postSpawnCombatPoint = combatPointAtDecision - Math.max(0, entry.combatPointCost);
+          const combatPointAdvantageAtDecision = combatPointAtDecision - enemyCombatPointAtDecision;
+          const postSpawnCombatPointAdvantage = postSpawnCombatPoint - enemyCombatPointAtDecision;
+          const combatPointCostRatioAtDecision = combatPointAtDecision / Math.max(1, entry.combatPointCost);
+          const canComfortablyAffordAtDecision = combatPointCostRatioAtDecision >= 1.7;
           const spawned = gameManager.spawnWaveByEntry(this.team, entry, laneId, aggressiveForward, reason);
           if (!spawned) return false;
           this.recordSpawnLaneHistory(entry, laneId);
@@ -317,6 +294,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               error: Error()
             }), unitFamilyToName) : unitFamilyToName)(entry.family),
             tier: entry.tier,
+            intendedUnitName: intendedEntry ? intendedEntry.name : '',
+            intendedFamily: intendedEntry ? intendedEntry.family : undefined,
+            intendedFamilyName: intendedEntry ? (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
+              error: Error()
+            }), unitFamilyToName) : unitFamilyToName)(intendedEntry.family) : '',
             targetWaveId: target && target.wave ? target.wave.id : -1,
             targetLaneId: target ? target.visualLaneId : -1,
             targetFamily: target && target.entry ? target.entry.family : -1,
@@ -337,7 +319,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             deliberateMistake: this.currentDeliberateMistake,
             aliveWaveCountAtDecision: this.getAliveWaveCount(),
             affordableEntryCount: this.affordableEntries.length,
-            activeEnemyIntelCount: this.evaluator.enemyCount
+            activeEnemyIntelCount: this.evaluator.enemyCount,
+            combatPointAtDecision,
+            combatPointAdvantageAtDecision,
+            enemyCombatPointAtDecision,
+            postSpawnCombatPoint,
+            postSpawnCombatPointAdvantage: postSpawnCombatPointAdvantage,
+            combatPointCostRatioAtDecision,
+            canComfortablyAffordAtDecision
           });
           this.stateLog(`${reason} spawn=${entry.name} lane=${laneId} ` + `aggressive=${aggressiveForward}`);
           return true;
@@ -374,21 +363,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.nextInterval = min + Math.random() * (max - min);
         }
 
-        getRandomLaneId(blockedLaneId = -1) {
-          const gameManager = this.gameManager;
-          if (!gameManager) return -1;
-          const laneCount = gameManager.getSafeLaneCount();
-          if (laneCount <= 0) return -1;
-
-          if (blockedLaneId >= 0 && laneCount > 1) {
-            const roll = Math.floor(Math.random() * (laneCount - 1));
-            const laneId = roll >= blockedLaneId ? roll + 1 : roll;
-            return gameManager.clampLaneId(laneId);
-          }
-
-          return gameManager.clampLaneId(Math.floor(Math.random() * laneCount));
-        }
-
         isMeleeEntry(entry) {
           return entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
@@ -419,44 +393,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.consecutiveMeleeSpawnLaneCount = 1;
         }
 
-        getRandomAffordableEntry() {
-          if (this.affordableEntries.length <= 0) {
-            return null;
-          }
-
-          return this.affordableEntries[Math.floor(Math.random() * this.affordableEntries.length)];
-        }
-
-        getWorstAffordableEntryForTarget(target) {
-          if (!target.entry) return null;
-          const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
-            error: Error()
-          }), CounterSettings) : CounterSettings).instance;
-          if (!counter) return null;
-          let worst = null;
-          let worstScore = 1;
-
-          for (let i = 0; i < this.affordableEntries.length; i++) {
-            const entry = this.affordableEntries[i];
-            const reverseCounter = counter.getCounterScore(target.entry.family, entry.family);
-
-            if (reverseCounter <= 1.0001) {
-              continue;
-            }
-
-            const score = reverseCounter + Math.random() * 0.001;
-
-            if (score > worstScore) {
-              worstScore = score;
-              worst = entry;
-            }
-          }
-
-          return worst;
-        }
-
         getDecisionAccuracy() {
           return this.clamp01(this.decisionAccuracy);
+        }
+
+        getEffectiveRangedSupportLimit() {
+          const max = Math.max(0, Math.floor(this.maxRangedSupportWavesPerLane));
+          return Math.floor(max * this.getDecisionAccuracy());
         }
 
         clamp01(value) {

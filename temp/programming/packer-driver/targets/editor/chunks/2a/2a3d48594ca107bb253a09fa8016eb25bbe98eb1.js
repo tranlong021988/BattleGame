@@ -1202,7 +1202,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (this.canAffordAnySpawnEntry(team)) {
+          if (this.canAffordAnyStandaloneSpawnEntry(team)) {
             return;
           }
 
@@ -1295,6 +1295,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return false;
+        }
+
+        canAffordAnyStandaloneSpawnEntry(team) {
+          const entries = this.getDatabaseTeamEntries(team);
+
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+            if (!this.isValidSpawnEntry(entry)) continue;
+            if (!this.isStandaloneSpawnEntry(entry)) continue;
+
+            if (this.canAffordEntry(team, entry)) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        isStandaloneSpawnEntry(entry) {
+          if (!entry) return false;
+          return entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Archer && entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Monk;
         }
 
         resetBattleTelemetry() {
@@ -1398,20 +1423,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return hero.props.getHealthRatio();
         }
 
-        processBattleWinnerCondition() {
+        processBattleWinnerCondition(force = false) {
           if (!this.enableBattleWinnerCheck) return;
           if (this.hasBattleWinner()) return;
           if (!this.enableNoAffordableSpawnWinnerFallback) return;
           if (!this.isCombatPointEnabled()) return;
 
-          if (!this.shouldRunFrameInterval(this.battleWinnerCheckIntervalFrames)) {
+          if (!force && !this.shouldRunFrameInterval(this.battleWinnerCheckIntervalFrames)) {
             return;
           }
 
-          const teamACanSpawn = this.canAffordAnySpawnEntry(0);
-          const teamBCanSpawn = this.canAffordAnySpawnEntry(1);
           const teamAHasTroops = this.getAliveNonHeroUnitCount(0) > 0;
           const teamBHasTroops = this.getAliveNonHeroUnitCount(1) > 0;
+          const teamACanSpawn = teamAHasTroops ? this.canAffordAnySpawnEntry(0) : this.canAffordAnyStandaloneSpawnEntry(0);
+          const teamBCanSpawn = teamBHasTroops ? this.canAffordAnySpawnEntry(1) : this.canAffordAnyStandaloneSpawnEntry(1);
           const teamAEliminated = !teamACanSpawn && !teamAHasTroops;
           const teamBEliminated = !teamBCanSpawn && !teamBHasTroops;
 
@@ -1705,7 +1730,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
 
           if (wave) {
-            wave.invalidateRuntimeHealth();
+            wave.invalidateRuntimeState();
             wave.handleUnitWillDespawn(unit);
             this.updateWaveBannerHealthBar(wave);
           }
@@ -2479,6 +2504,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               this.spawner.despawnUnit(unit, entry.prefab);
               this.requestSpatialGridRebuild();
               this.requestBattleStatsUIRefresh();
+              this.processBattleWinnerCondition(true);
             }
 
             return;
@@ -2499,6 +2525,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               this.spawner.despawnUnit(unit, entry.prefab);
               this.requestSpatialGridRebuild();
               this.requestBattleStatsUIRefresh();
+              this.processBattleWinnerCondition(true);
             }
 
             return;

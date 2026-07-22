@@ -156,6 +156,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeHealthFrame = -1;
         }
 
+        invalidateRuntimeState() {
+          this.runtimeStateFrame = -1;
+          this.runtimeHealthFrame = -1;
+        }
+
         getRandomAliveUnit() {
           return this.getRandomPreferredAliveUnit();
         }

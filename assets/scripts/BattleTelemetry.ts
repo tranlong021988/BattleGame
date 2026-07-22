@@ -54,6 +54,9 @@ export interface BattleTelemetryWaveSpawnDecision {
     family: number;
     familyName: string;
     tier: number;
+    intendedUnitName?: string;
+    intendedFamily?: number;
+    intendedFamilyName?: string;
     targetWaveId: number;
     targetLaneId: number;
     targetFamily: number;
@@ -87,6 +90,13 @@ export interface BattleTelemetryWaveSpawnDecision {
     aliveWaveCountAtDecision?: number;
     affordableEntryCount?: number;
     activeEnemyIntelCount?: number;
+    combatPointAtDecision?: number;
+    combatPointAdvantageAtDecision?: number;
+    enemyCombatPointAtDecision?: number;
+    postSpawnCombatPoint?: number;
+    postSpawnCombatPointAdvantage?: number;
+    combatPointCostRatioAtDecision?: number;
+    canComfortablyAffordAtDecision?: boolean;
 }
 
 export interface BattleTelemetryWaveSnapshot {
@@ -135,12 +145,18 @@ export interface BattleTelemetryDiagnosticEvent {
     laneId?: number;
     unitName?: string;
     familyName?: string;
+    intendedUnitName?: string;
+    intendedFamilyName?: string;
     targetWaveId?: number;
     targetTeam?: number;
     targetLaneId?: number;
     targetFamilyName?: string;
     reason?: string;
     aggressiveForward?: boolean;
+    combatPointAdvantageAtDecision?: number;
+    postSpawnCombatPointAdvantage?: number;
+    combatPointCostRatioAtDecision?: number;
+    canComfortablyAffordAtDecision?: boolean;
     damage?: number;
     actualDamage?: number;
     amount?: number;
@@ -539,11 +555,21 @@ export class BattleTelemetry {
             laneId: normalized.laneId,
             unitName: normalized.unitName,
             familyName: normalized.familyName,
+            intendedUnitName: normalized.intendedUnitName,
+            intendedFamilyName: normalized.intendedFamilyName,
             targetWaveId: normalized.targetWaveId,
             targetLaneId: normalized.targetLaneId,
             targetFamilyName: normalized.targetFamilyName,
             reason: normalized.reason,
             aggressiveForward: normalized.aggressiveForward,
+            combatPointAdvantageAtDecision:
+                normalized.combatPointAdvantageAtDecision,
+            postSpawnCombatPointAdvantage:
+                normalized.postSpawnCombatPointAdvantage,
+            combatPointCostRatioAtDecision:
+                normalized.combatPointCostRatioAtDecision,
+            canComfortablyAffordAtDecision:
+                normalized.canComfortablyAffordAtDecision,
         });
 
         const key =
@@ -1063,6 +1089,18 @@ export class BattleTelemetry {
                         : 'Unknown'
                 ),
             tier: Math.max(1, Math.floor(decision.tier || 1)),
+            intendedUnitName: decision.intendedUnitName || '',
+            intendedFamily:
+                Number.isFinite(decision.intendedFamily)
+                    ? decision.intendedFamily
+                    : undefined,
+            intendedFamilyName:
+                decision.intendedFamilyName ||
+                (
+                    Number.isFinite(decision.intendedFamily)
+                        ? unitFamilyToName(decision.intendedFamily!)
+                        : ''
+                ),
             targetWaveId: Number.isFinite(
                 decision.targetWaveId
             )
@@ -1178,6 +1216,40 @@ export class BattleTelemetry {
                 Number.isFinite(decision.activeEnemyIntelCount)
                     ? Math.floor(decision.activeEnemyIntelCount)
                     : undefined,
+            combatPointAtDecision:
+                Number.isFinite(decision.combatPointAtDecision)
+                    ? decision.combatPointAtDecision
+                    : undefined,
+            combatPointAdvantageAtDecision:
+                Number.isFinite(
+                    decision.combatPointAdvantageAtDecision
+                )
+                    ? decision.combatPointAdvantageAtDecision
+                    : undefined,
+            enemyCombatPointAtDecision:
+                Number.isFinite(decision.enemyCombatPointAtDecision)
+                    ? decision.enemyCombatPointAtDecision
+                    : undefined,
+            postSpawnCombatPoint:
+                Number.isFinite(decision.postSpawnCombatPoint)
+                    ? decision.postSpawnCombatPoint
+                    : undefined,
+            postSpawnCombatPointAdvantage:
+                Number.isFinite(
+                    decision.postSpawnCombatPointAdvantage
+                )
+                    ? decision.postSpawnCombatPointAdvantage
+                    : undefined,
+            combatPointCostRatioAtDecision:
+                Number.isFinite(
+                    decision.combatPointCostRatioAtDecision
+                )
+                    ? decision.combatPointCostRatioAtDecision
+                    : undefined,
+            canComfortablyAffordAtDecision:
+                decision.canComfortablyAffordAtDecision === undefined
+                    ? undefined
+                    : !!decision.canComfortablyAffordAtDecision,
         };
     }
 

@@ -44,16 +44,16 @@ export class LevelSettings extends Component {
     initialCombatPointMax = 180;
 
     @property({
-        tooltip: 'Apply the SmartArmyBrain accuracy curve. At accuracy A: smart=A, deliberate mistake=(1-A)^2, random=A*(1-A). Start near 0.1 to keep the easiest AI weak without locking it into deterministic troop loops.'
+        tooltip: 'Apply the AI decision accuracy curve. Accuracy affects unit choice only; target and lane selection stay tactical.'
     })
     allowDecisionAccuracy = true;
 
     @property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at level 1. Default 0.1 keeps the AI extremely weak but allows enough variation to avoid the Accuracy 0 troop loop.'
+        tooltip: 'Decision Accuracy at level 1. Use 0 for deliberately poor unit choices and no ranged support.'
     })
-    decisionAccuracyMin = 0.1;
+    decisionAccuracyMin = 0;
 
     @property({
         min: 0,

@@ -2,10 +2,10 @@ import { _decorator, Component } from 'cc';
 import { GameManager, UnitPrefabEntry } from './GameManager';
 import {
     BattlefieldEvaluator,
+    BattleSpawnDecision,
     BattlefieldWaveIntel,
 } from './BattlefieldEvaluator';
 import { UnitFamily, unitFamilyToName } from './BattleTypes';
-import { CounterSettings } from './CounterSettings';
 
 const { ccclass, property } = _decorator;
 
@@ -40,7 +40,7 @@ export class BattleArmyBrain extends Component {
         min: 0,
         max: 1,
         tooltip:
-            'Chance to use the tactical evaluator. The remaining chance is split evenly between deliberately wrong counter choices and random valid choices.',
+            'Chance to keep the evaluator unit choice. Failed rolls keep the same target/lane but choose a deliberately poor unit response.',
     })
     decisionAccuracy = 0.8;
 
@@ -67,7 +67,7 @@ export class BattleArmyBrain extends Component {
 
     @property({
         tooltip:
-            'Maximum Archer/Monk support waves allowed near one target lane before BattleArmyBrain looks elsewhere.',
+            'Maximum Archer/Monk support waves allowed near one target lane at full decision accuracy. Lower accuracy scales this limit down.',
     })
     maxRangedSupportWavesPerLane = 2;
 
@@ -155,14 +155,7 @@ export class BattleArmyBrain extends Component {
         this.currentAccurateDecision =
             this.currentAccuracyRoll <
             this.getDecisionAccuracy();
-        this.currentDeliberateMistake =
-            !this.currentAccurateDecision &&
-            this.currentAccuracyRoll <
-                this.getDecisionAccuracy() +
-                (
-                    1 -
-                    this.getDecisionAccuracy()
-                ) * 0.5;
+        this.currentDeliberateMistake = false;
 
         this.evaluator.coverageTargetRatio =
             Math.max(0, this.coverageTargetRatio);
@@ -203,19 +196,15 @@ export class BattleArmyBrain extends Component {
                     gameManager,
                     this.team,
                     this.affordableEntries,
-                    this.maxRangedSupportWavesPerLane,
+                    0,
                     this.getBlockedMeleeLaneId()
                 );
 
             if (
                 openingDecision.entry &&
                 openingDecision.laneId >= 0 &&
-                this.spawn(
-                    openingDecision.entry,
-                    openingDecision.laneId,
-                    openingDecision.aggressiveForward,
-                    openingDecision.reason,
-                    openingDecision.target
+                this.trySpawnDecisionWithAccuracy(
+                    openingDecision
                 )
             ) {
                 this.spawnedOpeningWave = true;
@@ -224,25 +213,14 @@ export class BattleArmyBrain extends Component {
             return;
         }
 
-        if (!this.currentAccurateDecision) {
-            if (
-                this.currentDeliberateMistake &&
-                this.trySpawnDeliberatelyWrongWave()
-            ) {
-                return;
-            }
-
-            if (this.trySpawnRandomWave()) {
-                return;
-            }
-        }
-
+        const effectiveRangedSupportLimit =
+            this.getEffectiveRangedSupportLimit();
         const decision =
             this.evaluator.chooseSnapshotSpawnDecision(
                 gameManager,
                 this.team,
                 this.affordableEntries,
-                this.maxRangedSupportWavesPerLane,
+                effectiveRangedSupportLimit,
                 this.getBlockedMeleeLaneId()
             );
 
@@ -250,13 +228,7 @@ export class BattleArmyBrain extends Component {
             decision.entry &&
             decision.laneId >= 0
         ) {
-            if (this.spawn(
-                decision.entry,
-                decision.laneId,
-                decision.aggressiveForward,
-                decision.reason,
-                decision.target
-            )) {
+            if (this.trySpawnDecisionWithAccuracy(decision)) {
                 return;
             }
         }
@@ -266,7 +238,7 @@ export class BattleArmyBrain extends Component {
                 gameManager,
                 this.team,
                 this.affordableEntries,
-                this.maxRangedSupportWavesPerLane,
+                effectiveRangedSupportLimit,
                 this.getBlockedMeleeLaneId()
             );
 
@@ -274,13 +246,7 @@ export class BattleArmyBrain extends Component {
             fallbackDecision.entry &&
             fallbackDecision.laneId >= 0
         ) {
-            if (this.spawn(
-                fallbackDecision.entry,
-                fallbackDecision.laneId,
-                fallbackDecision.aggressiveForward,
-                fallbackDecision.reason,
-                fallbackDecision.target
-            )) {
+            if (this.trySpawnDecisionWithAccuracy(fallbackDecision)) {
                 return;
             }
         }
@@ -290,91 +256,81 @@ export class BattleArmyBrain extends Component {
         );
     }
 
-    private trySpawnDeliberatelyWrongWave() {
-        let bestTarget: BattlefieldWaveIntel | null = null;
-        let bestEntry: UnitPrefabEntry | null = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < this.evaluator.enemyCount; i++) {
-            const target =
-                this.evaluator.enemies[i];
-
-            if (!target || !target.wave || !target.entry) {
-                continue;
-            }
-            if (target.aliveCount <= 0) continue;
-            if (target.healthRatio <= 0.08) continue;
-
-            const entry =
-                this.getWorstAffordableEntryForTarget(
-                    target
-                );
-
-            if (!entry) continue;
-
-            const score =
-                target.threatScore +
-                target.progressToDefend * 120 +
-                Math.random() * 0.001;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestTarget = target;
-                bestEntry = entry;
-            }
-        }
-
-        if (!bestTarget || !bestEntry) {
-            return false;
-        }
-
+    private trySpawnDecisionWithAccuracy(
+        decision: BattleSpawnDecision
+    ) {
         const gameManager =
             this.gameManager;
 
-        if (!gameManager) return false;
-
-        const laneId =
-            gameManager.clampLaneId(
-                bestTarget.visualLaneId >= 0
-                    ? bestTarget.visualLaneId
-                    : bestTarget.laneId
-            );
-
-        return this.spawn(
-            bestEntry,
-            laneId,
-            false,
-            'imperfect-wrong',
-            bestTarget
-        );
-    }
-
-    private trySpawnRandomWave() {
-        const entry =
-            this.getRandomAffordableEntry();
-
-        if (!entry) {
-            this.stateLog('WAIT imperfect no entry.');
+        if (!gameManager || !decision.entry) {
             return false;
         }
 
-        const laneId =
-            this.getRandomLaneId(
-                this.isMeleeEntry(entry)
-                    ? this.getBlockedMeleeLaneId()
-                    : -1
-            );
+        let entry =
+            decision.entry;
+        let aggressiveForward =
+            decision.aggressiveForward;
+        let reason =
+            decision.reason;
+        let intendedEntry: UnitPrefabEntry | null = null;
+        const target =
+            decision.target;
+        const appliesAccuracy =
+            !!target;
 
-        if (laneId < 0) {
-            this.stateLog('WAIT imperfect no lane.');
-            return false;
+        this.currentDeliberateMistake = false;
+
+        if (!this.currentAccurateDecision) {
+            const wrongEntry =
+                appliesAccuracy
+                    ? this.evaluator.chooseWrongResponseEntry(
+                        target!,
+                        entry,
+                        this.affordableEntries,
+                        decision.laneId,
+                        this.getBlockedMeleeLaneId()
+                    )
+                    : this.evaluator.choosePoorGenericEntry(
+                        entry,
+                        this.affordableEntries,
+                        decision.laneId,
+                        this.getBlockedMeleeLaneId()
+                    );
+
+            if (!wrongEntry) {
+                this.stateLog(
+                    'WAIT inaccurate no poor response.'
+                );
+                return false;
+            }
+
+            intendedEntry = entry;
+            entry = wrongEntry;
+            aggressiveForward =
+                target
+                    ? this.evaluator.shouldSpawnAggressive(
+                        entry,
+                        target,
+                        decision.laneId
+                    )
+                    : decision.aggressiveForward;
+            reason =
+                decision.reason +
+                (
+                    appliesAccuracy
+                        ? '-accuracy-wrong'
+                        : '-accuracy-poor'
+                );
+            this.currentDeliberateMistake = true;
         }
 
         return this.spawn(
             entry,
-            laneId,
-            false,
-            'imperfect-random'
+            decision.laneId,
+            aggressiveForward,
+            reason,
+            target,
+            intendedEntry
         );
     }
 
@@ -383,7 +339,8 @@ export class BattleArmyBrain extends Component {
         laneId: number,
         aggressiveForward: boolean,
         reason: string,
-        target: BattlefieldWaveIntel | null = null
+        target: BattlefieldWaveIntel | null = null,
+        intendedEntry: UnitPrefabEntry | null = null
     ) {
         const gameManager =
             this.gameManager;
@@ -395,6 +352,27 @@ export class BattleArmyBrain extends Component {
         ) {
             return false;
         }
+
+        const combatPointAtDecision =
+            gameManager.getCombatPoint(this.team);
+        const enemyTeam =
+            this.team === 0 ? 1 : 0;
+        const enemyCombatPointAtDecision =
+            gameManager.getCombatPoint(enemyTeam);
+        const postSpawnCombatPoint =
+            combatPointAtDecision -
+            Math.max(0, entry.combatPointCost);
+        const combatPointAdvantageAtDecision =
+            combatPointAtDecision -
+            enemyCombatPointAtDecision;
+        const postSpawnCombatPointAdvantage =
+            postSpawnCombatPoint -
+            enemyCombatPointAtDecision;
+        const combatPointCostRatioAtDecision =
+            combatPointAtDecision /
+            Math.max(1, entry.combatPointCost);
+        const canComfortablyAffordAtDecision =
+            combatPointCostRatioAtDecision >= 1.7;
 
         const spawned =
             gameManager.spawnWaveByEntry(
@@ -424,6 +402,15 @@ export class BattleArmyBrain extends Component {
             family: entry.family,
             familyName: unitFamilyToName(entry.family),
             tier: entry.tier,
+            intendedUnitName: intendedEntry
+                ? intendedEntry.name
+                : '',
+            intendedFamily: intendedEntry
+                ? intendedEntry.family
+                : undefined,
+            intendedFamilyName: intendedEntry
+                ? unitFamilyToName(intendedEntry.family)
+                : '',
             targetWaveId: target && target.wave
                 ? target.wave.id
                 : -1,
@@ -468,6 +455,14 @@ export class BattleArmyBrain extends Component {
                 this.affordableEntries.length,
             activeEnemyIntelCount:
                 this.evaluator.enemyCount,
+            combatPointAtDecision,
+            combatPointAdvantageAtDecision,
+            enemyCombatPointAtDecision,
+            postSpawnCombatPoint,
+            postSpawnCombatPointAdvantage:
+                postSpawnCombatPointAdvantage,
+            combatPointCostRatioAtDecision,
+            canComfortablyAffordAtDecision,
         });
 
         this.stateLog(
@@ -525,40 +520,6 @@ export class BattleArmyBrain extends Component {
             Math.random() * (max - min);
     }
 
-    private getRandomLaneId(
-        blockedLaneId = -1
-    ) {
-        const gameManager =
-            this.gameManager;
-
-        if (!gameManager) return -1;
-
-        const laneCount =
-            gameManager.getSafeLaneCount();
-
-        if (laneCount <= 0) return -1;
-
-        if (
-            blockedLaneId >= 0 &&
-            laneCount > 1
-        ) {
-            const roll =
-                Math.floor(
-                    Math.random() * (laneCount - 1)
-                );
-            const laneId =
-                roll >= blockedLaneId
-                    ? roll + 1
-                    : roll;
-
-            return gameManager.clampLaneId(laneId);
-        }
-
-        return gameManager.clampLaneId(
-            Math.floor(Math.random() * laneCount)
-        );
-    }
-
     private isMeleeEntry(
         entry: UnitPrefabEntry
     ) {
@@ -599,60 +560,22 @@ export class BattleArmyBrain extends Component {
         this.consecutiveMeleeSpawnLaneCount = 1;
     }
 
-    private getRandomAffordableEntry() {
-        if (this.affordableEntries.length <= 0) {
-            return null;
-        }
-
-        return this.affordableEntries[
-            Math.floor(
-                Math.random() *
-                this.affordableEntries.length
-            )
-        ];
-    }
-
-    private getWorstAffordableEntryForTarget(
-        target: BattlefieldWaveIntel
-    ) {
-        if (!target.entry) return null;
-
-        const counter =
-            CounterSettings.instance;
-
-        if (!counter) return null;
-
-        let worst: UnitPrefabEntry | null = null;
-        let worstScore = 1;
-
-        for (let i = 0; i < this.affordableEntries.length; i++) {
-            const entry =
-                this.affordableEntries[i];
-            const reverseCounter =
-                counter.getCounterScore(
-                    target.entry.family,
-                    entry.family
-                );
-
-            if (reverseCounter <= 1.0001) {
-                continue;
-            }
-
-            const score =
-                reverseCounter +
-                Math.random() * 0.001;
-
-            if (score > worstScore) {
-                worstScore = score;
-                worst = entry;
-            }
-        }
-
-        return worst;
-    }
-
     private getDecisionAccuracy() {
         return this.clamp01(this.decisionAccuracy);
+    }
+
+    private getEffectiveRangedSupportLimit() {
+        const max =
+            Math.max(
+                0,
+                Math.floor(
+                    this.maxRangedSupportWavesPerLane
+                )
+            );
+
+        return Math.floor(
+            max * this.getDecisionAccuracy()
+        );
     }
 
     private clamp01(value: number) {

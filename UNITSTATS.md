@@ -54,11 +54,11 @@ Design intent:
 
 | Unit | Family | Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 52 | 195 | 32 | 5 | 4.65 | 0.35 | 0.0 | 0.36-0.44 |
+| `axeman_t1` | Axeman | 10 | 52 | 195 | 34 | 5 | 4.65 | 0.35 | 0.0 | 0.36-0.44 |
 | `cavalry_t1` | Cavalry | 10 | 64 | 235 | 40 | 8 | 9.75 | 0.35 | 0.0 | 0.39-0.48 |
 | `sword_t1` | Sword | 10 | 46 | 175 | 24 | 8 | 5.10 | 0.35 | 0.0 | 0.36-0.44 |
-| `spear_t1` | Spear | 10 | 38 | 130 | 14 | 5 | 4.50 | 0.35 | 0.0 | 0.40-0.50 |
-| `monk_t1` | Monk | 2 | 28 | 75 | 23 | 0 | 4.05 | 5.20 | 0.70 | 2.10-2.50 |
+| `spear_t1` | Spear | 10 | 38 | 130 | 13 | 5 | 4.50 | 0.35 | 0.0 | 0.40-0.50 |
+| `monk_t1` | Monk | 2 | 28 | 75 | 24 | 0 | 4.05 | 5.20 | 0.70 | 2.10-2.50 |
 | `archer_t1` | Archer | 4 | 32 | 70 | 14 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 |
 
 ### 2026-07-20 Tempo Adjustment
@@ -153,13 +153,16 @@ This pass changes the whole stat shape rather than one symptom:
 cavalry_t1: cost 60 -> 64, health 220 -> 235, damage 38 -> 40, interval 0.373333-0.44 -> 0.39-0.48
 axeman_t1: cost 48 -> 52, health 185 -> 195, damage 27 -> 30, interval 0.333333-0.40 -> 0.36-0.44
 axeman_t1: damage 30 -> 32 to make Axeman clearly beat Sword on estimated power/CP while preserving the raw ladder.
+axeman_t1: damage 32 -> 34 after the next telemetry batch showed Sword above Axeman in runtime damage/CP.
 sword_t1: cost 43 -> 46, health 160 -> 175, damage 21 -> 24, interval 0.333333-0.40 -> 0.36-0.44
 spear_t1: health 145 -> 130, damage 18 -> 12, defense 6 -> 5, interval 0.333333-0.40 -> 0.40-0.50
 spear_t1: damage 12 -> 15 after telemetry showed Archer slightly above Spear in runtime damage/CP.
 spear_t1: damage 15 -> 14 after the next batch showed Spear rising to roughly Sword-level runtime damage/CP.
+spear_t1: damage 14 -> 13 after the reverted economy batch still showed Spear as the highest-spawned unit.
 archer_t1: damage 17 -> 14, range 6.50 -> 6.20, interval 0.833333-1.033333 -> 1.10-1.35
 monk_t1: cost 31 -> 28, health 65 -> 75, damage 32 -> 24, damageRadius 0.85 -> 0.70, interval 1.933333-2.333333 -> 2.10-2.50
 monk_t1: damage 24 -> 23 after telemetry showed Monk slightly above Archer in runtime damage/CP while raw power remained lower. Damage radius stays 0.70 to preserve the AoE role visually.
+monk_t1: damage 23 -> 24 after the reverted economy batch showed Monk as the lowest runtime damage/CP and spawn share.
 ```
 
 Intent:
@@ -191,7 +194,7 @@ Active rules:
 Current Spear-vs-Cavalry combat check:
 
 ```text
-Spear -> Cavalry: max(1, 14 - 8) * 10.5 = 63 damage/hit
+Spear -> Cavalry: max(1, 13 - 8) * 10.5 = 52.5 damage/hit
 Cavalry -> Spear: max(1, 40 - 5) = 35 damage/hit
 Spear raw damage/cost is intentionally low; Spear value must come from
 positioning and the Cavalry counter, not all-purpose DPS.

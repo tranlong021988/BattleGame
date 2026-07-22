@@ -630,6 +630,161 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return counter.getCounterScore(target.entry.family, entry.family) > 1.0001;
         }
 
+        chooseWrongResponseEntry(target, correctEntry, affordableEntries, laneId, blockedMeleeLaneId = -1) {
+          if (!target.entry) return null;
+          let candidateCount = 0;
+          let fallback = null;
+          const rollSeed = Math.random();
+
+          for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+            if (entry === correctEntry) continue;
+            if (this.isRangedFamily(entry.family)) continue;
+
+            if (this.isHardCounterEntryForTarget(entry, target)) {
+              continue;
+            }
+
+            if (laneId === blockedMeleeLaneId) {
+              continue;
+            }
+
+            const weight = this.getWrongResponseWeight(entry, target);
+            if (weight <= 0) continue;
+            fallback = entry;
+            candidateCount++;
+          }
+
+          if (candidateCount <= 0) {
+            return null;
+          }
+
+          let roll = Math.floor(rollSeed * candidateCount);
+
+          for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+            if (entry === correctEntry) continue;
+            if (this.isRangedFamily(entry.family)) continue;
+
+            if (this.isHardCounterEntryForTarget(entry, target)) {
+              continue;
+            }
+
+            if (laneId === blockedMeleeLaneId) {
+              continue;
+            }
+
+            const weight = this.getWrongResponseWeight(entry, target);
+            if (weight <= 0) continue;
+
+            if (roll <= 0) {
+              return entry;
+            }
+
+            roll--;
+          }
+
+          return fallback;
+        }
+
+        choosePoorGenericEntry(correctEntry, affordableEntries, laneId, blockedMeleeLaneId = -1) {
+          let candidateCount = 0;
+          let fallback = null;
+          const rollSeed = Math.random();
+
+          for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+            if (entry === correctEntry) continue;
+            if (this.isRangedFamily(entry.family)) continue;
+
+            if (laneId === blockedMeleeLaneId) {
+              continue;
+            }
+
+            const weight = this.getPoorGenericWeight(entry);
+            if (weight <= 0) continue;
+            fallback = entry;
+            candidateCount++;
+          }
+
+          if (candidateCount <= 0) {
+            return null;
+          }
+
+          let roll = Math.floor(rollSeed * candidateCount);
+
+          for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+            if (entry === correctEntry) continue;
+            if (this.isRangedFamily(entry.family)) continue;
+
+            if (laneId === blockedMeleeLaneId) {
+              continue;
+            }
+
+            const weight = this.getPoorGenericWeight(entry);
+            if (weight <= 0) continue;
+
+            if (roll <= 0) {
+              return entry;
+            }
+
+            roll--;
+          }
+
+          return fallback;
+        }
+
+        getWrongResponseWeight(entry, target) {
+          if (!target.entry) return 0;
+          const targetCountersEntry = this.isTargetHardCounterForEntry(entry, target);
+          const fullMatchupPowerRatio = this.getFullMatchupPowerRatio(entry, target);
+          const attackerRank = this.getMeleeLadderRank(entry.family);
+          const defenderRank = this.getMeleeLadderRank(target.entry.family);
+          const ladderDeficit = attackerRank >= 0 && defenderRank >= 0 ? Math.max(0, defenderRank - attackerRank) : 0;
+          const underPower = Math.max(0, 0.95 - fullMatchupPowerRatio);
+          const clearlyBadMatchup = targetCountersEntry || ladderDeficit > 0 || fullMatchupPowerRatio < 0.95;
+
+          if (!clearlyBadMatchup) {
+            return 0;
+          }
+
+          return 1 + (targetCountersEntry ? 10 : 0) + ladderDeficit * 4 + underPower * 12;
+        }
+
+        getPoorGenericWeight(entry) {
+          const rank = this.getMeleeLadderRank(entry.family);
+          if (rank < 0) return 0;
+          const basePower = this.getEntryBasePower(entry, Math.max(1, Math.floor(entry.unitCount)), 1, Math.max(1, entry.unitCount));
+          const cost = Math.max(1, entry.combatPointCost);
+          return 1 + (3 - rank) * 3 + cost / Math.max(1, basePower) * 35;
+        }
+
+        getFullMatchupPowerRatio(entry, target) {
+          if (!target.entry) return 1;
+          const candidatePower = this.getEntryBasePower(entry, Math.max(1, Math.floor(entry.unitCount)), 1, Math.max(1, target.entry.unitCount)) * this.getMatchupFactor(entry, target);
+          const targetPower = this.getEntryBasePower(target.entry, Math.max(1, Math.floor(target.entry.unitCount)), 1, Math.max(1, entry.unitCount)) * (this.isTargetHardCounterForEntry(entry, target) ? this.getTargetMatchupFactor(entry, target) : 1);
+          return candidatePower / Math.max(1, targetPower);
+        }
+
+        getTargetMatchupFactor(entry, target) {
+          const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+
+          if (!target.entry || !counter) {
+            return 1;
+          }
+
+          const counterScore = counter.getCounterScore(target.entry.family, entry.family);
+
+          if (counterScore > 1.0001) {
+            return counterScore;
+          }
+
+          return 1;
+        }
+
         rebuild(gameManager, team) {
           const laneCount = gameManager.getSafeLaneCount();
           this.ensureLaneCount(laneCount);
@@ -708,6 +863,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
+          if (this.isCleanFrontlineLaneTarget(target, spawnLaneId)) {
+            return true;
+          }
+
           if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Cavalry && this.isRangedFamily(target.entry.family) && target.enemyMeleeBlockersFromSpawn <= 1 && !target.hasEnemySpearBlockerFromSpawn) {
@@ -715,6 +874,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return false;
+        }
+
+        isCleanFrontlineLaneTarget(target, spawnLaneId) {
+          if (spawnLaneId < 0) return false;
+          if (target.visualLaneId < 0) return false;
+          if (spawnLaneId !== target.visualLaneId) return false;
+          if (target.sameLaneEnemyAheadCount > 0) return false;
+          const lane = this.lanes[spawnLaneId];
+          if (!lane) return false;
+          return lane.allyWaveCount <= 0;
         }
 
         choosePressureLane(gameManager, blockedMeleeLaneId = -1, requireEmptyLane = false) {
@@ -909,6 +1078,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!this.isRangedSpawnSafe(target)) {
               return false;
             }
+          }
+
+          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Cavalry && target.hasEnemySpearBlockerFromSpawn) {
+            return false;
           }
 
           if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({

@@ -302,11 +302,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             laneId: normalized.laneId,
             unitName: normalized.unitName,
             familyName: normalized.familyName,
+            intendedUnitName: normalized.intendedUnitName,
+            intendedFamilyName: normalized.intendedFamilyName,
             targetWaveId: normalized.targetWaveId,
             targetLaneId: normalized.targetLaneId,
             targetFamilyName: normalized.targetFamilyName,
             reason: normalized.reason,
-            aggressiveForward: normalized.aggressiveForward
+            aggressiveForward: normalized.aggressiveForward,
+            combatPointAdvantageAtDecision: normalized.combatPointAdvantageAtDecision,
+            postSpawnCombatPointAdvantage: normalized.postSpawnCombatPointAdvantage,
+            combatPointCostRatioAtDecision: normalized.combatPointCostRatioAtDecision,
+            canComfortablyAffordAtDecision: normalized.canComfortablyAffordAtDecision
           });
           var key = "T" + normalized.team + ":" + (normalized.reason + ":") + ((normalized.aggressiveForward ? 'aggressive' : 'normal') + ":") + (normalized.familyName + ":") + ("t" + normalized.tier + ":") + ("" + normalized.unitName);
           var stats = this.waveSpawnDecisionStats.get(key);
@@ -618,6 +624,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               error: Error()
             }), unitFamilyToName) : unitFamilyToName)(family) : 'Unknown'),
             tier: Math.max(1, Math.floor(decision.tier || 1)),
+            intendedUnitName: decision.intendedUnitName || '',
+            intendedFamily: Number.isFinite(decision.intendedFamily) ? decision.intendedFamily : undefined,
+            intendedFamilyName: decision.intendedFamilyName || (Number.isFinite(decision.intendedFamily) ? (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
+              error: Error()
+            }), unitFamilyToName) : unitFamilyToName)(decision.intendedFamily) : ''),
             targetWaveId: Number.isFinite(decision.targetWaveId) ? Math.floor(decision.targetWaveId) : -1,
             targetLaneId: Number.isFinite(decision.targetLaneId) ? Math.floor(decision.targetLaneId) : -1,
             targetFamily,
@@ -652,7 +663,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             fastReactRoll: Number.isFinite(decision.fastReactRoll) ? decision.fastReactRoll : undefined,
             aliveWaveCountAtDecision: Number.isFinite(decision.aliveWaveCountAtDecision) ? Math.floor(decision.aliveWaveCountAtDecision) : undefined,
             affordableEntryCount: Number.isFinite(decision.affordableEntryCount) ? Math.floor(decision.affordableEntryCount) : undefined,
-            activeEnemyIntelCount: Number.isFinite(decision.activeEnemyIntelCount) ? Math.floor(decision.activeEnemyIntelCount) : undefined
+            activeEnemyIntelCount: Number.isFinite(decision.activeEnemyIntelCount) ? Math.floor(decision.activeEnemyIntelCount) : undefined,
+            combatPointAtDecision: Number.isFinite(decision.combatPointAtDecision) ? decision.combatPointAtDecision : undefined,
+            combatPointAdvantageAtDecision: Number.isFinite(decision.combatPointAdvantageAtDecision) ? decision.combatPointAdvantageAtDecision : undefined,
+            enemyCombatPointAtDecision: Number.isFinite(decision.enemyCombatPointAtDecision) ? decision.enemyCombatPointAtDecision : undefined,
+            postSpawnCombatPoint: Number.isFinite(decision.postSpawnCombatPoint) ? decision.postSpawnCombatPoint : undefined,
+            postSpawnCombatPointAdvantage: Number.isFinite(decision.postSpawnCombatPointAdvantage) ? decision.postSpawnCombatPointAdvantage : undefined,
+            combatPointCostRatioAtDecision: Number.isFinite(decision.combatPointCostRatioAtDecision) ? decision.combatPointCostRatioAtDecision : undefined,
+            canComfortablyAffordAtDecision: decision.canComfortablyAffordAtDecision === undefined ? undefined : !!decision.canComfortablyAffordAtDecision
           };
         }
 
