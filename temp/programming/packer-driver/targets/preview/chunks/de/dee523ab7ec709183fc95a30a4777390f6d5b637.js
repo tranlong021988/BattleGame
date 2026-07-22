@@ -169,7 +169,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitFamily) : UnitFamily).Spear, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry, 2.1, 'Hard counter: Spear punishes Cavalry.');
+          }), UnitFamily) : UnitFamily).Cavalry, 5.5, 'Hard counter: Spear punishes Cavalry.');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Archer, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({

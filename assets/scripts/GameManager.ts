@@ -1614,7 +1614,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (this.canAffordAnySpawnEntry(team)) {
+        if (this.canAffordAnyStandaloneSpawnEntry(team)) {
             return;
         }
 
@@ -1736,6 +1736,33 @@ export class GameManager extends Component {
         }
 
         return false;
+    }
+
+    private canAffordAnyStandaloneSpawnEntry(team: number) {
+        const entries =
+            this.getDatabaseTeamEntries(team);
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidSpawnEntry(entry)) continue;
+            if (!this.isStandaloneSpawnEntry(entry)) continue;
+
+            if (this.canAffordEntry(team, entry)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private isStandaloneSpawnEntry(
+        entry: UnitPrefabEntry | null
+    ) {
+        if (!entry) return false;
+
+        return entry.family !== UnitFamily.Archer &&
+            entry.family !== UnitFamily.Monk;
     }
 
     private resetBattleTelemetry() {
@@ -1876,12 +1903,13 @@ export class GameManager extends Component {
         return hero!.props.getHealthRatio();
     }
 
-    private processBattleWinnerCondition() {
+    private processBattleWinnerCondition(force: boolean = false) {
         if (!this.enableBattleWinnerCheck) return;
         if (this.hasBattleWinner()) return;
         if (!this.enableNoAffordableSpawnWinnerFallback) return;
         if (!this.isCombatPointEnabled()) return;
         if (
+            !force &&
             !this.shouldRunFrameInterval(
                 this.battleWinnerCheckIntervalFrames
             )
@@ -1889,14 +1917,18 @@ export class GameManager extends Component {
             return;
         }
 
-        const teamACanSpawn =
-            this.canAffordAnySpawnEntry(0);
-        const teamBCanSpawn =
-            this.canAffordAnySpawnEntry(1);
         const teamAHasTroops =
             this.getAliveNonHeroUnitCount(0) > 0;
         const teamBHasTroops =
             this.getAliveNonHeroUnitCount(1) > 0;
+        const teamACanSpawn =
+            teamAHasTroops
+                ? this.canAffordAnySpawnEntry(0)
+                : this.canAffordAnyStandaloneSpawnEntry(0);
+        const teamBCanSpawn =
+            teamBHasTroops
+                ? this.canAffordAnySpawnEntry(1)
+                : this.canAffordAnyStandaloneSpawnEntry(1);
 
         const teamAEliminated =
             !teamACanSpawn && !teamAHasTroops;
@@ -2363,7 +2395,7 @@ export class GameManager extends Component {
             BattleWave.getWaveForUnit(unit);
 
         if (wave) {
-            wave.invalidateRuntimeHealth();
+            wave.invalidateRuntimeState();
             wave.handleUnitWillDespawn(unit);
             this.updateWaveBannerHealthBar(wave);
         }
@@ -3742,6 +3774,7 @@ export class GameManager extends Component {
 
                 this.requestSpatialGridRebuild();
                 this.requestBattleStatsUIRefresh();
+                this.processBattleWinnerCondition(true);
             }
 
             return;
@@ -3770,6 +3803,7 @@ export class GameManager extends Component {
 
                 this.requestSpatialGridRebuild();
                 this.requestBattleStatsUIRefresh();
+                this.processBattleWinnerCondition(true);
             }
 
             return;

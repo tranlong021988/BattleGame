@@ -1130,6 +1130,15 @@ export class BattlefieldEvaluator {
         }
 
         if (
+            this.isCleanFrontlineLaneTarget(
+                target,
+                spawnLaneId
+            )
+        ) {
+            return true;
+        }
+
+        if (
             entry.family === UnitFamily.Cavalry &&
             this.isRangedFamily(target.entry.family) &&
             target.enemyMeleeBlockersFromSpawn <= 1 &&
@@ -1139,6 +1148,22 @@ export class BattlefieldEvaluator {
         }
 
         return false;
+    }
+
+    private isCleanFrontlineLaneTarget(
+        target: BattlefieldWaveIntel,
+        spawnLaneId: number
+    ) {
+        if (spawnLaneId < 0) return false;
+        if (target.visualLaneId < 0) return false;
+        if (spawnLaneId !== target.visualLaneId) return false;
+        if (target.sameLaneEnemyAheadCount > 0) return false;
+
+        const lane = this.lanes[spawnLaneId];
+
+        if (!lane) return false;
+
+        return lane.allyWaveCount <= 0;
     }
 
     choosePressureLane(

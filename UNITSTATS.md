@@ -54,12 +54,12 @@ Design intent:
 
 | Unit | Family | Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 48 | 185 | 27 | 5 | 4.65 | 0.35 | 0.0 | 0.333333-0.40 |
-| `cavalry_t1` | Cavalry | 10 | 60 | 220 | 38 | 8 | 9.75 | 0.35 | 0.0 | 0.373333-0.44 |
-| `sword_t1` | Sword | 10 | 43 | 160 | 21 | 8 | 5.10 | 0.35 | 0.0 | 0.333333-0.40 |
-| `spear_t1` | Spear | 10 | 38 | 145 | 18 | 6 | 4.50 | 0.35 | 0.0 | 0.333333-0.40 |
-| `monk_t1` | Monk | 2 | 31 | 65 | 32 | 0 | 4.05 | 5.20 | 0.85 | 1.933333-2.333333 |
-| `archer_t1` | Archer | 4 | 32 | 70 | 17 | 0 | 5.70 | 6.50 | 0.0 | 0.833333-1.033333 |
+| `axeman_t1` | Axeman | 10 | 52 | 195 | 32 | 5 | 4.65 | 0.35 | 0.0 | 0.36-0.44 |
+| `cavalry_t1` | Cavalry | 10 | 64 | 235 | 40 | 8 | 9.75 | 0.35 | 0.0 | 0.39-0.48 |
+| `sword_t1` | Sword | 10 | 46 | 175 | 24 | 8 | 5.10 | 0.35 | 0.0 | 0.36-0.44 |
+| `spear_t1` | Spear | 10 | 38 | 130 | 14 | 5 | 4.50 | 0.35 | 0.0 | 0.40-0.50 |
+| `monk_t1` | Monk | 2 | 28 | 75 | 23 | 0 | 4.05 | 5.20 | 0.70 | 2.10-2.50 |
+| `archer_t1` | Archer | 4 | 32 | 70 | 14 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 |
 
 ### 2026-07-20 Tempo Adjustment
 
@@ -133,6 +133,46 @@ DPS/CP:   Cavalry 15.57 > Axeman 15.34 > Sword 13.32 > Spear 12.92 > Archer 2.28
 Damage/CP:Cavalry  6.33 > Axeman  5.63 > Sword  4.88 > Spear  4.74 > Archer 2.13 > Monk 2.06
 ```
 
+### 2026-07-22 Whole-System Telemetry Adjustment
+
+Real telemetry from 20 matches showed runtime damage/CP as:
+
+```text
+Cavalry 35.6 > Spear 34.8 > Archer 30.3 > Axeman 26.3 > Sword 21.8 > Monk 20.0
+```
+
+That failed the intended ladder:
+
+```text
+Cavalry > Axeman > Sword > Spear > Archer > Monk
+```
+
+This pass changes the whole stat shape rather than one symptom:
+
+```text
+cavalry_t1: cost 60 -> 64, health 220 -> 235, damage 38 -> 40, interval 0.373333-0.44 -> 0.39-0.48
+axeman_t1: cost 48 -> 52, health 185 -> 195, damage 27 -> 30, interval 0.333333-0.40 -> 0.36-0.44
+axeman_t1: damage 30 -> 32 to make Axeman clearly beat Sword on estimated power/CP while preserving the raw ladder.
+sword_t1: cost 43 -> 46, health 160 -> 175, damage 21 -> 24, interval 0.333333-0.40 -> 0.36-0.44
+spear_t1: health 145 -> 130, damage 18 -> 12, defense 6 -> 5, interval 0.333333-0.40 -> 0.40-0.50
+spear_t1: damage 12 -> 15 after telemetry showed Archer slightly above Spear in runtime damage/CP.
+spear_t1: damage 15 -> 14 after the next batch showed Spear rising to roughly Sword-level runtime damage/CP.
+archer_t1: damage 17 -> 14, range 6.50 -> 6.20, interval 0.833333-1.033333 -> 1.10-1.35
+monk_t1: cost 31 -> 28, health 65 -> 75, damage 32 -> 24, damageRadius 0.85 -> 0.70, interval 1.933333-2.333333 -> 2.10-2.50
+monk_t1: damage 24 -> 23 after telemetry showed Monk slightly above Archer in runtime damage/CP while raw power remained lower. Damage radius stays 0.70 to preserve the AoE role visually.
+```
+
+Intent:
+
+- Spear should be genuinely weak outside `Spear > Cavalry`.
+- Archer should still punish Spear, but protected Archer should no longer print
+  extreme damage/CP.
+- Axeman and Sword need enough raw value to rise above Spear and Archer in real
+  telemetry.
+- Monk remains the cheapest/lowest-ladder support. Its AoE was pulled down
+  again after real telemetry showed protected Monk rising above Archer in
+  damage/CP.
+
 ## Counter Rules
 
 Damage formula:
@@ -145,16 +185,16 @@ Active rules:
 
 | Attacker | Defender | Multiplier | Intent |
 | --- | --- | ---: | --- |
-| Spear | Cavalry | 5.5 | Hard counter. Spear needs a visibly stronger edge against Cavalry than the previous near-even 4.5 value; this makes Spear kill Cavalry in about 4 hits instead of 5. |
-| Archer | Spear | 1.45 | Soft-hard counter. Archer should punish Spear enough to stop cheap Spear from being the best all-purpose economy unit. |
+| Spear | Cavalry | 10.5 | Hard counter. Spear is weak generally, but still punishes Cavalry. |
+| Archer | Spear | 2.0 | Soft-hard counter. Archer punishes Spear after Archer raw DPS was reduced. |
 
 Current Spear-vs-Cavalry combat check:
 
 ```text
-Spear -> Cavalry: max(1, 18 - 8) * 5.5 = 55 damage/hit, about 4 hits per Cavalry
-Cavalry -> Spear: max(1, 38 - 6) = 32 damage/hit, about 5 hits per Spear
-Spear raw damage/cost: 4.74
-Spear counter damage/cost vs Cavalry: 14.47
+Spear -> Cavalry: max(1, 14 - 8) * 10.5 = 63 damage/hit
+Cavalry -> Spear: max(1, 40 - 5) = 35 damage/hit
+Spear raw damage/cost is intentionally low; Spear value must come from
+positioning and the Cavalry counter, not all-purpose DPS.
 ```
 
 ## Validation Notes

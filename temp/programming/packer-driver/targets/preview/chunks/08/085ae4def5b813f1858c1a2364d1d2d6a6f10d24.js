@@ -49,6 +49,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         constructor() {
           this.laneId = 0;
           this.allyWaveCount = 0;
+          this.allyMeleeWaveCount = 0;
           this.enemyWaveCount = 0;
           this.trafficCount = 0;
         }
@@ -56,6 +57,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         reset(laneId) {
           this.laneId = laneId;
           this.allyWaveCount = 0;
+          this.allyMeleeWaveCount = 0;
           this.enemyWaveCount = 0;
           this.trafficCount = 0;
         }
@@ -88,6 +90,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.frontlineHealthRatio = 0;
           this.allyBlockersFromSpawn = 0;
           this.enemyMeleeBlockersFromSpawn = 0;
+          this.sameLaneEnemyAheadCount = 0;
           this.hasEnemySpearBlockerFromSpawn = false;
           this.hasStrugglingAlly = false;
           this.hasEngaged = false;
@@ -118,6 +121,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.frontlineHealthRatio = 0;
           this.allyBlockersFromSpawn = 0;
           this.enemyMeleeBlockersFromSpawn = 0;
+          this.sameLaneEnemyAheadCount = 0;
           this.hasEnemySpearBlockerFromSpawn = false;
           this.hasStrugglingAlly = false;
           this.hasEngaged = false;
@@ -160,7 +164,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.spawnDecision = new BattleSpawnDecision();
         }
 
-        chooseSnapshotSpawnDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget) {
+        chooseSnapshotSpawnDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId) {
+          if (blockedMeleeLaneId === void 0) {
+            blockedMeleeLaneId = -1;
+          }
+
           this.spawnDecision.reset();
 
           if (affordableEntries.length <= 0) {
@@ -168,7 +176,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           if (this.enemyCount <= 0) {
-            return this.chooseOpeningPressureDecision(gameManager, affordableEntries);
+            return this.chooseOpeningPressureDecision(gameManager, affordableEntries, blockedMeleeLaneId);
           }
 
           var rangedSupportCount = this.countRangedSupportAllies();
@@ -194,7 +202,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
                 continue;
               }
 
-              var laneId = this.chooseSpawnLaneForTarget(gameManager, team, target, entry);
+              var laneId = this.chooseSpawnLaneForTarget(gameManager, team, target, entry, blockedMeleeLaneId);
 
               if (laneId < 0) {
                 continue;
@@ -212,8 +220,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.spawnDecision;
         }
 
-        chooseOpeningPressureDecision(gameManager, affordableEntries) {
-          var laneId = this.choosePressureLane(gameManager);
+        chooseOpeningPressureDecision(gameManager, affordableEntries, blockedMeleeLaneId) {
+          var laneId = this.choosePressureLane(gameManager, blockedMeleeLaneId, false);
 
           if (laneId < 0) {
             return this.spawnDecision;
@@ -233,36 +241,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.spawnDecision;
         }
 
-        chooseFallbackSpawnDecision(gameManager, affordableEntries) {
+        chooseFallbackSpawnDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId) {
+          if (blockedMeleeLaneId === void 0) {
+            blockedMeleeLaneId = -1;
+          }
+
           this.spawnDecision.reset();
           var entry = this.choosePressureEntry(affordableEntries);
-          var reason = 'snapshot-pressure-fallback';
-          var aggressiveForward = true;
 
-          if (!entry) {
-            entry = this.chooseLastResortEntry(affordableEntries);
-            reason = 'snapshot-last-resort-ranged';
-            aggressiveForward = false;
+          if (entry) {
+            var laneId = this.choosePressureLane(gameManager, blockedMeleeLaneId, true);
+
+            if (laneId >= 0) {
+              this.spawnDecision.entry = entry;
+              this.spawnDecision.target = null;
+              this.spawnDecision.laneId = laneId;
+              this.spawnDecision.aggressiveForward = true;
+              this.spawnDecision.reason = 'snapshot-pressure-fallback';
+              this.spawnDecision.score = 1;
+              return this.spawnDecision;
+            }
           }
 
-          if (!entry) {
-            return this.spawnDecision;
-          }
-
-          var target = this.chooseFallbackTarget();
-          var laneId = target ? gameManager.clampLaneId(target.visualLaneId >= 0 ? target.visualLaneId : target.laneId) : this.choosePressureLane(gameManager);
-
-          if (laneId < 0) {
-            return this.spawnDecision;
-          }
-
-          this.spawnDecision.entry = entry;
-          this.spawnDecision.target = target;
-          this.spawnDecision.laneId = laneId;
-          this.spawnDecision.aggressiveForward = aggressiveForward;
-          this.spawnDecision.reason = reason;
-          this.spawnDecision.score = 1;
-          return this.spawnDecision;
+          return this.chooseFallbackRangedSupportDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget);
         }
 
         isActionableTarget(target) {
@@ -270,6 +271,50 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (target.aliveCount <= 0) return false;
           if (target.healthRatio <= 0.08) return false;
           return true;
+        }
+
+        chooseFallbackRangedSupportDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget) {
+          var rangedSupportCount = this.countRangedSupportAllies();
+          var meleeSupportCount = this.countMeleeWaves(this.allies, this.allyCount);
+
+          for (var i = 0; i < this.enemyCount; i++) {
+            var target = this.enemies[i];
+
+            if (!this.isActionableTarget(target)) {
+              continue;
+            }
+
+            var hasFullStrengthRangedHardCounter = this.hasAffordableFullStrengthRangedHardCounter(affordableEntries, target);
+
+            for (var j = 0; j < affordableEntries.length; j++) {
+              var entry = affordableEntries[j];
+
+              if (!this.isRangedFamily(entry.family)) {
+                continue;
+              }
+
+              var score = this.scoreSnapshotEntryForTarget(gameManager, team, entry, target, 0, Math.max(1, entry.combatPointCost), rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter);
+
+              if (score <= this.spawnDecision.score) {
+                continue;
+              }
+
+              var laneId = target.visualLaneId >= 0 ? gameManager.clampLaneId(target.visualLaneId) : -1;
+
+              if (laneId < 0) {
+                continue;
+              }
+
+              this.spawnDecision.entry = entry;
+              this.spawnDecision.target = target;
+              this.spawnDecision.laneId = laneId;
+              this.spawnDecision.aggressiveForward = false;
+              this.spawnDecision.reason = this.getSnapshotDecisionReason(entry, target);
+              this.spawnDecision.score = score;
+            }
+          }
+
+          return this.spawnDecision;
         }
 
         getSnapshotTargetPriority(target) {
@@ -283,13 +328,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return 0;
           }
 
-          return target.threatPower * (0.35 + needsHelp) + unengagedPressure + rescuePressure + dangerPressure;
+          var frontlineFactor = 1 / (1 + target.sameLaneEnemyAheadCount * 0.65);
+          return (target.threatPower * (0.35 + needsHelp) + unengagedPressure + rescuePressure + dangerPressure) * frontlineFactor;
         }
 
         scoreSnapshotEntryForTarget(gameManager, team, entry, target, targetPriority, currentCombatPoint, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter) {
           if (!target.entry) return -Infinity;
           var ranged = this.isRangedFamily(entry.family);
           var hardCounter = this.isHardCounterEntryForTarget(entry, target);
+          var targetCountersEntry = this.isTargetHardCounterForEntry(entry, target);
 
           if (ranged) {
             if (!this.isSnapshotRangedSupportAllowed(entry, target, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter)) {
@@ -311,24 +358,34 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return this.scoreSnapshotRangedSupportEntry(entry, target, targetPriority, candidatePower, hardCounter);
           }
 
+          var fullTargetBasePower = this.getEntryBasePower(target.entry, Math.max(1, target.entry.unitCount), 1, 1);
+          var targetLivePowerRatio = Math.max(0, Math.min(1, target.basePower / Math.max(1, fullTargetBasePower)));
+
+          if (targetCountersEntry && !hardCounter && targetLivePowerRatio > 0.35) {
+            return -Infinity;
+          }
+
           var requiredPower = Math.max(1, target.threatPower * this.coverageTargetRatio - target.coveragePower);
           var liveGapPower = Math.max(0, requiredPower);
-          var targetPower = Math.max(1, target.threatPower);
+          var usefulPower = Math.min(candidatePower, Math.max(1, liveGapPower) * 1.15);
           var needRatio = candidatePower / Math.max(1, liveGapPower);
-          var powerRatio = candidatePower / targetPower;
+          var powerRatio = candidatePower / Math.max(1, target.threatPower);
           var cost = Math.max(1, entry.combatPointCost);
           var cpRatio = currentCombatPoint / cost;
           var canComfortablyAfford = cpRatio >= 1.7;
           var isHoldingSpawn = needRatio < 0.75;
           var overshoot = Math.max(0, needRatio - 1.25);
-          var targetIsRanged = this.isRangedFamily(target.entry.family);
-          var overshootPenaltyScale = targetIsRanged ? 70 : hardCounter ? 120 : 280;
-          var economyPreference = canComfortablyAfford ? 4.5 : 9.5;
-          var hardCounterBonus = hardCounter ? 650 : 0;
+          var targetUrgency = target.dangerousToDefend ? 1 : target.hasStrugglingAlly ? Math.max(0.7, targetLivePowerRatio) : targetLivePowerRatio;
+          var hardCounterBonus = hardCounter ? 90 + targetUrgency * 360 : 0;
+          var reverseCounterPenalty = targetCountersEntry && !hardCounter ? 260 + targetLivePowerRatio * 320 : 0;
           var holdingPenalty = isHoldingSpawn ? 180 : 0;
           var strongEnoughBonus = powerRatio >= 1 ? 220 : powerRatio * 120;
-          var fitScore = needRatio >= 0.95 ? 480 : needRatio * 360;
-          return targetPriority + fitScore + strongEnoughBonus + hardCounterBonus + candidatePower / cost * 14 - cost * economyPreference - overshoot * overshootPenaltyScale - holdingPenalty + this.getSnapshotMeleeLadderBias(entry, target, canComfortablyAfford) + Math.random() * 0.001;
+          var fitScore = needRatio >= 0.95 ? 520 : needRatio * 360;
+          var reusableEconomyScore = this.getEntryBasePower(entry, Math.max(1, entry.unitCount), 1, Math.max(1, target.aliveCount)) / cost * 4;
+          var targetIsRanged = this.isRangedFamily(target.entry.family);
+          var overshootPenaltyScale = targetIsRanged ? 90 : hardCounter ? targetUrgency >= 0.7 ? 160 : 300 : 320;
+          var economyPreference = canComfortablyAfford ? 4.5 : 9.5;
+          return targetPriority + fitScore + strongEnoughBonus + hardCounterBonus + usefulPower / cost * 24 + reusableEconomyScore - cost * economyPreference - overshoot * overshootPenaltyScale - reverseCounterPenalty - holdingPenalty + this.getSnapshotMeleeLadderBias(entry, target, canComfortablyAfford, targetLivePowerRatio) + Math.random() * 0.001;
         }
 
         scoreSnapshotRangedSupportEntry(entry, target, targetPriority, candidatePower, hardCounter) {
@@ -474,14 +531,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return false;
         }
 
-        getSnapshotMeleeLadderBias(entry, target, canComfortablyAfford) {
+        getSnapshotMeleeLadderBias(entry, target, canComfortablyAfford, targetLivePowerRatio) {
           if (!target.entry) return 0;
           if (this.isRangedFamily(entry.family)) return 0;
 
           if (this.isRangedFamily(target.entry.family)) {
             return entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily).Cavalry ? 360 : 40;
+            }), UnitFamily) : UnitFamily).Cavalry ? 240 : 40;
           }
 
           var attackerRank = this.getMeleeLadderRank(entry.family);
@@ -493,24 +550,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           var rankDelta = attackerRank - defenderRank;
           var costDelta = entry.combatPointCost - target.entry.combatPointCost;
+          var conditionScale = targetLivePowerRatio >= 0.65 ? 1 : targetLivePowerRatio >= 0.4 ? 0.55 : 0.25;
 
           if (rankDelta === 1) {
             if (costDelta > 8 && !canComfortablyAfford) {
-              return 80;
+              return 50 * conditionScale;
             }
 
-            return 360;
+            return 170 * conditionScale;
           }
 
           if (rankDelta === 0) {
-            return 90;
+            return 55 * conditionScale;
           }
 
           if (rankDelta > 1) {
-            return canComfortablyAfford ? 40 : -110;
+            return canComfortablyAfford ? 25 * conditionScale : -110;
           }
 
-          return -80;
+          return -50 * conditionScale;
         }
 
         getMeleeLadderRank(family) {
@@ -571,6 +629,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return counter.getCounterScore(entry.family, target.entry.family) > 1.0001;
         }
 
+        isTargetHardCounterForEntry(entry, target) {
+          if (!target.entry) return false;
+          var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          if (!counter) return false;
+          return counter.getCounterScore(target.entry.family, entry.family) > 1.0001;
+        }
+
         rebuild(gameManager, team) {
           var laneCount = gameManager.getSafeLaneCount();
           this.ensureLaneCount(laneCount);
@@ -599,6 +666,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
               if (wave.team === team) {
                 lane.allyWaveCount++;
+
+                if (this.isFrontlineFamily(entry.family)) {
+                  lane.allyMeleeWaveCount++;
+                }
               } else {
                 lane.enemyWaveCount++;
               }
@@ -610,7 +681,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        chooseSpawnLaneForTarget(gameManager, team, target, entry) {
+        chooseSpawnLaneForTarget(gameManager, team, target, entry, blockedMeleeLaneId) {
+          if (blockedMeleeLaneId === void 0) {
+            blockedMeleeLaneId = -1;
+          }
+
           if (!target.wave) return -1;
           var directLane = this.getTacticalLaneId(target);
           var lane = this.lanes[directLane];
@@ -618,6 +693,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (this.isRangedFamily(entry.family)) {
             return this.isRangedSpawnSafe(target) ? directLane : -1;
+          }
+
+          if (directLane === blockedMeleeLaneId) {
+            var _flankLane = this.findBestFlankLane(gameManager, directLane);
+
+            return _flankLane >= 0 ? _flankLane : -1;
           }
 
           if (!directBlocked || target.hasStrugglingAlly || target.dangerousToDefend) {
@@ -640,6 +721,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
+          if (this.isCleanFrontlineLaneTarget(target, spawnLaneId)) {
+            return true;
+          }
+
           if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Cavalry && this.isRangedFamily(target.entry.family) && target.enemyMeleeBlockersFromSpawn <= 1 && !target.hasEnemySpearBlockerFromSpawn) {
@@ -649,7 +734,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return false;
         }
 
-        choosePressureLane(gameManager) {
+        isCleanFrontlineLaneTarget(target, spawnLaneId) {
+          if (spawnLaneId < 0) return false;
+          if (target.visualLaneId < 0) return false;
+          if (spawnLaneId !== target.visualLaneId) return false;
+          if (target.sameLaneEnemyAheadCount > 0) return false;
+          var lane = this.lanes[spawnLaneId];
+          if (!lane) return false;
+          return lane.allyWaveCount <= 0;
+        }
+
+        choosePressureLane(gameManager, blockedMeleeLaneId, requireEmptyLane) {
+          if (blockedMeleeLaneId === void 0) {
+            blockedMeleeLaneId = -1;
+          }
+
+          if (requireEmptyLane === void 0) {
+            requireEmptyLane = false;
+          }
+
           var bestLane = -1;
           var bestScore = -Infinity;
           var laneCount = gameManager.getSafeLaneCount();
@@ -657,7 +760,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           for (var i = 0; i < laneCount; i++) {
             var lane = this.lanes[i];
             if (!lane) continue;
-            var score = (lane.enemyWaveCount <= 0 ? 80 : 0) - lane.trafficCount * 20 - lane.allyWaveCount * 15 + Math.random() * 0.001;
+
+            if (i === blockedMeleeLaneId && laneCount > 1) {
+              continue;
+            }
+
+            if (requireEmptyLane && (lane.allyWaveCount > 0 || lane.enemyWaveCount > 0)) {
+              continue;
+            }
+
+            var score = (lane.enemyWaveCount <= 0 ? 80 : 0) - lane.trafficCount * 24 - lane.allyMeleeWaveCount * 28 - lane.allyWaveCount * 10 + Math.random() * 0.001;
 
             if (score > bestScore) {
               bestScore = score;
@@ -669,6 +781,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         choosePressureEntry(affordableEntries) {
+          var nonCavalryEntry = this.choosePressureEntryByEconomy(affordableEntries, false);
+
+          if (nonCavalryEntry) {
+            return nonCavalryEntry;
+          }
+
+          return this.choosePressureEntryByEconomy(affordableEntries, true);
+        }
+
+        choosePressureEntryByEconomy(affordableEntries, allowCavalry) {
           var best = null;
           var bestScore = -Infinity;
 
@@ -679,9 +801,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               continue;
             }
 
+            if (!allowCavalry && entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Cavalry) {
+              continue;
+            }
+
             var power = this.getEntryBasePower(entry, Math.max(1, entry.unitCount), 1, 1);
             var cost = Math.max(1, entry.combatPointCost);
-            var score = power / cost + entry.maxSpeed * 1.25 + this.getPressureRoleScore(entry) + Math.random() * 4;
+            var score = power / cost * 18 + Math.sqrt(power) * 4 - cost * 2.2 + entry.maxSpeed + Math.random() * 0.001;
 
             if (score > bestScore) {
               bestScore = score;
@@ -690,73 +818,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return best;
-        }
-
-        chooseLastResortEntry(affordableEntries) {
-          var best = null;
-          var bestScore = -Infinity;
-
-          for (var i = 0; i < affordableEntries.length; i++) {
-            var entry = affordableEntries[i];
-            var cost = Math.max(1, entry.combatPointCost);
-            var power = this.getEntryBasePower(entry, Math.max(1, entry.unitCount), 1, 1);
-            var score = power / cost - cost * 0.05 + Math.random() * 0.001;
-
-            if (score > bestScore) {
-              bestScore = score;
-              best = entry;
-            }
-          }
-
-          return best;
-        }
-
-        chooseFallbackTarget() {
-          var best = null;
-          var bestScore = -Infinity;
-
-          for (var i = 0; i < this.enemyCount; i++) {
-            var target = this.enemies[i];
-            if (!target.wave || !target.entry) continue;
-            if (target.aliveCount <= 0) continue;
-            if (target.healthRatio <= 0.08) continue;
-            var score = target.progressToDefend * 180 + target.threatPower * 0.2 + (target.hasEngaged ? 0 : 40) + Math.random() * 0.001;
-
-            if (score > bestScore) {
-              bestScore = score;
-              best = target;
-            }
-          }
-
-          return best;
-        }
-
-        getPressureRoleScore(entry) {
-          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Sword) {
-            return 24;
-          }
-
-          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Axeman) {
-            return 22;
-          }
-
-          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry) {
-            return -24;
-          }
-
-          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Spear) {
-            return -24;
-          }
-
-          return 0;
         }
 
         fillWaveIntel(gameManager, intel, wave, entry, team) {
@@ -791,6 +852,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         fillEnemyTacticalState(gameManager, team, target) {
           target.allyBlockersFromSpawn = this.countAllyBlockersFromSpawnToTarget(gameManager, team, target);
           target.enemyMeleeBlockersFromSpawn = this.countEnemyMeleeBlockersFromSpawnToTarget(gameManager, team, target);
+          target.sameLaneEnemyAheadCount = this.countSameLaneEnemiesAheadOfTarget(gameManager, team, target);
           target.hasEnemySpearBlockerFromSpawn = this.hasEnemySpearBlockerFromSpawnToTarget(gameManager, team, target);
           target.coveragePower = 0;
           target.hasStrugglingAlly = false;
@@ -925,6 +987,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         isDirectLaneSpawnBlocked(lane, target) {
           if (!lane) return false;
           if (target.hasStrugglingAlly) return false;
+
+          if (lane.allyMeleeWaveCount >= 3 && target.sameLaneEnemyAheadCount > 0) {
+            return true;
+          }
+
           return target.allyAheadCount >= this.laneAllyAheadLimit && target.frontlineBlockPower >= target.threatPower * 0.55 && target.coverageRatio >= 0.65;
         }
 
@@ -1052,6 +1119,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return blockers;
+        }
+
+        countSameLaneEnemiesAheadOfTarget(gameManager, team, target) {
+          var count = 0;
+
+          for (var i = 0; i < this.enemyCount; i++) {
+            var enemy = this.enemies[i];
+            if (enemy === target) continue;
+            if (!enemy.entry) continue;
+
+            if (enemy.visualLaneId !== target.visualLaneId) {
+              continue;
+            }
+
+            if (this.isBetweenSpawnAndTarget(gameManager, team, enemy.centerZ, target.centerZ)) {
+              count++;
+            }
+          }
+
+          return count;
         }
 
         hasEnemySpearBlockerFromSpawnToTarget(gameManager, team, target) {

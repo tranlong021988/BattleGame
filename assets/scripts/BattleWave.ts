@@ -183,6 +183,11 @@ export class BattleWave {
         this.runtimeHealthFrame = -1;
     }
 
+    invalidateRuntimeState() {
+        this.runtimeStateFrame = -1;
+        this.runtimeHealthFrame = -1;
+    }
+
     getRandomAliveUnit(): Unit | null {
         return this.getRandomPreferredAliveUnit();
     }

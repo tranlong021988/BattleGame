@@ -41,10 +41,7 @@
         "__id__": 261
       },
       {
-        "__id__": 272
-      },
-      {
-        "__id__": 283
+        "__id__": 274
       },
       {
         "__id__": 287
@@ -56,28 +53,31 @@
         "__id__": 295
       },
       {
+        "__id__": 299
+      },
+      {
         "__id__": 87
       },
       {
         "__id__": 51
       },
       {
-        "__id__": 299
+        "__id__": 303
       },
       {
-        "__id__": 302
+        "__id__": 306
       },
       {
-        "__id__": 305
+        "__id__": 309
       },
       {
-        "__id__": 307
+        "__id__": 311
       }
     ],
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 309
+      "__id__": 313
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -108,7 +108,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 310
+      "__id__": 320
     },
     "_id": "1effe86e-a401-4769-9dbc-62218c68834d"
   },
@@ -2191,15 +2191,15 @@
     "__type__": "CounterRule",
     "attackerFamily": 0,
     "defenderFamily": 4,
-    "damageMultiplier": 5.5,
-    "note": "Hard counter: Spear punishes Cavalry."
+    "damageMultiplier": 10.5,
+    "note": "Hard counter: Spear is weak generally, but punishes Cavalry."
   },
   {
     "__type__": "CounterRule",
     "attackerFamily": 2,
     "defenderFamily": 0,
-    "damageMultiplier": 1.45,
-    "note": "Soft-hard counter: Archer punishes Spear to keep cheap Spear from becoming too cost-efficient."
+    "damageMultiplier": 2,
+    "note": "Soft-hard counter: Archer punishes Spear after Archer raw DPS was reduced."
   },
   {
     "__type__": "HeroEntry",
@@ -3498,12 +3498,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.333333,
-    "attackIntervalMax": 0.4,
-    "health": 185,
-    "damage": 27,
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 195,
+    "damage": 32,
     "defense": 5,
-    "combatPointCost": 48
+    "combatPointCost": 52
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3531,12 +3531,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.373333,
-    "attackIntervalMax": 0.44,
-    "health": 220,
-    "damage": 38,
+    "attackIntervalMin": 0.39,
+    "attackIntervalMax": 0.48,
+    "health": 235,
+    "damage": 40,
     "defense": 8,
-    "combatPointCost": 60
+    "combatPointCost": 64
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3564,12 +3564,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.333333,
-    "attackIntervalMax": 0.4,
-    "health": 160,
-    "damage": 21,
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 175,
+    "damage": 24,
     "defense": 8,
-    "combatPointCost": 43
+    "combatPointCost": 46
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3597,11 +3597,11 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.333333,
-    "attackIntervalMax": 0.4,
-    "health": 145,
-    "damage": 18,
-    "defense": 6,
+    "attackIntervalMin": 0.4,
+    "attackIntervalMax": 0.5,
+    "health": 130,
+    "damage": 14,
+    "defense": 5,
     "combatPointCost": 38
   },
   {
@@ -3629,13 +3629,13 @@
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 5.2,
-    "damageRadius": 0.85,
-    "attackIntervalMin": 1.933333,
-    "attackIntervalMax": 2.333333,
-    "health": 65,
-    "damage": 32,
+    "damageRadius": 0.7,
+    "attackIntervalMin": 2.1,
+    "attackIntervalMax": 2.5,
+    "health": 75,
+    "damage": 23,
     "defense": 0,
-    "combatPointCost": 31
+    "combatPointCost": 28
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3661,12 +3661,12 @@
     "maxSpeed": 5.7,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 6.5,
+    "attackRange": 6.2,
     "damageRadius": 0,
-    "attackIntervalMin": 0.833333,
-    "attackIntervalMax": 1.033333,
+    "attackIntervalMin": 1.1,
+    "attackIntervalMax": 1.35,
     "health": 70,
-    "damage": 17,
+    "damage": 14,
     "defense": 0,
     "combatPointCost": 32
   },
@@ -3696,12 +3696,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.333333,
-    "attackIntervalMax": 0.4,
-    "health": 185,
-    "damage": 27,
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 195,
+    "damage": 32,
     "defense": 5,
-    "combatPointCost": 48
+    "combatPointCost": 52
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3729,12 +3729,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.373333,
-    "attackIntervalMax": 0.44,
-    "health": 220,
-    "damage": 38,
+    "attackIntervalMin": 0.39,
+    "attackIntervalMax": 0.48,
+    "health": 235,
+    "damage": 40,
     "defense": 8,
-    "combatPointCost": 60
+    "combatPointCost": 64
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3762,12 +3762,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.333333,
-    "attackIntervalMax": 0.4,
-    "health": 160,
-    "damage": 21,
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 175,
+    "damage": 24,
     "defense": 8,
-    "combatPointCost": 43
+    "combatPointCost": 46
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3795,11 +3795,11 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.333333,
-    "attackIntervalMax": 0.4,
-    "health": 145,
-    "damage": 18,
-    "defense": 6,
+    "attackIntervalMin": 0.4,
+    "attackIntervalMax": 0.5,
+    "health": 130,
+    "damage": 14,
+    "defense": 5,
     "combatPointCost": 38
   },
   {
@@ -3827,13 +3827,13 @@
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 5.2,
-    "damageRadius": 0.85,
-    "attackIntervalMin": 1.933333,
-    "attackIntervalMax": 2.333333,
-    "health": 65,
-    "damage": 32,
+    "damageRadius": 0.7,
+    "attackIntervalMin": 2.1,
+    "attackIntervalMax": 2.5,
+    "health": 75,
+    "damage": 23,
     "defense": 0,
-    "combatPointCost": 31
+    "combatPointCost": 28
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3859,12 +3859,12 @@
     "maxSpeed": 5.7,
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
-    "attackRange": 6.5,
+    "attackRange": 6.2,
     "damageRadius": 0,
-    "attackIntervalMin": 0.833333,
-    "attackIntervalMax": 1.033333,
+    "attackIntervalMin": 1.1,
+    "attackIntervalMax": 1.35,
     "health": 70,
-    "damage": 17,
+    "damage": 14,
     "defense": 0,
     "combatPointCost": 32
   },
@@ -8173,6 +8173,9 @@
       },
       {
         "__id__": 270
+      },
+      {
+        "__id__": 272
       }
     ],
     "removedComponents": []
@@ -8258,20 +8261,36 @@
     ]
   },
   {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 273
+    },
+    "propertyPath": [
+      "targetSearchRange"
+    ],
+    "value": 24
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "42dvfFDtxIJqaJpn+Mrnfr"
+    ]
+  },
+  {
     "__type__": "cc.Node",
     "_objFlags": 0,
     "_parent": {
       "__id__": 1
     },
     "_prefab": {
-      "__id__": 273
+      "__id__": 275
     },
     "__editorExtras__": {}
   },
   {
     "__type__": "cc.PrefabInfo",
     "root": {
-      "__id__": 272
+      "__id__": 274
     },
     "asset": {
       "__uuid__": "e9fa7cb9-649b-4dac-a368-f9515b675d79",
@@ -8279,7 +8298,7 @@
     },
     "fileId": "d8mT9ldedJ6KOXr6hDv0TP",
     "instance": {
-      "__id__": 274
+      "__id__": 276
     },
     "targetOverrides": []
   },
@@ -8291,9 +8310,6 @@
     "mountedComponents": [],
     "propertyOverrides": [
       {
-        "__id__": 275
-      },
-      {
         "__id__": 277
       },
       {
@@ -8301,6 +8317,12 @@
       },
       {
         "__id__": 281
+      },
+      {
+        "__id__": 283
+      },
+      {
+        "__id__": 285
       }
     ],
     "removedComponents": []
@@ -8308,7 +8330,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 276
+      "__id__": 278
     },
     "propertyPath": [
       "_name"
@@ -8324,7 +8346,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 278
+      "__id__": 280
     },
     "propertyPath": [
       "_lpos"
@@ -8345,7 +8367,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 280
+      "__id__": 282
     },
     "propertyPath": [
       "_lrot"
@@ -8367,7 +8389,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 282
+      "__id__": 284
     },
     "propertyPath": [
       "_euler"
@@ -8386,6 +8408,22 @@
     ]
   },
   {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 286
+    },
+    "propertyPath": [
+      "targetSearchRange"
+    ],
+    "value": 24
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "d1wZzfSSBJ15fmlK97I3vZ"
+    ]
+  },
+  {
     "__type__": "cc.Node",
     "_name": "Capsule",
     "_objFlags": 0,
@@ -8397,10 +8435,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 284
+        "__id__": 288
       },
       {
-        "__id__": 286
+        "__id__": 290
       }
     ],
     "_prefab": null,
@@ -8439,7 +8477,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 283
+      "__id__": 287
     },
     "_enabled": true,
     "__prefab": null,
@@ -8451,7 +8489,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 285
+      "__id__": 289
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8494,7 +8532,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 283
+      "__id__": 287
     },
     "_enabled": true,
     "__prefab": null,
@@ -8513,10 +8551,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 288
+        "__id__": 292
       },
       {
-        "__id__": 290
+        "__id__": 294
       }
     ],
     "_prefab": null,
@@ -8555,7 +8593,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 287
+      "__id__": 291
     },
     "_enabled": true,
     "__prefab": null,
@@ -8567,7 +8605,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 289
+      "__id__": 293
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8610,7 +8648,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 287
+      "__id__": 291
     },
     "_enabled": true,
     "__prefab": null,
@@ -8629,10 +8667,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 292
+        "__id__": 296
       },
       {
-        "__id__": 294
+        "__id__": 298
       }
     ],
     "_prefab": null,
@@ -8671,7 +8709,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 291
+      "__id__": 295
     },
     "_enabled": true,
     "__prefab": null,
@@ -8683,7 +8721,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 293
+      "__id__": 297
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8726,7 +8764,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 291
+      "__id__": 295
     },
     "_enabled": true,
     "__prefab": null,
@@ -8745,10 +8783,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 296
+        "__id__": 300
       },
       {
-        "__id__": 298
+        "__id__": 302
       }
     ],
     "_prefab": null,
@@ -8787,7 +8825,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 295
+      "__id__": 299
     },
     "_enabled": true,
     "__prefab": null,
@@ -8799,7 +8837,7 @@
     ],
     "_visFlags": 0,
     "bakeSettings": {
-      "__id__": 297
+      "__id__": 301
     },
     "_mesh": {
       "__uuid__": "1263d74c-8167-4928-91a6-4e2672411f47@801ec",
@@ -8842,7 +8880,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 295
+      "__id__": 299
     },
     "_enabled": true,
     "__prefab": null,
@@ -8861,10 +8899,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 300
+        "__id__": 304
       },
       {
-        "__id__": 301
+        "__id__": 305
       }
     ],
     "_prefab": null,
@@ -8903,7 +8941,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 299
+      "__id__": 303
     },
     "_enabled": false,
     "__prefab": null,
@@ -8937,7 +8975,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 299
+      "__id__": 303
     },
     "_enabled": true,
     "__prefab": null,
@@ -8974,10 +9012,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 303
+        "__id__": 307
       },
       {
-        "__id__": 304
+        "__id__": 308
       }
     ],
     "_prefab": null,
@@ -9016,7 +9054,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 302
+      "__id__": 306
     },
     "_enabled": false,
     "__prefab": null,
@@ -9050,7 +9088,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 302
+      "__id__": 306
     },
     "_enabled": true,
     "__prefab": null,
@@ -9087,7 +9125,7 @@
     "_active": false,
     "_components": [
       {
-        "__id__": 306
+        "__id__": 310
       }
     ],
     "_prefab": null,
@@ -9126,7 +9164,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 305
+      "__id__": 309
     },
     "_enabled": false,
     "__prefab": null,
@@ -9154,7 +9192,7 @@
     "_active": false,
     "_components": [
       {
-        "__id__": 308
+        "__id__": 312
       }
     ],
     "_prefab": null,
@@ -9193,7 +9231,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 307
+      "__id__": 311
     },
     "_enabled": false,
     "__prefab": null,
@@ -9205,7 +9243,7 @@
     },
     "armyBrains": [
       {
-        "__id__": 300
+        "__id__": 304
       }
     ],
     "battleArmyBrains": [],
@@ -9240,13 +9278,20 @@
     "asset": null,
     "fileId": "1effe86e-a401-4769-9dbc-62218c68834d",
     "instance": null,
-    "targetOverrides": [],
+    "targetOverrides": [
+      {
+        "__id__": 314
+      },
+      {
+        "__id__": 317
+      }
+    ],
     "nestedPrefabInstanceRoots": [
       {
         "__id__": 261
       },
       {
-        "__id__": 272
+        "__id__": 274
       },
       {
         "__id__": 88
@@ -9257,30 +9302,92 @@
     ]
   },
   {
-    "__type__": "cc.SceneGlobals",
-    "ambient": {
-      "__id__": 311
+    "__type__": "cc.TargetOverrideInfo",
+    "source": {
+      "__id__": 261
     },
-    "shadows": {
-      "__id__": 312
-    },
-    "_skybox": {
-      "__id__": 313
-    },
-    "fog": {
-      "__id__": 314
-    },
-    "octree": {
+    "sourceInfo": {
       "__id__": 315
     },
-    "skin": {
+    "propertyPath": [
+      "visualRoot"
+    ],
+    "target": {
+      "__id__": 261
+    },
+    "targetInfo": {
       "__id__": 316
+    }
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "42dvfFDtxIJqaJpn+Mrnfr"
+    ]
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "0d6O23Lf9PwqzZBcxyCBih",
+      "89BsqabFhUiotUdrkH5ksL"
+    ]
+  },
+  {
+    "__type__": "cc.TargetOverrideInfo",
+    "source": {
+      "__id__": 274
+    },
+    "sourceInfo": {
+      "__id__": 318
+    },
+    "propertyPath": [
+      "visualRoot"
+    ],
+    "target": {
+      "__id__": 274
+    },
+    "targetInfo": {
+      "__id__": 319
+    }
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "d1wZzfSSBJ15fmlK97I3vZ"
+    ]
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "e8UHd6P4dCk4RxCW3Q1BTB",
+      "89BsqabFhUiotUdrkH5ksL"
+    ]
+  },
+  {
+    "__type__": "cc.SceneGlobals",
+    "ambient": {
+      "__id__": 321
+    },
+    "shadows": {
+      "__id__": 322
+    },
+    "_skybox": {
+      "__id__": 323
+    },
+    "fog": {
+      "__id__": 324
+    },
+    "octree": {
+      "__id__": 325
+    },
+    "skin": {
+      "__id__": 326
     },
     "lightProbeInfo": {
-      "__id__": 317
+      "__id__": 327
     },
     "postSettings": {
-      "__id__": 318
+      "__id__": 328
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattlefieldEvaluator, unitFamilyToName, CounterSettings, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _crd, ccclass, property, BattleArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, GameManager, BattlefieldEvaluator, UnitFamily, unitFamilyToName, CounterSettings, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _crd, ccclass, property, BattleArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -23,6 +23,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
   function _reportPossibleCrUseOfBattlefieldWaveIntel(extras) {
     _reporterNs.report("BattlefieldWaveIntel", "./BattlefieldEvaluator", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfUnitFamily(extras) {
+    _reporterNs.report("UnitFamily", "./BattleTypes", _context.meta, extras);
   }
 
   function _reportPossibleCrUseOfunitFamilyToName(extras) {
@@ -47,6 +51,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     }, function (_unresolved_3) {
       BattlefieldEvaluator = _unresolved_3.BattlefieldEvaluator;
     }, function (_unresolved_4) {
+      UnitFamily = _unresolved_4.UnitFamily;
       unitFamilyToName = _unresolved_4.unitFamilyToName;
     }, function (_unresolved_5) {
       CounterSettings = _unresolved_5.CounterSettings;
@@ -77,6 +82,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
       }), _dec7 = property({
         tooltip: 'Maximum Archer/Monk support waves allowed near one target lane before BattleArmyBrain looks elsewhere.'
+      }), _dec8 = property({
+        min: 1,
+        tooltip: 'Maximum consecutive melee waves this brain may spawn into the same lane. Ranged waves use their own support rules.'
       }), _dec(_class = (_class2 = class BattleArmyBrain extends Component {
         constructor() {
           super(...arguments);
@@ -109,9 +117,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "maxRangedSupportWavesPerLane", _descriptor14, this);
 
-          _initializerDefineProperty(this, "enableStateLog", _descriptor15, this);
+          _initializerDefineProperty(this, "maxConsecutiveMeleeWavesPerLane", _descriptor15, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor16, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor16, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor17, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -122,6 +132,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.currentAccuracyRoll = 0;
           this.currentAccurateDecision = true;
           this.currentDeliberateMistake = false;
+          this.lastMeleeSpawnLaneId = -1;
+          this.consecutiveMeleeSpawnLaneCount = 0;
+          this.spawnedOpeningWave = false;
+          this.hasSeenEnemyWave = false;
         }
 
         start() {
@@ -172,6 +186,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.evaluator.laneAllyAheadLimit = Math.max(0, Math.floor(this.laneAllyAheadLimit));
           this.evaluator.rebuild(gameManager, this.team);
 
+          if (this.evaluator.enemyCount > 0) {
+            this.hasSeenEnemyWave = true;
+          }
+
+          if (this.evaluator.enemyCount <= 0) {
+            if (!this.spawnOpeningWaveIfNoEnemyWave) {
+              this.stateLog('WAIT no enemy and opening disabled.');
+              return;
+            }
+
+            if (this.spawnedOpeningWave && !this.hasSeenEnemyWave) {
+              this.stateLog('WAIT opening wave already spawned.');
+              return;
+            }
+
+            var openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane, this.getBlockedMeleeLaneId());
+
+            if (openingDecision.entry && openingDecision.laneId >= 0 && this.spawn(openingDecision.entry, openingDecision.laneId, openingDecision.aggressiveForward, openingDecision.reason, openingDecision.target)) {
+              this.spawnedOpeningWave = true;
+            }
+
+            return;
+          }
+
           if (!this.currentAccurateDecision) {
             if (this.currentDeliberateMistake && this.trySpawnDeliberatelyWrongWave()) {
               return;
@@ -182,23 +220,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
-          var decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane);
-
-          if (this.evaluator.enemyCount <= 0 && !this.spawnOpeningWaveIfNoEnemyWave) {
-            this.stateLog('WAIT no enemy and opening disabled.');
-            return;
-          }
+          var decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane, this.getBlockedMeleeLaneId());
 
           if (decision.entry && decision.laneId >= 0) {
-            this.spawn(decision.entry, decision.laneId, decision.aggressiveForward, decision.reason, decision.target);
-            return;
+            if (this.spawn(decision.entry, decision.laneId, decision.aggressiveForward, decision.reason, decision.target)) {
+              return;
+            }
           }
 
-          var fallbackDecision = this.evaluator.chooseFallbackSpawnDecision(gameManager, this.affordableEntries);
+          var fallbackDecision = this.evaluator.chooseFallbackSpawnDecision(gameManager, this.team, this.affordableEntries, this.maxRangedSupportWavesPerLane, this.getBlockedMeleeLaneId());
 
           if (fallbackDecision.entry && fallbackDecision.laneId >= 0) {
-            this.spawn(fallbackDecision.entry, fallbackDecision.laneId, fallbackDecision.aggressiveForward, fallbackDecision.reason, fallbackDecision.target);
-            return;
+            if (this.spawn(fallbackDecision.entry, fallbackDecision.laneId, fallbackDecision.aggressiveForward, fallbackDecision.reason, fallbackDecision.target)) {
+              return;
+            }
           }
 
           this.stateLog('WAIT no useful snapshot or fallback spawn.');
@@ -240,17 +275,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         trySpawnRandomWave() {
-          var laneId = this.getRandomLaneId();
-
-          if (laneId < 0) {
-            this.stateLog('WAIT imperfect no lane.');
-            return false;
-          }
-
           var entry = this.getRandomAffordableEntry();
 
           if (!entry) {
             this.stateLog('WAIT imperfect no entry.');
+            return false;
+          }
+
+          var laneId = this.getRandomLaneId(this.isMeleeEntry(entry) ? this.getBlockedMeleeLaneId() : -1);
+
+          if (laneId < 0) {
+            this.stateLog('WAIT imperfect no lane.');
             return false;
           }
 
@@ -264,8 +299,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var gameManager = this.gameManager;
           if (!gameManager) return false;
+
+          if (this.isMeleeEntry(entry) && laneId === this.getBlockedMeleeLaneId()) {
+            return false;
+          }
+
           var spawned = gameManager.spawnWaveByEntry(this.team, entry, laneId, aggressiveForward, reason);
           if (!spawned) return false;
+          this.recordSpawnLaneHistory(entry, laneId);
           gameManager.recordBattleTelemetryWaveSpawnDecision({
             team: this.team,
             waveId: spawned.id,
@@ -337,12 +378,53 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.nextInterval = min + Math.random() * (max - min);
         }
 
-        getRandomLaneId() {
+        getRandomLaneId(blockedLaneId) {
+          if (blockedLaneId === void 0) {
+            blockedLaneId = -1;
+          }
+
           var gameManager = this.gameManager;
           if (!gameManager) return -1;
           var laneCount = gameManager.getSafeLaneCount();
           if (laneCount <= 0) return -1;
+
+          if (blockedLaneId >= 0 && laneCount > 1) {
+            var roll = Math.floor(Math.random() * (laneCount - 1));
+            var laneId = roll >= blockedLaneId ? roll + 1 : roll;
+            return gameManager.clampLaneId(laneId);
+          }
+
           return gameManager.clampLaneId(Math.floor(Math.random() * laneCount));
+        }
+
+        isMeleeEntry(entry) {
+          return entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Archer && entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Monk;
+        }
+
+        getBlockedMeleeLaneId() {
+          if (this.lastMeleeSpawnLaneId < 0) {
+            return -1;
+          }
+
+          return this.consecutiveMeleeSpawnLaneCount >= Math.max(1, Math.floor(this.maxConsecutiveMeleeWavesPerLane)) ? this.lastMeleeSpawnLaneId : -1;
+        }
+
+        recordSpawnLaneHistory(entry, laneId) {
+          if (!this.isMeleeEntry(entry)) {
+            return;
+          }
+
+          if (laneId === this.lastMeleeSpawnLaneId) {
+            this.consecutiveMeleeSpawnLaneCount++;
+            return;
+          }
+
+          this.lastMeleeSpawnLaneId = laneId;
+          this.consecutiveMeleeSpawnLaneCount = 1;
         }
 
         getRandomAffordableEntry() {
@@ -497,14 +579,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 2;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "maxConsecutiveMeleeWavesPerLane", [_dec8], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 2;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return false;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
