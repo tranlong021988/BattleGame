@@ -143,6 +143,10 @@ export class BattlefieldEvaluator {
             );
         const currentCombatPoint =
             gameManager.getCombatPoint(team);
+        const enemyCombatPoint =
+            gameManager.getCombatPoint(
+                team === 0 ? 1 : 0
+            );
 
         for (let i = 0; i < this.enemyCount; i++) {
             const target = this.enemies[i];
@@ -174,6 +178,7 @@ export class BattlefieldEvaluator {
                         target,
                         targetPriority,
                         currentCombatPoint,
+                        enemyCombatPoint,
                         rangedSupportCount,
                         meleeSupportCount,
                         maxRangedSupportPerTarget,
@@ -235,7 +240,7 @@ export class BattlefieldEvaluator {
         }
 
         const entry =
-            this.choosePressureEntry(affordableEntries);
+            this.chooseRandomMeleeEntry(affordableEntries);
 
         if (!entry) {
             return this.spawnDecision;
@@ -248,6 +253,45 @@ export class BattlefieldEvaluator {
         this.spawnDecision.score = 1;
 
         return this.spawnDecision;
+    }
+
+    private chooseRandomMeleeEntry(
+        affordableEntries: UnitPrefabEntry[]
+    ) {
+        let candidateCount = 0;
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (this.isRangedFamily(entry.family)) {
+                continue;
+            }
+
+            candidateCount++;
+        }
+
+        if (candidateCount <= 0) {
+            return null;
+        }
+
+        let roll =
+            Math.floor(Math.random() * candidateCount);
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (this.isRangedFamily(entry.family)) {
+                continue;
+            }
+
+            if (roll <= 0) {
+                return entry;
+            }
+
+            roll--;
+        }
+
+        return null;
     }
 
     chooseFallbackSpawnDecision(
@@ -307,6 +351,12 @@ export class BattlefieldEvaluator {
         affordableEntries: UnitPrefabEntry[],
         maxRangedSupportPerTarget: number
     ) {
+        const currentCombatPoint =
+            gameManager.getCombatPoint(team);
+        const enemyCombatPoint =
+            gameManager.getCombatPoint(
+                team === 0 ? 1 : 0
+            );
         const rangedSupportCount =
             this.countRangedSupportAllies();
         const meleeSupportCount =
@@ -342,7 +392,8 @@ export class BattlefieldEvaluator {
                         entry,
                         target,
                         0,
-                        Math.max(1, entry.combatPointCost),
+                        currentCombatPoint,
+                        enemyCombatPoint,
                         rangedSupportCount,
                         meleeSupportCount,
                         maxRangedSupportPerTarget,
@@ -433,6 +484,7 @@ export class BattlefieldEvaluator {
         target: BattlefieldWaveIntel,
         targetPriority: number,
         currentCombatPoint: number,
+        enemyCombatPoint: number,
         rangedSupportCount: number,
         meleeSupportCount: number,
         maxRangedSupportPerTarget: number,
@@ -597,7 +649,12 @@ export class BattlefieldEvaluator {
                         : 300
                     : 320;
         const economyPreference =
-            canComfortablyAfford ? 4.5 : 9.5;
+            this.getEconomyPreference(
+                canComfortablyAfford,
+                currentCombatPoint,
+                enemyCombatPoint,
+                cost
+            );
 
         return targetPriority +
             fitScore +
@@ -616,6 +673,37 @@ export class BattlefieldEvaluator {
                 targetLivePowerRatio
             ) +
             Math.random() * 0.001;
+    }
+
+    private getEconomyPreference(
+        canComfortablyAfford: boolean,
+        currentCombatPoint: number,
+        enemyCombatPoint: number,
+        cost: number
+    ) {
+        const basePreference =
+            canComfortablyAfford ? 4.5 : 9.5;
+        const postSpawnAdvantage =
+            currentCombatPoint -
+            cost -
+            enemyCombatPoint;
+
+        if (postSpawnAdvantage <= 0) {
+            return basePreference;
+        }
+
+        const advantageRatio =
+            Math.min(
+                1,
+                postSpawnAdvantage /
+                    Math.max(1, enemyCombatPoint)
+            );
+
+        return Math.max(
+            1.5,
+            basePreference -
+                advantageRatio * 3
+        );
     }
 
     private scoreSnapshotRangedSupportEntry(
@@ -1829,47 +1917,22 @@ export class BattlefieldEvaluator {
         entry: UnitPrefabEntry,
         aliveCount: number,
         healthRatio: number,
-        targetAliveCount: number
+        _targetAliveCount: number
     ) {
         const count =
             Math.max(0, aliveCount);
-        const avgInterval =
-            Math.max(
-                0.05,
-                (
-                    Math.max(0.05, entry.attackIntervalMin) +
-                    Math.max(0.05, entry.attackIntervalMax)
-                ) * 0.5
-            );
         const hitDamage =
             Math.max(1, entry.damage);
-        const dps =
-            count * hitDamage / avgInterval;
         const durability =
             Math.max(1, entry.health) *
             count *
             Math.max(0, healthRatio) *
             (1 + Math.max(0, entry.defense) * 0.045);
-        const rangeFactor =
-            1 +
-            Math.min(7, Math.max(0, entry.attackRange)) *
-                (this.isRangedFamily(entry.family) ? 0.08 : 0.02);
-        const speedFactor =
-            1 +
-            Math.min(7, Math.max(0, entry.maxSpeed)) *
-                (entry.family === UnitFamily.Cavalry ? 0.06 : 0.025);
-        const aoeFactor =
-            1 +
-            Math.min(1.5, Math.max(0, entry.damageRadius)) *
-                Math.min(1.4, Math.max(1, targetAliveCount) / 6);
 
         return Math.sqrt(
-            Math.max(1, dps) *
+            Math.max(1, count * hitDamage) *
             Math.max(1, durability)
-        ) *
-        rangeFactor *
-        speedFactor *
-        aoeFactor;
+        );
     }
 
     private isEntryViableForTarget(

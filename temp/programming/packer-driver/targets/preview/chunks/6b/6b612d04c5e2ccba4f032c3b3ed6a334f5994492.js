@@ -169,12 +169,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), UnitFamily) : UnitFamily).Spear, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry, 5.5, 'Hard counter: Spear punishes Cavalry.');
+          }), UnitFamily) : UnitFamily).Cavalry, 45, 'Hard counter: Spear punishes Cavalry.');
           this.addRule((_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Archer, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
-          }), UnitFamily) : UnitFamily).Spear, 1.45, 'Soft-hard counter: Archer punishes Spear to keep cheap Spear from becoming too cost-efficient.');
+          }), UnitFamily) : UnitFamily).Spear, 2, 'Soft-hard counter: Archer punishes Spear while sharing Spear raw Power tier.');
         }
 
       }, _class6.instance = null, _class6), (_descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "autoCreateDefaultRules", [property], {

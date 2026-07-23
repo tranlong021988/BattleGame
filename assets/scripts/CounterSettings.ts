@@ -130,15 +130,15 @@ export class CounterSettings extends Component {
         this.addRule(
             UnitFamily.Spear,
             UnitFamily.Cavalry,
-            5.5,
+            45,
             'Hard counter: Spear punishes Cavalry.'
         );
 
         this.addRule(
             UnitFamily.Archer,
             UnitFamily.Spear,
-            1.45,
-            'Soft-hard counter: Archer punishes Spear to keep cheap Spear from becoming too cost-efficient.'
+            2,
+            'Soft-hard counter: Archer punishes Spear while sharing Spear raw Power tier.'
         );
     }
 }

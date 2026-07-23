@@ -178,6 +178,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const rangedSupportCount = this.countRangedSupportAllies();
           const meleeSupportCount = this.countMeleeWaves(this.allies, this.allyCount);
           const currentCombatPoint = gameManager.getCombatPoint(team);
+          const enemyCombatPoint = gameManager.getCombatPoint(team === 0 ? 1 : 0);
 
           for (let i = 0; i < this.enemyCount; i++) {
             const target = this.enemies[i];
@@ -192,7 +193,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
             for (let j = 0; j < affordableEntries.length; j++) {
               const entry = affordableEntries[j];
-              const score = this.scoreSnapshotEntryForTarget(gameManager, team, entry, target, targetPriority, currentCombatPoint, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter);
+              const score = this.scoreSnapshotEntryForTarget(gameManager, team, entry, target, targetPriority, currentCombatPoint, enemyCombatPoint, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter);
 
               if (score <= this.spawnDecision.score) {
                 continue;
@@ -223,7 +224,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return this.spawnDecision;
           }
 
-          const entry = this.choosePressureEntry(affordableEntries);
+          const entry = this.chooseRandomMeleeEntry(affordableEntries);
 
           if (!entry) {
             return this.spawnDecision;
@@ -235,6 +236,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.spawnDecision.reason = 'snapshot-opening-pressure';
           this.spawnDecision.score = 1;
           return this.spawnDecision;
+        }
+
+        chooseRandomMeleeEntry(affordableEntries) {
+          let candidateCount = 0;
+
+          for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (this.isRangedFamily(entry.family)) {
+              continue;
+            }
+
+            candidateCount++;
+          }
+
+          if (candidateCount <= 0) {
+            return null;
+          }
+
+          let roll = Math.floor(Math.random() * candidateCount);
+
+          for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (this.isRangedFamily(entry.family)) {
+              continue;
+            }
+
+            if (roll <= 0) {
+              return entry;
+            }
+
+            roll--;
+          }
+
+          return null;
         }
 
         chooseFallbackSpawnDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId = -1) {
@@ -266,6 +303,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         chooseFallbackRangedSupportDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget) {
+          const currentCombatPoint = gameManager.getCombatPoint(team);
+          const enemyCombatPoint = gameManager.getCombatPoint(team === 0 ? 1 : 0);
           const rangedSupportCount = this.countRangedSupportAllies();
           const meleeSupportCount = this.countMeleeWaves(this.allies, this.allyCount);
 
@@ -285,7 +324,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
                 continue;
               }
 
-              const score = this.scoreSnapshotEntryForTarget(gameManager, team, entry, target, 0, Math.max(1, entry.combatPointCost), rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter);
+              const score = this.scoreSnapshotEntryForTarget(gameManager, team, entry, target, 0, currentCombatPoint, enemyCombatPoint, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter);
 
               if (score <= this.spawnDecision.score) {
                 continue;
@@ -324,7 +363,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return (target.threatPower * (0.35 + needsHelp) + unengagedPressure + rescuePressure + dangerPressure) * frontlineFactor;
         }
 
-        scoreSnapshotEntryForTarget(gameManager, team, entry, target, targetPriority, currentCombatPoint, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter) {
+        scoreSnapshotEntryForTarget(gameManager, team, entry, target, targetPriority, currentCombatPoint, enemyCombatPoint, rangedSupportCount, meleeSupportCount, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter) {
           if (!target.entry) return -Infinity;
           const ranged = this.isRangedFamily(entry.family);
           const hardCounter = this.isHardCounterEntryForTarget(entry, target);
@@ -376,8 +415,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const reusableEconomyScore = this.getEntryBasePower(entry, Math.max(1, entry.unitCount), 1, Math.max(1, target.aliveCount)) / cost * 4;
           const targetIsRanged = this.isRangedFamily(target.entry.family);
           const overshootPenaltyScale = targetIsRanged ? 90 : hardCounter ? targetUrgency >= 0.7 ? 160 : 300 : 320;
-          const economyPreference = canComfortablyAfford ? 4.5 : 9.5;
+          const economyPreference = this.getEconomyPreference(canComfortablyAfford, currentCombatPoint, enemyCombatPoint, cost);
           return targetPriority + fitScore + strongEnoughBonus + hardCounterBonus + usefulPower / cost * 24 + reusableEconomyScore - cost * economyPreference - overshoot * overshootPenaltyScale - reverseCounterPenalty - holdingPenalty + this.getSnapshotMeleeLadderBias(entry, target, canComfortablyAfford, targetLivePowerRatio) + Math.random() * 0.001;
+        }
+
+        getEconomyPreference(canComfortablyAfford, currentCombatPoint, enemyCombatPoint, cost) {
+          const basePreference = canComfortablyAfford ? 4.5 : 9.5;
+          const postSpawnAdvantage = currentCombatPoint - cost - enemyCombatPoint;
+
+          if (postSpawnAdvantage <= 0) {
+            return basePreference;
+          }
+
+          const advantageRatio = Math.min(1, postSpawnAdvantage / Math.max(1, enemyCombatPoint));
+          return Math.max(1.5, basePreference - advantageRatio * 3);
         }
 
         scoreSnapshotRangedSupportEntry(entry, target, targetPriority, candidatePower, hardCounter) {
@@ -1048,18 +1099,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.getCoveragePowerAgainstTarget(gameManager, team, entry, basePower, target);
         }
 
-        getEntryBasePower(entry, aliveCount, healthRatio, targetAliveCount) {
+        getEntryBasePower(entry, aliveCount, healthRatio, _targetAliveCount) {
           const count = Math.max(0, aliveCount);
-          const avgInterval = Math.max(0.05, (Math.max(0.05, entry.attackIntervalMin) + Math.max(0.05, entry.attackIntervalMax)) * 0.5);
           const hitDamage = Math.max(1, entry.damage);
-          const dps = count * hitDamage / avgInterval;
           const durability = Math.max(1, entry.health) * count * Math.max(0, healthRatio) * (1 + Math.max(0, entry.defense) * 0.045);
-          const rangeFactor = 1 + Math.min(7, Math.max(0, entry.attackRange)) * (this.isRangedFamily(entry.family) ? 0.08 : 0.02);
-          const speedFactor = 1 + Math.min(7, Math.max(0, entry.maxSpeed)) * (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Cavalry ? 0.06 : 0.025);
-          const aoeFactor = 1 + Math.min(1.5, Math.max(0, entry.damageRadius)) * Math.min(1.4, Math.max(1, targetAliveCount) / 6);
-          return Math.sqrt(Math.max(1, dps) * Math.max(1, durability)) * rangeFactor * speedFactor * aoeFactor;
+          return Math.sqrt(Math.max(1, count * hitDamage) * Math.max(1, durability));
         }
 
         isEntryViableForTarget(entry, target) {

@@ -20,7 +20,59 @@ If a stat changes, update this file and then update both Team A and Team B
 - Ranged wave size must stay `<= 5`.
 - Melee wave size should stay `10`; Cavalry may be tuned separately if needed.
 
-## Current Natural-Strength Candidate
+## Current X-Power Draft
+
+This is the active 2026-07-24 draft. The goal is to normalize raw per-unit
+Power around Sword as the base unit, using only `Health`, `Damage`, and
+`Defense`:
+
+```text
+EffectiveHP = Health * (1 + Defense * 0.045)
+Power = sqrt(Damage * EffectiveHP)
+```
+
+Sword is the base:
+
+```text
+Sword = 100 HP / 20 Damage / 5 Defense = 1.00X
+```
+
+Current melee target ladder:
+
+```text
+Cavalry ~= 2.0X
+Axeman  ~= 1.5X
+Sword   = 1.0X
+Spear   ~= 0.5X
+```
+
+Archer and Monk are currently set to the same raw Power tier as Spear. Their
+combat identity still comes from range, attack interval, and Monk AoE.
+Cost is calculated from total raw wave Power so spawning a wave means buying
+Power, independent of troop family:
+
+```text
+WaveRawPower = RawUnitPower * UnitCount
+Cost = round(WaveRawPower / 10)
+```
+
+| Unit | Family | Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval | Raw Power Ratio |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `axeman_t1` | Axeman | 10 | 74 | 110 | 46 | 2 | 4.65 | 0.35 | 0.0 | 0.36-0.44 | ~1.50X |
+| `cavalry_t1` | Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0.0 | 0.36-0.44 | ~1.97X |
+| `sword_t1` | Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0.0 | 0.36-0.44 | 1.00X |
+| `spear_t1` | Spear | 10 | 24 | 55 | 10 | 2 | 4.50 | 0.35 | 0.0 | 0.36-0.44 | ~0.49X |
+| `monk_t1` | Monk | 2 | 5 | 23 | 25 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 | ~0.48X |
+| `archer_t1` | Archer | 4 | 10 | 45 | 13 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 | ~0.49X |
+
+Current counter rules:
+
+| Attacker | Defender | Multiplier | Intent |
+| --- | --- | ---: | --- |
+| Spear | Cavalry | 45.0 | Per-unit Spear-vs-Cavalry counter target: Spear survives with about 5-10% HP in the continuous 1v1 estimate. |
+| Archer | Spear | 2.0 | Archer punishes Spear while sharing Spear's raw Power tier. |
+
+## Backup: 2026-07-23 Runtime Damage/CP Candidate
 
 This is the 2026-07-18 reset pass. The goal is no longer to tune isolated
 hard-counter pairs first. The active baseline now builds a natural strength
@@ -181,7 +233,7 @@ Intent:
   telemetry. Its radius is intentionally `1.00` for visible AoE identity, while
   interval tuning is used to keep runtime damage/CP near, but not above, melee.
 
-## Counter Rules
+## Backup Counter Rules From 2026-07-23 Candidate
 
 Damage formula:
 
@@ -189,14 +241,14 @@ Damage formula:
 damage = max(1, attacker.attack - defender.defense) * counterMultiplier
 ```
 
-Active rules:
+Backup rules:
 
 | Attacker | Defender | Multiplier | Intent |
 | --- | --- | ---: | --- |
 | Spear | Cavalry | 18.0 | Hard counter. Spear is weak generally, but should beat Cavalry in 3 hits without one-shotting it. |
 | Archer | Spear | 4.0 | Hard counter. Archer punishes Spear clearly while staying weaker as a standalone support unit. |
 
-Current Spear-vs-Cavalry combat check:
+Backup Spear-vs-Cavalry combat check:
 
 ```text
 Spear -> Cavalry: max(1, 14 - 8) * 18.0 = 108 damage/hit

@@ -2191,15 +2191,15 @@
     "__type__": "CounterRule",
     "attackerFamily": 0,
     "defenderFamily": 4,
-    "damageMultiplier": 18,
+    "damageMultiplier": 45,
     "note": "Hard counter: Spear is weak generally, but punishes Cavalry."
   },
   {
     "__type__": "CounterRule",
     "attackerFamily": 2,
     "defenderFamily": 0,
-    "damageMultiplier": 4,
-    "note": "Soft-hard counter: Archer punishes Spear after Archer raw DPS was reduced."
+    "damageMultiplier": 2,
+    "note": "Soft-hard counter: Archer punishes Spear while sharing Spear raw Power tier."
   },
   {
     "__type__": "HeroEntry",
@@ -3500,10 +3500,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 180,
-    "damage": 28,
-    "defense": 5,
-    "combatPointCost": 56
+    "health": 110,
+    "damage": 46,
+    "defense": 2,
+    "combatPointCost": 74
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3531,12 +3531,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.39,
-    "attackIntervalMax": 0.48,
-    "health": 235,
-    "damage": 40,
-    "defense": 8,
-    "combatPointCost": 64
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 160,
+    "damage": 45,
+    "defense": 7,
+    "combatPointCost": 97
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3566,10 +3566,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 175,
-    "damage": 24,
-    "defense": 8,
-    "combatPointCost": 46
+    "health": 100,
+    "damage": 20,
+    "defense": 5,
+    "combatPointCost": 49
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3597,12 +3597,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.5,
-    "health": 130,
-    "damage": 14,
-    "defense": 5,
-    "combatPointCost": 38
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 55,
+    "damage": 10,
+    "defense": 2,
+    "combatPointCost": 24
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3632,10 +3632,10 @@
     "damageRadius": 1,
     "attackIntervalMin": 1.5,
     "attackIntervalMax": 1.9,
-    "health": 75,
-    "damage": 23,
+    "health": 23,
+    "damage": 25,
     "defense": 0,
-    "combatPointCost": 28
+    "combatPointCost": 5
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3665,10 +3665,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 1.1,
     "attackIntervalMax": 1.35,
-    "health": 70,
-    "damage": 16,
+    "health": 45,
+    "damage": 13,
     "defense": 0,
-    "combatPointCost": 32
+    "combatPointCost": 10
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3698,10 +3698,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 180,
-    "damage": 28,
-    "defense": 5,
-    "combatPointCost": 56
+    "health": 110,
+    "damage": 46,
+    "defense": 2,
+    "combatPointCost": 74
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3729,12 +3729,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.39,
-    "attackIntervalMax": 0.48,
-    "health": 235,
-    "damage": 40,
-    "defense": 8,
-    "combatPointCost": 64
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 160,
+    "damage": 45,
+    "defense": 7,
+    "combatPointCost": 97
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3764,10 +3764,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 175,
-    "damage": 24,
-    "defense": 8,
-    "combatPointCost": 46
+    "health": 100,
+    "damage": 20,
+    "defense": 5,
+    "combatPointCost": 49
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3795,12 +3795,12 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 0.35,
     "damageRadius": 0,
-    "attackIntervalMin": 0.4,
-    "attackIntervalMax": 0.5,
-    "health": 130,
-    "damage": 14,
-    "defense": 5,
-    "combatPointCost": 38
+    "attackIntervalMin": 0.36,
+    "attackIntervalMax": 0.44,
+    "health": 55,
+    "damage": 10,
+    "defense": 2,
+    "combatPointCost": 24
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3830,10 +3830,10 @@
     "damageRadius": 1,
     "attackIntervalMin": 1.5,
     "attackIntervalMax": 1.9,
-    "health": 75,
-    "damage": 23,
+    "health": 23,
+    "damage": 25,
     "defense": 0,
-    "combatPointCost": 28
+    "combatPointCost": 5
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3863,10 +3863,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 1.1,
     "attackIntervalMax": 1.35,
-    "health": 70,
-    "damage": 16,
+    "health": 45,
+    "damage": 13,
     "defense": 0,
-    "combatPointCost": 32
+    "combatPointCost": 10
   },
   {
     "__type__": "1cbcdGjxwFMXJTanym+R192",

@@ -2,85 +2,123 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-23 by office Codex after the ranged/support and melee
-runtime damage/CP balance pass.
+Last updated: 2026-07-24 by home Codex after the X-Power stats reset,
+BattlefieldEvaluator base-power alignment, opening random melee change, and
+CP-advantage economy scoring pass.
 
 ## Handoff Policy
 
-- Treat source code and scene data as the source of truth. Use this file only as
-  a map.
+- Treat source code and scene data as the source of truth. Use this file as a
+  map, not as a substitute for checking code.
 - Update this file only when the user explicitly asks for a handoff/update.
-- Keep this file as current truth, not a daily changelog archive.
-- Before changing AI, combat, stats, or telemetry, re-check the relevant source
-  files and scene values.
-- Do not revive old notes from removed systems unless the user explicitly asks
-  for history.
+- Keep this file as current truth. Avoid reviving outdated daily-history notes
+  unless the user asks for investigation history.
+- Before changing AI, combat, stats, or telemetry, re-check:
+  - `assets/Test.scene`
+  - `UNITSTATS.md`
+  - `assets/scripts/BattleArmyBrain.ts`
+  - `assets/scripts/BattlefieldEvaluator.ts`
+  - `assets/scripts/CounterSettings.ts`
+  - `assets/scripts/BattleTelemetry.ts`
+- User is explicitly sensitive about hidden balance multipliers. Do not add
+  hidden combat/stat multipliers. Actual damage multipliers must live in
+  `CounterSettings` / scene counter data.
 
 ## Current Active Stack
 
 - Active AI path: `BattleArmyBrain` plus `BattlefieldEvaluator`.
-- `SmartArmyBrain` and older `ArmyBrain` notes are legacy unless the scene
-  explicitly enables them.
-- Current key files:
-  - `assets/scripts/BattleArmyBrain.ts`
-  - `assets/scripts/BattlefieldEvaluator.ts`
-  - `assets/scripts/GameManager.ts`
-  - `assets/scripts/BattleWave.ts`
-  - `assets/scripts/Unit.ts`
-  - `assets/scripts/UnitBehavior.ts`
-  - `assets/scripts/BattleTelemetry.ts`
-  - `assets/scripts/CounterSettings.ts`
-  - `assets/Test.scene`
-  - `UNITSTATS.md`
+- `SmartArmyBrain` and old `ArmyBrain` are legacy unless scene explicitly
+  enables them.
+- Active troop test uses tier 1 only:
+  - Axeman
+  - Cavalry
+  - Sword
+  - Spear
+  - Monk
+  - Archer
+- Skirmisher is inactive for this pass.
 
-## Current Balance Philosophy
+## Current Balance Direction
 
-- The current goal is not "every unit wins equally".
-- The user now wants runtime `damage/CP` to be reasonably stable so each CP
-  spent feels valuable.
-- Melee `damage/CP` may be close, but should still broadly respect the visible
-  melee ladder:
+The balance direction changed on 2026-07-24.
+
+Old direction:
+
+- Tune runtime `damage/CP` until all unit families looked close under current
+  AI behavior.
+
+Problem discovered:
+
+- Runtime `damage/CP` is heavily shaped by AI choices, target selection,
+  frontline safety, ranged uptime, AoE, lane noise, and battle flow.
+- A stats table tuned only to runtime telemetry can accidentally become
+  balanced only inside one AI behavior, not as a clean unit economy.
+
+Current direction:
+
+- First define a clean raw per-unit `Power` scale.
+- Sword is the base unit.
+- User spawning a wave means buying total raw wave Power, regardless of family.
+- Runtime telemetry is still important, but now it should identify where AI,
+  range, AoE, or behavior creates value beyond raw Power.
+
+Current raw Power formula:
 
 ```text
-Cavalry > Axeman > Sword > Spear
+EffectiveHP = Health * (1 + Defense * 0.045)
+RawUnitPower = sqrt(Damage * EffectiveHP)
+WaveRawPower = RawUnitPower * UnitCount
+Cost = round(WaveRawPower / 10)
 ```
 
-- Ranged/support should not look like a CP loss. It can sit slightly below
-  melee because ranged value includes first-shot advantage, safety behind
-  frontline, and AoE/support pressure.
-- Hard-counter rules should create clear local exceptions:
+Important:
 
-```text
-Spear > Cavalry
-Archer > Spear
-```
-
-- Avoid hidden combat multipliers. Explicit combat multipliers belong in
-  `CounterSettings`/scene data only.
-- AI scoring heuristics can affect which unit gets selected, but must not be
-  confused with actual damage multipliers.
-- User dislikes narrow "one-number" fixes unless they are backed by whole-system
-  reasoning and telemetry.
+- This raw Power intentionally uses only `Health`, `Damage`, `Defense`, and
+  `UnitCount`.
+- It intentionally does not include `speed`, `range`, `damageRadius`,
+  `attackInterval`, lane behavior, or AI context.
+- `attackInterval` is currently considered more of a technical/combat pacing
+  stat than a unit identity stat. Melee intervals are unified.
+- Tactical traits like speed/range/AoE still matter in real play, but should not
+  silently inflate the base market price unless deliberately added later as a
+  separate premium.
 
 ## Current Unit Stats
 
-Scene values checked in `assets/Test.scene` and mirrored by `UNITSTATS.md`.
+Scene values in `assets/Test.scene` and `UNITSTATS.md` should match this table.
 
-| Unit | Family | Count | Cost | Health | Damage | Defense | Speed | Range | Radius | Interval |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `axeman_t1` | Axeman | 10 | 56 | 180 | 28 | 5 | 4.65 | 0.35 | 0.0 | 0.36-0.44 |
-| `cavalry_t1` | Cavalry | 10 | 64 | 235 | 40 | 8 | 9.75 | 0.35 | 0.0 | 0.39-0.48 |
-| `sword_t1` | Sword | 10 | 46 | 175 | 24 | 8 | 5.10 | 0.35 | 0.0 | 0.36-0.44 |
-| `spear_t1` | Spear | 10 | 38 | 130 | 14 | 5 | 4.50 | 0.35 | 0.0 | 0.40-0.50 |
-| `monk_t1` | Monk | 2 | 28 | 75 | 23 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 |
-| `archer_t1` | Archer | 4 | 32 | 70 | 16 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 |
+| Unit | Family | Count | Cost | Health | Damage | Defense | Speed | Range | Radius | Interval | Raw Power Ratio |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `axeman_t1` | Axeman | 10 | 74 | 110 | 46 | 2 | 4.65 | 0.35 | 0.0 | 0.36-0.44 | ~1.50X |
+| `cavalry_t1` | Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0.0 | 0.36-0.44 | ~1.97X |
+| `sword_t1` | Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0.0 | 0.36-0.44 | 1.00X |
+| `spear_t1` | Spear | 10 | 24 | 55 | 10 | 2 | 4.50 | 0.35 | 0.0 | 0.36-0.44 | ~0.49X |
+| `monk_t1` | Monk | 2 | 5 | 23 | 25 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 | ~0.48X |
+| `archer_t1` | Archer | 4 | 10 | 45 | 13 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 | ~0.49X |
 
-Current scene counter rules:
+Current intended raw Power ladder:
 
-| Attacker | Defender | Multiplier | Intent |
-| --- | --- | ---: | --- |
-| Spear | Cavalry | 18.0 | Spear kills Cavalry in 3 hits, not 1-2 hits. |
-| Archer | Spear | 4.0 | Archer punishes Spear clearly without over-inflating Archer too much. |
+```text
+Cavalry ~= 2.0X
+Axeman  ~= 1.5X
+Sword   = 1.0X
+Spear   ~= 0.5X
+Archer  ~= 0.5X
+Monk    ~= 0.5X
+```
+
+Identity notes:
+
+- Sword: base unit, medium attack, high defense, medium HP.
+- Axeman: high attack, weak defense, medium HP.
+- Cavalry: high attack, high defense, high HP, high speed.
+- Spear: low attack, medium-low defense, low HP, cheap raw Power; gets value
+  through Spear > Cavalry counter.
+- Archer: same raw Power tier as Spear, no defense, low HP, long range.
+- Monk: same raw Power tier as Spear/Archer, very low HP, no defense, high hit
+  damage, AoE support via `damageRadius = 1.0`.
+
+## Current Counter Rules
 
 Damage formula:
 
@@ -88,317 +126,428 @@ Damage formula:
 damage = max(1, attacker.damage - defender.defense) * counterMultiplier
 ```
 
-Concrete checks:
+Active scene/default rules:
+
+| Attacker | Defender | Multiplier | Intent |
+| --- | --- | ---: | --- |
+| Spear | Cavalry | 45.0 | Spear should beat Cavalry as a hard counter. This value targets about 5-10% Spear HP remaining in the continuous 1v1 estimate. |
+| Archer | Spear | 2.0 | Archer punishes Spear while sharing the same raw Power tier. |
+
+Spear vs Cavalry check with current stats:
 
 ```text
-Spear -> Cavalry: max(1, 14 - 8) * 18 = 108 damage/hit
-Cavalry HP: 235, so Cavalry dies after 3 Spear hits.
+Spear -> Cavalry raw = max(1, 10 - 7) = 3
+With x45: 3 * 45 = 135 damage/hit
+Cavalry HP = 160
 
-Archer -> Spear: max(1, 16 - 5) * 4 = 44 damage/hit
-Spear HP: 130, so Spear dies after 3 Archer hits.
+Cavalry -> Spear = max(1, 45 - 2) = 43 damage/hit
+Spear HP = 55
 ```
+
+Continuous estimate:
+
+```text
+Spear received damage = 43 * 160 / (3 * 45) ~= 50.96
+Spear remaining HP ~= 4.04 / 55 ~= 7.3%
+```
+
+Important nuance:
+
+- Real game combat is hit-discrete and wave-based, so visual outcome may differ
+  from the continuous estimate.
+- Earlier `x83` made Spear one-shot Cavalry and telemetry/visual showed Cavalry
+  dying too fast. User rejected tiny incremental tuning and requested the
+  continuous-estimate target be changed from 50% remaining HP to 5-10%.
 
 ## Current BattleArmyBrain Behavior
 
-Source checked: `assets/scripts/BattleArmyBrain.ts`.
+Source: `assets/scripts/BattleArmyBrain.ts`.
 
-- `decisionAccuracy` default is `0.8`.
-- Accuracy roll splits decisions into:
-  - accurate tactical evaluator decision;
-  - deliberate wrong counter choice;
-  - random affordable choice.
-- Tests today mostly used `decisionAccuracy = 1` for both teams unless noted.
-- Spawn timing uses `minSpawnInterval`, `maxSpawnInterval`, and
+- `decisionAccuracy` affects unit choice, not lane choice.
+- Accuracy roll:
+  - if accurate, keep evaluator choice.
+  - if inaccurate and there is a target, keep target/lane but choose a
+    deliberately poor response via `chooseWrongResponseEntry`.
+  - if inaccurate and no target, choose a poor generic melee entry via
+    `choosePoorGenericEntry`.
+- `decisionAccuracy = 1` means evaluator decisions should be fully accurate.
+- `decisionAccuracy = 0` should never select the correct answer when a poor
+  response candidate exists.
+- Ranged support limit scales with accuracy:
+
+```text
+effectiveRangedSupportLimit =
+    floor(maxRangedSupportWavesPerLane * decisionAccuracy)
+```
+
+- Telemetry records:
+  - `intendedUnitName`
+  - `intendedFamilyName`
+  - `accuracyRoll`
+  - `accurateDecision`
+  - `deliberateMistake`
+  - CP context before/after spawn.
+- Spawn timing remains driven by `minSpawnInterval`, `maxSpawnInterval`, and
   `maxBrainDeltaTime`.
 - `enableMaxAliveWaveLimit` and `maxAliveWaves` still gate spawning.
-- `BattleArmyBrain` rebuilds `BattlefieldEvaluator` on its think tick, not every
-  frame.
-- All normal, fallback, random, and deliberate-wrong spawn paths pass through
-  `spawn(...)`.
-- Opening behavior:
-  - if no enemy exists and `spawnOpeningWaveIfNoEnemyWave` is enabled, the brain
-    may spawn one opening pressure wave;
-  - after one opening wave, it waits until it has seen enemies before using
-    no-enemy pressure again.
 
 ## Current BattlefieldEvaluator Behavior
 
-Source checked: `assets/scripts/BattlefieldEvaluator.ts`.
+Source: `assets/scripts/BattlefieldEvaluator.ts`.
 
-- Snapshot rebuild collects lane, ally wave, and enemy wave intel from
-  `GameManager.waves`.
-- Tactical lane should use `visualLaneId` when available. This prevents stale
-  `laneId` from driving spawn/counter choices.
-- Target priority considers enemy threat, progress toward defend/hero side,
-  existing ally coverage, struggling allies, same-lane enemies ahead, and
-  frontline pressure.
-- Direct melee scoring considers visible stats, estimated power, target live
-  power ratio, hard-counter bonus, reverse-counter rejection/penalty, cost,
-  overshoot, reachability/blockers, and melee ladder bias.
-- Important distinction:
-  - `getMatchupFactor()` returns explicit counter score from `CounterSettings`.
-  - ladder bias only affects AI choice score.
-  - evaluator does not add hidden damage multipliers.
-- Melee ladder bias currently ranks:
+### Base Power Alignment
+
+`getEntryBasePower()` was changed to match the X-Power market basis:
 
 ```text
-Spear = 0
-Sword = 1
-Axeman = 2
-Cavalry = 3
+basePower =
+    sqrt(
+        max(1, aliveCount * damage) *
+        max(1, health * aliveCount * healthRatio * (1 + defense * 0.045))
+    )
 ```
 
-- Ranged support rules:
-  - ranged entries never spawn aggressive;
-  - there must be ally frontline in the target lane;
-  - the frontline must be engaged;
-  - frontline block power must be positive;
-  - current ranged support count must be lower than current melee wave count;
-  - per target lane, ranged support count near that target must stay below
-    `maxRangedSupportWavesPerLane`;
-  - do not spawn the same ranged family twice in a row into the same lane.
-- Role rule:
-  - Archer requires one engaged frontline.
-  - Monk requires two engaged frontlines.
-  - Full-strength ranged hard counter can be prioritized, but still must pass
-    safety rules.
-- Pressure fallback:
-  - uses empty/low-traffic lane selection;
-  - picks economical non-Cavalry melee first;
-  - uses Cavalry only if no non-Cavalry melee is affordable;
-  - does not use ranged as pressure.
-- Aggressive forward rules:
-  - opening/pressure fallback can still spawn aggressive into empty pressure
-    lanes;
-  - ranged entries never spawn aggressive;
-  - melee/frontline responses spawn aggressive when selected target is in the
-    same spawn lane, that lane has no ally wave, and no other same-lane enemy
-    stands between spawn and target;
-  - Cavalry can also spawn aggressive against ranged targets when path is viable
-    and not blocked by Spear.
+Removed from base power:
 
-## Current Combat And Movement Notes
+- attack interval
+- speed
+- range
+- AoE / damageRadius
 
-Source previously checked: `GameManager.ts`, `Unit.ts`, `UnitBehavior.ts`, and
-`BattlefieldEvaluator.ts`.
+Reason:
 
-- Hero phase no longer forces already-engaged enemy waves back to forward:
-  `GameManager.forceEnemyWavesToForward()` skips waves where
-  `wave.hasEngagedRuntime(frame)` is true.
-- A unit may not keep damaging a target that moved out of attack range:
-  `UnitBehavior` checks `unit.isCurrentEnemyInAttackRange()` before applying
-  damage.
-- If target is out of range, `Unit.disengageCurrentEnemyForChase()` clears busy
-  state but keeps the target so unit can chase.
-- Stale target safety uses `lifeId` checks on units, so pooled/despawned units
-  should not remain valid old targets.
-- Back-to-lane after freehunt is accepted by the user. Do not treat it as a bug
-  by itself.
-- User-accepted nuance: short waits until the next search/scan tick are valid
-  and are not considered "standing idle" bugs.
+- Cost now buys raw Power.
+- Evaluator base power should speak the same language as cost.
+- Tactical traits should influence tactical rules, not silently inflate the
+  raw market value.
 
-## Telemetry Workflow
+### Opening
 
-- Telemetry is for testing only; real game can run with telemetry disabled.
-- Current workflow downloads one JSON report per battle.
-- Always read config from each telemetry file before aggregating. Some batches
-  have accidentally mixed old and new configs.
-- Key fields used today:
-  - `result.winnerTeam`, `result.reason`;
-  - `teams[].combatPoint`, `aliveCount`, kills, deaths, counter kills, damage;
-  - `config.unitStats` and `config.counterRules`;
-  - `waveSpawns[]` for spawn mix/reasons/decision accuracy;
-  - `unitTypes[]` for `damagePerCombatPointSpent`, AoE damage, counter damage,
-    kill/death breakdowns.
-- Track "winner also exhausted" when winner cannot spawn the cheapest unit and
-  has `aliveCount <= 10`.
-- The current lowest cost is `28` because Monk costs `28`.
+Problem found:
 
-## Today's Balance Work And Results
+- With cost based on raw wave Power, Spear became very cheap.
+- Old opening pressure used economy scoring and chose Spear too often.
 
-The main design discovery today: runtime `damage/CP` should be stable enough
-that a user does not feel any troop is a CP loss. Melee can be close, but should
-still roughly follow ladder. Ranged/support should sit near melee, not far below.
+Current behavior:
 
-### Ranged/Support
+- If there are no enemy waves, `snapshot-opening-pressure` now chooses a random
+  affordable melee entry.
+- Ranged/Monk are excluded from opening random.
+- Fallback/pressure after enemies exist still uses the older pressure entry
+  logic.
+
+Expected visual:
+
+```text
+Opening can be Spear / Sword / Axeman / Cavalry.
+It should no longer always be Spear.
+```
+
+### CP Advantage Economy Scoring
 
 Problem:
 
-- Earlier telemetry had Archer/Monk far below melee damage/CP.
-- If ranged/support looks inefficient, the player may stop using it.
+- User asked whether a side with double CP would be considered rich and spawn
+  more Cavalry.
+- Old logic only checked `currentCP / cost >= 1.7`, not CP advantage versus
+  opponent. A team with much more CP was still overly conservative.
 
-Changes:
+Current behavior:
 
-- `Monk.damageRadius`: `0.70 -> 1.00`
-  - Reason: preserve visible AoE identity rather than only raising damage.
-  - Result: Monk jumped from about `16` to about `22-25` damage/CP depending on
-    clustering. About `76-79%` of Monk damage is AoE, so role is visible.
-- `Archer.damage`: `14 -> 16`
-  - Reason: bring Archer closer to melee/support value.
-- `Monk.attackInterval`: `2.10-2.50 -> 1.95-2.35 -> 1.50-1.90`
-  - Reason: raise support damage/CP closer to melee without increasing radius
-    further.
-  - Latest 16-report batch after Monk interval `1.50-1.90` and Archer>Spear x4
-    had Monk around `25.01` damage/CP.
-- `Archer > Spear` counter:
-  - Tried `x5`, but Archer rose too high when Spear was common.
-  - Current value is `x4`.
-
-Latest relevant 16-report batch with Archer>Spear `x4`, Axe cost `56`, Axe HP
-`180`, Monk interval `1.50-1.90`:
+- `scoreSnapshotEntryForTarget()` now receives both current team CP and enemy
+  team CP.
+- Cost penalty is reduced if buying the candidate still leaves the team ahead:
 
 ```text
-Team 0 wins: 9/16
-Team 1 wins: 7/16
+postSpawnAdvantage = currentCP - cost - enemyCP
+
+if postSpawnAdvantage > 0:
+    economyPreference decreases from base 4.5/9.5 down toward 1.5
+else:
+    economyPreference remains unchanged
+```
+
+Purpose:
+
+- When CP is equal, AI still economizes.
+- When a team is clearly richer, expensive melee such as Cavalry/Axeman should
+  become more acceptable.
+- This does not override hard-counter safety:
+  - Cavalry is still rejected if the path has an enemy Spear blocker.
+  - Reverse-counter rejection/penalty still applies.
+
+Status:
+
+- This CP-advantage scoring change has not yet been telemetry-tested.
+
+### Ranged Support Guard
+
+Current ranged/Monk guard is still active:
+
+```text
+rangedSupportCount < meleeSupportCount
+```
+
+Additional ranged support conditions:
+
+- target lane must have ally frontline;
+- ally frontline must be engaged;
+- `frontlineBlockPower > 0`;
+- per-target/lane support count must be under `maxRangedSupportWavesPerLane`;
+- do not spawn the same ranged family consecutively in the same lane.
+
+Important:
+
+- Ranged/Monk are very cheap under X-Power cost:
+
+```text
+Archer cost = 10
+Monk cost = 5
+```
+
+- Guard prevents infinite ranged spam, but telemetry shows ranged/support can
+  still be extremely cost-efficient because range/AoE/safety are not priced
+  into raw Power cost yet.
+
+## Telemetry Read Today
+
+All reports below used `decisionAccuracy = 1`.
+
+### Batch A: After X-Power Stats + Cost, Before Base-Power/Opening Fixes
+
+Files around:
+
+```text
+battle-telemetry-2026-07-23T18-30 to 18-45
+```
+
+Summary:
+
+```text
+Reports: 10
+Team 0 wins: 5
+Team 1 wins: 5
+Average duration: 90.7s
 End reason: all team-eliminated-and-cannot-afford-spawn
-Winner also exhausted: 4/16
+Total wave spawns: 457
+```
+
+Spawn mix:
+
+```text
+Spear   185 (40.5%)
+Archer   78 (17.1%)
+Sword    69 (15.1%)
+Monk     44 (9.6%)
+Cavalry  42 (9.2%)
+Axeman   39 (8.5%)
+```
 
 Damage/CP:
-Axeman   34.97
-Cavalry  31.86
-Archer   29.93
-Sword    27.73
-Spear    25.67
-Monk     25.01
-```
-
-Interpretation:
-
-- Archer is now useful and no longer a CP loss.
-- Monk is now useful and still behaves like AoE support.
-- Spear is lower because Archer punishes it and Spear is weak outside its
-  Cavalry counter.
-
-### Spear > Cavalry
-
-Problem:
-
-- At `x13.5`, Spear beat Cavalry but survived with only about `30-40%` HP in
-  simulations.
-- User compared hard-counter strength to natural ladder outcomes and initially
-  considered stronger counters.
-
-Simulation notes:
-
-- `x40` makes Spear one-shot Cavalry:
-  - Spear -> Cavalry = `(14 - 8) * 40 = 240`.
-  - Too strong at individual-unit level.
-- `x20` makes Cavalry die in 2 hits.
-- Current `x18` makes Cavalry die in 3 hits:
 
 ```text
-Spear -> Cavalry = 108 damage/hit
-Cavalry HP = 235
-3 hits to kill
+Monk    73.04
+Archer  45.22
+Spear   19.77
+Axeman  17.02
+Sword   13.27
+Cavalry 11.79
 ```
 
-Interpretation:
+Diagnosis:
 
-- Current `x18` is intentional: clear hard-counter, not one-shot, not two-hit.
+- Spear was over-spawned because it was cheap and old opening/pressure/economy
+  logic liked it too much.
+- Monk/Archer already showed extreme damage/CP because they are cheap and get
+  tactical value from range/AoE/safety.
 
-### Axeman
+### Batch B: After Base-Power Alignment + Opening Random Melee
 
-Problem:
-
-- Axeman remained high in runtime damage/CP even after damage reductions.
-- Diagnosis from code + telemetry:
-  - Axeman is usually selected into favorable lanes, especially versus Sword.
-  - It has no hard-counter multiplier against it.
-  - `BattlefieldEvaluator.getSnapshotMeleeLadderBias()` correctly rewards
-    Axeman against Sword.
-  - Therefore Axeman is not a damage bug; it is a stable, low-risk melee that AI
-    uses in good matchups.
-
-Changes:
-
-- `Axeman.damage`: `32 -> 30 -> 28`
-- `Axeman.cost`: `52 -> 56`
-- `Axeman.health`: `195 -> 180`
-
-Reasoning:
-
-- Reducing damage alone did not sufficiently lower runtime value because Axeman
-  still survived and farmed after favorable matchups.
-- Raising cost lowered economy without changing battlefield feel.
-- Lowering HP targets the real issue: Axeman wins good matchups then lives too
-  long and continues farming.
-
-1v1 unit simulation after `Axeman HP 180, damage 28, cost 56`:
+Files around:
 
 ```text
-Sword vs Axeman:
-Axeman wins, about 10.3% HP left.
-
-Axeman vs Cavalry:
-Cavalry wins, about 49.1% HP left.
-
-Spear vs Axeman:
-Axeman wins, about 75.6% HP left.
+battle-telemetry-2026-07-23T19-05 to 19-19
 ```
 
-Interpretation:
-
-- Melee ladder still holds:
+Summary:
 
 ```text
-Cavalry > Axeman > Sword > Spear
+Reports: 10
+Team 0 wins: 6
+Team 1 wins: 4
+Average duration: 77.6s
+Average winner alive: 20.1 units
+Total wave spawns: 372
 ```
 
-- Axeman > Sword is now intentionally close, reducing post-fight farming.
-
-Latest very small 4-report batch after Axeman HP `180`:
+Spawn mix:
 
 ```text
-Team 0 wins: 2/4
-Team 1 wins: 2/4
-Winner also exhausted: 2/4
+Spear    81 (21.8%)
+Archer   73 (19.6%)
+Sword    72 (19.4%)
+Cavalry  57 (15.3%)
+Axeman   53 (14.2%)
+Monk     36 (9.7%)
+```
+
+Opening pressure:
+
+```text
+Axeman  4
+Sword   4
+Cavalry 2
+Spear   0
+```
 
 Damage/CP:
-Axeman   40.41
-Archer   32.88
-Cavalry  29.81
-Sword    29.61
-Spear    26.73
-Monk     24.85
+
+```text
+Monk    92.06
+Archer  33.46
+Spear   17.86
+Axeman  16.99
+Cavalry 15.13
+Sword   12.20
+```
+
+Diagnosis:
+
+- Opening fix worked: no more opening Spear default.
+- Spear spawn ratio dropped from 40.5% to 21.8%.
+- Spawn mix is much healthier.
+- Ranged/support are now the biggest unresolved economy issue:
+  - Monk cost 5 with AoE produced huge damage/CP.
+  - Archer cost 10 and range/safety still produced high damage/CP.
+
+### Spear vs Cavalry Pair From Batch B
+
+Telemetry pair aggregate:
+
+```text
+Spear -> Cavalry:
+damage = 23,568
+kills  = 190
+
+Cavalry -> Spear:
+damage = 4,624
+kills  = 63
 ```
 
 Interpretation:
 
-- This sample is too small. Axeman only spawned 7 waves, so its damage/CP is
-  highly selection-biased.
-- Do not tune Axeman further from this 4-report batch alone.
+- With earlier `x83`, Spear was deleting Cavalry too quickly.
+- Counter was reduced to `x45` after this report. This reduced value has not
+  yet been telemetry-tested.
 
-## Current Open Questions / Next Steps
+## Current Open Issues / Next Steps
 
-1. Test at least one larger batch after Axeman HP `180`.
-   - Need 10-20 reports minimum.
-   - Specifically check whether Axeman remains above Cavalry with enough wave
-     samples.
-2. If Axeman still sits clearly above Cavalry in a larger batch:
-   - first inspect Axeman spawn targets and damage-to-family matrix;
-   - do not blindly reduce damage again because `Axeman > Sword` 1v1 is already
-     close.
-3. Watch Monk:
-   - target is support around mid/high 20s damage/CP, not top melee;
-   - keep radius `1.0` unless it becomes visually/gameplay oppressive.
-4. Watch Archer:
-   - `x4` should keep Archer useful without over-punishing Spear;
-   - if Archer rises back above melee too often, inspect how many Spear waves
-     existed before changing the multiplier.
-5. Watch winrate:
-   - recent batches moved from strong Team 0/Team 1 swings toward 50/50, but
-     small samples can swing.
-   - treat 10+ reports as a minimum for decisions.
+### 1. Test After Latest Changes
 
-## Deprecated / Do Not Revive
+Need a fresh telemetry batch after these latest changes:
 
-- Do not treat old `SmartArmyBrain` sections as current runtime truth unless the
-  scene enables it.
-- Do not reintroduce `clusterScore`, hardcoded cluster thresholds, or old
-  "3 melee wave" support thresholds.
-- Do not reintroduce `maxRangedSupportWavesTotal`; ranged limit should derive
-  from current melee presence plus per-lane/per-target caps.
-- Do not add hidden combat multipliers in `BattlefieldEvaluator`.
-- Do not add small magic constants to hide logic bugs.
-- Do not update this file after every code change. Update only when the user
-  asks.
+- Spear > Cavalry multiplier `45`, not `83`.
+- CP-advantage economy scoring in `BattlefieldEvaluator`.
+
+Specifically watch:
+
+- Does Cavalry spawn more when one side has significantly more CP?
+- Does Cavalry still avoid Spear blocker traps?
+- Does Spear still hard-counter Cavalry visibly without instantly deleting it?
+- Does regular 800v800 AI remain stable?
+
+### 2. Ranged/Monk Pricing Is Still Unresolved
+
+Current cost policy prices only raw `Health/Damage/Defense * count`.
+
+That makes:
+
+```text
+Archer cost = 10
+Monk cost = 5
+```
+
+But runtime value includes:
+
+- range uptime;
+- safety behind frontline;
+- Archer > Spear counter;
+- Monk AoE.
+
+Current guard prevents ranged count from exceeding melee count, but telemetry
+still showed:
+
+```text
+Monk damage/CP ~= 92
+Archer damage/CP ~= 33
+```
+
+Possible next directions:
+
+- Add an explicit tactical cost premium for ranged/AoE units while keeping raw
+  Power formula intact.
+- Or keep cost cheap but tighten support spawn rules further.
+- Do not hide this inside damage multipliers or evaluator-only power hacks.
+
+### 3. Pressure/Fallback Still Uses Older Economy Logic
+
+Opening has been fixed to random melee. However, pressure fallback after enemies
+exist still uses:
+
+```text
+power / cost * 18 + sqrt(power) * 4 - cost * 2.2 + speed
+```
+
+This may still over-prefer cheap melee in some fallback cases. It was not the
+main issue after opening fix, but keep it in mind.
+
+### 4. Generated/Cache Files Are Dirty
+
+At the time of this handoff, `git status` showed many dirty generated/cache/log
+files under:
+
+```text
+library/
+temp/
+```
+
+Codex changes intentionally touched only:
+
+```text
+UNITSTATS.md
+assets/Test.scene
+assets/scripts/BattlefieldEvaluator.ts
+assets/scripts/CounterSettings.ts
+AI-CONTEX.md
+```
+
+Do not casually revert user/editor-generated files. If committing, stage only
+intentional files unless user says otherwise.
+
+## Current Code Changes Since Last Handoff
+
+Intentional changes:
+
+- `assets/Test.scene`
+  - Replaced old runtime damage/CP candidate stats with current X-Power stats
+    for both Team A and Team B.
+  - Updated costs from total wave raw Power.
+  - Updated counter rules:
+    - Spear > Cavalry `45`
+    - Archer > Spear `2`
+- `UNITSTATS.md`
+  - Added current X-Power draft as active stats section.
+  - Preserved previous 2026-07-23 runtime damage/CP candidate as backup.
+- `assets/scripts/CounterSettings.ts`
+  - Updated default counter rules to match scene:
+    - Spear > Cavalry `45`
+    - Archer > Spear `2`
+- `assets/scripts/BattlefieldEvaluator.ts`
+  - Base power now uses only alive count, damage, health ratio, health, and
+    defense.
+  - Opening pressure now picks random affordable melee.
+  - Melee response scoring now considers CP advantage versus enemy CP and
+    reduces cost penalty when buying the unit still leaves the team ahead.
+
+Do not assume this pass is complete. It is a deliberate pivot to a cleaner
+economy model, and the newest CP-advantage/counter changes still need telemetry.
