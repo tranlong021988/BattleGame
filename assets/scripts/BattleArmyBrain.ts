@@ -1,4 +1,4 @@
-import { _decorator, Component } from 'cc';
+import { _decorator, Component, Enum } from 'cc';
 import { GameManager, UnitPrefabEntry } from './GameManager';
 import {
     BattlefieldEvaluator,
@@ -8,6 +8,17 @@ import {
 import { UnitFamily, unitFamilyToName } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
+
+export enum BattleArmyBrainTestUnit {
+    Axeman = 0,
+    Cavalry = 1,
+    Sword = 2,
+    Spear = 3,
+    Monk = 4,
+    Archer = 5,
+}
+
+Enum(BattleArmyBrainTestUnit);
 
 @ccclass('BattleArmyBrain')
 export class BattleArmyBrain extends Component {
@@ -20,6 +31,20 @@ export class BattleArmyBrain extends Component {
 
     @property
     runOnlyWhenGameManagerAutoSpawnOff = true;
+
+    @property({
+        tooltip:
+            'Test mode: skip normal AI and spawn exactly one selected wave in the middle lane.',
+    })
+    testSingleWaveBattle = false;
+
+    @property({
+        type: BattleArmyBrainTestUnit,
+        tooltip:
+            'Unit spawned by Test Single Wave Battle. Uses this brain team database entry.',
+    })
+    testSingleWaveUnit: BattleArmyBrainTestUnit =
+        BattleArmyBrainTestUnit.Sword;
 
     @property
     minSpawnInterval = 2.5;
@@ -95,6 +120,7 @@ export class BattleArmyBrain extends Component {
     private consecutiveMeleeSpawnLaneCount = 0;
     private spawnedOpeningWave = false;
     private hasSeenEnemyWave = false;
+    private testSingleWaveSpawned = false;
 
     start() {
         this.randomizeNextInterval();
@@ -102,6 +128,11 @@ export class BattleArmyBrain extends Component {
 
     update(dt: number) {
         if (!this.gameManager) return;
+
+        if (this.testSingleWaveBattle) {
+            this.trySpawnSingleWaveTest();
+            return;
+        }
 
         if (
             this.runOnlyWhenGameManagerAutoSpawnOff &&
@@ -125,6 +156,55 @@ export class BattleArmyBrain extends Component {
         this.timer = 0;
         this.randomizeNextInterval();
         this.thinkAndSpawn();
+    }
+
+    private trySpawnSingleWaveTest() {
+        if (this.testSingleWaveSpawned) return;
+
+        const gameManager =
+            this.gameManager;
+
+        if (!gameManager) return;
+
+        if (
+            this.runOnlyWhenGameManagerAutoSpawnOff &&
+            gameManager.enableAutoSpawn
+        ) {
+            this.stateLog(
+                'WAIT single-wave test blocked by GameManager auto spawn.'
+            );
+            return;
+        }
+
+        const entry =
+            this.findTestSingleWaveEntry();
+
+        if (!entry) {
+            this.stateLog(
+                'WAIT single-wave test has no matching unit entry.'
+            );
+            return;
+        }
+
+        const laneId =
+            Math.floor(gameManager.getSafeLaneCount() * 0.5);
+
+        this.currentAccuracyRoll = 0;
+        this.currentAccurateDecision = true;
+        this.currentDeliberateMistake = false;
+        this.affordableEntries.length = 1;
+        this.affordableEntries[0] = entry;
+
+        if (
+            this.spawn(
+                entry,
+                laneId,
+                false,
+                'test-single-wave'
+            )
+        ) {
+            this.testSingleWaveSpawned = true;
+        }
     }
 
     private thinkAndSpawn() {
@@ -330,7 +410,8 @@ export class BattleArmyBrain extends Component {
             aggressiveForward,
             reason,
             target,
-            intendedEntry
+            intendedEntry,
+            decision.cpStrategyState
         );
     }
 
@@ -340,7 +421,8 @@ export class BattleArmyBrain extends Component {
         aggressiveForward: boolean,
         reason: string,
         target: BattlefieldWaveIntel | null = null,
-        intendedEntry: UnitPrefabEntry | null = null
+        intendedEntry: UnitPrefabEntry | null = null,
+        cpStrategyState = ''
     ) {
         const gameManager =
             this.gameManager;
@@ -388,6 +470,15 @@ export class BattleArmyBrain extends Component {
         this.recordSpawnLaneHistory(
             entry,
             laneId
+        );
+
+        this.evaluator.recordSpawnReservation(
+            gameManager,
+            this.team,
+            target,
+            entry,
+            spawned,
+            gameManager.frame
         );
 
         gameManager.recordBattleTelemetryWaveSpawnDecision({
@@ -463,11 +554,13 @@ export class BattleArmyBrain extends Component {
                 postSpawnCombatPointAdvantage,
             combatPointCostRatioAtDecision,
             canComfortablyAffordAtDecision,
+            cpStrategyState,
         });
 
         this.stateLog(
             `${reason} spawn=${entry.name} lane=${laneId} ` +
-            `aggressive=${aggressiveForward}`
+            `aggressive=${aggressiveForward} ` +
+            `cpState=${cpStrategyState || 'none'}`
         );
 
         return true;
@@ -493,6 +586,50 @@ export class BattleArmyBrain extends Component {
         }
 
         return count;
+    }
+
+    private findTestSingleWaveEntry() {
+        const gameManager =
+            this.gameManager;
+
+        if (!gameManager) return null;
+
+        const family =
+            this.getTestSingleWaveFamily();
+        const entries =
+            gameManager.getTeamEntries(this.team);
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!entry) continue;
+            if (!entry.unlocked) continue;
+            if (!entry.prefab) continue;
+            if (entry.family !== family) continue;
+
+            return entry;
+        }
+
+        return null;
+    }
+
+    private getTestSingleWaveFamily() {
+        switch (this.testSingleWaveUnit) {
+            case BattleArmyBrainTestUnit.Axeman:
+                return UnitFamily.Axeman;
+            case BattleArmyBrainTestUnit.Cavalry:
+                return UnitFamily.Cavalry;
+            case BattleArmyBrainTestUnit.Sword:
+                return UnitFamily.Sword;
+            case BattleArmyBrainTestUnit.Spear:
+                return UnitFamily.Spear;
+            case BattleArmyBrainTestUnit.Monk:
+                return UnitFamily.Monk;
+            case BattleArmyBrainTestUnit.Archer:
+                return UnitFamily.Archer;
+            default:
+                return UnitFamily.Sword;
+        }
     }
 
     private canSpawnMoreWave(

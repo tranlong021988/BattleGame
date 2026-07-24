@@ -806,7 +806,8 @@ export class GameManager extends Component {
         damage: number,
         actualDamage: number,
         isCounterDamage: boolean,
-        isAreaDamage: boolean = false
+        isAreaDamage: boolean = false,
+        attackBatchId: number = -1
     ) {
         if (!this.enableBattleTelemetry) return;
 
@@ -817,6 +818,7 @@ export class GameManager extends Component {
             actualDamage,
             isCounterDamage,
             isAreaDamage,
+            attackBatchId,
             this.frame,
             this.battleElapsedTime
         );

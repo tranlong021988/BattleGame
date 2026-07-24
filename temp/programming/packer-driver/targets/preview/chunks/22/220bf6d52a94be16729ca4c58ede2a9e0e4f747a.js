@@ -61,6 +61,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.totalDeaths = 0;
           this.totalCounterKills = 0;
           this.totalDeathsToCounter = 0;
+          this.totalAttackBatches = 0;
+          this.totalAttackBatchTargetsHit = 0;
+          this.totalAttackBatchPrimaryTargetsHit = 0;
+          this.totalAttackBatchAreaTargetsHit = 0;
+          this.totalAttackBatchDamage = 0;
+          this.averageTargetsHitPerAttack = 0;
+          this.averageAreaTargetsHitPerAttack = 0;
+          this.averageDamagePerAttack = 0;
           this.killedByUnitType = {};
           this.killedUnitType = {};
           this.damageDealtToUnitType = {};
@@ -80,6 +88,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.unitName = '';
           this.count = 0;
           this.targetFamilies = {};
+          this.cpStrategyStates = {};
         }
 
       };
@@ -111,6 +120,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastDamageFrame = -1;
           this.lastKillFrame = -1;
           this.lastHeroDamageFrame = -1;
+          this.activeDamageBatch = null;
           this.maxSnapshots = 240;
           this.maxDiagnosticEvents = 3000;
           this.droppedDiagnosticEventCount = 0;
@@ -151,6 +161,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastDamageFrame = -1;
           this.lastKillFrame = -1;
           this.lastHeroDamageFrame = -1;
+          this.activeDamageBatch = null;
           this.droppedDiagnosticEventCount = 0;
           this.nextSpawnId = 1;
         }
@@ -302,11 +313,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             laneId: normalized.laneId,
             unitName: normalized.unitName,
             familyName: normalized.familyName,
+            intendedUnitName: normalized.intendedUnitName,
+            intendedFamilyName: normalized.intendedFamilyName,
             targetWaveId: normalized.targetWaveId,
             targetLaneId: normalized.targetLaneId,
             targetFamilyName: normalized.targetFamilyName,
             reason: normalized.reason,
-            aggressiveForward: normalized.aggressiveForward
+            aggressiveForward: normalized.aggressiveForward,
+            combatPointAdvantageAtDecision: normalized.combatPointAdvantageAtDecision,
+            postSpawnCombatPointAdvantage: normalized.postSpawnCombatPointAdvantage,
+            combatPointCostRatioAtDecision: normalized.combatPointCostRatioAtDecision,
+            canComfortablyAffordAtDecision: normalized.canComfortablyAffordAtDecision,
+            cpStrategyState: normalized.cpStrategyState
           });
           var key = "T" + normalized.team + ":" + (normalized.reason + ":") + ((normalized.aggressiveForward ? 'aggressive' : 'normal') + ":") + (normalized.familyName + ":") + ("t" + normalized.tier + ":") + ("" + normalized.unitName);
           var stats = this.waveSpawnDecisionStats.get(key);
@@ -329,11 +347,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (normalized.targetFamilyName) {
             this.addRecordValue(stats.targetFamilies, normalized.targetFamilyName, 1);
           }
+
+          if (normalized.cpStrategyState) {
+            this.addRecordValue(stats.cpStrategyStates, normalized.cpStrategyState, 1);
+          }
         }
 
-        recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, frame, time) {
+        recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId, frame, time) {
           if (isAreaDamage === void 0) {
             isAreaDamage = false;
+          }
+
+          if (attackBatchId === void 0) {
+            attackBatchId = -1;
           }
 
           if (frame === void 0) {
@@ -351,6 +377,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (dealt <= 0) return;
           var attackerStats = this.getOrCreateStatsForUnit(attacker);
           var victimStats = this.getOrCreateStatsForUnit(victim);
+          this.recordAttackBatchHit(attackerStats, this.clampTeam(attacker.team), this.getUnitWaveId(attacker), attackBatchId, isAreaDamage, dealt);
           attackerStats.totalDamageDealt += dealt;
           victimStats.totalDamageReceived += dealt;
 
@@ -461,6 +488,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.enabled || !this.started) return null;
           if (this.ended) return null;
           this.ended = true;
+          this.flushActiveDamageBatch();
           this.activeSpawnInfos.forEach(info => {
             var stats = this.unitStats.get(info.key);
             if (!stats) return;
@@ -475,6 +503,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             stats.killsPerCombatPointSpent = stats.totalKills / spent;
             stats.heroDamagePerCombatPointSpent = stats.totalHeroDamageDealt / spent;
             stats.lifetimePerCombatPointSpent = stats.totalLifetime / spent;
+            stats.averageTargetsHitPerAttack = stats.totalAttackBatches > 0 ? stats.totalAttackBatchTargetsHit / stats.totalAttackBatches : 0;
+            stats.averageAreaTargetsHitPerAttack = stats.totalAttackBatches > 0 ? stats.totalAttackBatchAreaTargetsHit / stats.totalAttackBatches : 0;
+            stats.averageDamagePerAttack = stats.totalAttackBatches > 0 ? stats.totalAttackBatchDamage / stats.totalAttackBatches : 0;
             return stats;
           }).sort((a, b) => a.team - b.team || a.family - b.family || a.tier - b.tier || a.name.localeCompare(b.name));
           var spawnDecisionStats = Array.from(this.waveSpawnDecisionStats.values()).sort((a, b) => a.team - b.team || a.reason.localeCompare(b.reason) || Number(a.aggressiveForward) - Number(b.aggressiveForward) || a.family - b.family || a.unitName.localeCompare(b.unitName));
@@ -601,6 +632,50 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           record[key] = (record[key] || 0) + value;
         }
 
+        recordAttackBatchHit(attackerStats, attackerTeam, attackerWaveId, attackBatchId, isAreaDamage, damage) {
+          if (!Number.isFinite(attackBatchId) || attackBatchId < 0) {
+            return;
+          }
+
+          var key = attackerTeam + ":" + (attackerWaveId + ":") + ("" + Math.floor(attackBatchId));
+
+          if (this.activeDamageBatch && this.activeDamageBatch.key !== key) {
+            this.flushActiveDamageBatch();
+          }
+
+          if (!this.activeDamageBatch) {
+            this.activeDamageBatch = {
+              key,
+              targetsHit: 0,
+              primaryTargetsHit: 0,
+              areaTargetsHit: 0,
+              damage: 0,
+              stats: attackerStats
+            };
+          }
+
+          this.activeDamageBatch.targetsHit++;
+          this.activeDamageBatch.damage += Math.max(0, damage);
+
+          if (isAreaDamage) {
+            this.activeDamageBatch.areaTargetsHit++;
+          } else {
+            this.activeDamageBatch.primaryTargetsHit++;
+          }
+        }
+
+        flushActiveDamageBatch() {
+          var batch = this.activeDamageBatch;
+          if (!batch) return;
+          var stats = batch.stats;
+          stats.totalAttackBatches++;
+          stats.totalAttackBatchTargetsHit += batch.targetsHit;
+          stats.totalAttackBatchPrimaryTargetsHit += batch.primaryTargetsHit;
+          stats.totalAttackBatchAreaTargetsHit += batch.areaTargetsHit;
+          stats.totalAttackBatchDamage += batch.damage;
+          this.activeDamageBatch = null;
+        }
+
         normalizeWaveSpawnDecision(decision) {
           var family = Number.isFinite(decision.family) ? decision.family : -1;
           var targetFamily = Number.isFinite(decision.targetFamily) ? decision.targetFamily : -1;
@@ -618,6 +693,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               error: Error()
             }), unitFamilyToName) : unitFamilyToName)(family) : 'Unknown'),
             tier: Math.max(1, Math.floor(decision.tier || 1)),
+            intendedUnitName: decision.intendedUnitName || '',
+            intendedFamily: Number.isFinite(decision.intendedFamily) ? decision.intendedFamily : undefined,
+            intendedFamilyName: decision.intendedFamilyName || (Number.isFinite(decision.intendedFamily) ? (_crd && unitFamilyToName === void 0 ? (_reportPossibleCrUseOfunitFamilyToName({
+              error: Error()
+            }), unitFamilyToName) : unitFamilyToName)(decision.intendedFamily) : ''),
             targetWaveId: Number.isFinite(decision.targetWaveId) ? Math.floor(decision.targetWaveId) : -1,
             targetLaneId: Number.isFinite(decision.targetLaneId) ? Math.floor(decision.targetLaneId) : -1,
             targetFamily,
@@ -652,7 +732,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             fastReactRoll: Number.isFinite(decision.fastReactRoll) ? decision.fastReactRoll : undefined,
             aliveWaveCountAtDecision: Number.isFinite(decision.aliveWaveCountAtDecision) ? Math.floor(decision.aliveWaveCountAtDecision) : undefined,
             affordableEntryCount: Number.isFinite(decision.affordableEntryCount) ? Math.floor(decision.affordableEntryCount) : undefined,
-            activeEnemyIntelCount: Number.isFinite(decision.activeEnemyIntelCount) ? Math.floor(decision.activeEnemyIntelCount) : undefined
+            activeEnemyIntelCount: Number.isFinite(decision.activeEnemyIntelCount) ? Math.floor(decision.activeEnemyIntelCount) : undefined,
+            combatPointAtDecision: Number.isFinite(decision.combatPointAtDecision) ? decision.combatPointAtDecision : undefined,
+            combatPointAdvantageAtDecision: Number.isFinite(decision.combatPointAdvantageAtDecision) ? decision.combatPointAdvantageAtDecision : undefined,
+            enemyCombatPointAtDecision: Number.isFinite(decision.enemyCombatPointAtDecision) ? decision.enemyCombatPointAtDecision : undefined,
+            postSpawnCombatPoint: Number.isFinite(decision.postSpawnCombatPoint) ? decision.postSpawnCombatPoint : undefined,
+            postSpawnCombatPointAdvantage: Number.isFinite(decision.postSpawnCombatPointAdvantage) ? decision.postSpawnCombatPointAdvantage : undefined,
+            combatPointCostRatioAtDecision: Number.isFinite(decision.combatPointCostRatioAtDecision) ? decision.combatPointCostRatioAtDecision : undefined,
+            canComfortablyAffordAtDecision: decision.canComfortablyAffordAtDecision === undefined ? undefined : !!decision.canComfortablyAffordAtDecision,
+            cpStrategyState: decision.cpStrategyState || ''
           };
         }
 

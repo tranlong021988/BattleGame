@@ -9,6 +9,8 @@ const { ccclass, property } = _decorator;
 @ccclass('UnitBehavior')
 export class UnitBehavior extends Component {
 
+    private static nextAttackBatchId = 1;
+
     @property
     attackIntervalMin: number = 0.8;
 
@@ -83,18 +85,30 @@ export class UnitBehavior extends Component {
         this.attackTimer = 0;
         this.randomizeNextAttackInterval();
 
-        this.dealDamageToEnemy(enemy);
+        const gm =
+            this.gameManager ||
+            GameManager.instance;
+        const attackBatchId =
+            gm && gm.enableBattleTelemetry
+                ? UnitBehavior.nextAttackBatchId++
+                : -1;
+
+        this.dealDamageToEnemy(enemy, attackBatchId);
     }
 
-    private dealDamageToEnemy(enemy: Unit) {
-        this.applyDamageToEnemy(enemy, false);
-        this.dealAreaDamageAround(enemy);
+    private dealDamageToEnemy(
+        enemy: Unit,
+        attackBatchId: number
+    ) {
+        this.applyDamageToEnemy(enemy, false, attackBatchId);
+        this.dealAreaDamageAround(enemy, attackBatchId);
         this.finishDamagedEnemy(enemy);
     }
 
     private applyDamageToEnemy(
         enemy: Unit,
-        isAreaDamage: boolean
+        isAreaDamage: boolean,
+        attackBatchId: number
     ) {
         const counter = CounterSettings.instance;
 
@@ -143,7 +157,8 @@ export class UnitBehavior extends Component {
                 finalDamage,
                 actualDamage,
                 isCounterDamage,
-                isAreaDamage
+                isAreaDamage,
+                attackBatchId
             );
         }
 
@@ -179,7 +194,8 @@ export class UnitBehavior extends Component {
     }
 
     private dealAreaDamageAround(
-        primaryTarget: Unit
+        primaryTarget: Unit,
+        attackBatchId: number
     ) {
         const damageRadius =
             Math.max(0, this.props.damageRadius);
@@ -237,7 +253,11 @@ export class UnitBehavior extends Component {
                 continue;
             }
 
-            this.applyDamageToEnemy(enemy, true);
+            this.applyDamageToEnemy(
+                enemy,
+                true,
+                attackBatchId
+            );
             this.finishDamagedEnemy(enemy);
         }
     }

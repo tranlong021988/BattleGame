@@ -97,6 +97,7 @@ export interface BattleTelemetryWaveSpawnDecision {
     postSpawnCombatPointAdvantage?: number;
     combatPointCostRatioAtDecision?: number;
     canComfortablyAffordAtDecision?: boolean;
+    cpStrategyState?: string;
 }
 
 export interface BattleTelemetryWaveSnapshot {
@@ -157,6 +158,7 @@ export interface BattleTelemetryDiagnosticEvent {
     postSpawnCombatPointAdvantage?: number;
     combatPointCostRatioAtDecision?: number;
     canComfortablyAffordAtDecision?: boolean;
+    cpStrategyState?: string;
     damage?: number;
     actualDamage?: number;
     amount?: number;
@@ -212,10 +214,27 @@ class UnitTypeTelemetryStats {
     totalDeaths = 0;
     totalCounterKills = 0;
     totalDeathsToCounter = 0;
+    totalAttackBatches = 0;
+    totalAttackBatchTargetsHit = 0;
+    totalAttackBatchPrimaryTargetsHit = 0;
+    totalAttackBatchAreaTargetsHit = 0;
+    totalAttackBatchDamage = 0;
+    averageTargetsHitPerAttack = 0;
+    averageAreaTargetsHitPerAttack = 0;
+    averageDamagePerAttack = 0;
     killedByUnitType: Record<string, number> = {};
     killedUnitType: Record<string, number> = {};
     damageDealtToUnitType: Record<string, number> = {};
     damageReceivedFromUnitType: Record<string, number> = {};
+}
+
+interface DamageBatchAccumulator {
+    key: string;
+    targetsHit: number;
+    primaryTargetsHit: number;
+    areaTargetsHit: number;
+    damage: number;
+    stats: UnitTypeTelemetryStats;
 }
 
 class WaveSpawnDecisionStats {
@@ -229,6 +248,7 @@ class WaveSpawnDecisionStats {
     unitName = '';
     count = 0;
     targetFamilies: Record<string, number> = {};
+    cpStrategyStates: Record<string, number> = {};
 }
 
 export class BattleTelemetry {
@@ -258,6 +278,8 @@ export class BattleTelemetry {
     private lastDamageFrame = -1;
     private lastKillFrame = -1;
     private lastHeroDamageFrame = -1;
+    private activeDamageBatch:
+        DamageBatchAccumulator | null = null;
     private maxSnapshots = 240;
     private maxDiagnosticEvents = 3000;
     private droppedDiagnosticEventCount = 0;
@@ -297,6 +319,7 @@ export class BattleTelemetry {
         this.lastDamageFrame = -1;
         this.lastKillFrame = -1;
         this.lastHeroDamageFrame = -1;
+        this.activeDamageBatch = null;
         this.droppedDiagnosticEventCount = 0;
         this.nextSpawnId = 1;
     }
@@ -570,6 +593,7 @@ export class BattleTelemetry {
                 normalized.combatPointCostRatioAtDecision,
             canComfortablyAffordAtDecision:
                 normalized.canComfortablyAffordAtDecision,
+            cpStrategyState: normalized.cpStrategyState,
         });
 
         const key =
@@ -607,6 +631,14 @@ export class BattleTelemetry {
                 1
             );
         }
+
+        if (normalized.cpStrategyState) {
+            this.addRecordValue(
+                stats.cpStrategyStates,
+                normalized.cpStrategyState,
+                1
+            );
+        }
     }
 
     recordDamage(
@@ -616,6 +648,7 @@ export class BattleTelemetry {
         actualDamage: number,
         isCounterDamage: boolean,
         isAreaDamage: boolean = false,
+        attackBatchId: number = -1,
         frame: number = -1,
         time: number = 0
     ) {
@@ -637,6 +670,15 @@ export class BattleTelemetry {
             this.getOrCreateStatsForUnit(attacker);
         const victimStats =
             this.getOrCreateStatsForUnit(victim);
+
+        this.recordAttackBatchHit(
+            attackerStats,
+            this.clampTeam(attacker.team),
+            this.getUnitWaveId(attacker),
+            attackBatchId,
+            isAreaDamage,
+            dealt
+        );
 
         attackerStats.totalDamageDealt += dealt;
         victimStats.totalDamageReceived += dealt;
@@ -803,6 +845,7 @@ export class BattleTelemetry {
         if (this.ended) return null;
 
         this.ended = true;
+        this.flushActiveDamageBatch();
 
         this.activeSpawnInfos.forEach((info) => {
             const stats =
@@ -843,6 +886,21 @@ export class BattleTelemetry {
                         stats.totalHeroDamageDealt / spent;
                     stats.lifetimePerCombatPointSpent =
                         stats.totalLifetime / spent;
+                    stats.averageTargetsHitPerAttack =
+                        stats.totalAttackBatches > 0
+                            ? stats.totalAttackBatchTargetsHit /
+                            stats.totalAttackBatches
+                            : 0;
+                    stats.averageAreaTargetsHitPerAttack =
+                        stats.totalAttackBatches > 0
+                            ? stats.totalAttackBatchAreaTargetsHit /
+                            stats.totalAttackBatches
+                            : 0;
+                    stats.averageDamagePerAttack =
+                        stats.totalAttackBatches > 0
+                            ? stats.totalAttackBatchDamage /
+                            stats.totalAttackBatches
+                            : 0;
 
                     return stats;
                 })
@@ -1057,6 +1115,69 @@ export class BattleTelemetry {
             (record[key] || 0) + value;
     }
 
+    private recordAttackBatchHit(
+        attackerStats: UnitTypeTelemetryStats,
+        attackerTeam: number,
+        attackerWaveId: number,
+        attackBatchId: number,
+        isAreaDamage: boolean,
+        damage: number
+    ) {
+        if (!Number.isFinite(attackBatchId) || attackBatchId < 0) {
+            return;
+        }
+
+        const key =
+            `${attackerTeam}:` +
+            `${attackerWaveId}:` +
+            `${Math.floor(attackBatchId)}`;
+
+        if (
+            this.activeDamageBatch &&
+            this.activeDamageBatch.key !== key
+        ) {
+            this.flushActiveDamageBatch();
+        }
+
+        if (!this.activeDamageBatch) {
+            this.activeDamageBatch = {
+                key,
+                targetsHit: 0,
+                primaryTargetsHit: 0,
+                areaTargetsHit: 0,
+                damage: 0,
+                stats: attackerStats,
+            };
+        }
+
+        this.activeDamageBatch.targetsHit++;
+        this.activeDamageBatch.damage += Math.max(0, damage);
+
+        if (isAreaDamage) {
+            this.activeDamageBatch.areaTargetsHit++;
+        } else {
+            this.activeDamageBatch.primaryTargetsHit++;
+        }
+    }
+
+    private flushActiveDamageBatch() {
+        const batch = this.activeDamageBatch;
+
+        if (!batch) return;
+
+        const stats = batch.stats;
+
+        stats.totalAttackBatches++;
+        stats.totalAttackBatchTargetsHit += batch.targetsHit;
+        stats.totalAttackBatchPrimaryTargetsHit +=
+            batch.primaryTargetsHit;
+        stats.totalAttackBatchAreaTargetsHit +=
+            batch.areaTargetsHit;
+        stats.totalAttackBatchDamage += batch.damage;
+
+        this.activeDamageBatch = null;
+    }
+
     private normalizeWaveSpawnDecision(
         decision: BattleTelemetryWaveSpawnDecision
     ): BattleTelemetryWaveSpawnDecision {
@@ -1250,6 +1371,7 @@ export class BattleTelemetry {
                 decision.canComfortablyAffordAtDecision === undefined
                     ? undefined
                     : !!decision.canComfortablyAffordAtDecision,
+            cpStrategyState: decision.cpStrategyState || '',
         };
     }
 

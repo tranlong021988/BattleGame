@@ -88,6 +88,7 @@ export class BattleSpawnDecision {
     aggressiveForward = false;
     reason = '';
     score = -Infinity;
+    cpStrategyState = '';
 
     reset() {
         this.entry = null;
@@ -96,7 +97,24 @@ export class BattleSpawnDecision {
         this.aggressiveForward = false;
         this.reason = '';
         this.score = -Infinity;
+        this.cpStrategyState = '';
     }
+}
+
+export enum CPStrategyState {
+    Opening = 'opening',
+    Abundant = 'abundant',
+    Normal = 'normal',
+    Efficient = 'efficient',
+    Desperate = 'desperate',
+}
+
+class BattleResponseReservation {
+    targetWaveId = -1;
+    responseWaveId = -1;
+    responseFamily = -1;
+    coveragePower = 0;
+    frame = 0;
 }
 
 export class BattlefieldEvaluator {
@@ -112,6 +130,52 @@ export class BattlefieldEvaluator {
     allyCount = 0;
 
     private spawnDecision = new BattleSpawnDecision();
+    private responseReservations: BattleResponseReservation[] = [];
+    private responseReservationFrames = 180;
+
+    recordSpawnReservation(
+        gameManager: GameManager,
+        team: number,
+        target: BattlefieldWaveIntel | null,
+        entry: UnitPrefabEntry,
+        responseWave: BattleWave,
+        frame: number
+    ) {
+        if (!target || !target.wave || !target.entry) return;
+        if (!responseWave) return;
+
+        const basePower =
+            this.getEntryBasePower(
+                entry,
+                Math.max(1, Math.floor(entry.unitCount)),
+                1,
+                Math.max(1, target.aliveCount)
+            );
+        const reservation =
+            new BattleResponseReservation();
+
+        reservation.targetWaveId = target.wave.id;
+        reservation.responseWaveId = responseWave.id;
+        reservation.responseFamily = entry.family;
+        reservation.coveragePower =
+            this.getCoveragePowerAgainstTarget(
+                gameManager,
+                team,
+                entry,
+                basePower,
+                target
+            );
+        reservation.frame = frame;
+
+        this.responseReservations.push(reservation);
+
+        if (this.responseReservations.length > 64) {
+            this.responseReservations.splice(
+                0,
+                this.responseReservations.length - 64
+            );
+        }
+    }
 
     chooseSnapshotSpawnDecision(
         gameManager: GameManager,
@@ -146,6 +210,18 @@ export class BattlefieldEvaluator {
         const enemyCombatPoint =
             gameManager.getCombatPoint(
                 team === 0 ? 1 : 0
+            );
+        const cpStrategyState =
+            this.getCPStrategyState(
+                gameManager,
+                team,
+                affordableEntries,
+                maxRangedSupportPerTarget,
+                blockedMeleeLaneId,
+                currentCombatPoint,
+                enemyCombatPoint,
+                rangedSupportCount,
+                meleeSupportCount
             );
 
         for (let i = 0; i < this.enemyCount; i++) {
@@ -182,7 +258,8 @@ export class BattlefieldEvaluator {
                         rangedSupportCount,
                         meleeSupportCount,
                         maxRangedSupportPerTarget,
-                        hasFullStrengthRangedHardCounter
+                        hasFullStrengthRangedHardCounter,
+                        cpStrategyState
                     );
 
                 if (score <= this.spawnDecision.score) {
@@ -216,6 +293,8 @@ export class BattlefieldEvaluator {
                         entry,
                         target
                     );
+                this.spawnDecision.cpStrategyState =
+                    cpStrategyState;
                 this.spawnDecision.score = score;
             }
         }
@@ -240,7 +319,9 @@ export class BattlefieldEvaluator {
         }
 
         const entry =
-            this.chooseRandomMeleeEntry(affordableEntries);
+            this.chooseRandomOpeningFrontlineEntry(
+                affordableEntries
+            );
 
         if (!entry) {
             return this.spawnDecision;
@@ -250,12 +331,14 @@ export class BattlefieldEvaluator {
         this.spawnDecision.laneId = laneId;
         this.spawnDecision.aggressiveForward = true;
         this.spawnDecision.reason = 'snapshot-opening-pressure';
+        this.spawnDecision.cpStrategyState =
+            CPStrategyState.Opening;
         this.spawnDecision.score = 1;
 
         return this.spawnDecision;
     }
 
-    private chooseRandomMeleeEntry(
+    private chooseRandomOpeningFrontlineEntry(
         affordableEntries: UnitPrefabEntry[]
     ) {
         let candidateCount = 0;
@@ -263,7 +346,7 @@ export class BattlefieldEvaluator {
         for (let i = 0; i < affordableEntries.length; i++) {
             const entry = affordableEntries[i];
 
-            if (this.isRangedFamily(entry.family)) {
+            if (!this.isOpeningFrontlineFamily(entry.family)) {
                 continue;
             }
 
@@ -280,7 +363,7 @@ export class BattlefieldEvaluator {
         for (let i = 0; i < affordableEntries.length; i++) {
             const entry = affordableEntries[i];
 
-            if (this.isRangedFamily(entry.family)) {
+            if (!this.isOpeningFrontlineFamily(entry.family)) {
                 continue;
             }
 
@@ -294,6 +377,240 @@ export class BattlefieldEvaluator {
         return null;
     }
 
+    private isOpeningFrontlineFamily(
+        family: UnitFamily
+    ) {
+        return family === UnitFamily.Spear ||
+            family === UnitFamily.Sword ||
+            family === UnitFamily.Axeman ||
+            family === UnitFamily.Cavalry;
+    }
+
+    private getFallbackCPStrategyState(
+        gameManager: GameManager,
+        team: number,
+        affordableEntries: UnitPrefabEntry[],
+        maxRangedSupportPerTarget: number,
+        blockedMeleeLaneId: number
+    ) {
+        const currentCombatPoint =
+            gameManager.getCombatPoint(team);
+        const enemyCombatPoint =
+            gameManager.getCombatPoint(
+                team === 0 ? 1 : 0
+            );
+        const rangedSupportCount =
+            this.countRangedSupportAllies();
+        const meleeSupportCount =
+            this.countMeleeWaves(
+                this.allies,
+                this.allyCount
+            );
+
+        return this.getCPStrategyState(
+            gameManager,
+            team,
+            affordableEntries,
+            maxRangedSupportPerTarget,
+            blockedMeleeLaneId,
+            currentCombatPoint,
+            enemyCombatPoint,
+            rangedSupportCount,
+            meleeSupportCount
+        );
+    }
+
+    private getCPStrategyState(
+        gameManager: GameManager,
+        team: number,
+        affordableEntries: UnitPrefabEntry[],
+        maxRangedSupportPerTarget: number,
+        blockedMeleeLaneId: number,
+        currentCombatPoint: number,
+        enemyCombatPoint: number,
+        rangedSupportCount: number,
+        meleeSupportCount: number
+    ) {
+        if (
+            currentCombatPoint > enemyCombatPoint &&
+            this.canSpawnPremiumAndRemainAhead(
+                currentCombatPoint,
+                enemyCombatPoint,
+                affordableEntries
+            )
+        ) {
+            return CPStrategyState.Abundant;
+        }
+
+        if (
+            !this.hasAffordableEffectiveResponse(
+                gameManager,
+                team,
+                affordableEntries,
+                maxRangedSupportPerTarget,
+                blockedMeleeLaneId,
+                rangedSupportCount,
+                meleeSupportCount
+            )
+        ) {
+            return CPStrategyState.Desperate;
+        }
+
+        const normalBand =
+            Math.max(
+                this.getCheapestAffordableCost(affordableEntries),
+                enemyCombatPoint * 0.12
+            );
+        const cpGap =
+            currentCombatPoint - enemyCombatPoint;
+
+        if (Math.abs(cpGap) <= normalBand) {
+            return CPStrategyState.Normal;
+        }
+
+        if (cpGap < 0) {
+            return CPStrategyState.Efficient;
+        }
+
+        return CPStrategyState.Normal;
+    }
+
+    private getCheapestAffordableCost(
+        affordableEntries: UnitPrefabEntry[]
+    ) {
+        let cost = Infinity;
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            cost =
+                Math.min(
+                    cost,
+                    Math.max(1, affordableEntries[i].combatPointCost)
+                );
+        }
+
+        return Number.isFinite(cost) ? cost : 1;
+    }
+
+    private canSpawnPremiumAndRemainAhead(
+        currentCombatPoint: number,
+        enemyCombatPoint: number,
+        affordableEntries: UnitPrefabEntry[]
+    ) {
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+
+            if (!this.isFrontlineFamily(entry.family)) {
+                continue;
+            }
+            if (this.getMeleeLadderRank(entry.family) < 2) {
+                continue;
+            }
+            if (
+                currentCombatPoint -
+                Math.max(1, entry.combatPointCost) >
+                enemyCombatPoint
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private hasAffordableEffectiveResponse(
+        gameManager: GameManager,
+        team: number,
+        affordableEntries: UnitPrefabEntry[],
+        maxRangedSupportPerTarget: number,
+        blockedMeleeLaneId: number,
+        rangedSupportCount: number,
+        meleeSupportCount: number
+    ) {
+        for (let i = 0; i < this.enemyCount; i++) {
+            const target = this.enemies[i];
+
+            if (!this.isActionableTarget(target)) {
+                continue;
+            }
+
+            const hasFullStrengthRangedHardCounter =
+                this.hasAffordableFullStrengthRangedHardCounter(
+                    affordableEntries,
+                    target
+                );
+
+            for (let j = 0; j < affordableEntries.length; j++) {
+                const entry = affordableEntries[j];
+
+                if (
+                    this.isRangedFamily(entry.family) &&
+                    !this.isSnapshotRangedSupportAllowed(
+                        entry,
+                        target,
+                        rangedSupportCount,
+                        meleeSupportCount,
+                        maxRangedSupportPerTarget,
+                        hasFullStrengthRangedHardCounter
+                    )
+                ) {
+                    continue;
+                }
+
+                if (
+                    !this.isEntryViableForTarget(
+                        entry,
+                        target
+                    )
+                ) {
+                    continue;
+                }
+
+                const laneId =
+                    this.chooseSpawnLaneForTarget(
+                        gameManager,
+                        team,
+                        target,
+                        entry,
+                        blockedMeleeLaneId
+                    );
+
+                if (laneId < 0) {
+                    continue;
+                }
+
+                if (
+                    this.isHardCounterEntryForTarget(
+                        entry,
+                        target
+                    )
+                ) {
+                    return true;
+                }
+
+                if (
+                    this.getFullMatchupPowerRatio(
+                        entry,
+                        target
+                    ) >= 0.95
+                ) {
+                    return true;
+                }
+
+                if (
+                    target.healthRatio <= 0.35 &&
+                    this.getFullMatchupPowerRatio(
+                        entry,
+                        target
+                    ) >= 0.5
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     chooseFallbackSpawnDecision(
         gameManager: GameManager,
         team: number,
@@ -303,24 +620,47 @@ export class BattlefieldEvaluator {
     ) {
         this.spawnDecision.reset();
 
+        const cpStrategyState =
+            this.getFallbackCPStrategyState(
+                gameManager,
+                team,
+                affordableEntries,
+                maxRangedSupportPerTarget,
+                blockedMeleeLaneId
+            );
         const entry =
-            this.choosePressureEntry(affordableEntries);
+            cpStrategyState === CPStrategyState.Desperate
+                ? this.chooseDesperateFallbackEntry(
+                    affordableEntries
+                )
+                : this.choosePressureEntry(
+                    gameManager,
+                    team,
+                    affordableEntries,
+                    maxRangedSupportPerTarget,
+                    blockedMeleeLaneId
+                );
 
         if (entry) {
             const laneId =
                 this.choosePressureLane(
                     gameManager,
                     blockedMeleeLaneId,
-                    true
+                    cpStrategyState !== CPStrategyState.Desperate
                 );
 
             if (laneId >= 0) {
                 this.spawnDecision.entry = entry;
                 this.spawnDecision.target = null;
                 this.spawnDecision.laneId = laneId;
-                this.spawnDecision.aggressiveForward = true;
+                this.spawnDecision.aggressiveForward =
+                    !this.isRangedFamily(entry.family);
                 this.spawnDecision.reason =
-                    'snapshot-pressure-fallback';
+                    cpStrategyState === CPStrategyState.Desperate
+                        ? 'snapshot-desperate-fallback'
+                        : 'snapshot-pressure-fallback';
+                this.spawnDecision.cpStrategyState =
+                    cpStrategyState;
                 this.spawnDecision.score = 1;
 
                 return this.spawnDecision;
@@ -333,6 +673,43 @@ export class BattlefieldEvaluator {
             affordableEntries,
             maxRangedSupportPerTarget
         );
+    }
+
+    private chooseDesperateFallbackEntry(
+        affordableEntries: UnitPrefabEntry[]
+    ) {
+        let best: UnitPrefabEntry | null = null;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < affordableEntries.length; i++) {
+            const entry = affordableEntries[i];
+            const power =
+                this.getEntryBasePower(
+                    entry,
+                    Math.max(1, entry.unitCount),
+                    1,
+                    1
+                );
+            const cost =
+                Math.max(1, entry.combatPointCost);
+            const rangedBonus =
+                this.isRangedFamily(entry.family)
+                    ? 35
+                    : 0;
+            const score =
+                power * 0.35 -
+                cost * 0.15 +
+                entry.maxSpeed * 3 +
+                rangedBonus +
+                Math.random() * 0.001;
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = entry;
+            }
+        }
+
+        return best;
     }
 
     private isActionableTarget(
@@ -363,6 +740,18 @@ export class BattlefieldEvaluator {
             this.countMeleeWaves(
                 this.allies,
                 this.allyCount
+            );
+        const cpStrategyState =
+            this.getCPStrategyState(
+                gameManager,
+                team,
+                affordableEntries,
+                maxRangedSupportPerTarget,
+                -1,
+                currentCombatPoint,
+                enemyCombatPoint,
+                rangedSupportCount,
+                meleeSupportCount
             );
 
         for (let i = 0; i < this.enemyCount; i++) {
@@ -397,7 +786,8 @@ export class BattlefieldEvaluator {
                         rangedSupportCount,
                         meleeSupportCount,
                         maxRangedSupportPerTarget,
-                        hasFullStrengthRangedHardCounter
+                        hasFullStrengthRangedHardCounter,
+                        cpStrategyState
                     );
 
                 if (score <= this.spawnDecision.score) {
@@ -424,6 +814,8 @@ export class BattlefieldEvaluator {
                         entry,
                         target
                     );
+                this.spawnDecision.cpStrategyState =
+                    cpStrategyState;
                 this.spawnDecision.score = score;
             }
         }
@@ -488,7 +880,8 @@ export class BattlefieldEvaluator {
         rangedSupportCount: number,
         meleeSupportCount: number,
         maxRangedSupportPerTarget: number,
-        hasFullStrengthRangedHardCounter: boolean
+        hasFullStrengthRangedHardCounter: boolean,
+        cpStrategyState: CPStrategyState
     ) {
         if (!target.entry) return -Infinity;
 
@@ -599,8 +992,10 @@ export class BattlefieldEvaluator {
         const cpRatio =
             currentCombatPoint / cost;
         const canComfortablyAfford =
-            cpRatio >= 1.7;
+            cpRatio >=
+            this.getComfortableAffordRatio(cpStrategyState);
         const isHoldingSpawn =
+            cpStrategyState === CPStrategyState.Efficient &&
             needRatio < 0.75;
         const overshoot =
             Math.max(0, needRatio - 1.25);
@@ -643,13 +1038,14 @@ export class BattlefieldEvaluator {
         const overshootPenaltyScale =
             targetIsRanged
                 ? 90
-                : hardCounter
-                    ? targetUrgency >= 0.7
-                        ? 160
-                        : 300
-                    : 320;
+                : this.getOvershootPenaltyScale(
+                    cpStrategyState,
+                    hardCounter,
+                    targetUrgency
+                );
         const economyPreference =
             this.getEconomyPreference(
+                cpStrategyState,
                 canComfortablyAfford,
                 currentCombatPoint,
                 enemyCombatPoint,
@@ -669,6 +1065,7 @@ export class BattlefieldEvaluator {
             this.getSnapshotMeleeLadderBias(
                 entry,
                 target,
+                cpStrategyState,
                 canComfortablyAfford,
                 targetLivePowerRatio
             ) +
@@ -676,11 +1073,24 @@ export class BattlefieldEvaluator {
     }
 
     private getEconomyPreference(
+        cpStrategyState: CPStrategyState,
         canComfortablyAfford: boolean,
         currentCombatPoint: number,
         enemyCombatPoint: number,
         cost: number
     ) {
+        if (cpStrategyState === CPStrategyState.Abundant) {
+            return 1.5;
+        }
+
+        if (cpStrategyState === CPStrategyState.Normal) {
+            return canComfortablyAfford ? 2.4 : 4.2;
+        }
+
+        if (cpStrategyState === CPStrategyState.Desperate) {
+            return 0.8;
+        }
+
         const basePreference =
             canComfortablyAfford ? 4.5 : 9.5;
         const postSpawnAdvantage =
@@ -704,6 +1114,48 @@ export class BattlefieldEvaluator {
             basePreference -
                 advantageRatio * 3
         );
+    }
+
+    private getComfortableAffordRatio(
+        cpStrategyState: CPStrategyState
+    ) {
+        if (cpStrategyState === CPStrategyState.Abundant) {
+            return 1.15;
+        }
+
+        if (cpStrategyState === CPStrategyState.Normal) {
+            return 1.25;
+        }
+
+        if (cpStrategyState === CPStrategyState.Desperate) {
+            return 1.0;
+        }
+
+        return 1.7;
+    }
+
+    private getOvershootPenaltyScale(
+        cpStrategyState: CPStrategyState,
+        hardCounter: boolean,
+        targetUrgency: number
+    ) {
+        if (cpStrategyState === CPStrategyState.Abundant) {
+            return hardCounter ? 80 : 110;
+        }
+
+        if (cpStrategyState === CPStrategyState.Normal) {
+            return hardCounter ? 110 : 150;
+        }
+
+        if (cpStrategyState === CPStrategyState.Desperate) {
+            return 70;
+        }
+
+        return hardCounter
+            ? targetUrgency >= 0.7
+                ? 160
+                : 300
+            : 320;
     }
 
     private scoreSnapshotRangedSupportEntry(
@@ -920,6 +1372,7 @@ export class BattlefieldEvaluator {
     private getSnapshotMeleeLadderBias(
         entry: UnitPrefabEntry,
         target: BattlefieldWaveIntel,
+        cpStrategyState: CPStrategyState,
         canComfortablyAfford: boolean,
         targetLivePowerRatio: number
     ) {
@@ -954,6 +1407,14 @@ export class BattlefieldEvaluator {
                     : 0.25;
 
         if (rankDelta === 1) {
+            if (cpStrategyState === CPStrategyState.Normal) {
+                return 720 * conditionScale;
+            }
+
+            if (cpStrategyState === CPStrategyState.Abundant) {
+                return 620 * conditionScale;
+            }
+
             if (
                 costDelta > 8 &&
                 !canComfortablyAfford
@@ -965,13 +1426,35 @@ export class BattlefieldEvaluator {
         }
 
         if (rankDelta === 0) {
+            if (cpStrategyState === CPStrategyState.Desperate) {
+                return 220 * conditionScale;
+            }
+
             return 55 * conditionScale;
         }
 
         if (rankDelta > 1) {
+            if (cpStrategyState === CPStrategyState.Abundant) {
+                return rankDelta === 2
+                    ? 440 * conditionScale
+                    : 180 * conditionScale;
+            }
+
+            if (cpStrategyState === CPStrategyState.Normal) {
+                return -120 * conditionScale;
+            }
+
             return canComfortablyAfford
                 ? 25 * conditionScale
                 : -110;
+        }
+
+        if (cpStrategyState === CPStrategyState.Abundant) {
+            return -90 * conditionScale;
+        }
+
+        if (cpStrategyState === CPStrategyState.Normal) {
+            return -180 * conditionScale;
         }
 
         return -50 * conditionScale;
@@ -1590,12 +2073,37 @@ export class BattlefieldEvaluator {
     }
 
     choosePressureEntry(
-        affordableEntries: UnitPrefabEntry[]
+        gameManager: GameManager,
+        team: number,
+        affordableEntries: UnitPrefabEntry[],
+        maxRangedSupportPerTarget: number,
+        blockedMeleeLaneId = -1
     ) {
+        const cpStrategyState =
+            this.getFallbackCPStrategyState(
+                gameManager,
+                team,
+                affordableEntries,
+                maxRangedSupportPerTarget,
+                blockedMeleeLaneId
+            );
+
+        if (
+            cpStrategyState === CPStrategyState.Abundant ||
+            cpStrategyState === CPStrategyState.Desperate
+        ) {
+            return this.choosePressureEntryByEconomy(
+                affordableEntries,
+                true,
+                cpStrategyState
+            );
+        }
+
         const nonCavalryEntry =
             this.choosePressureEntryByEconomy(
                 affordableEntries,
-                false
+                false,
+                cpStrategyState
             );
 
         if (nonCavalryEntry) {
@@ -1604,13 +2112,15 @@ export class BattlefieldEvaluator {
 
         return this.choosePressureEntryByEconomy(
             affordableEntries,
-            true
+            true,
+            cpStrategyState
         );
     }
 
     private choosePressureEntryByEconomy(
         affordableEntries: UnitPrefabEntry[],
-        allowCavalry: boolean
+        allowCavalry: boolean,
+        cpStrategyState: CPStrategyState
     ) {
         let best: UnitPrefabEntry | null = null;
         let bestScore = -Infinity;
@@ -1637,11 +2147,16 @@ export class BattlefieldEvaluator {
                 );
             const cost =
                 Math.max(1, entry.combatPointCost);
+            const rank =
+                this.getMeleeLadderRank(entry.family);
             const score =
-                power / cost * 18 +
-                Math.sqrt(power) * 4 -
-                cost * 2.2 +
-                entry.maxSpeed +
+                this.getPressureEntryScore(
+                    power,
+                    cost,
+                    Math.max(0, rank),
+                    entry.maxSpeed,
+                    cpStrategyState
+                ) +
                 Math.random() * 0.001;
 
             if (score > bestScore) {
@@ -1651,6 +2166,41 @@ export class BattlefieldEvaluator {
         }
 
         return best;
+    }
+
+    private getPressureEntryScore(
+        power: number,
+        cost: number,
+        rank: number,
+        speed: number,
+        cpStrategyState: CPStrategyState
+    ) {
+        if (cpStrategyState === CPStrategyState.Abundant) {
+            return power * 0.22 +
+                rank * 110 +
+                speed * 8 -
+                cost * 0.45;
+        }
+
+        if (cpStrategyState === CPStrategyState.Desperate) {
+            return power * 0.25 +
+                rank * 55 +
+                speed * 4 -
+                cost * 0.25;
+        }
+
+        if (cpStrategyState === CPStrategyState.Normal) {
+            return power / cost * 12 +
+                Math.sqrt(power) * 3 +
+                rank * 35 -
+                cost * 1.1 +
+                speed;
+        }
+
+        return power / cost * 18 +
+            Math.sqrt(power) * 4 -
+            cost * 2.2 +
+            speed;
     }
 
     private fillWaveIntel(
@@ -1855,6 +2405,12 @@ export class BattlefieldEvaluator {
                 target.allyFrontlineCount;
         }
 
+        target.coveragePower +=
+            this.getReservedCoveragePower(
+                gameManager,
+                target
+            );
+
         target.coverageRatio =
             target.threatPower > 0
                 ? target.coveragePower /
@@ -1885,6 +2441,94 @@ export class BattlefieldEvaluator {
         return basePower *
             matchup *
             reachability;
+    }
+
+    private getReservedCoveragePower(
+        gameManager: GameManager,
+        target: BattlefieldWaveIntel
+    ) {
+        if (!target.wave) return 0;
+
+        let reservedPower = 0;
+        let writeIndex = 0;
+
+        for (let i = 0; i < this.responseReservations.length; i++) {
+            const reservation =
+                this.responseReservations[i];
+
+            if (
+                this.isResponseReservationActive(
+                    gameManager,
+                    reservation
+                )
+            ) {
+                this.responseReservations[writeIndex++] =
+                    reservation;
+
+                if (
+                    reservation.targetWaveId ===
+                    target.wave.id
+                ) {
+                    reservedPower +=
+                        reservation.coveragePower;
+                }
+            }
+        }
+
+        this.responseReservations.length = writeIndex;
+
+        return reservedPower;
+    }
+
+    private isResponseReservationActive(
+        gameManager: GameManager,
+        reservation: BattleResponseReservation
+    ) {
+        if (
+            gameManager.frame - reservation.frame >
+            this.responseReservationFrames
+        ) {
+            return false;
+        }
+
+        const targetWave =
+            this.findWaveById(
+                gameManager,
+                reservation.targetWaveId
+            );
+        const responseWave =
+            this.findWaveById(
+                gameManager,
+                reservation.responseWaveId
+            );
+
+        if (!this.isValidWave(targetWave)) return false;
+        if (!this.isValidWave(responseWave)) return false;
+        if (
+            responseWave!.hasEngagedRuntime(
+                gameManager.frame
+            )
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private findWaveById(
+        gameManager: GameManager,
+        waveId: number
+    ) {
+        for (let i = 0; i < gameManager.waves.length; i++) {
+            const wave = gameManager.waves[i];
+
+            if (!wave) continue;
+            if (wave.id === waveId) {
+                return wave;
+            }
+        }
+
+        return null;
     }
 
     private getEntryCoveragePower(

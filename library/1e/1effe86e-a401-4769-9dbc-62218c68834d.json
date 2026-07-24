@@ -2191,7 +2191,7 @@
     "__type__": "CounterRule",
     "attackerFamily": 0,
     "defenderFamily": 4,
-    "damageMultiplier": 45,
+    "damageMultiplier": 20,
     "note": "Hard counter: Spear is weak generally, but punishes Cavalry."
   },
   {
@@ -3599,10 +3599,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 55,
-    "damage": 10,
-    "defense": 2,
-    "combatPointCost": 24
+    "health": 95,
+    "damage": 14,
+    "defense": 3,
+    "combatPointCost": 39
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3635,7 +3635,7 @@
     "health": 23,
     "damage": 25,
     "defense": 0,
-    "combatPointCost": 5
+    "combatPointCost": 30
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3668,7 +3668,7 @@
     "health": 45,
     "damage": 13,
     "defense": 0,
-    "combatPointCost": 10
+    "combatPointCost": 26
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3797,10 +3797,10 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 55,
-    "damage": 10,
-    "defense": 2,
-    "combatPointCost": 24
+    "health": 95,
+    "damage": 14,
+    "defense": 3,
+    "combatPointCost": 39
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3833,7 +3833,7 @@
     "health": 23,
     "damage": 25,
     "defense": 0,
-    "combatPointCost": 5
+    "combatPointCost": 30
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3866,7 +3866,7 @@
     "health": 45,
     "damage": 13,
     "defense": 0,
-    "combatPointCost": 10
+    "combatPointCost": 26
   },
   {
     "__type__": "1cbcdGjxwFMXJTanym+R192",
@@ -8947,6 +8947,8 @@
     },
     "team": 1,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
+    "testSingleWaveBattle": false,
+    "testSingleWaveUnit": 3,
     "minSpawnInterval": 1.666667,
     "maxSpawnInterval": 3.333333,
     "maxBrainDeltaTime": 0.1,
@@ -9023,6 +9025,8 @@
     },
     "team": 0,
     "runOnlyWhenGameManagerAutoSpawnOff": true,
+    "testSingleWaveBattle": false,
+    "testSingleWaveUnit": 0,
     "minSpawnInterval": 1.666667,
     "maxSpawnInterval": 3.333333,
     "maxBrainDeltaTime": 0.1,

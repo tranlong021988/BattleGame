@@ -130,7 +130,7 @@ export class CounterSettings extends Component {
         this.addRule(
             UnitFamily.Spear,
             UnitFamily.Cavalry,
-            45,
+            20,
             'Hard counter: Spear punishes Cavalry.'
         );
 

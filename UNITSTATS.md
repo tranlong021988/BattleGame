@@ -61,15 +61,15 @@ Cost = round(WaveRawPower / 10)
 | `axeman_t1` | Axeman | 10 | 74 | 110 | 46 | 2 | 4.65 | 0.35 | 0.0 | 0.36-0.44 | ~1.50X |
 | `cavalry_t1` | Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0.0 | 0.36-0.44 | ~1.97X |
 | `sword_t1` | Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0.0 | 0.36-0.44 | 1.00X |
-| `spear_t1` | Spear | 10 | 24 | 55 | 10 | 2 | 4.50 | 0.35 | 0.0 | 0.36-0.44 | ~0.49X |
-| `monk_t1` | Monk | 2 | 5 | 23 | 25 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 | ~0.48X |
-| `archer_t1` | Archer | 4 | 10 | 45 | 13 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 | ~0.49X |
+| `spear_t1` | Spear | 10 | 39 | 95 | 14 | 3 | 4.50 | 0.35 | 0.0 | 0.36-0.44 | ~0.79X |
+| `monk_t1` | Monk | 2 | 30 | 23 | 25 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 | ~0.48X |
+| `archer_t1` | Archer | 4 | 26 | 45 | 13 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 | ~0.49X |
 
 Current counter rules:
 
 | Attacker | Defender | Multiplier | Intent |
 | --- | --- | ---: | --- |
-| Spear | Cavalry | 45.0 | Per-unit Spear-vs-Cavalry counter target: Spear survives with about 5-10% HP in the continuous 1v1 estimate. |
+| Spear | Cavalry | 20.0 | Rebalanced from real single-wave tests after Spear stat raise. At `20`, Spear beats Cavalry reliably while usually ending around 30-50% total HP instead of one-shotting the matchup. |
 | Archer | Spear | 2.0 | Archer punishes Spear while sharing Spear's raw Power tier. |
 
 ## Backup: 2026-07-23 Runtime Damage/CP Candidate
@@ -91,7 +91,9 @@ Design intent:
 
 - Spear is cheaper than Sword in the current test pass, but trades lower
   damage, health, defense, speed, and general melee value for its Cavalry
-  hard-counter role.
+  hard-counter role. It was raised from the old ~0.49X value to ~0.79X after
+  single-wave tests showed Sword beating Spear too cleanly for a one-step
+  ladder gap.
 - Sword is the balanced melee baseline.
 - Axeman is the strongest melee infantry, with high damage/HP but weaker
   defense and slower attack tempo than Sword.

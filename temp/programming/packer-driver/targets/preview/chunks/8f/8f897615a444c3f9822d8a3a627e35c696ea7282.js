@@ -69,11 +69,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec8 = property({
         tooltip: 'Apply initial Combat Point curve to the selected team.'
       }), _dec9 = property({
-        tooltip: 'Apply the SmartArmyBrain accuracy curve. At accuracy A: smart=A, deliberate mistake=(1-A)^2, random=A*(1-A). Start near 0.1 to keep the easiest AI weak without locking it into deterministic troop loops.'
+        tooltip: 'Apply the AI decision accuracy curve. Accuracy affects unit choice only; target and lane selection stay tactical.'
       }), _dec10 = property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at level 1. Default 0.1 keeps the AI extremely weak but allows enough variation to avoid the Accuracy 0 troop loop.'
+        tooltip: 'Decision Accuracy at level 1. Use 0 for deliberately poor unit choices and no ranged support.'
       }), _dec11 = property({
         min: 0,
         max: 1,
@@ -416,7 +416,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 0.1;
+          return 0;
         }
       }), _descriptor12 = _applyDecoratedDescriptor(_class2.prototype, "decisionAccuracyMax", [_dec11], {
         configurable: true,

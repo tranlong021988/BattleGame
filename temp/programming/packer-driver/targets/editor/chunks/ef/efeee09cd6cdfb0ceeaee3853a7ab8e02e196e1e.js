@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, GameManager, CounterSettings, _dec, _class, _class2, _descriptor, _descriptor2, _crd, ccclass, property, UnitBehavior;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, GameManager, CounterSettings, _dec, _class, _class2, _descriptor, _descriptor2, _class3, _crd, ccclass, property, UnitBehavior;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -55,7 +55,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         property
       } = _decorator);
 
-      _export("UnitBehavior", UnitBehavior = (_dec = ccclass('UnitBehavior'), _dec(_class = (_class2 = class UnitBehavior extends Component {
+      _export("UnitBehavior", UnitBehavior = (_dec = ccclass('UnitBehavior'), _dec(_class = (_class2 = (_class3 = class UnitBehavior extends Component {
         constructor(...args) {
           super(...args);
 
@@ -122,16 +122,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.attackTimer = 0;
           this.randomizeNextAttackInterval();
-          this.dealDamageToEnemy(enemy);
+          const gm = this.gameManager || (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          const attackBatchId = gm && gm.enableBattleTelemetry ? UnitBehavior.nextAttackBatchId++ : -1;
+          this.dealDamageToEnemy(enemy, attackBatchId);
         }
 
-        dealDamageToEnemy(enemy) {
-          this.applyDamageToEnemy(enemy, false);
-          this.dealAreaDamageAround(enemy);
+        dealDamageToEnemy(enemy, attackBatchId) {
+          this.applyDamageToEnemy(enemy, false, attackBatchId);
+          this.dealAreaDamageAround(enemy, attackBatchId);
           this.finishDamagedEnemy(enemy);
         }
 
-        applyDamageToEnemy(enemy, isAreaDamage) {
+        applyDamageToEnemy(enemy, isAreaDamage, attackBatchId) {
           const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
@@ -152,7 +156,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), GameManager) : GameManager).instance;
 
           if (gm) {
-            gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage, isAreaDamage);
+            gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId);
           }
 
           enemy.props.takeDamage(finalDamage);
@@ -181,7 +185,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        dealAreaDamageAround(primaryTarget) {
+        dealAreaDamageAround(primaryTarget, attackBatchId) {
           const damageRadius = Math.max(0, this.props.damageRadius);
           if (damageRadius <= 0) return;
           if (!primaryTarget || !primaryTarget.agent) return;
@@ -208,7 +212,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            this.applyDamageToEnemy(enemy, true);
+            this.applyDamageToEnemy(enemy, true, attackBatchId);
             this.finishDamagedEnemy(enemy);
           }
         }
@@ -223,7 +227,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.nextAttackInterval = min + Math.random() * (max - min);
         }
 
-      }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMin", [property], {
+      }, _class3.nextAttackBatchId = 1, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "attackIntervalMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

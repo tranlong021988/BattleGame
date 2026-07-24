@@ -707,13 +707,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.requestBattleStatsUIRefresh();
         }
 
-        reportDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage) {
+        reportDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId) {
           if (isAreaDamage === void 0) {
             isAreaDamage = false;
           }
 
+          if (attackBatchId === void 0) {
+            attackBatchId = -1;
+          }
+
           if (!this.enableBattleTelemetry) return;
-          this.battleTelemetry.recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, this.frame, this.battleElapsedTime);
+          this.battleTelemetry.recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId, this.frame, this.battleElapsedTime);
         }
 
         onWaveCombatStarted(unit, enemy, useInitialForwardGate) {
