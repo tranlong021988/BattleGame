@@ -51,14 +51,14 @@ export class LevelSettings extends Component {
     @property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at level 1. Use 0 for deliberately poor unit choices and no ranged support.'
+        tooltip: 'Decision Accuracy at level 1. Use 0 to bias unit choice toward lower-ranked scored candidates and no ranged support.'
     })
     decisionAccuracyMin = 0;
 
     @property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at the final level. Use 1 for fully intelligent target, counter-unit, and lane decisions.'
+        tooltip: 'Decision Accuracy at the final level. Use 1 to keep the evaluator best unit choice. Target and lane selection stay tactical.'
     })
     decisionAccuracyMax = 1;
 

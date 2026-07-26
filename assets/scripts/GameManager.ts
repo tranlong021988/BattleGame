@@ -1616,7 +1616,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (this.canAffordAnyStandaloneSpawnEntry(team)) {
+        if (this.canAffordAnySpawnEntry(team)) {
             return;
         }
 
@@ -1738,33 +1738,6 @@ export class GameManager extends Component {
         }
 
         return false;
-    }
-
-    private canAffordAnyStandaloneSpawnEntry(team: number) {
-        const entries =
-            this.getDatabaseTeamEntries(team);
-
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-
-            if (!this.isValidSpawnEntry(entry)) continue;
-            if (!this.isStandaloneSpawnEntry(entry)) continue;
-
-            if (this.canAffordEntry(team, entry)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private isStandaloneSpawnEntry(
-        entry: UnitPrefabEntry | null
-    ) {
-        if (!entry) return false;
-
-        return entry.family !== UnitFamily.Archer &&
-            entry.family !== UnitFamily.Monk;
     }
 
     private resetBattleTelemetry() {
@@ -1924,13 +1897,9 @@ export class GameManager extends Component {
         const teamBHasTroops =
             this.getAliveNonHeroUnitCount(1) > 0;
         const teamACanSpawn =
-            teamAHasTroops
-                ? this.canAffordAnySpawnEntry(0)
-                : this.canAffordAnyStandaloneSpawnEntry(0);
+            this.canAffordAnySpawnEntry(0);
         const teamBCanSpawn =
-            teamBHasTroops
-                ? this.canAffordAnySpawnEntry(1)
-                : this.canAffordAnyStandaloneSpawnEntry(1);
+            this.canAffordAnySpawnEntry(1);
 
         const teamAEliminated =
             !teamACanSpawn && !teamAHasTroops;
@@ -1963,7 +1932,7 @@ export class GameManager extends Component {
         );
     }
 
-    private getAliveNonHeroUnitCount(team: number) {
+    public getAliveNonHeroUnitCount(team: number) {
         const units =
             team === 0
                 ? this.teamA
@@ -2051,6 +2020,19 @@ export class GameManager extends Component {
         if (typeof window === 'undefined') return;
         if (!window.location) return;
 
+        const nextBatchUrl =
+            this.getNextTelemetryBatchUrl();
+
+        if (
+            this.isTelemetryBatchQueryActive() &&
+            !nextBatchUrl
+        ) {
+            console.log(
+                '[BattleTelemetry] telemetry batch query complete.'
+            );
+            return;
+        }
+
         const delayMs =
             Math.max(
                 0,
@@ -2064,15 +2046,247 @@ export class GameManager extends Component {
 
         window.setTimeout(
             () => {
+                if (nextBatchUrl) {
+                    window.location.replace(nextBatchUrl);
+                    return;
+                }
+
                 window.location.reload();
             },
             delayMs
         );
     }
 
+    private getNextTelemetryBatchUrl() {
+        if (!this.isTelemetryBatchQueryActive()) {
+            return '';
+        }
+        if (typeof window === 'undefined') return '';
+        if (!window.location) return '';
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        this.normalizeTelemetryBatchQueryParams(params);
+
+        const team =
+            this.getTelemetryBatchQueryInt(
+                params,
+                'team',
+                0
+            ) === 1
+                ? 1
+                : 0;
+        const currentAcc =
+            this.clamp01(
+                this.getTelemetryBatchQueryNumber(
+                    params,
+                    'currentAcc',
+                    0
+                )
+            );
+        const currentBatch =
+            Math.max(
+                0,
+                this.getTelemetryBatchQueryInt(
+                    params,
+                    'currentBatch',
+                    0
+                )
+            );
+        const step =
+            Math.max(
+                0,
+                this.getTelemetryBatchQueryNumber(
+                    params,
+                    'step',
+                    0
+                )
+            );
+        const numBatchPerStep =
+            Math.max(
+                1,
+                this.getTelemetryBatchQueryInt(
+                    params,
+                    'numBatchPerStep',
+                    1
+                )
+            );
+        const end =
+            this.clamp01(
+                this.getTelemetryBatchQueryNumber(
+                    params,
+                    'end',
+                    1
+                )
+            );
+        const nextBatch =
+            currentBatch + 1;
+
+        params.set('team', `${team}`);
+        params.set('step', this.formatTelemetryBatchNumber(step));
+        params.set('numBatchPerStep', `${numBatchPerStep}`);
+        params.set('end', this.formatTelemetryBatchNumber(end));
+
+        if (nextBatch < numBatchPerStep) {
+            params.set(
+                'currentAcc',
+                this.formatTelemetryBatchNumber(currentAcc)
+            );
+            params.set('currentBatch', `${nextBatch}`);
+            return this.buildTelemetryBatchUrl(params);
+        }
+
+        if (currentAcc >= end - 0.000001) {
+            return '';
+        }
+
+        if (step <= 0) {
+            return '';
+        }
+
+        const nextAcc =
+            Math.min(
+                end,
+                currentAcc + step
+            );
+
+        params.set(
+            'currentAcc',
+            this.formatTelemetryBatchNumber(nextAcc)
+        );
+        params.set('currentBatch', '0');
+
+        return this.buildTelemetryBatchUrl(params);
+    }
+
+    private isTelemetryBatchQueryActive() {
+        if (typeof window === 'undefined') return false;
+        if (!window.location) return false;
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        return this.hasTelemetryBatchQueryParam(
+            params,
+            'currentAcc'
+        ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'currentBatch'
+            ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'step'
+            ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'numBatchPerStep'
+            ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'end'
+            );
+    }
+
+    private getTelemetryBatchQueryNumber(
+        params: any,
+        key: string,
+        fallback: number
+    ) {
+        const value =
+            Number(
+                this.getTelemetryBatchQueryParam(
+                    params,
+                    key
+                )
+            );
+
+        return Number.isFinite(value)
+            ? value
+            : fallback;
+    }
+
+    private getTelemetryBatchQueryInt(
+        params: any,
+        key: string,
+        fallback: number
+    ) {
+        return Math.floor(
+            this.getTelemetryBatchQueryNumber(
+                params,
+                key,
+                fallback
+            )
+        );
+    }
+
+    private formatTelemetryBatchNumber(value: number) {
+        return `${Math.round(value * 1000000) / 1000000}`;
+    }
+
+    private hasTelemetryBatchQueryParam(
+        params: any,
+        key: string
+    ) {
+        return params.has(key) ||
+            params.has(`?${key}`);
+    }
+
+    private getTelemetryBatchQueryParam(
+        params: any,
+        key: string
+    ) {
+        return params.get(`?${key}`) ??
+            params.get(key);
+    }
+
+    private normalizeTelemetryBatchQueryParams(
+        params: any
+    ) {
+        const keys = [
+            'team',
+            'currentAcc',
+            'currentBatch',
+            'step',
+            'numBatchPerStep',
+            'end',
+        ];
+
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const badKey = `?${key}`;
+            const badValue =
+                params.get(badKey);
+
+            if (badValue !== null) {
+                params.set(key, badValue);
+            }
+
+            params.delete(badKey);
+        }
+    }
+
+    private buildTelemetryBatchUrl(params: any) {
+        if (typeof window === 'undefined') return '';
+        if (!window.location) return '';
+
+        const location = window.location;
+        const origin =
+            location.origin ||
+            `${location.protocol}//${location.host}`;
+        const query = params.toString();
+
+        return `${origin}${location.pathname}` +
+            `${query ? `?${query}` : ''}` +
+            `${location.hash || ''}`;
+    }
+
     private createBattleTelemetryStartConfig() {
         return {
             startedAt: new Date().toISOString(),
+            telemetryBatch:
+                this.createBattleTelemetryBatchConfigSnapshot(),
             battleBounds: {
                 minX: this.battleMinX,
                 maxX: this.battleMaxX,
@@ -2088,6 +2302,86 @@ export class GameManager extends Component {
                 this.createBattleTelemetryUnitStatsSnapshot(),
             counterRules:
                 this.createBattleTelemetryCounterRuleSnapshot(),
+        };
+    }
+
+    private createBattleTelemetryBatchConfigSnapshot() {
+        const inactive = {
+            active: false,
+            team: 0,
+            currentAcc: 0,
+            currentBatch: 0,
+            step: 0,
+            numBatchPerStep: 1,
+            end: 1,
+        };
+
+        if (!this.isTelemetryBatchQueryActive()) {
+            return inactive;
+        }
+        if (typeof window === 'undefined') return inactive;
+        if (!window.location) return inactive;
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        this.normalizeTelemetryBatchQueryParams(params);
+
+        const team =
+            this.getTelemetryBatchQueryInt(
+                params,
+                'team',
+                0
+            ) === 1
+                ? 1
+                : 0;
+
+        return {
+            active: true,
+            team,
+            currentAcc:
+                this.clamp01(
+                    this.getTelemetryBatchQueryNumber(
+                        params,
+                        'currentAcc',
+                        0
+                    )
+                ),
+            currentBatch:
+                Math.max(
+                    0,
+                    this.getTelemetryBatchQueryInt(
+                        params,
+                        'currentBatch',
+                        0
+                    )
+                ),
+            step:
+                Math.max(
+                    0,
+                    this.getTelemetryBatchQueryNumber(
+                        params,
+                        'step',
+                        0
+                    )
+                ),
+            numBatchPerStep:
+                Math.max(
+                    1,
+                    this.getTelemetryBatchQueryInt(
+                        params,
+                        'numBatchPerStep',
+                        1
+                    )
+                ),
+            end:
+                this.clamp01(
+                    this.getTelemetryBatchQueryNumber(
+                        params,
+                        'end',
+                        1
+                    )
+                ),
         };
     }
 
@@ -4222,6 +4516,13 @@ export class GameManager extends Component {
     ) {
         return (
             Math.random() * (max - min) + min
+        );
+    }
+
+    private clamp01(value: number) {
+        return Math.max(
+            0,
+            Math.min(1, value)
         );
     }
 }

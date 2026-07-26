@@ -30,6 +30,15 @@ export interface BattleTelemetryCounterRuleSnapshot {
 
 export interface BattleTelemetryStartConfig {
     startedAt: string;
+    telemetryBatch?: {
+        active: boolean;
+        team: number;
+        currentAcc: number;
+        currentBatch: number;
+        step: number;
+        numBatchPerStep: number;
+        end: number;
+    };
     battleBounds: {
         minX: number;
         maxX: number;
@@ -77,6 +86,12 @@ export interface BattleTelemetryWaveSpawnDecision {
     accurateDecision?: boolean;
     deliberateMistakeRoll?: number;
     deliberateMistake?: boolean;
+    decisionCandidateCount?: number;
+    decisionSelectedRank?: number;
+    decisionSelectedScore?: number;
+    decisionBestScore?: number;
+    decisionSelectionQuality?: number;
+    decisionQualityRatio?: number;
     aggressiveForwardChance?: number;
     aggressiveRoll?: number;
     aggressiveSource?: string;
@@ -1291,6 +1306,30 @@ export class BattleTelemetry {
                 decision.deliberateMistake === undefined
                     ? undefined
                     : !!decision.deliberateMistake,
+            decisionCandidateCount:
+                Number.isFinite(decision.decisionCandidateCount)
+                    ? Math.floor(decision.decisionCandidateCount!)
+                    : undefined,
+            decisionSelectedRank:
+                Number.isFinite(decision.decisionSelectedRank)
+                    ? Math.floor(decision.decisionSelectedRank!)
+                    : undefined,
+            decisionSelectedScore:
+                Number.isFinite(decision.decisionSelectedScore)
+                    ? decision.decisionSelectedScore
+                    : undefined,
+            decisionBestScore:
+                Number.isFinite(decision.decisionBestScore)
+                    ? decision.decisionBestScore
+                    : undefined,
+            decisionSelectionQuality:
+                Number.isFinite(decision.decisionSelectionQuality)
+                    ? decision.decisionSelectionQuality
+                    : undefined,
+            decisionQualityRatio:
+                Number.isFinite(decision.decisionQualityRatio)
+                    ? decision.decisionQualityRatio
+                    : undefined,
             aggressiveForwardChance:
                 Number.isFinite(decision.aggressiveForwardChance)
                     ? decision.aggressiveForwardChance

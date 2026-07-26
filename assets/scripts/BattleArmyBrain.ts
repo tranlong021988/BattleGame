@@ -1,7 +1,8 @@
 import { _decorator, Component, Enum } from 'cc';
-import { GameManager, UnitPrefabEntry } from './GameManager';
-import {
-    BattlefieldEvaluator,
+import { GameManager } from './GameManager';
+import type { UnitPrefabEntry } from './GameManager';
+import { BattlefieldEvaluator } from './BattlefieldEvaluator';
+import type {
     BattleSpawnDecision,
     BattlefieldWaveIntel,
 } from './BattlefieldEvaluator';
@@ -65,7 +66,7 @@ export class BattleArmyBrain extends Component {
         min: 0,
         max: 1,
         tooltip:
-            'Chance to keep the evaluator unit choice. Failed rolls keep the same target/lane but choose a deliberately poor unit response.',
+            'Unit choice accuracy. 0 biases toward lower-ranked scored candidates, 1 keeps the evaluator best unit. Target and lane selection stay tactical.',
     })
     decisionAccuracy = 0.8;
 
@@ -92,7 +93,7 @@ export class BattleArmyBrain extends Component {
 
     @property({
         tooltip:
-            'Maximum Archer/Monk support waves allowed near one target lane at full decision accuracy. Lower accuracy scales this limit down.',
+            'Anti-spam cap for Archer/Monk support waves near one target lane. Frontline power, not this value, is the main ranged support gate.',
     })
     maxRangedSupportWavesPerLane = 2;
 
@@ -119,10 +120,12 @@ export class BattleArmyBrain extends Component {
     private lastMeleeSpawnLaneId = -1;
     private consecutiveMeleeSpawnLaneCount = 0;
     private spawnedOpeningWave = false;
+    private hasSpawnedWave = false;
     private hasSeenEnemyWave = false;
     private testSingleWaveSpawned = false;
 
     start() {
+        this.applyTelemetryBatchQueryAccuracy();
         this.randomizeNextInterval();
     }
 
@@ -231,10 +234,8 @@ export class BattleArmyBrain extends Component {
             return;
         }
 
-        this.currentAccuracyRoll = Math.random();
-        this.currentAccurateDecision =
-            this.currentAccuracyRoll <
-            this.getDecisionAccuracy();
+        this.currentAccuracyRoll = 0;
+        this.currentAccurateDecision = true;
         this.currentDeliberateMistake = false;
 
         this.evaluator.coverageTargetRatio =
@@ -277,13 +278,14 @@ export class BattleArmyBrain extends Component {
                     this.team,
                     this.affordableEntries,
                     0,
-                    this.getBlockedMeleeLaneId()
+                    this.getBlockedMeleeLaneId(),
+                    this.getDecisionAccuracy()
                 );
 
             if (
                 openingDecision.entry &&
                 openingDecision.laneId >= 0 &&
-                this.trySpawnDecisionWithAccuracy(
+                this.trySpawnDecision(
                     openingDecision
                 )
             ) {
@@ -293,22 +295,46 @@ export class BattleArmyBrain extends Component {
             return;
         }
 
-        const effectiveRangedSupportLimit =
-            this.getEffectiveRangedSupportLimit();
+        const maxRangedSupportLimit =
+            this.getMaxRangedSupportLimit();
+
+        if (
+            this.hasSpawnedWave &&
+            gameManager.getAliveNonHeroUnitCount(this.team) <= 0
+        ) {
+            const lastStandDecision =
+                this.evaluator.chooseLastStandSpawnDecision(
+                    gameManager,
+                    this.team,
+                    this.affordableEntries,
+                    this.getBlockedMeleeLaneId(),
+                    this.getDecisionAccuracy()
+                );
+
+            if (
+                lastStandDecision.entry &&
+                lastStandDecision.laneId >= 0 &&
+                this.trySpawnDecision(lastStandDecision)
+            ) {
+                return;
+            }
+        }
+
         const decision =
             this.evaluator.chooseSnapshotSpawnDecision(
                 gameManager,
                 this.team,
                 this.affordableEntries,
-                effectiveRangedSupportLimit,
-                this.getBlockedMeleeLaneId()
+                maxRangedSupportLimit,
+                this.getBlockedMeleeLaneId(),
+                this.getDecisionAccuracy()
             );
 
         if (
             decision.entry &&
             decision.laneId >= 0
         ) {
-            if (this.trySpawnDecisionWithAccuracy(decision)) {
+            if (this.trySpawnDecision(decision)) {
                 return;
             }
         }
@@ -318,15 +344,16 @@ export class BattleArmyBrain extends Component {
                 gameManager,
                 this.team,
                 this.affordableEntries,
-                effectiveRangedSupportLimit,
-                this.getBlockedMeleeLaneId()
+                maxRangedSupportLimit,
+                this.getBlockedMeleeLaneId(),
+                this.getDecisionAccuracy()
             );
 
         if (
             fallbackDecision.entry &&
             fallbackDecision.laneId >= 0
         ) {
-            if (this.trySpawnDecisionWithAccuracy(fallbackDecision)) {
+            if (this.trySpawnDecision(fallbackDecision)) {
                 return;
             }
         }
@@ -336,7 +363,7 @@ export class BattleArmyBrain extends Component {
         );
     }
 
-    private trySpawnDecisionWithAccuracy(
+    private trySpawnDecision(
         decision: BattleSpawnDecision
     ) {
         const gameManager =
@@ -352,57 +379,20 @@ export class BattleArmyBrain extends Component {
             decision.aggressiveForward;
         let reason =
             decision.reason;
-        let intendedEntry: UnitPrefabEntry | null = null;
+        let intendedEntry: UnitPrefabEntry | null =
+            decision.bestEntry &&
+            decision.bestEntry !== decision.entry
+                ? decision.bestEntry
+                : null;
         const target =
             decision.target;
-        const appliesAccuracy =
-            !!target;
 
-        this.currentDeliberateMistake = false;
-
-        if (!this.currentAccurateDecision) {
-            const wrongEntry =
-                appliesAccuracy
-                    ? this.evaluator.chooseWrongResponseEntry(
-                        target!,
-                        entry,
-                        this.affordableEntries,
-                        decision.laneId,
-                        this.getBlockedMeleeLaneId()
-                    )
-                    : this.evaluator.choosePoorGenericEntry(
-                        entry,
-                        this.affordableEntries,
-                        decision.laneId,
-                        this.getBlockedMeleeLaneId()
-                    );
-
-            if (!wrongEntry) {
-                this.stateLog(
-                    'WAIT inaccurate no poor response.'
-                );
-                return false;
-            }
-
-            intendedEntry = entry;
-            entry = wrongEntry;
-            aggressiveForward =
-                target
-                    ? this.evaluator.shouldSpawnAggressive(
-                        entry,
-                        target,
-                        decision.laneId
-                    )
-                    : decision.aggressiveForward;
-            reason =
-                decision.reason +
-                (
-                    appliesAccuracy
-                        ? '-accuracy-wrong'
-                        : '-accuracy-poor'
-                );
-            this.currentDeliberateMistake = true;
-        }
+        this.currentAccuracyRoll =
+            decision.selectionRoll;
+        this.currentDeliberateMistake =
+            decision.selectedRank > 0;
+        this.currentAccurateDecision =
+            !this.currentDeliberateMistake;
 
         return this.spawn(
             entry,
@@ -411,7 +401,8 @@ export class BattleArmyBrain extends Component {
             reason,
             target,
             intendedEntry,
-            decision.cpStrategyState
+            decision.cpStrategyState,
+            decision
         );
     }
 
@@ -422,7 +413,8 @@ export class BattleArmyBrain extends Component {
         reason: string,
         target: BattlefieldWaveIntel | null = null,
         intendedEntry: UnitPrefabEntry | null = null,
-        cpStrategyState = ''
+        cpStrategyState = '',
+        decision: BattleSpawnDecision | null = null
     ) {
         const gameManager =
             this.gameManager;
@@ -466,6 +458,8 @@ export class BattleArmyBrain extends Component {
             );
 
         if (!spawned) return false;
+
+        this.hasSpawnedWave = true;
 
         this.recordSpawnLaneHistory(
             entry,
@@ -540,6 +534,18 @@ export class BattleArmyBrain extends Component {
             accuracyRoll: this.currentAccuracyRoll,
             accurateDecision: this.currentAccurateDecision,
             deliberateMistake: this.currentDeliberateMistake,
+            decisionCandidateCount:
+                decision ? decision.candidateCount : 0,
+            decisionSelectedRank:
+                decision ? decision.selectedRank : 0,
+            decisionSelectedScore:
+                decision ? decision.score : 0,
+            decisionBestScore:
+                decision ? decision.bestScore : 0,
+            decisionSelectionQuality:
+                decision ? decision.selectionQuality : 1,
+            decisionQualityRatio:
+                decision ? decision.qualityRatio : 1,
             aliveWaveCountAtDecision:
                 this.getAliveWaveCount(),
             affordableEntryCount:
@@ -701,17 +707,119 @@ export class BattleArmyBrain extends Component {
         return this.clamp01(this.decisionAccuracy);
     }
 
-    private getEffectiveRangedSupportLimit() {
-        const max =
-            Math.max(
-                0,
-                Math.floor(
-                    this.maxRangedSupportWavesPerLane
+    private applyTelemetryBatchQueryAccuracy() {
+        if (typeof window === 'undefined') return;
+        if (!window.location) return;
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        if (!this.hasTelemetryBatchQueryParams(params)) {
+            return;
+        }
+
+        const queryTeam =
+            this.getTelemetryBatchQueryInt(
+                params,
+                'team',
+                0
+            ) === 1
+                ? 1
+                : 0;
+
+        if (this.team !== queryTeam) {
+            return;
+        }
+
+        this.decisionAccuracy =
+            this.clamp01(
+                this.getTelemetryBatchQueryNumber(
+                    params,
+                    'currentAcc',
+                    0
+                )
+            );
+    }
+
+    private hasTelemetryBatchQueryParams(
+        params: any
+    ) {
+        return this.hasTelemetryBatchQueryParam(
+            params,
+            'currentAcc'
+        ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'currentBatch'
+            ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'step'
+            ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'numBatchPerStep'
+            ) ||
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'end'
+            );
+    }
+
+    private getTelemetryBatchQueryNumber(
+        params: any,
+        key: string,
+        fallback: number
+    ) {
+        const value =
+            Number(
+                this.getTelemetryBatchQueryParam(
+                    params,
+                    key
                 )
             );
 
+        return Number.isFinite(value)
+            ? value
+            : fallback;
+    }
+
+    private getTelemetryBatchQueryInt(
+        params: any,
+        key: string,
+        fallback: number
+    ) {
         return Math.floor(
-            max * this.getDecisionAccuracy()
+            this.getTelemetryBatchQueryNumber(
+                params,
+                key,
+                fallback
+            )
+        );
+    }
+
+    private hasTelemetryBatchQueryParam(
+        params: any,
+        key: string
+    ) {
+        return params.has(key) ||
+            params.has(`?${key}`);
+    }
+
+    private getTelemetryBatchQueryParam(
+        params: any,
+        key: string
+    ) {
+        return params.get(`?${key}`) ??
+            params.get(key);
+    }
+
+    private getMaxRangedSupportLimit() {
+        return Math.max(
+            0,
+            Math.floor(
+                this.maxRangedSupportWavesPerLane
+            )
         );
     }
 

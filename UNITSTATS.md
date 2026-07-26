@@ -46,15 +46,19 @@ Sword   = 1.0X
 Spear   ~= 0.5X
 ```
 
-Archer and Monk are currently set to the same raw Power tier as Spear. Their
-combat identity still comes from range, attack interval, and Monk AoE.
-Cost is calculated from total raw wave Power so spawning a wave means buying
-Power, independent of troop family:
+Archer is currently set near Spear's raw Power tier. Monk is being tested as a
+single-unit siege/AoE support: its raw Power is above Sword, but its real value
+comes from range, damageRadius, and slow burst cadence.
+Most cost is calculated from total raw wave Power so spawning a wave means
+buying Power, independent of troop family:
 
 ```text
 WaveRawPower = RawUnitPower * UnitCount
 Cost = round(WaveRawPower / 10)
 ```
+
+Monk intentionally uses a visible siege premium above this raw formula because
+the X-Power formula does not include range, AoE, or attack interval.
 
 | Unit | Family | Count | Cost | Health | Attack | Defense | Speed | Range | Damage Radius | Attack Interval | Raw Power Ratio |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
@@ -62,7 +66,7 @@ Cost = round(WaveRawPower / 10)
 | `cavalry_t1` | Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0.0 | 0.36-0.44 | ~1.97X |
 | `sword_t1` | Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0.0 | 0.36-0.44 | 1.00X |
 | `spear_t1` | Spear | 10 | 39 | 95 | 14 | 3 | 4.50 | 0.35 | 0.0 | 0.36-0.44 | ~0.79X |
-| `monk_t1` | Monk | 2 | 30 | 23 | 25 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 | ~0.48X |
+| `monk_t1` | Monk | 1 | 80 | 95 | 32 | 0 | 4.50 | 5.80 | 1.10 | 2.10-2.60 | ~1.11X |
 | `archer_t1` | Archer | 4 | 26 | 45 | 13 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 | ~0.49X |
 
 Current counter rules:

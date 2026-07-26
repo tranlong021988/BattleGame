@@ -1,10 +1,35 @@
 import { _decorator, Component } from 'cc';
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
-import { GameManager } from './GameManager';
 import { CounterSettings } from './CounterSettings';
 
 const { ccclass, property } = _decorator;
+
+type UnitBehaviorGameManager = {
+    enableBattleTelemetry: boolean;
+    spatialGrid: {
+        getMaxEnemyRadius(team: number): number;
+        queryEnemies(
+            team: number,
+            x: number,
+            z: number,
+            radius: number
+        ): Unit[];
+    } | null;
+    teamA: Unit[];
+    teamB: Unit[];
+    reportDamage(
+        attacker: Unit,
+        defender: Unit,
+        rawDamage: number,
+        actualDamage: number,
+        isCounterDamage: boolean,
+        isAreaDamage: boolean,
+        attackBatchId: number
+    ): void;
+    reportKill(attacker: Unit, defender: Unit): void;
+    despawnUnit(unit: Unit): void;
+};
 
 @ccclass('UnitBehavior')
 export class UnitBehavior extends Component {
@@ -17,7 +42,7 @@ export class UnitBehavior extends Component {
     @property
     attackIntervalMax: number = 1.2;
 
-    gameManager: GameManager | null = null;
+    gameManager: UnitBehaviorGameManager | null = null;
 
     private unit!: Unit;
     private props!: UnitProps;
@@ -85,9 +110,7 @@ export class UnitBehavior extends Component {
         this.attackTimer = 0;
         this.randomizeNextAttackInterval();
 
-        const gm =
-            this.gameManager ||
-            GameManager.instance;
+        const gm = this.gameManager;
         const attackBatchId =
             gm && gm.enableBattleTelemetry
                 ? UnitBehavior.nextAttackBatchId++
@@ -146,9 +169,7 @@ export class UnitBehavior extends Component {
                 Math.max(0, finalDamage)
             );
 
-        const gm =
-            this.gameManager ||
-            GameManager.instance;
+        const gm = this.gameManager;
 
         if (gm) {
             gm.reportDamage(
@@ -173,9 +194,7 @@ export class UnitBehavior extends Component {
             return;
         }
 
-        const gm =
-            this.gameManager ||
-            GameManager.instance;
+        const gm = this.gameManager;
         const wasCurrentTarget =
             this.unit.getValidEnemyTarget() === enemy;
 
@@ -203,9 +222,7 @@ export class UnitBehavior extends Component {
         if (damageRadius <= 0) return;
         if (!primaryTarget || !primaryTarget.agent) return;
 
-        const gm =
-            this.gameManager ||
-            GameManager.instance;
+        const gm = this.gameManager;
 
         if (!gm) return;
 
@@ -263,7 +280,7 @@ export class UnitBehavior extends Component {
     }
 
     private getEnemyListFallback(
-        gm: GameManager
+        gm: UnitBehaviorGameManager
     ): Unit[] {
         return this.unit.team === 0
             ? gm.teamB

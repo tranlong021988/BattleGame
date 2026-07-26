@@ -73,11 +73,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec10 = property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at level 1. Use 0 for deliberately poor unit choices and no ranged support.'
+        tooltip: 'Decision Accuracy at level 1. Use 0 to bias unit choice toward lower-ranked scored candidates and no ranged support.'
       }), _dec11 = property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at the final level. Use 1 for fully intelligent target, counter-unit, and lane decisions.'
+        tooltip: 'Decision Accuracy at the final level. Use 1 to keep the evaluator best unit choice. Target and lane selection stay tactical.'
       }), _dec12 = property({
         tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
       }), _dec13 = property({
