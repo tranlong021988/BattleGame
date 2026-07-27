@@ -3629,13 +3629,13 @@
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 5.8,
-    "damageRadius": 1.1,
+    "damageRadius": 1,
     "attackIntervalMin": 2.1,
     "attackIntervalMax": 2.6,
-    "health": 95,
-    "damage": 32,
+    "health": 35,
+    "damage": 70,
     "defense": 0,
-    "combatPointCost": 80
+    "combatPointCost": 49
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3652,7 +3652,7 @@
     "family": 2,
     "tier": 1,
     "unlocked": true,
-    "unitCount": 4,
+    "unitCount": 5,
     "maxUnitPerRow": 8,
     "squareFormationWidth": 4,
     "spaceBetweenUnit": 1,
@@ -3827,13 +3827,13 @@
     "canBePush": false,
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 5.8,
-    "damageRadius": 1.1,
+    "damageRadius": 1,
     "attackIntervalMin": 2.1,
     "attackIntervalMax": 2.6,
-    "health": 95,
-    "damage": 32,
+    "health": 35,
+    "damage": 70,
     "defense": 0,
-    "combatPointCost": 80
+    "combatPointCost": 49
   },
   {
     "__type__": "UnitPrefabEntry",
@@ -3850,7 +3850,7 @@
     "family": 2,
     "tier": 1,
     "unlocked": true,
-    "unitCount": 4,
+    "unitCount": 5,
     "maxUnitPerRow": 8,
     "squareFormationWidth": 4,
     "spaceBetweenUnit": 1,

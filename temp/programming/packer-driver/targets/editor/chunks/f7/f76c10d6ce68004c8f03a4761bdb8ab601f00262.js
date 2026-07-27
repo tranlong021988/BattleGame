@@ -89,7 +89,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec5 = property({
         min: 0,
         max: 1,
-        tooltip: 'Chance to keep the evaluator unit choice. Failed rolls keep the same target/lane but choose a deliberately poor unit response.'
+        tooltip: 'Unit choice accuracy. 0 biases toward lower-ranked scored candidates, 1 keeps the evaluator best unit. Target and lane selection stay tactical.'
       }), _dec6 = property({
         tooltip: 'Power coverage target for the selected enemy wave. 1 means enough estimated force; values above 1 ask for a small reserve.'
       }), _dec7 = property({
@@ -97,7 +97,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec8 = property({
         tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
       }), _dec9 = property({
-        tooltip: 'Maximum Archer/Monk support waves allowed near one target lane at full decision accuracy. Lower accuracy scales this limit down.'
+        tooltip: 'Anti-spam cap for Archer/Monk support waves near one target lane. Frontline power, not this value, is the main ranged support gate.'
       }), _dec10 = property({
         min: 1,
         tooltip: 'Maximum consecutive melee waves this brain may spawn into the same lane. Ranged waves use their own support rules.'
@@ -155,11 +155,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.lastMeleeSpawnLaneId = -1;
           this.consecutiveMeleeSpawnLaneCount = 0;
           this.spawnedOpeningWave = false;
+          this.hasSpawnedWave = false;
           this.hasSeenEnemyWave = false;
           this.testSingleWaveSpawned = false;
         }
 
         start() {
+          this.applyTelemetryBatchQueryAccuracy();
           this.randomizeNextInterval();
         }
 
@@ -233,8 +235,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          this.currentAccuracyRoll = Math.random();
-          this.currentAccurateDecision = this.currentAccuracyRoll < this.getDecisionAccuracy();
+          this.currentAccuracyRoll = 0;
+          this.currentAccurateDecision = true;
           this.currentDeliberateMistake = false;
           this.evaluator.coverageTargetRatio = Math.max(0, this.coverageTargetRatio);
           this.evaluator.rescueAllyAliveRatio = this.clamp01(this.rescueAllyAliveRatio);
@@ -256,28 +258,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return;
             }
 
-            const openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, 0, this.getBlockedMeleeLaneId());
+            const openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, 0, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
 
-            if (openingDecision.entry && openingDecision.laneId >= 0 && this.trySpawnDecisionWithAccuracy(openingDecision)) {
+            if (openingDecision.entry && openingDecision.laneId >= 0 && this.trySpawnDecision(openingDecision)) {
               this.spawnedOpeningWave = true;
             }
 
             return;
           }
 
-          const effectiveRangedSupportLimit = this.getEffectiveRangedSupportLimit();
-          const decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, effectiveRangedSupportLimit, this.getBlockedMeleeLaneId());
+          const maxRangedSupportLimit = this.getMaxRangedSupportLimit();
 
-          if (decision.entry && decision.laneId >= 0) {
-            if (this.trySpawnDecisionWithAccuracy(decision)) {
+          if (this.hasSpawnedWave && gameManager.getAliveNonHeroUnitCount(this.team) <= 0) {
+            const lastStandDecision = this.evaluator.chooseLastStandSpawnDecision(gameManager, this.team, this.affordableEntries, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
+
+            if (lastStandDecision.entry && lastStandDecision.laneId >= 0 && this.trySpawnDecision(lastStandDecision)) {
               return;
             }
           }
 
-          const fallbackDecision = this.evaluator.chooseFallbackSpawnDecision(gameManager, this.team, this.affordableEntries, effectiveRangedSupportLimit, this.getBlockedMeleeLaneId());
+          const decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, maxRangedSupportLimit, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
+
+          if (decision.entry && decision.laneId >= 0) {
+            if (this.trySpawnDecision(decision)) {
+              return;
+            }
+          }
+
+          const fallbackDecision = this.evaluator.chooseFallbackSpawnDecision(gameManager, this.team, this.affordableEntries, maxRangedSupportLimit, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
 
           if (fallbackDecision.entry && fallbackDecision.laneId >= 0) {
-            if (this.trySpawnDecisionWithAccuracy(fallbackDecision)) {
+            if (this.trySpawnDecision(fallbackDecision)) {
               return;
             }
           }
@@ -285,7 +296,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.stateLog('WAIT no useful snapshot or fallback spawn.');
         }
 
-        trySpawnDecisionWithAccuracy(decision) {
+        trySpawnDecision(decision) {
           const gameManager = this.gameManager;
 
           if (!gameManager || !decision.entry) {
@@ -295,30 +306,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           let entry = decision.entry;
           let aggressiveForward = decision.aggressiveForward;
           let reason = decision.reason;
-          let intendedEntry = null;
+          let intendedEntry = decision.bestEntry && decision.bestEntry !== decision.entry ? decision.bestEntry : null;
           const target = decision.target;
-          const appliesAccuracy = !!target;
-          this.currentDeliberateMistake = false;
-
-          if (!this.currentAccurateDecision) {
-            const wrongEntry = appliesAccuracy ? this.evaluator.chooseWrongResponseEntry(target, entry, this.affordableEntries, decision.laneId, this.getBlockedMeleeLaneId()) : this.evaluator.choosePoorGenericEntry(entry, this.affordableEntries, decision.laneId, this.getBlockedMeleeLaneId());
-
-            if (!wrongEntry) {
-              this.stateLog('WAIT inaccurate no poor response.');
-              return false;
-            }
-
-            intendedEntry = entry;
-            entry = wrongEntry;
-            aggressiveForward = target ? this.evaluator.shouldSpawnAggressive(entry, target, decision.laneId) : decision.aggressiveForward;
-            reason = decision.reason + (appliesAccuracy ? '-accuracy-wrong' : '-accuracy-poor');
-            this.currentDeliberateMistake = true;
-          }
-
-          return this.spawn(entry, decision.laneId, aggressiveForward, reason, target, intendedEntry, decision.cpStrategyState);
+          this.currentAccuracyRoll = decision.selectionRoll;
+          this.currentDeliberateMistake = decision.selectedRank > 0;
+          this.currentAccurateDecision = !this.currentDeliberateMistake;
+          return this.spawn(entry, decision.laneId, aggressiveForward, reason, target, intendedEntry, decision.cpStrategyState, decision);
         }
 
-        spawn(entry, laneId, aggressiveForward, reason, target = null, intendedEntry = null, cpStrategyState = '') {
+        spawn(entry, laneId, aggressiveForward, reason, target = null, intendedEntry = null, cpStrategyState = '', decision = null) {
           const gameManager = this.gameManager;
           if (!gameManager) return false;
 
@@ -336,6 +332,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const canComfortablyAffordAtDecision = combatPointCostRatioAtDecision >= 1.7;
           const spawned = gameManager.spawnWaveByEntry(this.team, entry, laneId, aggressiveForward, reason);
           if (!spawned) return false;
+          this.hasSpawnedWave = true;
           this.recordSpawnLaneHistory(entry, laneId);
           this.evaluator.recordSpawnReservation(gameManager, this.team, target, entry, spawned, gameManager.frame);
           gameManager.recordBattleTelemetryWaveSpawnDecision({
@@ -375,6 +372,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             accuracyRoll: this.currentAccuracyRoll,
             accurateDecision: this.currentAccurateDecision,
             deliberateMistake: this.currentDeliberateMistake,
+            decisionCandidateCount: decision ? decision.candidateCount : 0,
+            decisionSelectedRank: decision ? decision.selectedRank : 0,
+            decisionSelectedScore: decision ? decision.score : 0,
+            decisionBestScore: decision ? decision.bestScore : 0,
+            decisionSelectionQuality: decision ? decision.selectionQuality : 1,
+            decisionQualityRatio: decision ? decision.qualityRatio : 1,
             aliveWaveCountAtDecision: this.getAliveWaveCount(),
             affordableEntryCount: this.affordableEntries.length,
             activeEnemyIntelCount: this.evaluator.enemyCount,
@@ -513,9 +516,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.clamp01(this.decisionAccuracy);
         }
 
-        getEffectiveRangedSupportLimit() {
-          const max = Math.max(0, Math.floor(this.maxRangedSupportWavesPerLane));
-          return Math.floor(max * this.getDecisionAccuracy());
+        applyTelemetryBatchQueryAccuracy() {
+          if (typeof window === 'undefined') return;
+          if (!window.location) return;
+          const params = new URLSearchParams(window.location.search);
+
+          if (!this.hasTelemetryBatchQueryParams(params)) {
+            return;
+          }
+
+          const queryTeam = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
+
+          if (this.team !== queryTeam) {
+            return;
+          }
+
+          this.decisionAccuracy = this.clamp01(this.getTelemetryBatchQueryNumber(params, 'currentAcc', 0));
+        }
+
+        hasTelemetryBatchQueryParams(params) {
+          return this.hasTelemetryBatchQueryParam(params, 'currentAcc') || this.hasTelemetryBatchQueryParam(params, 'currentBatch') || this.hasTelemetryBatchQueryParam(params, 'step') || this.hasTelemetryBatchQueryParam(params, 'numBatchPerStep') || this.hasTelemetryBatchQueryParam(params, 'end');
+        }
+
+        getTelemetryBatchQueryNumber(params, key, fallback) {
+          const value = Number(this.getTelemetryBatchQueryParam(params, key));
+          return Number.isFinite(value) ? value : fallback;
+        }
+
+        getTelemetryBatchQueryInt(params, key, fallback) {
+          return Math.floor(this.getTelemetryBatchQueryNumber(params, key, fallback));
+        }
+
+        hasTelemetryBatchQueryParam(params, key) {
+          return params.has(key) || params.has(`?${key}`);
+        }
+
+        getTelemetryBatchQueryParam(params, key) {
+          var _params$get;
+
+          return (_params$get = params.get(`?${key}`)) != null ? _params$get : params.get(key);
+        }
+
+        getMaxRangedSupportLimit() {
+          return Math.max(0, Math.floor(this.maxRangedSupportWavesPerLane));
         }
 
         clamp01(value) {

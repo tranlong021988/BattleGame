@@ -1226,7 +1226,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (this.canAffordAnyStandaloneSpawnEntry(team)) {
+          if (this.canAffordAnySpawnEntry(team)) {
             return;
           }
 
@@ -1319,31 +1319,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return false;
-        }
-
-        canAffordAnyStandaloneSpawnEntry(team) {
-          var entries = this.getDatabaseTeamEntries(team);
-
-          for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            if (!this.isValidSpawnEntry(entry)) continue;
-            if (!this.isStandaloneSpawnEntry(entry)) continue;
-
-            if (this.canAffordEntry(team, entry)) {
-              return true;
-            }
-          }
-
-          return false;
-        }
-
-        isStandaloneSpawnEntry(entry) {
-          if (!entry) return false;
-          return entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer && entry.family !== (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Monk;
         }
 
         resetBattleTelemetry() {
@@ -1463,8 +1438,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var teamAHasTroops = this.getAliveNonHeroUnitCount(0) > 0;
           var teamBHasTroops = this.getAliveNonHeroUnitCount(1) > 0;
-          var teamACanSpawn = teamAHasTroops ? this.canAffordAnySpawnEntry(0) : this.canAffordAnyStandaloneSpawnEntry(0);
-          var teamBCanSpawn = teamBHasTroops ? this.canAffordAnySpawnEntry(1) : this.canAffordAnyStandaloneSpawnEntry(1);
+          var teamACanSpawn = this.canAffordAnySpawnEntry(0);
+          var teamBCanSpawn = this.canAffordAnySpawnEntry(1);
           var teamAEliminated = !teamACanSpawn && !teamAHasTroops;
           var teamBEliminated = !teamBCanSpawn && !teamBHasTroops;
 
@@ -1521,16 +1496,125 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.enableBattleTelemetry) return;
           if (typeof window === 'undefined') return;
           if (!window.location) return;
+          var nextBatchUrl = this.getNextTelemetryBatchUrl();
+
+          if (this.isTelemetryBatchQueryActive() && !nextBatchUrl) {
+            console.log('[BattleTelemetry] telemetry batch query complete.');
+            return;
+          }
+
           var delayMs = Math.max(0, this.battleTelemetryReloadDelaySeconds) * 1000;
           console.log("[BattleTelemetry] reload page in " + ((delayMs / 1000).toFixed(2) + "s."));
           window.setTimeout(() => {
+            if (nextBatchUrl) {
+              window.location.replace(nextBatchUrl);
+              return;
+            }
+
             window.location.reload();
           }, delayMs);
+        }
+
+        getNextTelemetryBatchUrl() {
+          if (!this.isTelemetryBatchQueryActive()) {
+            return '';
+          }
+
+          if (typeof window === 'undefined') return '';
+          if (!window.location) return '';
+          var params = new URLSearchParams(window.location.search);
+          this.normalizeTelemetryBatchQueryParams(params);
+          var team = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
+          var currentAcc = this.clamp01(this.getTelemetryBatchQueryNumber(params, 'currentAcc', 0));
+          var currentBatch = Math.max(0, this.getTelemetryBatchQueryInt(params, 'currentBatch', 0));
+          var step = Math.max(0, this.getTelemetryBatchQueryNumber(params, 'step', 0));
+          var numBatchPerStep = Math.max(1, this.getTelemetryBatchQueryInt(params, 'numBatchPerStep', 1));
+          var end = this.clamp01(this.getTelemetryBatchQueryNumber(params, 'end', 1));
+          var nextBatch = currentBatch + 1;
+          params.set('team', "" + team);
+          params.set('step', this.formatTelemetryBatchNumber(step));
+          params.set('numBatchPerStep', "" + numBatchPerStep);
+          params.set('end', this.formatTelemetryBatchNumber(end));
+
+          if (nextBatch < numBatchPerStep) {
+            params.set('currentAcc', this.formatTelemetryBatchNumber(currentAcc));
+            params.set('currentBatch', "" + nextBatch);
+            return this.buildTelemetryBatchUrl(params);
+          }
+
+          if (currentAcc >= end - 0.000001) {
+            return '';
+          }
+
+          if (step <= 0) {
+            return '';
+          }
+
+          var nextAcc = Math.min(end, currentAcc + step);
+          params.set('currentAcc', this.formatTelemetryBatchNumber(nextAcc));
+          params.set('currentBatch', '0');
+          return this.buildTelemetryBatchUrl(params);
+        }
+
+        isTelemetryBatchQueryActive() {
+          if (typeof window === 'undefined') return false;
+          if (!window.location) return false;
+          var params = new URLSearchParams(window.location.search);
+          return this.hasTelemetryBatchQueryParam(params, 'currentAcc') || this.hasTelemetryBatchQueryParam(params, 'currentBatch') || this.hasTelemetryBatchQueryParam(params, 'step') || this.hasTelemetryBatchQueryParam(params, 'numBatchPerStep') || this.hasTelemetryBatchQueryParam(params, 'end');
+        }
+
+        getTelemetryBatchQueryNumber(params, key, fallback) {
+          var value = Number(this.getTelemetryBatchQueryParam(params, key));
+          return Number.isFinite(value) ? value : fallback;
+        }
+
+        getTelemetryBatchQueryInt(params, key, fallback) {
+          return Math.floor(this.getTelemetryBatchQueryNumber(params, key, fallback));
+        }
+
+        formatTelemetryBatchNumber(value) {
+          return "" + Math.round(value * 1000000) / 1000000;
+        }
+
+        hasTelemetryBatchQueryParam(params, key) {
+          return params.has(key) || params.has("?" + key);
+        }
+
+        getTelemetryBatchQueryParam(params, key) {
+          var _params$get2;
+
+          return (_params$get2 = params.get("?" + key)) != null ? _params$get2 : params.get(key);
+        }
+
+        normalizeTelemetryBatchQueryParams(params) {
+          var keys = ['team', 'currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end'];
+
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            var badKey = "?" + key;
+            var badValue = params.get(badKey);
+
+            if (badValue !== null) {
+              params.set(key, badValue);
+            }
+
+            params.delete(badKey);
+          }
+        }
+
+        buildTelemetryBatchUrl(params) {
+          if (typeof window === 'undefined') return '';
+          if (!window.location) return '';
+          var location = window.location;
+          var origin = location.origin || location.protocol + "//" + location.host;
+          var query = params.toString();
+          return "" + origin + location.pathname + ("" + (query ? "?" + query : '')) + ("" + (location.hash || ''));
         }
 
         createBattleTelemetryStartConfig() {
           return {
             startedAt: new Date().toISOString(),
+            telemetryBatch: this.createBattleTelemetryBatchConfigSnapshot(),
             battleBounds: {
               minX: this.battleMinX,
               maxX: this.battleMaxX,
@@ -1541,6 +1625,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             initialCombatPoint: [this.initialCombatPoint[0], this.initialCombatPoint[1]],
             unitStats: this.createBattleTelemetryUnitStatsSnapshot(),
             counterRules: this.createBattleTelemetryCounterRuleSnapshot()
+          };
+        }
+
+        createBattleTelemetryBatchConfigSnapshot() {
+          var inactive = {
+            active: false,
+            team: 0,
+            currentAcc: 0,
+            currentBatch: 0,
+            step: 0,
+            numBatchPerStep: 1,
+            end: 1
+          };
+
+          if (!this.isTelemetryBatchQueryActive()) {
+            return inactive;
+          }
+
+          if (typeof window === 'undefined') return inactive;
+          if (!window.location) return inactive;
+          var params = new URLSearchParams(window.location.search);
+          this.normalizeTelemetryBatchQueryParams(params);
+          var team = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
+          return {
+            active: true,
+            team,
+            currentAcc: this.clamp01(this.getTelemetryBatchQueryNumber(params, 'currentAcc', 0)),
+            currentBatch: Math.max(0, this.getTelemetryBatchQueryInt(params, 'currentBatch', 0)),
+            step: Math.max(0, this.getTelemetryBatchQueryNumber(params, 'step', 0)),
+            numBatchPerStep: Math.max(1, this.getTelemetryBatchQueryInt(params, 'numBatchPerStep', 1)),
+            end: this.clamp01(this.getTelemetryBatchQueryNumber(params, 'end', 1))
           };
         }
 
@@ -2896,6 +3011,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         randomRange(min, max) {
           return Math.random() * (max - min) + min;
+        }
+
+        clamp01(value) {
+          return Math.max(0, Math.min(1, value));
         }
 
       }, _class3.instance = null, _class3.originalDirectorTick = null, _class3.directorTimeScaleOwner = null, _class3), (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "unitDatabase", [_dec2], {

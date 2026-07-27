@@ -2,182 +2,194 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-27 by home Codex after the BattleArmyBrain accuracy
-curve, telemetry batch automation, ranged-support gate rewrite, and latest
-frontline/ranged support review.
+Last updated: 2026-07-27 after the current ranged-support evaluator pass,
+Monk/Archer value pass, and the 60-match accuracy telemetry sweep.
 
 ## Handoff Policy
 
-- Source code and scene data are the source of truth. Use this file as the
-  current map, not as a replacement for reading code.
-- Update this file only when the user explicitly asks for handoff/update.
-- Do not add hidden balance multipliers. Combat multipliers must live in
-  `CounterSettings` / scene counter data.
-- The user strongly dislikes narrow patch-chasing. For AI/balance work, inspect
-  the whole flow before changing one number or branch.
-- For project logic questions, inspect the relevant source before answering.
-  Do not answer from memory when code can confirm the behavior.
-- Before touching AI, combat, stats, or telemetry, re-check:
-  - `assets/Test.scene`
-  - `UNITSTATS.md`
-  - `assets/scripts/BattleArmyBrain.ts`
-  - `assets/scripts/BattlefieldEvaluator.ts`
-  - `assets/scripts/CounterSettings.ts`
-  - `assets/scripts/BattleTelemetry.ts`
-  - `assets/scripts/GameManager.ts`
+- Read source and scene data before acting. This file is a map, not a
+  substitute for code inspection.
+- Update this file only when the user explicitly asks.
+- Do not add hidden combat multipliers. Combat multipliers belong in
+  `CounterSettings` and the scene rules.
+- The user wants system-level diagnosis. Do not hide a logic problem behind a
+  new threshold or a narrow numerical patch.
+- Reuse current wave/snapshot state before adding scans, throttles, or duplicate
+  bookkeeping.
+- For balance changes, inspect stats, unit count, cost, counters, AI scoring,
+  lane state, frontline coverage, and telemetry together.
+- Do not ask for another telemetry batch when the source already proves the
+  cause.
 
-## Active Stack
+## Source Of Truth
 
-- Active AI: `BattleArmyBrain` + `BattlefieldEvaluator`.
-- Legacy: old `ArmyBrain` / `SmartArmyBrain` should be treated as inactive
-  unless a scene explicitly enables them.
-- `LevelSettings` still has SmartArmyBrain fields for legacy scene references,
-  but current work should target `BattleArmyBrain`.
-- Active test scope is tier 1 only:
-  - Axeman
-  - Cavalry
-  - Sword
-  - Spear
-  - Monk
-  - Archer
-- Skirmisher is inactive in the current pass.
-- Telemetry is for testing only. Real gameplay normally has telemetry off.
+Read these first:
 
-## Current Balance Model
+- `assets/Test.scene`: active Inspector values for both teams, AI, counters,
+  telemetry, and level settings.
+- `UNITSTATS.md`: active tier-1 numeric balance table and X-Power formula.
+- `assets/scripts/BattleArmyBrain.ts`: spawn timing, accuracy, single-wave test
+  mode, and actual spawn execution.
+- `assets/scripts/BattlefieldEvaluator.ts`: battlefield snapshot, CP strategy,
+  target/lane/unit scoring, ranged-support gates, and response reservations.
+- `assets/scripts/CounterSettings.ts`: runtime counter damage.
+- `assets/scripts/BattleTelemetry.ts`: report schema and aggregation.
+- `assets/scripts/GameManager.ts`: battle end, report export/reload, CP, wave
+  ownership, and telemetry URL automation.
 
-The current baseline uses X-Power with Sword as the base. The intent is:
+The active AI is `BattleArmyBrain` plus `BattlefieldEvaluator`. Old
+`ArmyBrain`/`SmartArmyBrain` logic is legacy unless a scene explicitly enables
+it.
 
-- cost should buy raw wave power;
-- raw melee ladder should be visible in normal matchups;
-- runtime telemetry diagnoses AI/meta distortions, not the only definition of
-  unit balance.
+## Active Test Configuration
 
-Raw Power formula:
+- Tier 1 only: Axeman, Cavalry, Sword, Spear, Monk, Archer.
+- Skirmisher is inactive.
+- Both teams currently have identical database stats.
+- Both `BattleArmyBrain` components in `assets/Test.scene` currently use:
+  - `decisionAccuracy = 1`
+  - `maxAliveWaves = 7`
+  - `minSpawnInterval = 1.666667`
+  - `maxSpawnInterval = 3.333333`
+  - `coverageTargetRatio = 1.05`
+  - `maxRangedSupportWavesPerLane = 3`
+  - `maxConsecutiveMeleeWavesPerLane = 2`
+- `GameManager` currently has telemetry enabled in the test scene. Telemetry is
+  test-only and should be disabled for the real game build.
+- `battleTimeScale = 1`; the permanent 1.5x combat tempo was implemented by
+  changing movement, attack intervals, and spawn timing rather than by leaving
+  time scale raised.
+
+## X-Power And Cost
+
+This point was repeatedly misunderstood and is now explicit:
 
 ```text
 EffectiveHP = Health * (1 + Defense * 0.045)
 RawUnitPower = sqrt(Damage * EffectiveHP)
-WaveRawPower = RawUnitPower * UnitCount
-Cost = round(WaveRawPower / 10)
+Cost = round(RawUnitPower)
 ```
 
-Important nuance:
+- X-Power and nominal cost are calculated for one unit.
+- Never multiply by `UnitCount`.
+- `UnitCount` is an independent battlefield-balance control.
+- Sword is the 1.00X base at about `49.50` raw unit power.
+- Speed, range, attack interval, AoE, and wave-slot opportunity are not part of
+  the cost formula. They are evaluated through controlled tests and telemetry.
+- Current exception: Archer has raw unit power `24.19`, so nominal rounded cost
+  is `24`, but the tested scene still uses `26`. The latest telemetry is
+  evidence for cost `26`. Do not silently claim that Archer exactly follows the
+  formula; explicitly choose whether to keep the tested premium or align it
+  before the next numeric balance lock.
 
-- Raw Power intentionally uses `Health`, `Damage`, `Defense`, and `UnitCount`.
-- It does not directly price speed, range, AoE, attack interval, or AI context.
-- Ranged/AoE may need explicit premium cost because protected range/AoE creates
-  runtime value beyond raw Power.
-- Runtime `damage/CP` is useful, but it is distorted by spawn logic, target
-  selection, frontline protection, AoE uptime, and lane noise.
+## Active Unit Stats
 
-## Current Unit Stats
+These values match both Team A and Team B in `assets/Test.scene`.
 
-Scene values in `assets/Test.scene` and `UNITSTATS.md` should match this table.
+| Unit | Count | Cost | HP | Damage | Defense | Speed | Range | Radius | Interval | Raw Power | X |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |
+| Axeman | 10 | 74 | 110 | 46 | 2 | 4.65 | 0.35 | 0 | 0.36-0.44 | 74.27 | 1.50X |
+| Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0 | 0.36-0.44 | 97.30 | 1.97X |
+| Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0 | 0.36-0.44 | 49.50 | 1.00X |
+| Spear | 10 | 39 | 95 | 14 | 3 | 4.50 | 0.35 | 0 | 0.36-0.44 | 38.85 | 0.78X |
+| Monk | 1 | 49 | 35 | 70 | 0 | 4.50 | 5.80 | 1.00 | 2.10-2.60 | 49.50 | 1.00X |
+| Archer | 5 | 26 | 45 | 13 | 0 | 5.70 | 6.20 | 0 | 1.10-1.35 | 24.19 | 0.49X |
 
-| Unit | Family | Count | Cost | HP | Damage | Defense | Speed | Range | Damage Radius | Attack Interval | Raw Power |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
-| `axeman_t1` | Axeman | 10 | 74 | 110 | 46 | 2 | 4.65 | 0.35 | 0.0 | 0.36-0.44 | ~1.50X |
-| `cavalry_t1` | Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0.0 | 0.36-0.44 | ~1.97X |
-| `sword_t1` | Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0.0 | 0.36-0.44 | 1.00X |
-| `spear_t1` | Spear | 10 | 39 | 95 | 14 | 3 | 4.50 | 0.35 | 0.0 | 0.36-0.44 | ~0.79X |
-| `monk_t1` | Monk | 2 | 30 | 23 | 25 | 0 | 4.05 | 5.20 | 1.00 | 1.50-1.90 | ~0.48X raw, premium-priced |
-| `archer_t1` | Archer | 4 | 26 | 45 | 13 | 0 | 5.70 | 6.20 | 0.0 | 1.10-1.35 | ~0.49X raw, premium-priced |
-
-Current intended raw/general ladder:
+Natural melee ladder:
 
 ```text
 Cavalry > Axeman > Sword > Spear
-Archer and Monk are low-raw-power ranged/support units.
 ```
 
-Current design notes:
+Current role conclusions:
 
-- Sword is the baseline.
-- Axeman should beat Sword clearly but not become the universal best CP value.
-- Cavalry is the strongest and fastest melee, but expensive.
-- Spear is weaker than Sword in normal matchups, but must reliably punish
-  Cavalry through counter.
-- Archer is a ranged Spear-tier support and has a hard/soft-hard role into
-  Spear.
-- Monk is AoE support. Its raw X-Power is low, but cost is premium because
-  telemetry and AoE-hit review showed one Monk attack often affects about
-  three units when frontline clusters form.
+- Spear is intentionally weak outside its Cavalry counter.
+- Monk is a fragile single-unit AoE support that costs one whole wave slot.
+- Archer was raised from 4 to 5 units because the 4-unit wave was not worth its
+  slot/cost often enough.
 
-## Current Counter Rules
+## Active Counter Rules
 
-Damage formula:
+Runtime damage:
 
 ```text
-damage = max(1, attacker.damage - defender.defense) * counterMultiplier
+max(1, attacker.damage - defender.defense) * counterMultiplier
 ```
 
 Active scene/default rules:
 
-| Attacker | Defender | Multiplier | Intent |
-| --- | --- | ---: | --- |
-| Spear | Cavalry | 20.0 | After Spear stat raise, x20 is the current tested value. User manually verified this feels stable: Spear beats Cavalry, often ending around 30-50% total HP in wave tests. |
-| Archer | Spear | 2.0 | Archer punishes Spear while sharing roughly the same raw Power tier. |
+| Attacker | Defender | Multiplier |
+| --- | --- | ---: |
+| Spear | Cavalry | 20.0 |
+| Archer | Spear | 2.0 |
 
-Important:
+Controlled single-wave testing established that Spear x20 beats Cavalry
+reliably while retaining meaningful losses. If full battles still show too
+many Spear responses or Cavalry leaks, investigate evaluator target coverage
+and response reservations before changing this pair again.
 
-- Earlier high values (`45`, `67.5`, `83`) became too strong after Spear stat
-  changes or one-shot-like in practice. Do not restore them casually.
-- The user currently considers Spear-vs-Cavalry stats setup acceptable. If
-  Cavalry still leaks through in full battles, investigate AI target/spawn
-  logic before changing Spear stats again.
+## BattleArmyBrain
 
-## BattleArmyBrain: Current Behavior
+### Main Spawn Flow
 
-Source: `assets/scripts/BattleArmyBrain.ts`.
+- The brain waits for its interval and alive-wave limit.
+- It obtains affordable, unlocked entries from `GameManager`.
+- It asks `BattlefieldEvaluator` for a snapshot decision.
+- It applies `decisionAccuracy` to candidate selection.
+- After a successful spawn, it records a response reservation in the evaluator
+  so the same enemy is not immediately treated as unanswered again.
 
-### Normal AI
+### Decision Accuracy
 
-- `decisionAccuracy` affects unit choice, not lane choice.
-- `decisionAccuracy` is now expected to scale smoothly from bad to smart:
-  - `1`: choose the evaluator's best candidate for the selected lane/target.
-  - `0`: choose a worse-ranked candidate for that same tactical anchor when a
-    non-best candidate exists.
-  - middle values: weighted roll between better and worse candidates, not a
-    fixed if/else difficulty tier.
-- Target and lane selection intentionally stay tactical even at low accuracy.
-  Low accuracy should make the unit choice worse, not make the AI ignore the
-  battlefield position.
-- Current difficulty testing manipulates one team's accuracy through URL query
-  params while the other team remains at the scene/level value.
-- `enableMaxAliveWaveLimit` / `maxAliveWaves` still gate spawning.
-- Spawn timing still uses `minSpawnInterval`, `maxSpawnInterval`, and
-  `maxBrainDeltaTime`.
-- Unit unlock matters before AI scoring: `GameManager.collectAffordableEntries`
-  only returns entries that are valid, unlocked, and affordable. If a level
-  locks too many units or CP is below every unlocked cost, the brain can
-  correctly wait because it has no affordable entries.
+- Current scene test value is `1` for both teams.
+- Accuracy affects unit selection within the evaluator's tactical anchor; lane
+  and target choice remain tactical.
+- `1` keeps the best scored candidate.
+- Lower values allow progressively worse same-anchor candidates.
+- Small samples can be noisy. Judge the progression by damage, decisions, and
+  repeated batches, not only binary winrate.
 
-### Single-Wave Matchup Test Mode
+### Opening And Last Stand
 
-Added for controlled pair testing:
+- With no enemy wave and `spawnOpeningWaveIfNoEnemyWave = true`, the brain may
+  spawn an opening frontline wave.
+- Opening frontline families are Spear, Sword, Axeman, and Cavalry.
+- Last stand is separate from normal snapshot support. If the team has spawned
+  before, has no living non-hero wave, and can still afford something,
+  `chooseLastStandSpawnDecision()` may buy any affordable unit. This can include
+  Archer or Monk without the normal support context. That is intentional.
+
+### Single-Wave Test Mode
+
+Inspector fields:
 
 - `testSingleWaveBattle`
 - `testSingleWaveUnit`
 
-When enabled, the brain skips normal AI and spawns exactly one selected wave at
-mid. Use one brain per side to test fixed matchups such as Spear vs Cavalry or
-Sword vs Spear.
+When enabled, each brain spawns exactly one selected wave at mid and skips the
+normal AI. Use this for controlled pair tests. Full telemetry is not a clean
+substitute for isolated stat/counter validation.
 
-Reason:
+## BattlefieldEvaluator
 
-- Full telemetry has too much AI/lane/noise to diagnose isolated stats.
-- The user used this and found:
-  - melee ladder mostly works;
-  - original Spear vs Cavalry counter was too weak after Spear stat changes;
-  - Spear vs Cavalry at multiplier `20` currently feels acceptable.
+### Snapshot Data
 
-## BattlefieldEvaluator: Current AI Strategy
+The evaluator builds reusable per-wave/per-lane intelligence including:
 
-Source: `assets/scripts/BattlefieldEvaluator.ts`.
+- family, alive count/ratio, health ratio, base power;
+- lane, center position, progress toward the defending hero line;
+- engaged/busy state;
+- ally coverage power and response reservations;
+- ally frontline count, engaged frontline count, frontline hold power, and
+  frontline health;
+- enemy blockers and same-lane traffic;
+- local and global frontline threat.
+
+This snapshot should be extended/reused instead of creating duplicate scans.
 
 ### CP Strategy States
 
-Evaluator classifies decisions into:
+The evaluator classifies CP context as:
 
 - `opening`
 - `abundant`
@@ -185,290 +197,261 @@ Evaluator classifies decisions into:
 - `efficient`
 - `desperate`
 
-Design intent from user:
+Intent:
 
-- Abundant: if current CP is ahead and spawning still leaves CP ahead, prefer
-  stronger pressure units, with some variety between top melee.
-- Normal: common equal-CP state. Prefer response that is one ladder step above
-  target where reasonable.
-- Efficient: when behind on CP, spend more carefully; use sufficient response
-  or finish weakened stronger waves.
-- Desperate: if no effective response is affordable, try melee pressure
-  fallback first. If that produces no candidate, the fallback can still try
-  ranged support, but only through the normal ranged-support gates. Do not
-  leave 30+ CP idle just because a perfect response is impossible.
-- Last stand is separate from normal `desperate`: when this brain has already
-  spawned before and now has zero alive non-hero units, `BattleArmyBrain` calls
-  `chooseLastStandSpawnDecision()`. This is the intentional "giay chet" escape
-  hatch and may spawn any affordable unit, including Archer/Monk. Do not treat
-  last-stand ranged spawns as a normal ranged-support bug unless the user wants
-  accuracy 0 to forbid ranged absolutely.
+- Abundant: use the CP lead for stronger pressure while retaining some
+  frontline variety.
+- Normal: choose a sensible stronger/sufficient response for the current
+  battlefield.
+- Efficient: when behind on CP, avoid waste and use sufficient responses or
+  finish weakened threats.
+- Desperate: if no effective response is affordable, use an affordable
+  fallback instead of leaving spendable CP idle.
 
-Latest telemetry after this pass:
+Do not collapse these back into one permanent "cheapest sufficient" mode; that
+previously starved expensive families such as Cavalry.
 
-- With equal AI, winrate was roughly even in the sampled batch.
-- Losing side usually ended with CP below cheapest unit, so the previous
-  "stuck with enough CP" issue looked resolved in that sample.
-- Cavalry presence improved versus the older "always cheap Spear" behavior.
+### Melee Response And Reservation
 
-### Accuracy Candidate Selection
+After a response wave spawns, `recordSpawnReservation()` stores:
 
-Current implementation:
+- target wave id;
+- response wave id/family;
+- expected coverage power;
+- spawn frame.
 
-- `chooseCandidateByAccuracy()` first finds the best scored candidate.
-- Candidate randomness is limited to the same tactical anchor:
-  - same target wave id;
-  - same spawn lane.
-- If `Math.random() < decisionAccuracy`, the best candidate stays selected.
-- Otherwise `chooseNonBestCandidateByAccuracy()` picks a non-best candidate
-  with weighted random:
-  - low accuracy gives more weight to lower-quality candidates;
-  - high accuracy gives more weight to better non-best candidates;
-  - accuracy `1` always keeps best;
-  - accuracy `0` always tries to avoid best if another same-anchor option
-    exists.
+The reservation contributes to target coverage until the target/response dies,
+the response engages, or 180 frames pass. This prevents multiple Spear waves
+from being spawned against one Cavalry before the first response has had time
+to reach it.
 
-Why this matters:
+### Ranged Support Gates
 
-- The user explicitly does not want hard difficulty steps such as "if acc == 0
-  then do X, if acc == 0.2 then do Y".
-- For telemetry, expect trend/noise, not a perfect straight line every small
-  batch. With 5-10 matches per point, noise can still flip a step.
-- If low accuracy still looks too smart, inspect candidate sets. A common cause
-  is that only one valid same-anchor candidate exists, so even accuracy `0`
-  must pick it.
+Normal Archer/Monk candidates must:
 
-### Ranged Support Logic
+- have at least one allied frontline in the target lane;
+- have at least one engaged allied frontline;
+- have positive frontline hold power;
+- pass local anti-spam (`maxRangedSupportWavesPerLane`);
+- not repeat the same ranged family immediately in that lane;
+- have enough local and global frontline advantage;
+- pass the accuracy gate.
 
-Current design direction:
+There is no old `clusterScore` gate. Do not restore it.
 
-- Ranged should not aggressive-forward naked into empty lanes.
-- Ranged support should spawn when there is actual melee protection.
-- Do not rely on old cluster-score style magic thresholds.
-- Ranged total is no longer constrained by "own ranged < own melee" or by
-  whether the opponent already spawned ranged.
-- Ranged support is now constrained by frontline power, not a simple count cap.
-- Do not spawn repeated ranged support into the same target/lane blindly.
+Current role behavior:
 
-Current implementation details:
+- Archer gets strong value as a full-strength hard counter into Spear.
+- Monk gets stronger value when an engaged, protected lane contains multiple
+  enemy waves/targets suitable for AoE.
+- Both may support an already engaged frontline, but melee should remain
+  preferred when the frontline is losing.
+- Last stand is the deliberate exception to normal ranged-support safety.
 
-- Normal Archer/Monk support goes through
-  `isSnapshotRangedSupportAllowed()`.
-- It must pass:
-  - `isRangedSpawnSafe(target)`: at least one ally frontline, at least one
-    engaged ally frontline, and positive `frontlineBlockPower`;
-  - per-target/lane anti-spam via `countRangedSupportForTarget(target) <
-    maxRangedSupportWavesPerLane`;
-  - `hasRangedSupportLaneRoleRoom()`: enough engaged frontline count for that
-    ranged family and no immediate repeated same ranged family in that lane;
-  - `hasFrontlineSurplusForRangedSupport()`: local target block power and
-    global frontline power must both cover enemy frontline threat using
-    `coverageTargetRatio`;
-  - `passesRangedSupportAccuracyGate(decisionAccuracy)`.
-- `passesRangedSupportAccuracyGate()` means:
-  - accuracy `0`: normal ranged support cannot pass;
-  - accuracy `1`: ranged support is not randomly blocked;
-  - middle values: `Math.random() < accuracy`.
-- Archer can still be selected as a Spear counter if the same ranged support
-  gates pass.
-- Monk remains AoE/support. It should appear when protected melee fronts exist,
-  not as a naked response to a single isolated target.
-- Last stand remains the only intentional path where ranged can spawn without
-  the normal support gates.
+### Current Ranged Scoring Rewrite
 
-Removed/changed old behavior:
+`assets/scripts/BattlefieldEvaluator.ts` currently has an intentional uncommitted
+rewrite replacing fixed ranged priorities such as `1000000/900000/800000`.
 
-- Removed the rule that made high-accuracy AI mirror opponent ranged count.
-  That rule made ranged too rare and could starve support when the opponent was
-  low-accuracy melee-heavy.
-- Removed global ranged-vs-melee count budgeting as the main gate. The previous
-  cap could create a bad case where high-accuracy AI replaced too many melee
-  waves with 3-4 ranged and then lost frontline against 7 enemy melee waves.
-- `maxRangedSupportWavesPerLane` remains only as a local anti-spam guard near a
-  target/lane. Its tooltip now says frontline power is the main ranged support
-  gate.
+The new score combines:
 
-If ranged behavior looks wrong, inspect current support checks in
-`BattlefieldEvaluator` rather than patching stats first.
+- tactical target priority;
+- hard-counter or AoE role value;
+- frontline need/surplus;
+- expected DPS per CP;
+- expected Monk targets hit;
+- CP-strategy-dependent cost pressure.
 
-### Opening Wave
+Important implementation details:
 
-When no enemy wave exists:
+- Ranged can now receive a support target priority even when the melee response
+  priority for that target is zero.
+- Monk requires one engaged frontline rather than two.
+- Monk gets extra role value when multiple enemy waves are blocked in an
+  engaged lane.
+- The fixed giant family priorities were removed so future tiers can compete
+  through actual stats, cost, role, and context.
 
-- BattleArmyBrain can spawn one opening wave if
-  `spawnOpeningWaveIfNoEnemyWave` is true.
-- Opening candidates are frontline families only:
-  `Spear`, `Sword`, `Axeman`, `Cavalry`.
-- Opening score favors the affordable frontline entry closest to average
-  frontline raw power. This was added after tests where low accuracy and cheap
-  units made openings look too Spear-heavy.
-- Accuracy still selects among same-anchor candidates, so low accuracy can
-  choose worse opening candidates if more than one exists.
-
-### Response Reservation Fix
-
-Problem observed:
-
-- AI could spawn multiple Spear waves into one Cavalry target.
-- Telemetry showed many `Spear -> Cavalry` responses with low coverage, not
-  necessarily repeated target spam every time.
-- Diagnosis: after one response wave is spawned, the next snapshot may not yet
-  see that wave as coverage because it has not reached/engaged the target. The
-  AI can therefore re-see the same target as under-covered and spawn another
-  response.
-
-Implemented fix:
-
-- `BattleArmyBrain.spawn()` calls
-  `evaluator.recordSpawnReservation(...)` after successful spawn.
-- `BattlefieldEvaluator` stores a temporary response reservation:
-  - target wave id
-  - response wave id
-  - response family
-  - computed coverage power
-  - frame
-- `fillEnemyTacticalState()` adds reserved coverage into `coveragePower`.
-- Reservation expires when:
-  - target wave is dead/invalid;
-  - response wave is dead/invalid;
-  - response wave has engaged;
-  - reservation is older than `180` frames.
-
-Expected visual/AI result:
-
-- If AI just spawned Spear to answer Cavalry, the next few snapshots should
-  treat that Cavalry as already being answered.
-- This reduces duplicate counter waves while preserving the ability to send
-  more help later if the first response dies, engages and fails, or the target
-  remains threatening.
-
-This is not a new combat rule. It is a snapshot-accounting fix.
+This change has not yet received a fresh dedicated post-rewrite telemetry
+batch. Do not call it final until its ranged frequency, Archer/Monk split, and
+frontline safety are checked.
 
 ## Telemetry
 
-Telemetry currently records enough data to diagnose:
+Telemetry records:
 
-- winner / end reason;
-- CP at end;
-- whether loser can still afford anything;
-- unit/family spawn counts;
-- damage and damage/CP by family/team;
-- target/intended unit for spawn decisions;
-- accuracy roll / accurate decision / deliberate mistake;
-- CP context before/after spawn;
-- `cpStrategyState` for spawn decisions;
-- Monk AoE hit count metrics.
-- telemetry batch config in `startConfig.telemetryBatch`;
-- unit stats and counter rules at match start;
-- CP context before/after a spawn and selected-vs-best candidate quality.
+- winner, end reason, duration, and final CP;
+- whether each side can still afford a spawn;
+- alive waves/units and remaining HP;
+- family/team spawn counts and CP spent;
+- damage, kills, damage/CP, and counter contribution;
+- spawn reason, intended target, selected/best candidate, accuracy roll, and CP
+  strategy;
+- Monk AoE targets hit per attack;
+- start stats, counter rules, and batch configuration.
 
-Current testing method:
+Current battle-end condition for automated balance tests is
+`team-eliminated-and-cannot-afford-spawn`: a team must have no non-hero units
+and be unable to afford another unlocked unit. Heroes can be disabled for these
+tests.
 
-- Use single-wave mode for isolated pair/stat verification.
-- Use full telemetry batches only after logic/stat changes are source-sound.
-- Do not ask the user for endless batches when source inspection can answer the
-  question.
-
-### Telemetry Batch URL Automation
-
-Current query params:
+### Batch URL
 
 ```text
 ?team=1&currentAcc=0&currentBatch=0&step=0.2&numBatchPerStep=10&end=1
 ```
 
-Meaning:
+- `team`: brain whose accuracy is overridden.
+- `currentAcc`: accuracy for the current batch.
+- `currentBatch`: zero-based match index.
+- `step`: accuracy increment after a full batch.
+- `numBatchPerStep`: matches per accuracy value.
+- `end`: final accuracy.
 
-- `team`: team whose `BattleArmyBrain.decisionAccuracy` is overridden.
-- `currentAcc`: current accuracy for that team.
-- `currentBatch`: zero-based match index inside the current accuracy step.
-- `step`: amount added to `currentAcc` after each full batch.
-- `numBatchPerStep`: number of telemetry reports per accuracy value.
-- `end`: final accuracy value.
+After report download, `GameManager` waits
+`battleTelemetryReloadDelaySeconds`, advances the query state, and reloads the
+page. If telemetry fails to download/reload, inspect the winner condition and
+browser download permission before changing battle logic.
 
-Runtime behavior:
+## Latest Telemetry Evidence
 
-- On `BattleArmyBrain.start()`, the brain matching `team` reads `currentAcc`
-  from `window.location.search` and overrides `decisionAccuracy`.
-- On match end, `GameManager` downloads the telemetry JSON, waits
-  `battleTelemetryReloadDelaySeconds`, then reloads.
-- If batch query params are active, reload uses the next URL:
-  - `currentBatch += 1` until it reaches `numBatchPerStep`;
-  - then `currentAcc += step` and `currentBatch = 0`;
-  - stops when `currentAcc >= end` and the final batch is complete.
-- URL normalization handles the earlier bad `?%3Fteam=...` / `?team` case by
-  accepting and cleaning keys with an accidental leading `?`.
-- Reports are downloaded per match. There is no localStorage report queue.
+### Monk Redesign Batch
 
-## Current Known Balance Conclusions
+After Monk became one unit with `35 HP / 70 damage / radius 1 / cost 49`:
 
-- Full-battle runtime damage/CP is not a pure unit-balance truth because AI
-  behavior changes opportunity and uptime.
-- X-Power plus single-wave tests are better for stat grounding.
-- Full telemetry is better for diagnosing:
-  - AI over-selecting a family;
-  - ranged support being over/under-used;
-  - CP waste;
-  - target duplication;
-  - winner conditions ending too early.
-- The user currently accepts melee damage/CP being close if cost feels fair and
-  ladder/counter meaning remains visible.
-- Ranged/support damage/CP being somewhat lower is acceptable if they provide
-  visible battlefield utility; too low makes players avoid them, too high makes
-  "spawn ranged first" dominant.
-- Latest large-batch accuracy tests were considered "quite okay" by the user:
-  as enemy accuracy rises, intelligence and win impact trend upward enough for
-  level design. Small irregularities are acceptable because the user plans
-  manual progression guards such as unlocking only basic enemy units early.
+- 10 equal-accuracy matches ended 5-5.
+- Monk: 34 waves, damage/CP 12.20, damage/wave 598, average 4.40 targets per
+  attack, 29.4% survival.
+- Archer at 4 units: 25 waves, damage/CP 9.24, damage/wave 240.3.
+- Sword: damage/CP 11.87, damage/wave 581.5.
 
-## Current Open Issues / Next Work
+Conclusion: Monk's Sword-equivalent cost became defensible because real AoE
+value compensated for its fragility and lost wave slot.
 
-1. Re-check ranged/frontline behavior after the latest support gate rewrite.
-   - Desired: high-accuracy AI should not spend too many slots on ranged when
-     enemy melee count/frontline threat is much higher.
-   - Desired: ranged should appear once ally frontline is already strong enough
-     locally and globally.
-   - If accuracy `0` appears to spawn ranged, first identify whether it came
-     from normal support or from `snapshot-last-stand-fallback`. Last stand is
-     the current intentional exception.
+### Archer Five-Unit Batch
 
-2. Watch Cavalry selection.
-   - If Cavalry still rarely appears, inspect CP-state scoring and lane/target
-     choice before changing stats.
-   - Current intent is that normal CP can pick a one-step stronger response,
-     including Cavalry into Axeman when affordable and sensible.
+After Archer changed from 4 to 5 units:
 
-3. If adding tier 2 / tier 3:
-   - AI already scores actual affordable entries, so tiers can work if each
-     tier has sane `family`, `tier`, `cost`, `unitCount`, stats, prefab, and
-     `unlocked`.
-   - Higher CP should naturally make stronger/higher-tier entries candidates,
-     but "cheapest sufficient response" and accuracy can still pick lower tier
-     to finish weakened enemies.
-   - Counter rules currently use `UnitFamily`, not tier. If tier-specific
-     counters are needed later, `CounterSettings` must change intentionally.
+- Archer: 38 waves, damage/CP 13.80, damage/wave 358.7, survival 32.6%.
+- Archer team split was symmetric: 13.76 vs 13.84 damage/CP.
+- Monk: 33 waves, damage/CP 14.65, damage/wave 718.1.
 
-4. Keep `UNITSTATS.md` and `assets/Test.scene` synced.
-   - User expects any stat/cost change to be reflected in both.
+Conclusion: Archer became worth its slot without evidence that the stat itself
+created the observed 3-7 team win split.
 
-5. Do not casually revert generated dirty files.
-   - Cocos has many dirty files under `library/`, `temp/`, profiles, etc.
-   - Stage only intentional files if committing.
+### 60-Match Accuracy Sweep
 
-6. Do not update this handoff unless the user asks.
-   - The user explicitly requested this rule after repeated handoff updates.
+Team 0 stayed at max accuracy. Team 1 ran 10 matches each at accuracy:
 
-## Intentional Files Recently Touched
+```text
+0.0, 0.2, 0.4, 0.6, 0.8, 1.0
+```
 
-Core intentional files during the current pass:
+All 60 reports ended validly with
+`team-eliminated-and-cannot-afford-spawn`.
 
-- `UNITSTATS.md`
+Team 1 results:
+
+| Accuracy | Wins | Team 1 / Team 0 Damage |
+| ---: | ---: | ---: |
+| 0.0 | 0/10 | 65.5% |
+| 0.2 | 2/10 | 76.9% |
+| 0.4 | 0/10 | 74.2% |
+| 0.6 | 5/10 | 88.5% |
+| 0.8 | 5/10 | 97.3% |
+| 1.0 | 4/10 | 99.0% |
+
+The damage trend supports the accuracy model. The 0.4 win dip is small-sample
+noise/threshold behavior, not evidence that accuracy is reversed.
+
+Overall family results across these 60 matches:
+
+| Family | Waves | Damage/CP | Damage/Wave | Survival |
+| --- | ---: | ---: | ---: | ---: |
+| Spear | 310 | 21.79 | 850.0 | 8.1% |
+| Axeman | 324 | 16.05 | 1187.7 | 9.9% |
+| Cavalry | 344 | 14.19 | 1376.8 | 4.7% |
+| Archer | 153 | 13.14 | 341.6 | 37.5% |
+| Sword | 277 | 11.33 | 555.1 | 12.3% |
+| Monk | 139 | 10.87 | 532.7 | 33.8% |
+
+Monk averaged 4.18 targets per attack, including 3.18 secondary AoE targets.
+Ranged represented 292 waves versus 1255 melee waves, about 23.3%.
+
+Interpretation:
+
+- Archer 5 is economically viable but not dominant.
+- Monk and Sword produced similar practical damage value in this sweep.
+- Spear's high damage/CP is strongly counter-driven; do not read it as raw
+  general power.
+- Damage/CP is contextual and must not replace the one-unit X-Power cost rule.
+
+### Close Match Audit
+
+Strict close match:
+
+```text
+winner has <= 10 units and winner CP < 26
+```
+
+Seven of 60 matches met this condition. Flipping all seven winners only changes
+the overall result from Team A 44 / Team B 16 to Team A 45 / Team B 15.
+Therefore close-match randomness does not change the accuracy-sweep
+conclusion.
+
+One additional match ended with only four Sword alive but 34 CP, so it was not
+strictly close because the winner could still afford Archer.
+
+## Current Status
+
+Achieved:
+
+- One-unit X-Power/cost rule is explicit; the Archer `26` versus nominal `24`
+  exception is documented instead of hidden.
+- Team A/B active stats match.
+- Melee ladder and the two active counters have controlled-test grounding.
+- Monk and Archer are worth their slots in recent telemetry.
+- Accuracy produces a meaningful difficulty trend.
+- Automated battle end/download/reload worked in the 60-report sweep.
+- Ranged fixed-priority constants were replaced with context/stat scoring.
+
+Not yet proven:
+
+- The newest ranged-scoring rewrite still needs a dedicated runtime batch.
+- Future tier 2/3 entries need validation that scoring uses their real
+  stats/cost instead of family identity alone.
+- Archer cost has not been re-tested at nominal X-Power value `24`; all latest
+  Archer evidence uses `26`.
+
+## Recommended Next Work
+
+1. Run a focused post-rewrite batch with both brains at accuracy 1.
+2. Check:
+   - total ranged share;
+   - Archer/Monk spawn split;
+   - ranged spawn reasons;
+   - whether every normal ranged spawn had an engaged allied frontline;
+   - whether melee is still preferred when frontline coverage is losing;
+   - damage/CP and survival by family/team.
+3. If ranged frequency is wrong, inspect candidate scores and rejected reasons
+   before changing stats.
+4. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
+   X-Power cost `24`.
+5. Keep current stats stable unless the new evidence shows a roster-wide
+   problem.
+
+## Worktree Notes
+
+Intentional uncommitted files at this handoff:
+
 - `AI-CONTEX.md`
+- `UNITSTATS.md`
 - `assets/Test.scene`
-- `assets/scripts/BattleArmyBrain.ts`
 - `assets/scripts/BattlefieldEvaluator.ts`
-- `assets/scripts/BattleTelemetry.ts`
-- `assets/scripts/CounterSettings.ts`
-- `assets/scripts/GameManager.ts`
+- deletion of obsolete `UNITSTATS_BALANCE_PROPOSAL.md`
 
-Generated/editor files may also be dirty because Cocos Creator was open.
+Cocos also generated dirty files under `library/`, `temp/`, and `profiles/`.
+They are unrelated generated state. Do not revert or stage them unless the user
+explicitly asks.
+
+No Git lock file was present when this handoff was written.
