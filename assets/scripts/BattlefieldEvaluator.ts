@@ -249,8 +249,20 @@ export class BattlefieldEvaluator {
 
         const eligibleCount =
             this.getEligibleCandidateCount(bestIndex);
+        const mistakeEligibleCount =
+            this.getMistakeEligibleCandidateCount(bestIndex);
 
-        if (eligibleCount > 1) {
+        if (
+            accuracy <= 0 &&
+            mistakeEligibleCount <= 0 &&
+            this.isAccurateResponseCandidate(
+                this.spawnCandidates[bestIndex]
+            )
+        ) {
+            return this.spawnDecision;
+        }
+
+        if (mistakeEligibleCount > 0) {
             selectionRoll = Math.random();
 
             if (selectionRoll >= accuracy) {
@@ -303,7 +315,7 @@ export class BattlefieldEvaluator {
         let totalWeight = 0;
 
         for (let i = 0; i < this.spawnCandidateCount; i++) {
-            if (!this.isCandidateSameAnchor(i, bestIndex)) {
+            if (!this.isDeliberateMistakeCandidate(i, bestIndex)) {
                 continue;
             }
 
@@ -328,7 +340,7 @@ export class BattlefieldEvaluator {
             Math.random() * totalWeight;
 
         for (let i = 0; i < this.spawnCandidateCount; i++) {
-            if (!this.isCandidateSameAnchor(i, bestIndex)) {
+            if (!this.isDeliberateMistakeCandidate(i, bestIndex)) {
                 continue;
             }
 
@@ -351,6 +363,68 @@ export class BattlefieldEvaluator {
         }
 
         return selectedIndex;
+    }
+
+    private getMistakeEligibleCandidateCount(
+        bestIndex: number
+    ) {
+        let count = 0;
+
+        for (let i = 0; i < this.spawnCandidateCount; i++) {
+            if (this.isDeliberateMistakeCandidate(i, bestIndex)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private isDeliberateMistakeCandidate(
+        index: number,
+        bestIndex: number
+    ) {
+        if (!this.isCandidateSameAnchor(index, bestIndex)) {
+            return false;
+        }
+
+        if (this.getCandidateRank(index, bestIndex) <= 0) {
+            return false;
+        }
+
+        const candidate =
+            this.spawnCandidates[index];
+        const best =
+            this.spawnCandidates[bestIndex];
+
+        if (!candidate.entry || !best.entry) {
+            return false;
+        }
+
+        if (candidate.entry.family === best.entry.family) {
+            return false;
+        }
+
+        return !this.isAccurateResponseCandidate(candidate);
+    }
+
+    private isAccurateResponseCandidate(
+        candidate: BattleSpawnCandidate
+    ) {
+        if (!candidate.entry || !candidate.target) {
+            return false;
+        }
+
+        if (
+            candidate.reason === 'snapshot-hard-counter' ||
+            candidate.reason === 'snapshot-ranged-counter-support'
+        ) {
+            return true;
+        }
+
+        return this.isHardCounterEntryForTarget(
+            candidate.entry,
+            candidate.target
+        );
     }
 
     private getEligibleCandidateCount(anchorIndex: number) {
@@ -1430,16 +1504,6 @@ export class BattlefieldEvaluator {
         }
 
         if (
-            hardCounter &&
-            !ranged &&
-            !this.shouldAllowAccurateCounterCandidate(
-                decisionAccuracy
-            )
-        ) {
-            return -Infinity;
-        }
-
-        if (
             !this.isEntryViableForTarget(
                 entry,
                 target
@@ -1478,7 +1542,8 @@ export class BattlefieldEvaluator {
                 supportPriority,
                 candidatePower,
                 hardCounter,
-                cpStrategyState
+                cpStrategyState,
+                decisionAccuracy
             );
         }
 
@@ -1713,7 +1778,8 @@ export class BattlefieldEvaluator {
         targetPriority: number,
         candidatePower: number,
         hardCounter: boolean,
-        cpStrategyState: CPStrategyState
+        cpStrategyState: CPStrategyState,
+        decisionAccuracy: number
     ) {
         const cost =
             Math.max(1, entry.combatPointCost);
@@ -1733,11 +1799,17 @@ export class BattlefieldEvaluator {
             return -Infinity;
         }
 
-        return targetPriority * 0.75 +
+        const accuracyScale =
+            this.clamp01(decisionAccuracy);
+
+        return (
+            targetPriority * 0.75 +
             roleBonus +
             this.getRangedSupportNeedScore(target) +
             candidatePower / cost * 18 +
-            expectedDps / cost * 140 -
+            expectedDps / cost * 140
+        ) *
+            accuracyScale -
             cost *
                 this.getRangedSupportCostPenaltyScale(
                     cpStrategyState
@@ -2028,9 +2100,9 @@ export class BattlefieldEvaluator {
 
         if (
             this.countRangedSupportForTarget(target) >=
-            Math.max(
-                0,
-                Math.floor(maxRangedSupportPerTarget)
+            this.getAccuracyScaledRangedSupportLimit(
+                maxRangedSupportPerTarget,
+                decisionAccuracy
             )
         ) {
             return false;
@@ -2058,14 +2130,6 @@ export class BattlefieldEvaluator {
         if (
             !this.hasFrontlineSurplusForRangedSupport(
                 target
-            )
-        ) {
-            return false;
-        }
-
-        if (
-            !this.passesRangedSupportAccuracyGate(
-                decisionAccuracy
             )
         ) {
             return false;
@@ -2460,15 +2524,26 @@ export class BattlefieldEvaluator {
         return 'snapshot-live-force-response';
     }
 
-    private passesRangedSupportAccuracyGate(
+    private getAccuracyScaledRangedSupportLimit(
+        maxRangedSupportPerTarget: number,
         decisionAccuracy: number
     ) {
+        const maxLimit =
+            Math.max(
+                0,
+                Math.floor(maxRangedSupportPerTarget)
+            );
         const accuracy =
             this.clamp01(decisionAccuracy);
-        if (accuracy <= 0) return false;
-        if (accuracy >= 1) return true;
 
-        return Math.random() < accuracy;
+        if (maxLimit <= 0 || accuracy <= 0) {
+            return 0;
+        }
+
+        return Math.max(
+            1,
+            Math.ceil(maxLimit * accuracy)
+        );
     }
 
     private hasGeneralRangedSupportNeed(
@@ -2553,13 +2628,6 @@ export class BattlefieldEvaluator {
             target.entry.family,
             entry.family
         ) > 1.0001;
-    }
-
-    private shouldAllowAccurateCounterCandidate(
-        decisionAccuracy: number
-    ) {
-        return Math.random() <
-            this.clamp01(decisionAccuracy);
     }
 
     private getFullMatchupPowerRatio(
@@ -2742,7 +2810,10 @@ export class BattlefieldEvaluator {
                 : -1;
         }
 
-        if (directLane === blockedMeleeLaneId) {
+        if (
+            directLane === blockedMeleeLaneId &&
+            !this.shouldBypassBlockedMeleeLane(target)
+        ) {
             const flankLane =
                 this.findBestFlankLane(
                     gameManager,
@@ -2771,6 +2842,16 @@ export class BattlefieldEvaluator {
         }
 
         return -1;
+    }
+
+    private shouldBypassBlockedMeleeLane(
+        target: BattlefieldWaveIntel | null
+    ) {
+        return !!target &&
+            (
+                target.hasStrugglingAlly ||
+                target.dangerousToDefend
+            );
     }
 
     shouldSpawnAggressive(

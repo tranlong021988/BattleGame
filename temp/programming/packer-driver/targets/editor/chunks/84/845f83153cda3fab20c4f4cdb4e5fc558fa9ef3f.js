@@ -318,7 +318,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const gameManager = this.gameManager;
           if (!gameManager) return false;
 
-          if (this.isMeleeEntry(entry) && laneId === this.getBlockedMeleeLaneId()) {
+          if (this.isMeleeEntry(entry) && laneId === this.getBlockedMeleeLaneId() && !this.shouldBypassBlockedMeleeLane(target)) {
             return false;
           }
 
@@ -496,6 +496,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.consecutiveMeleeSpawnLaneCount >= Math.max(1, Math.floor(this.maxConsecutiveMeleeWavesPerLane)) ? this.lastMeleeSpawnLaneId : -1;
+        }
+
+        shouldBypassBlockedMeleeLane(target) {
+          return !!target && (target.hasStrugglingAlly || target.dangerousToDefend);
         }
 
         recordSpawnLaneHistory(entry, laneId) {

@@ -422,7 +422,8 @@ export class BattleArmyBrain extends Component {
         if (!gameManager) return false;
         if (
             this.isMeleeEntry(entry) &&
-            laneId === this.getBlockedMeleeLaneId()
+            laneId === this.getBlockedMeleeLaneId() &&
+            !this.shouldBypassBlockedMeleeLane(target)
         ) {
             return false;
         }
@@ -684,6 +685,16 @@ export class BattleArmyBrain extends Component {
             )
                 ? this.lastMeleeSpawnLaneId
                 : -1;
+    }
+
+    private shouldBypassBlockedMeleeLane(
+        target: BattlefieldWaveIntel | null
+    ) {
+        return !!target &&
+            (
+                target.hasStrugglingAlly ||
+                target.dangerousToDefend
+            );
     }
 
     private recordSpawnLaneHistory(

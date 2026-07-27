@@ -270,8 +270,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var selectedIndex = bestIndex;
           var selectionRoll = 0;
           var eligibleCount = this.getEligibleCandidateCount(bestIndex);
+          var mistakeEligibleCount = this.getMistakeEligibleCandidateCount(bestIndex);
 
-          if (eligibleCount > 1) {
+          if (accuracy <= 0 && mistakeEligibleCount <= 0 && this.isAccurateResponseCandidate(this.spawnCandidates[bestIndex])) {
+            return this.spawnDecision;
+          }
+
+          if (mistakeEligibleCount > 0) {
             selectionRoll = Math.random();
 
             if (selectionRoll >= accuracy) {
@@ -305,7 +310,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var totalWeight = 0;
 
           for (var i = 0; i < this.spawnCandidateCount; i++) {
-            if (!this.isCandidateSameAnchor(i, bestIndex)) {
+            if (!this.isDeliberateMistakeCandidate(i, bestIndex)) {
               continue;
             }
 
@@ -321,7 +326,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var roll = Math.random() * totalWeight;
 
           for (var _i = 0; _i < this.spawnCandidateCount; _i++) {
-            if (!this.isCandidateSameAnchor(_i, bestIndex)) {
+            if (!this.isDeliberateMistakeCandidate(_i, bestIndex)) {
               continue;
             }
 
@@ -337,6 +342,53 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return selectedIndex;
+        }
+
+        getMistakeEligibleCandidateCount(bestIndex) {
+          var count = 0;
+
+          for (var i = 0; i < this.spawnCandidateCount; i++) {
+            if (this.isDeliberateMistakeCandidate(i, bestIndex)) {
+              count++;
+            }
+          }
+
+          return count;
+        }
+
+        isDeliberateMistakeCandidate(index, bestIndex) {
+          if (!this.isCandidateSameAnchor(index, bestIndex)) {
+            return false;
+          }
+
+          if (this.getCandidateRank(index, bestIndex) <= 0) {
+            return false;
+          }
+
+          var candidate = this.spawnCandidates[index];
+          var best = this.spawnCandidates[bestIndex];
+
+          if (!candidate.entry || !best.entry) {
+            return false;
+          }
+
+          if (candidate.entry.family === best.entry.family) {
+            return false;
+          }
+
+          return !this.isAccurateResponseCandidate(candidate);
+        }
+
+        isAccurateResponseCandidate(candidate) {
+          if (!candidate.entry || !candidate.target) {
+            return false;
+          }
+
+          if (candidate.reason === 'snapshot-hard-counter' || candidate.reason === 'snapshot-ranged-counter-support') {
+            return true;
+          }
+
+          return this.isHardCounterEntryForTarget(candidate.entry, candidate.target);
         }
 
         getEligibleCandidateCount(anchorIndex) {
@@ -444,7 +496,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             }
 
             var targetPriority = this.getSnapshotTargetPriority(target);
-            if (targetPriority <= 0) continue;
             var hasFullStrengthRangedHardCounter = this.hasAffordableFullStrengthRangedHardCounter(affordableEntries, target);
 
             for (var j = 0; j < affordableEntries.length; j++) {
@@ -809,6 +860,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return (target.threatPower * (0.35 + needsHelp) + unengagedPressure + rescuePressure + dangerPressure) * frontlineFactor;
         }
 
+        getRangedSupportTargetPriority(target) {
+          if (!target.entry) return 0;
+
+          if (!this.isRangedSpawnSafe(target)) {
+            return 0;
+          }
+
+          var engagedFrontline = Math.min(3, target.engagedAllyFrontlineCount);
+          var threatPressure = Math.min(260, target.threatPower * 0.16);
+          var engagedPressure = engagedFrontline * 90;
+          var packedLanePressure = Math.min(3, target.sameLaneEnemyAheadCount) * 45;
+          var dangerPressure = target.dangerousToDefend ? 180 + target.progressToDefend * 160 : target.progressToDefend * 90;
+          var rangedThreatPressure = this.hasEngagedEnemyRangedInLane(target.visualLaneId) ? 130 : 0;
+          var fullStrengthPressure = this.isFullStrengthTarget(target) ? 90 : 0;
+          return 120 + threatPressure + engagedPressure + packedLanePressure + dangerPressure + rangedThreatPressure + fullStrengthPressure;
+        }
+
         scoreSnapshotEntryForTarget(gameManager, team, entry, target, targetPriority, currentCombatPoint, enemyCombatPoint, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter, cpStrategyState, decisionAccuracy) {
           if (!target.entry) return -Infinity;
           var ranged = this.isRangedFamily(entry.family);
@@ -819,9 +887,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!this.isSnapshotRangedSupportAllowed(entry, target, maxRangedSupportPerTarget, hasFullStrengthRangedHardCounter, decisionAccuracy)) {
               return -Infinity;
             }
-          }
-
-          if (hardCounter && !ranged && !this.shouldAllowAccurateCounterCandidate(decisionAccuracy)) {
+          } else if (targetPriority <= 0) {
             return -Infinity;
           }
 
@@ -836,7 +902,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           if (ranged) {
-            return this.scoreSnapshotRangedSupportEntry(entry, target, targetPriority, candidatePower, hardCounter);
+            var supportPriority = targetPriority > 0 ? targetPriority : this.getRangedSupportTargetPriority(target);
+
+            if (supportPriority <= 0) {
+              return -Infinity;
+            }
+
+            return this.scoreSnapshotRangedSupportEntry(entry, target, supportPriority, candidatePower, hardCounter, cpStrategyState, decisionAccuracy);
           }
 
           var fullTargetBasePower = this.getEntryBasePower(target.entry, Math.max(1, target.entry.unitCount), 1, 1);
@@ -926,28 +998,106 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return hardCounter ? targetUrgency >= 0.7 ? 160 : 300 : 320;
         }
 
-        scoreSnapshotRangedSupportEntry(entry, target, targetPriority, candidatePower, hardCounter) {
+        scoreSnapshotRangedSupportEntry(entry, target, targetPriority, candidatePower, hardCounter, cpStrategyState, decisionAccuracy) {
           var cost = Math.max(1, entry.combatPointCost);
-          var fullStrengthCounter = hardCounter && this.isFullStrengthTarget(target);
-          var baseSupportScore = targetPriority + candidatePower / cost * 20 - cost;
+          var expectedDps = this.getExpectedRangedSupportDps(entry, target);
+          var roleBonus = this.getRangedSupportRoleBonus(entry, target, hardCounter);
 
-          if (fullStrengthCounter) {
-            return 1000000 + baseSupportScore + Math.random() * 0.001;
+          if (!Number.isFinite(roleBonus)) {
+            return -Infinity;
           }
 
-          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
-            error: Error()
-          }), UnitFamily) : UnitFamily).Archer) {
-            return 800000 + baseSupportScore + Math.random() * 0.001;
+          var accuracyScale = this.clamp01(decisionAccuracy);
+          return (targetPriority * 0.75 + roleBonus + this.getRangedSupportNeedScore(target) + candidatePower / cost * 18 + expectedDps / cost * 140) * accuracyScale - cost * this.getRangedSupportCostPenaltyScale(cpStrategyState) + Math.random() * 0.001;
+        }
+
+        getRangedSupportRoleBonus(entry, target, hardCounter) {
+          var fullStrengthCounter = hardCounter && this.isFullStrengthTarget(target);
+
+          if (fullStrengthCounter) {
+            return 620;
+          }
+
+          if (hardCounter) {
+            return 430;
           }
 
           if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Monk) {
-            return 900000 + baseSupportScore + Math.random() * 0.001;
+            var expectedTargets = this.getExpectedRangedSupportTargetsHit(entry, target);
+
+            if (this.isMonkBlockedEnemyLaneSupportTarget(target)) {
+              return 520 + expectedTargets * 95;
+            }
+
+            return this.isMonkSiegeSupportTarget(entry, target) ? 260 + expectedTargets * 65 : 180 + expectedTargets * 35;
+          }
+
+          if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Archer) {
+            return this.hasEngagedEnemyRangedInLane(target.visualLaneId) ? 230 : 150;
           }
 
           return -Infinity;
+        }
+
+        getRangedSupportNeedScore(target) {
+          var coverageNeed = Math.max(0, 1 - target.coverageRatio);
+          var frontlineSurplus = target.threatPower > 0 ? target.frontlineBlockPower / Math.max(1, target.threatPower) : 1;
+          var surplusBonus = Math.max(0, Math.min(1, frontlineSurplus - 1)) * 120;
+          var engagedBonus = Math.min(3, target.engagedAllyFrontlineCount) * 35;
+          var dangerBonus = target.dangerousToDefend ? 120 : 0;
+          var rangedThreatBonus = this.hasEngagedEnemyRangedInLane(target.visualLaneId) ? 100 : 0;
+          return coverageNeed * 260 + surplusBonus + engagedBonus + dangerBonus + rangedThreatBonus;
+        }
+
+        getExpectedRangedSupportDps(entry, target) {
+          if (!target.entry) return 0;
+          var damage = Math.max(1, entry.damage - target.entry.defense);
+          var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          var damageMultiplier = counter ? Math.max(1, counter.getCounterScore(entry.family, target.entry.family)) : 1;
+          var interval = Math.max(0.1, (Math.max(0, entry.attackIntervalMin) + Math.max(0, entry.attackIntervalMax)) * 0.5);
+          var expectedTargets = this.getExpectedRangedSupportTargetsHit(entry, target);
+          return Math.max(1, entry.unitCount) * damage * damageMultiplier * expectedTargets / interval;
+        }
+
+        getExpectedRangedSupportTargetsHit(entry, target) {
+          if (entry.damageRadius <= 0) {
+            return 1;
+          }
+
+          var remainingTargets = Math.max(0, target.aliveCount - 1);
+          var radiusFactor = Math.max(0, entry.damageRadius) * 1.35;
+          var frontlineFactor = Math.min(3, target.engagedAllyFrontlineCount) * 0.6;
+          var packedLaneFactor = Math.min(2, target.sameLaneEnemyAheadCount) * 0.35;
+          var engagedFactor = target.hasEngaged ? 0.45 : 0;
+          var blockFactor = target.frontlineBlockPower >= target.threatPower ? 0.45 : 0;
+          var expectedAreaTargets = Math.min(remainingTargets, radiusFactor + frontlineFactor + packedLaneFactor + engagedFactor + blockFactor);
+          return Math.min(5, 1 + Math.max(0, expectedAreaTargets));
+        }
+
+        getRangedSupportCostPenaltyScale(cpStrategyState) {
+          if (cpStrategyState === CPStrategyState.Abundant) {
+            return 0.9;
+          }
+
+          if (cpStrategyState === CPStrategyState.Normal) {
+            return 1.35;
+          }
+
+          if (cpStrategyState === CPStrategyState.Efficient) {
+            return 2.1;
+          }
+
+          if (cpStrategyState === CPStrategyState.Desperate) {
+            return 0.75;
+          }
+
+          return 1.6;
         }
 
         isFullStrengthTarget(target) {
@@ -962,7 +1112,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
             error: Error()
           }), UnitFamily) : UnitFamily).Monk) {
-            return 2;
+            return 1;
           }
 
           if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
@@ -1014,7 +1164,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
-          if (this.countRangedSupportForTarget(target) >= Math.max(0, Math.floor(maxRangedSupportPerTarget))) {
+          if (this.countRangedSupportForTarget(target) >= this.getAccuracyScaledRangedSupportLimit(maxRangedSupportPerTarget, decisionAccuracy)) {
             return false;
           }
 
@@ -1026,10 +1176,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var monkSiegeSupport = this.isMonkSiegeSupportTarget(entry, target);
 
           if (!this.hasFrontlineSurplusForRangedSupport(target)) {
-            return false;
-          }
-
-          if (!this.passesRangedSupportAccuracyGate(decisionAccuracy)) {
             return false;
           }
 
@@ -1060,8 +1206,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         hasFrontlineSurplusForRangedSupport(target) {
           if (!target.entry) return false;
-          var requiredRatio = Math.max(0, this.coverageTargetRatio);
-          var localRequiredPower = target.threatPower * requiredRatio;
+
+          if (!this.hasFrontlineAdvantageForRangedSupport(target)) {
+            return false;
+          }
+
+          var localRequiredRatio = Math.max(0.35, this.coverageTargetRatio * 0.45);
+          var localRequiredPower = target.threatPower * localRequiredRatio;
 
           if (target.frontlineBlockPower < localRequiredPower) {
             return false;
@@ -1071,8 +1222,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return true;
           }
 
-          var globalRequiredPower = this.enemyFrontlineThreatPower * requiredRatio;
+          var globalRequiredRatio = Math.max(0.3, this.coverageTargetRatio * 0.35);
+          var globalRequiredPower = this.enemyFrontlineThreatPower * globalRequiredRatio;
           return this.allyFrontlinePower >= globalRequiredPower;
+        }
+
+        hasFrontlineAdvantageForRangedSupport(target) {
+          if (target.threatPower <= 0) {
+            return true;
+          }
+
+          var frontlineRatio = target.frontlineBlockPower / Math.max(1, target.threatPower);
+
+          if (frontlineRatio < 0.8) {
+            return false;
+          }
+
+          if (target.frontlineHealthRatio < 0.45 && target.coverageRatio < 1) {
+            return false;
+          }
+
+          return target.coverageRatio >= 0.85 || frontlineRatio >= 1;
         }
 
         isMonkSiegeSupportTarget(entry, target) {
@@ -1091,6 +1261,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return target.engagedAllyFrontlineCount >= this.getRequiredFrontlineCountForRangedSupport(entry, target);
+        }
+
+        isMonkBlockedEnemyLaneSupportTarget(target) {
+          if (!target.entry) return false;
+          if (!target.hasEngaged) return false;
+
+          if (!this.isFrontlineFamily(target.entry.family)) {
+            return false;
+          }
+
+          if (target.engagedAllyFrontlineCount < 1) {
+            return false;
+          }
+
+          if (target.sameLaneEnemyAheadCount < 1) {
+            return false;
+          }
+
+          return this.hasFrontlineAdvantageForRangedSupport(target);
         }
 
         hasAffordableFullStrengthRangedHardCounter(affordableEntries, target) {
@@ -1286,25 +1475,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return 'snapshot-live-force-response';
         }
 
-        passesRangedSupportAccuracyGate(decisionAccuracy) {
+        getAccuracyScaledRangedSupportLimit(maxRangedSupportPerTarget, decisionAccuracy) {
+          var maxLimit = Math.max(0, Math.floor(maxRangedSupportPerTarget));
           var accuracy = this.clamp01(decisionAccuracy);
-          if (accuracy <= 0) return false;
-          if (accuracy >= 1) return true;
-          return Math.random() < accuracy;
+
+          if (maxLimit <= 0 || accuracy <= 0) {
+            return 0;
+          }
+
+          return Math.max(1, Math.ceil(maxLimit * accuracy));
         }
 
         hasGeneralRangedSupportNeed(target) {
+          if (!this.isRangedSpawnSafe(target)) {
+            return false;
+          }
+
           if (this.hasEngagedEnemyRangedInLane(target.visualLaneId)) {
             return true;
           }
 
-          var frontlineRatio = target.frontlineBlockPower / Math.max(1, target.threatPower);
-
-          if (frontlineRatio >= 1.05 && target.coverageRatio >= 0.85) {
-            return false;
+          if (target.hasEngaged) {
+            return true;
           }
 
-          return target.coverageRatio < 0.95;
+          if (target.sameLaneEnemyAheadCount > 0 && target.allyFrontlineCount > 0) {
+            return true;
+          }
+
+          return target.coverageRatio < 1.1;
         }
 
         hasEngagedEnemyRangedInLane(laneId) {
@@ -1342,10 +1541,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), CounterSettings) : CounterSettings).instance;
           if (!counter) return false;
           return counter.getCounterScore(target.entry.family, entry.family) > 1.0001;
-        }
-
-        shouldAllowAccurateCounterCandidate(decisionAccuracy) {
-          return Math.random() < this.clamp01(decisionAccuracy);
         }
 
         getFullMatchupPowerRatio(entry, target) {
@@ -1441,7 +1636,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return this.isRangedSpawnSafe(target) ? directLane : -1;
           }
 
-          if (directLane === blockedMeleeLaneId) {
+          if (directLane === blockedMeleeLaneId && !this.shouldBypassBlockedMeleeLane(target)) {
             var _flankLane = this.findBestFlankLane(gameManager, directLane);
 
             return _flankLane >= 0 ? _flankLane : -1;
@@ -1458,6 +1653,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return -1;
+        }
+
+        shouldBypassBlockedMeleeLane(target) {
+          return !!target && (target.hasStrugglingAlly || target.dangerousToDefend);
         }
 
         shouldSpawnAggressive(entry, target, spawnLaneId) {

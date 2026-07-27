@@ -2,8 +2,10 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-27 after the current ranged-support evaluator pass,
-Monk/Archer value pass, and the 60-match accuracy telemetry sweep.
+Last updated: 2026-07-28 after the BattleArmyBrain conflict audit, ranged
+support/ranged-safety fixes, telemetry batch automation checks, accuracy sweep
+analysis for both teams, preview-cache recovery, unit unlock audit, and source
+sync.
 
 ## Handoff Policy
 
@@ -20,6 +22,9 @@ Monk/Archer value pass, and the 60-match accuracy telemetry sweep.
   lane state, frontline coverage, and telemetry together.
 - Do not ask for another telemetry batch when the source already proves the
   cause.
+- For this project, inspect the relevant source before answering questions
+  about current gameplay logic. Do not answer from memory when the user asks
+  how the AI currently behaves.
 
 ## Source Of Truth
 
@@ -142,18 +147,38 @@ and response reservations before changing this pair again.
 ### Decision Accuracy
 
 - Current scene test value is `1` for both teams.
-- Accuracy affects unit selection within the evaluator's tactical anchor; lane
-  and target choice remain tactical.
-- `1` keeps the best scored candidate.
-- Lower values allow progressively worse same-anchor candidates.
-- Small samples can be noisy. Judge the progression by damage, decisions, and
-  repeated batches, not only binary winrate.
+- Accuracy affects unit selection inside the evaluator's tactical anchor;
+  target and lane choice remain tactical.
+- `1` always keeps the best scored candidate.
+- Values below `1` use weighted candidate selection among same-anchor
+  deliberate mistakes. This is intended to be a smooth probability curve, not a
+  hard `if accuracy == X then behavior Y` table.
+- A deliberate mistake must be a different family from the best answer, must
+  share the same target/lane anchor, and must not itself be an accurate hard
+  counter response.
+- If `accuracy <= 0` and the only candidate is an accurate hard-counter style
+  response, the evaluator returns no decision instead of accidentally taking
+  the correct answer. This prevents the lowest-accuracy AI from winning by
+  forced correctness.
+- Ranged support capacity is also accuracy-scaled. At accuracy `0`, normal
+  ranged support capacity is `0`; as accuracy rises, the cap approaches the
+  Inspector `maxRangedSupportWavesPerLane`.
+- Last stand is the deliberate exception: when a team has no non-hero units
+  left but can still afford something, it may spawn any affordable unlocked
+  unit, including ranged. Do not confuse this with normal ranged-support logic.
+- Small samples can be noisy. Judge the progression by damage, decision
+  quality, mistake rate, ranged share, and repeated batches, not only binary
+  winrate.
 
 ### Opening And Last Stand
 
 - With no enemy wave and `spawnOpeningWaveIfNoEnemyWave = true`, the brain may
   spawn an opening frontline wave.
 - Opening frontline families are Spear, Sword, Axeman, and Cavalry.
+- Opening currently targets the affordable frontline whose wave power is
+  closest to the average affordable frontline power. With current tier-1 stats
+  and accuracy `1`, this often means Axeman. This is source-confirmed behavior,
+  not a SmartArmyBrain issue.
 - Last stand is separate from normal snapshot support. If the team has spawned
   before, has no living non-hero wave, and can still afford something,
   `chooseLastStandSpawnDecision()` may buy any affordable unit. This can include
@@ -242,18 +267,19 @@ There is no old `clusterScore` gate. Do not restore it.
 Current role behavior:
 
 - Archer gets strong value as a full-strength hard counter into Spear.
-- Monk gets stronger value when an engaged, protected lane contains multiple
-  enemy waves/targets suitable for AoE.
+- Monk gets stronger value when an engaged, protected lane contains melee
+  contact where AoE can matter. The map is small, so do not add expensive
+  whole-map melee cluster scans just to prove that melee blobs exist.
 - Both may support an already engaged frontline, but melee should remain
   preferred when the frontline is losing.
 - Last stand is the deliberate exception to normal ranged-support safety.
 
-### Current Ranged Scoring Rewrite
+### Current Ranged Scoring Status
 
-`assets/scripts/BattlefieldEvaluator.ts` currently has an intentional uncommitted
-rewrite replacing fixed ranged priorities such as `1000000/900000/800000`.
+`assets/scripts/BattlefieldEvaluator.ts` no longer uses fixed ranged priorities
+such as `1000000/900000/800000`.
 
-The new score combines:
+The current score combines:
 
 - tactical target priority;
 - hard-counter or AoE role value;
@@ -271,10 +297,81 @@ Important implementation details:
   engaged lane.
 - The fixed giant family priorities were removed so future tiers can compete
   through actual stats, cost, role, and context.
+- The previous "only spawn ranged if the opponent already spawned ranged" rule
+  was removed. It suppressed Archer/Monk too hard and made max-accuracy AI lose
+  melee count without enough support payoff.
+- Ranged support is now constrained by safety and usefulness rather than by
+  mirroring opponent composition.
 
-This change has not yet received a fresh dedicated post-rewrite telemetry
-batch. Do not call it final until its ranged frequency, Archer/Monk split, and
-frontline safety are checked.
+The 2026-07-27 accuracy sweep showed this rewrite behaving acceptably: ranged
+share rises with accuracy, Monk appears at high accuracy, and normal ranged
+spawns are blocked unless a real frontline exists. Keep watching for normal
+ranged spawns into unprotected melee; if found, inspect `isRangedSpawnSafe()`
+and `chooseLastStandSpawnDecision()` before changing stats.
+
+### Lane Pressure And Overstacking
+
+- Direct melee response can be blocked by `maxConsecutiveMeleeWavesPerLane`.
+- That block is bypassed only for rescue/high-danger cases:
+  `target.hasStrugglingAlly` or `target.dangerousToDefend`.
+- This prevents the AI from tunneling forever into one lane, while still
+  allowing emergency reinforcement when the lane is actually collapsing.
+- Ranged keeps a stricter lane rule: if `isRangedSpawnSafe(target)` is false,
+  it gets no direct normal spawn lane.
+
+### Unit Unlocks
+
+Current source support for locked units is broad and safe:
+
+- `UnitPrefabEntry.unlocked` exists in `BattleUnitDatabase`.
+- `BattleUnitDatabase.isEntryUnlocked()` returns that flag.
+- `GameManager.isValidSpawnEntry()` rejects locked entries.
+- `GameManager.collectAffordableEntries()` only returns entries that are valid,
+  unlocked, positive-count, and affordable.
+- `spawnWaveByEntry()` and `spawnEntryFormation()` also check
+  `isValidSpawnEntry()`, so locked entries are blocked even if a caller tries to
+  spawn them directly.
+- `canAffordAnySpawnEntry()` uses the same valid-entry filter, so battle-end
+  detection respects locks.
+
+Design implication:
+
+- Locking a unit will not crash the AI by itself; the evaluator simply never
+  sees that entry.
+- Early levels must leave at least one affordable melee/frontline family
+  unlocked. Opening pressure only considers Spear, Sword, Axeman, and Cavalry.
+  If all melee are locked and no enemy exists yet, the AI can have no valid
+  opening candidate and wait.
+- Archer/Monk are support, not reliable openers. Normal ranged support needs
+  allied frontline contact. Last stand can still spawn them as the deliberate
+  "giay chet" exception.
+- If a hard counter is locked, the AI falls back to the best unlocked economic
+  response. That is valid for level progression, but the level designer must
+  understand that tactical quality is capped by the unlocked roster.
+
+### Future Tier 2/3 Readiness
+
+The current evaluator is mostly tier-ready because entries compete through
+actual stats/cost/power and unlocked/affordable filtering, not through a fixed
+tier table.
+
+Expected behavior if tier 2/3 are added correctly:
+
+- High CP and abundant strategy should prefer stronger expensive entries when
+  they are tactically safe and not walking into a hard counter.
+- When CP drops or the target is already weakened, cheaper sufficient lower-tier
+  entries can still be selected.
+- Locked tier entries are invisible to the evaluator.
+
+Risks to verify when adding tiers:
+
+- Family-specific rules still exist for Cavalry, Spear, Archer, Monk, and melee
+  ladder rank. New families need explicit role classification.
+- Opening uses average frontline power among affordable frontline entries. If
+  tier 3 is unlocked from the start with huge CP, opening may prefer a mid/high
+  tier frontline instead of tier 1.
+- Cost must still follow the one-unit X-Power rule unless the user explicitly
+  marks an exception.
 
 ## Telemetry
 
@@ -402,6 +499,61 @@ conclusion.
 One additional match ended with only four Sword alive but 34 CP, so it was not
 strictly close because the winner could still afford Archer.
 
+### 2026-07-27 Accuracy Sweep After Source Fixes
+
+Team 0/A stayed at max accuracy. Team 1/B was overridden by URL batch params:
+
+```text
+0.0, 0.2, 0.4, 0.6, 0.8, 1.0
+```
+
+10 reports were collected per accuracy value. This batch should be treated as
+the current behavioral reference for BattleArmyBrain, not the older 2026-07-24
+sweep.
+
+Team B results:
+
+| B Accuracy | A Wins | B Wins | B Accurate Decisions | B Mistakes | B Ranged Share |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.0 | 10/10 | 0/10 | 3.1% | 96.9% | 2.3% |
+| 0.2 | 10/10 | 0/10 | 26.7% | 73.3% | 8.4% |
+| 0.4 | 9/10 | 1/10 | 37.7% | 62.3% | 8.5% |
+| 0.6 | 7/10 | 3/10 | 68.5% | 31.5% | 14.2% |
+| 0.8 | 5/10 | 5/10 | 77.7% | 22.3% | 20.0% |
+| 1.0 | 7/10 | 3/10 | 100% | 0.0% | 25.6% |
+
+Team A stayed clean through the whole batch:
+
+- A accurate decisions: 100%.
+- A deliberate mistakes: 0%.
+- A ranged share stayed around 18.9%-26.2%.
+- As B accuracy rose, A was pressured harder: A average damage fell from about
+  14442 at B accuracy 0 to about 11177 at B accuracy 1, and A surviving units
+  fell from about 30.4 to about 13.7.
+
+Interpretation:
+
+- Accuracy now behaves as a probability/quality curve instead of a broken
+  branch table.
+- B's decision quality rises, mistake rate falls, and ranged support rises as
+  accuracy increases.
+- The B accuracy 1.0 split of 3/10 wins looks A-favored, but damage was nearly
+  equal in that bucket. Treat it as sample noise or side/opening variance unless
+  a larger equal-accuracy batch repeats the bias.
+- Several B losses at high accuracy ended with B CP below the cheapest spawn,
+  so they were not clear "AI stopped thinking" failures.
+
+Ranged evidence from this batch:
+
+- B accuracy 0 produced only a few Archer waves and no Monk waves.
+- B accuracy 1 produced both Archer and Monk regularly.
+- Monk at high accuracy produced meaningful damage and kills, confirming that
+  the support rewrite no longer suppresses it completely.
+
+The user considers the current accuracy trend "kha on". Future work should not
+rewrite the accuracy model casually; if a problem appears, inspect the specific
+spawn reason, candidate list, and safety gate first.
+
 ## Current Status
 
 Achieved:
@@ -411,47 +563,72 @@ Achieved:
 - Team A/B active stats match.
 - Melee ladder and the two active counters have controlled-test grounding.
 - Monk and Archer are worth their slots in recent telemetry.
-- Accuracy produces a meaningful difficulty trend.
+- Accuracy produces a meaningful difficulty trend in the latest batch.
 - Automated battle end/download/reload worked in the 60-report sweep.
 - Ranged fixed-priority constants were replaced with context/stat scoring.
+- Normal ranged support is gated by frontline safety and accuracy-scaled
+  capacity.
+- Last stand is documented as the only intentional normal-rule bypass for
+  "spawn any affordable unit."
+- Unit unlock filtering is source-confirmed across AI candidate collection,
+  direct spawn, affordability, and battle-end checks.
+- Preview-cache/import-map problems were identified as generated Cocos state,
+  not canonical source logic.
 
 Not yet proven:
 
-- The newest ranged-scoring rewrite still needs a dedicated runtime batch.
 - Future tier 2/3 entries need validation that scoring uses their real
   stats/cost instead of family identity alone.
 - Archer cost has not been re-tested at nominal X-Power value `24`; all latest
   Archer evidence uses `26`.
+- Equal-accuracy 1.0 versus 1.0 may still need a larger side-bias check if the
+  user wants statistical confidence beyond 10-match buckets.
 
 ## Recommended Next Work
 
-1. Run a focused post-rewrite batch with both brains at accuracy 1.
-2. Check:
-   - total ranged share;
-   - Archer/Monk spawn split;
-   - ranged spawn reasons;
-   - whether every normal ranged spawn had an engaged allied frontline;
-   - whether melee is still preferred when frontline coverage is losing;
-   - damage/CP and survival by family/team.
-3. If ranged frequency is wrong, inspect candidate scores and rejected reasons
-   before changing stats.
+1. If testing continues, run a larger equal-accuracy batch at 1.0 versus 1.0 to
+   check side/opening bias. Do not rebalance from a 10-match bucket alone.
+2. For level progression, test unit-lock presets explicitly:
+   - early level: at least one melee/frontline unlocked;
+   - ranged unlock: confirm support does not spawn without frontline except
+     last stand;
+   - counter-lock levels: confirm fallback responses are acceptable.
+3. When tier 2/3 are added, verify:
+   - unlocked/affordable filtering;
+   - opening choice with high CP;
+   - abundant/normal/efficient CP strategy behavior;
+   - hard-counter guards such as Cavalry into Spear blockers.
 4. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
    X-Power cost `24`.
-5. Keep current stats stable unless the new evidence shows a roster-wide
-   problem.
+5. Keep current stats stable unless new evidence shows a roster-wide problem.
 
 ## Worktree Notes
 
-Intentional uncommitted files at this handoff:
+Files that have been intentionally touched during the current balance/AI pass:
 
 - `AI-CONTEX.md`
 - `UNITSTATS.md`
 - `assets/Test.scene`
 - `assets/scripts/BattlefieldEvaluator.ts`
-- deletion of obsolete `UNITSTATS_BALANCE_PROPOSAL.md`
+- `assets/scripts/BattleArmyBrain.ts`
+- `assets/scripts/GameManager.ts`
+- `assets/scripts/BattleUnitDatabase.ts`
+- `assets/scripts/LevelSettings.ts`
+- deletion of obsolete `UNITSTATS_BALANCE_PROPOSAL.md` if still present in the
+  local diff
 
 Cocos also generated dirty files under `library/`, `temp/`, and `profiles/`.
 They are unrelated generated state. Do not revert or stage them unless the user
 explicitly asks.
 
-No Git lock file was present when this handoff was written.
+Known local tooling issues:
+
+- Git may report `dubious ownership` for `F:/Github/BattleGame` because Windows
+  file ownership/SID differs from the current user. The usual fix is:
+  `git config --global --add safe.directory F:/Github/BattleGame`.
+- GitHub Desktop lock-file errors usually mean another git operation crashed or
+  is still running. Close GitHub Desktop/Editor git operations, verify no git
+  process is active, then remove only `.git/index.lock` if it remains stale.
+- Cocos preview errors like `Unable to resolve bare specifier '_unresolved_*'`
+  came from stale generated preview chunks/import maps, not from the TypeScript
+  source itself. Canonical gameplay logic is under `assets/scripts`.
