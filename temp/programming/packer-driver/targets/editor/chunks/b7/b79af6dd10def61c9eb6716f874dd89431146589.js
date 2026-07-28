@@ -172,6 +172,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.rangedCombatDecisionTargetLifeId = -1;
           this.nearestEnemyQueryToken = 0;
           this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
+          this.appliedTargetSearchRangeMultiplier = 1;
 
           this.onNearestEnemyQueryResult = (target, token) => {
             if (token !== this.nearestEnemyQueryToken) {
@@ -467,7 +468,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return true;
         }
 
-        findForwardSearchTarget(aggressiveForward) {
+        findForwardSearchTarget() {
           if (!this.agent) return null;
           if (this.laneId < 0) return null;
           const enemies = this.getNearbyEnemyList(this.targetSearchRange);
@@ -479,7 +480,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             const enemy = enemies[i];
             if (!this.isValidEnemy(enemy)) continue;
 
-            if (!this.isForwardSearchCandidate(enemy, aggressiveForward)) {
+            if (!this.isForwardSearchCandidate(enemy)) {
               continue;
             }
 
@@ -497,7 +498,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return best;
         }
 
-        isForwardSearchCandidate(enemy, aggressiveForward) {
+        isForwardSearchCandidate(enemy) {
           if (this.laneId < 0 || enemy.laneId < 0) {
             return false;
           }
@@ -509,9 +510,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           const enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
           const laneDistance = Math.abs(ownLane - enemyLane);
 
-          if (aggressiveForward) {
-            if (laneDistance !== 0) return false;
-          } else if (laneDistance > 1) {
+          if (laneDistance > 1) {
             return false;
           }
 
@@ -664,6 +663,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentStopped();
             this.setAgentLocked(this.isSteady);
           }
+        }
+
+        applyTargetSearchRangeMultiplier(multiplier) {
+          const safeMultiplier = Math.max(1, Number.isFinite(multiplier) ? multiplier : 1);
+          const previousMultiplier = Math.max(1, this.appliedTargetSearchRangeMultiplier);
+
+          if (Math.abs(safeMultiplier - previousMultiplier) < 0.0001) {
+            return;
+          }
+
+          this.targetSearchRange = Math.max(0, this.targetSearchRange * safeMultiplier / previousMultiplier);
+          this.appliedTargetSearchRangeMultiplier = safeMultiplier;
+          this.invalidateNearestQueryResults();
+          this.clearCachedTargets();
         }
 
         disengageCurrentEnemyForChase() {
@@ -935,7 +948,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return false;
           }
 
-          this.enterWaveForwardMode(false, true);
+          this.enterWaveForwardMode(this.aggressiveForward, true);
           return true;
         }
 
@@ -980,7 +993,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (!gm || this.laneId < 0) {
-            this.enterWaveForwardMode(false);
+            this.enterWaveForwardMode(this.backToLaneForwardAggressive);
             return true;
           }
 

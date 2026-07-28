@@ -463,7 +463,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        chooseSnapshotSpawnDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId = -1, decisionAccuracy = 1) {
+        chooseSnapshotSpawnDecision(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId = -1, decisionAccuracy = 1, forceOpening = false, preferredOpeningLaneId = -1) {
           this.spawnDecision.reset();
           this.resetSpawnCandidates();
 
@@ -471,8 +471,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return this.spawnDecision;
           }
 
-          if (this.enemyCount <= 0) {
-            return this.chooseOpeningPressureDecision(gameManager, affordableEntries, blockedMeleeLaneId, decisionAccuracy);
+          if (forceOpening || this.enemyCount <= 0) {
+            return this.chooseOpeningPressureDecision(gameManager, affordableEntries, blockedMeleeLaneId, preferredOpeningLaneId);
           }
 
           const currentCombatPoint = gameManager.getCombatPoint(team);
@@ -506,8 +506,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.chooseCandidateByAccuracy(decisionAccuracy);
         }
 
-        chooseOpeningPressureDecision(gameManager, affordableEntries, blockedMeleeLaneId, decisionAccuracy) {
-          const laneId = this.choosePressureLane(gameManager, blockedMeleeLaneId, false);
+        chooseOpeningPressureDecision(gameManager, affordableEntries, blockedMeleeLaneId, preferredLaneId = -1) {
+          const laneCount = gameManager.getSafeLaneCount();
+          const laneId = preferredLaneId >= 0 && preferredLaneId < laneCount ? Math.floor(preferredLaneId) : this.choosePressureLane(gameManager, blockedMeleeLaneId, false);
 
           if (laneId < 0) {
             return this.spawnDecision;
@@ -519,6 +520,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return this.spawnDecision;
           }
 
+          let selectedEntry = null;
+          let selectedDistance = Number.POSITIVE_INFINITY;
+
           for (let i = 0; i < affordableEntries.length; i++) {
             const entry = affordableEntries[i];
 
@@ -526,12 +530,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               continue;
             }
 
-            const power = this.getEntryBasePower(entry, Math.max(1, entry.unitCount), 1, 1);
-            const score = 1000 - Math.abs(power - averagePower) + Math.random() * 0.001;
-            this.addSpawnCandidate(entry, null, laneId, true, 'snapshot-opening-pressure', score, CPStrategyState.Opening);
+            const power = this.getEntryBasePower(entry, 1, 1, 1);
+            const distance = Math.abs(power - averagePower);
+
+            if (distance < selectedDistance || distance === selectedDistance && this.compareOpeningEntries(entry, selectedEntry) < 0) {
+              selectedEntry = entry;
+              selectedDistance = distance;
+            }
           }
 
-          return this.chooseCandidateByAccuracy(decisionAccuracy);
+          if (!selectedEntry) {
+            return this.spawnDecision;
+          }
+
+          this.addSpawnCandidate(selectedEntry, null, laneId, true, 'snapshot-opening-pressure', 1000 - selectedDistance, CPStrategyState.Opening);
+          return this.chooseCandidateByAccuracy(1);
         }
 
         getAverageOpeningFrontlinePower(affordableEntries) {
@@ -546,7 +559,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             }
 
             candidateCount++;
-            totalPower += this.getEntryBasePower(entry, Math.max(1, entry.unitCount), 1, 1);
+            totalPower += this.getEntryBasePower(entry, 1, 1, 1);
           }
 
           if (candidateCount <= 0) {
@@ -554,6 +567,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return totalPower / candidateCount;
+        }
+
+        compareOpeningEntries(a, b) {
+          if (!b) return -1;
+
+          if (a.family !== b.family) {
+            return a.family - b.family;
+          }
+
+          if (a.tier !== b.tier) {
+            return a.tier - b.tier;
+          }
+
+          return a.name.localeCompare(b.name);
         }
 
         isOpeningFrontlineFamily(family) {

@@ -80,7 +80,7 @@ export class RVOWorkerSimulator {
 
     private worker: Worker | null = null;
     private workerReady = false;
-    private workerCreatedAtMs = 0;
+    private workerGeneration = 0;
     private pending = false;
     private pendingSinceMs = 0;
     private fallbackSimulator: RVOSimulator | null = null;
@@ -118,8 +118,8 @@ export class RVOWorkerSimulator {
             this.worker = null;
         }
 
+        this.workerGeneration++;
         this.workerReady = false;
-        this.workerCreatedAtMs = 0;
         this.pending = false;
         this.pendingSinceMs = 0;
 
@@ -233,20 +233,6 @@ export class RVOWorkerSimulator {
         if (!this.worker) return false;
 
         if (!this.workerReady) {
-            if (
-                Date.now() - this.workerCreatedAtMs >=
-                RVOWorkerSimulator.workerResponseTimeoutMs
-            ) {
-                this.activateMainThreadFallback();
-
-                return this.fallbackSimulator
-                    ? this.fallbackSimulator.step(
-                        deltaTime,
-                        maxSubStepDeltaTime
-                    )
-                    : false;
-            }
-
             return false;
         }
 
@@ -255,14 +241,7 @@ export class RVOWorkerSimulator {
                 Date.now() - this.pendingSinceMs >=
                 RVOWorkerSimulator.workerResponseTimeoutMs
             ) {
-                this.activateMainThreadFallback();
-
-                return this.fallbackSimulator
-                    ? this.fallbackSimulator.step(
-                        deltaTime,
-                        maxSubStepDeltaTime
-                    )
-                    : false;
+                this.restartWorker();
             }
 
             return false;
@@ -290,7 +269,14 @@ export class RVOWorkerSimulator {
             totalDeltaTime / subSteps;
 
         if (this.obstacleDirty) {
-            this.sendObstaclesToWorker();
+            if (!this.sendObstaclesToWorker()) {
+                return this.fallbackSimulator
+                    ? this.fallbackSimulator.step(
+                        deltaTime,
+                        maxSubStepDeltaTime
+                    )
+                    : false;
+            }
         }
 
         const count = this.agents.length;
@@ -442,7 +428,7 @@ export class RVOWorkerSimulator {
     }
 
     private sendObstaclesToWorker() {
-        if (!this.worker || !this.workerReady) return;
+        if (!this.worker || !this.workerReady) return false;
 
         const circleData = new Float32Array(this.circleObs.length * 3);
 
@@ -469,46 +455,81 @@ export class RVOWorkerSimulator {
             rectData[k + 5] = ob.sin;
         }
 
-        this.worker.postMessage({
-            type: 'obstacles',
-            circleData,
-            rectData
-        }, [
-            circleData.buffer,
-            rectData.buffer
-        ]);
+        try {
+            this.worker.postMessage({
+                type: 'obstacles',
+                circleData,
+                rectData
+            }, [
+                circleData.buffer,
+                rectData.buffer
+            ]);
+        } catch (err) {
+            console.warn(
+                '[RVOWorkerSimulator] Failed to send obstacles; using main-thread fallback.',
+                err
+            );
+            this.activateMainThreadFallback();
+
+            return false;
+        }
 
         this.obstacleDirty = false;
+
+        return true;
     }
 
     private createWorker() {
         if (!RVOWorkerSimulator.isSupported()) {
             console.warn('[RVOWorkerSimulator] Worker is not supported.');
+            this.activateMainThreadFallback();
             return;
         }
 
-        const blob = new Blob([RVOWorkerSimulator.workerSource()], {
-            type: 'application/javascript'
-        });
+        let url = '';
+        let worker: Worker;
 
-        const url = URL.createObjectURL(blob);
+        try {
+            const blob = new Blob([RVOWorkerSimulator.workerSource()], {
+                type: 'application/javascript'
+            });
 
-        this.worker = this.createNamedWorker(
-            url,
-            'RVOWorkerSimulator'
-        );
-        this.workerCreatedAtMs = Date.now();
+            url = URL.createObjectURL(blob);
+            worker = this.createNamedWorker(
+                url,
+                'RVOWorkerSimulator'
+            );
+        } catch (err) {
+            console.warn(
+                '[RVOWorkerSimulator] Worker could not be created; using main-thread fallback.',
+                err
+            );
+            this.activateMainThreadFallback();
 
-        URL.revokeObjectURL(url);
+            return;
+        } finally {
+            if (url) {
+                URL.revokeObjectURL(url);
+            }
+        }
 
-        this.worker.onmessage = (event: MessageEvent) => {
+        const generation = ++this.workerGeneration;
+        this.worker = worker;
+
+        worker.onmessage = (event: MessageEvent) => {
+            if (
+                this.worker !== worker ||
+                this.workerGeneration !== generation
+            ) {
+                return;
+            }
+
             const data = event.data;
 
             if (!data) return;
 
             if (data.type === 'ready') {
                 this.workerReady = true;
-                this.workerCreatedAtMs = 0;
 
                 if (this.obstacleDirty) {
                     this.sendObstaclesToWorker();
@@ -533,13 +554,56 @@ export class RVOWorkerSimulator {
             }
         };
 
-        this.worker.onerror = (err) => {
+        worker.onerror = (err) => {
+            if (
+                this.worker !== worker ||
+                this.workerGeneration !== generation
+            ) {
+                return;
+            }
+
             console.warn(
                 '[RVOWorkerSimulator] Worker failed; using main-thread fallback.',
                 err
             );
             this.activateMainThreadFallback();
         };
+
+        worker.onmessageerror = (err) => {
+            if (
+                this.worker !== worker ||
+                this.workerGeneration !== generation
+            ) {
+                return;
+            }
+
+            console.warn(
+                '[RVOWorkerSimulator] Worker message failed; using main-thread fallback.',
+                err
+            );
+            this.activateMainThreadFallback();
+        };
+    }
+
+    private restartWorker() {
+        if (this.fallbackSimulator) return;
+
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+        }
+
+        this.workerGeneration++;
+        this.workerReady = false;
+        this.pending = false;
+        this.pendingSinceMs = 0;
+        this.idsBuffer = null;
+        this.floatsBuffer = null;
+        this.intsBuffer = null;
+        this.bufferCapacity = 0;
+        this.obstacleDirty = true;
+
+        this.createWorker();
     }
 
     private activateMainThreadFallback() {
@@ -550,8 +614,8 @@ export class RVOWorkerSimulator {
             this.worker = null;
         }
 
+        this.workerGeneration++;
         this.workerReady = false;
-        this.workerCreatedAtMs = 0;
         this.pending = false;
         this.pendingSinceMs = 0;
 

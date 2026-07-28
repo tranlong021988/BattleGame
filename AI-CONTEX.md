@@ -2,10 +2,10 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-28 after the synchronized-opening accuracy sweep, final
+Last updated: 2026-07-29 after the synchronized-opening accuracy sweep, final
 Hero deployment implementation, Hero-phase target-search expansion,
-aggressive-forward redesign, combat-resolution winner fix, and source/scene
-reconciliation.
+aggressive-forward redesign, combat-resolution winner fix, SpatialGrid target
+query optimization, and RVO worker lifecycle repair.
 
 ## Handoff Policy
 
@@ -41,7 +41,13 @@ Read these first:
 - `assets/scripts/BattleTelemetry.ts`: report schema and aggregation.
 - `assets/scripts/GameManager.ts`: battle end, report export/reload, CP, wave
   ownership, final Hero deployment, forward/aggressive state transitions, and
-  telemetry URL automation.
+  telemetry URL automation. It also supplies the active battlefield bounds and
+  worker switches to the target-search/RVO systems.
+- `assets/scripts/BattleSpatialGrid.ts`: main-thread SpatialGrid, target-query
+  worker source, worker snapshot/reply validation, and nearest-target search.
+- `assets/scripts/rvo/RVOWorkerSimulator.ts`: RVO worker startup, restart,
+  transferable-buffer lifecycle, runtime error fallback, and embedded worker
+  source.
 - `assets/scripts/BattleWave.ts`: wave-level forward, aggressive, combat, and
   Freehunt state.
 - `assets/scripts/Unit.ts` and `assets/scripts/UnitBehavior.ts`: target search,
@@ -73,6 +79,10 @@ it.
   deactivates the nodes at runtime. Do not infer "Hero starts in battle" from
   the scene `_active` value alone.
 - `heroBattleTargetSearchRangeMultiplier = 2`.
+- `useWorkerRVO = true`.
+- `useWorkerSpatialTargetQuery = true`.
+- `spatialGridCellSize = 4`; active battlefield bounds supplied by
+  `GameManager` are X `-8..8`, Z `-23..23`.
 
 ## X-Power And Cost
 
@@ -691,6 +701,206 @@ This is an accuracy sweep, not a symmetric balance baseline. The mixed
 damage/CP table primarily proves that decision quality changes battlefield
 output and composition. Do not use it alone to change unit stats or cost.
 
+## Latest Performance Work
+
+This section records the 2026-07-28/29 SpatialGrid and RVO work. These changes
+are performance/lifecycle changes only. They do not intentionally change unit
+stats, counter rules, search radii, search intervals, lane behavior, RVO
+physics, or Inspector tuning.
+
+### SpatialGrid Nearest-Target Optimization
+
+Changed files:
+
+- `assets/scripts/BattleSpatialGrid.ts`
+- `assets/scripts/GameManager.ts`
+
+The old nearest-target search expanded grid rings across every cell covered by
+the query radius. That remains efficient for small local searches, but large
+Hero/search radii on this small battlefield can cover more cells than there
+are enemy units. In those cases, walking empty cells costs more than scanning
+the active enemy snapshot directly.
+
+The current implementation:
+
+- receives the real battlefield bounds from `GameManager` at startup and on
+  every grid rebuild;
+- clamps every query to the bounded battlefield cell rectangle;
+- uses lookup-only `findExistingKey()` for queries, so checking an empty cell
+  does not create/cache a new string key;
+- stores each team's active unit list from the same `build()` generation as the
+  grid;
+- compares bounded queried-cell count with active enemy count;
+- uses bounded ring search when cells are cheaper;
+- uses a direct active-enemy snapshot scan when units are cheaper;
+- preserves exact nearest-by-distance behavior;
+- applies the same hybrid algorithm in the target worker;
+- sends battlefield bounds with every worker batch;
+- reuses the worker snapshot when a request batch does not include a newer
+  snapshot;
+- preserves `lifeId` in worker replies so pooled/stale targets remain guarded.
+
+Important invariant: the direct path scans the unit list produced during the
+same `BattleSpatialGrid.build()` call. It does not inspect a newer live team
+array, so ring search and direct search operate on the same snapshot.
+
+Focused verification completed:
+
+- Cocos Creator 3.8.8 TypeScript `--noEmit --skipLibCheck --module esnext`:
+  pass.
+- Embedded target-worker source syntax: pass.
+- 500 randomized worker nearest-target queries compared with brute-force exact
+  nearest: pass.
+- Worker snapshot-reuse test: pass.
+
+Subsystem-only Node microbenchmarks against the pre-change implementation:
+
+| Scenario | Measured improvement |
+| --- | ---: |
+| Dense, 120 units, range 16 | about 13.9% |
+| Hero-like, 60 units, range 32 | about 72.8% |
+| Late Hero, 20 units, range 80 | about 94.2% |
+
+These numbers measure only the nearest-query subsystem. They are not expected
+whole-game FPS gains.
+
+### RVO Worker False-Fallback Root Cause
+
+Changed file:
+
+- `assets/scripts/rvo/RVOWorkerSimulator.ts`
+
+The old lifecycle used the same two-second wall-clock timeout for two different
+conditions:
+
+1. a newly created worker had not emitted `ready`;
+2. a ready worker had an in-flight step that had not replied.
+
+Both conditions permanently called `activateMainThreadFallback()`. Under
+DevTools CPU slowdown, worker startup could exceed two wall-clock seconds even
+though Worker/Blob support was valid. The result was a false permanent
+fallback, and all RVO neighbor/grid/avoidance work moved onto the main thread.
+This is why `useWorkerRVO = true` did not guarantee that the trace contained an
+RVO worker.
+
+The current lifecycle is:
+
+- a worker that exists but is not ready is allowed to keep starting; this state
+  does not trigger main-thread fallback;
+- if a ready worker's pending step exceeds two seconds, the worker is
+  terminated and restarted instead of permanently falling back;
+- restart clears pending state and detached typed-array references, resets
+  capacity, and marks obstacles dirty so the replacement receives obstacles
+  before its next simulation step;
+- every worker instance has a generation number and identity check;
+- late `message`, `error`, or `messageerror` callbacks from a terminated worker
+  cannot mutate the replacement worker's state;
+- main-thread fallback is reserved for actual capability/runtime failures:
+  unsupported Worker/Blob/object-URL APIs, construction failure, `postMessage`
+  failure, worker `error`, or `messageerror`.
+
+RVO solver math, neighbor rules, hard separation, agent data layout, update
+intervals, and scene Inspector values were not changed.
+
+Focused lifecycle tests passed for:
+
+- slow startup does not fall back;
+- pending timeout restarts the worker;
+- stale callbacks from the old generation are ignored;
+- replacement worker receives obstacles before the next step;
+- unsupported APIs fall back;
+- constructor failure falls back;
+- runtime worker error falls back.
+
+One deliberate residual edge case must remain visible: if a browser
+successfully constructs a worker that silently never emits `ready` and never
+raises an error, RVO waits rather than activating the main-thread solver. This
+path was not observed in the traces. Do not reintroduce a permanent
+startup-delay fallback without separating "slow startup" from proven worker
+failure, or the 4x-throttle regression will return.
+
+### Performance Trace Evidence
+
+`Trace-20260728T223748.json.gz`:
+
+- Cocos preview, iPhone SE emulation, no 4x CPU slowdown.
+- Exact current preview target-worker chunk was loaded.
+- Both target worker and RVO worker existed.
+- Target worker: 756 batches over 38.38 seconds, about 19.7 batches/second;
+  p95 message handling about 0.344 ms; maximum gameplay batch about 1.651 ms;
+  worker about 99.61% idle.
+- Main frame callback after startup: p50 about 1.608 ms, p95 4.146 ms, p99
+  about 5.24 ms.
+- CPU profile sampled both new target-query paths:
+  `findExistingKey()` on main and `scanSnapshotForNearest()`/`scanCell()` in
+  the worker.
+
+`Trace-20260728T224846.json.gz`:
+
+- Cocos preview, iPhone SE emulation, DevTools CPU slowdown 4x.
+- Captured before the RVO lifecycle repair.
+- Only the target worker existed; RVO was executing on the main-thread
+  fallback despite `useWorkerRVO = true`.
+- Target worker: 904 batches over 52.63 seconds; average about 0.169 ms, p95
+  0.346 ms, p99 0.425 ms, max 0.845 ms.
+- Steady main frame callback: average 7.39 ms, p50 8.497 ms, p95 16.707 ms,
+  p99 24.041 ms; 246/4853 callbacks exceeded 16.67 ms.
+- Main-thread hotspots included `getNeighbors`, `getGridKey`,
+  `insertNearestNeighbor`, and `stepOnce`. This was direct evidence that RVO
+  fallback, not the target worker, was a major cost in this run.
+
+`Trace-20260728T230800.json.gz`:
+
+- Same-day Cocos preview, iPhone SE emulation, DevTools CPU slowdown 4x,
+  captured after the RVO lifecycle repair.
+- Exactly two workers were present: one RVO Blob worker and one target-query
+  Blob worker.
+- No RVO restart or fallback occurred during the 41.71-second capture.
+- RVO worker: 1191 batches, about 28.6 batches/second; average about 0.394 ms,
+  p95 0.657 ms, p99 0.876 ms, max 2.564 ms. Its minor GC cost was off-main.
+- Main-thread samples for `getNeighbors`, `getGridKey`,
+  `insertNearestNeighbor`, `stepOnce`, `applyVelocityAvoidance`, and
+  `hardSeparateAgents` were zero.
+- Target worker: 822 batches; average 0.138 ms, p95 0.270 ms, p99 0.389 ms,
+  max 0.964 ms. The direct-snapshot path was sampled.
+- Steady main frame callback: average 5.308 ms, p50 6.944 ms, p95 12.196 ms,
+  p99 15.291 ms; 36/4445 callbacks exceeded 16.67 ms.
+
+Best same-condition A/B comparison is `224846` versus `230800`:
+
+| Main frame metric | Before RVO repair | After RVO repair | Change |
+| --- | ---: | ---: | ---: |
+| Average | 7.390 ms | 5.308 ms | about -28% |
+| p50 | 8.497 ms | 6.944 ms | about -18% |
+| p95 | 16.707 ms | 12.196 ms | about -27% |
+| p99 | 24.041 ms | 15.291 ms | about -36% |
+| Over 16.67 ms | 5.07% | 0.81% | about -84% |
+
+`Trace-20260719T222410.json.gz` was also captured at 4x slowdown and also had
+only the target worker, not an RVO worker. It therefore confirms that the old
+false-fallback behavior existed on July 19 as well. However, its viewport was
+recorded as `Responsive`, and it used older source, so it is not an exact
+whole-frame A/B baseline. Compared only as a trend, the repaired `230800`
+trace has a better p99 and fewer callbacks over 16.67 ms, while average/median
+are higher. Do not claim a universal July-19-to-current FPS improvement from
+that comparison.
+
+Current trace conclusion:
+
+- the SpatialGrid hybrid target search is active in both main and worker paths;
+- the target worker is sub-millisecond in these traces and is not the current
+  main-thread bottleneck;
+- the repaired RVO worker is genuinely active under 4x slowdown and removes
+  the heavy RVO solver functions from the main thread;
+- remaining dominant main-thread samples are mostly Cocos engine render,
+  transform synchronization, and UBO work;
+- rare 33-90 ms spikes still exist, but their magnitude cannot be attributed
+  to target search (under 1 ms) or normal RVO worker batches (max 2.564 ms).
+
+These are Cocos preview/device-emulation traces, not production-build traces
+from physical mobile hardware. Final release claims still require a real
+mobile browser build with telemetry disabled.
+
 ## Current Status
 
 Achieved:
@@ -713,6 +923,14 @@ Achieved:
 - Melee ladder and active counter rules have controlled-test grounding.
 - Unit unlock filtering remains source-confirmed across candidate collection,
   direct spawn, affordability, and winner fallback.
+- SpatialGrid nearest-target search now chooses between bounded ring traversal
+  and exact active-snapshot scanning in both main-thread and worker paths.
+- Target-worker traces confirm the new hybrid path is active and remains
+  sub-millisecond under the tested 4x slowdown.
+- RVO no longer permanently falls back because worker startup exceeded a
+  wall-clock timeout under CPU throttling.
+- The latest 4x trace confirms the RVO worker is active and the heavy RVO
+  neighbor/solver functions are absent from the main thread.
 
 Not yet proven:
 
@@ -732,6 +950,12 @@ Not yet proven:
   Archer evidence uses `26`.
 - The latest mixed-accuracy damage/CP table is not a valid roster-wide balance
   verdict.
+- The new performance evidence is from Cocos preview with desktop device/CPU
+  emulation. Production web build and physical mobile performance are not yet
+  proven.
+- A pathological worker that silently never reports ready or error would leave
+  RVO waiting. This has not appeared in traces; retain it as an explicit
+  lifecycle risk rather than hiding it behind the old false-fallback timeout.
 
 ## Recommended Next Work
 
@@ -764,6 +988,12 @@ Not yet proven:
    X-Power cost `24`.
 8. Keep current stats stable while diagnosing AI/aggressive behavior. Do not
    use the latest mixed-accuracy damage/CP aggregate as a balance-change trigger.
+9. For the next performance verification, use a real production web build with
+   telemetry disabled. Confirm that two workers exist when both worker flags
+   are enabled, then compare p95/p99 and callbacks over 16.67 ms.
+10. If RVO is ever seen on main again, first inspect worker construction/error
+    evidence. Do not assume the worker is unsupported and do not restore the
+    old startup wall-clock fallback.
 
 ## Worktree Notes
 
@@ -773,6 +1003,7 @@ Files that have been intentionally touched during the current balance/AI pass:
 - `UNITSTATS.md`
 - `assets/Test.scene`
 - `assets/scripts/BattleArmyBrain.ts`
+- `assets/scripts/BattleSpatialGrid.ts`
 - `assets/scripts/BattleTelemetry.ts`
 - `assets/scripts/BattleUnitDatabase.ts`
 - `assets/scripts/BattleWave.ts`
@@ -780,6 +1011,7 @@ Files that have been intentionally touched during the current balance/AI pass:
 - `assets/scripts/GameManager.ts`
 - `assets/scripts/Unit.ts`
 - `assets/scripts/UnitBehavior.ts`
+- `assets/scripts/rvo/RVOWorkerSimulator.ts`
 
 Cocos also generated dirty files under `library/`, `temp/`, and `profiles/`.
 They are unrelated generated state. Do not revert or stage them unless the user
@@ -797,6 +1029,11 @@ Known local tooling issues:
 Validation after the current source changes:
 
 ```text
-TypeScript noEmit: PASS
+TypeScript noEmit (Cocos Creator 3.8.8): PASS
+Target-worker source syntax: PASS
+Target-worker exact-nearest randomized comparison (500 queries): PASS
+Target-worker snapshot reuse: PASS
+RVO worker lifecycle mock suite: PASS
+4x trace confirms target worker + RVO worker concurrently active: PASS
 git diff --check: PASS (line-ending warnings only)
 ```

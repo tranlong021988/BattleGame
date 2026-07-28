@@ -118,7 +118,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.randomizeNextAttackInterval();
           var gm = this.gameManager;
           var attackBatchId = gm && gm.enableBattleTelemetry ? UnitBehavior.nextAttackBatchId++ : -1;
-          this.dealDamageToEnemy(enemy, attackBatchId);
+
+          if (!gm) {
+            this.dealDamageToEnemy(enemy, attackBatchId);
+            return;
+          }
+
+          gm.beginCombatResolution();
+
+          try {
+            this.dealDamageToEnemy(enemy, attackBatchId);
+          } finally {
+            gm.endCombatResolution();
+          }
         }
 
         dealDamageToEnemy(enemy, attackBatchId) {

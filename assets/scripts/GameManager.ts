@@ -436,6 +436,12 @@ export class GameManager extends Component {
         this.resetBattleTelemetry();
 
         this.spatialGrid.cellSize = this.spatialGridCellSize;
+        this.spatialGrid.setBattlefieldBounds(
+            this.battleMinX,
+            this.battleMaxX,
+            this.battleMinZ,
+            this.battleMaxZ
+        );
 
         this.sim.setBattlefield(
             this.battleMinX,
@@ -2922,6 +2928,12 @@ export class GameManager extends Component {
     private rebuildSpatialGrid() {
         this.spatialGrid.cellSize =
             this.spatialGridCellSize;
+        this.spatialGrid.setBattlefieldBounds(
+            this.battleMinX,
+            this.battleMaxX,
+            this.battleMinZ,
+            this.battleMaxZ
+        );
 
         this.spatialGrid.useWorkerTargetQuery =
             this.useWorkerSpatialTargetQuery;

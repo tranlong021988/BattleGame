@@ -58,6 +58,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.aggressiveForwardMode = false;
+          this.aggressiveAdjacentBoundaryObserved = false;
+          this.aggressiveOwnLaneBlockObserved = false;
           this.initialForwardCombatGateActive = true;
           this.initialForwardCombatReleaseThreshold = 1;
           this.forwardScannerUnit = null;
@@ -508,6 +510,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = false;
           this.freeHuntActive = true;
           this.aggressiveForwardMode = false;
+          this.aggressiveAdjacentBoundaryObserved = false;
+          this.aggressiveOwnLaneBlockObserved = false;
           this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
@@ -524,6 +528,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = false;
           this.freeHuntActive = true;
           this.aggressiveForwardMode = false;
+          this.aggressiveAdjacentBoundaryObserved = false;
+          this.aggressiveOwnLaneBlockObserved = false;
           this.initialForwardCombatGateActive = false;
           this.forwardScannerUnit = null;
 
@@ -564,6 +570,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return !this.released && this.aggressiveForwardMode;
         }
 
+        observeAggressiveAdjacentBoundary() {
+          if (!this.isAggressiveForwardMode()) return false;
+          if (this.aggressiveAdjacentBoundaryObserved) return false;
+          this.aggressiveAdjacentBoundaryObserved = true;
+          return true;
+        }
+
+        hasObservedAggressiveAdjacentBoundary() {
+          return !this.released && this.aggressiveAdjacentBoundaryObserved;
+        }
+
+        observeAggressiveOwnLaneBlock() {
+          if (!this.isAggressiveForwardMode()) return false;
+          if (this.aggressiveOwnLaneBlockObserved) return false;
+          this.aggressiveOwnLaneBlockObserved = true;
+          return true;
+        }
+
         getForwardScanner(refresh) {
           if (refresh === void 0) {
             refresh = false;
@@ -577,13 +601,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return this.forwardScannerUnit;
           }
 
+          this.forwardScannerUnit = this.findFrontmostAliveUnit(true);
+          return this.forwardScannerUnit;
+        }
+
+        getProgressScanner() {
+          return this.findFrontmostAliveUnit(false);
+        }
+
+        findFrontmostAliveUnit(requireForward) {
           var best = null;
           var bestScore = -Infinity;
 
           for (var i = 0; i < this.units.length; i++) {
             var u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
-            if (!u.onForward) continue;
+            if (requireForward && !u.onForward) continue;
             var score = u.agent.pos.x * u.forwardDir.x + u.agent.pos.z * u.forwardDir.z;
 
             if (score > bestScore) {
@@ -592,8 +625,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }
           }
 
-          this.forwardScannerUnit = best;
-          return this.forwardScannerUnit;
+          return best;
         }
 
         tryResumeForward(beforeResume) {
@@ -695,6 +727,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = false;
           this.freeHuntActive = false;
           this.aggressiveForwardMode = false;
+          this.aggressiveAdjacentBoundaryObserved = false;
+          this.aggressiveOwnLaneBlockObserved = false;
           this.initialForwardCombatGateActive = false;
           this.initialForwardCombatReleaseThreshold = 1;
           this.forwardScannerUnit = null;
