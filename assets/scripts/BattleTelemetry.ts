@@ -183,6 +183,12 @@ export interface BattleTelemetryDiagnosticEvent {
     victimWaveId?: number;
     victimUnitName?: string;
     victimFamilyName?: string;
+    boundaryWaveId?: number;
+    boundaryLaneId?: number;
+    boundaryUnitName?: string;
+    enemiesAhead?: number;
+    combatPoint?: number;
+    targetSearchRangeMultiplier?: number;
 }
 
 interface UnitSpawnInfo {
@@ -441,6 +447,19 @@ export class BattleTelemetry {
         this.pushDiagnosticEvent({
             ...event,
             type: event.type || 'wave-spawn',
+        });
+    }
+
+    recordAggressiveForwardEvent(
+        event: BattleTelemetryDiagnosticEvent
+    ) {
+        if (!this.isEnabled()) return;
+        if (!event) return;
+
+        this.pushDiagnosticEvent({
+            ...event,
+            type: event.type || 'aggressive-forward',
+            aggressiveForward: true,
         });
     }
 

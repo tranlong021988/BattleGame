@@ -158,11 +158,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.hasSpawnedWave = false;
           this.hasSeenEnemyWave = false;
           this.testSingleWaveSpawned = false;
+          this.telemetryBatchQueryActive = false;
         }
 
         start() {
           this.applyTelemetryBatchQueryAccuracy();
-          this.randomizeNextInterval();
+
+          if (this.telemetryBatchQueryActive) {
+            this.nextInterval = 0;
+          } else {
+            this.randomizeNextInterval();
+          }
         }
 
         update(dt) {
@@ -185,6 +191,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.timer = 0;
+
+          if (this.telemetryBatchQueryActive && !this.hasSpawnedWave) {
+            this.thinkAndSpawn();
+            this.randomizeNextInterval();
+            return;
+          }
+
           this.randomizeNextInterval();
           this.thinkAndSpawn();
         }
@@ -247,7 +260,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.hasSeenEnemyWave = true;
           }
 
-          if (this.evaluator.enemyCount <= 0) {
+          const forceSynchronizedOpening = this.telemetryBatchQueryActive && !this.hasSpawnedWave && this.spawnOpeningWaveIfNoEnemyWave;
+
+          if (forceSynchronizedOpening || this.evaluator.enemyCount <= 0) {
             if (!this.spawnOpeningWaveIfNoEnemyWave) {
               this.stateLog('WAIT no enemy and opening disabled.');
               return;
@@ -258,7 +273,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return;
             }
 
-            const openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, 0, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
+            const openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, 0, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy(), forceSynchronizedOpening, forceSynchronizedOpening ? Math.floor(gameManager.getSafeLaneCount() * 0.5) : -1);
 
             if (openingDecision.entry && openingDecision.laneId >= 0 && this.trySpawnDecision(openingDecision)) {
               this.spawnedOpeningWave = true;
@@ -318,7 +333,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const gameManager = this.gameManager;
           if (!gameManager) return false;
 
-          if (this.isMeleeEntry(entry) && laneId === this.getBlockedMeleeLaneId()) {
+          if (this.isMeleeEntry(entry) && laneId === this.getBlockedMeleeLaneId() && !this.shouldBypassBlockedMeleeLane(target)) {
             return false;
           }
 
@@ -498,6 +513,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.consecutiveMeleeSpawnLaneCount >= Math.max(1, Math.floor(this.maxConsecutiveMeleeWavesPerLane)) ? this.lastMeleeSpawnLaneId : -1;
         }
 
+        shouldBypassBlockedMeleeLane(target) {
+          return !!target && (target.hasStrugglingAlly || target.dangerousToDefend);
+        }
+
         recordSpawnLaneHistory(entry, laneId) {
           if (!this.isMeleeEntry(entry)) {
             return;
@@ -525,6 +544,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
+          this.telemetryBatchQueryActive = true;
           const queryTeam = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
 
           if (this.team !== queryTeam) {

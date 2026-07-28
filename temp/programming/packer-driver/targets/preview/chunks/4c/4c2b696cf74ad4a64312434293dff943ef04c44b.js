@@ -315,6 +315,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleWinnerTeam = -1;
           this.battleLoserTeam = -1;
           this.battleWinnerReason = '';
+          this.combatResolutionDepth = 0;
+          this.pendingForcedBattleWinnerCheck = false;
+          this.pendingBattleWinner = null;
 
           _initializerDefineProperty(this, "enableAutoSpawn", _descriptor43, this);
 
@@ -373,7 +376,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.centeredRowXBuffer = [];
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
+          this.teamAHeroEntry = null;
+          this.teamBHeroEntry = null;
           this.heroForwardUnlocked = [false, false];
+          this.heroBattleSearchRangeActive = false;
 
           this.refreshLaneBeforeWaveForward = wave => {
             this.refreshDynamicLaneForWave(wave, true);
@@ -412,8 +418,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.nextWaveId = 1;
           this.teamAHeroWave = null;
           this.teamBHeroWave = null;
+          this.teamAHeroEntry = null;
+          this.teamBHeroEntry = null;
           this.heroForwardUnlocked[0] = false;
           this.heroForwardUnlocked[1] = false;
+          this.heroBattleSearchRangeActive = false;
           this.teamAHero = null;
           this.teamBHero = null;
           this.aliveCount[0] = 0;
@@ -521,6 +530,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleWinnerTeam = -1;
           this.battleLoserTeam = -1;
           this.battleWinnerReason = '';
+          this.combatResolutionDepth = 0;
+          this.pendingForcedBattleWinnerCheck = false;
+          this.pendingBattleWinner = null;
         }
 
         createSimulator() {
@@ -929,8 +941,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (wave.isDeadRuntime(this.frame)) return;
           var scanner = wave.getForwardScanner();
           if (!scanner) return;
+          var aggressiveForward = wave.isAggressiveForwardMode();
 
-          if (scanner.hasReachedEnemyHeroLine()) {
+          if (!aggressiveForward && scanner.hasReachedEnemyHeroLine()) {
             var heroTarget = scanner.getEnemyHeroTarget();
 
             if (heroTarget) {
@@ -940,25 +953,39 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (wave.isAggressiveForwardMode()) {
-            var _heroTarget = scanner.getEnemyHeroTarget();
-
-            if (_heroTarget && this.shouldReleaseAggressiveForwardHeroTarget(scanner, _heroTarget)) {
-              this.onWaveForwardTargetFound(scanner, _heroTarget);
-            }
-
+          if (aggressiveForward) {
             if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
               return;
             }
 
             scanner = wave.getForwardScanner(true);
             if (!scanner) return;
-            var sameLaneTarget = scanner.findForwardSearchTarget(true);
+            var adjacentRearGuard = this.findDeepestAdjacentEnemyWaveScanner(wave, scanner);
 
-            if (sameLaneTarget && this.shouldReleaseAggressiveForwardSameLaneTarget(scanner, sameLaneTarget)) {
-              this.onWaveForwardTargetFound(scanner, sameLaneTarget);
+            if (adjacentRearGuard) {
+              if (wave.observeAggressiveAdjacentBoundary()) {
+                this.recordAggressiveForwardEvent('aggressive-boundary-observed', wave, scanner, adjacentRearGuard, 0, 'deepest-adjacent-enemy-wave');
+              }
+            } else if (!wave.hasObservedAggressiveAdjacentBoundary()) {
+              return;
             }
 
+            if (adjacentRearGuard && !scanner.hasPassedForwardTarget(adjacentRearGuard)) {
+              return;
+            }
+
+            var enemiesAhead = this.countEnemiesAheadInSameLane(scanner);
+
+            if (enemiesAhead > 0) {
+              if (wave.observeAggressiveOwnLaneBlock()) {
+                this.recordAggressiveForwardEvent('aggressive-own-lane-blocked', wave, scanner, adjacentRearGuard, enemiesAhead, 'enemy-ahead-in-own-lane');
+              }
+
+              return;
+            }
+
+            this.recordAggressiveForwardEvent('aggressive-freehunt-release', wave, scanner, adjacentRearGuard, 0, adjacentRearGuard ? 'passed-deepest-adjacent-wave' : 'observed-adjacent-boundary-cleared');
+            wave.releaseForwardToFreeHunt();
             return;
           }
 
@@ -968,7 +995,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           scanner = wave.getForwardScanner(true);
           if (!scanner) return;
-          var target = scanner.findForwardSearchTarget(false);
+          var target = scanner.findForwardSearchTarget();
 
           if (target && this.shouldReleaseNormalForwardTarget(scanner, target)) {
             this.onWaveForwardTargetFound(scanner, target);
@@ -990,30 +1017,90 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return scanner.hasPassedForwardTarget(target);
         }
 
-        shouldReleaseAggressiveForwardHeroTarget(scanner, target) {
-          if (!target.isHero) return false;
-          if (!scanner.agent || !target.agent) return false;
-          var dx = target.agent.pos.x - scanner.agent.pos.x;
-          var dz = target.agent.pos.z - scanner.agent.pos.z;
-          var range = Math.max(0, scanner.targetSearchRange);
+        findDeepestAdjacentEnemyWaveScanner(wave, scanner) {
+          if (!scanner.agent) return null;
+          var ownLane = wave.laneId >= 0 ? this.clampLaneId(wave.laneId) : this.getCurrentLaneIdForUnit(scanner);
+          if (ownLane < 0) return null;
+          var best = null;
+          var bestProgress = -Infinity;
 
-          if (dx * dx + dz * dz > range * range) {
-            return false;
+          for (var i = 0; i < this.waves.length; i++) {
+            var enemyWave = this.waves[i];
+            if (!enemyWave) continue;
+            if (enemyWave.team === wave.team) continue;
+            if (enemyWave.isDeadRuntime(this.frame)) continue;
+            if (enemyWave.laneId < 0) continue;
+            var enemyLane = this.clampLaneId(enemyWave.laneId);
+
+            if (Math.abs(enemyLane - ownLane) !== 1) {
+              continue;
+            }
+
+            var enemyScanner = enemyWave.getProgressScanner();
+
+            if (!enemyScanner || !enemyScanner.agent) {
+              continue;
+            }
+
+            var progress = enemyScanner.agent.pos.x * scanner.forwardDir.x + enemyScanner.agent.pos.z * scanner.forwardDir.z;
+
+            if (progress > bestProgress) {
+              bestProgress = progress;
+              best = enemyScanner;
+            }
           }
 
-          return this.shouldReleaseNormalForwardTarget(scanner, target);
+          return best;
         }
 
-        shouldReleaseAggressiveForwardSameLaneTarget(scanner, target) {
-          if (!scanner || !target) return false;
-          if (scanner.laneId < 0) return false;
-          if (target.laneId < 0) return false;
+        countEnemiesAheadInSameLane(scanner) {
+          if (scanner.laneId < 0) return 0;
+          var ownLane = this.clampLaneId(scanner.laneId);
+          var enemies = scanner.team === 0 ? this.teamB : this.teamA;
+          var count = 0;
 
-          if (this.clampLaneId(scanner.laneId) !== this.clampLaneId(target.laneId)) {
-            return false;
+          for (var i = 0; i < enemies.length; i++) {
+            var enemy = enemies[i];
+            if (!this.isAliveUnit(enemy)) continue;
+            if (enemy.laneId < 0) continue;
+
+            if (this.clampLaneId(enemy.laneId) !== ownLane) {
+              continue;
+            }
+
+            if (!scanner.hasPassedForwardTarget(enemy)) {
+              count++;
+            }
           }
 
-          return scanner.hasPassedForwardTarget(target);
+          return count;
+        }
+
+        recordAggressiveForwardEvent(type, wave, scanner, boundary, enemiesAhead, reason) {
+          var _wave$family;
+
+          if (!this.enableBattleTelemetry) return;
+          var boundaryWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(boundary);
+          this.battleTelemetry.recordAggressiveForwardEvent({
+            type,
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: (_wave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family : String(wave.family),
+            reason,
+            boundaryWaveId: boundaryWave ? boundaryWave.id : -1,
+            boundaryLaneId: boundaryWave ? boundaryWave.laneId : -1,
+            boundaryUnitName: boundary ? boundary.unitTypeName : '',
+            enemiesAhead,
+            combatPoint: this.combatPoint[wave.team] || 0
+          });
         }
 
         processWaveForwardRecoveries() {
@@ -1216,25 +1303,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         tryUnlockHeroForward(team) {
-          var hero = team === 0 ? this.teamAHero : this.teamBHero;
-
-          if (!this.isAliveUnit(hero)) {
-            return;
-          }
-
           if (this.heroForwardUnlocked[team]) {
             return;
           }
 
-          if (this.canAffordAnySpawnEntry(team)) {
+          if (this.canAffordAnyMeleeSpawnEntry(team)) {
             return;
           }
 
-          if (this.hasAliveNonHeroUnit(team)) {
-            return;
-          }
+          var hero = this.activateHeroForTeam(team);
 
-          if (this.hasAliveWave(team)) {
+          if (!this.isAliveUnit(hero)) {
             return;
           }
 
@@ -1257,53 +1336,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.heroForwardUnlocked[team] = true;
+          this.activateHeroBattleTargetSearchRange();
+          this.applyHeroBattleTargetSearchRangeToUnit(hero);
           hero.setSteady(false, true);
 
           if (heroWave) {
             this.ensureBattleWaveRegistered(heroWave);
             heroWave.forceForwardMode();
           }
-
-          this.forceEnemyWavesToForward(team);
-        }
-
-        forceEnemyWavesToForward(heroTeam) {
-          var enemyTeam = heroTeam === 0 ? 1 : 0;
-
-          for (var i = 0; i < this.waves.length; i++) {
-            var wave = this.waves[i];
-            if (!wave) continue;
-            if (wave.team !== enemyTeam) continue;
-            if (wave.isDead()) continue;
-            if (wave.hasEngagedRuntime(this.frame)) continue;
-            wave.forceForwardMode();
-          }
-        }
-
-        hasAliveNonHeroUnit(team) {
-          var units = team === 0 ? this.teamA : this.teamB;
-
-          for (var i = 0; i < units.length; i++) {
-            var unit = units[i];
-            if (!unit) continue;
-            if (unit.isHero) continue;
-            if (!this.isAliveUnit(unit)) continue;
-            return true;
-          }
-
-          return false;
-        }
-
-        hasAliveWave(team) {
-          for (var i = 0; i < this.waves.length; i++) {
-            var wave = this.waves[i];
-            if (!wave) continue;
-            if (wave.team !== team) continue;
-            if (wave.isDead()) continue;
-            return true;
-          }
-
-          return false;
         }
 
         canAffordAnySpawnEntry(team) {
@@ -1319,6 +1359,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return false;
+        }
+
+        canAffordAnyMeleeSpawnEntry(team) {
+          var entries = this.getDatabaseTeamEntries(team);
+
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!this.isValidSpawnEntry(entry)) continue;
+
+            if (entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Archer || entry.family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily).Monk) {
+              continue;
+            }
+
+            if (this.canAffordEntry(team, entry)) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        activateHeroBattleTargetSearchRange() {
+          if (this.heroBattleSearchRangeActive) return;
+          this.heroBattleSearchRangeActive = true;
+          var multiplier = this.getHeroBattleTargetSearchRangeMultiplier();
+          this.applyHeroBattleTargetSearchRangeToTeam(this.teamA, multiplier);
+          this.applyHeroBattleTargetSearchRangeToTeam(this.teamB, multiplier);
+        }
+
+        applyHeroBattleTargetSearchRangeToTeam(units, multiplier) {
+          for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            if (!this.isAliveUnit(unit)) continue;
+            unit.applyTargetSearchRangeMultiplier(multiplier);
+          }
+        }
+
+        applyHeroBattleTargetSearchRangeToUnit(unit) {
+          if (!unit) return;
+          if (!this.heroBattleSearchRangeActive) return;
+          unit.applyTargetSearchRangeMultiplier(this.getHeroBattleTargetSearchRangeMultiplier());
+        }
+
+        getHeroBattleTargetSearchRangeMultiplier() {
+          if (!this.unitDatabase) return 1;
+          return Math.max(1, this.unitDatabase.heroBattleTargetSearchRangeMultiplier);
         }
 
         resetBattleTelemetry() {
@@ -1380,7 +1470,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         createBattleTelemetryWaveSnapshot(wave) {
-          var _wave$family;
+          var _wave$family2;
 
           var busyCount = 0;
           var targetCount = 0;
@@ -1400,9 +1490,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             laneId: wave.laneId,
             unitName: wave.unitName,
             family: wave.family,
-            familyName: (_wave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            familyName: (_wave$family2 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family : String(wave.family),
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family2 : String(wave.family),
             tier: wave.tier,
             totalCount: wave.totalCount,
             aliveCount: wave.getRuntimeAliveCount(this.frame),
@@ -1429,6 +1519,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!this.enableBattleWinnerCheck) return;
           if (this.hasBattleWinner()) return;
+
+          if (this.combatResolutionDepth > 0) {
+            if (force) {
+              this.pendingForcedBattleWinnerCheck = true;
+            }
+
+            return;
+          }
+
           if (!this.enableNoAffordableSpawnWinnerFallback) return;
           if (!this.isCombatPointEnabled()) return;
 
@@ -1436,8 +1535,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          var teamAHasTroops = this.getAliveNonHeroUnitCount(0) > 0;
-          var teamBHasTroops = this.getAliveNonHeroUnitCount(1) > 0;
+          var teamAHasTroops = this.getAliveNonHeroUnitCount(0) > 0 || this.isAliveUnit(this.teamAHero);
+          var teamBHasTroops = this.getAliveNonHeroUnitCount(1) > 0 || this.isAliveUnit(this.teamBHero);
           var teamACanSpawn = this.canAffordAnySpawnEntry(0);
           var teamBCanSpawn = this.canAffordAnySpawnEntry(1);
           var teamAEliminated = !teamACanSpawn && !teamAHasTroops;
@@ -1471,6 +1570,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         resolveBattleWinner(winnerTeam, loserTeam, reason) {
           if (!this.enableBattleWinnerCheck) return;
           if (this.hasBattleWinner()) return;
+
+          if (this.combatResolutionDepth > 0) {
+            this.pendingBattleWinner = {
+              winnerTeam,
+              loserTeam,
+              reason
+            };
+            return;
+          }
+
           this.battleWinnerTeam = winnerTeam;
           this.battleLoserTeam = loserTeam;
           this.battleWinnerReason = reason;
@@ -1489,6 +1598,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         hasBattleWinner() {
           return this.battleWinnerResolved;
+        }
+
+        beginCombatResolution() {
+          this.combatResolutionDepth++;
+        }
+
+        endCombatResolution() {
+          if (this.combatResolutionDepth <= 0) {
+            this.combatResolutionDepth = 0;
+            return;
+          }
+
+          this.combatResolutionDepth--;
+          if (this.combatResolutionDepth > 0) return;
+          var pendingWinner = this.pendingBattleWinner;
+          var shouldCheckFallback = this.pendingForcedBattleWinnerCheck;
+          this.pendingBattleWinner = null;
+          this.pendingForcedBattleWinnerCheck = false;
+
+          if (pendingWinner) {
+            this.resolveBattleWinner(pendingWinner.winnerTeam, pendingWinner.loserTeam, pendingWinner.reason);
+          }
+
+          if (!this.hasBattleWinner() && shouldCheckFallback) {
+            this.processBattleWinnerCondition(true);
+          }
         }
 
         scheduleBattleTelemetryPageReload() {
@@ -2627,6 +2762,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 0, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.damageRadius, entry.defense);
+          this.applyHeroBattleTargetSearchRangeToUnit(unit);
 
           if (this.teamA.indexOf(unit) < 0) {
             this.teamA.push(unit);
@@ -2653,6 +2789,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           var unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 1, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.damageRadius, entry.defense);
+          this.applyHeroBattleTargetSearchRangeToUnit(unit);
 
           if (this.teamB.indexOf(unit) < 0) {
             this.teamB.push(unit);
@@ -2735,7 +2872,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var team = unit.team;
 
           if (team === 0 || team === 1) {
-            this.heroForwardUnlocked[team] = false;
+            // A hero is a one-time final deployment. Keep this latched after
+            // death so the low-CP activation check cannot respawn it.
+            this.heroForwardUnlocked[team] = true;
           }
 
           if (team === 0) {
@@ -2816,24 +2955,46 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         registerDatabaseHeroes() {
           if (!this.unitDatabase) return;
-          var heroA = this.unitDatabase.getHeroEntry(0);
-          var heroB = this.unitDatabase.getHeroEntry(1);
-          this.registerSceneHero(heroA, 0, 'hero_a');
-          this.registerSceneHero(heroB, 1, 'hero_b');
+          this.teamAHeroEntry = this.unitDatabase.getHeroEntry(0);
+          this.teamBHeroEntry = this.unitDatabase.getHeroEntry(1);
+          this.prepareSceneHero(this.teamAHeroEntry);
+          this.prepareSceneHero(this.teamBHeroEntry);
+        }
+
+        prepareSceneHero(heroEntry) {
+          if (!heroEntry || !heroEntry.heroNode) return;
+          heroEntry.heroNode.active = false;
+        }
+
+        activateHeroForTeam(team) {
+          var existing = team === 0 ? this.teamAHero : this.teamBHero;
+
+          if (this.isAliveUnit(existing)) {
+            return existing;
+          }
+
+          var entry = team === 0 ? this.teamAHeroEntry : this.teamBHeroEntry;
+          return this.registerSceneHero(entry, team, team === 0 ? 'hero_a' : 'hero_b');
         }
 
         registerSceneHero(heroEntry, team, fallbackTypeName) {
-          if (!heroEntry) return;
-          if (!heroEntry.heroNode) return;
+          if (!heroEntry) return null;
+          if (!heroEntry.heroNode) return null;
+          heroEntry.heroNode.active = true;
           var hero = heroEntry.heroNode.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
 
           if (!hero) {
-            return;
+            heroEntry.heroNode.active = false;
+            return null;
           }
 
-          if (!hero.node.activeInHierarchy) return;
+          if (!hero.node.activeInHierarchy) {
+            hero.node.active = false;
+            return null;
+          }
+
           hero.isHero = true;
           var props = hero.getComponent(_crd && UnitProps === void 0 ? (_reportPossibleCrUseOfUnitProps({
             error: Error()
@@ -2861,10 +3022,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var unitTypeName = heroEntry.name && heroEntry.name.length > 0 ? heroEntry.name : fallbackTypeName;
           var forwardX = 0;
           var forwardZ = team === 0 ? 1 : -1;
+          var currentPosition = hero.node.worldPosition;
+          this.tempSpawnPos.set(this.getLaneCenterX(this.getHeroLaneId()), currentPosition.y, currentPosition.z);
+          hero.node.setWorldPosition(this.tempSpawnPos);
           hero.moveSpeed = heroEntry.maxSpeed;
-          hero.canBePassedThroughByForwardAlly = true;
+          hero.canBePassedThroughByForwardAlly = false;
           hero.heroGuardDistance = heroEntry.guardDistance;
-          hero.isSteady = true;
+          hero.isSteady = false;
           hero.init(this.sim, team, unitTypeName, forwardX, forwardZ);
           this.registerHeroWave(hero, team, unitTypeName, heroEntry.family, heroEntry.tier);
 
@@ -2883,6 +3047,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               this.aliveCount[1]++;
             }
           }
+
+          if (this.enableBattleTelemetry) {
+            var _heroEntry$family;
+
+            var heroWave = team === 0 ? this.teamAHeroWave : this.teamBHeroWave;
+
+            if (heroWave) {
+              this.battleTelemetry.recordSpawn(hero, team, unitTypeName, heroEntry.family, heroEntry.tier, heroWave.id, this.frame, this.battleElapsedTime);
+            }
+
+            this.battleTelemetry.recordWaveSpawnEvent({
+              type: 'hero-activated',
+              frame: this.frame,
+              time: this.battleElapsedTime,
+              team,
+              waveId: heroWave ? heroWave.id : -1,
+              laneId: this.getHeroLaneId(),
+              unitName: unitTypeName,
+              familyName: (_heroEntry$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+                error: Error()
+              }), UnitFamily) : UnitFamily)[heroEntry.family]) != null ? _heroEntry$family : String(heroEntry.family),
+              aggressiveForward: false,
+              reason: 'cannot-afford-any-melee-wave',
+              combatPoint: this.combatPoint[team] || 0,
+              targetSearchRangeMultiplier: this.getHeroBattleTargetSearchRangeMultiplier()
+            });
+          }
+
+          this.requestSpatialGridRebuild();
+          this.requestBattleStatsUIRefresh();
+          return hero;
         }
 
         registerHeroWave(hero, team, unitTypeName, family, tier) {

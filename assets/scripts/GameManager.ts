@@ -263,6 +263,13 @@ export class GameManager extends Component {
     battleWinnerTeam = -1;
     battleLoserTeam = -1;
     battleWinnerReason = '';
+    private combatResolutionDepth = 0;
+    private pendingForcedBattleWinnerCheck = false;
+    private pendingBattleWinner: {
+        winnerTeam: number;
+        loserTeam: number;
+        reason: string;
+    } | null = null;
 
     @property
     enableAutoSpawn = true;
@@ -351,7 +358,10 @@ export class GameManager extends Component {
     private centeredRowXBuffer: number[] = [];
     private teamAHeroWave: BattleWave | null = null;
     private teamBHeroWave: BattleWave | null = null;
+    private teamAHeroEntry: HeroEntry | null = null;
+    private teamBHeroEntry: HeroEntry | null = null;
     private heroForwardUnlocked = [false, false];
+    private heroBattleSearchRangeActive = false;
     private readonly refreshLaneBeforeWaveForward =
         (wave: BattleWave) => {
             this.refreshDynamicLaneForWave(
@@ -395,8 +405,11 @@ export class GameManager extends Component {
         this.nextWaveId = 1;
         this.teamAHeroWave = null;
         this.teamBHeroWave = null;
+        this.teamAHeroEntry = null;
+        this.teamBHeroEntry = null;
         this.heroForwardUnlocked[0] = false;
         this.heroForwardUnlocked[1] = false;
+        this.heroBattleSearchRangeActive = false;
 
         this.teamAHero = null;
         this.teamBHero = null;
@@ -543,6 +556,9 @@ export class GameManager extends Component {
         this.battleWinnerTeam = -1;
         this.battleLoserTeam = -1;
         this.battleWinnerReason = '';
+        this.combatResolutionDepth = 0;
+        this.pendingForcedBattleWinnerCheck = false;
+        this.pendingBattleWinner = null;
     }
 
     private createSimulator() {
@@ -1165,7 +1181,13 @@ export class GameManager extends Component {
 
         if (!scanner) return;
 
-        if (scanner.hasReachedEnemyHeroLine()) {
+        const aggressiveForward =
+            wave.isAggressiveForwardMode();
+
+        if (
+            !aggressiveForward &&
+            scanner.hasReachedEnemyHeroLine()
+        ) {
             const heroTarget =
                 scanner.getEnemyHeroTarget();
 
@@ -1179,23 +1201,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (wave.isAggressiveForwardMode()) {
-            const heroTarget =
-                scanner.getEnemyHeroTarget();
-
-            if (
-                heroTarget &&
-                this.shouldReleaseAggressiveForwardHeroTarget(
-                    scanner,
-                    heroTarget
-                )
-            ) {
-                this.onWaveForwardTargetFound(
-                    scanner,
-                    heroTarget
-                );
-            }
-
+        if (aggressiveForward) {
             if (
                 !this.shouldRunFrameInterval(
                     wave.getTargetSearchIntervalFrames(),
@@ -1209,24 +1215,73 @@ export class GameManager extends Component {
 
             if (!scanner) return;
 
-            const sameLaneTarget =
-                scanner.findForwardSearchTarget(
-                    true
+            const adjacentRearGuard =
+                this.findDeepestAdjacentEnemyWaveScanner(
+                    wave,
+                    scanner
                 );
 
-            if (
-                sameLaneTarget &&
-                this.shouldReleaseAggressiveForwardSameLaneTarget(
-                    scanner,
-                    sameLaneTarget
-                )
+            if (adjacentRearGuard) {
+                if (
+                    wave.observeAggressiveAdjacentBoundary()
+                ) {
+                    this.recordAggressiveForwardEvent(
+                        'aggressive-boundary-observed',
+                        wave,
+                        scanner,
+                        adjacentRearGuard,
+                        0,
+                        'deepest-adjacent-enemy-wave'
+                    );
+                }
+            } else if (
+                !wave.hasObservedAggressiveAdjacentBoundary()
             ) {
-                this.onWaveForwardTargetFound(
-                    scanner,
-                    sameLaneTarget
-                );
+                return;
             }
 
+            if (
+                adjacentRearGuard &&
+                !scanner.hasPassedForwardTarget(
+                    adjacentRearGuard
+                )
+            ) {
+                return;
+            }
+
+            const enemiesAhead =
+                this.countEnemiesAheadInSameLane(
+                    scanner
+                );
+
+            if (enemiesAhead > 0) {
+                if (
+                    wave.observeAggressiveOwnLaneBlock()
+                ) {
+                    this.recordAggressiveForwardEvent(
+                        'aggressive-own-lane-blocked',
+                        wave,
+                        scanner,
+                        adjacentRearGuard,
+                        enemiesAhead,
+                        'enemy-ahead-in-own-lane'
+                    );
+                }
+
+                return;
+            }
+
+            this.recordAggressiveForwardEvent(
+                'aggressive-freehunt-release',
+                wave,
+                scanner,
+                adjacentRearGuard,
+                0,
+                adjacentRearGuard
+                    ? 'passed-deepest-adjacent-wave'
+                    : 'observed-adjacent-boundary-cleared'
+            );
+            wave.releaseForwardToFreeHunt();
             return;
         }
 
@@ -1244,9 +1299,7 @@ export class GameManager extends Component {
         if (!scanner) return;
 
         const target =
-            scanner.findForwardSearchTarget(
-                false
-            );
+            scanner.findForwardSearchTarget();
 
         if (
             target &&
@@ -1290,53 +1343,140 @@ export class GameManager extends Component {
         );
     }
 
-    private shouldReleaseAggressiveForwardHeroTarget(
-        scanner: Unit,
-        target: Unit
-    ) {
-        if (!target.isHero) return false;
-        if (!scanner.agent || !target.agent) return false;
+    private findDeepestAdjacentEnemyWaveScanner(
+        wave: BattleWave,
+        scanner: Unit
+    ): Unit | null {
+        if (!scanner.agent) return null;
 
-        const dx =
-            target.agent.pos.x -
-            scanner.agent.pos.x;
-        const dz =
-            target.agent.pos.z -
-            scanner.agent.pos.z;
-        const range =
-            Math.max(
-                0,
-                scanner.targetSearchRange
-            );
+        const ownLane =
+            wave.laneId >= 0
+                ? this.clampLaneId(wave.laneId)
+                : this.getCurrentLaneIdForUnit(scanner);
 
-        if (dx * dx + dz * dz > range * range) {
-            return false;
+        if (ownLane < 0) return null;
+
+        let best: Unit | null = null;
+        let bestProgress = -Infinity;
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const enemyWave = this.waves[i];
+
+            if (!enemyWave) continue;
+            if (enemyWave.team === wave.team) continue;
+            if (enemyWave.isDeadRuntime(this.frame)) continue;
+            if (enemyWave.laneId < 0) continue;
+
+            const enemyLane =
+                this.clampLaneId(enemyWave.laneId);
+
+            if (
+                Math.abs(enemyLane - ownLane) !== 1
+            ) {
+                continue;
+            }
+
+            const enemyScanner =
+                enemyWave.getProgressScanner();
+
+            if (!enemyScanner || !enemyScanner.agent) {
+                continue;
+            }
+
+            const progress =
+                enemyScanner.agent.pos.x *
+                    scanner.forwardDir.x +
+                enemyScanner.agent.pos.z *
+                    scanner.forwardDir.z;
+
+            if (progress > bestProgress) {
+                bestProgress = progress;
+                best = enemyScanner;
+            }
         }
 
-        return this.shouldReleaseNormalForwardTarget(
-            scanner,
-            target
-        );
+        return best;
     }
 
-    private shouldReleaseAggressiveForwardSameLaneTarget(
-        scanner: Unit,
-        target: Unit
+    private countEnemiesAheadInSameLane(
+        scanner: Unit
     ) {
-        if (!scanner || !target) return false;
-        if (scanner.laneId < 0) return false;
-        if (target.laneId < 0) return false;
+        if (scanner.laneId < 0) return 0;
 
-        if (
-            this.clampLaneId(scanner.laneId) !==
-            this.clampLaneId(target.laneId)
-        ) {
-            return false;
+        const ownLane =
+            this.clampLaneId(scanner.laneId);
+
+        const enemies =
+            scanner.team === 0
+                ? this.teamB
+                : this.teamA;
+        let count = 0;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+
+            if (!this.isAliveUnit(enemy)) continue;
+            if (enemy.laneId < 0) continue;
+            if (
+                this.clampLaneId(enemy.laneId) !==
+                ownLane
+            ) {
+                continue;
+            }
+
+            if (
+                !scanner.hasPassedForwardTarget(
+                    enemy
+                )
+            ) {
+                count++;
+            }
         }
 
-        return scanner.hasPassedForwardTarget(
-            target
-        );
+        return count;
+    }
+
+    private recordAggressiveForwardEvent(
+        type: string,
+        wave: BattleWave,
+        scanner: Unit,
+        boundary: Unit | null,
+        enemiesAhead: number,
+        reason: string
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        const boundaryWave =
+            BattleWave.getWaveForUnit(boundary);
+
+        this.battleTelemetry.recordAggressiveForwardEvent({
+            type,
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName:
+                UnitFamily[wave.family] ??
+                String(wave.family),
+            reason,
+            boundaryWaveId:
+                boundaryWave
+                    ? boundaryWave.id
+                    : -1,
+            boundaryLaneId:
+                boundaryWave
+                    ? boundaryWave.laneId
+                    : -1,
+            boundaryUnitName:
+                boundary
+                    ? boundary.unitTypeName
+                    : '',
+            enemiesAhead,
+            combatPoint:
+                this.combatPoint[wave.team] || 0,
+        });
     }
 
     private processWaveForwardRecoveries() {
@@ -1603,28 +1743,18 @@ export class GameManager extends Component {
     }
 
     private tryUnlockHeroForward(team: number) {
-        const hero =
-            team === 0
-                ? this.teamAHero
-                : this.teamBHero;
-
-        if (!this.isAliveUnit(hero)) {
-            return;
-        }
-
         if (this.heroForwardUnlocked[team]) {
             return;
         }
 
-        if (this.canAffordAnySpawnEntry(team)) {
+        if (this.canAffordAnyMeleeSpawnEntry(team)) {
             return;
         }
 
-        if (this.hasAliveNonHeroUnit(team)) {
-            return;
-        }
+        const hero =
+            this.activateHeroForTeam(team);
 
-        if (this.hasAliveWave(team)) {
+        if (!this.isAliveUnit(hero)) {
             return;
         }
 
@@ -1662,65 +1792,16 @@ export class GameManager extends Component {
         }
 
         this.heroForwardUnlocked[team] = true;
+        this.activateHeroBattleTargetSearchRange();
+        this.applyHeroBattleTargetSearchRangeToUnit(
+            hero
+        );
         hero.setSteady(false, true);
 
         if (heroWave) {
             this.ensureBattleWaveRegistered(heroWave);
             heroWave.forceForwardMode();
         }
-
-        this.forceEnemyWavesToForward(team);
-    }
-
-    private forceEnemyWavesToForward(
-        heroTeam: number
-    ) {
-        const enemyTeam =
-            heroTeam === 0 ? 1 : 0;
-
-        for (let i = 0; i < this.waves.length; i++) {
-            const wave = this.waves[i];
-
-            if (!wave) continue;
-            if (wave.team !== enemyTeam) continue;
-            if (wave.isDead()) continue;
-            if (wave.hasEngagedRuntime(this.frame)) continue;
-
-            wave.forceForwardMode();
-        }
-    }
-
-    private hasAliveNonHeroUnit(team: number) {
-        const units =
-            team === 0
-                ? this.teamA
-                : this.teamB;
-
-        for (let i = 0; i < units.length; i++) {
-            const unit = units[i];
-
-            if (!unit) continue;
-            if (unit.isHero) continue;
-            if (!this.isAliveUnit(unit)) continue;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private hasAliveWave(team: number) {
-        for (let i = 0; i < this.waves.length; i++) {
-            const wave = this.waves[i];
-
-            if (!wave) continue;
-            if (wave.team !== team) continue;
-            if (wave.isDead()) continue;
-
-            return true;
-        }
-
-        return false;
     }
 
     private canAffordAnySpawnEntry(team: number) {
@@ -1738,6 +1819,83 @@ export class GameManager extends Component {
         }
 
         return false;
+    }
+
+    private canAffordAnyMeleeSpawnEntry(team: number) {
+        const entries =
+            this.getDatabaseTeamEntries(team);
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (!this.isValidSpawnEntry(entry)) continue;
+            if (
+                entry.family === UnitFamily.Archer ||
+                entry.family === UnitFamily.Monk
+            ) {
+                continue;
+            }
+
+            if (this.canAffordEntry(team, entry)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private activateHeroBattleTargetSearchRange() {
+        if (this.heroBattleSearchRangeActive) return;
+
+        this.heroBattleSearchRangeActive = true;
+
+        const multiplier =
+            this.getHeroBattleTargetSearchRangeMultiplier();
+
+        this.applyHeroBattleTargetSearchRangeToTeam(
+            this.teamA,
+            multiplier
+        );
+        this.applyHeroBattleTargetSearchRangeToTeam(
+            this.teamB,
+            multiplier
+        );
+    }
+
+    private applyHeroBattleTargetSearchRangeToTeam(
+        units: Unit[],
+        multiplier: number
+    ) {
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!this.isAliveUnit(unit)) continue;
+
+            unit.applyTargetSearchRangeMultiplier(
+                multiplier
+            );
+        }
+    }
+
+    private applyHeroBattleTargetSearchRangeToUnit(
+        unit: Unit | null
+    ) {
+        if (!unit) return;
+        if (!this.heroBattleSearchRangeActive) return;
+
+        unit.applyTargetSearchRangeMultiplier(
+            this.getHeroBattleTargetSearchRangeMultiplier()
+        );
+    }
+
+    private getHeroBattleTargetSearchRangeMultiplier() {
+        if (!this.unitDatabase) return 1;
+
+        return Math.max(
+            1,
+            this.unitDatabase
+                .heroBattleTargetSearchRangeMultiplier
+        );
     }
 
     private resetBattleTelemetry() {
@@ -1881,6 +2039,13 @@ export class GameManager extends Component {
     private processBattleWinnerCondition(force: boolean = false) {
         if (!this.enableBattleWinnerCheck) return;
         if (this.hasBattleWinner()) return;
+        if (this.combatResolutionDepth > 0) {
+            if (force) {
+                this.pendingForcedBattleWinnerCheck = true;
+            }
+
+            return;
+        }
         if (!this.enableNoAffordableSpawnWinnerFallback) return;
         if (!this.isCombatPointEnabled()) return;
         if (
@@ -1893,9 +2058,11 @@ export class GameManager extends Component {
         }
 
         const teamAHasTroops =
-            this.getAliveNonHeroUnitCount(0) > 0;
+            this.getAliveNonHeroUnitCount(0) > 0 ||
+            this.isAliveUnit(this.teamAHero);
         const teamBHasTroops =
-            this.getAliveNonHeroUnitCount(1) > 0;
+            this.getAliveNonHeroUnitCount(1) > 0 ||
+            this.isAliveUnit(this.teamBHero);
         const teamACanSpawn =
             this.canAffordAnySpawnEntry(0);
         const teamBCanSpawn =
@@ -1963,6 +2130,14 @@ export class GameManager extends Component {
     ) {
         if (!this.enableBattleWinnerCheck) return;
         if (this.hasBattleWinner()) return;
+        if (this.combatResolutionDepth > 0) {
+            this.pendingBattleWinner = {
+                winnerTeam,
+                loserTeam,
+                reason,
+            };
+            return;
+        }
 
         this.battleWinnerTeam = winnerTeam;
         this.battleLoserTeam = loserTeam;
@@ -2012,6 +2187,44 @@ export class GameManager extends Component {
 
     public hasBattleWinner() {
         return this.battleWinnerResolved;
+    }
+
+    public beginCombatResolution() {
+        this.combatResolutionDepth++;
+    }
+
+    public endCombatResolution() {
+        if (this.combatResolutionDepth <= 0) {
+            this.combatResolutionDepth = 0;
+            return;
+        }
+
+        this.combatResolutionDepth--;
+
+        if (this.combatResolutionDepth > 0) return;
+
+        const pendingWinner =
+            this.pendingBattleWinner;
+        const shouldCheckFallback =
+            this.pendingForcedBattleWinnerCheck;
+
+        this.pendingBattleWinner = null;
+        this.pendingForcedBattleWinnerCheck = false;
+
+        if (pendingWinner) {
+            this.resolveBattleWinner(
+                pendingWinner.winnerTeam,
+                pendingWinner.loserTeam,
+                pendingWinner.reason
+            );
+        }
+
+        if (
+            !this.hasBattleWinner() &&
+            shouldCheckFallback
+        ) {
+            this.processBattleWinnerCondition(true);
+        }
     }
 
     private scheduleBattleTelemetryPageReload() {
@@ -3961,6 +4174,10 @@ export class GameManager extends Component {
             entry.defense
         );
 
+        this.applyHeroBattleTargetSearchRangeToUnit(
+            unit
+        );
+
         if (this.teamA.indexOf(unit) < 0) {
             this.teamA.push(unit);
             this.aliveCount[0]++;
@@ -4008,6 +4225,10 @@ export class GameManager extends Component {
             entry.damage,
             entry.damageRadius,
             entry.defense
+        );
+
+        this.applyHeroBattleTargetSearchRangeToUnit(
+            unit
         );
 
         if (this.teamB.indexOf(unit) < 0) {
@@ -4110,7 +4331,9 @@ export class GameManager extends Component {
         const team = unit.team;
 
         if (team === 0 || team === 1) {
-            this.heroForwardUnlocked[team] = false;
+            // A hero is a one-time final deployment. Keep this latched after
+            // death so the low-CP activation check cannot respawn it.
+            this.heroForwardUnlocked[team] = true;
         }
 
         if (team === 0) {
@@ -4207,19 +4430,50 @@ export class GameManager extends Component {
     private registerDatabaseHeroes() {
         if (!this.unitDatabase) return;
 
-        const heroA = this.unitDatabase.getHeroEntry(0);
-        const heroB = this.unitDatabase.getHeroEntry(1);
+        this.teamAHeroEntry =
+            this.unitDatabase.getHeroEntry(0);
+        this.teamBHeroEntry =
+            this.unitDatabase.getHeroEntry(1);
 
-        this.registerSceneHero(
-            heroA,
-            0,
-            'hero_a'
+        this.prepareSceneHero(
+            this.teamAHeroEntry
         );
+        this.prepareSceneHero(
+            this.teamBHeroEntry
+        );
+    }
 
-        this.registerSceneHero(
-            heroB,
-            1,
-            'hero_b'
+    private prepareSceneHero(
+        heroEntry: HeroEntry | null
+    ) {
+        if (!heroEntry || !heroEntry.heroNode) return;
+
+        heroEntry.heroNode.active = false;
+    }
+
+    private activateHeroForTeam(
+        team: number
+    ): Unit | null {
+        const existing =
+            team === 0
+                ? this.teamAHero
+                : this.teamBHero;
+
+        if (this.isAliveUnit(existing)) {
+            return existing;
+        }
+
+        const entry =
+            team === 0
+                ? this.teamAHeroEntry
+                : this.teamBHeroEntry;
+
+        return this.registerSceneHero(
+            entry,
+            team,
+            team === 0
+                ? 'hero_a'
+                : 'hero_b'
         );
     }
 
@@ -4227,18 +4481,24 @@ export class GameManager extends Component {
         heroEntry: HeroEntry | null,
         team: number,
         fallbackTypeName: string
-    ) {
+    ): Unit | null {
 
-        if (!heroEntry) return;
-        if (!heroEntry.heroNode) return;
+        if (!heroEntry) return null;
+        if (!heroEntry.heroNode) return null;
+
+        heroEntry.heroNode.active = true;
 
         const hero = heroEntry.heroNode.getComponent(Unit);
 
         if (!hero) {
-            return;
+            heroEntry.heroNode.active = false;
+            return null;
         }
 
-        if (!hero.node.activeInHierarchy) return;
+        if (!hero.node.activeInHierarchy) {
+            hero.node.active = false;
+            return null;
+        }
 
         hero.isHero = true;
 
@@ -4272,10 +4532,24 @@ export class GameManager extends Component {
         const forwardZ =
             team === 0 ? 1 : -1;
 
+        const currentPosition =
+            hero.node.worldPosition;
+
+        this.tempSpawnPos.set(
+            this.getLaneCenterX(
+                this.getHeroLaneId()
+            ),
+            currentPosition.y,
+            currentPosition.z
+        );
+        hero.node.setWorldPosition(
+            this.tempSpawnPos
+        );
+
         hero.moveSpeed = heroEntry.maxSpeed;
-        hero.canBePassedThroughByForwardAlly = true;
+        hero.canBePassedThroughByForwardAlly = false;
         hero.heroGuardDistance = heroEntry.guardDistance;
-        hero.isSteady = true;
+        hero.isSteady = false;
 
         hero.init(
             this.sim,
@@ -4316,6 +4590,53 @@ export class GameManager extends Component {
             }
 
         }
+
+        if (this.enableBattleTelemetry) {
+            const heroWave =
+                team === 0
+                    ? this.teamAHeroWave
+                    : this.teamBHeroWave;
+
+            if (heroWave) {
+                this.battleTelemetry.recordSpawn(
+                    hero,
+                    team,
+                    unitTypeName,
+                    heroEntry.family,
+                    heroEntry.tier,
+                    heroWave.id,
+                    this.frame,
+                    this.battleElapsedTime
+                );
+            }
+
+            this.battleTelemetry.recordWaveSpawnEvent({
+                type: 'hero-activated',
+                frame: this.frame,
+                time: this.battleElapsedTime,
+                team,
+                waveId:
+                    heroWave
+                        ? heroWave.id
+                        : -1,
+                laneId: this.getHeroLaneId(),
+                unitName: unitTypeName,
+                familyName:
+                    UnitFamily[heroEntry.family] ??
+                    String(heroEntry.family),
+                aggressiveForward: false,
+                reason: 'cannot-afford-any-melee-wave',
+                combatPoint:
+                    this.combatPoint[team] || 0,
+                targetSearchRangeMultiplier:
+                    this.getHeroBattleTargetSearchRangeMultiplier(),
+            });
+        }
+
+        this.requestSpatialGridRebuild();
+        this.requestBattleStatsUIRefresh();
+
+        return hero;
     }
 
     private registerHeroWave(

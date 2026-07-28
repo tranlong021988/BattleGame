@@ -123,10 +123,16 @@ export class BattleArmyBrain extends Component {
     private hasSpawnedWave = false;
     private hasSeenEnemyWave = false;
     private testSingleWaveSpawned = false;
+    private telemetryBatchQueryActive = false;
 
     start() {
         this.applyTelemetryBatchQueryAccuracy();
-        this.randomizeNextInterval();
+
+        if (this.telemetryBatchQueryActive) {
+            this.nextInterval = 0;
+        } else {
+            this.randomizeNextInterval();
+        }
     }
 
     update(dt: number) {
@@ -157,6 +163,16 @@ export class BattleArmyBrain extends Component {
         }
 
         this.timer = 0;
+
+        if (
+            this.telemetryBatchQueryActive &&
+            !this.hasSpawnedWave
+        ) {
+            this.thinkAndSpawn();
+            this.randomizeNextInterval();
+            return;
+        }
+
         this.randomizeNextInterval();
         this.thinkAndSpawn();
     }
@@ -256,7 +272,15 @@ export class BattleArmyBrain extends Component {
             this.hasSeenEnemyWave = true;
         }
 
-        if (this.evaluator.enemyCount <= 0) {
+        const forceSynchronizedOpening =
+            this.telemetryBatchQueryActive &&
+            !this.hasSpawnedWave &&
+            this.spawnOpeningWaveIfNoEnemyWave;
+
+        if (
+            forceSynchronizedOpening ||
+            this.evaluator.enemyCount <= 0
+        ) {
             if (!this.spawnOpeningWaveIfNoEnemyWave) {
                 this.stateLog('WAIT no enemy and opening disabled.');
                 return;
@@ -279,7 +303,13 @@ export class BattleArmyBrain extends Component {
                     this.affordableEntries,
                     0,
                     this.getBlockedMeleeLaneId(),
-                    this.getDecisionAccuracy()
+                    this.getDecisionAccuracy(),
+                    forceSynchronizedOpening,
+                    forceSynchronizedOpening
+                        ? Math.floor(
+                            gameManager.getSafeLaneCount() * 0.5
+                        )
+                        : -1
                 );
 
             if (
@@ -728,6 +758,8 @@ export class BattleArmyBrain extends Component {
         if (!this.hasTelemetryBatchQueryParams(params)) {
             return;
         }
+
+        this.telemetryBatchQueryActive = true;
 
         const queryTeam =
             this.getTelemetryBatchQueryInt(

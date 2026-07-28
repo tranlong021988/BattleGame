@@ -29,6 +29,8 @@ type UnitBehaviorGameManager = {
     ): void;
     reportKill(attacker: Unit, defender: Unit): void;
     despawnUnit(unit: Unit): void;
+    beginCombatResolution(): void;
+    endCombatResolution(): void;
 };
 
 @ccclass('UnitBehavior')
@@ -116,7 +118,18 @@ export class UnitBehavior extends Component {
                 ? UnitBehavior.nextAttackBatchId++
                 : -1;
 
-        this.dealDamageToEnemy(enemy, attackBatchId);
+        if (!gm) {
+            this.dealDamageToEnemy(enemy, attackBatchId);
+            return;
+        }
+
+        gm.beginCombatResolution();
+
+        try {
+            this.dealDamageToEnemy(enemy, attackBatchId);
+        } finally {
+            gm.endCombatResolution();
+        }
     }
 
     private dealDamageToEnemy(

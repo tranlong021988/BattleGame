@@ -565,7 +565,9 @@ export class BattlefieldEvaluator {
         affordableEntries: UnitPrefabEntry[],
         maxRangedSupportPerTarget: number,
         blockedMeleeLaneId = -1,
-        decisionAccuracy = 1
+        decisionAccuracy = 1,
+        forceOpening = false,
+        preferredOpeningLaneId = -1
     ) {
         this.spawnDecision.reset();
         this.resetSpawnCandidates();
@@ -574,12 +576,12 @@ export class BattlefieldEvaluator {
             return this.spawnDecision;
         }
 
-        if (this.enemyCount <= 0) {
+        if (forceOpening || this.enemyCount <= 0) {
             return this.chooseOpeningPressureDecision(
                 gameManager,
                 affordableEntries,
                 blockedMeleeLaneId,
-                decisionAccuracy
+                preferredOpeningLaneId
             );
         }
 
@@ -679,14 +681,19 @@ export class BattlefieldEvaluator {
         gameManager: GameManager,
         affordableEntries: UnitPrefabEntry[],
         blockedMeleeLaneId: number,
-        decisionAccuracy: number
+        preferredLaneId = -1
     ) {
+        const laneCount =
+            gameManager.getSafeLaneCount();
         const laneId =
-            this.choosePressureLane(
-                gameManager,
-                blockedMeleeLaneId,
-                false
-            );
+            preferredLaneId >= 0 &&
+            preferredLaneId < laneCount
+                ? Math.floor(preferredLaneId)
+                : this.choosePressureLane(
+                    gameManager,
+                    blockedMeleeLaneId,
+                    false
+                );
 
         if (laneId < 0) {
             return this.spawnDecision;
@@ -701,6 +708,9 @@ export class BattlefieldEvaluator {
             return this.spawnDecision;
         }
 
+        let selectedEntry: UnitPrefabEntry | null = null;
+        let selectedDistance = Number.POSITIVE_INFINITY;
+
         for (let i = 0; i < affordableEntries.length; i++) {
             const entry = affordableEntries[i];
 
@@ -711,29 +721,43 @@ export class BattlefieldEvaluator {
             const power =
                 this.getEntryBasePower(
                     entry,
-                    Math.max(1, entry.unitCount),
+                    1,
                     1,
                     1
                 );
-            const score =
-                1000 -
-                Math.abs(power - averagePower) +
-                Math.random() * 0.001;
+            const distance =
+                Math.abs(power - averagePower);
 
-            this.addSpawnCandidate(
-                entry,
-                null,
-                laneId,
-                true,
-                'snapshot-opening-pressure',
-                score,
-                CPStrategyState.Opening
-            );
+            if (
+                distance < selectedDistance ||
+                (
+                    distance === selectedDistance &&
+                    this.compareOpeningEntries(
+                        entry,
+                        selectedEntry
+                    ) < 0
+                )
+            ) {
+                selectedEntry = entry;
+                selectedDistance = distance;
+            }
         }
 
-        return this.chooseCandidateByAccuracy(
-            decisionAccuracy
+        if (!selectedEntry) {
+            return this.spawnDecision;
+        }
+
+        this.addSpawnCandidate(
+            selectedEntry,
+            null,
+            laneId,
+            true,
+            'snapshot-opening-pressure',
+            1000 - selectedDistance,
+            CPStrategyState.Opening
         );
+
+        return this.chooseCandidateByAccuracy(1);
     }
 
     private getAverageOpeningFrontlinePower(
@@ -753,7 +777,7 @@ export class BattlefieldEvaluator {
             totalPower +=
                 this.getEntryBasePower(
                     entry,
-                    Math.max(1, entry.unitCount),
+                    1,
                     1,
                     1
                 );
@@ -764,6 +788,21 @@ export class BattlefieldEvaluator {
         }
 
         return totalPower / candidateCount;
+    }
+
+    private compareOpeningEntries(
+        a: UnitPrefabEntry,
+        b: UnitPrefabEntry | null
+    ) {
+        if (!b) return -1;
+        if (a.family !== b.family) {
+            return a.family - b.family;
+        }
+        if (a.tier !== b.tier) {
+            return a.tier - b.tier;
+        }
+
+        return a.name.localeCompare(b.name);
     }
 
     private isOpeningFrontlineFamily(

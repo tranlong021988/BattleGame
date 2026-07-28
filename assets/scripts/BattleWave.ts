@@ -30,6 +30,8 @@ export class BattleWave {
     private forwardModeActive = true;
     private freeHuntActive = false;
     private aggressiveForwardMode = false;
+    private aggressiveAdjacentBoundaryObserved = false;
+    private aggressiveOwnLaneBlockObserved = false;
     private initialForwardCombatGateActive = true;
     private initialForwardCombatReleaseThreshold = 1;
     private forwardScannerUnit: Unit | null = null;
@@ -611,6 +613,8 @@ export class BattleWave {
         this.forwardModeActive = false;
         this.freeHuntActive = true;
         this.aggressiveForwardMode = false;
+        this.aggressiveAdjacentBoundaryObserved = false;
+        this.aggressiveOwnLaneBlockObserved = false;
         this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
@@ -633,6 +637,8 @@ export class BattleWave {
         this.forwardModeActive = false;
         this.freeHuntActive = true;
         this.aggressiveForwardMode = false;
+        this.aggressiveAdjacentBoundaryObserved = false;
+        this.aggressiveOwnLaneBlockObserved = false;
         this.initialForwardCombatGateActive = false;
         this.forwardScannerUnit = null;
 
@@ -684,6 +690,27 @@ export class BattleWave {
             this.aggressiveForwardMode;
     }
 
+    observeAggressiveAdjacentBoundary() {
+        if (!this.isAggressiveForwardMode()) return false;
+        if (this.aggressiveAdjacentBoundaryObserved) return false;
+
+        this.aggressiveAdjacentBoundaryObserved = true;
+        return true;
+    }
+
+    hasObservedAggressiveAdjacentBoundary() {
+        return !this.released &&
+            this.aggressiveAdjacentBoundaryObserved;
+    }
+
+    observeAggressiveOwnLaneBlock() {
+        if (!this.isAggressiveForwardMode()) return false;
+        if (this.aggressiveOwnLaneBlockObserved) return false;
+
+        this.aggressiveOwnLaneBlockObserved = true;
+        return true;
+    }
+
     getForwardScanner(
         refresh: boolean = false
     ): Unit | null {
@@ -700,6 +727,19 @@ export class BattleWave {
             return this.forwardScannerUnit;
         }
 
+        this.forwardScannerUnit =
+            this.findFrontmostAliveUnit(true);
+
+        return this.forwardScannerUnit;
+    }
+
+    getProgressScanner(): Unit | null {
+        return this.findFrontmostAliveUnit(false);
+    }
+
+    private findFrontmostAliveUnit(
+        requireForward: boolean
+    ): Unit | null {
         let best: Unit | null = null;
         let bestScore = -Infinity;
 
@@ -707,7 +747,7 @@ export class BattleWave {
             const u = this.units[i];
 
             if (!this.isUnitAlive(u)) continue;
-            if (!u.onForward) continue;
+            if (requireForward && !u.onForward) continue;
 
             const score =
                 u.agent!.pos.x * u.forwardDir.x +
@@ -719,8 +759,7 @@ export class BattleWave {
             }
         }
 
-        this.forwardScannerUnit = best;
-        return this.forwardScannerUnit;
+        return best;
     }
 
     tryResumeForward(
@@ -834,6 +873,8 @@ export class BattleWave {
         this.forwardModeActive = false;
         this.freeHuntActive = false;
         this.aggressiveForwardMode = false;
+        this.aggressiveAdjacentBoundaryObserved = false;
+        this.aggressiveOwnLaneBlockObserved = false;
         this.initialForwardCombatGateActive = false;
         this.initialForwardCombatReleaseThreshold = 1;
         this.forwardScannerUnit = null;

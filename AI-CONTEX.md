@@ -2,10 +2,10 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-28 after the BattleArmyBrain conflict audit, ranged
-support/ranged-safety fixes, telemetry batch automation checks, accuracy sweep
-analysis for both teams, preview-cache recovery, unit unlock audit, and source
-sync.
+Last updated: 2026-07-28 after the synchronized-opening accuracy sweep, final
+Hero deployment implementation, Hero-phase target-search expansion,
+aggressive-forward redesign, combat-resolution winner fix, and source/scene
+reconciliation.
 
 ## Handoff Policy
 
@@ -40,7 +40,12 @@ Read these first:
 - `assets/scripts/CounterSettings.ts`: runtime counter damage.
 - `assets/scripts/BattleTelemetry.ts`: report schema and aggregation.
 - `assets/scripts/GameManager.ts`: battle end, report export/reload, CP, wave
-  ownership, and telemetry URL automation.
+  ownership, final Hero deployment, forward/aggressive state transitions, and
+  telemetry URL automation.
+- `assets/scripts/BattleWave.ts`: wave-level forward, aggressive, combat, and
+  Freehunt state.
+- `assets/scripts/Unit.ts` and `assets/scripts/UnitBehavior.ts`: target search,
+  Hero-phase range multiplier, combat resolution, damage, and death flow.
 
 The active AI is `BattleArmyBrain` plus `BattlefieldEvaluator`. Old
 `ArmyBrain`/`SmartArmyBrain` logic is legacy unless a scene explicitly enables
@@ -61,9 +66,13 @@ it.
   - `maxConsecutiveMeleeWavesPerLane = 2`
 - `GameManager` currently has telemetry enabled in the test scene. Telemetry is
   test-only and should be disabled for the real game build.
-- `battleTimeScale = 1`; the permanent 1.5x combat tempo was implemented by
-  changing movement, attack intervals, and spawn timing rather than by leaving
-  time scale raised.
+- `battleTimeScale = 2` in the current serialized test scene. The latest
+  60-report batch was produced under this accelerated test configuration.
+- Both Hero nodes are serialized as active in `assets/Test.scene`, but
+  `GameManager.registerDatabaseHeroes()` immediately stores their entries and
+  deactivates the nodes at runtime. Do not infer "Hero starts in battle" from
+  the scene `_active` value alone.
+- `heroBattleTargetSearchRangeMultiplier = 2`.
 
 ## X-Power And Cost
 
@@ -149,10 +158,12 @@ and response reservations before changing this pair again.
 - Current scene test value is `1` for both teams.
 - Accuracy affects unit selection inside the evaluator's tactical anchor;
   target and lane choice remain tactical.
-- `1` always keeps the best scored candidate.
-- Values below `1` use weighted candidate selection among same-anchor
-  deliberate mistakes. This is intended to be a smooth probability curve, not a
-  hard `if accuracy == X then behavior Y` table.
+- If suitable mistake candidates exist, one random roll keeps the best
+  candidate with probability equal to accuracy. For example, `0.8` keeps the
+  best candidate about 80% of the time.
+- When the roll does not keep the best candidate, the evaluator chooses a
+  lower-ranked same-anchor candidate with weights derived from candidate rank
+  and accuracy. `1` therefore always keeps the best candidate.
 - A deliberate mistake must be a different family from the best answer, must
   share the same target/lane anchor, and must not itself be an accurate hard
   counter response.
@@ -160,9 +171,28 @@ and response reservations before changing this pair again.
   response, the evaluator returns no decision instead of accidentally taking
   the correct answer. This prevents the lowest-accuracy AI from winning by
   forced correctness.
-- Ranged support capacity is also accuracy-scaled. At accuracy `0`, normal
-  ranged support capacity is `0`; as accuracy rises, the cap approaches the
-  Inspector `maxRangedSupportWavesPerLane`.
+- Candidate choice is probabilistically smooth, but ranged capacity is not
+  perfectly continuous. It uses:
+
+  ```text
+  accuracy <= 0 -> 0
+  otherwise -> max(1, ceil(maxRangedSupportWavesPerLane * accuracy))
+  ```
+
+  With the current Inspector maximum `3`, the actual caps are:
+
+  | Accuracy | Ranged cap |
+  | ---: | ---: |
+  | 0.0 | 0 |
+  | 0.2 | 1 |
+  | 0.4 | 2 |
+  | 0.6 | 2 |
+  | 0.8 | 3 |
+  | 1.0 | 3 |
+
+  This staircase is a real behavioral threshold. It explains one important
+  similarity between `0.8` and `1.0`, but does not make their candidate
+  decisions identical.
 - Last stand is the deliberate exception: when a team has no non-hero units
   left but can still afford something, it may spawn any affordable unlocked
   unit, including ranged. Do not confuse this with normal ranged-support logic.
@@ -176,9 +206,19 @@ and response reservations before changing this pair again.
   spawn an opening frontline wave.
 - Opening frontline families are Spear, Sword, Axeman, and Cavalry.
 - Opening currently targets the affordable frontline whose wave power is
-  closest to the average affordable frontline power. With current tier-1 stats
-  and accuracy `1`, this often means Axeman. This is source-confirmed behavior,
-  not a SmartArmyBrain issue.
+  closest to the average affordable one-unit X-Power. `UnitCount` is not used
+  for this opening comparison.
+- Opening choice is deterministic after tie-breaking and bypasses
+  `decisionAccuracy`; it is meant to remove opening-family luck from balance
+  tests. With the current roster it selects Axeman.
+- When telemetry batch query parameters are present, both brains:
+  - set their first think interval to zero;
+  - force the opening branch even if the other opening already exists;
+  - use the middle lane.
+
+  This synchronizes both teams to the same Axeman-mid opening. Outside telemetry
+  batch mode, the normal randomized brain interval and normal pressure-lane
+  selection still apply.
 - Last stand is separate from normal snapshot support. If the team has spawned
   before, has no living non-hero wave, and can still afford something,
   `chooseLastStandSpawnDecision()` may buy any affordable unit. This can include
@@ -194,6 +234,99 @@ Inspector fields:
 When enabled, each brain spawns exactly one selected wave at mid and skips the
 normal AI. Use this for controlled pair tests. Full telemetry is not a clean
 substitute for isolated stat/counter validation.
+
+## Forward, Aggressive, And Freehunt
+
+### Normal Forward
+
+- A normal-forward wave periodically refreshes its forward scanner.
+- It may release from forward into target pursuit after passing a valid enemy
+  in the same or adjacent lane.
+- Reaching the enemy Hero line can also resolve to the enemy Hero when that Hero
+  exists.
+- Returning to lane preserves whether the wave was aggressive; it no longer
+  silently converts an aggressive wave into normal forward.
+
+### Aggressive Forward
+
+Aggressive no longer uses the Hero line as its normal release boundary.
+
+Current runtime flow:
+
+1. Use the wave's frontmost living forward unit as scanner.
+2. Find the deepest living enemy-wave scanner in either adjacent lane.
+3. Once an adjacent boundary is observed, remember that fact.
+4. Continue forward until the aggressive scanner passes that boundary.
+5. Before release, require that no enemy remains ahead in the aggressive
+   wave's own lane.
+6. Release the wave into normal Freehunt target acquisition.
+
+Important edge cases:
+
+- If the observed adjacent boundary dies/disappears, the wave may still release
+  after its own lane becomes clear.
+- An aggressive opening that never observes an adjacent enemy boundary remains
+  aggressive. That is current source behavior, not yet a proven desired
+  terminal rule.
+- If an aggressive wave enters combat directly, `BattleWave.enterCombatMode()`
+  ends aggressive-forward state without emitting an aggressive terminal
+  telemetry event.
+- If it dies before release, there is likewise no one-shot aggressive terminal
+  event yet.
+
+Current one-shot telemetry events:
+
+- `aggressive-boundary-observed`
+- `aggressive-own-lane-blocked`
+- `aggressive-freehunt-release`
+
+Do not infer that every observed wave without a release event is stuck. Combat
+entry and death are currently unclassified outcomes. If aggressive behavior is
+audited again, first add terminal events such as
+`aggressive-combat-entered` and `aggressive-died-before-release`, then require
+exactly one terminal outcome per aggressive spawn.
+
+## Final Hero Deployment
+
+### Activation
+
+- Heroes are scene-backed entries, but are inactive and absent from simulation,
+  team arrays, waves, and telemetry at battle start.
+- A team activates its Hero exactly once when it can no longer afford any valid
+  unlocked melee entry. Archer and Monk do not postpone Hero deployment.
+- Activation does not wait for the team's existing normal waves to die.
+- The Hero is placed on the middle-lane X while retaining its scene Z, is
+  registered as a normal forward wave, and starts moving immediately.
+- Hero is a physical ally blocker again:
+  `canBePassedThroughByForwardAlly = false`.
+- The old behavior that forced all enemy waves back into forward mode on Hero
+  activation was removed.
+
+### End And Respawn Safety
+
+- Hero death ends the battle with reason `hero-killed`.
+- Hero deployment is latched. `handleHeroDeath()` keeps the team unlock flag
+  true, so a dead Hero cannot refill and respawn on the next low-CP check.
+- Winner resolution is deferred while one attack batch is being resolved. This
+  matters for AoE: the game must not finalize a fallback winner halfway through
+  one damage batch while other victims/deaths are still being processed.
+- The no-affordable-spawn fallback counts a living Hero as a combatant. This
+  prevents false elimination on the exact frame the Hero is activated.
+
+### Hero-Phase Search Range
+
+- The first Hero activation enables a global battle phase for both teams.
+- Every currently living unit receives
+  `heroBattleTargetSearchRangeMultiplier`, currently `2`.
+- Units spawned later and the second Hero receive the same multiplier.
+- `Unit.applyTargetSearchRangeMultiplier()` applies a ratio against the
+  previously applied multiplier, so pooled units cannot accumulate
+  `x2 -> x4 -> x8`.
+- Applying the multiplier invalidates nearest-target results and cached
+  targets.
+- `hero-activated` telemetry records the activation CP and configured
+  multiplier. It does not log every individual unit's resulting numeric search
+  range; source inspection is the proof for per-unit application.
 
 ## BattlefieldEvaluator
 
@@ -385,12 +518,14 @@ Telemetry records:
 - spawn reason, intended target, selected/best candidate, accuracy roll, and CP
   strategy;
 - Monk AoE targets hit per attack;
+- Hero activation CP and Hero-phase target-search multiplier;
+- aggressive boundary/block/release diagnostics;
 - start stats, counter rules, and batch configuration.
 
-Current battle-end condition for automated balance tests is
-`team-eliminated-and-cannot-afford-spawn`: a team must have no non-hero units
-and be unable to afford another unlocked unit. Heroes can be disabled for these
-tests.
+Current normal automated tests end primarily through `hero-killed`: a team
+deploys its Hero when it cannot afford any melee wave, and the first Hero death
+loses. The fallback `team-eliminated-and-cannot-afford-spawn` still exists for
+valid no-Hero/no-combatant cases.
 
 ### Batch URL
 
@@ -410,197 +545,225 @@ After report download, `GameManager` waits
 page. If telemetry fails to download/reload, inspect the winner condition and
 browser download permission before changing battle logic.
 
+When any telemetry batch query parameter is present, synchronized opening is
+also enabled for both brains even though only the selected `team` receives the
+accuracy override.
+
 ## Latest Telemetry Evidence
 
-### Monk Redesign Batch
+### Current 60-Match Accuracy Sweep
 
-After Monk became one unit with `35 HP / 70 damage / radius 1 / cost 49`:
+Files: 60 reports from `2026-07-28T09-48-58` through
+`2026-07-28T10-14-55`.
 
-- 10 equal-accuracy matches ended 5-5.
-- Monk: 34 waves, damage/CP 12.20, damage/wave 598, average 4.40 targets per
-  attack, 29.4% survival.
-- Archer at 4 units: 25 waves, damage/CP 9.24, damage/wave 240.3.
-- Sword: damage/CP 11.87, damage/wave 581.5.
+Test setup:
 
-Conclusion: Monk's Sword-equivalent cost became defensible because real AoE
-value compensated for its fragility and lost wave slot.
-
-### Archer Five-Unit Batch
-
-After Archer changed from 4 to 5 units:
-
-- Archer: 38 waves, damage/CP 13.80, damage/wave 358.7, survival 32.6%.
-- Archer team split was symmetric: 13.76 vs 13.84 damage/CP.
-- Monk: 33 waves, damage/CP 14.65, damage/wave 718.1.
-
-Conclusion: Archer became worth its slot without evidence that the stat itself
-created the observed 3-7 team win split.
-
-### 60-Match Accuracy Sweep
-
-Team 0 stayed at max accuracy. Team 1 ran 10 matches each at accuracy:
+- Team A stayed at accuracy `1`.
+- Team B ran 10 matches at each accuracy:
 
 ```text
 0.0, 0.2, 0.4, 0.6, 0.8, 1.0
 ```
 
-All 60 reports ended validly with
-`team-eliminated-and-cannot-afford-spawn`.
+- Both teams opened with Axeman in mid in all 60 reports.
+- All 60 ended validly with `hero-killed`.
+- All 60 exported and advanced/reloaded; this batch had no telemetry hang.
+- Average duration was `43.75s`; range `35.60s` to `64.79s`.
+- Overall result: Team A `44`, Team B `16`.
 
-Team 1 results:
+#### Winrate
 
-| Accuracy | Wins | Team 1 / Team 0 Damage |
+| B accuracy | A wins | B wins | B winrate |
+| ---: | ---: | ---: | ---: |
+| 0.0 | 10 | 0 | 0% |
+| 0.2 | 9 | 1 | 10% |
+| 0.4 | 7 | 3 | 30% |
+| 0.6 | 6 | 4 | 40% |
+| 0.8 | 6 | 4 | 40% |
+| 1.0 | 6 | 4 | 40% |
+
+Ten matches per point is coarse: one result changes winrate by 10 percentage
+points. The equal 40% values at `0.6`, `0.8`, and `1.0` are not proof that
+those AIs are equally strong.
+
+#### Team B Decision Quality
+
+Opening decisions are excluded because batch opening is forced and
+deterministic.
+
+| B acc | Decisions | Best rank | Mistakes | Avg quality | Hard counters | Ranged | Aggressive | Dmg/CP |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.0 | 118 | 2 (1.7%) | 116 | 0.271 | 0 | 0 | 14 | 10.91 |
+| 0.2 | 116 | 24 (20.7%) | 92 | 0.419 | 5 | 7 | 13 | 11.39 |
+| 0.4 | 117 | 48 (41.0%) | 69 | 0.602 | 13 | 9 | 15 | 12.51 |
+| 0.6 | 113 | 66 (58.4%) | 47 | 0.701 | 12 | 18 | 14 | 13.06 |
+| 0.8 | 118 | 97 (82.2%) | 21 | 0.895 | 21 | 26 | 14 | 14.05 |
+| 1.0 | 118 | 118 (100%) | 0 | 1.000 | 21 | 35 | 15 | 13.93 |
+
+Why the top three winrate buckets can look identical:
+
+- At `0.6`, best-candidate selection becomes the majority for the first time.
+- `0.8` and `1.0` share ranged cap `3`; `0.6` has cap `2`.
+- `0.8` and `1.0` both consumed all 21 observed hard-counter opportunities.
+- Damage/CP for `0.8` and `1.0` was almost identical.
+- `0.6` still had substantially lower decision quality and more mistakes; its
+  matching 4/10 wins is most plausibly sampling noise at this batch size.
+
+There is no hidden `if accuracy >= 0.6` candidate-selection branch. The actual
+discrete behavior is the ranged-cap `ceil()` staircase documented above.
+
+#### Hero Evidence
+
+- Hero activations: `116` total, Team A `56`, Team B `60`.
+- No team/report activated Hero more than once. The refill/respawn bug did not
+  recur.
+- Four reports activated only Team B Hero. In each, Team A still had enough CP
+  (`59`, `63`, `79`, or `150`) to afford melee and killed Team B Hero before
+  Team A reached its own activation condition.
+- Activation CP:
+  - Team A average `18.75`, range `0-37`;
+  - Team B average `17.17`, range `0-38`.
+- All 116 activation events recorded target-search multiplier `2`.
+
+Team B end/activation context by accuracy:
+
+| B accuracy | Avg final CP | Avg Hero activation time |
 | ---: | ---: | ---: |
-| 0.0 | 0/10 | 65.5% |
-| 0.2 | 2/10 | 76.9% |
-| 0.4 | 0/10 | 74.2% |
-| 0.6 | 5/10 | 88.5% |
-| 0.8 | 5/10 | 97.3% |
-| 1.0 | 4/10 | 99.0% |
+| 0.0 | 10.2 | 30.6s |
+| 0.2 | 12.7 | 30.0s |
+| 0.4 | 10.8 | 30.3s |
+| 0.6 | 15.2 | 30.8s |
+| 0.8 | 9.7 | 33.4s |
+| 1.0 | 13.2 | 32.7s |
 
-The damage trend supports the accuracy model. The 0.4 win dip is small-sample
-noise/threshold behavior, not evidence that accuracy is reversed.
+- Hero killers across the 60 matches:
+  - `heroA`: 16
+  - `heroB`: 7
+  - Axeman: 15
+  - Cavalry: 15
+  - Sword: 3
+  - Archer: 2
+  - Monk: 2
 
-Overall family results across these 60 matches:
+The names above are attacker names. Hero-vs-Hero kills are therefore included
+and must not be misclassified as unit-only endings.
 
-| Family | Waves | Damage/CP | Damage/Wave | Survival |
-| --- | ---: | ---: | ---: | ---: |
-| Spear | 310 | 21.79 | 850.0 | 8.1% |
-| Axeman | 324 | 16.05 | 1187.7 | 9.9% |
-| Cavalry | 344 | 14.19 | 1376.8 | 4.7% |
-| Archer | 153 | 13.14 | 341.6 | 37.5% |
-| Sword | 277 | 11.33 | 555.1 | 12.3% |
-| Monk | 139 | 10.87 | 532.7 | 33.8% |
+#### Aggressive Evidence And Telemetry Gap
 
-Monk averaged 4.18 targets per attack, including 3.18 secondary AoE targets.
-Ranged represented 292 waves versus 1255 melee waves, about 23.3%.
+- Aggressive spawns: Team A `176`, Team B `145`.
+- Events:
+  - boundary observed: `321`;
+  - own-lane blocked: `29`;
+  - explicit Freehunt release: `4`.
+- Only four aggressive waves remained in final snapshots across all 60 reports.
 
-Interpretation:
+The low explicit-release count does not prove the other waves were stuck:
+combat entry and death currently terminate or remove aggressive state without
+a corresponding terminal diagnostic event. Do not rebalance aggressive chance
+from these event counts. Complete lifecycle telemetry first.
 
-- Archer 5 is economically viable but not dominant.
-- Monk and Sword produced similar practical damage value in this sweep.
-- Spear's high damage/CP is strongly counter-driven; do not read it as raw
-  general power.
-- Damage/CP is contextual and must not replace the one-unit X-Power cost rule.
+#### Mixed Accuracy Damage/CP
 
-### Close Match Audit
+Aggregate across both teams:
 
-Strict close match:
+| Family | Waves | Damage/CP |
+| --- | ---: | ---: |
+| Spear | 244 | 19.79 |
+| Axeman | 410 | 15.36 |
+| Cavalry | 326 | 14.59 |
+| Archer | 131 | 10.91 |
+| Sword | 236 | 10.35 |
+| Monk | 157 | 9.60 |
 
-```text
-winner has <= 10 units and winner CP < 26
-```
+Team totals:
 
-Seven of 60 matches met this condition. Flipping all seven winners only changes
-the overall result from Team A 44 / Team B 16 to Team A 45 / Team B 15.
-Therefore close-match randomness does not change the accuracy-sweep
-conclusion.
+- Team A non-Hero damage `748702`, CP `46859`, damage/CP `15.98`.
+- Team B non-Hero damage `597718`, CP `47282`, damage/CP `12.64`.
 
-One additional match ended with only four Sword alive but 34 CP, so it was not
-strictly close because the winner could still afford Archer.
+Composition also diverged with accuracy:
 
-### 2026-07-27 Accuracy Sweep After Source Fixes
+| Team | Archer | Axeman | Cavalry | Monk | Spear | Sword |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| A | 79 | 190 | 180 | 114 | 117 | 64 |
+| B | 52 | 220 | 146 | 43 | 127 | 172 |
 
-Team 0/A stayed at max accuracy. Team 1/B was overridden by URL batch params:
-
-```text
-0.0, 0.2, 0.4, 0.6, 0.8, 1.0
-```
-
-10 reports were collected per accuracy value. This batch should be treated as
-the current behavioral reference for BattleArmyBrain, not the older 2026-07-24
-sweep.
-
-Team B results:
-
-| B Accuracy | A Wins | B Wins | B Accurate Decisions | B Mistakes | B Ranged Share |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 0.0 | 10/10 | 0/10 | 3.1% | 96.9% | 2.3% |
-| 0.2 | 10/10 | 0/10 | 26.7% | 73.3% | 8.4% |
-| 0.4 | 9/10 | 1/10 | 37.7% | 62.3% | 8.5% |
-| 0.6 | 7/10 | 3/10 | 68.5% | 31.5% | 14.2% |
-| 0.8 | 5/10 | 5/10 | 77.7% | 22.3% | 20.0% |
-| 1.0 | 7/10 | 3/10 | 100% | 0.0% | 25.6% |
-
-Team A stayed clean through the whole batch:
-
-- A accurate decisions: 100%.
-- A deliberate mistakes: 0%.
-- A ranged share stayed around 18.9%-26.2%.
-- As B accuracy rose, A was pressured harder: A average damage fell from about
-  14442 at B accuracy 0 to about 11177 at B accuracy 1, and A surviving units
-  fell from about 30.4 to about 13.7.
-
-Interpretation:
-
-- Accuracy now behaves as a probability/quality curve instead of a broken
-  branch table.
-- B's decision quality rises, mistake rate falls, and ranged support rises as
-  accuracy increases.
-- The B accuracy 1.0 split of 3/10 wins looks A-favored, but damage was nearly
-  equal in that bucket. Treat it as sample noise or side/opening variance unless
-  a larger equal-accuracy batch repeats the bias.
-- Several B losses at high accuracy ended with B CP below the cheapest spawn,
-  so they were not clear "AI stopped thinking" failures.
-
-Ranged evidence from this batch:
-
-- B accuracy 0 produced only a few Archer waves and no Monk waves.
-- B accuracy 1 produced both Archer and Monk regularly.
-- Monk at high accuracy produced meaningful damage and kills, confirming that
-  the support rewrite no longer suppresses it completely.
-
-The user considers the current accuracy trend "kha on". Future work should not
-rewrite the accuracy model casually; if a problem appears, inspect the specific
-spawn reason, candidate list, and safety gate first.
+This is an accuracy sweep, not a symmetric balance baseline. The mixed
+damage/CP table primarily proves that decision quality changes battlefield
+output and composition. Do not use it alone to change unit stats or cost.
 
 ## Current Status
 
 Achieved:
 
-- One-unit X-Power/cost rule is explicit; the Archer `26` versus nominal `24`
-  exception is documented instead of hidden.
-- Team A/B active stats match.
-- Melee ladder and the two active counters have controlled-test grounding.
-- Monk and Archer are worth their slots in recent telemetry.
-- Accuracy produces a meaningful difficulty trend in the latest batch.
-- Automated battle end/download/reload worked in the 60-report sweep.
-- Ranged fixed-priority constants were replaced with context/stat scoring.
-- Normal ranged support is gated by frontline safety and accuracy-scaled
-  capacity.
-- Last stand is documented as the only intentional normal-rule bypass for
-  "spawn any affordable unit."
-- Unit unlock filtering is source-confirmed across AI candidate collection,
-  direct spawn, affordability, and battle-end checks.
-- Preview-cache/import-map problems were identified as generated Cocos state,
-  not canonical source logic.
+- Batch opening is deterministic by average affordable one-unit X-Power and is
+  synchronized to mid when telemetry URL params are active.
+- Accuracy sweep now has clean opening control, monotonic decision quality, and
+  60 valid Hero-killed endings.
+- Final Hero deployment is one-shot and no longer refills/respawns.
+- First Hero activation expands target search for all current and future units.
+- Unit-vs-Hero pass-through has been removed.
+- Winner resolution is protected against mid-AoE/mid-attack-batch fallback
+  resolution.
+- Aggressive no longer depends on the old Hero-line release rule.
+- Normal ranged support remains guarded by engaged frontline safety, lane
+  anti-repeat, capacity, context score, and accuracy.
+- One-unit X-Power/cost rule remains explicit; Archer's tested `26` versus
+  nominal `24` exception remains documented rather than hidden.
+- Team A/B active unit stats match.
+- Melee ladder and active counter rules have controlled-test grounding.
+- Unit unlock filtering remains source-confirmed across candidate collection,
+  direct spawn, affordability, and winner fallback.
 
 Not yet proven:
 
+- Aggressive outcomes cannot yet be classified end-to-end because combat-entry
+  and death terminal events are missing.
+- An aggressive opening that never observes an adjacent boundary has no
+  explicit fallback release condition. Verify whether this can persist in real
+  gameplay after lifecycle telemetry is complete.
+- The current accuracy winrate appears to plateau at `0.6-1.0`, but 10 matches
+  per point are not enough to distinguish real saturation from variance.
+- The current `ceil(maxRangedSupport * accuracy)` cap is intentionally
+  staircase-shaped. If level progression must be fully smooth, this is the
+  specific mechanic to redesign; do not rewrite candidate scoring first.
 - Future tier 2/3 entries need validation that scoring uses their real
   stats/cost instead of family identity alone.
 - Archer cost has not been re-tested at nominal X-Power value `24`; all latest
   Archer evidence uses `26`.
-- Equal-accuracy 1.0 versus 1.0 may still need a larger side-bias check if the
-  user wants statistical confidence beyond 10-match buckets.
+- The latest mixed-accuracy damage/CP table is not a valid roster-wide balance
+  verdict.
 
 ## Recommended Next Work
 
-1. If testing continues, run a larger equal-accuracy batch at 1.0 versus 1.0 to
-   check side/opening bias. Do not rebalance from a 10-match bucket alone.
-2. For level progression, test unit-lock presets explicitly:
+1. Before any further aggressive tuning, add one-shot terminal diagnostics:
+   `aggressive-combat-entered`, `aggressive-died-before-release`, and an
+   invariant that every aggressive spawn receives exactly one terminal outcome.
+2. Re-run a focused aggressive audit and answer:
+   - how often it releases to Freehunt;
+   - how often it enters combat first;
+   - how often it dies first;
+   - whether never-observed-boundary waves persist too long.
+3. If the user wants stronger statistical confidence in difficulty scaling,
+   run more than 10 matches per point, especially for `0.6`, `0.8`, and `1.0`.
+   Keep synchronized opening and do not change stats during that batch.
+4. If the intended level curve must be numerically smooth, replace only the
+   ranged-cap staircase with a clearly designed probability/cap rule. Candidate
+   selection is already probabilistic and should not be rewritten without
+   contrary evidence.
+5. For level progression, test unit-lock presets explicitly:
    - early level: at least one melee/frontline unlocked;
    - ranged unlock: confirm support does not spawn without frontline except
      last stand;
    - counter-lock levels: confirm fallback responses are acceptable.
-3. When tier 2/3 are added, verify:
+6. When tier 2/3 are added, verify:
    - unlocked/affordable filtering;
    - opening choice with high CP;
    - abundant/normal/efficient CP strategy behavior;
    - hard-counter guards such as Cavalry into Spear blockers.
-4. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
+7. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
    X-Power cost `24`.
-5. Keep current stats stable unless new evidence shows a roster-wide problem.
+8. Keep current stats stable while diagnosing AI/aggressive behavior. Do not
+   use the latest mixed-accuracy damage/CP aggregate as a balance-change trigger.
 
 ## Worktree Notes
 
@@ -609,13 +772,14 @@ Files that have been intentionally touched during the current balance/AI pass:
 - `AI-CONTEX.md`
 - `UNITSTATS.md`
 - `assets/Test.scene`
-- `assets/scripts/BattlefieldEvaluator.ts`
 - `assets/scripts/BattleArmyBrain.ts`
-- `assets/scripts/GameManager.ts`
+- `assets/scripts/BattleTelemetry.ts`
 - `assets/scripts/BattleUnitDatabase.ts`
-- `assets/scripts/LevelSettings.ts`
-- deletion of obsolete `UNITSTATS_BALANCE_PROPOSAL.md` if still present in the
-  local diff
+- `assets/scripts/BattleWave.ts`
+- `assets/scripts/BattlefieldEvaluator.ts`
+- `assets/scripts/GameManager.ts`
+- `assets/scripts/Unit.ts`
+- `assets/scripts/UnitBehavior.ts`
 
 Cocos also generated dirty files under `library/`, `temp/`, and `profiles/`.
 They are unrelated generated state. Do not revert or stage them unless the user
@@ -623,12 +787,16 @@ explicitly asks.
 
 Known local tooling issues:
 
-- Git may report `dubious ownership` for `F:/Github/BattleGame` because Windows
-  file ownership/SID differs from the current user. The usual fix is:
-  `git config --global --add safe.directory F:/Github/BattleGame`.
 - GitHub Desktop lock-file errors usually mean another git operation crashed or
   is still running. Close GitHub Desktop/Editor git operations, verify no git
   process is active, then remove only `.git/index.lock` if it remains stale.
 - Cocos preview errors like `Unable to resolve bare specifier '_unresolved_*'`
   came from stale generated preview chunks/import maps, not from the TypeScript
   source itself. Canonical gameplay logic is under `assets/scripts`.
+
+Validation after the current source changes:
+
+```text
+TypeScript noEmit: PASS
+git diff --check: PASS (line-ending warnings only)
+```

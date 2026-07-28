@@ -226,6 +226,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }));
         }
 
+        recordAggressiveForwardEvent(event) {
+          if (!this.isEnabled()) return;
+          if (!event) return;
+          this.pushDiagnosticEvent(_extends({}, event, {
+            type: event.type || 'aggressive-forward',
+            aggressiveForward: true
+          }));
+        }
+
         recordCombatPointSpent(team, unitName, family, tier, amount, waveId, frame, time) {
           if (!this.isEnabled()) return;
           var spent = Math.max(0, Number.isFinite(amount) ? amount : 0);

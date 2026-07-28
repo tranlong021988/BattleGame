@@ -121,6 +121,7 @@ export class Unit extends Component {
     private rangedCombatDecisionTargetLifeId = -1;
     private nearestEnemyQueryToken = 0;
     private nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
+    private appliedTargetSearchRangeMultiplier = 1;
     private readonly onNearestEnemyQueryResult = (
         target: Unit | null,
         token: number
@@ -487,9 +488,7 @@ export class Unit extends Component {
         return true;
     }
 
-    public findForwardSearchTarget(
-        aggressiveForward: boolean
-    ): Unit | null {
+    public findForwardSearchTarget(): Unit | null {
         if (!this.agent) return null;
 
         if (this.laneId < 0) return null;
@@ -511,8 +510,7 @@ export class Unit extends Component {
             if (!this.isValidEnemy(enemy)) continue;
             if (
                 !this.isForwardSearchCandidate(
-                    enemy,
-                    aggressiveForward
+                    enemy
                 )
             ) {
                 continue;
@@ -536,8 +534,7 @@ export class Unit extends Component {
     }
 
     private isForwardSearchCandidate(
-        enemy: Unit,
-        aggressiveForward: boolean
+        enemy: Unit
     ) {
         if (this.laneId < 0 || enemy.laneId < 0) {
             return false;
@@ -553,9 +550,7 @@ export class Unit extends Component {
         const laneDistance =
             Math.abs(ownLane - enemyLane);
 
-        if (aggressiveForward) {
-            if (laneDistance !== 0) return false;
-        } else if (laneDistance > 1) {
+        if (laneDistance > 1) {
             return false;
         }
 
@@ -749,6 +744,42 @@ export class Unit extends Component {
             this.setAgentStopped();
             this.setAgentLocked(this.isSteady);
         }
+    }
+
+    public applyTargetSearchRangeMultiplier(multiplier: number) {
+        const safeMultiplier =
+            Math.max(
+                1,
+                Number.isFinite(multiplier)
+                    ? multiplier
+                    : 1
+            );
+        const previousMultiplier =
+            Math.max(
+                1,
+                this.appliedTargetSearchRangeMultiplier
+            );
+
+        if (
+            Math.abs(
+                safeMultiplier -
+                previousMultiplier
+            ) < 0.0001
+        ) {
+            return;
+        }
+
+        this.targetSearchRange =
+            Math.max(
+                0,
+                this.targetSearchRange *
+                    safeMultiplier /
+                    previousMultiplier
+            );
+        this.appliedTargetSearchRangeMultiplier =
+            safeMultiplier;
+        this.invalidateNearestQueryResults();
+        this.clearCachedTargets();
     }
 
     public disengageCurrentEnemyForChase() {
@@ -1088,7 +1119,10 @@ export class Unit extends Component {
             return false;
         }
 
-        this.enterWaveForwardMode(false, true);
+        this.enterWaveForwardMode(
+            this.aggressiveForward,
+            true
+        );
         return true;
     }
 
@@ -1148,7 +1182,9 @@ export class Unit extends Component {
         const gm = GameManager.instance;
 
         if (!gm || this.laneId < 0) {
-            this.enterWaveForwardMode(false);
+            this.enterWaveForwardMode(
+                this.backToLaneForwardAggressive
+            );
             return true;
         }
 

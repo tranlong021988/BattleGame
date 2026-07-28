@@ -1902,7 +1902,7 @@
     },
     "useWorkerRVO": true,
     "targetFrameRate": 60,
-    "battleTimeScale": 1,
+    "battleTimeScale": 2,
     "resetBattleTimeScaleOnDestroy": true,
     "showCocosProfilerStats": false,
     "allowProfilerStatsQueryParam": true,
@@ -2052,6 +2052,7 @@
     "teamBInitialCombatPoint": 800,
     "killRewardCostWeight": 0,
     "counterKillRewardCostWeight": 0,
+    "heroBattleTargetSearchRangeMultiplier": 2,
     "teamAWaveBannerBackgroundColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -2232,7 +2233,7 @@
         "__id__": 77
       }
     ],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 81
@@ -2874,7 +2875,7 @@
         "__id__": 112
       }
     ],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 116

@@ -164,6 +164,13 @@ export class BattleUnitDatabase extends Component {
     @property
     counterKillRewardCostWeight = 0.15;
 
+    @property({
+        min: 1,
+        tooltip:
+            'Global target-search multiplier applied to every current and future unit after the first Hero enters battle.',
+    })
+    heroBattleTargetSearchRangeMultiplier = 2;
+
     @property(Color)
     teamAWaveBannerBackgroundColor: Color = new Color(0, 70, 255, 255);
 
