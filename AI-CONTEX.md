@@ -2,9 +2,10 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-29 after the evaluator counter/X-Power correction,
-Spear-to-Cavalry counter reduction from `20` to `12`, two 100-match symmetric
-accuracy-1 telemetry baselines, and the telemetry-only elimination winner rule.
+Last updated: 2026-07-30 after the evaluator counter/X-Power correction,
+Spear-to-Cavalry counter reduction from `20` to `12`, three 100-match
+accuracy-1 telemetry baselines, the telemetry-only elimination winner rule,
+and the initial tier-2/tier-3 systems-design discussion.
 
 ## Handoff Policy
 
@@ -531,6 +532,154 @@ Risks to verify when adding tiers:
 - Cost must still follow the one-unit X-Power rule unless the user explicitly
   marks an exception.
 
+### Tier 2/3 Candidate Design
+
+Status: design discussion only. Nothing in this subsection has been applied to
+`UNITSTATS.md`, `assets/Test.scene`, the unit database, counters, unlocks, or AI
+source. Do not treat these values as active runtime data.
+
+Design goal:
+
+- A tier is a stronger investment level of the same family and role.
+- Tiers must expand the X-Power market, not create a second hidden balance
+  system or a new counter loop.
+- Higher tier should not always be the correct purchase. Actual target power,
+  remaining HP/unit count, CP strategy, affordability, hard-counter safety, and
+  lane context must remain decisive.
+
+Recommended same-family progression:
+
+```text
+T1 = 1.00 * T1 power
+T2 = 1.50 * T1 power
+T3 = 2.25 * T1 power
+```
+
+Each tier is therefore `1.5x` the preceding tier. This deliberately creates
+cross-family overlap instead of enforcing `every T3 > every T2 > every T1`.
+Examples:
+
+- Sword T2 can be near Axeman T1.
+- Axeman T2 can approach Cavalry T1.
+- A strong lower-tier family may naturally beat a weak higher-tier family.
+- Spear can remain naturally weak while its explicit Cavalry counter supplies
+  matchup value.
+
+Cost must continue to follow one-unit X-Power:
+
+```text
+EffectiveHP = Health * (1 + Defense * 0.045)
+RawUnitPower = sqrt(Damage * EffectiveHP)
+Cost ~= round(RawUnitPower)
+```
+
+Indicative cost ladder if current tested T1 costs are scaled by `1.5` per tier:
+
+| Family | T1 active | T2 candidate | T3 candidate |
+| --- | ---: | ---: | ---: |
+| Spear | 39 | 59 | 88 |
+| Sword | 49 | 74 | 110 |
+| Axeman | 74 | 111 | 167 |
+| Cavalry | 97 | 146 | 218 |
+| Archer | 26 | 39 | 59 |
+| Monk | 49 | 74 | 110 |
+
+These are market-shape examples, not approved stats. Archer needs an explicit
+decision before tier construction:
+
+- either preserve its tested T1 premium (`26` versus nominal X-Power `24`) at
+  all tiers;
+- or normalize Archer to exact X-Power cost first.
+
+Do not silently use one policy for T1 and another for T2/T3.
+
+Recommended stat construction:
+
+- Keep family identity: Axeman remains offense-heavy, Sword balanced/defensive,
+  Cavalry high offense/durability, Spear naturally weak outside its counter,
+  Archer single-target ranged support, Monk fragile AoE support.
+- The clean initial method for a `1.5x` tier is to multiply both HP and Damage
+  by `1.5` while holding Defense constant. Because X-Power is geometric, this
+  produces `1.5x` power exactly before rounding.
+- Stats may later be redistributed between HP, Damage, and Defense for visual
+  identity, but the final formula must still hit the tier's target power.
+- Keep Speed, Range, Attack Interval, Damage Radius, and UnitCount unchanged in
+  the first tier implementation. Those are tactical/opportunity advantages not
+  priced directly by current X-Power and can create unmeasured double scaling.
+- Do not add hidden tier multipliers to evaluator or combat.
+
+Recommended UnitCount policy:
+
+```text
+Melee/Cavalry = 10 across tiers
+Archer = 5 across tiers
+Monk = 1 across tiers
+```
+
+Increasing both per-unit Power and UnitCount would compound wave strength,
+invalidate the current one-unit cost market, change formation/pathing load, and
+increase runtime cost.
+
+Counter policy:
+
+- Keep family counters explicit and tier-independent:
+  `Spear > Cavalry x12`, `Archer > Spear x2`.
+- Do not add tier-specific counter multipliers.
+- The evaluator already combines actual target runtime power with
+  `sqrt(counterMultiplier)`. Therefore a full Cavalry T3 may require Spear
+  T2/T3, while a depleted Cavalry T3 may be finished economically by Spear T1
+  or another sufficient lower-tier melee.
+- Retain the Cavalry-into-Spear blocker guard regardless of Cavalry tier.
+
+Expected AI tier behavior:
+
+- `abundant`: may spend on a stronger/high-tier safe response if post-purchase
+  CP remains favorable;
+- `normal`: select a sufficiently strong response with reasonable reserve;
+- `efficient`: prefer the cheapest tier that is sufficient against current
+  remaining target power;
+- `desperate`: use an affordable valid fallback rather than wait with spendable
+  CP;
+- no branch should hard-code `T3 > T2 > T1` independently of target state.
+
+Expected battlefield pattern with a high initial CP ceiling:
+
+- T3/T2 should appear early when threats justify them and CP is abundant.
+- T1 should remain relevant later, for depleted targets, efficient responses,
+  last stand, and low-CP cleanup.
+- A T3 family with one surviving unit must not automatically force a T3
+  response if a T1/T2 entry has enough live coverage power to finish it.
+
+Unlock policy:
+
+- Unlock state should remain data-driven per entry/family/tier.
+- A campaign can unlock `Family T1 -> Family T2 -> Family T3`, but it need not
+  unlock every T2 before any T3; themed levels are allowed.
+- Every playable AI loadout must retain at least one unlocked/affordable melee
+  frontline. Otherwise normal ranged-support safety can leave the AI without a
+  valid frontline plan.
+- Locked entries must remain absent from opening, response, affordability,
+  last-stand, Hero-deployment affordability, and winner-resolution checks.
+
+Required validation before accepting any tier table:
+
+1. Formula audit: each entry reaches its intended `1.00/1.50/2.25` same-family
+   power and intended rounded cost.
+2. Scene/database audit: Team A/B values and unlocks match.
+3. Controlled same-family tests: T2 consistently demonstrates the intended
+   advantage over T1; T3 does so over T2 without relying on hidden modifiers.
+4. Counter tests across tiers: Spear/Cavalry and Archer/Spear still satisfy
+   their explicit roles without making low-tier counters universally sufficient
+   against full high-tier waves.
+5. AI tests by CP state: abundant, normal, efficient, desperate, and last stand
+   all select tiers according to actual remaining target power.
+6. Opening test with high CP: verify average-frontline opening does not select
+   an unintended tier merely because all tiers are affordable.
+7. Unit-lock presets: verify no deadlock when some families or tiers are
+   unavailable.
+8. Symmetric telemetry: compare damage/CP and use rate by both family and tier;
+   T3 must not erase T1/T2, and lower tiers must remain economically rational.
+
 ## Telemetry
 
 Telemetry records:
@@ -726,6 +875,113 @@ Current conclusion:
 - A future accuracy-`0.8` gameplay-oriented batch may be used to measure how
   much Spear efficiency falls when the AI does not exploit every counter
   opportunity, but it is not required to validate `x12`.
+
+### Repeated Active x12 Baseline
+
+Files: 100 reports from `2026-07-29T17-07-02-209Z` through
+`2026-07-29T17-51-14-961Z`.
+
+Configuration was internally consistent across all reports:
+
+- both teams effectively used `decisionAccuracy = 1`;
+- initial CP was `800/800`;
+- active counters were `Spear > Cavalry x12` and `Archer > Spear x2`;
+- telemetry URL batch mode was inactive, so opening was sequential rather than
+  synchronized;
+- all 100 matches ended with
+  `team-eliminated-and-cannot-afford-spawn`;
+- all 2677 recorded decisions were accurate with selection quality `1`;
+- CP accounting was exact in all 200 team instances:
+  `CP spent + final CP = 800`.
+
+System results:
+
+| Metric | Result |
+| --- | ---: |
+| Team A/B wins | 46/54 |
+| Opening/responder wins | 43/57 |
+| Average duration | 59.01s |
+| Duration p50/p95 | 58.96s / 70.56s |
+| Average loser final CP | 11.31 |
+| Maximum loser final CP | 25 |
+| Average winner living non-Hero units | 12.92 |
+| Invalid endings | 0 |
+
+Team output:
+
+| Team | CP/match | Damage/match | Damage/CP | Waves/match |
+| --- | ---: | ---: | ---: | ---: |
+| A | 788.21 | 11905.79 | 15.10 | 13.39 |
+| B | 787.29 | 11969.07 | 15.20 | 13.38 |
+
+The two sides differ by only about `0.65%` in damage/CP. Frame-order evidence
+was also symmetric:
+
+- first-damage frame counts: Team A `27234`, Team B `27183`;
+- first-kill frame counts: Team A `9356`, Team B `9431`.
+
+The new `46/54` result reverses the previous active-x12 batch's `58/42`.
+Combined across the two active-x12 100-match baselines:
+
+```text
+Team A wins = 104/200 = 52%
+Team B wins =  96/200 = 48%
+```
+
+This is stronger evidence that the earlier `58/42` was sampling variation, not
+a fixed Team A advantage.
+
+Roster output:
+
+| Family | Waves | Wave share | Damage/CP |
+| --- | ---: | ---: | ---: |
+| Axeman | 640 | 23.91% | 15.29 |
+| Spear | 566 | 21.14% | 22.94 |
+| Cavalry | 486 | 18.15% | 12.79 |
+| Sword | 394 | 14.72% | 13.67 |
+| Archer | 317 | 11.84% | 14.29 |
+| Monk | 274 | 10.24% | 12.86 |
+
+Ranged role evidence:
+
+- Archer produced `60464` counter damage and `758` counter kills against
+  Spear; `237` Archer counter-support decisions were recorded.
+- Monk averaged `4.06` targets per attack, including `3.06` area targets, so
+  its AoE support role was materially active.
+- Neither ranged family was absent or composition-dominant.
+
+Spear remains a contextual damage/CP outlier:
+
+- total Spear damage `506444`;
+- Spear-to-Cavalry counter damage `343153`, about `67.8%` of Spear damage;
+- counter kills `2931/4410`, about `66.5%` of Spear kills;
+- about `61.1%` of Cavalry deaths were deaths to counter.
+
+Removing recorded counter damage leaves Spear at only about `7.40` damage/CP.
+Therefore the `22.94` aggregate is evidence that perfect AI consumes hard
+counter opportunities effectively, not evidence that Spear's natural
+stats/cost are too strong.
+
+One repeated signal remains:
+
+- first active-x12 baseline: opening/responder wins `44/56`;
+- repeated active-x12 baseline: opening/responder wins `43/57`;
+- combined: opening `87/200`, responder `113/200`.
+
+This is not a team-direction bias: opener team was nearly even and team win
+direction reversed between batches. It is a plausible information advantage
+for the sequential responder, which sees the Axeman opening before selecting
+its first response. The current sample is suggestive, not conclusive. Use
+synchronized batch opening when measuring pure symmetric stats/AI balance;
+retain sequential opening when measuring actual unsynchronized gameplay.
+
+Current repeated-baseline conclusion:
+
+- active T1 stats, `x12`, evaluator scoring, CP accounting, and elimination
+  winner logic are healthy;
+- no stat/cost/counter adjustment is justified by this batch;
+- monitor sequential responder advantage separately from team balance;
+- keep current T1 values stable before constructing T2/T3.
 
 ## Latest Performance Work
 
@@ -942,6 +1198,9 @@ Achieved:
   CounterSettings. Controlled `x10` testing failed the intended counter.
 - The active `x12` baseline has coherent response flow, balanced team economy,
   valid Sword-to-Spear ladder behavior, and 100 valid elimination endings.
+- The repeated active-`x12` baseline reversed team win direction to `46/54`
+  while team damage/CP stayed within `0.65%`; combined active-`x12` team wins
+  are `104/96`, supporting no fixed team-side bias.
 - Final Hero deployment is one-shot and no longer refills/respawns.
 - First Hero activation expands target search for all current and future units.
 - Unit-vs-Hero pass-through has been removed.
@@ -991,6 +1250,11 @@ Not yet proven:
 - A pathological worker that silently never reports ready or error would leave
   RVO waiting. This has not appeared in traces; retain it as an explicit
   lifecycle risk rather than hiding it behind the old false-fallback timeout.
+- Tier 2/3 values are not implemented. The `1.00/1.50/2.25` progression and
+  indicative cost table are design candidates only.
+- Sequential active-`x12` baselines show a repeated responder signal
+  (`113/200`). It is not yet proven as a defect and must not be mixed with
+  synchronized-opening balance conclusions.
 
 ## Recommended Next Work
 
@@ -1019,13 +1283,13 @@ Not yet proven:
    - ranged unlock: confirm support does not spawn without frontline except
      last stand;
    - counter-lock levels: confirm fallback responses are acceptable.
-7. When tier 2/3 are added, verify:
-   - unlocked/affordable filtering;
-   - opening choice with high CP;
-   - abundant/normal/efficient CP strategy behavior;
-   - hard-counter guards such as Cavalry into Spear blockers.
-8. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
-   X-Power cost `24`.
+7. Before implementing tier 2/3, approve or revise the candidate same-family
+   progression `T1/T2/T3 = 1.00/1.50/2.25` and decide whether Archer's tested
+   cost premium continues across tiers.
+8. Build tier stats from explicit X-Power targets, initially keeping
+   UnitCount, Speed, Range, Attack Interval, and Damage Radius unchanged. Then
+   verify unlock filtering, high-CP opening, CP-strategy tier choice, depleted
+   target cleanup, and cross-tier hard counters.
 9. Keep current stats stable while diagnosing AI/aggressive behavior. Runtime
    damage/CP is contextual evidence, not the one-unit X-Power cost formula.
 10. For the next performance verification, use a real production web build with
@@ -1037,18 +1301,15 @@ Not yet proven:
 
 ## Worktree Notes
 
-Files intentionally changed in the current uncommitted balance/telemetry pass:
+This handoff request changes only:
 
 - `AI-CONTEX.md`
-- `UNITSTATS.md`
-- `assets/Test.scene`
-- `assets/scripts/BattlefieldEvaluator.ts`
-- `assets/scripts/CounterSettings.ts`
-- `assets/scripts/GameManager.ts`
 
-Cocos also generated dirty files under `library/`, `temp/`, and `profiles/`.
-They are unrelated generated state. Do not revert or stage them unless the user
-explicitly asks.
+At final verification, `assets/Test.scene` was also dirty and Cocos had
+generated dirty files under `library/`, `temp/`, and `profiles/`. Those changes
+were pre-existing or concurrent Editor state, not edits made by this handoff
+update. Do not revert or stage them automatically; inspect `assets/Test.scene`
+against current Inspector intent before any future commit.
 
 Known local tooling issues:
 
@@ -1064,9 +1325,11 @@ Validation for the current balance/telemetry pass:
 ```text
 TypeScript noEmit (Cocos Creator 3.8.8): PASS
 100-report corrected-evaluator x20 baseline parsed: PASS
-100-report active x12 baseline parsed: PASS
+First 100-report active x12 baseline parsed: PASS
+Repeated 100-report active x12 baseline parsed: PASS
 All active x12 reports use accuracy 1 and multiplier 12: PASS
 All active x12 reports end with elimination-and-affordability reason: PASS
+Repeated x12 CP accounting (200 team instances): PASS
 Controlled x12 Spear-vs-Cavalry hard-counter: PASS (user-observed)
 Controlled x10 Spear-vs-Cavalry hard-counter: FAIL (expected rejection)
 git diff --check: PASS (line-ending warnings only)

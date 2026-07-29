@@ -169,12 +169,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec8 = property({
         tooltip: 'Allow URL query params ?stats=1 or ?profiler=1 to show the Cocos profiler overlay in browser builds.'
       }), _dec9 = property({
-        tooltip: 'Check battle winner rules. Hero killed always resolves the battle. Optional CP fallback is controlled separately.'
+        tooltip: 'Check battle winner rules. Normal gameplay ends on Hero death. Telemetry tests continue until a team has no living troops and cannot afford any valid spawn.'
       }), _dec10 = property({
-        tooltip: 'Fallback winner rule for economy-only tests: if enabled, a team loses only when it has no non-hero units alive and can no longer afford any valid spawn entry.'
+        tooltip: 'Fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry. Telemetry tests always use this end rule.'
       }), _dec11 = property({
         min: 1,
-        tooltip: 'Frames between CP fallback winner checks. Hero-death winner is event-driven and does not wait for this interval.'
+        tooltip: 'Frames between elimination-and-affordability winner checks. Hero death is immediate only outside telemetry tests.'
       }), _dec12 = property({
         tooltip: 'Collect aggregate battle telemetry and export a JSON report when the battle winner rule is reached.'
       }), _dec13 = property({
@@ -1529,7 +1529,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (!this.enableNoAffordableSpawnWinnerFallback) return;
+          if (!this.enableBattleTelemetry && !this.enableNoAffordableSpawnWinnerFallback) {
+            return;
+          }
+
           if (!this.isCombatPointEnabled()) return;
 
           if (!force && !this.shouldRunFrameInterval(this.battleWinnerCheckIntervalFrames)) {
@@ -2927,15 +2930,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
-          if (team === 0 || team === 1) {
-            this.resolveBattleWinner(team === 0 ? 1 : 0, team, 'hero-killed');
-          }
-
           this.removeUnitAgentFromSimulator(unit);
           unit.resetForDespawn();
           unit.node.active = false;
           this.requestSpatialGridRebuild();
           this.requestBattleStatsUIRefresh();
+
+          if (team !== 0 && team !== 1) {
+            return;
+          }
+
+          if (this.enableBattleTelemetry) {
+            this.processBattleWinnerCondition(true);
+            return;
+          }
+
+          this.resolveBattleWinner(team === 0 ? 1 : 0, team, 'hero-killed');
         }
 
         removeUnitAgentFromSimulator(unit) {
