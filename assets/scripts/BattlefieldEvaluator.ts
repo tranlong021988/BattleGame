@@ -2682,7 +2682,7 @@ export class BattlefieldEvaluator {
                 1,
                 Math.max(1, target.entry.unitCount)
             ) *
-            this.getMatchupFactor(
+            this.getMatchupPowerFactor(
                 entry,
                 target
             );
@@ -2698,7 +2698,7 @@ export class BattlefieldEvaluator {
                     entry,
                     target
                 )
-                    ? this.getTargetMatchupFactor(
+                    ? this.getTargetMatchupPowerFactor(
                         entry,
                         target
                     )
@@ -2709,7 +2709,7 @@ export class BattlefieldEvaluator {
             Math.max(1, targetPower);
     }
 
-    private getTargetMatchupFactor(
+    private getTargetMatchupPowerFactor(
         entry: UnitPrefabEntry,
         target: BattlefieldWaveIntel
     ) {
@@ -2726,11 +2726,7 @@ export class BattlefieldEvaluator {
                 entry.family
             );
 
-        if (counterScore > 1.0001) {
-            return counterScore;
-        }
-
-        return 1;
+        return this.getCounterPowerFactor(counterScore);
     }
 
     rebuild(
@@ -3251,7 +3247,7 @@ export class BattlefieldEvaluator {
         target: BattlefieldWaveIntel
     ) {
         const matchup =
-            this.getMatchupFactor(
+            this.getMatchupPowerFactor(
                 entry,
                 target
             );
@@ -3457,7 +3453,7 @@ export class BattlefieldEvaluator {
         return true;
     }
 
-    private getMatchupFactor(
+    private getMatchupPowerFactor(
         entry: UnitPrefabEntry,
         target: BattlefieldWaveIntel
     ) {
@@ -3474,11 +3470,19 @@ export class BattlefieldEvaluator {
                 target.entry.family
             );
 
-        if (counterScore > 1.0001) {
-            return counterScore;
+        return this.getCounterPowerFactor(counterScore);
+    }
+
+    private getCounterPowerFactor(counterScore: number) {
+        if (!Number.isFinite(counterScore)) {
+            return 1;
         }
 
-        return 1;
+        // X-Power is the geometric mean of offense and durability.
+        // A damage multiplier therefore contributes by its square root.
+        return counterScore > 1.0001
+            ? Math.sqrt(counterScore)
+            : 1;
     }
 
     private getReachabilityFactor(

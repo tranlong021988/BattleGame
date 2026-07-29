@@ -103,20 +103,20 @@ export class GameManager extends Component {
 
     @property({
         tooltip:
-            'Check battle winner rules. Hero killed always resolves the battle. Optional CP fallback is controlled separately.',
+            'Check battle winner rules. Normal gameplay ends on Hero death. Telemetry tests continue until a team has no living troops and cannot afford any valid spawn.',
     })
     enableBattleWinnerCheck = true;
 
     @property({
         tooltip:
-            'Fallback winner rule for economy-only tests: if enabled, a team loses only when it has no non-hero units alive and can no longer afford any valid spawn entry.',
+            'Fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry. Telemetry tests always use this end rule.',
     })
     enableNoAffordableSpawnWinnerFallback = false;
 
     @property({
         min: 1,
         tooltip:
-            'Frames between CP fallback winner checks. Hero-death winner is event-driven and does not wait for this interval.',
+            'Frames between elimination-and-affordability winner checks. Hero death is immediate only outside telemetry tests.',
     })
     battleWinnerCheckIntervalFrames = 1;
 
@@ -2052,7 +2052,12 @@ export class GameManager extends Component {
 
             return;
         }
-        if (!this.enableNoAffordableSpawnWinnerFallback) return;
+        if (
+            !this.enableBattleTelemetry &&
+            !this.enableNoAffordableSpawnWinnerFallback
+        ) {
+            return;
+        }
         if (!this.isCombatPointEnabled()) return;
         if (
             !force &&
@@ -4406,20 +4411,27 @@ export class GameManager extends Component {
 
         }
 
-        if (team === 0 || team === 1) {
-            this.resolveBattleWinner(
-                team === 0 ? 1 : 0,
-                team,
-                'hero-killed'
-            );
-        }
-
         this.removeUnitAgentFromSimulator(unit);
         unit.resetForDespawn();
         unit.node.active = false;
 
         this.requestSpatialGridRebuild();
         this.requestBattleStatsUIRefresh();
+
+        if (team !== 0 && team !== 1) {
+            return;
+        }
+
+        if (this.enableBattleTelemetry) {
+            this.processBattleWinnerCondition(true);
+            return;
+        }
+
+        this.resolveBattleWinner(
+            team === 0 ? 1 : 0,
+            team,
+            'hero-killed'
+        );
     }
 
     private removeUnitAgentFromSimulator(unit: Unit) {

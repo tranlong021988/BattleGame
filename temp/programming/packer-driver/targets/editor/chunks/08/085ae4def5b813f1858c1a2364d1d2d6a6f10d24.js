@@ -1543,12 +1543,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         getFullMatchupPowerRatio(entry, target) {
           if (!target.entry) return 1;
-          const candidatePower = this.getEntryBasePower(entry, Math.max(1, Math.floor(entry.unitCount)), 1, Math.max(1, target.entry.unitCount)) * this.getMatchupFactor(entry, target);
-          const targetPower = this.getEntryBasePower(target.entry, Math.max(1, Math.floor(target.entry.unitCount)), 1, Math.max(1, entry.unitCount)) * (this.isTargetHardCounterForEntry(entry, target) ? this.getTargetMatchupFactor(entry, target) : 1);
+          const candidatePower = this.getEntryBasePower(entry, Math.max(1, Math.floor(entry.unitCount)), 1, Math.max(1, target.entry.unitCount)) * this.getMatchupPowerFactor(entry, target);
+          const targetPower = this.getEntryBasePower(target.entry, Math.max(1, Math.floor(target.entry.unitCount)), 1, Math.max(1, entry.unitCount)) * (this.isTargetHardCounterForEntry(entry, target) ? this.getTargetMatchupPowerFactor(entry, target) : 1);
           return candidatePower / Math.max(1, targetPower);
         }
 
-        getTargetMatchupFactor(entry, target) {
+        getTargetMatchupPowerFactor(entry, target) {
           const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
@@ -1558,12 +1558,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           const counterScore = counter.getCounterScore(target.entry.family, entry.family);
-
-          if (counterScore > 1.0001) {
-            return counterScore;
-          }
-
-          return 1;
+          return this.getCounterPowerFactor(counterScore);
         }
 
         rebuild(gameManager, team) {
@@ -1815,7 +1810,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         getCoveragePowerAgainstTarget(gameManager, team, entry, basePower, target) {
-          const matchup = this.getMatchupFactor(entry, target);
+          const matchup = this.getMatchupPowerFactor(entry, target);
           const reachability = this.getReachabilityFactor(gameManager, team, entry, target);
           return basePower * matchup * reachability;
         }
@@ -1916,7 +1911,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return true;
         }
 
-        getMatchupFactor(entry, target) {
+        getMatchupPowerFactor(entry, target) {
           const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
@@ -1926,12 +1921,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           const counterScore = counter.getCounterScore(entry.family, target.entry.family);
+          return this.getCounterPowerFactor(counterScore);
+        }
 
-          if (counterScore > 1.0001) {
-            return counterScore;
-          }
+        getCounterPowerFactor(counterScore) {
+          if (!Number.isFinite(counterScore)) {
+            return 1;
+          } // X-Power is the geometric mean of offense and durability.
+          // A damage multiplier therefore contributes by its square root.
 
-          return 1;
+
+          return counterScore > 1.0001 ? Math.sqrt(counterScore) : 1;
         }
 
         getReachabilityFactor(gameManager, team, entry, target) {

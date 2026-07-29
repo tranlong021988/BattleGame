@@ -2,10 +2,9 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-29 after the synchronized-opening accuracy sweep, final
-Hero deployment implementation, Hero-phase target-search expansion,
-aggressive-forward redesign, combat-resolution winner fix, SpatialGrid target
-query optimization, and RVO worker lifecycle repair.
+Last updated: 2026-07-29 after the evaluator counter/X-Power correction,
+Spear-to-Cavalry counter reduction from `20` to `12`, two 100-match symmetric
+accuracy-1 telemetry baselines, and the telemetry-only elimination winner rule.
 
 ## Handoff Policy
 
@@ -72,8 +71,9 @@ it.
   - `maxConsecutiveMeleeWavesPerLane = 2`
 - `GameManager` currently has telemetry enabled in the test scene. Telemetry is
   test-only and should be disabled for the real game build.
-- `battleTimeScale = 2` in the current serialized test scene. The latest
-  60-report batch was produced under this accelerated test configuration.
+- `battleTimeScale = 3` in the current serialized test scene. The latest
+  two 100-report baselines were produced under this accelerated test
+  configuration.
 - Both Hero nodes are serialized as active in `assets/Test.scene`, but
   `GameManager.registerDatabaseHeroes()` immediately stores their entries and
   deactivates the nodes at runtime. Do not infer "Hero starts in battle" from
@@ -82,7 +82,8 @@ it.
 - `useWorkerRVO = true`.
 - `useWorkerSpatialTargetQuery = true`.
 - `spatialGridCellSize = 4`; active battlefield bounds supplied by
-  `GameManager` are X `-8..8`, Z `-23..23`.
+  `GameManager` are X `-10..10`, Z `-18..18`. Team spawn Z values are
+  `-15` and `15`.
 
 ## X-Power And Cost
 
@@ -144,13 +145,18 @@ Active scene/default rules:
 
 | Attacker | Defender | Multiplier |
 | --- | --- | ---: |
-| Spear | Cavalry | 20.0 |
+| Spear | Cavalry | 12.0 |
 | Archer | Spear | 2.0 |
 
-Controlled single-wave testing established that Spear x20 beats Cavalry
-reliably while retaining meaningful losses. If full battles still show too
-many Spear responses or Cavalry leaks, investigate evaluator target coverage
-and response reservations before changing this pair again.
+Controlled single-wave testing established:
+
+- `x12`: Spear still beats Cavalry and retains meaningful losses.
+- `x10`: Spear usually loses to Cavalry and no longer satisfies the hard-counter
+  requirement.
+
+Therefore `x12` is the current lower viable bound and should remain active.
+The scene rule and `CounterSettings.createDefaultRules()` both use `12`; do not
+let reset/default creation silently restore `20`.
 
 ## BattleArmyBrain
 
@@ -229,6 +235,10 @@ and response reservations before changing this pair again.
   This synchronizes both teams to the same Axeman-mid opening. Outside telemetry
   batch mode, the normal randomized brain interval and normal pressure-lane
   selection still apply.
+- `enableBattleTelemetry = true` by itself does not activate synchronized
+  opening. The URL batch parameters must be present. The latest two symmetric
+  100-match baselines had telemetry enabled but `telemetryBatch.active = false`,
+  so one side opened first and the other side observed/responded normally.
 - Last stand is separate from normal snapshot support. If the team has spawned
   before, has no living non-hero wave, and can still afford something,
   `chooseLastStandSpawnDecision()` may buy any affordable unit. This can include
@@ -314,7 +324,12 @@ exactly one terminal outcome per aggressive spawn.
 
 ### End And Respawn Safety
 
-- Hero death ends the battle with reason `hero-killed`.
+- Normal gameplay with telemetry disabled ends immediately on Hero death with
+  reason `hero-killed`.
+- Telemetry tests deliberately do not end on Hero death. They continue until a
+  team has no living troops, including Hero, and cannot afford any valid
+  unlocked spawn. Their end reason is
+  `team-eliminated-and-cannot-afford-spawn`.
 - Hero deployment is latched. `handleHeroDeath()` keeps the team unlock flag
   true, so a dead Hero cannot refill and respawn on the next low-CP check.
 - Winner resolution is deferred while one attack batch is being resolved. This
@@ -532,10 +547,11 @@ Telemetry records:
 - aggressive boundary/block/release diagnostics;
 - start stats, counter rules, and batch configuration.
 
-Current normal automated tests end primarily through `hero-killed`: a team
-deploys its Hero when it cannot afford any melee wave, and the first Hero death
-loses. The fallback `team-eliminated-and-cannot-afford-spawn` still exists for
-valid no-Hero/no-combatant cases.
+Current automated telemetry tests end only through
+`team-eliminated-and-cannot-afford-spawn`: a team must have no living troops,
+including Hero, and must be unable to afford any valid unlocked spawn. Hero
+death is recorded but does not finalize/download/reload the telemetry match.
+With telemetry disabled, normal gameplay still ends immediately on Hero death.
 
 ### Batch URL
 
@@ -561,145 +577,155 @@ accuracy override.
 
 ## Latest Telemetry Evidence
 
-### Current 60-Match Accuracy Sweep
+### Evaluator Counter-Power Correction
 
-Files: 60 reports from `2026-07-28T09-48-58` through
-`2026-07-28T10-14-55`.
+Problem and cause:
 
-Test setup:
+- Runtime counter damage is a direct multiplier, but raw X-Power is the
+  geometric mean of offense and durability.
+- `BattlefieldEvaluator` previously inserted the full counter multiplier into
+  wave-power comparison. Spear `x20` was therefore valued as `20X` matchup
+  power instead of `sqrt(20) ~= 4.47X`.
+- That distortion affected candidate coverage, existing ally coverage, and
+  full matchup ratios. It made response coverage inconsistent and was strongly
+  associated with opening-side advantage and poor early response chains.
 
-- Team A stayed at accuracy `1`.
-- Team B ran 10 matches at each accuracy:
+Implementation:
 
-```text
-0.0, 0.2, 0.4, 0.6, 0.8, 1.0
-```
+- `getMatchupFactor()` and the target-side equivalent were renamed to make their
+  power-domain purpose explicit.
+- `getCounterPowerFactor()` now converts a runtime damage multiplier `m` to
+  `sqrt(m)` for evaluator X-Power calculations.
+- The conversion is used consistently for candidate power, target power, ally
+  coverage, and matchup ratios.
+- Runtime combat damage is unchanged and still uses the direct CounterSettings
+  multiplier.
 
-- Both teams opened with Axeman in mid in all 60 reports.
-- All 60 ended validly with `hero-killed`.
-- All 60 exported and advanced/reloaded; this batch had no telemetry hang.
-- Average duration was `43.75s`; range `35.60s` to `64.79s`.
-- Overall result: Team A `44`, Team B `16`.
+### 100-Match Baseline With Runtime Counter x20
 
-#### Winrate
+Files: 100 reports from `2026-07-29T09-33-19-906Z` through
+`2026-07-29T10-37-43-745Z`.
 
-| B accuracy | A wins | B wins | B winrate |
-| ---: | ---: | ---: | ---: |
-| 0.0 | 10 | 0 | 0% |
-| 0.2 | 9 | 1 | 10% |
-| 0.4 | 7 | 3 | 30% |
-| 0.6 | 6 | 4 | 40% |
-| 0.8 | 6 | 4 | 40% |
-| 1.0 | 6 | 4 | 40% |
+Configuration:
 
-Ten matches per point is coarse: one result changes winrate by 10 percentage
-points. The equal 40% values at `0.6`, `0.8`, and `1.0` are not proof that
-those AIs are equally strong.
+- both teams `decisionAccuracy = 1`;
+- `Spear > Cavalry = 20`;
+- telemetry batch URL inactive, so opening remained sequential;
+- identical stats and CP for both teams.
 
-#### Team B Decision Quality
+Results:
 
-Opening decisions are excluded because batch opening is forced and
-deterministic.
+- Team A/B wins: `52/48`.
+- Opening side wins: `50/100`, down from the pre-fix `80.7%`.
+- Opening-side and responder economics were nearly identical:
 
-| B acc | Decisions | Best rank | Mistakes | Avg quality | Hard counters | Ranged | Aggressive | Dmg/CP |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 0.0 | 118 | 2 (1.7%) | 116 | 0.271 | 0 | 0 | 14 | 10.91 |
-| 0.2 | 116 | 24 (20.7%) | 92 | 0.419 | 5 | 7 | 13 | 11.39 |
-| 0.4 | 117 | 48 (41.0%) | 69 | 0.602 | 13 | 9 | 15 | 12.51 |
-| 0.6 | 113 | 66 (58.4%) | 47 | 0.701 | 12 | 18 | 14 | 13.06 |
-| 0.8 | 118 | 97 (82.2%) | 21 | 0.895 | 21 | 26 | 14 | 14.05 |
-| 1.0 | 118 | 118 (100%) | 0 | 1.000 | 21 | 35 | 15 | 13.93 |
+| Position | CP/match | Damage/match | Damage/CP | Waves/match |
+| --- | ---: | ---: | ---: | ---: |
+| Opening side | 786.79 | 11780.21 | 14.97 | 13.39 |
+| Responder | 788.51 | 11723.24 | 14.87 | 13.58 |
 
-Why the top three winrate buckets can look identical:
+- The common opening response chain became coherent:
+  `Axeman -> Cavalry -> Spear`, followed by the normal ladder/support flow.
+- Top target-to-response decisions:
+  - Cavalry -> Spear: `465`;
+  - Axeman -> Cavalry: `459`;
+  - Spear -> Sword: `332`;
+  - Sword -> Axeman: `293`;
+  - Spear -> Archer: `234`.
+- Sword was not under-responding to Spear:
+  - Sword -> Spear: `127778` damage, `1503` kills;
+  - Spear -> Sword: `67599` damage, `452` kills.
 
-- At `0.6`, best-candidate selection becomes the majority for the first time.
-- `0.8` and `1.0` share ranged cap `3`; `0.6` has cap `2`.
-- `0.8` and `1.0` both consumed all 21 observed hard-counter opportunities.
-- Damage/CP for `0.8` and `1.0` was almost identical.
-- `0.6` still had substantially lower decision quality and more mistakes; its
-  matching 4/10 wins is most plausibly sampling noise at this batch size.
+The evaluator correction achieved its goal. Do not restore the direct
+counter multiplier in X-Power scoring.
 
-There is no hidden `if accuracy >= 0.6` candidate-selection branch. The actual
-discrete behavior is the ranged-cap `ceil()` staircase documented above.
+### Active 100-Match Baseline With Runtime Counter x12
 
-#### Hero Evidence
+Files: 100 reports from `2026-07-29T10-51-57-128Z` through
+`2026-07-29T11-46-41-748Z`.
 
-- Hero activations: `116` total, Team A `56`, Team B `60`.
-- No team/report activated Hero more than once. The refill/respawn bug did not
-  recur.
-- Four reports activated only Team B Hero. In each, Team A still had enough CP
-  (`59`, `63`, `79`, or `150`) to afford melee and killed Team B Hero before
-  Team A reached its own activation condition.
-- Activation CP:
-  - Team A average `18.75`, range `0-37`;
-  - Team B average `17.17`, range `0-38`.
-- All 116 activation events recorded target-search multiplier `2`.
+Every report confirms:
 
-Team B end/activation context by accuracy:
+- both teams `decisionAccuracy = 1`;
+- `Spear > Cavalry = 12`;
+- `Archer > Spear = 2`;
+- telemetry batch URL inactive;
+- end reason `team-eliminated-and-cannot-afford-spawn`.
 
-| B accuracy | Avg final CP | Avg Hero activation time |
-| ---: | ---: | ---: |
-| 0.0 | 10.2 | 30.6s |
-| 0.2 | 12.7 | 30.0s |
-| 0.4 | 10.8 | 30.3s |
-| 0.6 | 15.2 | 30.8s |
-| 0.8 | 9.7 | 33.4s |
-| 1.0 | 13.2 | 32.7s |
+System results:
 
-- Hero killers across the 60 matches:
-  - `heroA`: 16
-  - `heroB`: 7
-  - Axeman: 15
-  - Cavalry: 15
-  - Sword: 3
-  - Archer: 2
-  - Monk: 2
+| Metric | Result |
+| --- | ---: |
+| Team A/B wins | 58/42 |
+| Opening/responder wins | 44/56 |
+| Average duration | 57.25s |
+| Average loser final CP | 11.51 |
+| Maximum loser final CP | 25 |
+| Invalid endings | 0 |
 
-The names above are attacker names. Hero-vs-Hero kills are therefore included
-and must not be misclassified as unit-only endings.
+Team A and B output was effectively identical despite the `58/42` binary
+sample:
 
-#### Aggressive Evidence And Telemetry Gap
+| Team | CP/match | Damage/match | Damage/CP | Waves/match |
+| --- | ---: | ---: | ---: | ---: |
+| A | 787.72 | 11980.61 | 15.21 | 13.34 |
+| B | 787.86 | 11969.28 | 15.19 | 13.53 |
 
-- Aggressive spawns: Team A `176`, Team B `145`.
-- Events:
-  - boundary observed: `321`;
-  - own-lane blocked: `29`;
-  - explicit Freehunt release: `4`.
-- Only four aggressive waves remained in final snapshots across all 60 reports.
+Frame-order evidence was also balanced:
 
-The low explicit-release count does not prove the other waves were stuck:
-combat entry and death currently terminate or remove aggressive state without
-a corresponding terminal diagnostic event. Do not rebalance aggressive chance
-from these event counts. Complete lifecycle telemetry first.
+- Team A first-damage frame share: `50.54%`.
+- Team A first-kill frame share: `50.43%`.
 
-#### Mixed Accuracy Damage/CP
+Treat `58/42` as sampling variation unless a larger repeated baseline shows the
+same team-direction bias. It is not explained by CP, damage efficiency,
+composition, opening side, or frame-order evidence in this batch.
 
-Aggregate across both teams:
+Active roster output:
 
-| Family | Waves | Damage/CP |
+| Family | Waves | Wave share | Damage/CP |
+| --- | ---: | ---: | ---: |
+| Axeman | 644 | 23.97% | 14.78 |
+| Spear | 566 | 21.06% | 23.05 |
+| Cavalry | 471 | 17.53% | 13.12 |
+| Sword | 420 | 15.63% | 14.01 |
+| Archer | 311 | 11.57% | 15.34 |
+| Monk | 275 | 10.23% | 12.63 |
+
+Counter evidence:
+
+| Direction | Damage | Kills |
 | --- | ---: | ---: |
-| Spear | 244 | 19.79 |
-| Axeman | 410 | 15.36 |
-| Cavalry | 326 | 14.59 |
-| Archer | 131 | 10.91 |
-| Sword | 236 | 10.35 |
-| Monk | 157 | 9.60 |
+| Spear -> Cavalry | 344685 | 2902 |
+| Cavalry -> Spear | 131060 | 954 |
+| Sword -> Spear | 144758 | 1741 |
+| Spear -> Sword | 74249 | 459 |
 
-Team totals:
+Comparison with the corrected-evaluator `x20` baseline:
 
-- Team A non-Hero damage `748702`, CP `46859`, damage/CP `15.98`.
-- Team B non-Hero damage `597718`, CP `47282`, damage/CP `12.64`.
+- Spear damage/CP: `24.05 -> 23.05` (`-4.2%`).
+- Spear counter damage: `360800 -> 344685` (`-4.5%`).
+- Spear hard-counter decisions: `465 -> 497`.
+- Spear kills per hard-counter response: `6.32 -> 5.84`.
+- Cavalry damage/CP: `12.33 -> 13.12`.
 
-Composition also diverged with accuracy:
+The reduction is smaller than linear `12/20` because `x20` contained substantial
+overkill. Telemetry records actual HP removed, not discarded overkill, and
+`x12` still kills Cavalry reliably. Increased Cavalry-to-Spear encounters also
+offset some of the per-hit reduction.
 
-| Team | Archer | Axeman | Cavalry | Monk | Spear | Sword |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| A | 79 | 190 | 180 | 114 | 117 | 64 |
-| B | 52 | 220 | 146 | 43 | 127 | 172 |
+Current conclusion:
 
-This is an accuracy sweep, not a symmetric balance baseline. The mixed
-damage/CP table primarily proves that decision quality changes battlefield
-output and composition. Do not use it alone to change unit stats or cost.
+- `x12` is the correct active value: it preserves the controlled hard-counter,
+  improves Cavalry runtime value, and reduces Spear excess without breaking the
+  pair.
+- Do not reduce to `x10`; controlled tests show Spear usually loses.
+- Spear's `23.05` damage/CP remains contextual to perfect accuracy and frequent
+  Cavalry encounters. Do not increase Spear cost or change base stats from this
+  batch alone; doing so would violate the one-unit X-Power cost rule or damage
+  its intentionally weak non-counter role.
+- A future accuracy-`0.8` gameplay-oriented batch may be used to measure how
+  much Spear efficiency falls when the AI does not exploit every counter
+  opportunity, but it is not required to validate `x12`.
 
 ## Latest Performance Work
 
@@ -907,11 +933,20 @@ Achieved:
 
 - Batch opening is deterministic by average affordable one-unit X-Power and is
   synchronized to mid when telemetry URL params are active.
-- Accuracy sweep now has clean opening control, monotonic decision quality, and
-  60 valid Hero-killed endings.
+- Sequential-opening symmetric telemetry no longer shows opening-side
+  advantage after the evaluator counter-power correction: `50/100` opener wins
+  at `x20`, followed by `44/100` at active `x12`.
+- Evaluator counter contribution now uses `sqrt(runtimeMultiplier)` in X-Power
+  calculations while runtime combat retains the direct multiplier.
+- Spear-to-Cavalry is locked at `x12` in both the active scene and default
+  CounterSettings. Controlled `x10` testing failed the intended counter.
+- The active `x12` baseline has coherent response flow, balanced team economy,
+  valid Sword-to-Spear ladder behavior, and 100 valid elimination endings.
 - Final Hero deployment is one-shot and no longer refills/respawns.
 - First Hero activation expands target search for all current and future units.
 - Unit-vs-Hero pass-through has been removed.
+- Telemetry tests no longer finalize on Hero death. Normal gameplay with
+  telemetry disabled still does.
 - Winner resolution is protected against mid-AoE/mid-attack-batch fallback
   resolution.
 - Aggressive no longer depends on the old Hero-line release rule.
@@ -939,8 +974,6 @@ Not yet proven:
 - An aggressive opening that never observes an adjacent boundary has no
   explicit fallback release condition. Verify whether this can persist in real
   gameplay after lifecycle telemetry is complete.
-- The current accuracy winrate appears to plateau at `0.6-1.0`, but 10 matches
-  per point are not enough to distinguish real saturation from variance.
 - The current `ceil(maxRangedSupport * accuracy)` cap is intentionally
   staircase-shaped. If level progression must be fully smooth, this is the
   specific mechanic to redesign; do not rewrite candidate scoring first.
@@ -948,8 +981,10 @@ Not yet proven:
   stats/cost instead of family identity alone.
 - Archer cost has not been re-tested at nominal X-Power value `24`; all latest
   Archer evidence uses `26`.
-- The latest mixed-accuracy damage/CP table is not a valid roster-wide balance
-  verdict.
+- Spear remains the damage/CP outlier at `23.05` under perfect accuracy because
+  it is repeatedly matched into Cavalry. This is not evidence that its one-unit
+  cost formula is wrong. Its runtime value at intended non-perfect gameplay
+  accuracy has not yet been re-measured with `x12`.
 - The new performance evidence is from Cocos preview with desktop device/CPU
   emulation. Production web build and physical mobile performance are not yet
   proven.
@@ -959,59 +994,57 @@ Not yet proven:
 
 ## Recommended Next Work
 
-1. Before any further aggressive tuning, add one-shot terminal diagnostics:
+1. Keep Spear-to-Cavalry at `x12`. Do not try `x10` again and do not compensate
+   with Spear base stats or cost unless the user explicitly changes the
+   controlled hard-counter requirement.
+2. If gameplay balance at intended AI difficulty is the next task, run a
+   focused `x12` batch at the intended `0.7-0.8` accuracy. Compare Spear
+   counter-opportunity consumption, Spear damage/CP, Cavalry survival, and
+   overall composition against the documented accuracy-1 baseline. Do not
+   change stats during that batch.
+3. Before any further aggressive tuning, add one-shot terminal diagnostics:
    `aggressive-combat-entered`, `aggressive-died-before-release`, and an
    invariant that every aggressive spawn receives exactly one terminal outcome.
-2. Re-run a focused aggressive audit and answer:
+4. Re-run a focused aggressive audit and answer:
    - how often it releases to Freehunt;
    - how often it enters combat first;
    - how often it dies first;
    - whether never-observed-boundary waves persist too long.
-3. If the user wants stronger statistical confidence in difficulty scaling,
-   run more than 10 matches per point, especially for `0.6`, `0.8`, and `1.0`.
-   Keep synchronized opening and do not change stats during that batch.
-4. If the intended level curve must be numerically smooth, replace only the
+5. If the intended level curve must be numerically smooth, replace only the
    ranged-cap staircase with a clearly designed probability/cap rule. Candidate
    selection is already probabilistic and should not be rewritten without
    contrary evidence.
-5. For level progression, test unit-lock presets explicitly:
+6. For level progression, test unit-lock presets explicitly:
    - early level: at least one melee/frontline unlocked;
    - ranged unlock: confirm support does not spawn without frontline except
      last stand;
    - counter-lock levels: confirm fallback responses are acceptable.
-6. When tier 2/3 are added, verify:
+7. When tier 2/3 are added, verify:
    - unlocked/affordable filtering;
    - opening choice with high CP;
    - abundant/normal/efficient CP strategy behavior;
    - hard-counter guards such as Cavalry into Spear blockers.
-7. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
+8. Decide explicitly whether Archer keeps tested cost `26` or aligns to nominal
    X-Power cost `24`.
-8. Keep current stats stable while diagnosing AI/aggressive behavior. Do not
-   use the latest mixed-accuracy damage/CP aggregate as a balance-change trigger.
-9. For the next performance verification, use a real production web build with
+9. Keep current stats stable while diagnosing AI/aggressive behavior. Runtime
+   damage/CP is contextual evidence, not the one-unit X-Power cost formula.
+10. For the next performance verification, use a real production web build with
    telemetry disabled. Confirm that two workers exist when both worker flags
    are enabled, then compare p95/p99 and callbacks over 16.67 ms.
-10. If RVO is ever seen on main again, first inspect worker construction/error
+11. If RVO is ever seen on main again, first inspect worker construction/error
     evidence. Do not assume the worker is unsupported and do not restore the
     old startup wall-clock fallback.
 
 ## Worktree Notes
 
-Files that have been intentionally touched during the current balance/AI pass:
+Files intentionally changed in the current uncommitted balance/telemetry pass:
 
 - `AI-CONTEX.md`
 - `UNITSTATS.md`
 - `assets/Test.scene`
-- `assets/scripts/BattleArmyBrain.ts`
-- `assets/scripts/BattleSpatialGrid.ts`
-- `assets/scripts/BattleTelemetry.ts`
-- `assets/scripts/BattleUnitDatabase.ts`
-- `assets/scripts/BattleWave.ts`
 - `assets/scripts/BattlefieldEvaluator.ts`
+- `assets/scripts/CounterSettings.ts`
 - `assets/scripts/GameManager.ts`
-- `assets/scripts/Unit.ts`
-- `assets/scripts/UnitBehavior.ts`
-- `assets/scripts/rvo/RVOWorkerSimulator.ts`
 
 Cocos also generated dirty files under `library/`, `temp/`, and `profiles/`.
 They are unrelated generated state. Do not revert or stage them unless the user
@@ -1026,14 +1059,18 @@ Known local tooling issues:
   came from stale generated preview chunks/import maps, not from the TypeScript
   source itself. Canonical gameplay logic is under `assets/scripts`.
 
-Validation after the current source changes:
+Validation for the current balance/telemetry pass:
 
 ```text
 TypeScript noEmit (Cocos Creator 3.8.8): PASS
-Target-worker source syntax: PASS
-Target-worker exact-nearest randomized comparison (500 queries): PASS
-Target-worker snapshot reuse: PASS
-RVO worker lifecycle mock suite: PASS
-4x trace confirms target worker + RVO worker concurrently active: PASS
+100-report corrected-evaluator x20 baseline parsed: PASS
+100-report active x12 baseline parsed: PASS
+All active x12 reports use accuracy 1 and multiplier 12: PASS
+All active x12 reports end with elimination-and-affordability reason: PASS
+Controlled x12 Spear-vs-Cavalry hard-counter: PASS (user-observed)
+Controlled x10 Spear-vs-Cavalry hard-counter: FAIL (expected rejection)
 git diff --check: PASS (line-ending warnings only)
 ```
+
+Worker/SpatialGrid validation documented in `Latest Performance Work` predates
+the current balance edits; those systems were not changed in this pass.

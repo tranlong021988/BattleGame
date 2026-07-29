@@ -82,10 +82,14 @@ damage = max(1, attacker.damage - defender.defense) * counterMultiplier
 
 | Attacker | Defender | Multiplier | Intent |
 | --- | --- | ---: | --- |
-| Spear | Cavalry | 20.0 | Controlled single-wave tests showed Spear winning reliably with meaningful losses. |
+| Spear | Cavalry | 12.0 | Lowest validated value that still lets Spear beat Cavalry reliably; x10 usually loses. |
 | Archer | Spear | 2.0 | Archer punishes Spear while remaining a fragile support wave. |
 
 No other hidden combat multipliers are intended.
+
+`BattlefieldEvaluator` converts a runtime counter multiplier `m` to `sqrt(m)`
+when using it inside X-Power matchup and coverage calculations. Runtime damage
+still uses direct `m`. Do not restore direct `m` inside evaluator power math.
 
 ## Validation Rules
 
@@ -94,6 +98,11 @@ No other hidden combat multipliers are intended.
   protection, AoE uptime, and runtime damage/CP.
 - Runtime damage/CP is contextual evidence, not the cost formula. Spawn
   frequency, lane state, target access, range, AoE, and survival all affect it.
+- In the active 100-match accuracy-1 `x12` baseline, Spear damage/CP was
+  `23.05`, with `67.7%` of Spear damage coming from counter damage. This is
+  expected to be higher than ordinary melee because perfect AI repeatedly
+  matches Spear into Cavalry; it is not a reason by itself to change Spear's
+  one-unit X-Power cost.
 - The latest Archer telemetry used cost `26`; changing it to nominal X-Power
   cost `24` requires a new comparison.
 - Do not rebalance one family from a single noisy batch. Check the full roster,
