@@ -1663,6 +1663,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!window.location) return '';
           var params = new URLSearchParams(window.location.search);
           this.normalizeTelemetryBatchQueryParams(params);
+          var levelQuery = this.getTelemetryLevelQueryConfig(params);
+
+          if (levelQuery.active) {
+            params.set('currentLevel', "" + levelQuery.currentLevel);
+            params.set('TotalLevels', "" + levelQuery.totalLevels);
+            this.removeLegacyAccuracyBatchParams(params);
+
+            if (levelQuery.currentLevel >= levelQuery.totalLevels) {
+              return '';
+            }
+
+            params.set('currentLevel', "" + (levelQuery.currentLevel + 1));
+            return this.buildTelemetryBatchUrl(params);
+          }
+
           var team = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
           var currentAcc = this.clamp01(this.getTelemetryBatchQueryNumber(params, 'currentAcc', 0));
           var currentBatch = Math.max(0, this.getTelemetryBatchQueryInt(params, 'currentBatch', 0));
@@ -1699,7 +1714,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (typeof window === 'undefined') return false;
           if (!window.location) return false;
           var params = new URLSearchParams(window.location.search);
+          this.normalizeTelemetryBatchQueryParams(params);
+
+          if (this.getTelemetryLevelQueryConfig(params).active) {
+            return true;
+          }
+
           return this.hasTelemetryBatchQueryParam(params, 'currentAcc') || this.hasTelemetryBatchQueryParam(params, 'currentBatch') || this.hasTelemetryBatchQueryParam(params, 'step') || this.hasTelemetryBatchQueryParam(params, 'numBatchPerStep') || this.hasTelemetryBatchQueryParam(params, 'end');
+        }
+
+        getTelemetryLevelQueryConfig(params) {
+          var totalLevels = Math.max(0, this.getTelemetryBatchQueryInt(params, 'TotalLevels', 0));
+
+          if (totalLevels <= 0) {
+            return {
+              active: false,
+              currentLevel: 0,
+              totalLevels: 0,
+              levelProgress: 0
+            };
+          }
+
+          var currentLevel = Math.max(1, Math.min(totalLevels, this.getTelemetryBatchQueryInt(params, 'currentLevel', 1)));
+          var levelProgress = totalLevels <= 1 ? 1 : (currentLevel - 1) / (totalLevels - 1);
+          return {
+            active: true,
+            currentLevel,
+            totalLevels,
+            levelProgress
+          };
+        }
+
+        removeLegacyAccuracyBatchParams(params) {
+          var keys = ['currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end'];
+
+          for (var i = 0; i < keys.length; i++) {
+            params.delete(keys[i]);
+            params.delete("?" + keys[i]);
+          }
         }
 
         getTelemetryBatchQueryNumber(params, key, fallback) {
@@ -1726,7 +1778,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         normalizeTelemetryBatchQueryParams(params) {
-          var keys = ['team', 'currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end'];
+          var keys = ['team', 'currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end', 'currentLevel', 'TotalLevels', 'totalLevels'];
 
           for (var i = 0; i < keys.length; i++) {
             var key = keys[i];
@@ -1739,6 +1791,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             params.delete(badKey);
           }
+
+          var lowerCaseTotalLevels = params.get('totalLevels');
+
+          if (lowerCaseTotalLevels !== null && !params.has('TotalLevels')) {
+            params.set('TotalLevels', lowerCaseTotalLevels);
+          }
+
+          params.delete('totalLevels');
         }
 
         buildTelemetryBatchUrl(params) {
@@ -1775,7 +1835,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             currentBatch: 0,
             step: 0,
             numBatchPerStep: 1,
-            end: 1
+            end: 1,
+            levelMode: false,
+            currentLevel: 0,
+            totalLevels: 0,
+            levelProgress: 0
           };
 
           if (!this.isTelemetryBatchQueryActive()) {
@@ -1787,6 +1851,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var params = new URLSearchParams(window.location.search);
           this.normalizeTelemetryBatchQueryParams(params);
           var team = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
+          var levelQuery = this.getTelemetryLevelQueryConfig(params);
+
+          if (levelQuery.active) {
+            return {
+              active: true,
+              team,
+              currentAcc: levelQuery.levelProgress,
+              currentBatch: 0,
+              step: 0,
+              numBatchPerStep: 1,
+              end: 1,
+              levelMode: true,
+              currentLevel: levelQuery.currentLevel,
+              totalLevels: levelQuery.totalLevels,
+              levelProgress: levelQuery.levelProgress
+            };
+          }
+
           return {
             active: true,
             team,
@@ -1794,7 +1876,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             currentBatch: Math.max(0, this.getTelemetryBatchQueryInt(params, 'currentBatch', 0)),
             step: Math.max(0, this.getTelemetryBatchQueryNumber(params, 'step', 0)),
             numBatchPerStep: Math.max(1, this.getTelemetryBatchQueryInt(params, 'numBatchPerStep', 1)),
-            end: this.clamp01(this.getTelemetryBatchQueryNumber(params, 'end', 1))
+            end: this.clamp01(this.getTelemetryBatchQueryNumber(params, 'end', 1)),
+            levelMode: false,
+            currentLevel: 0,
+            totalLevels: 0,
+            levelProgress: 0
           };
         }
 

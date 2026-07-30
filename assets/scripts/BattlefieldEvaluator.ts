@@ -862,6 +862,7 @@ export class BattlefieldEvaluator {
         }
 
         if (
+            this.enemyCount > 0 &&
             !this.hasAffordableEffectiveResponse(
                 gameManager,
                 team,

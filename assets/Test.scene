@@ -9120,7 +9120,7 @@
       "__id__": 1
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 310
@@ -9164,41 +9164,35 @@
     "node": {
       "__id__": 309
     },
-    "_enabled": false,
+    "_enabled": true,
     "__prefab": null,
-    "totalLevels": 300,
-    "currentLevel": 150,
+    "totalLevels": 100,
+    "currentLevel": 1,
+    "bossStagePace": 5,
+    "bossDifficultyMultiplier": 1.5,
     "targetTeam": 1,
     "gameManager": {
       "__id__": 42
     },
-    "armyBrains": [
-      null
+    "battleArmyBrains": [
+      {
+        "__id__": 304
+      }
     ],
-    "battleArmyBrains": [],
     "allowCP": true,
-    "initialCombatPointMin": 200,
-    "initialCombatPointMax": 200,
+    "initialCombatPointMin": 600,
+    "initialCombatPointMax": 1040,
     "allowDecisionAccuracy": true,
-    "decisionAccuracyMin": 0.1,
+    "decisionAccuracyMin": 0,
     "decisionAccuracyMax": 1,
-    "allowInterval": true,
+    "allowInterval": false,
     "minSpawnIntervalMinLevel": 1.666667,
     "maxSpawnIntervalMinLevel": 3.333333,
     "minSpawnIntervalMaxLevel": 1.666667,
-    "maxSpawnIntervalMaxLevel": 2,
+    "maxSpawnIntervalMaxLevel": 3.333333,
     "allowMaxWave": true,
     "maxAliveWavesMin": 3,
     "maxAliveWavesMax": 7,
-    "allowAggressive": true,
-    "aggressiveForwardChanceMin": 0,
-    "aggressiveForwardChanceMax": 1,
-    "aggressiveFastestEntryChanceMin": 0,
-    "aggressiveFastestEntryChanceMax": 1,
-    "aggressiveForwardUnlockAt": 0.45,
-    "allowFastReact": true,
-    "fastReactCounterChanceMin": 0,
-    "fastReactCounterChanceMax": 0.5,
     "_id": "a8WHRaLlVJzLB+E7XR9qFu"
   },
   {

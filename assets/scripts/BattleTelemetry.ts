@@ -38,6 +38,10 @@ export interface BattleTelemetryStartConfig {
         step: number;
         numBatchPerStep: number;
         end: number;
+        levelMode?: boolean;
+        currentLevel?: number;
+        totalLevels?: number;
+        levelProgress?: number;
     };
     battleBounds: {
         minX: number;

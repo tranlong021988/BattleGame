@@ -2,10 +2,11 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-30 after the evaluator counter/X-Power correction,
-Spear-to-Cavalry counter reduction from `20` to `12`, three 100-match
-accuracy-1 telemetry baselines, the telemetry-only elimination winner rule,
-and the initial tier-2/tier-3 systems-design discussion.
+Last updated: 2026-07-30 after correcting the opening lifecycle, implementing
+and validating the 100-level campaign curve, telemetry-driven level
+progression, and periodic boss fights. The latest evidence is a complete
+100-match level sweep using the active Inspector boss multiplier `1.5`, not the
+TypeScript default `1.2`.
 
 ## Handoff Policy
 
@@ -62,19 +63,30 @@ it.
 - Tier 1 only: Axeman, Cavalry, Sword, Spear, Monk, Archer.
 - Skirmisher is inactive.
 - Both teams currently have identical database stats.
-- Both `BattleArmyBrain` components in `assets/Test.scene` currently use:
-  - `decisionAccuracy = 1`
-  - `maxAliveWaves = 7`
+- Both `BattleArmyBrain` components retain these direct Inspector values:
   - `minSpawnInterval = 1.666667`
   - `maxSpawnInterval = 3.333333`
   - `coverageTargetRatio = 1.05`
   - `maxRangedSupportWavesPerLane = 3`
   - `maxConsecutiveMeleeWavesPerLane = 2`
+- When level mode is active, `LevelSettings` overrides Team B's initial CP,
+  `decisionAccuracy`, and `maxAliveWaves`; do not read the brain's serialized
+  values as the effective campaign values.
+- Active `LevelSettings` values in `assets/Test.scene` are:
+  - `totalLevels = 100`, `currentLevel = 1`
+  - Team B initial CP `600 -> 1040`
+  - Team B decision accuracy `0 -> 1`
+  - Team B max alive waves `3 -> 7`
+  - interval scaling disabled
+  - `bossStagePace = 5`
+  - `bossDifficultyMultiplier = 1.5`
+- The TypeScript field default for `bossDifficultyMultiplier` is `1.2`, but
+  the active scene override is `1.5`. Telemetry from the latest sweep proves
+  that `1.5` was used.
 - `GameManager` currently has telemetry enabled in the test scene. Telemetry is
   test-only and should be disabled for the real game build.
 - `battleTimeScale = 3` in the current serialized test scene. The latest
-  two 100-report baselines were produced under this accelerated test
-  configuration.
+  campaign sweep was produced under this accelerated test configuration.
 - Both Hero nodes are serialized as active in `assets/Test.scene`, but
   `GameManager.registerDatabaseHeroes()` immediately stores their entries and
   deactivates the nodes at runtime. Do not infer "Hero starts in battle" from
@@ -704,6 +716,8 @@ With telemetry disabled, normal gameplay still ends immediately on Hero death.
 
 ### Batch URL
 
+Accuracy-batch mode:
+
 ```text
 ?team=1&currentAcc=0&currentBatch=0&step=0.2&numBatchPerStep=10&end=1
 ```
@@ -715,14 +729,32 @@ With telemetry disabled, normal gameplay still ends immediately on Hero death.
 - `numBatchPerStep`: matches per accuracy value.
 - `end`: final accuracy.
 
+Campaign-level mode:
+
+```text
+?team=1&currentLevel=1&TotalLevels=100
+```
+
+- `TotalLevels > 0` activates level mode.
+- `currentLevel` is one-based and advances after each successful report
+  download/reload until it reaches `TotalLevels`.
+- `LevelSettings` reads these query values and applies the configured Team B
+  CP, accuracy, max-wave curve, and boss-stage modifier.
+- `telemetryBatch.currentAcc` is currently the base normalized level progress,
+  not the effective boss-modified accuracy. Read spawn-decision
+  `decisionAccuracy` to recover the effective runtime value on boss levels.
+
 After report download, `GameManager` waits
 `battleTelemetryReloadDelaySeconds`, advances the query state, and reloads the
 page. If telemetry fails to download/reload, inspect the winner condition and
 browser download permission before changing battle logic.
 
-When any telemetry batch query parameter is present, synchronized opening is
-also enabled for both brains even though only the selected `team` receives the
-accuracy override.
+Both legacy accuracy-batch mode and campaign-level mode currently set
+`telemetryBatchQueryActive` on both brains. That forces both first think
+intervals to zero, forces both opening branches, and selects the middle lane.
+Therefore the latest campaign sweep uses synchronized opening. It validates the
+difficulty curve without opening-order noise, but it does not reproduce the
+sequential information advantage of a human waiting to see the enemy opening.
 
 ## Latest Telemetry Evidence
 
@@ -983,6 +1015,198 @@ Current repeated-baseline conclusion:
 - monitor sequential responder advantage separately from team balance;
 - keep current T1 values stable before constructing T2/T3.
 
+### Opening Lifecycle And Empty-Battlefield Correction
+
+Problem:
+
+- The old opening branch was selected whenever `enemyCount <= 0`, including
+  later in a match after an army had already spawned and temporarily cleared
+  the battlefield.
+- `spawnedOpeningWave` plus `hasSeenEnemyWave` attempted to distinguish first
+  opening from later states, but allowed the brain to re-enter opening logic
+  after it had seen and then eliminated an enemy.
+- Snapshot response selection could also run without an enemy target, and CP
+  strategy could label "no effective response" as Desperate even when there
+  was no enemy to answer.
+- These overlapping branches made low-CP/max-wave progression harder to reason
+  about and could produce behavior based on stale phase identity rather than
+  current battlefield intent.
+
+Implementation:
+
+- Opening now requires `!hasSpawnedWave` and either an empty initial battlefield
+  or the explicit synchronized telemetry-opening path.
+- Removed the duplicate `spawnedOpeningWave` and `hasSeenEnemyWave` state.
+- Normal snapshot response selection now runs only when `enemyCount > 0`.
+- CP strategy can enter Desperate for "no affordable effective response" only
+  when an enemy exists.
+- Last stand and the general affordable fallback remain separate and still
+  allow spendable CP to be used after the first opening.
+
+Result:
+
+- Phase ownership is now explicit: opening is one-time, response requires an
+  enemy, and end-of-army/fallback spending is not disguised as another opening.
+- The complete 100-level sweep after this correction had 100 valid elimination
+  endings and no stuck report/reload case.
+- The sweep was not an isolated pre/post experiment, so do not assign its
+  win-rate curve solely to this fix. Its source-level conflict is resolved; the
+  batch validates that the corrected flow remains operational.
+
+### 100-Level Campaign And Boss-Fight Sweep
+
+Files: exactly 100 reports from `2026-07-30T11-23-55-316Z` through
+`2026-07-30T12-04-11-123Z`.
+
+Purpose:
+
+- Replace isolated accuracy batches with a campaign-facing difficulty test.
+- Test whether a human-facing progression can move from easy to hard through
+  Team B accuracy, initial CP, and max alive waves.
+- Add periodic boss spikes without adding hidden combat rules or changing the
+  tier-1 stat/counter system.
+- Isolate that progression from opening-order noise by using the current
+  telemetry batch synchronization. This is useful for curve validation, but is
+  not a full AI-vs-human opening simulation.
+
+Implementation:
+
+- `LevelSettings` interpolates the regular level values first.
+- Every positive level divisible by `floor(bossStagePace)` is a boss level.
+- Boss initial CP is `round(roundedBaseCP * multiplier)` and is intentionally
+  uncapped.
+- Boss accuracy is multiplied and then capped by both
+  `decisionAccuracyMax` and `1`.
+- Boss max alive waves is multiplied, rounded, and capped by
+  `maxAliveWavesMax`.
+- Spawn interval is not modified by the boss multiplier.
+- `BossStagePace = 0` disables boss fights.
+
+Actual tested configuration:
+
+```text
+Levels:                 1..100
+Team B base CP:         600..1040
+Team B base accuracy:   0..1
+Team B base max waves:  3..7
+Boss pace:              every 5 levels
+Boss multiplier:        1.5
+Battle time scale:      3
+```
+
+Dataset integrity:
+
+- 100 unique levels, no missing levels and no duplicates.
+- Every report has `totalLevels = 100`.
+- All 100 matches ended through
+  `team-eliminated-and-cannot-afford-spawn`.
+- Average duration was `59.11s`; minimum `35.19s`, maximum `85.83s`.
+
+Win results:
+
+| Group | Team B Wins | Rate |
+| --- | ---: | ---: |
+| All levels | 52/100 | 52.0% |
+| Normal levels | 34/80 | 42.5% |
+| Boss levels | 18/20 | 90.0% |
+| Normal levels 1-40 | 0/32 | 0.0% |
+| Normal levels 61-100 | 27/32 | 84.4% |
+
+Team B wins by ten-level block:
+
+| Levels | Total B Wins | Boss Wins / 2 | Normal Wins / 8 |
+| --- | ---: | ---: | ---: |
+| 1-10 | 1 | 1 | 0 |
+| 11-20 | 1 | 1 | 0 |
+| 21-30 | 2 | 2 | 0 |
+| 31-40 | 2 | 2 | 0 |
+| 41-50 | 4 | 2 | 2 |
+| 51-60 | 7 | 2 | 5 |
+| 61-70 | 8 | 2 | 6 |
+| 71-80 | 9 | 2 | 7 |
+| 81-90 | 9 | 2 | 7 |
+| 91-100 | 9 | 2 | 7 |
+
+Boss details:
+
+- Team A won boss levels `5` and `15`.
+- Team B won level `10` and every boss from `20` onward.
+- From boss level `25` through `100`, Team B won `16/16`.
+- Boss wins at levels `25` and `30` were close; later boss dominance is not
+  solely an artifact of one or two marginal results.
+
+Decision behavior moved in the intended direction:
+
+- Team B mean selection quality by ten-level block:
+  `0.368, 0.474, 0.537, 0.510, 0.669, 0.762, 0.840, 0.890, 0.945, 0.986`.
+- Best-candidate selection rose from `17.9%` in levels `1-10` to `97.8%` in
+  levels `91-100`.
+- Team B spawn composition also broadened. Levels `1-10` were dominated by
+  Axe/Sword, while levels `91-100` distributed roughly `14-19%` to every
+  active family. Ranged therefore appears naturally as accuracy and battlefield
+  opportunity rise; the existing ranged cap is behaving as intended.
+
+Economy and runtime output:
+
+| Group | Team A Damage/CP | Team B Damage/CP |
+| --- | ---: | ---: |
+| All levels | 16.44 | 12.70 |
+| Normal levels | 16.37 | 13.02 |
+| Boss levels | 16.74 | 11.70 |
+
+This does not mean Team B's units are underpriced or its stats are weaker.
+Both teams use identical stats. Boss Team B wins through additional CP and
+wave capacity while spending into harder battlefield states, so its aggregate
+damage/CP is lower. Runtime damage/CP is contextual AI/economy evidence, not a
+replacement for the one-unit X-Power cost rule.
+
+Close-result sensitivity:
+
+- 16 matches had winner living units `<= 10`: levels
+  `25, 30, 38, 39, 42, 51, 53, 56, 62, 64, 74, 76, 87, 93, 98, 99`.
+- Team B won 10 of those; Team A won 6.
+- Counting every close result as half a win gives Team B `50/100` overall,
+  `33/80` normal, and `17/20` boss.
+- The easy-to-hard normal curve and strong boss spike remain intact under that
+  conservative treatment.
+
+Diagnosis:
+
+- The campaign curve achieved the requested macro experience: early normal
+  levels are reliably easy and late normal levels are reliably hard.
+- Because campaign URL mode currently synchronizes opening, the result should
+  be read as a controlled difficulty-curve result. Sequential human response
+  may shift individual outcomes and still needs separate gameplay validation.
+- Boss fights at the active `1.5` multiplier are very strong, not merely a
+  visible bump. This may be correct if bosses are intended as punishing checks,
+  but it is a design choice, not a neutral default.
+- Boss max waves reaches its cap of `7` around level `40`.
+- Boss accuracy reaches its cap of `1` at level `70`.
+- After level `70`, boss difficulty keeps growing mainly through uncapped CP;
+  this explains the deterministic late-boss results.
+- Do not tune tier-1 stats or counters to alter this campaign curve. The units
+  are shared by both teams; progression should be tuned in `LevelSettings`.
+
+Telemetry gap discovered:
+
+- The report does not explicitly record `isBossLevel`, `bossStagePace`,
+  `bossDifficultyMultiplier`, effective boss accuracy, or effective boss
+  max-wave cap.
+- The tested `1.5` multiplier had to be reconstructed from scene values,
+  initial CP, level number, and per-decision accuracy.
+- Before comparing future boss multipliers, add those effective values directly
+  to the telemetry start configuration. This is observability work and must not
+  alter gameplay.
+
+An interactive chart for this exact sweep is available at:
+
+```text
+C:\Users\CPU\.codex\visualizations\2026\07\27\019fa290-2c07-76b1-9bd7-caba43d51df0\b-win-progression.html
+```
+
+It aligns Team B win/loss and rolling wins with effective CP, per-decision
+accuracy, max waves, and boss levels over levels `1..100`.
+
 ## Latest Performance Work
 
 This section records the 2026-07-28/29 SpatialGrid and RVO work. These changes
@@ -1187,6 +1411,17 @@ mobile browser build with telemetry disabled.
 
 Achieved:
 
+- Level progression can now be driven by
+  `currentLevel`/`TotalLevels` telemetry URL parameters and advances one level
+  after each successful report/reload.
+- `LevelSettings` now provides a continuous Team B curve for initial CP,
+  decision accuracy, and max alive waves without the removed
+  `AllowAggressive` level flag.
+- Periodic boss fights are implemented through `bossStagePace` and
+  `bossDifficultyMultiplier`, with explicit caps for accuracy/max waves and
+  uncapped CP.
+- The full 100-level campaign sweep is complete and valid. It produces a clear
+  easy-to-hard normal curve and a strong boss spike.
 - Batch opening is deterministic by average affordable one-unit X-Power and is
   synchronized to mid when telemetry URL params are active.
 - Sequential-opening symmetric telemetry no longer shows opening-side
@@ -1228,6 +1463,19 @@ Achieved:
 
 Not yet proven:
 
+- The active boss multiplier `1.5` has not been compared against `1.2` or
+  `1.3`. Current evidence says `1.5` is a 90% boss win setting and `16/16` from
+  level 25 onward; whether that is desirable is a product decision.
+- Boss metadata/effective values are not explicit in telemetry. Future
+  multiplier comparisons are vulnerable to configuration misreads until this
+  is fixed.
+- The campaign sweep is AI-vs-AI. It validates the difficulty mechanism and
+  progression shape, but does not directly predict a human player's five-match
+  experience at each level.
+- Campaign query mode currently forces synchronized opening even though real
+  AI-vs-human play is sequential. Decide whether future campaign telemetry
+  should retain synchronization as a controlled test option or expose a
+  separate query flag for real-opening tests.
 - Aggressive outcomes cannot yet be classified end-to-end because combat-entry
   and death terminal events are missing.
 - An aggressive opening that never observes an adjacent boundary has no
@@ -1240,10 +1488,10 @@ Not yet proven:
   stats/cost instead of family identity alone.
 - Archer cost has not been re-tested at nominal X-Power value `24`; all latest
   Archer evidence uses `26`.
-- Spear remains the damage/CP outlier at `23.05` under perfect accuracy because
-  it is repeatedly matched into Cavalry. This is not evidence that its one-unit
-  cost formula is wrong. Its runtime value at intended non-perfect gameplay
-  accuracy has not yet been re-measured with `x12`.
+- Spear remains the damage/CP outlier at `23.05` under the symmetric perfect
+  accuracy baseline because it is repeatedly matched into Cavalry. The campaign
+  sweep now covers non-perfect accuracy, but its mixed CP/wave progression is
+  not an isolated Spear balance experiment.
 - The new performance evidence is from Cocos preview with desktop device/CPU
   emulation. Production web build and physical mobile performance are not yet
   proven.
@@ -1258,46 +1506,56 @@ Not yet proven:
 
 ## Recommended Next Work
 
-1. Keep Spear-to-Cavalry at `x12`. Do not try `x10` again and do not compensate
+1. Add explicit boss telemetry fields: `isBossLevel`, pace, multiplier, base
+   and effective CP, base and effective accuracy, and base/effective max waves.
+   This should be a report-only change.
+2. Resolve opening-mode intent before a human-facing campaign validation.
+   Current campaign URL mode forces synchronized opening. Prefer an explicit
+   `syncOpening` test parameter so controlled balance tests can opt in while
+   campaign/gameplay tests retain sequential response. Confirm this behavior
+   with the user before changing it.
+3. Decide the intended boss experience before changing the multiplier. Keep
+   `1.5` if a near-mandatory difficulty spike is desired. If bosses should be
+   challenging but not almost deterministic, compare complete campaign runs at
+   `1.2` and `1.3`; do not change unit stats during that comparison.
+4. Keep the normal level curve as the current baseline. Its first 40 normal
+   levels produced no Team B wins and its final 40 produced `27/32`, which is
+   stronger evidence of easy-to-hard progression than raw overall `52/100`.
+5. Keep Spear-to-Cavalry at `x12`. Do not try `x10` again and do not compensate
    with Spear base stats or cost unless the user explicitly changes the
    controlled hard-counter requirement.
-2. If gameplay balance at intended AI difficulty is the next task, run a
-   focused `x12` batch at the intended `0.7-0.8` accuracy. Compare Spear
-   counter-opportunity consumption, Spear damage/CP, Cavalry survival, and
-   overall composition against the documented accuracy-1 baseline. Do not
-   change stats during that batch.
-3. Before any further aggressive tuning, add one-shot terminal diagnostics:
+6. Before any further aggressive tuning, add one-shot terminal diagnostics:
    `aggressive-combat-entered`, `aggressive-died-before-release`, and an
    invariant that every aggressive spawn receives exactly one terminal outcome.
-4. Re-run a focused aggressive audit and answer:
+7. Re-run a focused aggressive audit and answer:
    - how often it releases to Freehunt;
    - how often it enters combat first;
    - how often it dies first;
    - whether never-observed-boundary waves persist too long.
-5. If the intended level curve must be numerically smooth, replace only the
+8. If the intended level curve must be numerically smooth, replace only the
    ranged-cap staircase with a clearly designed probability/cap rule. Candidate
    selection is already probabilistic and should not be rewritten without
    contrary evidence.
-6. For level progression, test unit-lock presets explicitly:
+9. For level progression, test unit-lock presets explicitly:
    - early level: at least one melee/frontline unlocked;
    - ranged unlock: confirm support does not spawn without frontline except
      last stand;
    - counter-lock levels: confirm fallback responses are acceptable.
-7. Before implementing tier 2/3, approve or revise the candidate same-family
-   progression `T1/T2/T3 = 1.00/1.50/2.25` and decide whether Archer's tested
-   cost premium continues across tiers.
-8. Build tier stats from explicit X-Power targets, initially keeping
-   UnitCount, Speed, Range, Attack Interval, and Damage Radius unchanged. Then
-   verify unlock filtering, high-CP opening, CP-strategy tier choice, depleted
-   target cleanup, and cross-tier hard counters.
-9. Keep current stats stable while diagnosing AI/aggressive behavior. Runtime
-   damage/CP is contextual evidence, not the one-unit X-Power cost formula.
-10. For the next performance verification, use a real production web build with
-   telemetry disabled. Confirm that two workers exist when both worker flags
-   are enabled, then compare p95/p99 and callbacks over 16.67 ms.
-11. If RVO is ever seen on main again, first inspect worker construction/error
-    evidence. Do not assume the worker is unsupported and do not restore the
-    old startup wall-clock fallback.
+10. Before implementing tier 2/3, approve or revise the candidate same-family
+    progression `T1/T2/T3 = 1.00/1.50/2.25` and decide whether Archer's tested
+    cost premium continues across tiers.
+11. Build tier stats from explicit X-Power targets, initially keeping
+    UnitCount, Speed, Range, Attack Interval, and Damage Radius unchanged. Then
+    verify unlock filtering, high-CP opening, CP-strategy tier choice, depleted
+    target cleanup, and cross-tier hard counters.
+12. Keep current stats stable while diagnosing AI/aggressive behavior. Runtime
+    damage/CP is contextual evidence, not the one-unit X-Power cost formula.
+13. For the next performance verification, use a real production web build with
+    telemetry disabled. Confirm that two workers exist when both worker flags
+    are enabled, then compare p95/p99 and callbacks over 16.67 ms.
+14. If RVO is ever seen on main again, first inspect worker construction/error
+     evidence. Do not assume the worker is unsupported and do not restore the
+     old startup wall-clock fallback.
 
 ## Worktree Notes
 
@@ -1310,6 +1568,10 @@ generated dirty files under `library/`, `temp/`, and `profiles/`. Those changes
 were pre-existing or concurrent Editor state, not edits made by this handoff
 update. Do not revert or stage them automatically; inspect `assets/Test.scene`
 against current Inspector intent before any future commit.
+
+The active scene currently serializes boss multiplier `1.5`; do not overwrite
+it with the TypeScript default `1.2` unless the user explicitly chooses a new
+boss target.
 
 Known local tooling issues:
 
@@ -1324,6 +1586,12 @@ Validation for the current balance/telemetry pass:
 
 ```text
 TypeScript noEmit (Cocos Creator 3.8.8): PASS
+LevelSettings boss-stage implementation review: PASS
+Test.scene JSON parse after LevelSettings serialization: PASS
+100-level campaign reports parsed: PASS (100 unique levels)
+100-level campaign ending reasons: PASS (100/100 valid)
+Campaign level progression: PASS (normal early 0/32 B wins, late 27/32)
+Boss-stage application at pace 5 / multiplier 1.5: PASS
 100-report corrected-evaluator x20 baseline parsed: PASS
 First 100-report active x12 baseline parsed: PASS
 Repeated 100-report active x12 baseline parsed: PASS
@@ -1336,4 +1604,4 @@ git diff --check: PASS (line-ending warnings only)
 ```
 
 Worker/SpatialGrid validation documented in `Latest Performance Work` predates
-the current balance edits; those systems were not changed in this pass.
+the current level/boss edits; those systems were not changed in this pass.

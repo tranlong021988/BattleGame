@@ -119,9 +119,7 @@ export class BattleArmyBrain extends Component {
     private currentDeliberateMistake = false;
     private lastMeleeSpawnLaneId = -1;
     private consecutiveMeleeSpawnLaneCount = 0;
-    private spawnedOpeningWave = false;
     private hasSpawnedWave = false;
-    private hasSeenEnemyWave = false;
     private testSingleWaveSpawned = false;
     private telemetryBatchQueryActive = false;
 
@@ -268,31 +266,20 @@ export class BattleArmyBrain extends Component {
             this.team
         );
 
-        if (this.evaluator.enemyCount > 0) {
-            this.hasSeenEnemyWave = true;
-        }
-
         const forceSynchronizedOpening =
             this.telemetryBatchQueryActive &&
             !this.hasSpawnedWave &&
             this.spawnOpeningWaveIfNoEnemyWave;
+        const shouldSpawnOpening =
+            !this.hasSpawnedWave &&
+            (
+                forceSynchronizedOpening ||
+                this.evaluator.enemyCount <= 0
+            );
 
-        if (
-            forceSynchronizedOpening ||
-            this.evaluator.enemyCount <= 0
-        ) {
+        if (shouldSpawnOpening) {
             if (!this.spawnOpeningWaveIfNoEnemyWave) {
                 this.stateLog('WAIT no enemy and opening disabled.');
-                return;
-            }
-
-            if (
-                this.spawnedOpeningWave &&
-                !this.hasSeenEnemyWave
-            ) {
-                this.stateLog(
-                    'WAIT opening wave already spawned.'
-                );
                 return;
             }
 
@@ -314,12 +301,11 @@ export class BattleArmyBrain extends Component {
 
             if (
                 openingDecision.entry &&
-                openingDecision.laneId >= 0 &&
+                openingDecision.laneId >= 0
+            ) {
                 this.trySpawnDecision(
                     openingDecision
-                )
-            ) {
-                this.spawnedOpeningWave = true;
+                );
             }
 
             return;
@@ -350,22 +336,24 @@ export class BattleArmyBrain extends Component {
             }
         }
 
-        const decision =
-            this.evaluator.chooseSnapshotSpawnDecision(
-                gameManager,
-                this.team,
-                this.affordableEntries,
-                maxRangedSupportLimit,
-                this.getBlockedMeleeLaneId(),
-                this.getDecisionAccuracy()
-            );
+        if (this.evaluator.enemyCount > 0) {
+            const decision =
+                this.evaluator.chooseSnapshotSpawnDecision(
+                    gameManager,
+                    this.team,
+                    this.affordableEntries,
+                    maxRangedSupportLimit,
+                    this.getBlockedMeleeLaneId(),
+                    this.getDecisionAccuracy()
+                );
 
-        if (
-            decision.entry &&
-            decision.laneId >= 0
-        ) {
-            if (this.trySpawnDecision(decision)) {
-                return;
+            if (
+                decision.entry &&
+                decision.laneId >= 0
+            ) {
+                if (this.trySpawnDecision(decision)) {
+                    return;
+                }
             }
         }
 
@@ -761,6 +749,10 @@ export class BattleArmyBrain extends Component {
 
         this.telemetryBatchQueryActive = true;
 
+        if (this.getTelemetryQueryTotalLevels(params) > 0) {
+            return;
+        }
+
         const queryTeam =
             this.getTelemetryBatchQueryInt(
                 params,
@@ -787,10 +779,11 @@ export class BattleArmyBrain extends Component {
     private hasTelemetryBatchQueryParams(
         params: any
     ) {
-        return this.hasTelemetryBatchQueryParam(
-            params,
-            'currentAcc'
-        ) ||
+        const hasLegacyAccuracyBatch =
+            this.hasTelemetryBatchQueryParam(
+                params,
+                'currentAcc'
+            ) ||
             this.hasTelemetryBatchQueryParam(
                 params,
                 'currentBatch'
@@ -807,6 +800,28 @@ export class BattleArmyBrain extends Component {
                 params,
                 'end'
             );
+
+        return hasLegacyAccuracyBatch ||
+            this.getTelemetryQueryTotalLevels(params) > 0;
+    }
+
+    private getTelemetryQueryTotalLevels(
+        params: any
+    ) {
+        const value =
+            this.getTelemetryBatchQueryParam(
+                params,
+                'TotalLevels'
+            ) ??
+            this.getTelemetryBatchQueryParam(
+                params,
+                'totalLevels'
+            );
+        const parsed = Number(value);
+
+        return Number.isFinite(parsed)
+            ? Math.max(0, Math.floor(parsed))
+            : 0;
     }
 
     private getTelemetryBatchQueryNumber(

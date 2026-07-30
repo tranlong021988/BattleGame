@@ -2293,6 +2293,35 @@ export class GameManager extends Component {
 
         this.normalizeTelemetryBatchQueryParams(params);
 
+        const levelQuery =
+            this.getTelemetryLevelQueryConfig(params);
+
+        if (levelQuery.active) {
+            params.set(
+                'currentLevel',
+                `${levelQuery.currentLevel}`
+            );
+            params.set(
+                'TotalLevels',
+                `${levelQuery.totalLevels}`
+            );
+            this.removeLegacyAccuracyBatchParams(params);
+
+            if (
+                levelQuery.currentLevel >=
+                levelQuery.totalLevels
+            ) {
+                return '';
+            }
+
+            params.set(
+                'currentLevel',
+                `${levelQuery.currentLevel + 1}`
+            );
+
+            return this.buildTelemetryBatchUrl(params);
+        }
+
         const team =
             this.getTelemetryBatchQueryInt(
                 params,
@@ -2391,6 +2420,14 @@ export class GameManager extends Component {
         const params =
             new URLSearchParams(window.location.search);
 
+        this.normalizeTelemetryBatchQueryParams(params);
+
+        if (
+            this.getTelemetryLevelQueryConfig(params).active
+        ) {
+            return true;
+        }
+
         return this.hasTelemetryBatchQueryParam(
             params,
             'currentAcc'
@@ -2411,6 +2448,71 @@ export class GameManager extends Component {
                 params,
                 'end'
             );
+    }
+
+    private getTelemetryLevelQueryConfig(
+        params: any
+    ) {
+        const totalLevels =
+            Math.max(
+                0,
+                this.getTelemetryBatchQueryInt(
+                    params,
+                    'TotalLevels',
+                    0
+                )
+            );
+
+        if (totalLevels <= 0) {
+            return {
+                active: false,
+                currentLevel: 0,
+                totalLevels: 0,
+                levelProgress: 0,
+            };
+        }
+
+        const currentLevel =
+            Math.max(
+                1,
+                Math.min(
+                    totalLevels,
+                    this.getTelemetryBatchQueryInt(
+                        params,
+                        'currentLevel',
+                        1
+                    )
+                )
+            );
+        const levelProgress =
+            totalLevels <= 1
+                ? 1
+                : (currentLevel - 1) /
+                    (totalLevels - 1);
+
+        return {
+            active: true,
+            currentLevel,
+            totalLevels,
+            levelProgress,
+        };
+    }
+
+    private removeLegacyAccuracyBatchParams(
+        params: any
+    ) {
+        const keys = [
+            'currentAcc',
+            'currentBatch',
+            'step',
+            'numBatchPerStep',
+            'end',
+        ];
+
+        for (let i = 0; i < keys.length; i++) {
+            params.delete(keys[i]);
+            params.delete(`?${keys[i]}`);
+        }
     }
 
     private getTelemetryBatchQueryNumber(
@@ -2475,6 +2577,9 @@ export class GameManager extends Component {
             'step',
             'numBatchPerStep',
             'end',
+            'currentLevel',
+            'TotalLevels',
+            'totalLevels',
         ];
 
         for (let i = 0; i < keys.length; i++) {
@@ -2489,6 +2594,21 @@ export class GameManager extends Component {
 
             params.delete(badKey);
         }
+
+        const lowerCaseTotalLevels =
+            params.get('totalLevels');
+
+        if (
+            lowerCaseTotalLevels !== null &&
+            !params.has('TotalLevels')
+        ) {
+            params.set(
+                'TotalLevels',
+                lowerCaseTotalLevels
+            );
+        }
+
+        params.delete('totalLevels');
     }
 
     private buildTelemetryBatchUrl(params: any) {
@@ -2538,6 +2658,10 @@ export class GameManager extends Component {
             step: 0,
             numBatchPerStep: 1,
             end: 1,
+            levelMode: false,
+            currentLevel: 0,
+            totalLevels: 0,
+            levelProgress: 0,
         };
 
         if (!this.isTelemetryBatchQueryActive()) {
@@ -2559,6 +2683,24 @@ export class GameManager extends Component {
             ) === 1
                 ? 1
                 : 0;
+        const levelQuery =
+            this.getTelemetryLevelQueryConfig(params);
+
+        if (levelQuery.active) {
+            return {
+                active: true,
+                team,
+                currentAcc: levelQuery.levelProgress,
+                currentBatch: 0,
+                step: 0,
+                numBatchPerStep: 1,
+                end: 1,
+                levelMode: true,
+                currentLevel: levelQuery.currentLevel,
+                totalLevels: levelQuery.totalLevels,
+                levelProgress: levelQuery.levelProgress,
+            };
+        }
 
         return {
             active: true,
@@ -2606,6 +2748,10 @@ export class GameManager extends Component {
                         1
                     )
                 ),
+            levelMode: false,
+            currentLevel: 0,
+            totalLevels: 0,
+            levelProgress: 0,
         };
     }
 

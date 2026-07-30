@@ -1,6 +1,5 @@
 import { _decorator, Component, director } from 'cc';
 import { GameManager } from './GameManager';
-import { SmartArmyBrain } from './SmartArmyBrain';
 import { BattleArmyBrain } from './BattleArmyBrain';
 
 const { ccclass, property } = _decorator;
@@ -19,15 +18,26 @@ export class LevelSettings extends Component {
     currentLevel = 1;
 
     @property({
+        min: 0,
+        step: 1,
+        tooltip: 'Every Nth level is a boss fight. Use 0 to disable boss fights.'
+    })
+    bossStagePace = 5;
+
+    @property({
+        min: 1,
+        step: 0.1,
+        tooltip: 'Multiplier applied to enemy Initial CP, Decision Accuracy, and Max Alive Waves on boss levels. Accuracy and waves remain capped by their configured maximums; CP is not capped.'
+    })
+    bossDifficultyMultiplier = 1.2;
+
+    @property({
         tooltip: 'Team affected by this component. Default 1 means team B/enemy.'
     })
     targetTeam = 1;
 
     @property(GameManager)
     gameManager: GameManager | null = null;
-
-    @property({ type: [SmartArmyBrain] })
-    armyBrains: SmartArmyBrain[] = [];
 
     @property({ type: [BattleArmyBrain] })
     battleArmyBrains: BattleArmyBrain[] = [];
@@ -38,10 +48,10 @@ export class LevelSettings extends Component {
     allowCP = true;
 
     @property
-    initialCombatPointMin = 70;
+    initialCombatPointMin = 600;
 
     @property
-    initialCombatPointMax = 180;
+    initialCombatPointMax = 1040;
 
     @property({
         tooltip: 'Apply the AI decision accuracy curve. Accuracy affects unit choice only; target and lane selection stay tactical.'
@@ -102,50 +112,8 @@ export class LevelSettings extends Component {
     @property
     maxAliveWavesMax = 15;
 
-    @property({
-        tooltip: 'Apply Aggressive Forward curve. Higher levels unlock more lane-empty raid attempts.'
-    })
-    allowAggressive = true;
-
-    @property
-    aggressiveForwardChanceMin = 0;
-
-    @property
-    aggressiveForwardChanceMax = 0.25;
-
-    @property({
-        min: 0,
-        max: 1,
-        tooltip: 'At low levels, empty-lane aggressive raids can use random affordable units. At high levels, they can prefer the fastest affordable raider more often.'
-    })
-    aggressiveFastestEntryChanceMin = 0;
-
-    @property({
-        min: 0,
-        max: 1,
-        tooltip: 'Final-level chance that an empty-lane aggressive raid picks the fastest affordable unit instead of a random affordable unit.'
-    })
-    aggressiveFastestEntryChanceMax = 1;
-
-    @property({
-        min: 0,
-        max: 1,
-        tooltip: 'Difficulty threshold where aggressive-forward raid chance starts increasing.'
-    })
-    aggressiveForwardUnlockAt = 0.45;
-
-    @property({
-        tooltip: 'Apply SmartArmyBrain fast-react chance curve. The maximum defaults to immediate reaction at the final level.'
-    })
-    allowFastReact = true;
-
-    @property
-    fastReactCounterChanceMin = 0;
-
-    @property
-    fastReactCounterChanceMax = 1;
-
     onLoad() {
+        this.applyTelemetryLevelQuery();
         this.applyLevelSettings();
     }
 
@@ -154,11 +122,11 @@ export class LevelSettings extends Component {
             this.clampTeam(this.targetTeam);
         const t =
             this.getDifficulty01();
+        const bossMultiplier =
+            this.getBossDifficultyMultiplier();
 
         const manager =
             this.getGameManager();
-        const smartBrains =
-            this.getTargetSmartArmyBrains(team);
         const battleBrains =
             this.getTargetBattleArmyBrains(team);
 
@@ -167,13 +135,18 @@ export class LevelSettings extends Component {
             manager &&
             manager.unitDatabase
         ) {
-            const cp =
+            const baseCP =
                 Math.round(
                     this.lerp(
                         this.initialCombatPointMin,
                         this.initialCombatPointMax,
                         t
                     )
+                );
+            const cp =
+                Math.round(
+                    baseCP *
+                    bossMultiplier
                 );
 
             if (team === 0) {
@@ -186,97 +159,27 @@ export class LevelSettings extends Component {
             manager.combatPoint[team] = cp;
         }
 
-        for (let i = 0; i < smartBrains.length; i++) {
-            const brain = smartBrains[i];
-
-            if (!brain) continue;
-
-            if (this.allowDecisionAccuracy) {
-                brain.decisionAccuracy =
-                    this.clamp01(
-                        this.lerp(
-                            this.decisionAccuracyMin,
-                            this.decisionAccuracyMax,
-                            t
-                        )
-                    );
-            }
-
-            if (this.allowInterval) {
-                brain.minSpawnInterval =
-                    this.lerp(
-                        this.minSpawnIntervalMinLevel,
-                        this.minSpawnIntervalMaxLevel,
-                        t
-                    );
-                brain.maxSpawnInterval =
-                    this.lerp(
-                        this.maxSpawnIntervalMinLevel,
-                        this.maxSpawnIntervalMaxLevel,
-                        t
-                    );
-            }
-
-            if (this.allowMaxWave) {
-                brain.maxAliveWaves =
-                    Math.round(
-                        this.lerp(
-                            this.maxAliveWavesMin,
-                            this.maxAliveWavesMax,
-                            t
-                        )
-                    );
-            }
-
-            if (this.allowAggressive) {
-                const unlockAt =
-                    this.clamp01(
-                        this.aggressiveForwardUnlockAt
-                    );
-                const raidT =
-                    unlockAt >= 1
-                        ? (t >= 1 ? 1 : 0)
-                        : this.clamp01(
-                            (t - unlockAt) /
-                            (1 - unlockAt)
-                        );
-
-                brain.aggressiveForwardChance =
-                    this.lerp(
-                        this.aggressiveForwardChanceMin,
-                        this.aggressiveForwardChanceMax,
-                        raidT
-                    );
-                brain.aggressiveFastestEntryChance =
-                    this.lerp(
-                        this.aggressiveFastestEntryChanceMin,
-                        this.aggressiveFastestEntryChanceMax,
-                        raidT
-                    );
-            }
-
-            if (this.allowFastReact) {
-                brain.fastReactCounterChance =
-                    this.lerp(
-                        this.fastReactCounterChanceMin,
-                        this.fastReactCounterChanceMax,
-                        t
-                );
-            }
-        }
-
         for (let i = 0; i < battleBrains.length; i++) {
             const brain = battleBrains[i];
 
             if (!brain) continue;
 
             if (this.allowDecisionAccuracy) {
+                const baseAccuracy =
+                    this.lerp(
+                        this.decisionAccuracyMin,
+                        this.decisionAccuracyMax,
+                        t
+                    );
+
                 brain.decisionAccuracy =
-                    this.clamp01(
-                        this.lerp(
-                            this.decisionAccuracyMin,
-                            this.decisionAccuracyMax,
-                            t
+                    Math.min(
+                        this.clamp01(
+                            this.decisionAccuracyMax
+                        ),
+                        this.clamp01(
+                            baseAccuracy *
+                            bossMultiplier
                         )
                     );
             }
@@ -297,12 +200,24 @@ export class LevelSettings extends Component {
             }
 
             if (this.allowMaxWave) {
-                brain.maxAliveWaves =
+                const baseMaxAliveWaves =
                     Math.round(
                         this.lerp(
                             this.maxAliveWavesMin,
                             this.maxAliveWavesMax,
                             t
+                        )
+                    );
+
+                brain.maxAliveWaves =
+                    Math.round(
+                        Math.min(
+                            Math.max(
+                                0,
+                                this.maxAliveWavesMax
+                            ),
+                            baseMaxAliveWaves *
+                            bossMultiplier
                         )
                     );
             }
@@ -327,44 +242,6 @@ export class LevelSettings extends Component {
         return managers.length > 0
             ? managers[0]
             : null;
-    }
-
-    private getTargetSmartArmyBrains(team: number) {
-        const result: SmartArmyBrain[] = [];
-
-        for (let i = 0; i < this.armyBrains.length; i++) {
-            const brain = this.armyBrains[i];
-
-            if (!brain) continue;
-            if (this.clampTeam(brain.team) !== team) continue;
-
-            result.push(brain);
-        }
-
-        if (result.length > 0) {
-            return result;
-        }
-
-        const scene =
-            director.getScene();
-
-        if (!scene) return result;
-
-        const brains =
-            scene.getComponentsInChildren(
-                SmartArmyBrain
-            );
-
-        for (let i = 0; i < brains.length; i++) {
-            const brain = brains[i];
-
-            if (!brain) continue;
-            if (this.clampTeam(brain.team) !== team) continue;
-
-            result.push(brain);
-        }
-
-        return result;
     }
 
     private getTargetBattleArmyBrains(team: number) {
@@ -405,6 +282,60 @@ export class LevelSettings extends Component {
         return result;
     }
 
+    private applyTelemetryLevelQuery() {
+        if (typeof window === 'undefined') return;
+        if (!window.location) return;
+
+        const params =
+            new URLSearchParams(window.location.search);
+        const totalLevels =
+            this.getQueryInt(
+                params,
+                ['TotalLevels', 'totalLevels'],
+                0
+            );
+
+        if (totalLevels <= 0) return;
+
+        this.totalLevels =
+            Math.max(1, totalLevels);
+        this.currentLevel =
+            Math.max(
+                1,
+                Math.min(
+                    this.totalLevels,
+                    this.getQueryInt(
+                        params,
+                        ['currentLevel'],
+                        1
+                    )
+                )
+            );
+    }
+
+    private getQueryInt(
+        params: URLSearchParams,
+        keys: string[],
+        fallback: number
+    ) {
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const value =
+                params.get(key) ??
+                params.get(`?${key}`);
+
+            if (value === null) continue;
+
+            const parsed = Number(value);
+
+            if (Number.isFinite(parsed)) {
+                return Math.floor(parsed);
+            }
+        }
+
+        return fallback;
+    }
+
     private getDifficulty01() {
         const total =
             Math.max(
@@ -426,6 +357,41 @@ export class LevelSettings extends Component {
         }
 
         return (level - 1) / (total - 1);
+    }
+
+    private getBossDifficultyMultiplier() {
+        if (!this.isBossLevel()) {
+            return 1;
+        }
+
+        return Math.max(
+            1,
+            Number.isFinite(
+                this.bossDifficultyMultiplier
+            )
+                ? this.bossDifficultyMultiplier
+                : 1
+        );
+    }
+
+    private isBossLevel() {
+        const pace =
+            Math.max(
+                0,
+                Math.floor(this.bossStagePace)
+            );
+
+        if (pace <= 0) {
+            return false;
+        }
+
+        const level =
+            Math.max(
+                1,
+                Math.floor(this.currentLevel)
+            );
+
+        return level % pace === 0;
     }
 
     private clampTeam(team: number) {

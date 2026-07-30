@@ -606,7 +606,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return CPStrategyState.Abundant;
           }
 
-          if (!this.hasAffordableEffectiveResponse(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId, decisionAccuracy)) {
+          if (this.enemyCount > 0 && !this.hasAffordableEffectiveResponse(gameManager, team, affordableEntries, maxRangedSupportPerTarget, blockedMeleeLaneId, decisionAccuracy)) {
             return CPStrategyState.Desperate;
           }
 

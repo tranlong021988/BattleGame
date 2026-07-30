@@ -231,7 +231,7 @@ export class RVOSimulator {
                     const other = cell[i];
 
                     if (other === a) continue;
-                    if (this.shouldIgnoreHeroAllyForwardPair(a, other)) continue;
+                    if (this.shouldIgnoreAllyForwardPair(a, other)) continue;
 
                     const dx = other.pos.x - a.pos.x;
                     const dz = other.pos.z - a.pos.z;
@@ -253,7 +253,7 @@ export class RVOSimulator {
         return result;
     }
 
-    private shouldIgnoreHeroAllyForwardPair(
+    private shouldIgnoreAllyForwardPair(
         a: RVOAgent,
         b: RVOAgent
     ) {
@@ -266,7 +266,7 @@ export class RVOSimulator {
         }
 
         if (a.isHero === 1 || b.isHero === 1) {
-            return a.onForward === 1 || b.onForward === 1;
+            return false;
         }
 
         if (

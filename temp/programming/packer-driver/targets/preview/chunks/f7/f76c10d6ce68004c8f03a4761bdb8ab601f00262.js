@@ -154,9 +154,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.currentDeliberateMistake = false;
           this.lastMeleeSpawnLaneId = -1;
           this.consecutiveMeleeSpawnLaneCount = 0;
-          this.spawnedOpeningWave = false;
           this.hasSpawnedWave = false;
-          this.hasSeenEnemyWave = false;
           this.testSingleWaveSpawned = false;
           this.telemetryBatchQueryActive = false;
         }
@@ -255,28 +253,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.evaluator.rescueAllyAliveRatio = this.clamp01(this.rescueAllyAliveRatio);
           this.evaluator.laneAllyAheadLimit = Math.max(0, Math.floor(this.laneAllyAheadLimit));
           this.evaluator.rebuild(gameManager, this.team);
-
-          if (this.evaluator.enemyCount > 0) {
-            this.hasSeenEnemyWave = true;
-          }
-
           var forceSynchronizedOpening = this.telemetryBatchQueryActive && !this.hasSpawnedWave && this.spawnOpeningWaveIfNoEnemyWave;
+          var shouldSpawnOpening = !this.hasSpawnedWave && (forceSynchronizedOpening || this.evaluator.enemyCount <= 0);
 
-          if (forceSynchronizedOpening || this.evaluator.enemyCount <= 0) {
+          if (shouldSpawnOpening) {
             if (!this.spawnOpeningWaveIfNoEnemyWave) {
               this.stateLog('WAIT no enemy and opening disabled.');
               return;
             }
 
-            if (this.spawnedOpeningWave && !this.hasSeenEnemyWave) {
-              this.stateLog('WAIT opening wave already spawned.');
-              return;
-            }
-
             var openingDecision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, 0, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy(), forceSynchronizedOpening, forceSynchronizedOpening ? Math.floor(gameManager.getSafeLaneCount() * 0.5) : -1);
 
-            if (openingDecision.entry && openingDecision.laneId >= 0 && this.trySpawnDecision(openingDecision)) {
-              this.spawnedOpeningWave = true;
+            if (openingDecision.entry && openingDecision.laneId >= 0) {
+              this.trySpawnDecision(openingDecision);
             }
 
             return;
@@ -292,11 +281,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
-          var decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, maxRangedSupportLimit, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
+          if (this.evaluator.enemyCount > 0) {
+            var decision = this.evaluator.chooseSnapshotSpawnDecision(gameManager, this.team, this.affordableEntries, maxRangedSupportLimit, this.getBlockedMeleeLaneId(), this.getDecisionAccuracy());
 
-          if (decision.entry && decision.laneId >= 0) {
-            if (this.trySpawnDecision(decision)) {
-              return;
+            if (decision.entry && decision.laneId >= 0) {
+              if (this.trySpawnDecision(decision)) {
+                return;
+              }
             }
           }
 
@@ -561,6 +552,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.telemetryBatchQueryActive = true;
+
+          if (this.getTelemetryQueryTotalLevels(params) > 0) {
+            return;
+          }
+
           var queryTeam = this.getTelemetryBatchQueryInt(params, 'team', 0) === 1 ? 1 : 0;
 
           if (this.team !== queryTeam) {
@@ -571,7 +567,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         hasTelemetryBatchQueryParams(params) {
-          return this.hasTelemetryBatchQueryParam(params, 'currentAcc') || this.hasTelemetryBatchQueryParam(params, 'currentBatch') || this.hasTelemetryBatchQueryParam(params, 'step') || this.hasTelemetryBatchQueryParam(params, 'numBatchPerStep') || this.hasTelemetryBatchQueryParam(params, 'end');
+          var hasLegacyAccuracyBatch = this.hasTelemetryBatchQueryParam(params, 'currentAcc') || this.hasTelemetryBatchQueryParam(params, 'currentBatch') || this.hasTelemetryBatchQueryParam(params, 'step') || this.hasTelemetryBatchQueryParam(params, 'numBatchPerStep') || this.hasTelemetryBatchQueryParam(params, 'end');
+          return hasLegacyAccuracyBatch || this.getTelemetryQueryTotalLevels(params) > 0;
+        }
+
+        getTelemetryQueryTotalLevels(params) {
+          var _this$getTelemetryBat;
+
+          var value = (_this$getTelemetryBat = this.getTelemetryBatchQueryParam(params, 'TotalLevels')) != null ? _this$getTelemetryBat : this.getTelemetryBatchQueryParam(params, 'totalLevels');
+          var parsed = Number(value);
+          return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
         }
 
         getTelemetryBatchQueryNumber(params, key, fallback) {
