@@ -27,9 +27,26 @@ export class LevelSettings extends Component {
     @property({
         min: 1,
         step: 0.1,
-        tooltip: 'Multiplier applied to enemy Initial CP, Decision Accuracy, and Max Alive Waves on boss levels. Accuracy and waves remain capped by their configured maximums; CP is not capped.'
+        displayName: 'Boss Initial CP Multiplier',
+        tooltip: 'Multiplier applied only to enemy Initial CP on boss levels. Initial CP is not capped.'
     })
-    bossDifficultyMultiplier = 1.2;
+    bossInitialCombatPointMultiplier = 1.2;
+
+    @property({
+        min: 1,
+        step: 0.1,
+        displayName: 'Boss Decision Accuracy Multiplier',
+        tooltip: 'Multiplier applied only to enemy Decision Accuracy on boss levels. The result remains capped by Decision Accuracy Max.'
+    })
+    bossDecisionAccuracyMultiplier = 1.2;
+
+    @property({
+        min: 1,
+        step: 0.1,
+        displayName: 'Boss Max Alive Waves Multiplier',
+        tooltip: 'Multiplier applied only to enemy Max Alive Waves on boss levels. The result remains capped by Max Alive Waves Max.'
+    })
+    bossMaxAliveWavesMultiplier = 1.2;
 
     @property({
         tooltip: 'Team affected by this component. Default 1 means team B/enemy.'
@@ -122,8 +139,23 @@ export class LevelSettings extends Component {
             this.clampTeam(this.targetTeam);
         const t =
             this.getDifficulty01();
-        const bossMultiplier =
-            this.getBossDifficultyMultiplier();
+        const isBossLevel =
+            this.isBossLevel();
+        const bossCPMultiplier =
+            this.getBossMultiplier(
+                this.bossInitialCombatPointMultiplier,
+                isBossLevel
+            );
+        const bossAccuracyMultiplier =
+            this.getBossMultiplier(
+                this.bossDecisionAccuracyMultiplier,
+                isBossLevel
+            );
+        const bossMaxWaveMultiplier =
+            this.getBossMultiplier(
+                this.bossMaxAliveWavesMultiplier,
+                isBossLevel
+            );
 
         const manager =
             this.getGameManager();
@@ -146,7 +178,7 @@ export class LevelSettings extends Component {
             const cp =
                 Math.round(
                     baseCP *
-                    bossMultiplier
+                    bossCPMultiplier
                 );
 
             if (team === 0) {
@@ -179,7 +211,7 @@ export class LevelSettings extends Component {
                         ),
                         this.clamp01(
                             baseAccuracy *
-                            bossMultiplier
+                            bossAccuracyMultiplier
                         )
                     );
             }
@@ -217,7 +249,7 @@ export class LevelSettings extends Component {
                                 this.maxAliveWavesMax
                             ),
                             baseMaxAliveWaves *
-                            bossMultiplier
+                            bossMaxWaveMultiplier
                         )
                     );
             }
@@ -359,17 +391,20 @@ export class LevelSettings extends Component {
         return (level - 1) / (total - 1);
     }
 
-    private getBossDifficultyMultiplier() {
-        if (!this.isBossLevel()) {
+    private getBossMultiplier(
+        configuredMultiplier: number,
+        isBossLevel: boolean
+    ) {
+        if (!isBossLevel) {
             return 1;
         }
 
         return Math.max(
             1,
             Number.isFinite(
-                this.bossDifficultyMultiplier
+                configuredMultiplier
             )
-                ? this.bossDifficultyMultiplier
+                ? configuredMultiplier
                 : 1
         );
     }

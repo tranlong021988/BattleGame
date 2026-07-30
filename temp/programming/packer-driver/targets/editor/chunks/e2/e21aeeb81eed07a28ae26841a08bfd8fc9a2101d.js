@@ -720,7 +720,7 @@ function collectNeighbors(a, result, cellSize) {
                 const b = cell[i];
 
                 if (b === a) continue;
-                if (shouldIgnoreHeroAllyForwardPair(a, b)) continue;
+                if (shouldIgnoreAllyForwardPair(a, b)) continue;
 
                 const dx = b.x - a.x;
                 const dz = b.z - a.z;
@@ -742,7 +742,7 @@ function collectNeighbors(a, result, cellSize) {
 
 const neighborScratch = [];
 
-function shouldIgnoreHeroAllyForwardPair(a, b) {
+function shouldIgnoreAllyForwardPair(a, b) {
     if (a.team < 0 || a.team !== b.team) return false;
     if (
         a.waveRuntimeId >= 0 &&
@@ -752,7 +752,7 @@ function shouldIgnoreHeroAllyForwardPair(a, b) {
     }
 
     if (a.isHero === true || b.isHero === true) {
-        return a.onForward === 1 || b.onForward === 1;
+        return false;
     }
 
     if (

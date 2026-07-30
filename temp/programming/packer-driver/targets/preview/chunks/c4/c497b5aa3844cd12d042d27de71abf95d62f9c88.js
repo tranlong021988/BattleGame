@@ -221,7 +221,7 @@ System.register(["cc"], function (_export, _context) {
               for (var i = 0; i < cell.length; i++) {
                 var other = cell[i];
                 if (other === a) continue;
-                if (this.shouldIgnoreHeroAllyForwardPair(a, other)) continue;
+                if (this.shouldIgnoreAllyForwardPair(a, other)) continue;
                 var dx = other.pos.x - a.pos.x;
                 var dz = other.pos.z - a.pos.z;
                 var distSq = dx * dx + dz * dz;
@@ -234,7 +234,7 @@ System.register(["cc"], function (_export, _context) {
           return result;
         }
 
-        shouldIgnoreHeroAllyForwardPair(a, b) {
+        shouldIgnoreAllyForwardPair(a, b) {
           if (a.team < 0 || a.team !== b.team) return false;
 
           if (a.waveRuntimeId >= 0 && a.waveRuntimeId === b.waveRuntimeId) {
@@ -242,7 +242,7 @@ System.register(["cc"], function (_export, _context) {
           }
 
           if (a.isHero === 1 || b.isHero === 1) {
-            return a.onForward === 1 || b.onForward === 1;
+            return false;
           }
 
           if (a.canBePassedThroughByForwardAlly === 1 && b.onForward === 1) {

@@ -2,11 +2,11 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-30 after correcting the opening lifecycle, implementing
-and validating the 100-level campaign curve, telemetry-driven level
-progression, and periodic boss fights. The latest evidence is a complete
-100-match level sweep using the active Inspector boss multiplier `1.5`, not the
-TypeScript default `1.2`.
+Last updated: 2026-07-31 after beginning the human-facing campaign/economy
+design phase. No progression-economy code was changed in this phase. The latest
+implemented evidence remains the complete 100-match level sweep, and the active
+scene uses three separate Inspector boss multipliers at `1.5`, not their
+TypeScript defaults of `1.2`.
 
 ## Handoff Policy
 
@@ -79,10 +79,13 @@ it.
   - Team B max alive waves `3 -> 7`
   - interval scaling disabled
   - `bossStagePace = 5`
-  - `bossDifficultyMultiplier = 1.5`
-- The TypeScript field default for `bossDifficultyMultiplier` is `1.2`, but
-  the active scene override is `1.5`. Telemetry from the latest sweep proves
-  that `1.5` was used.
+  - `bossInitialCombatPointMultiplier = 1.5`
+  - `bossDecisionAccuracyMultiplier = 1.5`
+  - `bossMaxAliveWavesMultiplier = 1.5`
+- The three TypeScript field defaults are `1.2`, but the active scene overrides
+  all three with `1.5`. Older handoff text and the completed telemetry sweep
+  predate the split-property documentation and may use the singular phrase
+  "boss multiplier"; inspect the three current source fields before tuning.
 - `GameManager` currently has telemetry enabled in the test scene. Telemetry is
   test-only and should be disabled for the real game build.
 - `battleTimeScale = 3` in the current serialized test scene. The latest
@@ -1090,7 +1093,9 @@ Team B base CP:         600..1040
 Team B base accuracy:   0..1
 Team B base max waves:  3..7
 Boss pace:              every 5 levels
-Boss multiplier:        1.5
+Boss CP multiplier:     1.5
+Boss accuracy mult.:    1.5
+Boss max-wave mult.:    1.5
 Battle time scale:      3
 ```
 
@@ -1189,9 +1194,9 @@ Diagnosis:
 
 Telemetry gap discovered:
 
-- The report does not explicitly record `isBossLevel`, `bossStagePace`,
-  `bossDifficultyMultiplier`, effective boss accuracy, or effective boss
-  max-wave cap.
+- The report does not explicitly record `isBossLevel`, `bossStagePace`, the
+  three boss multipliers, effective boss accuracy, or effective boss max-wave
+  cap.
 - The tested `1.5` multiplier had to be reconstructed from scene values,
   initial CP, level number, and per-decision accuracy.
 - Before comparing future boss multipliers, add those effective values directly
@@ -1206,6 +1211,325 @@ C:\Users\CPU\.codex\visualizations\2026\07\27\019fa290-2c07-76b1-9bd7-caba43d51d
 
 It aligns Team B win/loss and rolling wins with effective CP, per-decision
 accuracy, max waves, and boss levels over levels `1..100`.
+
+## Human-Facing Campaign And Gold Economy Design
+
+This section records the design discussion started on 2026-07-31. It is not a
+changelog and none of these economy/roster proposals are implemented yet.
+Current source still runs the continuous `LevelSettings` curves documented
+above and both teams still have all active tier-1 entries unlocked in
+`assets/Test.scene`.
+
+### Phase Goal
+
+The user considers the repeated tier-1 balance, controlled matchup, and
+accuracy `0..1` work sufficient for now. The next phase is experience testing:
+
+- Team A remains AI-controlled during automation, but represents the build and
+  resources a human player would own.
+- Team B represents the campaign enemy.
+- The goal is no longer to repeatedly retune symmetric unit balance.
+- The goal is to make early levels welcoming, later levels demanding, and
+  long-term upgrades meaningful.
+- Difficulty should create demand for unit unlocks, CP, max-alive capacity,
+  tactical cards, and optional rewarded ads.
+- Progression must remain beatable without ads. Do not create hidden stat
+  handicaps or deliberate unavoidable losses to force monetization.
+
+The completed 100-level sweep supports this direction: Team A was fixed while
+Team B moved from very weak early levels to strong late levels. The user
+explicitly accepts the resulting sharp campaign transition because future
+player upgrades are intended to fill the gap.
+
+### Persistent Gold Versus In-Battle CP
+
+Keep the currencies conceptually separate:
+
+- `CP` is spent during one battle to spawn waves.
+- `Gold` is persistent campaign currency used to buy unit access and permanent
+  progression.
+- A unit unlock expands strategic choice; it must not silently add combat
+  multipliers.
+- Enemy roster availability is authored per level and costs the enemy no Gold.
+
+Initial persistent-economy proposal:
+
+```text
+UnitUnlockGold = roundToNearest100(15 * UnitCP)
+```
+
+`UnitCP` means the current database cost paid to spawn that entry/wave. This is
+a persistent unlock-price convention, not a replacement for the one-unit
+X-Power formula in `UNITSTATS.md`.
+
+| Unit | Active CP | Proposed Unlock Gold | Proposed Availability |
+| --- | ---: | ---: | --- |
+| Spear | 39 | free | owned at start |
+| Sword | 49 | free | owned at start |
+| Archer | 26 | 400 | after boss 5 |
+| Axeman | 74 | 1,100 | after boss 15 |
+| Cavalry | 97 | 1,500 | after boss 25 |
+| Monk | 49 | 700 | after boss 40 |
+
+The proposed player starts with `200 Gold`. Monk and Sword share an unlock-price
+class because their active CP is equal. Monk's complexity is controlled by
+late shop availability, not a hidden role premium.
+
+Remaining paid unit unlocks total `3,700 Gold`.
+
+### Bosses As New-Unit Introductions
+
+The user wants enemy unit reveals on boss stages because a boss should be
+memorable for more than a numeric multiplier. Working roster proposal:
+
+| Campaign Window | Regular Enemy Roster | Boss Reveal | Player Shop Unlock After Boss |
+| --- | --- | --- | --- |
+| 1-4 | Spear | Boss 5 adds Sword | Archer |
+| 6-14 | Spear, Sword | Boss 15 adds Archer | Axeman |
+| 16-24 | add Archer | Boss 25 adds Axeman | Cavalry |
+| 26-39 | add Axeman | Boss 40 adds Cavalry | Monk |
+| 41-59 | add Cavalry | Boss 60 adds Monk | tier-1 roster complete |
+| 61-100 | all six tier-1 families | bosses vary composition/resources | CP, capacity, cards |
+
+Design intent:
+
+- Before each reveal, the player normally has access to one more family than
+  the regular enemy.
+- During the reveal boss, family counts may temporarily be equal; the player
+  still has early CP/capacity advantages.
+- The newly revealed enemy family persists in subsequent regular levels.
+- Enemy Cavalry cannot appear before the player owns Spear.
+- Monk is introduced last because frontline protection and AoE timing are more
+  complex than basic melee play.
+- Shop availability and actual ownership are different states. A post-boss
+  unlock means the item can be bought; it does not silently grant the unit.
+
+This schedule is a design proposal only. `LevelSettings` currently has no
+per-level roster table. Existing source-side `unlocked` filtering is already
+confirmed across candidate collection, affordability, direct spawn, and
+fallback paths, but authored presets still need implementation and validation.
+
+### Player CP Progression Proposal
+
+Proposed player starting battle resources:
+
+```text
+Initial CP: 800
+Max alive: 5
+Owned units: Spear, Sword
+```
+
+This is intentionally ahead of the current level-1 enemy baseline:
+
+```text
+Enemy CP: 600
+Enemy max alive: 3
+Enemy units: Spear
+```
+
+Proposed CP purchases:
+
+| Available After | Player Initial CP | Gold Cost |
+| ---: | ---: | ---: |
+| start | 800 | free baseline |
+| boss 25 | 850 | 500 |
+| boss 45 | 900 | 600 |
+| boss 60 | 950 | 700 |
+| boss 75 | 1,000 | 800 |
+| boss 85 | 1,050 | 900 |
+
+The five paid CP steps total `3,500 Gold`.
+
+### Max-Alive Progression And The Skip Problem
+
+The first max-alive proposal was:
+
+```text
+Player: 5 at start, buy 6 after boss 35, buy 7 after boss 55
+Enemy:  3 at 1, 4 at 10, 5 at 25, 6 at 40, 7 at 60
+```
+
+This gives the following shape if the player buys both upgrades:
+
+```text
+Levels 1-9:   enemy 3 / player 5
+Levels 10-24: enemy 4 / player 5
+Levels 25-34: enemy 5 / player 5
+Levels 35-39: enemy 5 / player 6
+Levels 40-54: enemy 6 / player 6
+Levels 55-59: enemy 6 / player 7
+Levels 60-100: enemy 7 / player 7
+```
+
+The user correctly identified the unresolved branch: if the player skips both
+capacity purchases, the late campaign becomes enemy `7` versus player `5`.
+That can turn an advertised choice into a mandatory tax.
+
+Latest recommended candidate, not yet approved:
+
+```text
+Player purchases remain available at levels 35 (5->6) and 55 (6->7).
+Enemy max alive:
+  3 during levels 1-9
+  4 during levels 10-29
+  5 during levels 30-44
+  6 during levels 45-69
+  7 during levels 70-100
+```
+
+This gives each purchase a 10-15 level preparation window before the enemy
+catches up. If the player skips one purchase, the first penalty is one enemy
+slot rather than an immediate two-slot cliff.
+
+Do not silently scale enemy max alive from current player max alive. That would
+make buying an upgrade raise the enemy in response, producing rubber-banding
+and devaluing the purchase.
+
+The intended product rule is still unresolved:
+
+- capacity build should be strong;
+- power/roster/card builds should remain viable alternatives;
+- skipping every capacity upgrade may be deliberately harder;
+- max alive must not be the only viable progression path;
+- loss Gold and replay access must make recovery possible;
+- the UI should show a visible recommended max alive before battle.
+
+The original max-alive prices were `1,200 Gold` for `5->6` and `2,000 Gold` for
+`6->7`, total `3,200 Gold`. Re-evaluate these prices only after choosing the
+final skip behavior. Do not implement the earlier chart schedule as final.
+
+### Win, Loss, And Rewarded-Ad Economy
+
+Proposed win reward uses actual effective enemy values rather than raw level
+number:
+
+```text
+CPIndex       = max(0, (EnemyInitialCP - 600) / 440)
+AccuracyIndex = EnemyDecisionAccuracy
+AliveIndex    = max(0, (EnemyMaxAlive - 3) / 4)
+
+Threat =
+    0.40 * CPIndex +
+    0.35 * AccuracyIndex +
+    0.25 * AliveIndex
+
+WinGold =
+    roundTo10(
+        (80 + 170 * Threat) *
+        (isBoss ? 1.20 : 1.00)
+    )
+```
+
+Use effective runtime CP/accuracy/max alive after boss modifiers. Reward inputs
+must be visible/reportable; do not hide a payout multiplier in unrelated AI
+logic.
+
+Indicative rewards under the discussed curve:
+
+| Point | Approximate Win Gold |
+| --- | ---: |
+| level 1 | 80 |
+| boss 5 | 150 |
+| boss 20 | 200 |
+| boss 40 | 250 |
+| boss 60 | 290 |
+| boss 100 | 340 |
+
+Estimated total for winning all 100 levels is about `18,400 Gold`.
+
+Core proposed spend:
+
+| Category | Total Gold |
+| --- | ---: |
+| remaining unit unlocks | 3,700 |
+| five CP upgrades | 3,500 |
+| two max-alive upgrades | 3,200 |
+| total core progression | 10,400 |
+
+With `200` starting Gold, a perfect run leaves substantial room for future
+cards. At roughly 70% wins, using the proposed 25% loss reward, expected total
+income remains sufficient for core progression without ads. These are economy
+targets, not telemetry-proven results.
+
+Loss proposal:
+
+```text
+LossGold = roundTo10(0.25 * WinGold)
+Wallet deduction on loss = 0
+```
+
+Reasoning:
+
+- losing already costs time and blocks the full first-clear reward;
+- directly subtracting Gold creates a negative feedback loop;
+- loss Gold preserves recovery and lets a player eventually buy a skipped
+  progression item;
+- the 75% missed reward is the penalty.
+
+Rewarded-ad proposal:
+
+```text
+AdGold = roundTo10(max(120, 1.5 * WinGoldAtCurrentLevel))
+```
+
+Indicative value is about `120` early, `250-300` mid-campaign, and `400-500`
+late. The initial suggestion was a limit around three rewarded-Gold ads per
+day. Ads should replace about 1.5 wins: meaningful acceleration, but not an
+instant Cavalry purchase. No forced post-loss ad was proposed.
+
+### Experience Stages And Validation Targets
+
+Working experience framing:
+
+| Stage | Intent | First-Attempt Win-Rate Hypothesis |
+| --- | --- | ---: |
+| 1-15 | onboarding and obvious player advantage | 80-95% |
+| 16-40 | introduce responses and purchase choices | 70-85% |
+| 41-60 | complete tier-1 roles and remove slot advantage | 55-70% |
+| 61-100 | full roster, upgrades/cards drive outcomes | 50-65% |
+
+These are hypotheses for human-facing tests, not balance truths. Team A
+AI-vs-AI telemetry cannot prove them directly.
+
+Suggested card-system milestones remain unapproved:
+
+- around level 10: basic cards/tutorial;
+- around level 30: second slot or defensive/formation cards;
+- around level 50: advanced economy/response cards;
+- around level 70: high-impact cards.
+
+Do not price cards before their effects and per-battle limits are specified.
+
+Future experience telemetry should record:
+
+- Gold earned, spent, and current wallet;
+- shop availability versus purchased ownership;
+- level where each unit/CP/max-alive item was bought;
+- losses and retries before a purchase;
+- ads offered, accepted, and declined;
+- quits immediately after a loss;
+- unlocked units that remain unused;
+- actual player max alive versus authored enemy max alive.
+
+Acceptance criteria for the economy prototype:
+
+- a no-ad player around 70% wins can complete core progression;
+- required counter access is available before the corresponding enemy reveal;
+- an ad saves roughly one or two wins but is never required to recover;
+- skipping max alive produces a visible tradeoff, not a hidden unwinnable wall;
+- boss/new-unit previews make difficulty changes understandable;
+- early advantage fades, while late difficulty comes from explicit enemy
+  resources, accuracy, roster, and composition.
+
+The discussion visualization is outside the repository at:
+
+```text
+C:\Users\tranl\.codex\visualizations\2026\06\10\019eb2bd-8cf4-7590-b6e0-59862fd80bc3\battle-progression-roadmap.html
+```
+
+It currently shows the earlier enemy catch-up schedule ending at level 60. The
+latest grace-window candidate ending at level 70 has not been applied to the
+chart because the user has not approved it.
 
 ## Latest Performance Work
 
@@ -1417,9 +1741,9 @@ Achieved:
 - `LevelSettings` now provides a continuous Team B curve for initial CP,
   decision accuracy, and max alive waves without the removed
   `AllowAggressive` level flag.
-- Periodic boss fights are implemented through `bossStagePace` and
-  `bossDifficultyMultiplier`, with explicit caps for accuracy/max waves and
-  uncapped CP.
+- Periodic boss fights are implemented through `bossStagePace` plus separate
+  CP, decision-accuracy, and max-alive multipliers, with explicit caps for
+  accuracy/max waves and uncapped CP.
 - The full 100-level campaign sweep is complete and valid. It produces a clear
   easy-to-hard normal curve and a strong boss spike.
 - Batch opening is deterministic by average affordable one-unit X-Power and is
@@ -1463,9 +1787,10 @@ Achieved:
 
 Not yet proven:
 
-- The active boss multiplier `1.5` has not been compared against `1.2` or
-  `1.3`. Current evidence says `1.5` is a 90% boss win setting and `16/16` from
-  level 25 onward; whether that is desirable is a product decision.
+- The active three boss multipliers at `1.5` have not been isolated against
+  lower alternatives. Current evidence says the combined active boss settings
+  produce a 90% boss win rate and `16/16` enemy boss wins from level 25 onward;
+  whether that is desirable is a product decision.
 - Boss metadata/effective values are not explicit in telemetry. Future
   multiplier comparisons are vulnerable to configuration misreads until this
   is fixed.
@@ -1503,59 +1828,58 @@ Not yet proven:
 - Sequential active-`x12` baselines show a repeated responder signal
   (`113/200`). It is not yet proven as a defect and must not be mixed with
   synchronized-opening balance conclusions.
+- Persistent Gold, player purchases, per-level enemy roster presets, reward
+  payout, rewarded ads, and progression UI do not exist in source yet.
+- The proposed economy totals and win-rate bands are design hypotheses. They
+  have not been tested with a human player or a Team A progression build.
+- Final max-alive skip behavior is unresolved. Do not implement the earlier
+  level-60 catch-up chart as final without revisiting the grace-window
+  candidate.
 
 ## Recommended Next Work
 
-1. Add explicit boss telemetry fields: `isBossLevel`, pace, multiplier, base
-   and effective CP, base and effective accuracy, and base/effective max waves.
-   This should be a report-only change.
-2. Resolve opening-mode intent before a human-facing campaign validation.
-   Current campaign URL mode forces synchronized opening. Prefer an explicit
-   `syncOpening` test parameter so controlled balance tests can opt in while
-   campaign/gameplay tests retain sequential response. Confirm this behavior
-   with the user before changing it.
-3. Decide the intended boss experience before changing the multiplier. Keep
-   `1.5` if a near-mandatory difficulty spike is desired. If bosses should be
-   challenging but not almost deterministic, compare complete campaign runs at
-   `1.2` and `1.3`; do not change unit stats during that comparison.
-4. Keep the normal level curve as the current baseline. Its first 40 normal
-   levels produced no Team B wins and its final 40 produced `27/32`, which is
-   stronger evidence of easy-to-hard progression than raw overall `52/100`.
-5. Keep Spear-to-Cavalry at `x12`. Do not try `x10` again and do not compensate
-   with Spear base stats or cost unless the user explicitly changes the
-   controlled hard-counter requirement.
-6. Before any further aggressive tuning, add one-shot terminal diagnostics:
-   `aggressive-combat-entered`, `aggressive-died-before-release`, and an
-   invariant that every aggressive spawn receives exactly one terminal outcome.
-7. Re-run a focused aggressive audit and answer:
-   - how often it releases to Freehunt;
-   - how often it enters combat first;
-   - how often it dies first;
-   - whether never-observed-boundary waves persist too long.
-8. If the intended level curve must be numerically smooth, replace only the
-   ranged-cap staircase with a clearly designed probability/cap rule. Candidate
-   selection is already probabilistic and should not be rewritten without
-   contrary evidence.
-9. For level progression, test unit-lock presets explicitly:
-   - early level: at least one melee/frontline unlocked;
-   - ranged unlock: confirm support does not spawn without frontline except
-     last stand;
-   - counter-lock levels: confirm fallback responses are acceptable.
-10. Before implementing tier 2/3, approve or revise the candidate same-family
-    progression `T1/T2/T3 = 1.00/1.50/2.25` and decide whether Archer's tested
-    cost premium continues across tiers.
-11. Build tier stats from explicit X-Power targets, initially keeping
-    UnitCount, Speed, Range, Attack Interval, and Damage Radius unchanged. Then
-    verify unlock filtering, high-CP opening, CP-strategy tier choice, depleted
-    target cleanup, and cross-tier hard counters.
-12. Keep current stats stable while diagnosing AI/aggressive behavior. Runtime
-    damage/CP is contextual evidence, not the one-unit X-Power cost formula.
-13. For the next performance verification, use a real production web build with
-    telemetry disabled. Confirm that two workers exist when both worker flags
-    are enabled, then compare p95/p99 and callbacks over 16.67 ms.
-14. If RVO is ever seen on main again, first inspect worker construction/error
-     evidence. Do not assume the worker is unsupported and do not restore the
-     old startup wall-clock fallback.
+1. Continue design discussion before coding. First decide max-alive skip
+   behavior and approve a final enemy/user capacity timeline.
+2. Decide whether post-boss player unit access means:
+   - shop availability only;
+   - a free first copy/unlock;
+   - or a discounted tutorial purchase.
+   Current proposal means shop availability only.
+3. Approve or revise the initial economy table: starting `200 Gold`, unit
+   unlock prices, CP-upgrade prices, max-alive prices, and the `10,400 Gold`
+   total core budget.
+4. Define tactical-card effects before reserving Gold for cards. Do not invent
+   card prices from milestone labels alone.
+5. Once the design is approved, model separate persistent states:
+   `availableInShop`, `purchased/unlocked`, and enemy-authored roster presets.
+   Do not overload the current database `unlocked` flag with all three meanings.
+6. Implement enemy roster reveals as explicit level data. Boss levels
+   `5/15/25/40/60` should be inspectable and previewable; do not bury family
+   unlocks in AI scoring.
+7. Validate every roster preset through the existing unlock-filter paths:
+   opening, normal response, ranged support, last stand, affordability, direct
+   spawn, and winner fallback. Every level must retain at least one affordable
+   unlocked melee/frontline option.
+8. Add campaign-economy telemetry before tuning payouts: effective enemy
+   CP/accuracy/max alive, boss fields, player upgrade state, Gold
+   earned/spent, ownership, retries, ads, and quit-after-loss.
+9. Resolve opening-mode intent before human-facing campaign validation.
+   Controlled telemetry currently synchronizes opening; real play is
+   sequential. Prefer an explicit test-only `syncOpening` flag.
+10. Preserve current tier-1 stats and counters during progression tests. Keep
+    Spear-to-Cavalry at `x12`; do not tune shared unit balance to repair a
+    campaign economy or roster problem.
+11. Treat the existing normal level curve as the enemy baseline, but replace
+    its continuous max-alive curve only after the authored capacity schedule is
+    approved.
+12. Defer tier 2/3 implementation until the tier-1 campaign economy is
+    playable. The prior `1.00/1.50/2.25` tier proposal remains only a future
+    candidate.
+13. Performance follow-up remains a production mobile build with telemetry
+    disabled. This is independent of the progression design.
+14. Aggressive terminal diagnostics and the rare RVO silent-start risk remain
+    known technical follow-ups, but they are not the current product-design
+    priority.
 
 ## Worktree Notes
 
@@ -1563,21 +1887,25 @@ This handoff request changes only:
 
 - `AI-CONTEX.md`
 
-At final verification, `assets/Test.scene` was also dirty and Cocos had
-generated dirty files under `library/`, `temp/`, and `profiles/`. Those changes
-were pre-existing or concurrent Editor state, not edits made by this handoff
-update. Do not revert or stage them automatically; inspect `assets/Test.scene`
-against current Inspector intent before any future commit.
+At final verification, `assets/Test.scene` and
+`assets/scripts/LevelSettings.ts` were already dirty, and Cocos had generated
+dirty files under `library/`, `temp/`, and `profiles/`. Those changes were
+pre-existing or concurrent state, not edits made by this handoff update. Do not
+revert or stage them automatically; inspect the scene and LevelSettings diff
+against current Inspector/design intent before any future commit.
 
-The active scene currently serializes boss multiplier `1.5`; do not overwrite
-it with the TypeScript default `1.2` unless the user explicitly chooses a new
-boss target.
+The active scene currently serializes all three boss multipliers as `1.5`; do
+not overwrite them with the TypeScript defaults of `1.2` unless the user
+explicitly chooses new boss targets.
 
 Known local tooling issues:
 
 - GitHub Desktop lock-file errors usually mean another git operation crashed or
   is still running. Close GitHub Desktop/Editor git operations, verify no git
   process is active, then remove only `.git/index.lock` if it remains stale.
+- At this handoff update, command-line Git reports Windows `dubious ownership`
+  for `F:/Github/BattleGame` because the repository owner SID differs from the
+  current process SID. Do not change global Git trust settings silently.
 - Cocos preview errors like `Unable to resolve bare specifier '_unresolved_*'`
   came from stale generated preview chunks/import maps, not from the TypeScript
   source itself. Canonical gameplay logic is under `assets/scripts`.
@@ -1591,7 +1919,7 @@ Test.scene JSON parse after LevelSettings serialization: PASS
 100-level campaign reports parsed: PASS (100 unique levels)
 100-level campaign ending reasons: PASS (100/100 valid)
 Campaign level progression: PASS (normal early 0/32 B wins, late 27/32)
-Boss-stage application at pace 5 / multiplier 1.5: PASS
+Boss-stage application in the completed sweep: PASS
 100-report corrected-evaluator x20 baseline parsed: PASS
 First 100-report active x12 baseline parsed: PASS
 Repeated 100-report active x12 baseline parsed: PASS

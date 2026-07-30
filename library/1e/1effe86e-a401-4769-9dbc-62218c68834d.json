@@ -9169,7 +9169,9 @@
     "totalLevels": 100,
     "currentLevel": 1,
     "bossStagePace": 5,
-    "bossDifficultyMultiplier": 1.5,
+    "bossInitialCombatPointMultiplier": 1.2,
+    "bossDecisionAccuracyMultiplier": 1.5,
+    "bossMaxAliveWavesMultiplier": 1.5,
     "targetTeam": 1,
     "gameManager": {
       "__id__": 42
