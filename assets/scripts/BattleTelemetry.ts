@@ -8,6 +8,7 @@ export interface BattleTelemetryUnitSnapshot {
     family: number;
     familyName: string;
     tier: number;
+    unlocked: boolean;
     unitCount: number;
     cost: number;
     health: number;
@@ -53,6 +54,7 @@ export interface BattleTelemetryStartConfig {
     initialCombatPoint: number[];
     unitStats: BattleTelemetryUnitSnapshot[];
     counterRules: BattleTelemetryCounterRuleSnapshot[];
+    progression?: any;
 }
 
 export interface BattleTelemetryWaveSpawnDecision {
@@ -877,7 +879,8 @@ export class BattleTelemetry {
         aliveCount: number[],
         deathCount: number[],
         killCount: number[],
-        counterKillCount: number[]
+        counterKillCount: number[],
+        progressionResult?: any
     ) {
         if (!this.enabled || !this.started) return null;
         if (this.ended) return null;
@@ -972,6 +975,7 @@ export class BattleTelemetry {
                 loserTeam,
                 reason,
             },
+            progression: progressionResult || null,
             teams: [
                 {
                     team: 0,

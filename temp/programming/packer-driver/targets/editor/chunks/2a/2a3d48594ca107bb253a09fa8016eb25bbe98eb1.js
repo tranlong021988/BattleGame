@@ -315,6 +315,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleWinnerTeam = -1;
           this.battleLoserTeam = -1;
           this.battleWinnerReason = '';
+          this.battleProgressionProvider = null;
           this.combatResolutionDepth = 0;
           this.pendingForcedBattleWinnerCheck = false;
           this.pendingBattleWinner = null;
@@ -1338,6 +1339,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return false;
         }
 
+        canTeamAffordAnySpawn(team) {
+          return this.canAffordAnySpawnEntry(team);
+        }
+
         canAffordAnyMeleeSpawnEntry(team) {
           const entries = this.getDatabaseTeamEntries(team);
 
@@ -1561,13 +1566,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleWinnerReason = reason;
           this.battleWinnerResolved = true;
           console.log(`[BattleWinner] winnerTeam=${winnerTeam}, ` + `loserTeam=${loserTeam}, reason=${reason}`);
+          const canFinishTelemetry = this.enableBattleTelemetry && this.battleTelemetry.isEnabled() && !this.battleTelemetry.hasEnded();
 
-          if (!this.enableBattleTelemetry || !this.battleTelemetry.isEnabled() || this.battleTelemetry.hasEnded()) {
+          if (canFinishTelemetry) {
+            this.battleTelemetry.recordFinalSnapshot(this.createBattleTelemetrySnapshot());
+          }
+
+          const progressionResult = this.battleProgressionProvider ? this.battleProgressionProvider.handleBattleResult(winnerTeam, loserTeam, reason) : null;
+
+          if (!canFinishTelemetry) {
+            this.scheduleBattleTelemetryPageReload();
             return;
           }
 
-          this.battleTelemetry.recordFinalSnapshot(this.createBattleTelemetrySnapshot());
-          const report = this.battleTelemetry.finish(winnerTeam, loserTeam, reason, this.frame, this.battleElapsedTime, this.combatPoint, this.aliveCount, this.deathCount, this.killCount, this.counterKillCount);
+          const report = this.battleTelemetry.finish(winnerTeam, loserTeam, reason, this.frame, this.battleElapsedTime, this.combatPoint, this.aliveCount, this.deathCount, this.killCount, this.counterKillCount, progressionResult);
           this.battleTelemetry.exportReport(report, this.battleTelemetryFilePrefix, this.downloadBattleTelemetryOnEnd, this.logBattleTelemetryOnEnd);
           this.scheduleBattleTelemetryPageReload();
         }
@@ -1603,11 +1615,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         scheduleBattleTelemetryPageReload() {
-          if (!this.reloadPageAfterBattleTelemetryExport) return;
-          if (!this.enableBattleTelemetry) return;
+          const progressionAutoReload = !!this.battleProgressionProvider && this.battleProgressionProvider.shouldAutoReloadAfterBattle();
+
+          if (!this.reloadPageAfterBattleTelemetryExport && !progressionAutoReload) {
+            return;
+          }
+
+          if (!this.enableBattleTelemetry && !progressionAutoReload) {
+            return;
+          }
+
           if (typeof window === 'undefined') return;
           if (!window.location) return;
-          const nextBatchUrl = this.getNextTelemetryBatchUrl();
+          const progressionUrl = progressionAutoReload && this.battleProgressionProvider ? this.battleProgressionProvider.getNextBattleUrl() : '';
+          const nextBatchUrl = progressionUrl || this.getNextTelemetryBatchUrl();
+
+          if (progressionAutoReload && !progressionUrl) {
+            console.log('[BattleProgression] campaign complete; reload stopped.');
+            return;
+          }
 
           if (this.isTelemetryBatchQueryActive() && !nextBatchUrl) {
             console.log('[BattleTelemetry] telemetry batch query complete.');
@@ -1795,7 +1821,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             laneCount: this.getSafeLaneCount(),
             initialCombatPoint: [this.initialCombatPoint[0], this.initialCombatPoint[1]],
             unitStats: this.createBattleTelemetryUnitStatsSnapshot(),
-            counterRules: this.createBattleTelemetryCounterRuleSnapshot()
+            counterRules: this.createBattleTelemetryCounterRuleSnapshot(),
+            progression: this.battleProgressionProvider ? this.battleProgressionProvider.createTelemetrySnapshot() : undefined
           };
         }
 
@@ -1875,6 +1902,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                   error: Error()
                 }), UnitFamily) : UnitFamily)[entry.family]) != null ? _entry$family : String(entry.family),
                 tier: entry.tier,
+                unlocked: entry.unlocked,
                 unitCount: entry.unitCount,
                 cost: entry.combatPointCost,
                 health: entry.health,

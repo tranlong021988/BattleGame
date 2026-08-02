@@ -56,6 +56,17 @@ const TopDownZoomRangeChangedEvent =
 const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
 
+export interface BattleProgressionProvider {
+    handleBattleResult(
+        winnerTeam: number,
+        loserTeam: number,
+        reason: string
+    ): any;
+    createTelemetrySnapshot(): any;
+    shouldAutoReloadAfterBattle(): boolean;
+    getNextBattleUrl(): string;
+}
+
 @ccclass('GameManager')
 export class GameManager extends Component {
 
@@ -263,6 +274,8 @@ export class GameManager extends Component {
     battleWinnerTeam = -1;
     battleLoserTeam = -1;
     battleWinnerReason = '';
+    battleProgressionProvider:
+        BattleProgressionProvider | null = null;
     private combatResolutionDepth = 0;
     private pendingForcedBattleWinnerCheck = false;
     private pendingBattleWinner: {
@@ -1827,6 +1840,10 @@ export class GameManager extends Component {
         return false;
     }
 
+    public canTeamAffordAnySpawn(team: number) {
+        return this.canAffordAnySpawnEntry(team);
+    }
+
     private canAffordAnyMeleeSpawnEntry(team: number) {
         const entries =
             this.getDatabaseTeamEntries(team);
@@ -2160,17 +2177,31 @@ export class GameManager extends Component {
             `loserTeam=${loserTeam}, reason=${reason}`
         );
 
-        if (
-            !this.enableBattleTelemetry ||
-            !this.battleTelemetry.isEnabled() ||
-            this.battleTelemetry.hasEnded()
-        ) {
-            return;
+        const canFinishTelemetry =
+            this.enableBattleTelemetry &&
+            this.battleTelemetry.isEnabled() &&
+            !this.battleTelemetry.hasEnded();
+
+        if (canFinishTelemetry) {
+            this.battleTelemetry.recordFinalSnapshot(
+                this.createBattleTelemetrySnapshot()
+            );
         }
 
-        this.battleTelemetry.recordFinalSnapshot(
-            this.createBattleTelemetrySnapshot()
-        );
+        const progressionResult =
+            this.battleProgressionProvider
+                ? this.battleProgressionProvider
+                    .handleBattleResult(
+                        winnerTeam,
+                        loserTeam,
+                        reason
+                    )
+                : null;
+
+        if (!canFinishTelemetry) {
+            this.scheduleBattleTelemetryPageReload();
+            return;
+        }
 
         const report =
             this.battleTelemetry.finish(
@@ -2183,7 +2214,8 @@ export class GameManager extends Component {
                 this.aliveCount,
                 this.deathCount,
                 this.killCount,
-                this.counterKillCount
+                this.counterKillCount,
+                progressionResult
             );
 
         this.battleTelemetry.exportReport(
@@ -2239,13 +2271,45 @@ export class GameManager extends Component {
     }
 
     private scheduleBattleTelemetryPageReload() {
-        if (!this.reloadPageAfterBattleTelemetryExport) return;
-        if (!this.enableBattleTelemetry) return;
+        const progressionAutoReload =
+            !!this.battleProgressionProvider &&
+            this.battleProgressionProvider
+                .shouldAutoReloadAfterBattle();
+
+        if (
+            !this.reloadPageAfterBattleTelemetryExport &&
+            !progressionAutoReload
+        ) {
+            return;
+        }
+        if (
+            !this.enableBattleTelemetry &&
+            !progressionAutoReload
+        ) {
+            return;
+        }
         if (typeof window === 'undefined') return;
         if (!window.location) return;
 
+        const progressionUrl =
+            progressionAutoReload &&
+            this.battleProgressionProvider
+                ? this.battleProgressionProvider
+                    .getNextBattleUrl()
+                : '';
         const nextBatchUrl =
+            progressionUrl ||
             this.getNextTelemetryBatchUrl();
+
+        if (
+            progressionAutoReload &&
+            !progressionUrl
+        ) {
+            console.log(
+                '[BattleProgression] campaign complete; reload stopped.'
+            );
+            return;
+        }
 
         if (
             this.isTelemetryBatchQueryActive() &&
@@ -2646,6 +2710,11 @@ export class GameManager extends Component {
                 this.createBattleTelemetryUnitStatsSnapshot(),
             counterRules:
                 this.createBattleTelemetryCounterRuleSnapshot(),
+            progression:
+                this.battleProgressionProvider
+                    ? this.battleProgressionProvider
+                        .createTelemetrySnapshot()
+                    : undefined,
         };
     }
 
@@ -2776,6 +2845,7 @@ export class GameManager extends Component {
                         UnitFamily[entry.family] ??
                         String(entry.family),
                     tier: entry.tier,
+                    unlocked: entry.unlocked,
                     unitCount: entry.unitCount,
                     cost: entry.combatPointCost,
                     health: entry.health,

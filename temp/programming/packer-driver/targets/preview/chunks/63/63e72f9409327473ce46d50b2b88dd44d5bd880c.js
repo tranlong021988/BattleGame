@@ -493,7 +493,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
-        finish(winnerTeam, loserTeam, reason, frame, time, combatPoint, aliveCount, deathCount, killCount, counterKillCount) {
+        finish(winnerTeam, loserTeam, reason, frame, time, combatPoint, aliveCount, deathCount, killCount, counterKillCount, progressionResult) {
           if (!this.enabled || !this.started) return null;
           if (this.ended) return null;
           this.ended = true;
@@ -529,6 +529,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               loserTeam,
               reason
             },
+            progression: progressionResult || null,
             teams: [{
               team: 0,
               combatPoint: combatPoint[0] || 0,

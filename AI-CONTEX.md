@@ -2,393 +2,416 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-07-31 after beginning the human-facing campaign/economy
-design phase. No progression-economy code was changed in this phase. The latest
-implemented evidence remains the complete 100-match level sweep, and the active
-scene uses three separate Inspector boss multipliers at `1.5`, not their
-TypeScript defaults of `1.2`.
+Last updated: 2026-08-03 after implementing the current campaign progression,
+aligning player upgrade availability with enemy progression, raising enemy
+starting accuracy to `0.4`, and analyzing the latest 68-battle run covering
+levels 1-60.
 
-## Handoff Policy
+This document describes the current source and active `assets/Test.scene`. It
+replaces older progression proposals and old telemetry conclusions. Read the
+source before making claims because Inspector overrides remain authoritative.
 
-- Read source and scene data before acting. This file is a map, not a
-  substitute for code inspection.
-- Update this file only when the user explicitly asks.
-- Do not add hidden combat multipliers. Combat multipliers belong in
-  `CounterSettings` and the scene rules.
-- The user wants system-level diagnosis. Do not hide a logic problem behind a
-  new threshold or a narrow numerical patch.
-- Reuse current wave/snapshot state before adding scans, throttles, or duplicate
-  bookkeeping.
-- For balance changes, inspect stats, unit count, cost, counters, AI scoring,
-  lane state, frontline coverage, and telemetry together.
-- Do not ask for another telemetry batch when the source already proves the
-  cause.
-- For this project, inspect the relevant source before answering questions
-  about current gameplay logic. Do not answer from memory when the user asks
-  how the AI currently behaves.
+## Handoff Rules
+
+- Update this file only when the user explicitly requests a handoff update.
+- Inspect relevant source and active scene data before answering questions
+  about current logic. Do not answer from memory or from this file alone.
+- The active AI is `BattleArmyBrain` plus `BattlefieldEvaluator`.
+  `SmartArmyBrain` is legacy and must not receive new gameplay work unless the
+  user explicitly re-enables it.
+- Do not add hidden combat, AI, economy, or progression multipliers. Every
+  multiplier or cap must be explicit in source/Inspector and telemetry where
+  it affects analysis.
+- Do not repair campaign difficulty by changing tier-1 combat stats or counter
+  multipliers unless telemetry first proves a combat-balance defect. The
+  current phase is campaign experience/progression, not unit rebalance.
+- The user prefers broad causal fixes over small threshold tuning. Diagnose the
+  complete flow before adding another knob.
+- Wave Combat Point cost must not increase when `unitCount` is upgraded. The
+  player already spends Gold to unlock the wave and increase its count.
+- Telemetry is evidence only. Never feed telemetry results back into runtime AI
+  decisions.
+- Work with the dirty worktree. Do not revert user/Cocos changes and do not
+  stage or commit unrelated generated files.
+
+## Current Product Phase
+
+Tier-1 symmetric AI balance and the accuracy evaluator were tested extensively
+before this phase. Current work treats:
+
+- Team A as a simulated human player, still controlled by `BattleArmyBrain` at
+  accuracy `1`;
+- Team B as the authored campaign enemy;
+- levels 1-100 as a player-experience progression test;
+- Gold, purchases, retries, unlock timing, CP, and Max Alive as the current
+  tuning surface.
+
+The intended experience is:
+
+1. Early normal levels are forgiving and introduce the game.
+2. Enemy families are introduced at boss milestones.
+3. The player faces the new enemy family before it becomes available for
+   purchase.
+4. Losses still award bounded Gold, allowing the player to improve and retry.
+5. Five consecutive valid losses simulate a rewarded-video rescue.
+6. Normal levels should not become a long automatic-win corridor.
+7. Bosses should produce meaningful retries without creating an impossible
+   fixed wall.
+8. Levels 51-100 use the complete tier-1 roster/count set and test mastery.
 
 ## Source Of Truth
 
-Read these first:
+Read these first for progression work:
 
-- `assets/Test.scene`: active Inspector values for both teams, AI, counters,
-  telemetry, and level settings.
-- `UNITSTATS.md`: active tier-1 numeric balance table and X-Power formula.
-- `assets/scripts/BattleArmyBrain.ts`: spawn timing, accuracy, single-wave test
-  mode, and actual spawn execution.
-- `assets/scripts/BattlefieldEvaluator.ts`: battlefield snapshot, CP strategy,
-  target/lane/unit scoring, ranged-support gates, and response reservations.
-- `assets/scripts/CounterSettings.ts`: runtime counter damage.
-- `assets/scripts/BattleTelemetry.ts`: report schema and aggregation.
-- `assets/scripts/GameManager.ts`: battle end, report export/reload, CP, wave
-  ownership, final Hero deployment, forward/aggressive state transitions, and
-  telemetry URL automation. It also supplies the active battlefield bounds and
-  worker switches to the target-search/RVO systems.
-- `assets/scripts/BattleSpatialGrid.ts`: main-thread SpatialGrid, target-query
-  worker source, worker snapshot/reply validation, and nearest-target search.
-- `assets/scripts/rvo/RVOWorkerSimulator.ts`: RVO worker startup, restart,
-  transferable-buffer lifecycle, runtime error fallback, and embedded worker
-  source.
-- `assets/scripts/BattleWave.ts`: wave-level forward, aggressive, combat, and
-  Freehunt state.
-- `assets/scripts/Unit.ts` and `assets/scripts/UnitBehavior.ts`: target search,
-  Hero-phase range multiplier, combat resolution, damage, and death flow.
+- `assets/Test.scene`: active Inspector values. This overrides TypeScript
+  defaults.
+- `assets/scripts/LevelSettings.ts`: enemy curves, boss rules, persistent
+  progression state, unlock/count application, Gold, purchases, retries,
+  rescue rewards, URL handling, and progression telemetry snapshots.
+- `assets/scripts/GameManager.ts`: battle result integration, report export,
+  progression provider, URL reload, CP affordability, and end conditions.
+- `assets/scripts/BattleTelemetry.ts`: report schema. Progression appears in
+  start config and final result.
+- `tools/battle-progression-roadmap.html`: human-readable visualization of the
+  current authored progression. It is a duplicated representation; source and
+  scene still win if they disagree.
 
-The active AI is `BattleArmyBrain` plus `BattlefieldEvaluator`. Old
-`ArmyBrain`/`SmartArmyBrain` logic is legacy unless a scene explicitly enables
-it.
+Read these before changing AI/combat:
 
-## Active Test Configuration
+- `assets/scripts/BattleArmyBrain.ts`: spawn timing, opening, last stand,
+  accuracy handoff, spawn execution, and decision telemetry.
+- `assets/scripts/BattlefieldEvaluator.ts`: snapshot intelligence, CP states,
+  target/lane selection, candidate scoring, weighted accuracy mistakes,
+  counters, ranged support, and reservations.
+- `assets/scripts/CounterSettings.ts`: runtime counter rules.
+- `assets/scripts/BattleUnitDatabase.ts`: unit entries and wave CP costs.
+- `UNITSTATS.md` and `assets/Test.scene`: active stats and X-Power baseline.
+- `assets/scripts/BattleSpatialGrid.ts` and
+  `assets/scripts/rvo/RVOWorkerSimulator.ts`: previously optimized worker paths.
 
-- Tier 1 only: Axeman, Cavalry, Sword, Spear, Monk, Archer.
-- Skirmisher is inactive.
-- Both teams currently have identical database stats.
-- Both `BattleArmyBrain` components retain these direct Inspector values:
-  - `minSpawnInterval = 1.666667`
-  - `maxSpawnInterval = 3.333333`
-  - `coverageTargetRatio = 1.05`
-  - `maxRangedSupportWavesPerLane = 3`
-  - `maxConsecutiveMeleeWavesPerLane = 2`
-- When level mode is active, `LevelSettings` overrides Team B's initial CP,
-  `decisionAccuracy`, and `maxAliveWaves`; do not read the brain's serialized
-  values as the effective campaign values.
-- Active `LevelSettings` values in `assets/Test.scene` are:
-  - `totalLevels = 100`, `currentLevel = 1`
-  - Team B initial CP `600 -> 1040`
-  - Team B decision accuracy `0 -> 1`
-  - Team B max alive waves `3 -> 7`
-  - interval scaling disabled
-  - `bossStagePace = 5`
-  - `bossInitialCombatPointMultiplier = 1.5`
-  - `bossDecisionAccuracyMultiplier = 1.5`
-  - `bossMaxAliveWavesMultiplier = 1.5`
-- The three TypeScript field defaults are `1.2`, but the active scene overrides
-  all three with `1.5`. Older handoff text and the completed telemetry sweep
-  predate the split-property documentation and may use the singular phrase
-  "boss multiplier"; inspect the three current source fields before tuning.
-- `GameManager` currently has telemetry enabled in the test scene. Telemetry is
-  test-only and should be disabled for the real game build.
-- `battleTimeScale = 3` in the current serialized test scene. The latest
-  campaign sweep was produced under this accelerated test configuration.
-- Both Hero nodes are serialized as active in `assets/Test.scene`, but
-  `GameManager.registerDatabaseHeroes()` immediately stores their entries and
-  deactivates the nodes at runtime. Do not infer "Hero starts in battle" from
-  the scene `_active` value alone.
-- `heroBattleTargetSearchRangeMultiplier = 2`.
-- `useWorkerRVO = true`.
-- `useWorkerSpatialTargetQuery = true`.
-- `spatialGridCellSize = 4`; active battlefield bounds supplied by
-  `GameManager` are X `-10..10`, Z `-18..18`. Team spawn Z values are
-  `-15` and `15`.
+## Active Test Scene
 
-## X-Power And Cost
+### General
 
-This point was repeatedly misunderstood and is now explicit:
+- `totalLevels = 100`
+- `currentLevel = 1` in the serialized scene
+- `battleTimeScale = 3`
+- battle telemetry enabled
+- automatic report download/reload enabled
+- `allowInterval = false`; spawn delay does not scale with level
+- `useWorkerRVO = true`
+- `useWorkerSpatialTargetQuery = true`
+- `spatialGridCellSize = 4`
+
+Both BattleArmyBrains retain:
+
+- `minSpawnInterval = 1.666667`
+- `maxSpawnInterval = 3.333333`
+- `coverageTargetRatio = 1.05`
+- `maxRangedSupportWavesPerLane = 3`
+- `maxConsecutiveMeleeWavesPerLane = 2`
+
+### Enemy Difficulty Spine
+
+`LevelSettings.targetTeam = 1` and the active scene applies:
 
 ```text
-EffectiveHP = Health * (1 + Defense * 0.045)
-RawUnitPower = sqrt(Damage * EffectiveHP)
-Cost = round(RawUnitPower)
+t = (level - 1) / (totalLevels - 1)
+baseEnemyCP = round(lerp(250, 1040, t))
+baseEnemyAccuracy = lerp(0.4, 1.0, t)
+baseEnemyMaxAlive = round(lerp(3, 10, t))
 ```
 
-- X-Power and nominal cost are calculated for one unit.
-- Never multiply by `UnitCount`.
-- `UnitCount` is an independent battlefield-balance control.
-- Sword is the 1.00X base at about `49.50` raw unit power.
-- Speed, range, attack interval, AoE, and wave-slot opportunity are not part of
-  the cost formula. They are evaluated through controlled tests and telemetry.
-- Current exception: Archer has raw unit power `24.19`, so nominal rounded cost
-  is `24`, but the tested scene still uses `26`. The latest telemetry is
-  evidence for cost `26`. Do not silently claim that Archer exactly follows the
-  formula; explicitly choose whether to keep the tested premium or align it
-  before the next numeric balance lock.
-
-## Active Unit Stats
-
-These values match both Team A and Team B in `assets/Test.scene`.
-
-| Unit | Count | Cost | HP | Damage | Defense | Speed | Range | Radius | Interval | Raw Power | X |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |
-| Axeman | 10 | 74 | 110 | 46 | 2 | 4.65 | 0.35 | 0 | 0.36-0.44 | 74.27 | 1.50X |
-| Cavalry | 10 | 97 | 160 | 45 | 7 | 9.75 | 0.35 | 0 | 0.36-0.44 | 97.30 | 1.97X |
-| Sword | 10 | 49 | 100 | 20 | 5 | 5.10 | 0.35 | 0 | 0.36-0.44 | 49.50 | 1.00X |
-| Spear | 10 | 39 | 95 | 14 | 3 | 4.50 | 0.35 | 0 | 0.36-0.44 | 38.85 | 0.78X |
-| Monk | 1 | 49 | 35 | 70 | 0 | 4.50 | 5.80 | 1.00 | 2.10-2.60 | 49.50 | 1.00X |
-| Archer | 5 | 26 | 45 | 13 | 0 | 5.70 | 6.20 | 0 | 1.10-1.35 | 24.19 | 0.49X |
-
-Natural melee ladder:
+Every fifth level is a boss:
 
 ```text
-Cavalry > Axeman > Sword > Spear
+enemyCP = round(baseEnemyCP * 1.2)              // uncapped
+enemyAccuracy = min(1, baseEnemyAccuracy * 1.5)
+enemyMaxAlive = round(min(10, baseEnemyMaxAlive * 1.5))
 ```
 
-Current role conclusions:
+Important corrections versus old handoffs:
 
-- Spear is intentionally weak outside its Cavalry counter.
-- Monk is a fragile single-unit AoE support that costs one whole wave slot.
-- Archer was raised from 4 to 5 units because the 4-unit wave was not worth its
-  slot/cost often enough.
+- enemy base CP is `250 -> 1040`, not `600 -> 1040`;
+- enemy accuracy is `0.4 -> 1`, not `0 -> 1`;
+- enemy Max Alive is `3 -> 10`, not `3 -> 7`;
+- boss CP multiplier is `1.2`; accuracy and Max Alive multipliers are `1.5`;
+- the three boss multipliers are independent Inspector values.
 
-## Active Counter Rules
+TypeScript defaults for some non-accuracy curve fields differ from the active
+scene. Always inspect `assets/Test.scene` before tuning or documenting active
+values.
 
-Runtime damage:
+## Campaign Progression Runtime
+
+### Persistent State
+
+`LevelSettings` stores campaign state in browser local storage under:
 
 ```text
-max(1, attacker.damage - defender.defense) * counterMultiplier
+battle-progression-v2
 ```
 
-Active scene/default rules:
+Saved fields include:
 
-| Attacker | Defender | Multiplier |
-| --- | --- | ---: |
-| Spear | Cavalry | 12.0 |
-| Archer | Spear | 2.0 |
+- current level;
+- player Gold;
+- simulated rewarded-video count (`adsReward`);
+- current consecutive loss count;
+- per-level loss-Gold amount already claimed;
+- player Initial CP;
+- player Max Alive;
+- total purchase count;
+- each unit's offered, unlocked, and `unitCount` state.
 
-Controlled single-wave testing established:
+Use this URL to clear the storage and begin a clean 100-level run:
 
-- `x12`: Spear still beats Cavalry and retains meaningful losses.
-- `x10`: Spear usually loses to Cavalry and no longer satisfies the hard-counter
-  requirement.
+```text
+http://localhost:7456/?progression=1&currentLevel=0&TotalLevels=100
+```
 
-Therefore `x12` is the current lower viable bound and should remain active.
-The scene rule and `CounterSettings.createDefaultRules()` both use `12`; do not
-let reset/default creation silently restore `20`.
+`currentLevel=0` is a reset command. It removes only the configured progression
+storage key and then starts level 1. It does not mean battle level zero.
 
-## BattleArmyBrain
+To continue a saved run while explicitly selecting a level:
 
-### Main Spawn Flow
+```text
+http://localhost:7456/?progression=1&currentLevel=61&TotalLevels=100
+```
 
-- The brain waits for its interval and alive-wave limit.
-- It obtains affordable, unlocked entries from `GameManager`.
-- It asks `BattlefieldEvaluator` for a snapshot decision.
-- It applies `decisionAccuracy` to candidate selection.
-- After a successful spawn, it records a response reservation in the evaluator
-  so the same enemy is not immediately treated as unanswered again.
+The queried level replaces the saved current level, but owned upgrades and Gold
+remain unless `currentLevel=0` is used.
 
-### Decision Accuracy
+### Battle Lifecycle
 
-- Current scene test value is `1` for both teams.
-- Accuracy affects unit selection inside the evaluator's tactical anchor;
-  target and lane choice remain tactical.
-- If suitable mistake candidates exist, one random roll keeps the best
-  candidate with probability equal to accuracy. For example, `0.8` keeps the
-  best candidate about 80% of the time.
-- When the roll does not keep the best candidate, the evaluator chooses a
-  lower-ranked same-anchor candidate with weights derived from candidate rank
-  and accuracy. `1` therefore always keeps the best candidate.
-- A deliberate mistake must be a different family from the best answer, must
-  share the same target/lane anchor, and must not itself be an accurate hard
-  counter response.
-- If `accuracy <= 0` and the only candidate is an accurate hard-counter style
-  response, the evaluator returns no decision instead of accidentally taking
-  the correct answer. This prevents the lowest-accuracy AI from winning by
-  forced correctness.
-- Candidate choice is probabilistically smooth, but ranged capacity is not
-  perfectly continuous. It uses:
+At page load:
 
-  ```text
-  accuracy <= 0 -> 0
-  otherwise -> max(1, ceil(maxRangedSupportWavesPerLane * accuracy))
-  ```
+1. URL parameters are parsed.
+2. A reset is applied when `currentLevel <= 0`.
+3. Saved state is loaded and sanitized.
+4. Enemy CP/accuracy/Max Alive curves and boss modifiers are applied.
+5. Player unlock/count/CP/Max Alive state is applied to Team A.
+6. Purchase simulation buys all currently affordable eligible packages,
+   re-evaluating options after every purchase.
+7. The battle runs with BattleArmyBrain A simulating the player.
 
-  With the current Inspector maximum `3`, the actual caps are:
+At battle end:
 
-  | Accuracy | Ranged cap |
-  | ---: | ---: |
-  | 0.0 | 0 |
-  | 0.2 | 1 |
-  | 0.4 | 2 |
-  | 0.6 | 2 |
-  | 0.8 | 3 |
-  | 1.0 | 3 |
+1. The enemy family introduced at the current level becomes offered to the
+   player.
+2. Win/loss Gold is granted.
+3. Five-loss rescue is applied if triggered.
+4. Purchase simulation runs again between battles.
+5. A win advances one level; a loss repeats the current level.
+6. State is saved.
+7. Telemetry is downloaded.
+8. The next progression URL is loaded unless level 100 is complete.
 
-  This staircase is a real behavioral threshold. It explains one important
-  similarity between `0.8` and `1.0`, but does not make their candidate
-  decisions identical.
-- Last stand is the deliberate exception: when a team has no non-hero units
-  left but can still afford something, it may spawn any affordable unlocked
-  unit, including ranged. Do not confuse this with normal ranged-support logic.
-- Small samples can be noisy. Judge the progression by damage, decision
-  quality, mistake rate, ranged share, and repeated batches, not only binary
-  winrate.
+### Unit Unlock And Count Schedule
 
-### Opening And Last Stand
+The active scene schedule is:
 
-- With no enemy wave and `spawnOpeningWaveIfNoEnemyWave = true`, the brain may
-  spawn an opening frontline wave.
-- Opening frontline families are Spear, Sword, Axeman, and Cavalry.
-- Opening currently targets the affordable frontline whose wave power is
-  closest to the average affordable one-unit X-Power. `UnitCount` is not used
-  for this opening comparison.
-- Opening choice is deterministic after tie-breaking and bypasses
-  `decisionAccuracy`; it is meant to remove opening-family luck from balance
-  tests. With the current roster it selects Axeman.
-- When telemetry batch query parameters are present, both brains:
-  - set their first think interval to zero;
-  - force the opening branch even if the other opening already exists;
-  - use the middle lane.
+| Family | Enemy unlock | Start count | Mature count |
+| --- | ---: | ---: | ---: |
+| Spear | 1 | 5 | 10 |
+| Sword | 1 | 5 | 10 |
+| Axeman | 10 | 5 | 10 |
+| Archer | 25 | 3 | 5 |
+| Cavalry | 35 | 5 | 10 |
+| Monk | 45 | 1 | 1 |
 
-  This synchronizes both teams to the same Axeman-mid opening. Outside telemetry
-  batch mode, the normal randomized brain interval and normal pressure-lane
-  selection still apply.
-- `enableBattleTelemetry = true` by itself does not activate synchronized
-  opening. The URL batch parameters must be present. The latest two symmetric
-  100-match baselines had telemetry enabled but `telemetryBatch.active = false`,
-  so one side opened first and the other side observed/responded normally.
-- Last stand is separate from normal snapshot support. If the team has spawned
-  before, has no living non-hero wave, and can still afford something,
-  `chooseLastStandSpawnDecision()` may buy any affordable unit. This can include
-  Archer or Monk without the normal support context. That is intentional.
+Enemy behavior:
 
-### Single-Wave Test Mode
+- unlock is immediate at the configured level;
+- `unitCount` grows by rounded linear interpolation from the unlock count to
+  mature count;
+- every family reaches mature count at
+  `ceil(totalLevels * 0.5)`, currently level 50;
+- levels 51-100 retain the full tier-1 roster and mature counts.
 
-Inspector fields:
+Player behavior:
 
-- `testSingleWaveBattle`
-- `testSingleWaveUnit`
+- Spear and Sword start owned at count 5;
+- a later family is first faced as an enemy, then offered after that battle;
+- unlock requires Gold;
+- count upgrade requires Gold;
+- the player's count sale cap equals that family's current enemy progression
+  count, so the player cannot max a family before enemy progression reaches it;
+- skipped count rights remain available later;
+- changing count never changes the wave's CP cost.
 
-When enabled, each brain spawns exactly one selected wave at mid and skips the
-normal AI. Use this for controlled pair tests. Full telemetry is not a clean
-substitute for isolated stat/counter validation.
+### Player Initial CP
 
-## Forward, Aggressive, And Freehunt
+Active values:
 
-### Normal Forward
+```text
+start = 300
+step = 50
+maximum = 1248
+```
 
-- A normal-forward wave periodically refreshes its forward scanner.
-- It may release from forward into target pursuit after passing a valid enemy
-  in the same or adjacent lane.
-- Reaching the enemy Hero line can also resolve to the enemy Hero when that Hero
-  exists.
-- Returning to lane preserves whether the wave was aggressive; it no longer
-  silently converts an aggressive wave into normal forward.
+One cumulative `+50 Initial CP` purchase right opens at each boss level:
 
-### Aggressive Forward
+```text
+packagesUnlocked = floor(level / bossStagePace)
+milestoneCap = min(1248, 300 + packagesUnlocked * 50)
+```
 
-Aggressive no longer uses the Hero line as its normal release boundary.
+Examples:
 
-Current runtime flow:
+| Level | Player CP purchase cap |
+| ---: | ---: |
+| 1-4 | 300 |
+| 5 | 350 |
+| 10 | 400 |
+| 25 | 550 |
+| 50 | 800 |
+| 60 | 900 |
+| 95-100 | 1248 |
 
-1. Use the wave's frontmost living forward unit as scanner.
-2. Find the deepest living enemy-wave scanner in either adjacent lane.
-3. Once an adjacent boundary is observed, remember that fact.
-4. Continue forward until the aggressive scanner passes that boundary.
-5. Before release, require that no enemy remains ahead in the aggressive
-   wave's own lane.
-6. Release the wave into normal Freehunt target acquisition.
+Rights accumulate. If the player cannot afford a package at its boss, it can
+be purchased later. The cap is not a free grant.
 
-Important edge cases:
+### Player Max Alive
 
-- If the observed adjacent boundary dies/disappears, the wave may still release
-  after its own lane becomes clear.
-- An aggressive opening that never observes an adjacent enemy boundary remains
-  aggressive. That is current source behavior, not yet a proven desired
-  terminal rule.
-- If an aggressive wave enters combat directly, `BattleWave.enterCombatMode()`
-  ends aggressive-forward state without emitting an aggressive terminal
-  telemetry event.
-- If it dies before release, there is likewise no one-shot aggressive terminal
-  event yet.
+Active values:
 
-Current one-shot telemetry events:
+```text
+start = 4
+maximum = 10
+```
 
-- `aggressive-boundary-observed`
-- `aggressive-own-lane-blocked`
-- `aggressive-freehunt-release`
+The sale cap follows the enemy's permanent base Max Alive curve, but never
+includes a temporary boss multiplier:
 
-Do not infer that every observed wave without a release event is stuck. Combat
-entry and death are currently unclassified outcomes. If aggressive behavior is
-audited again, first add terminal events such as
-`aggressive-combat-entered` and `aggressive-died-before-release`, then require
-exactly one terminal outcome per aggressive spawn.
+```text
+playerMaxAliveCap = clamp(round(lerp(3, 10, t)), 4, 10)
+```
 
-## Final Hero Deployment
+This prevents a boss spike from permanently granting player capacity while
+still allowing long-term capacity growth.
 
-### Activation
+### Gold And Prices
 
-- Heroes are scene-backed entries, but are inactive and absent from simulation,
-  team arrays, waves, and telemetry at battle start.
-- A team activates its Hero exactly once when it can no longer afford any valid
-  unlocked melee entry. Archer and Monk do not postpone Hero deployment.
-- Activation does not wait for the team's existing normal waves to die.
-- The Hero is placed on the middle-lane X while retaining its scene Z, is
-  registered as a normal forward wave, and starts moving immediately.
-- Hero is a physical ally blocker again:
-  `canBePassedThroughByForwardAlly = false`.
-- The old behavior that forced all enemy waves back into forward mode on Hero
-  activation was removed.
+Reward rules:
 
-### End And Respawn Safety
+```text
+winGold = round(effectiveEnemyInitialCP * 1)
+validLossGold = 25% of winGold
+maximum cumulative loss Gold on one level = 75% of winGold
+```
 
-- Normal gameplay with telemetry disabled ends immediately on Hero death with
-  reason `hero-killed`.
-- Telemetry tests deliberately do not end on Hero death. They continue until a
-  team has no living troops, including Hero, and cannot afford any valid
-  unlocked spawn. Their end reason is
-  `team-eliminated-and-cannot-afford-spawn`.
-- Hero deployment is latched. `handleHeroDeath()` keeps the team unlock flag
-  true, so a dead Hero cannot refill and respawn on the next low-CP check.
-- Winner resolution is deferred while one attack batch is being resolved. This
-  matters for AoE: the game must not finalize a fallback winner halfway through
-  one damage batch while other victims/deaths are still being processed.
-- The no-affordable-spawn fallback counts a living Hero as a combatant. This
-  prevents false elimination on the exact frame the Hero is activated.
+Loss Gold is granted only for a valid exhausted loss: Team A is eliminated and
+cannot afford another unlocked spawn. Repeated loss farming is capped per
+level.
 
-### Hero-Phase Search Range
+Purchase formulas:
 
-- The first Hero activation enables a global battle phase for both teams.
-- Every currently living unit receives
-  `heroBattleTargetSearchRangeMultiplier`, currently `2`.
-- Units spawned later and the second Hero receive the same multiplier.
-- `Unit.applyTargetSearchRangeMultiplier()` applies a ratio against the
-  previously applied multiplier, so pooled units cannot accumulate
-  `x2 -> x4 -> x8`.
-- Applying the multiplier invalidates nearest-target results and cached
-  targets.
-- `hero-activated` telemetry records the activation CP and configured
-  multiplier. It does not log every individual unit's resulting numeric search
-  range; source inspection is the proof for per-unit application.
+```text
+unit unlock price = wave CP cost * 20
+one count upgrade = round(unlock price / unlockCount)
+Initial CP price = purchased CP * 10
+Max Alive price = round(1000 * currentMaxAlive / 4)
+```
 
-## BattlefieldEvaluator
+Current tier-1 prices:
 
-### Snapshot Data
+| Purchase | Gold |
+| --- | ---: |
+| Unlock Axeman | 1480 |
+| Unlock Archer | 520 |
+| Unlock Cavalry | 1940 |
+| Unlock Monk | 980 |
+| +1 Spear | 156 |
+| +1 Sword | 196 |
+| +1 Axeman | 296 |
+| +1 Archer | 173 |
+| +1 Cavalry | 388 |
+| +50 Initial CP | 500 |
+| Max Alive 4 -> 5 | 1000 |
+| Max Alive 5 -> 6 | 1250 |
+| Max Alive 6 -> 7 | 1500 |
 
-The evaluator builds reusable per-wave/per-lane intelligence including:
+Spear/Sword are initially owned. Monk has no count upgrade because its start
+and mature count are both one.
 
-- family, alive count/ratio, health ratio, base power;
-- lane, center position, progress toward the defending hero line;
-- engaged/busy state;
-- ally coverage power and response reservations;
-- ally frontline count, engaged frontline count, frontline hold power, and
-  frontline health;
-- enemy blockers and same-lane traffic;
-- local and global frontline threat.
+### Purchase Simulation
 
-This snapshot should be extended/reused instead of creating duplicate scans.
+When `purchasingSimulation = true`, Team A can buy multiple packages before a
+battle and after its result. It repeats until no affordable eligible package
+remains, with a hard safety limit of 100 purchases per pass.
+
+Selection is weighted random, not uniform:
+
+- unit unlock: base priority `3`, increasing as the offer ages;
+- unit count: priority rises with count deficit versus enemy;
+- Initial CP: priority rises when enemy CP exceeds player CP;
+- Max Alive: priority rises with enemy/player slot gap.
+
+Gold is still the hard gate. Milestone caps are checked on every iteration, so
+normal purchase simulation and rescue purchases cannot bypass CP, Max Alive,
+or unit-count progression.
+
+### Rewarded-Video Rescue Simulation
+
+After five consecutive player losses on one level:
+
+- `adsReward` increments by one;
+- the consecutive-loss counter resets;
+- the code creates a rescue plan;
+- it grants exactly the missing Gold needed for that plan;
+- if purchase simulation is enabled, those actions are bought immediately;
+- the level is retried rather than abandoned.
+
+Rescue preference order is:
+
+1. newest offered unit unlock;
+2. available Initial CP packages while behind enemy CP;
+3. available Max Alive packages while behind enemy capacity;
+4. one count upgrade with the largest enemy deficit;
+5. cheapest available purchase if none of the above exists.
+
+The plan still respects all milestone caps. There is currently no permanent
+"give up after six losses" behavior.
+
+## AI Behavior Relevant To Progression
+
+### Accuracy
+
+- Accuracy affects unit selection, not target or lane selection.
+- The evaluator first finds the best candidate for a tactical target/lane
+  anchor.
+- With probability equal to accuracy it keeps that best candidate.
+- Otherwise it chooses a lower-ranked different-family candidate for the same
+  anchor using rank-based weights.
+- An intentional mistake cannot itself be an accurate hard-counter response.
+- `accuracy = 1` always keeps the best candidate when one exists.
+- Ranged capacity scales from accuracy and is zero only at exact accuracy zero;
+  last stand is an explicit exception that may spawn any affordable unit.
+
+Starting enemy accuracy was raised from `0` to `0.4` on 2026-08-03. This
+change is present in the LevelSettings TypeScript default, active scene, and
+roadmap. The final accuracy remains `1`.
+
+With only Spear and Sword unlocked, low-accuracy visible randomness is limited:
+when Sword is best, Spear may be the only wrong-family alternative. Do not
+diagnose unit frequency from accuracy alone; inspect `deliberateMistake`,
+selected rank, reason, target, and CP state.
+
+### Opening
+
+- Opening considers affordable unlocked melee/frontline families only.
+- It selects the entry closest to the average one-unit X-Power.
+- Opening bypasses decision accuracy and resolves to a single deterministic
+  candidate after tie/order behavior.
+- Telemetry batch query mode synchronizes both first decisions and uses the
+  middle lane.
+- In the latest level 1-9 run, all nine enemy openings were Sword. Spear-heavy
+  behavior occurred in response decisions, not opening.
 
 ### CP Strategy States
 
-The evaluator classifies CP context as:
+The evaluator labels each decision:
 
 - `opening`
 - `abundant`
@@ -396,1540 +419,392 @@ The evaluator classifies CP context as:
 - `efficient`
 - `desperate`
 
-Intent:
+`abundant` requires current CP above the opponent and a premium melee purchase
+that still leaves the AI ahead. `efficient` applies when behind outside the
+normal band. `desperate` applies when no effective response is affordable.
+These labels affect scoring, but accuracy can deliberately select a lower
+candidate afterward.
 
-- Abundant: use the CP lead for stronger pressure while retaining some
-  frontline variety.
-- Normal: choose a sensible stronger/sufficient response for the current
-  battlefield.
-- Efficient: when behind on CP, avoid waste and use sufficient responses or
-  finish weakened threats.
-- Desperate: if no effective response is affordable, use an affordable
-  fallback instead of leaving spendable CP idle.
+### Ranged And Counter Safety
 
-Do not collapse these back into one permanent "cheapest sufficient" mode; that
-previously starved expensive families such as Cavalry.
+Normal ranged support requires a valid engaged allied frontline and tactical
+support value. It is capped locally, cannot repeat the same ranged family in a
+lane immediately, and scales with accuracy. Last stand is the deliberate
+exception.
 
-### Melee Response And Reservation
+Current hard counters remain:
 
-After a response wave spawns, `recordSpawnReservation()` stores:
+| Attacker | Defender | Runtime multiplier |
+| --- | --- | ---: |
+| Spear | Cavalry | 12 |
+| Archer | Spear | 2 |
 
-- target wave id;
-- response wave id/family;
-- expected coverage power;
-- spawn frame.
+Do not alter these to repair progression pacing.
 
-The reservation contributes to target coverage until the target/response dies,
-the response engages, or 180 frames pass. This prevents multiple Spear waves
-from being spawned against one Cavalry before the first response has had time
-to reach it.
+## Tier-1 Balance Baseline
 
-### Ranged Support Gates
+Current active stats are symmetric between teams:
 
-Normal Archer/Monk candidates must:
+| Unit | Mature count | Cost | HP | Damage | Defense | Raw X-Power |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Cavalry | 10 | 97 | 160 | 45 | 7 | 97.30 |
+| Axeman | 10 | 74 | 110 | 46 | 2 | 74.27 |
+| Sword | 10 | 49 | 100 | 20 | 5 | 49.50 |
+| Spear | 10 | 39 | 95 | 14 | 3 | 38.85 |
+| Archer | 5 | 26 | 45 | 13 | 0 | 24.19 |
+| Monk | 1 | 49 | 35 | 70 | 0 | 49.50 |
 
-- have at least one allied frontline in the target lane;
-- have at least one engaged allied frontline;
-- have positive frontline hold power;
-- pass local anti-spam (`maxRangedSupportWavesPerLane`);
-- not repeat the same ranged family immediately in that lane;
-- have enough local and global frontline advantage;
-- pass the accuracy gate.
-
-There is no old `clusterScore` gate. Do not restore it.
-
-Current role behavior:
-
-- Archer gets strong value as a full-strength hard counter into Spear.
-- Monk gets stronger value when an engaged, protected lane contains melee
-  contact where AoE can matter. The map is small, so do not add expensive
-  whole-map melee cluster scans just to prove that melee blobs exist.
-- Both may support an already engaged frontline, but melee should remain
-  preferred when the frontline is losing.
-- Last stand is the deliberate exception to normal ranged-support safety.
-
-### Current Ranged Scoring Status
-
-`assets/scripts/BattlefieldEvaluator.ts` no longer uses fixed ranged priorities
-such as `1000000/900000/800000`.
-
-The current score combines:
-
-- tactical target priority;
-- hard-counter or AoE role value;
-- frontline need/surplus;
-- expected DPS per CP;
-- expected Monk targets hit;
-- CP-strategy-dependent cost pressure.
-
-Important implementation details:
-
-- Ranged can now receive a support target priority even when the melee response
-  priority for that target is zero.
-- Monk requires one engaged frontline rather than two.
-- Monk gets extra role value when multiple enemy waves are blocked in an
-  engaged lane.
-- The fixed giant family priorities were removed so future tiers can compete
-  through actual stats, cost, role, and context.
-- The previous "only spawn ranged if the opponent already spawned ranged" rule
-  was removed. It suppressed Archer/Monk too hard and made max-accuracy AI lose
-  melee count without enough support payoff.
-- Ranged support is now constrained by safety and usefulness rather than by
-  mirroring opponent composition.
-
-The 2026-07-27 accuracy sweep showed this rewrite behaving acceptably: ranged
-share rises with accuracy, Monk appears at high accuracy, and normal ranged
-spawns are blocked unless a real frontline exists. Keep watching for normal
-ranged spawns into unprotected melee; if found, inspect `isRangedSpawnSafe()`
-and `chooseLastStandSpawnDecision()` before changing stats.
-
-### Lane Pressure And Overstacking
-
-- Direct melee response can be blocked by `maxConsecutiveMeleeWavesPerLane`.
-- That block is bypassed only for rescue/high-danger cases:
-  `target.hasStrugglingAlly` or `target.dangerousToDefend`.
-- This prevents the AI from tunneling forever into one lane, while still
-  allowing emergency reinforcement when the lane is actually collapsing.
-- Ranged keeps a stricter lane rule: if `isRangedSpawnSafe(target)` is false,
-  it gets no direct normal spawn lane.
-
-### Unit Unlocks
-
-Current source support for locked units is broad and safe:
-
-- `UnitPrefabEntry.unlocked` exists in `BattleUnitDatabase`.
-- `BattleUnitDatabase.isEntryUnlocked()` returns that flag.
-- `GameManager.isValidSpawnEntry()` rejects locked entries.
-- `GameManager.collectAffordableEntries()` only returns entries that are valid,
-  unlocked, positive-count, and affordable.
-- `spawnWaveByEntry()` and `spawnEntryFormation()` also check
-  `isValidSpawnEntry()`, so locked entries are blocked even if a caller tries to
-  spawn them directly.
-- `canAffordAnySpawnEntry()` uses the same valid-entry filter, so battle-end
-  detection respects locks.
-
-Design implication:
-
-- Locking a unit will not crash the AI by itself; the evaluator simply never
-  sees that entry.
-- Early levels must leave at least one affordable melee/frontline family
-  unlocked. Opening pressure only considers Spear, Sword, Axeman, and Cavalry.
-  If all melee are locked and no enemy exists yet, the AI can have no valid
-  opening candidate and wait.
-- Archer/Monk are support, not reliable openers. Normal ranged support needs
-  allied frontline contact. Last stand can still spawn them as the deliberate
-  "giay chet" exception.
-- If a hard counter is locked, the AI falls back to the best unlocked economic
-  response. That is valid for level progression, but the level designer must
-  understand that tactical quality is capped by the unlocked roster.
-
-### Future Tier 2/3 Readiness
-
-The current evaluator is mostly tier-ready because entries compete through
-actual stats/cost/power and unlocked/affordable filtering, not through a fixed
-tier table.
-
-Expected behavior if tier 2/3 are added correctly:
-
-- High CP and abundant strategy should prefer stronger expensive entries when
-  they are tactically safe and not walking into a hard counter.
-- When CP drops or the target is already weakened, cheaper sufficient lower-tier
-  entries can still be selected.
-- Locked tier entries are invisible to the evaluator.
-
-Risks to verify when adding tiers:
-
-- Family-specific rules still exist for Cavalry, Spear, Archer, Monk, and melee
-  ladder rank. New families need explicit role classification.
-- Opening uses average frontline power among affordable frontline entries. If
-  tier 3 is unlocked from the start with huge CP, opening may prefer a mid/high
-  tier frontline instead of tier 1.
-- Cost must still follow the one-unit X-Power rule unless the user explicitly
-  marks an exception.
-
-### Tier 2/3 Candidate Design
-
-Status: design discussion only. Nothing in this subsection has been applied to
-`UNITSTATS.md`, `assets/Test.scene`, the unit database, counters, unlocks, or AI
-source. Do not treat these values as active runtime data.
-
-Design goal:
-
-- A tier is a stronger investment level of the same family and role.
-- Tiers must expand the X-Power market, not create a second hidden balance
-  system or a new counter loop.
-- Higher tier should not always be the correct purchase. Actual target power,
-  remaining HP/unit count, CP strategy, affordability, hard-counter safety, and
-  lane context must remain decisive.
-
-Recommended same-family progression:
-
-```text
-T1 = 1.00 * T1 power
-T2 = 1.50 * T1 power
-T3 = 2.25 * T1 power
-```
-
-Each tier is therefore `1.5x` the preceding tier. This deliberately creates
-cross-family overlap instead of enforcing `every T3 > every T2 > every T1`.
-Examples:
-
-- Sword T2 can be near Axeman T1.
-- Axeman T2 can approach Cavalry T1.
-- A strong lower-tier family may naturally beat a weak higher-tier family.
-- Spear can remain naturally weak while its explicit Cavalry counter supplies
-  matchup value.
-
-Cost must continue to follow one-unit X-Power:
+X-Power reference:
 
 ```text
 EffectiveHP = Health * (1 + Defense * 0.045)
 RawUnitPower = sqrt(Damage * EffectiveHP)
-Cost ~= round(RawUnitPower)
 ```
 
-Indicative cost ladder if current tested T1 costs are scaled by `1.5` per tier:
+This is per-unit power. Do not multiply by `unitCount` when deriving nominal
+per-unit wave price in the current design. Archer's tested cost `26` remains a
+known premium over rounded raw power `24`.
 
-| Family | T1 active | T2 candidate | T3 candidate |
-| --- | ---: | ---: | ---: |
-| Spear | 39 | 59 | 88 |
-| Sword | 49 | 74 | 110 |
-| Axeman | 74 | 111 | 167 |
-| Cavalry | 97 | 146 | 218 |
-| Archer | 26 | 39 | 59 |
-| Monk | 49 | 74 | 110 |
+## Telemetry Evaluation Contract
 
-These are market-shape examples, not approved stats. Archer needs an explicit
-decision before tier construction:
+The current campaign test is an experience/progression test, not another
+symmetric combat-balance sweep.
 
-- either preserve its tested T1 premium (`26` versus nominal X-Power `24`) at
-  all tiers;
-- or normalize Archer to exact X-Power cost first.
+### Dataset Integrity
 
-Do not silently use one policy for T1 and another for T2/T3.
+Before drawing conclusions:
 
-Recommended stat construction:
+1. Sort files by timestamp.
+2. Read `progression.battleLevel`; do not infer level only from file position.
+3. Treat repeated levels as retries, not duplicate reports.
+4. Verify each report has `progression.before`, `progression.after`, result,
+   wave spawns, and expected config.
+5. Separate boss and normal levels.
+6. Verify the active accuracy/CP/Max Alive values recorded in each report.
+7. Exclude reports from another reset/run rather than forcing them into the
+   sequence.
+8. Report the actual covered range. The latest batch stops at level 60 and is
+   not evidence for levels 61-100.
 
-- Keep family identity: Axeman remains offense-heavy, Sword balanced/defensive,
-  Cavalry high offense/durability, Spear naturally weak outside its counter,
-  Archer single-target ranged support, Monk fragile AoE support.
-- The clean initial method for a `1.5x` tier is to multiply both HP and Damage
-  by `1.5` while holding Defense constant. Because X-Power is geometric, this
-  produces `1.5x` power exactly before rounding.
-- Stats may later be redistributed between HP, Damage, and Defense for visual
-  identity, but the final formula must still hit the tier's target power.
-- Keep Speed, Range, Attack Interval, Damage Radius, and UnitCount unchanged in
-  the first tier implementation. Those are tactical/opportunity advantages not
-  priced directly by current X-Power and can create unmeasured double scaling.
-- Do not add hidden tier multipliers to evaluator or combat.
+### Primary Experience Metrics
 
-Recommended UnitCount policy:
+Evaluate these first:
+
+- unique levels reached;
+- total battle attempts;
+- first-attempt clear rate;
+- attempts per blocked level;
+- longest consecutive loss streak;
+- rewarded-video triggers and rescue actions;
+- boss versus normal clear rates;
+- battle-duration mean/median and stage trend;
+- player/enemy Initial CP gap at each attempt;
+- player/enemy Max Alive gap;
+- enemy accuracy and actual deliberate-mistake rate;
+- player/enemy roster and count state;
+- pre-battle and between-battle purchases;
+- Gold earned, spent, retained, and currently spendable options;
+- whether an upgrade precedes and plausibly resolves a retry wall.
+
+A progression wall is not merely one loss. Flag it when repeated losses occur
+while the player lacks an affordable/effective path forward, or when rescue
+cannot create one because every useful purchase is milestone-blocked.
+
+### AI Decision Metrics
+
+When checking whether accuracy behaves correctly, use:
+
+- `decisionAccuracy`;
+- `deliberateMistake` and `accurateDecision`;
+- selected rank and selection quality;
+- intended/best family versus spawned family;
+- decision reason and target family;
+- CP strategy state;
+- unit mix only as supporting evidence.
+
+Do not infer an accuracy bug only because one family appears often. A small
+unlocked roster can leave only one legal wrong alternative.
+
+### Secondary Combat Metrics
+
+Kills, total damage, damage/CP, counter kills, and family efficiency are useful
+for detecting a combat anomaly, but they are not the primary campaign verdict.
+Battle noise, spatial access, target selection, roster availability, and boss
+capacity affect them. Do not tune stats from one campaign batch without an
+isolated balance reproduction.
+
+### Healthy Progression Criteria
+
+The current design should be judged against these qualitative criteria rather
+than a fixed win-rate threshold at every level:
+
+- early levels are forgiving but not visually repetitive;
+- normal-level difficulty rises rather than remaining an automatic-win line;
+- bosses create identifiable spikes and occasional retries;
+- most retry walls resolve through earned upgrades before five-loss rescue;
+- rescue exists for true walls and is not required constantly;
+- Gold is constrained enough to force prioritization but does not strand the
+  player permanently;
+- purchased power does not race permanently ahead of the enemy base curve;
+- new units appear at readable milestones;
+- by level 50 both sides can reach the complete mature tier-1 roster;
+- levels 51-100 test choices/mastery rather than unlock availability.
+
+## Latest Telemetry Evidence: Levels 1-60
+
+Dataset:
+
+- 68 reports from `2026-08-02T19-45-59-144Z` through
+  `2026-08-02T20-09-41-127Z`;
+- 60 unique levels, complete level sequence 1-60;
+- eight reports are valid retries;
+- enemy starting accuracy `0.4` is present in the reports;
+- the run stopped after winning level 60, so campaign completion is untested.
+
+### Results
 
 ```text
-Melee/Cavalry = 10 across tiers
-Archer = 5 across tiers
-Monk = 1 across tiers
+Battle attempts: 68
+Player wins: 60
+Player losses: 8
+Attempt win rate: 88.2%
+First-attempt clears: 55/60 = 91.7%
+Average duration: 44.2 s
+Median duration: about 43.1 s
+Duration range: 27.4-69.8 s
+Rewarded-video triggers: 0
 ```
 
-Increasing both per-unit Power and UnitCount would compound wave strength,
-invalidate the current one-unit cost market, change formation/pathing load, and
-increase runtime cost.
+Retry sequences:
 
-Counter policy:
+| Level | Sequence |
+| ---: | --- |
+| 10 | L L L W |
+| 15 | L W |
+| 25 | L L W |
+| 40 | L W |
+| 43 | L W |
 
-- Keep family counters explicit and tier-independent:
-  `Spear > Cavalry x12`, `Archer > Spear x2`.
-- Do not add tier-specific counter multipliers.
-- The evaluator already combines actual target runtime power with
-  `sqrt(counterMultiplier)`. Therefore a full Cavalry T3 may require Spear
-  T2/T3, while a depleted Cavalry T3 may be finished economically by Spear T1
-  or another sufficient lower-tier melee.
-- Retain the Cavalry-into-Spear blocker guard regardless of Cavalry tier.
+Seven of eight losses occurred on bosses. Across attempts, bosses won only
+`12/19` for Team A (`63.2%`), while normal levels were `48/49` (`98.0%`).
+Bosses therefore create the current challenge; normal levels are nearly free.
 
-Expected AI tier behavior:
+The best observed progression loop is level 10:
 
-- `abundant`: may spend on a stronger/high-tier safe response if post-purchase
-  CP remains favorable;
-- `normal`: select a sufficiently strong response with reasonable reserve;
-- `efficient`: prefer the cheapest tier that is sufficient against current
-  remaining target power;
-- `desperate`: use an affordable valid fallback rather than wait with spendable
-  CP;
-- no branch should hard-code `T3 > T2 > T1` independently of target state.
+- Team A lost three times;
+- bounded loss Gold accumulated;
+- Axeman was purchased for `1480` Gold after the third loss;
+- Team A won the fourth attempt.
 
-Expected battlefield pattern with a high initial CP ceiling:
+At level 25, Archer was purchased after the first loss; Team A lost once more
+and then won. Levels 15, 40, and 43 resolved on retry without a new purchase,
+which is consistent with battle noise rather than a hard wall.
 
-- T3/T2 should appear early when threats justify them and CP is abundant.
-- T1 should remain relevant later, for depleted targets, efficient responses,
-  last stand, and low-CP cleanup.
-- A T3 family with one surviving unit must not automatically force a T3
-  response if a T1/T2 entry has enough live coverage power to finish it.
+### Accuracy Result
 
-Unlock policy:
-
-- Unlock state should remain data-driven per entry/family/tier.
-- A campaign can unlock `Family T1 -> Family T2 -> Family T3`, but it need not
-  unlock every T2 before any T3; themed levels are allowed.
-- Every playable AI loadout must retain at least one unlocked/affordable melee
-  frontline. Otherwise normal ranged-support safety can leave the AI without a
-  valid frontline plan.
-- Locked entries must remain absent from opening, response, affordability,
-  last-stand, Hero-deployment affordability, and winner-resolution checks.
-
-Required validation before accepting any tier table:
-
-1. Formula audit: each entry reaches its intended `1.00/1.50/2.25` same-family
-   power and intended rounded cost.
-2. Scene/database audit: Team A/B values and unlocks match.
-3. Controlled same-family tests: T2 consistently demonstrates the intended
-   advantage over T1; T3 does so over T2 without relying on hidden modifiers.
-4. Counter tests across tiers: Spear/Cavalry and Archer/Spear still satisfy
-   their explicit roles without making low-tier counters universally sufficient
-   against full high-tier waves.
-5. AI tests by CP state: abundant, normal, efficient, desperate, and last stand
-   all select tiers according to actual remaining target power.
-6. Opening test with high CP: verify average-frontline opening does not select
-   an unintended tier merely because all tiers are affordable.
-7. Unit-lock presets: verify no deadlock when some families or tiers are
-   unavailable.
-8. Symmetric telemetry: compare damage/CP and use rate by both family and tier;
-   T3 must not erase T1/T2, and lower tiers must remain economically rational.
-
-## Telemetry
-
-Telemetry records:
-
-- winner, end reason, duration, and final CP;
-- whether each side can still afford a spawn;
-- alive waves/units and remaining HP;
-- family/team spawn counts and CP spent;
-- damage, kills, damage/CP, and counter contribution;
-- spawn reason, intended target, selected/best candidate, accuracy roll, and CP
-  strategy;
-- Monk AoE targets hit per attack;
-- Hero activation CP and Hero-phase target-search multiplier;
-- aggressive boundary/block/release diagnostics;
-- start stats, counter rules, and batch configuration.
-
-Current automated telemetry tests end only through
-`team-eliminated-and-cannot-afford-spawn`: a team must have no living troops,
-including Hero, and must be unable to afford any valid unlocked spawn. Hero
-death is recorded but does not finalize/download/reload the telemetry match.
-With telemetry disabled, normal gameplay still ends immediately on Hero death.
-
-### Batch URL
-
-Accuracy-batch mode:
+Enemy level 1-9 spawns:
 
 ```text
-?team=1&currentAcc=0&currentBatch=0&step=0.2&numBatchPerStep=10&end=1
+Spear: 34
+Sword: 24
+Opening Sword: 9/9
+Deliberate mistakes: 23/58 = 39.7%
 ```
 
-- `team`: brain whose accuracy is overridden.
-- `currentAcc`: accuracy for the current batch.
-- `currentBatch`: zero-based match index.
-- `step`: accuracy increment after a full batch.
-- `numBatchPerStep`: matches per accuracy value.
-- `end`: final accuracy.
+Enemy mistake rate by stage:
 
-Campaign-level mode:
-
-```text
-?team=1&currentLevel=1&TotalLevels=100
-```
-
-- `TotalLevels > 0` activates level mode.
-- `currentLevel` is one-based and advances after each successful report
-  download/reload until it reaches `TotalLevels`.
-- `LevelSettings` reads these query values and applies the configured Team B
-  CP, accuracy, max-wave curve, and boss-stage modifier.
-- `telemetryBatch.currentAcc` is currently the base normalized level progress,
-  not the effective boss-modified accuracy. Read spawn-decision
-  `decisionAccuracy` to recover the effective runtime value on boss levels.
-
-After report download, `GameManager` waits
-`battleTelemetryReloadDelaySeconds`, advances the query state, and reloads the
-page. If telemetry fails to download/reload, inspect the winner condition and
-browser download permission before changing battle logic.
-
-Both legacy accuracy-batch mode and campaign-level mode currently set
-`telemetryBatchQueryActive` on both brains. That forces both first think
-intervals to zero, forces both opening branches, and selects the middle lane.
-Therefore the latest campaign sweep uses synchronized opening. It validates the
-difficulty curve without opening-order noise, but it does not reproduce the
-sequential information advantage of a human waiting to see the enemy opening.
-
-## Latest Telemetry Evidence
-
-### Evaluator Counter-Power Correction
-
-Problem and cause:
-
-- Runtime counter damage is a direct multiplier, but raw X-Power is the
-  geometric mean of offense and durability.
-- `BattlefieldEvaluator` previously inserted the full counter multiplier into
-  wave-power comparison. Spear `x20` was therefore valued as `20X` matchup
-  power instead of `sqrt(20) ~= 4.47X`.
-- That distortion affected candidate coverage, existing ally coverage, and
-  full matchup ratios. It made response coverage inconsistent and was strongly
-  associated with opening-side advantage and poor early response chains.
-
-Implementation:
-
-- `getMatchupFactor()` and the target-side equivalent were renamed to make their
-  power-domain purpose explicit.
-- `getCounterPowerFactor()` now converts a runtime damage multiplier `m` to
-  `sqrt(m)` for evaluator X-Power calculations.
-- The conversion is used consistently for candidate power, target power, ally
-  coverage, and matchup ratios.
-- Runtime combat damage is unchanged and still uses the direct CounterSettings
-  multiplier.
-
-### 100-Match Baseline With Runtime Counter x20
-
-Files: 100 reports from `2026-07-29T09-33-19-906Z` through
-`2026-07-29T10-37-43-745Z`.
-
-Configuration:
-
-- both teams `decisionAccuracy = 1`;
-- `Spear > Cavalry = 20`;
-- telemetry batch URL inactive, so opening remained sequential;
-- identical stats and CP for both teams.
-
-Results:
-
-- Team A/B wins: `52/48`.
-- Opening side wins: `50/100`, down from the pre-fix `80.7%`.
-- Opening-side and responder economics were nearly identical:
-
-| Position | CP/match | Damage/match | Damage/CP | Waves/match |
-| --- | ---: | ---: | ---: | ---: |
-| Opening side | 786.79 | 11780.21 | 14.97 | 13.39 |
-| Responder | 788.51 | 11723.24 | 14.87 | 13.58 |
-
-- The common opening response chain became coherent:
-  `Axeman -> Cavalry -> Spear`, followed by the normal ladder/support flow.
-- Top target-to-response decisions:
-  - Cavalry -> Spear: `465`;
-  - Axeman -> Cavalry: `459`;
-  - Spear -> Sword: `332`;
-  - Sword -> Axeman: `293`;
-  - Spear -> Archer: `234`.
-- Sword was not under-responding to Spear:
-  - Sword -> Spear: `127778` damage, `1503` kills;
-  - Spear -> Sword: `67599` damage, `452` kills.
-
-The evaluator correction achieved its goal. Do not restore the direct
-counter multiplier in X-Power scoring.
-
-### Active 100-Match Baseline With Runtime Counter x12
-
-Files: 100 reports from `2026-07-29T10-51-57-128Z` through
-`2026-07-29T11-46-41-748Z`.
-
-Every report confirms:
-
-- both teams `decisionAccuracy = 1`;
-- `Spear > Cavalry = 12`;
-- `Archer > Spear = 2`;
-- telemetry batch URL inactive;
-- end reason `team-eliminated-and-cannot-afford-spawn`.
-
-System results:
-
-| Metric | Result |
+| Levels | Deliberate mistakes / spawns |
 | --- | ---: |
-| Team A/B wins | 58/42 |
-| Opening/responder wins | 44/56 |
-| Average duration | 57.25s |
-| Average loser final CP | 11.51 |
-| Maximum loser final CP | 25 |
-| Invalid endings | 0 |
+| 1-9 | 39.7% |
+| 10-24 | 40.9% |
+| 25-44 | 21.0% |
+| 45-60 | 15.9% |
 
-Team A and B output was effectively identical despite the `58/42` binary
-sample:
+Raising starting accuracy from `0` to `0.4` materially reduced the previous
+Spear-only appearance while preserving visible early mistakes. No further
+accuracy change is currently justified by this batch.
 
-| Team | CP/match | Damage/match | Damage/CP | Waves/match |
-| --- | ---: | ---: | ---: | ---: |
-| A | 787.72 | 11980.61 | 15.21 | 13.34 |
-| B | 787.86 | 11969.28 | 15.19 | 13.53 |
+### Purchase And Gold Result
 
-Frame-order evidence was also balanced:
+Team A made 41 purchases:
 
-- Team A first-damage frame share: `50.54%`.
-- Team A first-kill frame share: `50.43%`.
-
-Treat `58/42` as sampling variation unless a larger repeated baseline shows the
-same team-direction bias. It is not explained by CP, damage efficiency,
-composition, opening side, or frame-order evidence in this batch.
-
-Active roster output:
-
-| Family | Waves | Wave share | Damage/CP |
-| --- | ---: | ---: | ---: |
-| Axeman | 644 | 23.97% | 14.78 |
-| Spear | 566 | 21.06% | 23.05 |
-| Cavalry | 471 | 17.53% | 13.12 |
-| Sword | 420 | 15.63% | 14.01 |
-| Archer | 311 | 11.57% | 15.34 |
-| Monk | 275 | 10.23% | 12.63 |
-
-Counter evidence:
-
-| Direction | Damage | Kills |
+| Kind | Count | Gold spent |
 | --- | ---: | ---: |
-| Spear -> Cavalry | 344685 | 2902 |
-| Cavalry -> Spear | 131060 | 954 |
-| Sword -> Spear | 144758 | 1741 |
-| Spear -> Sword | 74249 | 459 |
+| Initial CP | 12 | 6000 |
+| Unit count | 22 | 5526 |
+| Unit unlock | 4 | 4920 |
+| Max Alive | 3 | 3750 |
 
-Comparison with the corrected-evaluator `x20` baseline:
+```text
+Total Gold earned: 31,304
+Total Gold spent: 20,196
+Gold retained after level 60: 11,108
+Rescue Gold: 0
+```
 
-- Spear damage/CP: `24.05 -> 23.05` (`-4.2%`).
-- Spear counter damage: `360800 -> 344685` (`-4.5%`).
-- Spear hard-counter decisions: `465 -> 497`.
-- Spear kills per hard-counter response: `6.32 -> 5.84`.
-- Cavalry damage/CP: `12.33 -> 13.12`.
+All families and mature counts were obtained by level 50. At level 60 Team A
+had CP `900`, Max Alive `7`, all families, and mature counts. No purchase was
+available after the pre-battle CP package; the large remaining Gold balance was
+therefore not a purchase-simulation refusal.
 
-The reduction is smaller than linear `12/20` because `x20` contained substantial
-overkill. Telemetry records actual HP removed, not discarded overkill, and
-`x12` still kills Cavalry reliably. Increased Cavalry-to-Spear encounters also
-offset some of the per-hit reduction.
+### Current Main Concern
 
-Current conclusion:
+The current difficulty curve is sawtoothed:
 
-- `x12` is the correct active value: it preserves the controlled hard-counter,
-  improves Cavalry runtime value, and reduces Spear excess without breaking the
-  pair.
-- Do not reduce to `x10`; controlled tests show Spear usually loses.
-- Spear's `23.05` damage/CP remains contextual to perfect accuracy and frequent
-  Cavalry encounters. Do not increase Spear cost or change base stats from this
-  batch alone; doing so would violate the one-unit X-Power cost rule or damage
-  its intentionally weak non-counter role.
-- A future accuracy-`0.8` gameplay-oriented batch may be used to measure how
-  much Spear efficiency falls when the AI does not exploit every counter
-  opportunity, but it is not required to validate `x12`.
+- the player's `+50 CP` boss purchase is permanent;
+- the enemy's `x1.2` boss CP disappears on the following normal level;
+- player CP grows about 10 per level (`50 / 5`), while enemy base CP grows
+  about 8 per level;
+- the player also starts 50 CP ahead.
 
-### Repeated Active x12 Baseline
+Observed average player CP advantage:
 
-Files: 100 reports from `2026-07-29T17-07-02-209Z` through
-`2026-07-29T17-51-14-961Z`.
-
-Configuration was internally consistent across all reports:
-
-- both teams effectively used `decisionAccuracy = 1`;
-- initial CP was `800/800`;
-- active counters were `Spear > Cavalry x12` and `Archer > Spear x2`;
-- telemetry URL batch mode was inactive, so opening was sequential rather than
-  synchronized;
-- all 100 matches ended with
-  `team-eliminated-and-cannot-afford-spawn`;
-- all 2677 recorded decisions were accurate with selection quality `1`;
-- CP accounting was exact in all 200 team instances:
-  `CP spent + final CP = 800`.
-
-System results:
-
-| Metric | Result |
+| Levels | Average Team A CP advantage |
 | --- | ---: |
-| Team A/B wins | 46/54 |
-| Opening/responder wins | 43/57 |
-| Average duration | 59.01s |
-| Duration p50/p95 | 58.96s / 70.56s |
-| Average loser final CP | 11.31 |
-| Maximum loser final CP | 25 |
-| Average winner living non-Hero units | 12.92 |
-| Invalid endings | 0 |
+| 1-9 | 39.6 |
+| 10-24 | 48.5 |
+| 25-44 | 80.9 |
+| 45-60 | 112.2 |
 
-Team output:
+At boss level 60 the gap was only `900 vs 865` (`+35`), but surrounding normal
+levels can give Team A roughly `+130` to `+150` CP because the boss multiplier
+has dropped. Team A won all 16 attempts from levels 45-60.
 
-| Team | CP/match | Damage/match | Damage/CP | Waves/match |
-| --- | ---: | ---: | ---: | ---: |
-| A | 788.21 | 11905.79 | 15.10 | 13.39 |
-| B | 787.29 | 11969.07 | 15.20 | 13.38 |
+Current verdict:
 
-The two sides differ by only about `0.65%` in damage/CP. Frame-order evidence
-was also symmetric:
+- accuracy `0.4 -> 1`: working;
+- unit unlock/count schedule: working;
+- purchase simulation and retry loop: working;
+- boss spikes: working and meaningful;
+- five-loss rescue: implemented but not exercised;
+- normal-level challenge after midgame: too weak in this sample;
+- Gold pressure after roster maturity: too weak, with a large unspendable bank.
 
-- first-damage frame counts: Team A `27234`, Team B `27183`;
-- first-kill frame counts: Team A `9356`, Team B `9431`.
+Do not respond to this concern by reducing player AI accuracy or changing unit
+stats. The causal surfaces are player CP entitlement versus enemy base CP and
+the lack of post-maturity Gold sinks/content.
 
-The new `46/54` result reverses the previous active-x12 batch's `58/42`.
-Combined across the two active-x12 100-match baselines:
+## Open Decisions For The Next Session
 
-```text
-Team A wins = 104/200 = 52%
-Team B wins =  96/200 = 48%
-```
+1. Decide whether normal levels are intentionally relief stages or whether
+   their near-98% clear rate is too low-risk. This is the next product decision.
+2. If normal levels need more pressure, align the cumulative player CP
+   entitlement with the enemy base curve while preserving temporary boss
+   spikes. Avoid per-level special cases.
+3. Decide whether Gold banked after level 50 is intentional preparation for
+   future tier 2/3/cards, or whether tier-1 progression needs another meaningful
+   sink. Do not add a sink only to consume currency; it must represent player
+   power or choice.
+4. Continue levels 61-100 before claiming final-campaign behavior. The current
+   run proves only levels 1-60.
+5. Exercise the five-loss rescue in a controlled run and verify `adsReward`,
+   `rescueGold`, chosen actions, and retry behavior.
+6. Keep enemy accuracy minimum at `0.4` unless a new batch shows a concrete
+   decision-quality problem.
+7. Tier 2/3 remain future work. Do not implement them until the tier-1 campaign
+   economy and CP curve are accepted.
 
-This is stronger evidence that the earlier `58/42` was sampling variation, not
-a fixed Team A advantage.
+## Roadmap Artifact
 
-Roster output:
+`tools/battle-progression-roadmap.html` visualizes:
 
-| Family | Waves | Wave share | Damage/CP |
-| --- | ---: | ---: | ---: |
-| Axeman | 640 | 23.91% | 15.29 |
-| Spear | 566 | 21.14% | 22.94 |
-| Cavalry | 486 | 18.15% | 12.79 |
-| Sword | 394 | 14.72% | 13.67 |
-| Archer | 317 | 11.84% | 14.29 |
-| Monk | 274 | 10.24% | 12.86 |
+- enemy CP/accuracy/Max Alive curves and bosses;
+- unlock levels and unit-count maturation to level 50;
+- player CP sale caps;
+- player Max Alive/count progression rules;
+- Gold prices and progression notes.
 
-Ranged role evidence:
+It was updated with:
 
-- Archer produced `60464` counter damage and `758` counter kills against
-  Spear; `237` Archer counter-support decisions were recorded.
-- Monk averaged `4.06` targets per attack, including `3.06` area targets, so
-  its AoE support role was materially active.
-- Neither ranged family was absent or composition-dominant.
+- Cavalry at level 35;
+- Monk at level 45;
+- unit progression ending at level 50;
+- player CP boss-package caps;
+- enemy accuracy minimum `0.4`.
 
-Spear remains a contextual damage/CP outlier:
+The file is currently untracked in Git. Add it deliberately when preparing the
+progression changes for commit; do not assume it is already versioned.
 
-- total Spear damage `506444`;
-- Spear-to-Cavalry counter damage `343153`, about `67.8%` of Spear damage;
-- counter kills `2931/4410`, about `66.5%` of Spear kills;
-- about `61.1%` of Cavalry deaths were deaths to counter.
+## Preserved Performance Baseline
 
-Removing recorded counter damage leaves Spear at only about `7.40` damage/CP.
-Therefore the `22.94` aggregate is evidence that perfect AI consumes hard
-counter opportunities effectively, not evidence that Spear's natural
-stats/cost are too strong.
+No SpatialGrid/RVO gameplay or performance logic was changed during the
+progression work.
 
-One repeated signal remains:
+Previously validated state:
 
-- first active-x12 baseline: opening/responder wins `44/56`;
-- repeated active-x12 baseline: opening/responder wins `43/57`;
-- combined: opening `87/200`, responder `113/200`.
+- target search uses a bounded hybrid of ring traversal and exact active
+  snapshot scan on both main-thread and worker paths;
+- target worker replies retain `lifeId` stale-target protection;
+- RVO worker startup no longer permanently falls back merely because startup
+  exceeds two seconds under CPU slowdown;
+- a pending ready-worker timeout restarts the worker generation instead;
+- actual capability/runtime failures still use main-thread fallback.
 
-This is not a team-direction bias: opener team was nearly even and team win
-direction reversed between batches. It is a plausible information advantage
-for the sequential responder, which sees the Axeman opening before selecting
-its first response. The current sample is suggestive, not conclusive. Use
-synchronized batch opening when measuring pure symmetric stats/AI balance;
-retain sequential opening when measuring actual unsynchronized gameplay.
+Best same-condition 4x DevTools comparison:
 
-Current repeated-baseline conclusion:
-
-- active T1 stats, `x12`, evaluator scoring, CP accounting, and elimination
-  winner logic are healthy;
-- no stat/cost/counter adjustment is justified by this batch;
-- monitor sequential responder advantage separately from team balance;
-- keep current T1 values stable before constructing T2/T3.
-
-### Opening Lifecycle And Empty-Battlefield Correction
-
-Problem:
-
-- The old opening branch was selected whenever `enemyCount <= 0`, including
-  later in a match after an army had already spawned and temporarily cleared
-  the battlefield.
-- `spawnedOpeningWave` plus `hasSeenEnemyWave` attempted to distinguish first
-  opening from later states, but allowed the brain to re-enter opening logic
-  after it had seen and then eliminated an enemy.
-- Snapshot response selection could also run without an enemy target, and CP
-  strategy could label "no effective response" as Desperate even when there
-  was no enemy to answer.
-- These overlapping branches made low-CP/max-wave progression harder to reason
-  about and could produce behavior based on stale phase identity rather than
-  current battlefield intent.
-
-Implementation:
-
-- Opening now requires `!hasSpawnedWave` and either an empty initial battlefield
-  or the explicit synchronized telemetry-opening path.
-- Removed the duplicate `spawnedOpeningWave` and `hasSeenEnemyWave` state.
-- Normal snapshot response selection now runs only when `enemyCount > 0`.
-- CP strategy can enter Desperate for "no affordable effective response" only
-  when an enemy exists.
-- Last stand and the general affordable fallback remain separate and still
-  allow spendable CP to be used after the first opening.
-
-Result:
-
-- Phase ownership is now explicit: opening is one-time, response requires an
-  enemy, and end-of-army/fallback spending is not disguised as another opening.
-- The complete 100-level sweep after this correction had 100 valid elimination
-  endings and no stuck report/reload case.
-- The sweep was not an isolated pre/post experiment, so do not assign its
-  win-rate curve solely to this fix. Its source-level conflict is resolved; the
-  batch validates that the corrected flow remains operational.
-
-### 100-Level Campaign And Boss-Fight Sweep
-
-Files: exactly 100 reports from `2026-07-30T11-23-55-316Z` through
-`2026-07-30T12-04-11-123Z`.
-
-Purpose:
-
-- Replace isolated accuracy batches with a campaign-facing difficulty test.
-- Test whether a human-facing progression can move from easy to hard through
-  Team B accuracy, initial CP, and max alive waves.
-- Add periodic boss spikes without adding hidden combat rules or changing the
-  tier-1 stat/counter system.
-- Isolate that progression from opening-order noise by using the current
-  telemetry batch synchronization. This is useful for curve validation, but is
-  not a full AI-vs-human opening simulation.
-
-Implementation:
-
-- `LevelSettings` interpolates the regular level values first.
-- Every positive level divisible by `floor(bossStagePace)` is a boss level.
-- Boss initial CP is `round(roundedBaseCP * multiplier)` and is intentionally
-  uncapped.
-- Boss accuracy is multiplied and then capped by both
-  `decisionAccuracyMax` and `1`.
-- Boss max alive waves is multiplied, rounded, and capped by
-  `maxAliveWavesMax`.
-- Spawn interval is not modified by the boss multiplier.
-- `BossStagePace = 0` disables boss fights.
-
-Actual tested configuration:
-
-```text
-Levels:                 1..100
-Team B base CP:         600..1040
-Team B base accuracy:   0..1
-Team B base max waves:  3..7
-Boss pace:              every 5 levels
-Boss CP multiplier:     1.5
-Boss accuracy mult.:    1.5
-Boss max-wave mult.:    1.5
-Battle time scale:      3
-```
-
-Dataset integrity:
-
-- 100 unique levels, no missing levels and no duplicates.
-- Every report has `totalLevels = 100`.
-- All 100 matches ended through
-  `team-eliminated-and-cannot-afford-spawn`.
-- Average duration was `59.11s`; minimum `35.19s`, maximum `85.83s`.
-
-Win results:
-
-| Group | Team B Wins | Rate |
+| Main frame metric | Before RVO lifecycle repair | After |
 | --- | ---: | ---: |
-| All levels | 52/100 | 52.0% |
-| Normal levels | 34/80 | 42.5% |
-| Boss levels | 18/20 | 90.0% |
-| Normal levels 1-40 | 0/32 | 0.0% |
-| Normal levels 61-100 | 27/32 | 84.4% |
+| Average | 7.390 ms | 5.308 ms |
+| p95 | 16.707 ms | 12.196 ms |
+| p99 | 24.041 ms | 15.291 ms |
+| Frames over 16.67 ms | 5.07% | 0.81% |
 
-Team B wins by ten-level block:
+These are Cocos preview/device-emulation results, not physical-device release
+claims. Production mobile validation with telemetry disabled is still pending.
 
-| Levels | Total B Wins | Boss Wins / 2 | Normal Wins / 8 |
-| --- | ---: | ---: | ---: |
-| 1-10 | 1 | 1 | 0 |
-| 11-20 | 1 | 1 | 0 |
-| 21-30 | 2 | 2 | 0 |
-| 31-40 | 2 | 2 | 0 |
-| 41-50 | 4 | 2 | 2 |
-| 51-60 | 7 | 2 | 5 |
-| 61-70 | 8 | 2 | 6 |
-| 71-80 | 9 | 2 | 7 |
-| 81-90 | 9 | 2 | 7 |
-| 91-100 | 9 | 2 | 7 |
+## Validation And Tooling
 
-Boss details:
-
-- Team A won boss levels `5` and `15`.
-- Team B won level `10` and every boss from `20` onward.
-- From boss level `25` through `100`, Team B won `16/16`.
-- Boss wins at levels `25` and `30` were close; later boss dominance is not
-  solely an artifact of one or two marginal results.
-
-Decision behavior moved in the intended direction:
-
-- Team B mean selection quality by ten-level block:
-  `0.368, 0.474, 0.537, 0.510, 0.669, 0.762, 0.840, 0.890, 0.945, 0.986`.
-- Best-candidate selection rose from `17.9%` in levels `1-10` to `97.8%` in
-  levels `91-100`.
-- Team B spawn composition also broadened. Levels `1-10` were dominated by
-  Axe/Sword, while levels `91-100` distributed roughly `14-19%` to every
-  active family. Ranged therefore appears naturally as accuracy and battlefield
-  opportunity rise; the existing ranged cap is behaving as intended.
-
-Economy and runtime output:
-
-| Group | Team A Damage/CP | Team B Damage/CP |
-| --- | ---: | ---: |
-| All levels | 16.44 | 12.70 |
-| Normal levels | 16.37 | 13.02 |
-| Boss levels | 16.74 | 11.70 |
-
-This does not mean Team B's units are underpriced or its stats are weaker.
-Both teams use identical stats. Boss Team B wins through additional CP and
-wave capacity while spending into harder battlefield states, so its aggregate
-damage/CP is lower. Runtime damage/CP is contextual AI/economy evidence, not a
-replacement for the one-unit X-Power cost rule.
-
-Close-result sensitivity:
-
-- 16 matches had winner living units `<= 10`: levels
-  `25, 30, 38, 39, 42, 51, 53, 56, 62, 64, 74, 76, 87, 93, 98, 99`.
-- Team B won 10 of those; Team A won 6.
-- Counting every close result as half a win gives Team B `50/100` overall,
-  `33/80` normal, and `17/20` boss.
-- The easy-to-hard normal curve and strong boss spike remain intact under that
-  conservative treatment.
-
-Diagnosis:
-
-- The campaign curve achieved the requested macro experience: early normal
-  levels are reliably easy and late normal levels are reliably hard.
-- Because campaign URL mode currently synchronizes opening, the result should
-  be read as a controlled difficulty-curve result. Sequential human response
-  may shift individual outcomes and still needs separate gameplay validation.
-- Boss fights at the active `1.5` multiplier are very strong, not merely a
-  visible bump. This may be correct if bosses are intended as punishing checks,
-  but it is a design choice, not a neutral default.
-- Boss max waves reaches its cap of `7` around level `40`.
-- Boss accuracy reaches its cap of `1` at level `70`.
-- After level `70`, boss difficulty keeps growing mainly through uncapped CP;
-  this explains the deterministic late-boss results.
-- Do not tune tier-1 stats or counters to alter this campaign curve. The units
-  are shared by both teams; progression should be tuned in `LevelSettings`.
-
-Telemetry gap discovered:
-
-- The report does not explicitly record `isBossLevel`, `bossStagePace`, the
-  three boss multipliers, effective boss accuracy, or effective boss max-wave
-  cap.
-- The tested `1.5` multiplier had to be reconstructed from scene values,
-  initial CP, level number, and per-decision accuracy.
-- Before comparing future boss multipliers, add those effective values directly
-  to the telemetry start configuration. This is observability work and must not
-  alter gameplay.
-
-An interactive chart for this exact sweep is available at:
+Current focused validation after the latest changes:
 
 ```text
-C:\Users\CPU\.codex\visualizations\2026\07\27\019fa290-2c07-76b1-9bd7-caba43d51df0\b-win-progression.html
+Cocos TypeScript noEmit with skipLibCheck/module override: PASS
+assets/Test.scene JSON parse: PASS
+Roadmap embedded script syntax: PASS
+git diff --check on progression files: PASS (line-ending warnings only)
+Latest telemetry parse: PASS (68 reports, 60 unique levels, 8 retries)
 ```
 
-It aligns Team B win/loss and rolling wins with effective CP, per-decision
-accuracy, max waves, and boss levels over levels `1..100`.
+TypeScript command used because the global `npx` installation is broken:
 
-## Human-Facing Campaign And Gold Economy Design
-
-This section records the design discussion started on 2026-07-31. It is not a
-changelog and none of these economy/roster proposals are implemented yet.
-Current source still runs the continuous `LevelSettings` curves documented
-above and both teams still have all active tier-1 entries unlocked in
-`assets/Test.scene`.
-
-### Phase Goal
-
-The user considers the repeated tier-1 balance, controlled matchup, and
-accuracy `0..1` work sufficient for now. The next phase is experience testing:
-
-- Team A remains AI-controlled during automation, but represents the build and
-  resources a human player would own.
-- Team B represents the campaign enemy.
-- The goal is no longer to repeatedly retune symmetric unit balance.
-- The goal is to make early levels welcoming, later levels demanding, and
-  long-term upgrades meaningful.
-- Difficulty should create demand for unit unlocks, CP, max-alive capacity,
-  tactical cards, and optional rewarded ads.
-- Progression must remain beatable without ads. Do not create hidden stat
-  handicaps or deliberate unavoidable losses to force monetization.
-
-The completed 100-level sweep supports this direction: Team A was fixed while
-Team B moved from very weak early levels to strong late levels. The user
-explicitly accepts the resulting sharp campaign transition because future
-player upgrades are intended to fill the gap.
-
-### Persistent Gold Versus In-Battle CP
-
-Keep the currencies conceptually separate:
-
-- `CP` is spent during one battle to spawn waves.
-- `Gold` is persistent campaign currency used to buy unit access and permanent
-  progression.
-- A unit unlock expands strategic choice; it must not silently add combat
-  multipliers.
-- Enemy roster availability is authored per level and costs the enemy no Gold.
-
-Initial persistent-economy proposal:
-
-```text
-UnitUnlockGold = roundToNearest100(15 * UnitCP)
+```powershell
+& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' `
+  'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\lib\tsc.js' `
+  --noEmit --skipLibCheck --module esnext -p tsconfig.json
 ```
 
-`UnitCP` means the current database cost paid to spawn that entry/wave. This is
-a persistent unlock-price convention, not a replacement for the one-unit
-X-Power formula in `UNITSTATS.md`.
-
-| Unit | Active CP | Proposed Unlock Gold | Proposed Availability |
-| --- | ---: | ---: | --- |
-| Spear | 39 | free | owned at start |
-| Sword | 49 | free | owned at start |
-| Archer | 26 | 400 | after boss 5 |
-| Axeman | 74 | 1,100 | after boss 15 |
-| Cavalry | 97 | 1,500 | after boss 25 |
-| Monk | 49 | 700 | after boss 40 |
-
-The proposed player starts with `200 Gold`. Monk and Sword share an unlock-price
-class because their active CP is equal. Monk's complexity is controlled by
-late shop availability, not a hidden role premium.
-
-Remaining paid unit unlocks total `3,700 Gold`.
-
-### Bosses As New-Unit Introductions
-
-The user wants enemy unit reveals on boss stages because a boss should be
-memorable for more than a numeric multiplier. Working roster proposal:
-
-| Campaign Window | Regular Enemy Roster | Boss Reveal | Player Shop Unlock After Boss |
-| --- | --- | --- | --- |
-| 1-4 | Spear | Boss 5 adds Sword | Archer |
-| 6-14 | Spear, Sword | Boss 15 adds Archer | Axeman |
-| 16-24 | add Archer | Boss 25 adds Axeman | Cavalry |
-| 26-39 | add Axeman | Boss 40 adds Cavalry | Monk |
-| 41-59 | add Cavalry | Boss 60 adds Monk | tier-1 roster complete |
-| 61-100 | all six tier-1 families | bosses vary composition/resources | CP, capacity, cards |
-
-Design intent:
-
-- Before each reveal, the player normally has access to one more family than
-  the regular enemy.
-- During the reveal boss, family counts may temporarily be equal; the player
-  still has early CP/capacity advantages.
-- The newly revealed enemy family persists in subsequent regular levels.
-- Enemy Cavalry cannot appear before the player owns Spear.
-- Monk is introduced last because frontline protection and AoE timing are more
-  complex than basic melee play.
-- Shop availability and actual ownership are different states. A post-boss
-  unlock means the item can be bought; it does not silently grant the unit.
-
-This schedule is a design proposal only. `LevelSettings` currently has no
-per-level roster table. Existing source-side `unlocked` filtering is already
-confirmed across candidate collection, affordability, direct spawn, and
-fallback paths, but authored presets still need implementation and validation.
-
-### Player CP Progression Proposal
-
-Proposed player starting battle resources:
-
-```text
-Initial CP: 800
-Max alive: 5
-Owned units: Spear, Sword
-```
-
-This is intentionally ahead of the current level-1 enemy baseline:
-
-```text
-Enemy CP: 600
-Enemy max alive: 3
-Enemy units: Spear
-```
-
-Proposed CP purchases:
-
-| Available After | Player Initial CP | Gold Cost |
-| ---: | ---: | ---: |
-| start | 800 | free baseline |
-| boss 25 | 850 | 500 |
-| boss 45 | 900 | 600 |
-| boss 60 | 950 | 700 |
-| boss 75 | 1,000 | 800 |
-| boss 85 | 1,050 | 900 |
-
-The five paid CP steps total `3,500 Gold`.
-
-### Max-Alive Progression And The Skip Problem
-
-The first max-alive proposal was:
-
-```text
-Player: 5 at start, buy 6 after boss 35, buy 7 after boss 55
-Enemy:  3 at 1, 4 at 10, 5 at 25, 6 at 40, 7 at 60
-```
-
-This gives the following shape if the player buys both upgrades:
-
-```text
-Levels 1-9:   enemy 3 / player 5
-Levels 10-24: enemy 4 / player 5
-Levels 25-34: enemy 5 / player 5
-Levels 35-39: enemy 5 / player 6
-Levels 40-54: enemy 6 / player 6
-Levels 55-59: enemy 6 / player 7
-Levels 60-100: enemy 7 / player 7
-```
-
-The user correctly identified the unresolved branch: if the player skips both
-capacity purchases, the late campaign becomes enemy `7` versus player `5`.
-That can turn an advertised choice into a mandatory tax.
-
-Latest recommended candidate, not yet approved:
-
-```text
-Player purchases remain available at levels 35 (5->6) and 55 (6->7).
-Enemy max alive:
-  3 during levels 1-9
-  4 during levels 10-29
-  5 during levels 30-44
-  6 during levels 45-69
-  7 during levels 70-100
-```
-
-This gives each purchase a 10-15 level preparation window before the enemy
-catches up. If the player skips one purchase, the first penalty is one enemy
-slot rather than an immediate two-slot cliff.
-
-Do not silently scale enemy max alive from current player max alive. That would
-make buying an upgrade raise the enemy in response, producing rubber-banding
-and devaluing the purchase.
-
-The intended product rule is still unresolved:
-
-- capacity build should be strong;
-- power/roster/card builds should remain viable alternatives;
-- skipping every capacity upgrade may be deliberately harder;
-- max alive must not be the only viable progression path;
-- loss Gold and replay access must make recovery possible;
-- the UI should show a visible recommended max alive before battle.
-
-The original max-alive prices were `1,200 Gold` for `5->6` and `2,000 Gold` for
-`6->7`, total `3,200 Gold`. Re-evaluate these prices only after choosing the
-final skip behavior. Do not implement the earlier chart schedule as final.
-
-### Win, Loss, And Rewarded-Ad Economy
-
-Proposed win reward uses actual effective enemy values rather than raw level
-number:
-
-```text
-CPIndex       = max(0, (EnemyInitialCP - 600) / 440)
-AccuracyIndex = EnemyDecisionAccuracy
-AliveIndex    = max(0, (EnemyMaxAlive - 3) / 4)
-
-Threat =
-    0.40 * CPIndex +
-    0.35 * AccuracyIndex +
-    0.25 * AliveIndex
-
-WinGold =
-    roundTo10(
-        (80 + 170 * Threat) *
-        (isBoss ? 1.20 : 1.00)
-    )
-```
-
-Use effective runtime CP/accuracy/max alive after boss modifiers. Reward inputs
-must be visible/reportable; do not hide a payout multiplier in unrelated AI
-logic.
-
-Indicative rewards under the discussed curve:
-
-| Point | Approximate Win Gold |
-| --- | ---: |
-| level 1 | 80 |
-| boss 5 | 150 |
-| boss 20 | 200 |
-| boss 40 | 250 |
-| boss 60 | 290 |
-| boss 100 | 340 |
-
-Estimated total for winning all 100 levels is about `18,400 Gold`.
-
-Core proposed spend:
-
-| Category | Total Gold |
-| --- | ---: |
-| remaining unit unlocks | 3,700 |
-| five CP upgrades | 3,500 |
-| two max-alive upgrades | 3,200 |
-| total core progression | 10,400 |
-
-With `200` starting Gold, a perfect run leaves substantial room for future
-cards. At roughly 70% wins, using the proposed 25% loss reward, expected total
-income remains sufficient for core progression without ads. These are economy
-targets, not telemetry-proven results.
-
-Loss proposal:
-
-```text
-LossGold = roundTo10(0.25 * WinGold)
-Wallet deduction on loss = 0
-```
-
-Reasoning:
-
-- losing already costs time and blocks the full first-clear reward;
-- directly subtracting Gold creates a negative feedback loop;
-- loss Gold preserves recovery and lets a player eventually buy a skipped
-  progression item;
-- the 75% missed reward is the penalty.
-
-Rewarded-ad proposal:
-
-```text
-AdGold = roundTo10(max(120, 1.5 * WinGoldAtCurrentLevel))
-```
-
-Indicative value is about `120` early, `250-300` mid-campaign, and `400-500`
-late. The initial suggestion was a limit around three rewarded-Gold ads per
-day. Ads should replace about 1.5 wins: meaningful acceleration, but not an
-instant Cavalry purchase. No forced post-loss ad was proposed.
-
-### Experience Stages And Validation Targets
-
-Working experience framing:
-
-| Stage | Intent | First-Attempt Win-Rate Hypothesis |
-| --- | --- | ---: |
-| 1-15 | onboarding and obvious player advantage | 80-95% |
-| 16-40 | introduce responses and purchase choices | 70-85% |
-| 41-60 | complete tier-1 roles and remove slot advantage | 55-70% |
-| 61-100 | full roster, upgrades/cards drive outcomes | 50-65% |
-
-These are hypotheses for human-facing tests, not balance truths. Team A
-AI-vs-AI telemetry cannot prove them directly.
-
-Suggested card-system milestones remain unapproved:
-
-- around level 10: basic cards/tutorial;
-- around level 30: second slot or defensive/formation cards;
-- around level 50: advanced economy/response cards;
-- around level 70: high-impact cards.
-
-Do not price cards before their effects and per-battle limits are specified.
-
-Future experience telemetry should record:
-
-- Gold earned, spent, and current wallet;
-- shop availability versus purchased ownership;
-- level where each unit/CP/max-alive item was bought;
-- losses and retries before a purchase;
-- ads offered, accepted, and declined;
-- quits immediately after a loss;
-- unlocked units that remain unused;
-- actual player max alive versus authored enemy max alive.
-
-Acceptance criteria for the economy prototype:
-
-- a no-ad player around 70% wins can complete core progression;
-- required counter access is available before the corresponding enemy reveal;
-- an ad saves roughly one or two wins but is never required to recover;
-- skipping max alive produces a visible tradeoff, not a hidden unwinnable wall;
-- boss/new-unit previews make difficulty changes understandable;
-- early advantage fades, while late difficulty comes from explicit enemy
-  resources, accuracy, roster, and composition.
-
-The discussion visualization is outside the repository at:
-
-```text
-C:\Users\tranl\.codex\visualizations\2026\06\10\019eb2bd-8cf4-7590-b6e0-59862fd80bc3\battle-progression-roadmap.html
-```
-
-It currently shows the earlier enemy catch-up schedule ending at level 60. The
-latest grace-window candidate ending at level 70 has not been applied to the
-chart because the user has not approved it.
-
-## Latest Performance Work
-
-This section records the 2026-07-28/29 SpatialGrid and RVO work. These changes
-are performance/lifecycle changes only. They do not intentionally change unit
-stats, counter rules, search radii, search intervals, lane behavior, RVO
-physics, or Inspector tuning.
-
-### SpatialGrid Nearest-Target Optimization
-
-Changed files:
-
-- `assets/scripts/BattleSpatialGrid.ts`
+Known local issues:
+
+- Cocos preview may fail with `_unresolved_*`, missing generated chunk, or
+  `ENOENT` errors when packer cache/import maps are stale. This is a generated
+  preview-cache issue; verify source compilation before blaming gameplay code.
+- GitHub Desktop lock errors generally come from a local interrupted/concurrent
+  Git process. Another machine cannot directly create this machine's
+  `.git/index.lock` merely by using the same remote repository.
+- CLI Git may report Windows `dubious ownership`. Use
+  `git -c safe.directory=F:/Github/BattleGame ...` for inspection and do not
+  silently alter global trust settings.
+
+## Worktree State At Handoff
+
+Relevant authored changes currently include:
+
+- `assets/scripts/LevelSettings.ts`
 - `assets/scripts/GameManager.ts`
-
-The old nearest-target search expanded grid rings across every cell covered by
-the query radius. That remains efficient for small local searches, but large
-Hero/search radii on this small battlefield can cover more cells than there
-are enemy units. In those cases, walking empty cells costs more than scanning
-the active enemy snapshot directly.
-
-The current implementation:
-
-- receives the real battlefield bounds from `GameManager` at startup and on
-  every grid rebuild;
-- clamps every query to the bounded battlefield cell rectangle;
-- uses lookup-only `findExistingKey()` for queries, so checking an empty cell
-  does not create/cache a new string key;
-- stores each team's active unit list from the same `build()` generation as the
-  grid;
-- compares bounded queried-cell count with active enemy count;
-- uses bounded ring search when cells are cheaper;
-- uses a direct active-enemy snapshot scan when units are cheaper;
-- preserves exact nearest-by-distance behavior;
-- applies the same hybrid algorithm in the target worker;
-- sends battlefield bounds with every worker batch;
-- reuses the worker snapshot when a request batch does not include a newer
-  snapshot;
-- preserves `lifeId` in worker replies so pooled/stale targets remain guarded.
-
-Important invariant: the direct path scans the unit list produced during the
-same `BattleSpatialGrid.build()` call. It does not inspect a newer live team
-array, so ring search and direct search operate on the same snapshot.
-
-Focused verification completed:
-
-- Cocos Creator 3.8.8 TypeScript `--noEmit --skipLibCheck --module esnext`:
-  pass.
-- Embedded target-worker source syntax: pass.
-- 500 randomized worker nearest-target queries compared with brute-force exact
-  nearest: pass.
-- Worker snapshot-reuse test: pass.
-
-Subsystem-only Node microbenchmarks against the pre-change implementation:
-
-| Scenario | Measured improvement |
-| --- | ---: |
-| Dense, 120 units, range 16 | about 13.9% |
-| Hero-like, 60 units, range 32 | about 72.8% |
-| Late Hero, 20 units, range 80 | about 94.2% |
-
-These numbers measure only the nearest-query subsystem. They are not expected
-whole-game FPS gains.
-
-### RVO Worker False-Fallback Root Cause
-
-Changed file:
-
-- `assets/scripts/rvo/RVOWorkerSimulator.ts`
-
-The old lifecycle used the same two-second wall-clock timeout for two different
-conditions:
-
-1. a newly created worker had not emitted `ready`;
-2. a ready worker had an in-flight step that had not replied.
-
-Both conditions permanently called `activateMainThreadFallback()`. Under
-DevTools CPU slowdown, worker startup could exceed two wall-clock seconds even
-though Worker/Blob support was valid. The result was a false permanent
-fallback, and all RVO neighbor/grid/avoidance work moved onto the main thread.
-This is why `useWorkerRVO = true` did not guarantee that the trace contained an
-RVO worker.
-
-The current lifecycle is:
-
-- a worker that exists but is not ready is allowed to keep starting; this state
-  does not trigger main-thread fallback;
-- if a ready worker's pending step exceeds two seconds, the worker is
-  terminated and restarted instead of permanently falling back;
-- restart clears pending state and detached typed-array references, resets
-  capacity, and marks obstacles dirty so the replacement receives obstacles
-  before its next simulation step;
-- every worker instance has a generation number and identity check;
-- late `message`, `error`, or `messageerror` callbacks from a terminated worker
-  cannot mutate the replacement worker's state;
-- main-thread fallback is reserved for actual capability/runtime failures:
-  unsupported Worker/Blob/object-URL APIs, construction failure, `postMessage`
-  failure, worker `error`, or `messageerror`.
-
-RVO solver math, neighbor rules, hard separation, agent data layout, update
-intervals, and scene Inspector values were not changed.
-
-Focused lifecycle tests passed for:
-
-- slow startup does not fall back;
-- pending timeout restarts the worker;
-- stale callbacks from the old generation are ignored;
-- replacement worker receives obstacles before the next step;
-- unsupported APIs fall back;
-- constructor failure falls back;
-- runtime worker error falls back.
-
-One deliberate residual edge case must remain visible: if a browser
-successfully constructs a worker that silently never emits `ready` and never
-raises an error, RVO waits rather than activating the main-thread solver. This
-path was not observed in the traces. Do not reintroduce a permanent
-startup-delay fallback without separating "slow startup" from proven worker
-failure, or the 4x-throttle regression will return.
-
-### Performance Trace Evidence
-
-`Trace-20260728T223748.json.gz`:
-
-- Cocos preview, iPhone SE emulation, no 4x CPU slowdown.
-- Exact current preview target-worker chunk was loaded.
-- Both target worker and RVO worker existed.
-- Target worker: 756 batches over 38.38 seconds, about 19.7 batches/second;
-  p95 message handling about 0.344 ms; maximum gameplay batch about 1.651 ms;
-  worker about 99.61% idle.
-- Main frame callback after startup: p50 about 1.608 ms, p95 4.146 ms, p99
-  about 5.24 ms.
-- CPU profile sampled both new target-query paths:
-  `findExistingKey()` on main and `scanSnapshotForNearest()`/`scanCell()` in
-  the worker.
-
-`Trace-20260728T224846.json.gz`:
-
-- Cocos preview, iPhone SE emulation, DevTools CPU slowdown 4x.
-- Captured before the RVO lifecycle repair.
-- Only the target worker existed; RVO was executing on the main-thread
-  fallback despite `useWorkerRVO = true`.
-- Target worker: 904 batches over 52.63 seconds; average about 0.169 ms, p95
-  0.346 ms, p99 0.425 ms, max 0.845 ms.
-- Steady main frame callback: average 7.39 ms, p50 8.497 ms, p95 16.707 ms,
-  p99 24.041 ms; 246/4853 callbacks exceeded 16.67 ms.
-- Main-thread hotspots included `getNeighbors`, `getGridKey`,
-  `insertNearestNeighbor`, and `stepOnce`. This was direct evidence that RVO
-  fallback, not the target worker, was a major cost in this run.
-
-`Trace-20260728T230800.json.gz`:
-
-- Same-day Cocos preview, iPhone SE emulation, DevTools CPU slowdown 4x,
-  captured after the RVO lifecycle repair.
-- Exactly two workers were present: one RVO Blob worker and one target-query
-  Blob worker.
-- No RVO restart or fallback occurred during the 41.71-second capture.
-- RVO worker: 1191 batches, about 28.6 batches/second; average about 0.394 ms,
-  p95 0.657 ms, p99 0.876 ms, max 2.564 ms. Its minor GC cost was off-main.
-- Main-thread samples for `getNeighbors`, `getGridKey`,
-  `insertNearestNeighbor`, `stepOnce`, `applyVelocityAvoidance`, and
-  `hardSeparateAgents` were zero.
-- Target worker: 822 batches; average 0.138 ms, p95 0.270 ms, p99 0.389 ms,
-  max 0.964 ms. The direct-snapshot path was sampled.
-- Steady main frame callback: average 5.308 ms, p50 6.944 ms, p95 12.196 ms,
-  p99 15.291 ms; 36/4445 callbacks exceeded 16.67 ms.
-
-Best same-condition A/B comparison is `224846` versus `230800`:
-
-| Main frame metric | Before RVO repair | After RVO repair | Change |
-| --- | ---: | ---: | ---: |
-| Average | 7.390 ms | 5.308 ms | about -28% |
-| p50 | 8.497 ms | 6.944 ms | about -18% |
-| p95 | 16.707 ms | 12.196 ms | about -27% |
-| p99 | 24.041 ms | 15.291 ms | about -36% |
-| Over 16.67 ms | 5.07% | 0.81% | about -84% |
-
-`Trace-20260719T222410.json.gz` was also captured at 4x slowdown and also had
-only the target worker, not an RVO worker. It therefore confirms that the old
-false-fallback behavior existed on July 19 as well. However, its viewport was
-recorded as `Responsive`, and it used older source, so it is not an exact
-whole-frame A/B baseline. Compared only as a trend, the repaired `230800`
-trace has a better p99 and fewer callbacks over 16.67 ms, while average/median
-are higher. Do not claim a universal July-19-to-current FPS improvement from
-that comparison.
-
-Current trace conclusion:
-
-- the SpatialGrid hybrid target search is active in both main and worker paths;
-- the target worker is sub-millisecond in these traces and is not the current
-  main-thread bottleneck;
-- the repaired RVO worker is genuinely active under 4x slowdown and removes
-  the heavy RVO solver functions from the main thread;
-- remaining dominant main-thread samples are mostly Cocos engine render,
-  transform synchronization, and UBO work;
-- rare 33-90 ms spikes still exist, but their magnitude cannot be attributed
-  to target search (under 1 ms) or normal RVO worker batches (max 2.564 ms).
-
-These are Cocos preview/device-emulation traces, not production-build traces
-from physical mobile hardware. Final release claims still require a real
-mobile browser build with telemetry disabled.
-
-## Current Status
-
-Achieved:
-
-- Level progression can now be driven by
-  `currentLevel`/`TotalLevels` telemetry URL parameters and advances one level
-  after each successful report/reload.
-- `LevelSettings` now provides a continuous Team B curve for initial CP,
-  decision accuracy, and max alive waves without the removed
-  `AllowAggressive` level flag.
-- Periodic boss fights are implemented through `bossStagePace` plus separate
-  CP, decision-accuracy, and max-alive multipliers, with explicit caps for
-  accuracy/max waves and uncapped CP.
-- The full 100-level campaign sweep is complete and valid. It produces a clear
-  easy-to-hard normal curve and a strong boss spike.
-- Batch opening is deterministic by average affordable one-unit X-Power and is
-  synchronized to mid when telemetry URL params are active.
-- Sequential-opening symmetric telemetry no longer shows opening-side
-  advantage after the evaluator counter-power correction: `50/100` opener wins
-  at `x20`, followed by `44/100` at active `x12`.
-- Evaluator counter contribution now uses `sqrt(runtimeMultiplier)` in X-Power
-  calculations while runtime combat retains the direct multiplier.
-- Spear-to-Cavalry is locked at `x12` in both the active scene and default
-  CounterSettings. Controlled `x10` testing failed the intended counter.
-- The active `x12` baseline has coherent response flow, balanced team economy,
-  valid Sword-to-Spear ladder behavior, and 100 valid elimination endings.
-- The repeated active-`x12` baseline reversed team win direction to `46/54`
-  while team damage/CP stayed within `0.65%`; combined active-`x12` team wins
-  are `104/96`, supporting no fixed team-side bias.
-- Final Hero deployment is one-shot and no longer refills/respawns.
-- First Hero activation expands target search for all current and future units.
-- Unit-vs-Hero pass-through has been removed.
-- Telemetry tests no longer finalize on Hero death. Normal gameplay with
-  telemetry disabled still does.
-- Winner resolution is protected against mid-AoE/mid-attack-batch fallback
-  resolution.
-- Aggressive no longer depends on the old Hero-line release rule.
-- Normal ranged support remains guarded by engaged frontline safety, lane
-  anti-repeat, capacity, context score, and accuracy.
-- One-unit X-Power/cost rule remains explicit; Archer's tested `26` versus
-  nominal `24` exception remains documented rather than hidden.
-- Team A/B active unit stats match.
-- Melee ladder and active counter rules have controlled-test grounding.
-- Unit unlock filtering remains source-confirmed across candidate collection,
-  direct spawn, affordability, and winner fallback.
-- SpatialGrid nearest-target search now chooses between bounded ring traversal
-  and exact active-snapshot scanning in both main-thread and worker paths.
-- Target-worker traces confirm the new hybrid path is active and remains
-  sub-millisecond under the tested 4x slowdown.
-- RVO no longer permanently falls back because worker startup exceeded a
-  wall-clock timeout under CPU throttling.
-- The latest 4x trace confirms the RVO worker is active and the heavy RVO
-  neighbor/solver functions are absent from the main thread.
-
-Not yet proven:
-
-- The active three boss multipliers at `1.5` have not been isolated against
-  lower alternatives. Current evidence says the combined active boss settings
-  produce a 90% boss win rate and `16/16` enemy boss wins from level 25 onward;
-  whether that is desirable is a product decision.
-- Boss metadata/effective values are not explicit in telemetry. Future
-  multiplier comparisons are vulnerable to configuration misreads until this
-  is fixed.
-- The campaign sweep is AI-vs-AI. It validates the difficulty mechanism and
-  progression shape, but does not directly predict a human player's five-match
-  experience at each level.
-- Campaign query mode currently forces synchronized opening even though real
-  AI-vs-human play is sequential. Decide whether future campaign telemetry
-  should retain synchronization as a controlled test option or expose a
-  separate query flag for real-opening tests.
-- Aggressive outcomes cannot yet be classified end-to-end because combat-entry
-  and death terminal events are missing.
-- An aggressive opening that never observes an adjacent boundary has no
-  explicit fallback release condition. Verify whether this can persist in real
-  gameplay after lifecycle telemetry is complete.
-- The current `ceil(maxRangedSupport * accuracy)` cap is intentionally
-  staircase-shaped. If level progression must be fully smooth, this is the
-  specific mechanic to redesign; do not rewrite candidate scoring first.
-- Future tier 2/3 entries need validation that scoring uses their real
-  stats/cost instead of family identity alone.
-- Archer cost has not been re-tested at nominal X-Power value `24`; all latest
-  Archer evidence uses `26`.
-- Spear remains the damage/CP outlier at `23.05` under the symmetric perfect
-  accuracy baseline because it is repeatedly matched into Cavalry. The campaign
-  sweep now covers non-perfect accuracy, but its mixed CP/wave progression is
-  not an isolated Spear balance experiment.
-- The new performance evidence is from Cocos preview with desktop device/CPU
-  emulation. Production web build and physical mobile performance are not yet
-  proven.
-- A pathological worker that silently never reports ready or error would leave
-  RVO waiting. This has not appeared in traces; retain it as an explicit
-  lifecycle risk rather than hiding it behind the old false-fallback timeout.
-- Tier 2/3 values are not implemented. The `1.00/1.50/2.25` progression and
-  indicative cost table are design candidates only.
-- Sequential active-`x12` baselines show a repeated responder signal
-  (`113/200`). It is not yet proven as a defect and must not be mixed with
-  synchronized-opening balance conclusions.
-- Persistent Gold, player purchases, per-level enemy roster presets, reward
-  payout, rewarded ads, and progression UI do not exist in source yet.
-- The proposed economy totals and win-rate bands are design hypotheses. They
-  have not been tested with a human player or a Team A progression build.
-- Final max-alive skip behavior is unresolved. Do not implement the earlier
-  level-60 catch-up chart as final without revisiting the grace-window
-  candidate.
-
-## Recommended Next Work
-
-1. Continue design discussion before coding. First decide max-alive skip
-   behavior and approve a final enemy/user capacity timeline.
-2. Decide whether post-boss player unit access means:
-   - shop availability only;
-   - a free first copy/unlock;
-   - or a discounted tutorial purchase.
-   Current proposal means shop availability only.
-3. Approve or revise the initial economy table: starting `200 Gold`, unit
-   unlock prices, CP-upgrade prices, max-alive prices, and the `10,400 Gold`
-   total core budget.
-4. Define tactical-card effects before reserving Gold for cards. Do not invent
-   card prices from milestone labels alone.
-5. Once the design is approved, model separate persistent states:
-   `availableInShop`, `purchased/unlocked`, and enemy-authored roster presets.
-   Do not overload the current database `unlocked` flag with all three meanings.
-6. Implement enemy roster reveals as explicit level data. Boss levels
-   `5/15/25/40/60` should be inspectable and previewable; do not bury family
-   unlocks in AI scoring.
-7. Validate every roster preset through the existing unlock-filter paths:
-   opening, normal response, ranged support, last stand, affordability, direct
-   spawn, and winner fallback. Every level must retain at least one affordable
-   unlocked melee/frontline option.
-8. Add campaign-economy telemetry before tuning payouts: effective enemy
-   CP/accuracy/max alive, boss fields, player upgrade state, Gold
-   earned/spent, ownership, retries, ads, and quit-after-loss.
-9. Resolve opening-mode intent before human-facing campaign validation.
-   Controlled telemetry currently synchronizes opening; real play is
-   sequential. Prefer an explicit test-only `syncOpening` flag.
-10. Preserve current tier-1 stats and counters during progression tests. Keep
-    Spear-to-Cavalry at `x12`; do not tune shared unit balance to repair a
-    campaign economy or roster problem.
-11. Treat the existing normal level curve as the enemy baseline, but replace
-    its continuous max-alive curve only after the authored capacity schedule is
-    approved.
-12. Defer tier 2/3 implementation until the tier-1 campaign economy is
-    playable. The prior `1.00/1.50/2.25` tier proposal remains only a future
-    candidate.
-13. Performance follow-up remains a production mobile build with telemetry
-    disabled. This is independent of the progression design.
-14. Aggressive terminal diagnostics and the rare RVO silent-start risk remain
-    known technical follow-ups, but they are not the current product-design
-    priority.
-
-## Worktree Notes
-
-This handoff request changes only:
-
+- `assets/scripts/BattleTelemetry.ts`
+- `assets/Test.scene`
+- `tools/battle-progression-roadmap.html` (untracked)
 - `AI-CONTEX.md`
 
-At final verification, `assets/Test.scene` and
-`assets/scripts/LevelSettings.ts` were already dirty, and Cocos had generated
-dirty files under `library/`, `temp/`, and `profiles/`. Those changes were
-pre-existing or concurrent state, not edits made by this handoff update. Do not
-revert or stage them automatically; inspect the scene and LevelSettings diff
-against current Inspector/design intent before any future commit.
+Cocos has also modified/generated many files under `library/`, `profiles/`, and
+`temp/`. Those files are not the progression source of truth. Do not revert,
+delete, stage, or commit them automatically; the editor may still be using
+them.
 
-The active scene currently serializes all three boss multipliers as `1.5`; do
-not overwrite them with the TypeScript defaults of `1.2` unless the user
-explicitly chooses new boss targets.
+Before a future commit:
 
-Known local tooling issues:
-
-- GitHub Desktop lock-file errors usually mean another git operation crashed or
-  is still running. Close GitHub Desktop/Editor git operations, verify no git
-  process is active, then remove only `.git/index.lock` if it remains stale.
-- At this handoff update, command-line Git reports Windows `dubious ownership`
-  for `F:/Github/BattleGame` because the repository owner SID differs from the
-  current process SID. Do not change global Git trust settings silently.
-- Cocos preview errors like `Unable to resolve bare specifier '_unresolved_*'`
-  came from stale generated preview chunks/import maps, not from the TypeScript
-  source itself. Canonical gameplay logic is under `assets/scripts`.
-
-Validation for the current balance/telemetry pass:
-
-```text
-TypeScript noEmit (Cocos Creator 3.8.8): PASS
-LevelSettings boss-stage implementation review: PASS
-Test.scene JSON parse after LevelSettings serialization: PASS
-100-level campaign reports parsed: PASS (100 unique levels)
-100-level campaign ending reasons: PASS (100/100 valid)
-Campaign level progression: PASS (normal early 0/32 B wins, late 27/32)
-Boss-stage application in the completed sweep: PASS
-100-report corrected-evaluator x20 baseline parsed: PASS
-First 100-report active x12 baseline parsed: PASS
-Repeated 100-report active x12 baseline parsed: PASS
-All active x12 reports use accuracy 1 and multiplier 12: PASS
-All active x12 reports end with elimination-and-affordability reason: PASS
-Repeated x12 CP accounting (200 team instances): PASS
-Controlled x12 Spear-vs-Cavalry hard-counter: PASS (user-observed)
-Controlled x10 Spear-vs-Cavalry hard-counter: FAIL (expected rejection)
-git diff --check: PASS (line-ending warnings only)
-```
-
-Worker/SpatialGrid validation documented in `Latest Performance Work` predates
-the current level/boss edits; those systems were not changed in this pass.
+1. inspect authored diffs carefully;
+2. keep unrelated Cocos cache/log churn out of the commit;
+3. verify the active scene values listed above;
+4. compile TypeScript;
+5. parse the scene JSON;
+6. ensure the roadmap is intentionally added if it should be versioned.
