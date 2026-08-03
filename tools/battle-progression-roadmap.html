@@ -3,66 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Battle Progression Roadmap</title>
+  <title>Battle Progression Roadmap v5</title>
   <style>
     :root {
       color-scheme: light;
-      --ink: #18202a;
-      --muted: #647080;
-      --line: #d8dee7;
+      --ink: #19212b;
+      --muted: #667281;
+      --line: #d9dfe7;
       --panel: #ffffff;
-      --page: #f3f5f7;
-      --enemy: #c64232;
-      --player: #246aa6;
-      --gold: #b98315;
+      --page: #f4f6f8;
+      --enemy: #bd3e31;
+      --player: #246ca6;
       --green: #287552;
-      --boss: #7e4b9c;
+      --gold: #a8750f;
+      --boss: #744692;
     }
 
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       background: var(--page);
       color: var(--ink);
       font: 14px/1.5 Inter, "Segoe UI", Arial, sans-serif;
     }
-
-    main {
-      width: min(1180px, calc(100% - 32px));
-      margin: 28px auto 56px;
-    }
-
-    h1, h2, h3, p { margin-top: 0; }
+    main { width: min(1180px, calc(100% - 32px)); margin: 28px auto 56px; }
+    h1, h2, p { margin-top: 0; }
     h1 { margin-bottom: 6px; font-size: 28px; }
     h2 { margin-bottom: 14px; font-size: 18px; }
-    h3 { margin-bottom: 8px; font-size: 14px; }
-
-    .lede {
-      max-width: 820px;
-      color: var(--muted);
-      margin-bottom: 24px;
-    }
-
+    .lede { max-width: 900px; color: var(--muted); }
     section {
       margin-top: 18px;
       padding: 20px;
-      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 6px;
+      background: var(--panel);
     }
-
     .toolbar {
       display: grid;
-      grid-template-columns: 96px minmax(160px, 1fr) 70px;
+      grid-template-columns: 110px minmax(160px, 1fr) 72px;
       gap: 14px;
       align-items: center;
     }
-
     input[type="range"] { width: 100%; accent-color: var(--player); }
-
     output {
-      min-width: 62px;
       padding: 6px 8px;
       border: 1px solid var(--line);
       border-radius: 4px;
@@ -70,7 +53,6 @@
       text-align: center;
       font-weight: 700;
     }
-
     .metrics {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -80,154 +62,55 @@
       border: 1px solid var(--line);
       background: var(--line);
     }
-
-    .metric {
-      min-height: 88px;
-      padding: 12px;
-      background: #fff;
-    }
-
-    .metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .metric strong {
-      display: block;
-      margin-top: 5px;
-      font-size: 22px;
-    }
-
-    .metric small { color: var(--muted); }
+    .metric { min-height: 88px; padding: 12px; background: #fff; }
+    .metric span, .metric small { display: block; color: var(--muted); }
+    .metric span { font-size: 12px; }
+    .metric strong { display: block; margin-top: 5px; font-size: 21px; }
     .enemy { color: var(--enemy); }
     .player { color: var(--player); }
+    .green { color: var(--green); }
     .gold { color: var(--gold); }
     .boss { color: var(--boss); }
-
-    .chart-wrap {
-      position: relative;
-      margin-top: 18px;
-      border: 1px solid var(--line);
-      background: #fff;
-    }
-
+    .chart-wrap { margin-top: 18px; border: 1px solid var(--line); background: #fff; }
     canvas { display: block; width: 100%; height: 330px; }
-
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .legend i {
-      display: inline-block;
-      width: 18px;
-      height: 3px;
-      margin-right: 6px;
-      vertical-align: middle;
-      background: currentColor;
-    }
-
-    .unit-grid {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .unit {
-      min-height: 128px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 5px;
-      background: #fbfcfd;
-    }
-
-    .unit.locked { opacity: 0.54; }
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; color: var(--muted); font-size: 12px; }
+    .legend i { display: inline-block; width: 18px; height: 3px; margin-right: 6px; vertical-align: middle; background: currentColor; }
+    .unit-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+    .unit { min-height: 128px; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: #fbfcfd; }
+    .unit.locked { opacity: .5; }
     .unit strong { display: block; font-size: 16px; }
     .unit dl { margin: 10px 0 0; }
     .unit dt { float: left; clear: left; color: var(--muted); }
-    .unit dd { margin-left: 88px; text-align: right; }
-
-    .columns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    th, td {
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-    }
-
+    .unit dd { margin-left: 82px; text-align: right; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
     th { color: var(--muted); font-weight: 600; }
     td:last-child, th:last-child { text-align: right; }
-
-    code {
-      padding: 2px 5px;
-      border-radius: 3px;
-      background: #edf1f5;
-      font-family: Consolas, monospace;
-      font-size: 12px;
-    }
-
-    .flow {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 1px;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      background: var(--line);
-    }
-
-    .flow div {
-      min-height: 90px;
-      padding: 12px;
-      background: #fff;
-    }
-
+    code { padding: 2px 5px; border-radius: 3px; background: #edf1f5; font: 12px Consolas, monospace; }
+    .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); background: var(--line); }
+    .flow div { min-height: 100px; padding: 12px; background: #fff; }
     .flow b { display: block; margin-bottom: 4px; }
-
-    .note {
-      margin: 14px 0 0;
-      padding-left: 12px;
-      border-left: 3px solid var(--gold);
-      color: var(--muted);
-    }
-
+    .note { margin: 14px 0 0; padding-left: 12px; border-left: 3px solid var(--gold); color: var(--muted); }
     @media (max-width: 900px) {
       .metrics, .unit-grid { grid-template-columns: repeat(3, 1fr); }
-      .columns { grid-template-columns: 1fr; }
-      .flow { grid-template-columns: 1fr; }
+      .columns, .flow { grid-template-columns: 1fr; }
     }
-
     @media (max-width: 560px) {
       main { width: min(100% - 20px, 1180px); margin-top: 16px; }
       section { padding: 14px; }
       .toolbar { grid-template-columns: 1fr 64px; }
       .toolbar label { grid-column: 1 / -1; }
       .metrics, .unit-grid { grid-template-columns: repeat(2, 1fr); }
-      canvas { height: 290px; }
     }
   </style>
 </head>
 <body>
 <main>
-  <h1>Battle Progression Roadmap</h1>
+  <h1>Battle Progression Roadmap v5</h1>
   <p class="lede">
-    Enemy tăng tự động theo LevelSettings. Player dùng gold để mở unit, tăng Initial CP,
-    Max Alive và numUnit. Wave CP cost luôn giữ nguyên khi nâng count.
+    Enemy dùng một progression clock kết thúc ở level 50. Player mua các gói Initial CP và Max Alive rải thưa giữa hai boss;
+    mua đủ thì đạt đúng chỉ số nền của boss kế tiếp, không gồm boss multiplier. Unit count không làm thay đổi wave CP cost.
   </p>
 
   <section>
@@ -240,73 +123,71 @@
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
     <div class="legend">
       <span class="enemy"><i></i>Enemy Initial CP</span>
-      <span style="color:#287552"><i></i>Accuracy x 1000</span>
-      <span class="player"><i></i>Max Alive x 100</span>
-      <span class="boss"><i></i>Boss</span>
+      <span class="player"><i></i>Player CP sale cap</span>
+      <span class="green"><i></i>Accuracy x 1000</span>
+      <span class="boss"><i></i>Boss level</span>
     </div>
   </section>
 
   <section>
-    <h2>Enemy roster và count tại level đang chọn</h2>
+    <h2>Roster và unit count</h2>
     <div class="unit-grid" id="units"></div>
-    <p class="note">
-      Enemy count đạt max tại nửa campaign. Boss không nhân unitCount.
-    </p>
-  </section>
-
-  <section>
-    <h2>Nhịp mở binh chủng</h2>
-    <table>
-      <thead><tr><th>Level</th><th>Enemy</th><th>Player</th><th>Count khi mở</th></tr></thead>
-      <tbody id="unlockTable"></tbody>
-    </table>
+    <p class="note">Unlock level bị chặn không vượt Progression End Level. Enemy unit count đạt max tại level 50 và giữ nguyên sau đó.</p>
   </section>
 
   <div class="columns">
     <section>
-      <h2>Player progression</h2>
-      <table>
-        <tbody>
-          <tr><th>Initial CP</th><td>300; mỗi boss mở một gói bằng 50% mức tăng CP boss-to-boss; trần 1248</td></tr>
-          <tr><th>Max Alive</th><td>Mở mua +1 theo Max Alive nền của enemy; boss không mở cap vĩnh viễn</td></tr>
-          <tr><th>Accuracy</th><td>1.0 cố định trong mô phỏng</td></tr>
-          <tr><th>Gold đầu game</th><td>0</td></tr>
-          <tr><th>Unit count</th><td>Mỗi count chuẩn mới mở thêm một cấp mua +1; vẫn cần gold</td></tr>
-        </tbody>
-      </table>
+      <h2>Quy tắc nền</h2>
+      <table><tbody>
+        <tr><th>Campaign</th><td>100 level</td></tr>
+        <tr><th>Progression End</th><td>Level 50</td></tr>
+        <tr><th>Boss</th><td>Mỗi 5 level; CP/Accuracy/Max Alive x1.2, có cap tương ứng</td></tr>
+        <tr><th>Enemy CP nền</th><td>250 → 1040 trong level 1–50, sau đó plateau</td></tr>
+        <tr><th>Player CP</th><td>Khởi đầu 300; cap mua của mỗi chặng bằng CP nền boss kế tiếp</td></tr>
+        <tr><th>Player Max Alive</th><td>Khởi đầu 4; mỗi gói +1, cap mua bằng Max Alive nền của boss kế tiếp</td></tr>
+        <tr><th>Lịch mở gói</th><td>Xác định theo config, rải ở khoảng một nửa normal level; reload không đổi lịch</td></tr>
+        <tr><th>Reset test</th><td><code>resetProgression=1&amp;currentLevel=1</code> tạo run mới; retry level 1 không reset</td></tr>
+      </tbody></table>
     </section>
-
     <section>
-      <h2>Gold và giá mua</h2>
-      <table>
-        <tbody>
-          <tr><th>Thắng</th><td><code>enemyInitialCP</code> gold</td></tr>
-          <tr><th>Thua hợp lệ</th><td>25% reward thắng</td></tr>
-          <tr><th>Loss cap/level</th><td>75% reward thắng</td></tr>
-          <tr><th>Video reward</th><td>Sau mỗi 5 trận thua</td></tr>
-          <tr><th>Initial CP package</th><td>10 gold/CP; delta bằng 50% mức tăng CP boss-to-boss</td></tr>
-          <tr><th>+1 Max Alive</th><td><code>1000 x current / 4</code></td></tr>
-        </tbody>
-      </table>
+      <h2>Gold và rescue</h2>
+      <table><tbody>
+        <tr><th>Thắng</th><td><code>enemyInitialCP</code> gold</td></tr>
+        <tr><th>Thua hợp lệ</th><td>25% reward thắng; cap 75% mỗi level</td></tr>
+        <tr><th>Initial CP</th><td>10 gold mỗi CP</td></tr>
+        <tr><th>Max Alive</th><td>Giá tăng theo số slot hiện có; mỗi gói mua thêm một slot</td></tr>
+        <tr><th>Video rescue</th><td>Sau 3 loss tại boss, khi đã mua hết gói CP và Max Alive đang mở bán</td></tr>
+        <tr><th>Rescue thường</th><td>So sánh tỷ lệ thiếu CP/Max Alive và kéo sớm một gói của chỉ số thiếu hơn; không cấp Gold</td></tr>
+        <tr><th>Rescue cuối</th><td>Cấp delta theo gói gần nhất, không vượt CP boss hiệu lực</td></tr>
+      </tbody></table>
     </section>
   </div>
 
   <section>
-    <h2>Giá unit theo wave CP cost hiện tại</h2>
+    <h2>Lịch Initial CP package</h2>
     <table>
-      <thead><tr><th>Unit</th><th>Wave CP</th><th>Giá mở</th><th>Giá mỗi +1</th></tr></thead>
-      <tbody id="priceTable"></tbody>
+      <thead><tr><th>Boss target</th><th>Level mở bán</th><th>Delta</th><th>Cap sau chặng</th></tr></thead>
+      <tbody id="packageTable"></tbody>
     </table>
+  </section>
+
+  <section>
+    <h2>Max Alive package schedule</h2>
+    <table>
+      <thead><tr><th>Boss target</th><th>Offer level</th><th>Delta</th><th>Stage cap</th></tr></thead>
+      <tbody id="maxAlivePackageTable"></tbody>
+    </table>
+    <p class="note">The player cap follows enemy base Max Alive without the boss multiplier. Every package adds one slot.</p>
   </section>
 
   <section>
     <h2>Vòng lặp trận đấu</h2>
     <div class="flow">
-      <div><b>1. Trước trận</b>Mua nhiều gói trong giới hạn gold, offer và cap.</div>
-      <div><b>2. Đánh trận</b>BattleArmyBrain A mô phỏng player, enemy dùng LevelSettings.</div>
-      <div><b>3. Thắng</b>Nhận full gold, mở level kế tiếp và reset loss streak.</div>
-      <div><b>4. Thua</b>Giữ level, nhận loss gold nếu thật sự cạn khả năng spawn.</div>
-      <div><b>5. Kẹt</b>Mỗi 5 loss: adsReward +1 và cấp rescue gold cho nhiều nâng cấp.</div>
+      <div><b>1. Trước trận</b>Mở offer theo level và mua nhiều gói trong giới hạn Gold.</div>
+      <div><b>2. Đánh trận</b>BattleArmyBrain A giả lập player; B dùng cùng AI với difficulty theo progression.</div>
+      <div><b>3. Thắng</b>Nhận full Gold, tăng level, reset loss streak.</div>
+      <div><b>4. Thua</b>Giữ level; chỉ nhận loss Gold khi thật sự hết khả năng spawn.</div>
+      <div><b>5. Kẹt boss</b>Mỗi 3 loss sau khi đã nhận hết gói hiện tại: adsReward +1 và kéo sớm một gói CP hoặc Max Alive.</div>
     </div>
   </section>
 </main>
@@ -315,6 +196,7 @@
 (() => {
   const config = {
     totalLevels: 100,
+    progressionEndLevel: 50,
     bossPace: 5,
     cpMin: 250,
     cpMax: 1040,
@@ -323,155 +205,160 @@
     aliveMin: 3,
     aliveMax: 10,
     bossCP: 1.2,
-    bossAccuracy: 1.5,
-    bossAlive: 1.5,
-    unlockCostMultiplier: 20,
+    bossAccuracy: 1.2,
+    bossAlive: 1.2,
     playerCPStart: 300,
-    playerCPBossGrowthRatio: 0.5,
-    playerCPMax: 1248,
+    playerAliveStart: 4,
   };
 
   const rules = [
-    { name: 'Spear', level: 1, start: 5, max: 10, cp: 39 },
-    { name: 'Sword', level: 1, start: 5, max: 10, cp: 49 },
-    { name: 'Axeman', level: 10, start: 5, max: 10, cp: 97 },
-    { name: 'Archer', level: 25, start: 3, max: 5, cp: 26 },
-    { name: 'Cavalry', level: 35, start: 5, max: 10, cp: 74 },
-    { name: 'Monk', level: 45, start: 1, max: 1, cp: 49 },
+    { name: 'Spear', level: 1, start: 5, max: 10 },
+    { name: 'Sword', level: 1, start: 5, max: 10 },
+    { name: 'Axeman', level: 10, start: 5, max: 10 },
+    { name: 'Archer', level: 25, start: 3, max: 5 },
+    { name: 'Cavalry', level: 35, start: 5, max: 10 },
+    { name: 'Monk', level: 45, start: 1, max: 1 },
   ];
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
-  const bossAt = level => level % config.bossPace === 0;
-  const progressAt = level => (level - 1) / (config.totalLevels - 1);
-  const cpPackagesAt = level => Math.floor(level / config.bossPace);
+  const progressionAt = level => clamp((level - 1) / Math.max(1, config.progressionEndLevel - 1), 0, 1);
+  const bossAt = level => config.bossPace > 0 && level % config.bossPace === 0;
+  const baseEnemyCPAt = level => Math.round(lerp(config.cpMin, config.cpMax, progressionAt(level)));
+  const enemyCPAt = level => Math.round(baseEnemyCPAt(level) * (bossAt(level) ? config.bossCP : 1));
+  const baseEnemyAliveAt = level => Math.round(lerp(config.aliveMin, config.aliveMax, progressionAt(level)));
 
-  const baseEnemyCPAt = level => Math.round(lerp(
-    config.cpMin,
-    config.cpMax,
-    progressAt(level)
-  ));
-
-  const enemyCPAt = level => Math.round(
-    baseEnemyCPAt(level) * (bossAt(level) ? config.bossCP : 1)
-  );
-
-  const cpPackageDeltaAt = packageNumber => {
-    const bossLevel = Math.min(
-      config.totalLevels,
-      packageNumber * config.bossPace
-    );
-    const currentBossCP = enemyCPAt(bossLevel);
-    const previousBossCP = packageNumber > 1
-      ? enemyCPAt(bossLevel - config.bossPace)
-      : baseEnemyCPAt(1);
-
-    return Math.max(0, Math.round(
-      (currentBossCP - previousBossCP) *
-      config.playerCPBossGrowthRatio
-    ));
-  };
-
-  const playerCPCapAt = level => {
-    let cp = config.playerCPStart;
-    const packageCount = cpPackagesAt(level);
-
-    for (let packageNumber = 1;
-      packageNumber <= packageCount;
-      packageNumber++) {
-      cp += cpPackageDeltaAt(packageNumber);
+  function hash(value) {
+    let result = 2166136261;
+    for (let index = 0; index < value.length; index++) {
+      result ^= value.charCodeAt(index);
+      result = Math.imul(result, 16777619);
     }
+    return result >>> 0;
+  }
 
-    return Math.min(config.playerCPMax, cp);
-  };
+  function milestoneLevels() {
+    const result = [];
+    for (let level = config.bossPace; level <= config.progressionEndLevel; level += config.bossPace) result.push(level);
+    if (!result.length || result[result.length - 1] !== config.progressionEndLevel) result.push(config.progressionEndLevel);
+    return result;
+  }
+
+  function offerLevels(first, last, count, target, scheduleKey) {
+    const candidates = [];
+    for (let level = first; level <= last; level++) candidates.push({ level, order: hash(`${target}:${level}:${scheduleKey}-offer`) });
+    return candidates.sort((a, b) => a.order - b.order || a.level - b.level)
+      .slice(0, Math.min(count, candidates.length)).map(item => item.level).sort((a, b) => a - b);
+  }
+
+  function createCPPackages() {
+    const result = [];
+    let previousLevel = 0;
+    let previousCap = config.playerCPStart;
+    for (const targetLevel of milestoneLevels()) {
+      const targetCap = Math.max(previousCap, baseEnemyCPAt(targetLevel));
+      const totalDelta = targetCap - previousCap;
+      if (totalDelta > 0) {
+        const first = previousLevel > 0 ? previousLevel + 1 : 1;
+        const last = targetLevel - 1 >= first ? targetLevel - 1 : targetLevel;
+        const packageCount = Math.min(totalDelta, Math.max(1, Math.ceil((last - first + 1) / 2)));
+        const offers = offerLevels(first, last, packageCount, targetLevel, 'cp');
+        let distributed = 0;
+        for (let index = 0; index < packageCount; index++) {
+          const cumulative = Math.round(totalDelta * (index + 1) / packageCount);
+          result.push({ targetLevel, offerLevel: offers[index], delta: cumulative - distributed });
+          distributed = cumulative;
+        }
+      }
+      previousLevel = targetLevel;
+      previousCap = targetCap;
+    }
+    return result.sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel);
+  }
+
+  function createMaxAlivePackages() {
+    const result = [];
+    let previousLevel = 0;
+    let previousCap = config.playerAliveStart;
+    for (const targetLevel of milestoneLevels()) {
+      const targetCap = clamp(Math.max(previousCap, baseEnemyAliveAt(targetLevel)), config.playerAliveStart, config.aliveMax);
+      const totalDelta = targetCap - previousCap;
+      if (totalDelta > 0) {
+        const first = previousLevel > 0 ? previousLevel + 1 : 1;
+        const last = targetLevel - 1 >= first ? targetLevel - 1 : targetLevel;
+        const offers = offerLevels(first, last, totalDelta, targetLevel, 'max-alive');
+        for (let index = 0; index < totalDelta; index++) {
+          result.push({ targetLevel, offerLevel: offers[index % offers.length], delta: 1 });
+        }
+      }
+      previousLevel = targetLevel;
+      previousCap = targetCap;
+    }
+    return result.sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel);
+  }
+
+  const packages = createCPPackages();
+  const maxAlivePackages = createMaxAlivePackages();
+  const playerCapAt = level => config.playerCPStart + packages.filter(item => item.offerLevel <= level).reduce((sum, item) => sum + item.delta, 0);
+  const playerAliveCapAt = level => clamp(config.playerAliveStart + maxAlivePackages.filter(item => item.offerLevel <= level).reduce((sum, item) => sum + item.delta, 0), config.playerAliveStart, config.aliveMax);
 
   function enemyAt(level) {
-    const t = progressAt(level);
+    const t = progressionAt(level);
     const boss = bossAt(level);
-    const baseCP = baseEnemyCPAt(level);
-    const baseAccuracy = lerp(config.accuracyMin, config.accuracyMax, t);
-    const baseAlive = Math.round(lerp(config.aliveMin, config.aliveMax, t));
     return {
       boss,
-      cp: Math.round(baseCP * (boss ? config.bossCP : 1)),
-      accuracy: Math.min(config.accuracyMax, baseAccuracy * (boss ? config.bossAccuracy : 1)),
-      alive: Math.round(Math.min(config.aliveMax, baseAlive * (boss ? config.bossAlive : 1))),
+      cp: enemyCPAt(level),
+      baseCP: baseEnemyCPAt(level),
+      accuracy: Math.min(config.accuracyMax, lerp(config.accuracyMin, config.accuracyMax, t) * (boss ? config.bossAccuracy : 1)),
+      alive: Math.round(Math.min(config.aliveMax, baseEnemyAliveAt(level) * (boss ? config.bossAlive : 1))),
     };
   }
 
   function countAt(rule, level) {
-    const progressionEnd = Math.ceil(config.totalLevels * 0.5);
-    if (rule.max <= rule.start) return rule.start;
-    if (level >= progressionEnd) return rule.max;
-    if (level <= rule.level) return rule.start;
-    const maturity = clamp(
-      (level - rule.level) / Math.max(1, progressionEnd - rule.level),
-      0,
-      1
-    );
-    return Math.round(lerp(rule.start, rule.max, maturity));
+    const unlock = Math.min(rule.level, config.progressionEndLevel);
+    if (rule.max <= rule.start || level <= unlock) return rule.start;
+    if (level >= config.progressionEndLevel) return rule.max;
+    return Math.round(lerp(rule.start, rule.max, (level - unlock) / Math.max(1, config.progressionEndLevel - unlock)));
   }
 
-  function renderMetrics(level) {
+  function render(level) {
     const enemy = enemyAt(level);
-    const unlocked = rules.filter(rule => rule.level <= level).length;
-    const newlyIntroduced = rules.find(rule => rule.level === level && rule.level > 1);
+    const offered = packages.filter(item => item.offerLevel <= level).length;
     const values = [
-      ['Enemy CP', enemy.cp, enemy.boss ? 'Boss multiplier active' : 'Base curve', 'enemy'],
-      ['Accuracy', enemy.accuracy.toFixed(3), `${Math.round(enemy.accuracy * 100)}%`, ''],
+      ['Enemy CP', enemy.cp, enemy.boss ? `Base ${enemy.baseCP}, boss x1.2` : 'Base curve', 'enemy'],
+      ['Accuracy', enemy.accuracy.toFixed(3), `${Math.round(enemy.accuracy * 100)}%`, 'green'],
       ['Max Alive', enemy.alive, enemy.boss ? 'Boss multiplier active' : 'Base curve', 'player'],
-      ['Enemy roster', unlocked, `trên ${rules.length} unit`, 'enemy'],
-      ['Player CP sale cap', playerCPCapAt(level), `${cpPackagesAt(level)} boss packages`, 'player'],
-      ['Win gold', enemy.cp, 'gold', 'gold'],
-      ['Milestone', newlyIntroduced ? newlyIntroduced.name : enemy.boss ? 'Boss' : 'Normal', newlyIntroduced ? 'Mở bán sau trận' : '', enemy.boss ? 'boss' : ''],
+      ['Player Alive cap', playerAliveCapAt(level), 'Base cap, without rescue', 'player'],
+      ['Player CP cap', playerCapAt(level), 'Không gồm rescue', 'player'],
+      ['CP packages', offered, `trên ${packages.length} gói đã offer`, 'gold'],
+      ['Alive packages', maxAlivePackages.filter(item => item.offerLevel <= level).length, `trên ${maxAlivePackages.length} gói đã offer`, 'gold'],
+      ['Progression', `${Math.round(progressionAt(level) * 100)}%`, level >= config.progressionEndLevel ? 'Plateau' : `kết thúc L${config.progressionEndLevel}`, 'boss'],
     ];
-
-    document.querySelector('#metrics').innerHTML = values.map(([label, value, note, cls]) => `
-      <div class="metric">
-        <span>${label}</span>
-        <strong class="${cls}">${value}</strong>
-        <small>${note}</small>
-      </div>
-    `).join('');
-  }
-
-  function renderUnits(level) {
+    document.querySelector('#metrics').innerHTML = values.map(([label, value, note, cls]) =>
+      `<div class="metric"><span>${label}</span><strong class="${cls}">${value}</strong><small>${note}</small></div>`
+    ).join('');
     document.querySelector('#units').innerHTML = rules.map(rule => {
-      const unlocked = level >= rule.level;
-      const count = countAt(rule, level);
-      const unlockPrice = rule.cp * config.unlockCostMultiplier;
-      const countPrice = Math.round(unlockPrice / rule.start);
-      return `
-        <article class="unit ${unlocked ? '' : 'locked'}">
-          <strong>${rule.name}</strong>
-          <dl>
-            <dt>Enemy</dt><dd>${unlocked ? `unlocked x${count}` : `L${rule.level}`}</dd>
-            <dt>Player</dt><dd>${rule.level === 1 ? `owned, sale cap x${count}` : `offer after L${rule.level}, sale cap x${count}`}</dd>
-            <dt>Unlock</dt><dd>${unlockPrice} gold</dd>
-            <dt>+1 count</dt><dd>${countPrice} gold</dd>
-          </dl>
-        </article>`;
+      const unlock = Math.min(rule.level, config.progressionEndLevel);
+      const unlocked = level >= unlock;
+      return `<article class="unit ${unlocked ? '' : 'locked'}"><strong>${rule.name}</strong><dl>
+        <dt>Unlock</dt><dd>L${unlock}</dd><dt>Enemy</dt><dd>${unlocked ? `x${countAt(rule, level)}` : 'locked'}</dd>
+        <dt>Count</dt><dd>${rule.start} → ${rule.max}</dd><dt>Player</dt><dd>${rule.level === 1 ? 'owned' : 'mua bằng Gold'}</dd>
+      </dl></article>`;
     }).join('');
+    drawChart(level);
   }
 
-  function renderTables() {
-    document.querySelector('#unlockTable').innerHTML = rules.map(rule => `
-      <tr>
-        <td>${rule.level}</td>
-        <td>${rule.level === 1 ? 'Có sẵn' : `Boss giới thiệu ${rule.name}`}</td>
-        <td>${rule.level === 1 ? 'Sở hữu sẵn' : `Mở mua sau lần đầu gặp boss ${rule.level}`}</td>
-        <td>${rule.start} → ${rule.max}</td>
-      </tr>`).join('');
+  function renderPackageTable() {
+    let cap = config.playerCPStart;
+    document.querySelector('#packageTable').innerHTML = packages.map(item => {
+      cap += item.delta;
+      return `<tr><td>L${item.targetLevel}</td><td>L${item.offerLevel}</td><td>+${item.delta}</td><td>${cap}</td></tr>`;
+    }).join('');
 
-    document.querySelector('#priceTable').innerHTML = rules.map(rule => {
-      const unlock = rule.cp * config.unlockCostMultiplier;
-      return `
-        <tr>
-          <td>${rule.name}</td>
-          <td>${rule.cp}</td>
-          <td>${rule.level === 1 ? 'Sở hữu sẵn' : `${unlock} gold`}</td>
-          <td>${rule.max > rule.start ? `${Math.round(unlock / rule.start)} gold` : 'Không nâng'}</td>
-        </tr>`;
+    let aliveCap = config.playerAliveStart;
+    document.querySelector('#maxAlivePackageTable').innerHTML = maxAlivePackages.map(item => {
+      aliveCap += item.delta;
+      return `<tr><td>L${item.targetLevel}</td><td>L${item.offerLevel}</td><td>+${item.delta}</td><td>${aliveCap}</td></tr>`;
     }).join('');
   }
 
@@ -484,91 +371,49 @@
     canvas.height = Math.round(height * ratio);
     const ctx = canvas.getContext('2d');
     ctx.scale(ratio, ratio);
-
     const pad = { left: 46, right: 20, top: 20, bottom: 34 };
     const plotW = width - pad.left - pad.right;
     const plotH = height - pad.top - pad.bottom;
-    const xAt = level => pad.left + (level - 1) / 99 * plotW;
-    const yAt = value => pad.top + plotH - value / 1300 * plotH;
-
+    const xAt = level => pad.left + (level - 1) / (config.totalLevels - 1) * plotW;
+    const yMax = 1300;
+    const yAt = value => pad.top + plotH - value / yMax * plotH;
     ctx.clearRect(0, 0, width, height);
-    ctx.strokeStyle = '#e1e6ed';
-    ctx.fillStyle = '#6b7684';
     ctx.font = '11px Segoe UI, Arial';
     ctx.textAlign = 'right';
-
     for (let value = 0; value <= 1200; value += 200) {
       const y = yAt(value);
-      ctx.beginPath();
-      ctx.moveTo(pad.left, y);
-      ctx.lineTo(width - pad.right, y);
-      ctx.stroke();
-      ctx.fillText(String(value), pad.left - 7, y + 4);
+      ctx.strokeStyle = '#e1e6ed';
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke();
+      ctx.fillStyle = '#6b7684'; ctx.fillText(String(value), pad.left - 7, y + 4);
     }
-
-    for (let level = 5; level <= 100; level += 5) {
+    for (let level = config.bossPace; level <= config.totalLevels; level += config.bossPace) {
       const x = xAt(level);
-      ctx.strokeStyle = level === selectedLevel ? '#7e4b9c' : '#eee7f2';
-      ctx.beginPath();
-      ctx.moveTo(x, pad.top);
-      ctx.lineTo(x, pad.top + plotH);
-      ctx.stroke();
+      ctx.strokeStyle = '#eee7f2';
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
     }
-
-    const drawLine = (color, valueAt) => {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let level = 1; level <= 100; level++) {
-        const x = xAt(level);
-        const y = yAt(valueAt(level));
+    const line = (color, valueAt) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+      for (let level = 1; level <= config.totalLevels; level++) {
+        const x = xAt(level), y = yAt(valueAt(level));
         if (level === 1) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
-      ctx.stroke();
-      ctx.lineWidth = 1;
+      ctx.stroke(); ctx.lineWidth = 1;
     };
-
-    drawLine('#c64232', level => enemyAt(level).cp);
-    drawLine('#287552', level => enemyAt(level).accuracy * 1000);
-    drawLine('#246aa6', level => enemyAt(level).alive * 100);
-
-    const selected = enemyAt(selectedLevel);
+    line('#bd3e31', level => enemyAt(level).cp);
+    line('#246ca6', level => playerCapAt(level));
+    line('#287552', level => enemyAt(level).accuracy * 1000);
     const x = xAt(selectedLevel);
-    ctx.strokeStyle = '#18202a';
-    ctx.beginPath();
-    ctx.moveTo(x, pad.top);
-    ctx.lineTo(x, pad.top + plotH);
-    ctx.stroke();
-    ctx.fillStyle = '#18202a';
-    ctx.textAlign = 'center';
-    ctx.fillText(`L${selectedLevel}`, x, height - 10);
-
-    [
-      ['#c64232', selected.cp],
-      ['#287552', selected.accuracy * 1000],
-      ['#246aa6', selected.alive * 100],
-    ].forEach(([color, value]) => {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, yAt(value), 4, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    ctx.strokeStyle = '#19212b'; ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
+    ctx.fillStyle = '#19212b'; ctx.textAlign = 'center'; ctx.fillText(`L${selectedLevel}`, x, height - 10);
   }
 
   const slider = document.querySelector('#level');
   const output = document.querySelector('#levelValue');
-  const render = () => {
-    const level = Number(slider.value);
-    output.value = String(level);
-    renderMetrics(level);
-    renderUnits(level);
-    drawChart(level);
-  };
-
-  slider.addEventListener('input', render);
-  window.addEventListener('resize', render);
-  renderTables();
-  render();
+  const refresh = () => { const level = Number(slider.value); output.value = String(level); render(level); };
+  slider.addEventListener('input', refresh);
+  window.addEventListener('resize', refresh);
+  renderPackageTable();
+  refresh();
 })();
 </script>
 </body>

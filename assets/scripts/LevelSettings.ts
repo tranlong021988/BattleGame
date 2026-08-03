@@ -30,6 +30,15 @@ interface SavedUnitProgression {
     unitCount: number;
 }
 
+interface SavedProgressionPackage {
+    id: string;
+    targetLevel: number;
+    offerLevel: number;
+    delta: number;
+    claimed: boolean;
+    claimSource: string;
+}
+
 interface SavedProgressionState {
     version: number;
     currentLevel: number;
@@ -39,7 +48,10 @@ interface SavedProgressionState {
     lossGoldLevel: number;
     lossGoldClaimed: number;
     playerInitialCP: number;
-    playerInitialCPPackagesPurchased: number;
+    playerInitialCPOverflow: number;
+    cpPackages: SavedProgressionPackage[];
+    maxAlivePackages: SavedProgressionPackage[];
+    rescueHistory: string[];
     playerMaxAlive: number;
     totalPurchases: number;
     units: SavedUnitProgression[];
@@ -113,6 +125,14 @@ export class LevelSettings extends Component
         tooltip: 'Total campaign levels used to normalize difficulty from level 1 to the final level.'
     })
     totalLevels = 300;
+
+    @property({
+        min: 1,
+        step: 1,
+        displayName: 'Progression End Level',
+        tooltip: 'Level where base CP, accuracy, Max Alive, unit unlocks, and unit counts finish progressing. Later levels keep these base caps while boss multipliers still apply.'
+    })
+    progressionEndLevel = 50;
 
     @property({
         tooltip: 'Current campaign level. Level 1 is easiest; Total Levels is hardest.'
@@ -236,27 +256,15 @@ export class LevelSettings extends Component
     purchasingSimulation = true;
 
     @property({
-        tooltip: 'Persistent campaign storage key. Use currentLevel=0 in the URL to clear this state before level 1.'
+        tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
     })
-    progressionStorageKey = 'battle-progression-v3';
+    progressionStorageKey = 'battle-progression-v5';
 
     @property({ min: 0, step: 1 })
     initialPlayerGold = 0;
 
     @property({ min: 0, step: 1 })
     playerInitialCPStart = 300;
-
-    @property({
-        min: 0,
-        max: 1,
-        step: 0.05,
-        displayName: 'Player CP Boss Growth Ratio',
-        tooltip: 'Each boss unlocks an Initial CP package equal to this share of the enemy CP increase since the previous boss.'
-    })
-    playerInitialCPBossGrowthRatio = 0.5;
-
-    @property({ min: 1, step: 1 })
-    playerInitialCPMax = 1248;
 
     @property({ min: 0, step: 1 })
     playerMaxAliveStart = 4;
@@ -274,7 +282,7 @@ export class LevelSettings extends Component
     maxLossGoldRatioPerLevel = 0.75;
 
     @property({ min: 1, step: 1 })
-    lossesPerVideoReward = 5;
+    lossesPerVideoReward = 3;
 
     @property({ min: 1, step: 1 })
     unitUnlockCostMultiplier = 20;
@@ -337,9 +345,7 @@ export class LevelSettings extends Component
         this.applyTelemetryLevelQuery();
 
         if (this.resetProgressionRequested) {
-            sys.localStorage.removeItem(
-                this.progressionStorageKey
-            );
+            this.clearProgressionStorage();
         }
 
         const manager = this.getGameManager();
@@ -434,13 +440,10 @@ export class LevelSettings extends Component
             }
 
             if (this.allowMaxWave) {
-                const baseMaxAlive = Math.round(
-                    this.lerp(
-                        this.maxAliveWavesMin,
-                        this.maxAliveWavesMax,
-                        t
-                    )
-                );
+                const baseMaxAlive =
+                    this.getLevelBaseMaxAlive(
+                        this.getSafeCurrentLevel()
+                    );
 
                 brain.maxAliveWaves = Math.round(
                     Math.min(
@@ -487,7 +490,8 @@ export class LevelSettings extends Component
         );
 
         let goldReward = 0;
-        let rescueGold = 0;
+        let rescueCP = 0;
+        let rescueMaxAlive = 0;
         let videoRewardTriggered = false;
         let rescueActions: string[] = [];
         const validPlayerLoss = loserTeam === 0 &&
@@ -512,34 +516,32 @@ export class LevelSettings extends Component
             }
 
             if (
+                this.purchasingSimulation &&
                 state.levelLossCount >=
                 Math.max(
                     1,
                     Math.floor(this.lossesPerVideoReward)
                 )
             ) {
-                state.adsReward++;
-                state.levelLossCount = 0;
-                videoRewardTriggered = true;
-
-                const rescuePlan =
-                    this.createRescuePlan();
-
-                rescueActions =
-                    rescuePlan.actionIds.slice();
-                rescueGold = Math.max(
-                    0,
-                    rescuePlan.totalCost -
-                    state.playerGold
+                const rescue = this.applyVideoRescue(
+                    purchases
                 );
-                state.playerGold += rescueGold;
 
-                if (this.purchasingSimulation) {
-                    this.executePreferredPurchases(
-                        rescuePlan.actionIds,
-                        purchases,
-                        'video-rescue'
+                if (rescue) {
+                    const rescueDelta = Math.max(
+                        0,
+                        rescue.valueAfter - rescue.valueBefore
                     );
+
+                    if (rescue.kind === 'initial-cp') {
+                        rescueCP = rescueDelta;
+                    } else if (rescue.kind === 'max-alive') {
+                        rescueMaxAlive = rescueDelta;
+                    }
+                    state.adsReward++;
+                    state.levelLossCount = 0;
+                    videoRewardTriggered = true;
+                    rescueActions = [rescue.id];
                 }
             }
         }
@@ -581,7 +583,8 @@ export class LevelSettings extends Component
             winGold,
             goldReward,
             validPlayerLoss,
-            rescueGold,
+            rescueCP,
+            rescueMaxAlive,
             videoRewardTriggered,
             rescueActions,
             newlyOffered,
@@ -622,18 +625,20 @@ export class LevelSettings extends Component
             purchasingSimulation:
                 this.purchasingSimulation,
             settings: {
+                progressionEndLevel:
+                    this.getProgressionEndLevel(),
+                progression01:
+                    this.getProgression01(
+                        this.battleLevel
+                    ),
                 playerInitialCPStart:
                     this.getPlayerCPStart(),
-                playerInitialCPBossGrowthRatio:
-                    this.getPlayerCPBossGrowthRatio(),
-                playerInitialCPMax:
-                    this.getPlayerCPMax(),
                 playerInitialCPMilestoneCap:
                     this.getPlayerCPMilestoneCap(
                         this.battleLevel
                     ),
-                playerCPPackagesUnlocked:
-                    this.getPlayerCPPackagesUnlocked(
+                playerCPPackagesOffered:
+                    this.getPlayerCPPackagesOffered(
                         this.battleLevel
                     ),
                 nextPlayerCPPackage:
@@ -649,6 +654,15 @@ export class LevelSettings extends Component
                     this.getPlayerMaxAliveMax(),
                 playerMaxAliveMilestoneCap:
                     this.getPlayerMaxAliveMilestoneCap(
+                        this.battleLevel
+                    ),
+                playerMaxAlivePackagesOffered:
+                    this.getPlayerMaxAlivePackagesOffered(
+                        this.battleLevel
+                    ),
+                nextPlayerMaxAlivePackage:
+                    this.getNextPlayerMaxAlivePackageSnapshot(
+                        state,
                         this.battleLevel
                     ),
                 winGoldPerEnemyCP:
@@ -675,10 +689,34 @@ export class LevelSettings extends Component
                     state.lossGoldClaimed,
                 initialCP: state.playerInitialCP,
                 cpPackagesPurchased:
-                    this.getPlayerCPPackagesPurchased(
-                        state
+                    state.cpPackages.filter((item) =>
+                        item.claimed
+                    ).length,
+                cpPackagesOffered:
+                    this.getPlayerCPPackagesOffered(
+                        this.battleLevel
                     ),
+                cpPackageSchedule:
+                    state.cpPackages.map((item) => ({
+                        ...item,
+                    })),
+                initialCPOverflow:
+                    state.playerInitialCPOverflow,
+                rescueHistory:
+                    state.rescueHistory.slice(),
                 maxAlive: state.playerMaxAlive,
+                maxAlivePackagesPurchased:
+                    state.maxAlivePackages.filter((item) =>
+                        item.claimed
+                    ).length,
+                maxAlivePackagesOffered:
+                    this.getPlayerMaxAlivePackagesOffered(
+                        this.battleLevel
+                    ),
+                maxAlivePackageSchedule:
+                    state.maxAlivePackages.map((item) => ({
+                        ...item,
+                    })),
                 decisionAccuracy:
                     playerBrain
                         ? playerBrain.decisionAccuracy
@@ -797,7 +835,7 @@ export class LevelSettings extends Component
         }
 
         return {
-            version: 3,
+            version: 5,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(
                 0,
@@ -808,7 +846,11 @@ export class LevelSettings extends Component
             lossGoldLevel: this.getSafeCurrentLevel(),
             lossGoldClaimed: 0,
             playerInitialCP: this.getPlayerCPStart(),
-            playerInitialCPPackagesPurchased: 0,
+            playerInitialCPOverflow: 0,
+            cpPackages: this.createCPPackageSchedule(),
+            maxAlivePackages:
+                this.createMaxAlivePackageSchedule(),
+            rescueHistory: [],
             playerMaxAlive: this.getPlayerMaxAliveStart(),
             totalPurchases: 0,
             units,
@@ -820,9 +862,20 @@ export class LevelSettings extends Component
     ): SavedProgressionState {
         const initial =
             this.createInitialProgressionState();
+
+        if (this.safeInteger(source.version, 0) !== 5) {
+            return initial;
+        }
+
         const savedUnits = Array.isArray(source.units)
             ? source.units
             : [];
+        const savedCPPackages = Array.isArray(
+            source.cpPackages
+        ) ? source.cpPackages : [];
+        const savedMaxAlivePackages = Array.isArray(
+            source.maxAlivePackages
+        ) ? source.maxAlivePackages : [];
 
         initial.currentLevel = this.clampLevel(
             this.safeInteger(
@@ -852,29 +905,63 @@ export class LevelSettings extends Component
             0,
             this.safeInteger(source.lossGoldClaimed, 0)
         );
-        initial.playerInitialCPPackagesPurchased = Math.max(
+        initial.playerInitialCPOverflow = Math.max(
             0,
-            Math.min(
-                this.getPlayerCPPackagesUnlocked(
-                    this.getSafeTotalLevels()
-                ),
-                this.safeInteger(
-                    source.playerInitialCPPackagesPurchased,
-                    0
-                )
+            this.safeInteger(
+                source.playerInitialCPOverflow,
+                0
             )
         );
-        initial.playerInitialCP =
-            this.getPlayerCPForPurchasedPackages(
-                initial.playerInitialCPPackagesPurchased
+
+        for (let i = 0; i < initial.cpPackages.length; i++) {
+            const item = initial.cpPackages[i];
+            const saved = savedCPPackages.find(
+                (candidate: any) =>
+                    candidate && candidate.id === item.id
             );
-        initial.playerMaxAlive =
-            this.clampPlayerMaxAlive(
-                this.safeInteger(
-                    source.playerMaxAlive,
-                    initial.playerMaxAlive
+
+            if (!saved) continue;
+
+            item.claimed = !!saved.claimed;
+            item.claimSource = item.claimed &&
+                typeof saved.claimSource === 'string'
+                ? saved.claimSource
+                : '';
+        }
+
+        for (
+            let i = 0;
+            i < initial.maxAlivePackages.length;
+            i++
+        ) {
+            const item = initial.maxAlivePackages[i];
+            const saved = savedMaxAlivePackages.find(
+                (candidate: any) =>
+                    candidate && candidate.id === item.id
+            );
+
+            if (!saved) continue;
+
+            item.claimed = !!saved.claimed;
+            item.claimSource = item.claimed &&
+                typeof saved.claimSource === 'string'
+                ? saved.claimSource
+                : '';
+        }
+
+        initial.rescueHistory = Array.isArray(
+            source.rescueHistory
+        )
+            ? source.rescueHistory
+                .filter((value: any) =>
+                    typeof value === 'string'
                 )
-            );
+                .slice()
+            : [];
+        initial.playerInitialCP =
+            this.getPlayerCPFromState(initial);
+        initial.playerMaxAlive =
+            this.getPlayerMaxAliveFromState(initial);
         initial.totalPurchases = Math.max(
             0,
             this.safeInteger(source.totalPurchases, 0)
@@ -1048,56 +1135,42 @@ export class LevelSettings extends Component
             }
         }
 
-        const unlockedCPPackages =
-            this.getPlayerCPPackagesUnlocked(
+        const nextCPPackage =
+            this.getNextAvailableCPPackage(
+                state,
                 this.battleLevel
             );
 
-        if (
-            state.playerInitialCPPackagesPurchased <
-            unlockedCPPackages
-        ) {
-            const nextPackageNumber =
-                state.playerInitialCPPackagesPurchased + 1;
-            const targetCP =
-                this.getPlayerCPForPurchasedPackages(
-                    nextPackageNumber
-                );
-            const delta = Math.max(
-                0,
-                targetCP - state.playerInitialCP
-            );
-
-            if (delta > 0) {
-                options.push({
-                    id: 'initial-cp',
-                    kind: 'initial-cp',
-                    cost: Math.max(
-                        1,
-                        Math.round(
-                            delta *
-                            Math.max(
-                                0.01,
-                                this.initialCPGoldPerPoint
-                            )
+        if (nextCPPackage) {
+            options.push({
+                id: `initial-cp:${nextCPPackage.id}`,
+                kind: 'initial-cp',
+                cost: Math.max(
+                    1,
+                    Math.round(
+                        nextCPPackage.delta *
+                        Math.max(
+                            0.01,
+                            this.initialCPGoldPerPoint
                         )
-                    ),
-                    family: null,
-                    tier: 0,
-                    delta,
-                    label: `+${delta} Initial CP`,
-                });
-            }
+                    )
+                ),
+                family: null,
+                tier: 0,
+                delta: nextCPPackage.delta,
+                label: `+${nextCPPackage.delta} Initial CP`,
+            });
         }
 
-        const milestoneMaxAlive =
-            this.getPlayerMaxAliveMilestoneCap(
+        const nextMaxAlivePackage =
+            this.getNextAvailableMaxAlivePackage(
+                state,
                 this.battleLevel
             );
 
-        if (state.playerMaxAlive < milestoneMaxAlive) {
+        if (nextMaxAlivePackage) {
             options.push({
-                id: 'max-alive',
+                id: `max-alive:${nextMaxAlivePackage.id}`,
                 kind: 'max-alive',
                 cost: Math.max(
                     1,
@@ -1107,13 +1180,14 @@ export class LevelSettings extends Component
                         Math.max(
                             1,
                             this.getPlayerMaxAliveStart()
-                        )
+                        ) *
+                        nextMaxAlivePackage.delta
                     )
                 ),
                 family: null,
                 tier: 0,
-                delta: 1,
-                label: '+1 Max Alive',
+                delta: nextMaxAlivePackage.delta,
+                label: `+${nextMaxAlivePackage.delta} Max Alive`,
             });
         }
 
@@ -1253,137 +1327,192 @@ export class LevelSettings extends Component
         return 1;
     }
 
-    private createRescuePlan() {
-        if (!this.progressionState) {
-            return {
-                actionIds: [] as string[],
-                totalCost: 0,
-            };
+    private applyVideoRescue(
+        records: PurchaseRecord[]
+    ) {
+        if (!this.progressionState) return null;
+        if (!this.isBossLevelFor(this.battleLevel)) {
+            return null;
         }
 
-        const temp = this.cloneProgressionState(
-            this.progressionState
-        );
-        const actionIds: string[] = [];
-        let totalCost = 0;
-        const addAction = (option: PurchaseOption | null) => {
-            if (!option) return;
+        const state = this.progressionState;
+        const currentCPCap =
+            this.getPlayerCPMilestoneCap(this.battleLevel);
+        const currentMaxAliveCap =
+            this.getPlayerMaxAliveMilestoneCap(
+                this.battleLevel
+            );
 
-            actionIds.push(option.id);
-            totalCost += option.cost;
-            this.applyPurchaseToState(option, temp);
-        };
-        const latestUnlock = this.getPurchaseOptions(temp)
-            .filter((option) =>
-                option.kind === 'unit-unlock'
+        if (
+            state.playerInitialCP < currentCPCap ||
+            state.playerMaxAlive < currentMaxAliveCap
+        ) {
+            return null;
+        }
+
+        if (
+            this.getNextAvailableCPPackage(
+                state,
+                this.battleLevel
+            ) ||
+            this.getNextAvailableMaxAlivePackage(
+                state,
+                this.battleLevel
             )
-            .sort((a, b) => {
-                const aRule = a.family === null
-                    ? null
-                    : this.getRule(a.family, a.tier);
-                const bRule = b.family === null
-                    ? null
-                    : this.getRule(b.family, b.tier);
-
-                return (
-                    bRule
-                        ? this.getRuleUnlockLevel(bRule)
-                        : 0
-                ) - (
-                    aRule
-                        ? this.getRuleUnlockLevel(aRule)
-                        : 0
-                );
-            })[0] || null;
-
-        addAction(latestUnlock);
-
-        const enemyCP = this.getEnemyInitialCP();
-
-        while (
-            temp.playerInitialCP < enemyCP &&
-            temp.playerInitialCP < this.getPlayerCPMax()
         ) {
-            const option = this.getPurchaseOptions(temp)
-                .find((candidate) =>
-                    candidate.kind === 'initial-cp'
-                ) || null;
-
-            if (!option) break;
-            addAction(option);
+            return null;
         }
 
-        const enemyMaxAlive = this.getEnemyMaxAlive();
-
-        while (
-            temp.playerMaxAlive < enemyMaxAlive &&
-            temp.playerMaxAlive <
-            this.getPlayerMaxAliveMax()
-        ) {
-            const option = this.getPurchaseOptions(temp)
-                .find((candidate) =>
-                    candidate.kind === 'max-alive'
-                ) || null;
-
-            if (!option) break;
-            addAction(option);
-        }
-
-        const countOptions = this.getPurchaseOptions(temp)
-            .filter((option) =>
-                option.kind === 'unit-count'
+        const futureCPPackage = state.cpPackages
+            .filter((item) =>
+                !item.claimed &&
+                item.offerLevel > this.battleLevel
             )
             .sort((a, b) =>
-                this.getCountUpgradeDeficit(b, temp) -
-                this.getCountUpgradeDeficit(a, temp) ||
-                a.cost - b.cost
+                a.offerLevel - b.offerLevel ||
+                a.targetLevel - b.targetLevel ||
+                a.id.localeCompare(b.id)
+            )[0] || null;
+        const futureMaxAlivePackage =
+            state.maxAlivePackages
+                .filter((item) =>
+                    !item.claimed &&
+                    item.offerLevel > this.battleLevel
+                )
+                .sort((a, b) =>
+                    a.offerLevel - b.offerLevel ||
+                    a.targetLevel - b.targetLevel ||
+                    a.id.localeCompare(b.id)
+                )[0] || null;
+        const enemyCP = this.getEnemyInitialCP();
+        const enemyMaxAlive = this.getEnemyMaxAlive();
+        const cpGapRatio = Math.max(
+            0,
+            enemyCP - state.playerInitialCP
+        ) / Math.max(1, enemyCP);
+        const maxAliveGapRatio = Math.max(
+            0,
+            enemyMaxAlive - state.playerMaxAlive
+        ) / Math.max(1, enemyMaxAlive);
+        const rescueKind = this.selectRescueKind(
+            !!futureCPPackage ||
+                state.playerInitialCP < enemyCP,
+            !!futureMaxAlivePackage,
+            cpGapRatio,
+            maxAliveGapRatio
+        );
+        let record: PurchaseRecord | null = null;
+
+        if (rescueKind === 'initial-cp' && futureCPPackage) {
+            const valueBefore = state.playerInitialCP;
+
+            futureCPPackage.claimed = true;
+            futureCPPackage.claimSource = 'video-rescue';
+            state.playerInitialCP =
+                this.getPlayerCPFromState(state);
+            record = this.createVideoRescueRecord(
+                `rescue:${futureCPPackage.id}`,
+                'initial-cp',
+                futureCPPackage.delta,
+                valueBefore,
+                state.playerInitialCP
+            );
+        } else if (
+            rescueKind === 'max-alive' &&
+            futureMaxAlivePackage
+        ) {
+            const valueBefore = state.playerMaxAlive;
+
+            futureMaxAlivePackage.claimed = true;
+            futureMaxAlivePackage.claimSource = 'video-rescue';
+            state.playerMaxAlive =
+                this.getPlayerMaxAliveFromState(state);
+            record = this.createVideoRescueRecord(
+                `rescue:${futureMaxAlivePackage.id}`,
+                'max-alive',
+                futureMaxAlivePackage.delta,
+                valueBefore,
+                state.playerMaxAlive
+            );
+        } else if (state.playerInitialCP < enemyCP) {
+            const valueBefore = state.playerInitialCP;
+            const delta = Math.min(
+                this.getNearestCPPackageDelta(
+                    this.battleLevel
+                ),
+                enemyCP - state.playerInitialCP
             );
 
-        addAction(countOptions[0] || null);
+            if (delta <= 0) return null;
 
-        if (actionIds.length <= 0) {
-            const cheapest = this.getPurchaseOptions(temp)
-                .sort((a, b) => a.cost - b.cost)[0] || null;
-
-            addAction(cheapest);
+            state.playerInitialCPOverflow += delta;
+            state.playerInitialCP =
+                this.getPlayerCPFromState(state);
+            record = this.createVideoRescueRecord(
+                `rescue:overflow:${this.battleLevel}:` +
+                    `${state.adsReward + 1}`,
+                'initial-cp',
+                delta,
+                valueBefore,
+                state.playerInitialCP
+            );
         }
 
-        return {
-            actionIds,
-            totalCost,
-        };
+        if (!record) return null;
+
+        state.rescueHistory.push(record.id);
+
+        records.push(record);
+
+        return record;
     }
 
-    private executePreferredPurchases(
-        actionIds: string[],
-        records: PurchaseRecord[],
-        source: string
-    ) {
-        if (!this.progressionState) return;
+    private selectRescueKind(
+        canRescueCP: boolean,
+        canRescueMaxAlive: boolean,
+        cpGapRatio: number,
+        maxAliveGapRatio: number
+    ): 'initial-cp' | 'max-alive' | null {
+        if (!canRescueCP && !canRescueMaxAlive) return null;
+        if (!canRescueCP) return 'max-alive';
+        if (!canRescueMaxAlive) return 'initial-cp';
 
-        for (let i = 0; i < actionIds.length; i++) {
-            const option = this.getPurchaseOptions(
-                this.progressionState
-            ).find((candidate) =>
-                candidate.id === actionIds[i]
-            );
-
-            if (!option) continue;
-            if (
-                option.cost >
-                this.progressionState.playerGold
-            ) {
-                continue;
-            }
-
-            records.push(
-                this.applyPurchase(
-                    option,
-                    this.progressionState,
-                    source
-                )
-            );
+        if (maxAliveGapRatio !== cpGapRatio) {
+            return maxAliveGapRatio > cpGapRatio
+                ? 'max-alive'
+                : 'initial-cp';
         }
+
+        return 'initial-cp';
+    }
+
+    private createVideoRescueRecord(
+        id: string,
+        kind: 'initial-cp' | 'max-alive',
+        delta: number,
+        valueBefore: number,
+        valueAfter: number
+    ): PurchaseRecord {
+        return {
+            id,
+            kind,
+            label: kind === 'initial-cp'
+                ? `Video rescue +${delta} Initial CP`
+                : `Video rescue +${delta} Max Alive`,
+            family: null,
+            familyName: '',
+            tier: 0,
+            cost: 0,
+            goldBefore: this.progressionState
+                ? this.progressionState.playerGold
+                : 0,
+            goldAfter: this.progressionState
+                ? this.progressionState.playerGold
+                : 0,
+            valueBefore,
+            valueAfter,
+            source: 'video-rescue',
+        };
     }
 
     private applyPurchase(
@@ -1432,22 +1561,36 @@ export class LevelSettings extends Component
         if (
             option.kind === 'initial-cp'
         ) {
-            state.playerInitialCPPackagesPurchased++;
-            state.playerInitialCP =
-                this.getPlayerCPForPurchasedPackages(
-                    state.playerInitialCPPackagesPurchased
-                );
-            state.playerInitialCP = this.clampPlayerCP(
-                state.playerInitialCP
+            const packageId = option.id.substring(
+                'initial-cp:'.length
             );
+            const item = state.cpPackages.find(
+                (candidate) => candidate.id === packageId
+            );
+
+            if (!item || item.claimed) return;
+
+            item.claimed = true;
+            item.claimSource = 'purchase';
+            state.playerInitialCP =
+                this.getPlayerCPFromState(state);
             return;
         }
 
         if (option.kind === 'max-alive') {
+            const packageId = option.id.substring(
+                'max-alive:'.length
+            );
+            const item = state.maxAlivePackages.find(
+                (candidate) => candidate.id === packageId
+            );
+
+            if (!item || item.claimed) return;
+
+            item.claimed = true;
+            item.claimSource = 'purchase';
             state.playerMaxAlive =
-                this.clampPlayerMaxAlive(
-                    state.playerMaxAlive + option.delta
-                );
+                this.getPlayerMaxAliveFromState(state);
             return;
         }
 
@@ -1514,30 +1657,6 @@ export class LevelSettings extends Component
         return option.kind === 'unit-unlock'
             ? Number(saved.unlocked)
             : saved.unitCount;
-    }
-
-    private getCountUpgradeDeficit(
-        option: PurchaseOption,
-        state: SavedProgressionState
-    ) {
-        if (option.family === null) return 0;
-
-        const rule = this.getRule(
-            option.family,
-            option.tier
-        );
-
-        if (!rule) return 0;
-
-        const saved = this.getSavedUnit(
-            state,
-            this.getRuleKey(rule)
-        );
-
-        return this.getEnemyUnitCount(
-            rule,
-            this.battleLevel
-        ) - (saved ? saved.unitCount : 0);
     }
 
     private grantCappedLossGold(
@@ -1908,7 +2027,10 @@ export class LevelSettings extends Component
     }
 
     private getRuleUnlockLevel(rule: UnitProgressionRule) {
-        return this.clampLevel(rule.unlockLevel);
+        return Math.min(
+            this.getProgressionEndLevel(),
+            this.clampLevel(rule.unlockLevel)
+        );
     }
 
     private getRuleUnlockCount(rule: UnitProgressionRule) {
@@ -1929,165 +2051,261 @@ export class LevelSettings extends Component
         );
     }
 
-    private getPlayerCPMax() {
-        return Math.max(
-            this.getPlayerCPStart(),
-            Math.floor(this.playerInitialCPMax)
+    private getPlayerCPMilestoneCap(level: number) {
+        const schedule = this.progressionState
+            ? this.progressionState.cpPackages
+            : this.createCPPackageSchedule();
+
+        return this.getPlayerCPStart() + schedule
+            .filter((item) =>
+                item.offerLevel <= this.clampLevel(level)
+            )
+            .reduce(
+                (sum, item) => sum + item.delta,
+                0
+            );
+    }
+
+    private getPlayerCPPackagesOffered(level: number) {
+        const schedule = this.progressionState
+            ? this.progressionState.cpPackages
+            : this.createCPPackageSchedule();
+        const safeLevel = this.clampLevel(level);
+
+        return schedule.filter((item) =>
+            item.offerLevel <= safeLevel
+        ).length;
+    }
+
+    private getNextAvailableCPPackage(
+        state: SavedProgressionState,
+        level: number
+    ) {
+        const safeLevel = this.clampLevel(level);
+
+        return state.cpPackages
+            .filter((item) =>
+                !item.claimed &&
+                item.offerLevel <= safeLevel
+            )
+            .sort((a, b) =>
+                a.offerLevel - b.offerLevel ||
+                a.targetLevel - b.targetLevel ||
+                a.id.localeCompare(b.id)
+            )[0] || null;
+    }
+
+    private getPlayerCPFromState(
+        state: SavedProgressionState
+    ) {
+        return this.getPlayerCPStart() +
+            Math.max(0, state.playerInitialCPOverflow) +
+            state.cpPackages
+                .filter((item) => item.claimed)
+                .reduce(
+                    (sum, item) => sum + item.delta,
+                    0
+                );
+    }
+
+    private createCPPackageSchedule():
+        SavedProgressionPackage[] {
+        const result: SavedProgressionPackage[] = [];
+        const milestones =
+            this.getProgressionMilestoneLevels();
+        let previousLevel = 0;
+        let previousCap = this.getPlayerCPStart();
+
+        for (let i = 0; i < milestones.length; i++) {
+            const targetLevel = milestones[i];
+            const targetCap = Math.max(
+                previousCap,
+                this.getLevelBaseInitialCP(targetLevel)
+            );
+            const totalDelta = targetCap - previousCap;
+
+            if (totalDelta <= 0) {
+                previousLevel = targetLevel;
+                previousCap = targetCap;
+                continue;
+            }
+
+            const firstOfferLevel = previousLevel > 0
+                ? previousLevel + 1
+                : 1;
+            const lastNormalLevel = targetLevel - 1;
+            const candidateCount = Math.max(
+                1,
+                lastNormalLevel >= firstOfferLevel
+                    ? lastNormalLevel - firstOfferLevel + 1
+                    : 1
+            );
+            const packageCount = Math.min(
+                totalDelta,
+                Math.max(1, Math.ceil(candidateCount / 2))
+            );
+            const offerLevels =
+                this.pickDeterministicOfferLevels(
+                    firstOfferLevel,
+                    lastNormalLevel >= firstOfferLevel
+                        ? lastNormalLevel
+                        : targetLevel,
+                    packageCount,
+                    targetLevel,
+                    'cp'
+                );
+            let distributed = 0;
+
+            for (let packageIndex = 0;
+                packageIndex < packageCount;
+                packageIndex++) {
+                const cumulative = Math.round(
+                    totalDelta *
+                    (packageIndex + 1) /
+                    packageCount
+                );
+                const delta = cumulative - distributed;
+
+                distributed = cumulative;
+                result.push({
+                    id: `cp:${targetLevel}:${packageIndex + 1}`,
+                    targetLevel,
+                    offerLevel: offerLevels[packageIndex],
+                    delta,
+                    claimed: false,
+                    claimSource: '',
+                });
+            }
+
+            previousLevel = targetLevel;
+            previousCap = targetCap;
+        }
+
+        return result.sort((a, b) =>
+            a.offerLevel - b.offerLevel ||
+            a.targetLevel - b.targetLevel ||
+            a.id.localeCompare(b.id)
         );
     }
 
-    private getPlayerCPPackagesUnlocked(level: number) {
+    private getProgressionMilestoneLevels() {
+        const endLevel = this.getProgressionEndLevel();
         const pace = Math.max(
             0,
             Math.floor(this.bossStagePace)
         );
+        const result: number[] = [];
 
-        if (pace <= 0) return 0;
-
-        return Math.floor(
-            this.clampLevel(level) / pace
-        );
-    }
-
-    private getPlayerCPPackagesPurchased(
-        state: SavedProgressionState
-    ) {
-        return Math.max(
-            0,
-            Math.min(
-                this.getPlayerCPPackagesUnlocked(
-                    this.getSafeTotalLevels()
-                ),
-                Math.floor(
-                    state.playerInitialCPPackagesPurchased
-                )
-            )
-        );
-    }
-
-    private getPlayerCPMilestoneCap(level: number) {
-        return this.getPlayerCPForPurchasedPackages(
-            this.getPlayerCPPackagesUnlocked(level)
-        );
-    }
-
-    private getPlayerCPForPurchasedPackages(
-        packageCount: number
-    ) {
-        const safeCount = Math.max(
-            0,
-            Math.min(
-                this.getPlayerCPPackagesUnlocked(
-                    this.getSafeTotalLevels()
-                ),
-                Math.floor(packageCount)
-            )
-        );
-        let cp = this.getPlayerCPStart();
-
-        for (let packageNumber = 1;
-            packageNumber <= safeCount;
-            packageNumber++) {
-            cp += this.getPlayerCPPackageDelta(
-                packageNumber
-            );
-
-            if (cp >= this.getPlayerCPMax()) {
-                return this.getPlayerCPMax();
+        if (pace > 0) {
+            for (let level = pace;
+                level <= endLevel;
+                level += pace) {
+                result.push(level);
             }
         }
 
-        return this.clampPlayerCP(cp);
+        if (
+            result.length <= 0 ||
+            result[result.length - 1] !== endLevel
+        ) {
+            result.push(endLevel);
+        }
+
+        return result;
     }
 
-    private getPlayerCPPackageDelta(
-        packageNumber: number
+    private pickDeterministicOfferLevels(
+        firstLevel: number,
+        lastLevel: number,
+        count: number,
+        targetLevel: number,
+        scheduleKey: string
     ) {
-        const pace = Math.max(
-            1,
-            Math.floor(this.bossStagePace)
-        );
-        const currentBossLevel = Math.min(
-            this.getSafeTotalLevels(),
-            Math.max(1, Math.floor(packageNumber)) * pace
-        );
-        const currentBossCP =
-            this.getLevelInitialCP(currentBossLevel);
-        const previousBossCP = packageNumber > 1
-            ? this.getLevelInitialCP(
-                currentBossLevel - pace
-            )
-            : this.getLevelBaseInitialCP(1);
-        const bossCPGrowth = Math.max(
-            0,
-            currentBossCP - previousBossCP
-        );
+        const candidates: Array<{
+            level: number;
+            order: number;
+        }> = [];
 
-        return Math.max(
-            0,
-            Math.round(
-                bossCPGrowth *
-                this.getPlayerCPBossGrowthRatio()
+        for (let level = firstLevel;
+            level <= lastLevel;
+            level++) {
+            candidates.push({
+                level,
+                order: this.stableHash(
+                    `${targetLevel}:${level}:` +
+                    `${scheduleKey}-offer`
+                ),
+            });
+        }
+
+        return candidates
+            .sort((a, b) =>
+                a.order - b.order || a.level - b.level
             )
-        );
+            .slice(0, Math.min(count, candidates.length))
+            .map((item) => item.level)
+            .sort((a, b) => a - b);
     }
 
-    private getPlayerCPBossGrowthRatio() {
-        return Math.max(
-            0,
-            Math.min(
-                1,
-                Number.isFinite(
-                    this.playerInitialCPBossGrowthRatio
-                )
-                    ? this.playerInitialCPBossGrowthRatio
-                    : 0.5
-            )
-        );
+    private stableHash(value: string) {
+        let hash = 2166136261;
+
+        for (let i = 0; i < value.length; i++) {
+            hash ^= value.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+
+        return hash >>> 0;
     }
 
     private getNextPlayerCPPackageSnapshot(
         state: SavedProgressionState,
         level: number
     ) {
-        const unlocked =
-            this.getPlayerCPPackagesUnlocked(level);
+        const item = this.getNextAvailableCPPackage(
+            state,
+            level
+        );
 
-        if (
-            state.playerInitialCPPackagesPurchased >=
-            unlocked
-        ) {
-            return null;
-        }
-
-        const packageNumber =
-            state.playerInitialCPPackagesPurchased + 1;
-        const targetCP =
-            this.getPlayerCPForPurchasedPackages(
-                packageNumber
-            );
-
-        return {
-            packageNumber,
-            delta: Math.max(
-                0,
-                targetCP - state.playerInitialCP
-            ),
-            targetCP,
-        };
+        return item ? { ...item } : null;
     }
 
     private getUnitProgressionEndLevel() {
-        return Math.max(
-            1,
-            Math.ceil(this.getSafeTotalLevels() * 0.5)
-        );
+        return this.getProgressionEndLevel();
     }
 
-    private clampPlayerCP(value: number) {
+    private getNearestCPPackageDelta(level: number) {
+        const schedule = this.progressionState
+            ? this.progressionState.cpPackages
+            : this.createCPPackageSchedule();
+        const nearest = schedule
+            .filter((item) => item.delta > 0)
+            .sort((a, b) =>
+                Math.abs(a.targetLevel - level) -
+                Math.abs(b.targetLevel - level) ||
+                a.delta - b.delta
+            )[0] || null;
+
+        if (nearest) return nearest.delta;
+
+        const pace = Math.max(
+            1,
+            Math.floor(this.bossStagePace) || 1
+        );
+        const previousLevel = Math.max(1, level - pace);
+        const segmentGrowth = Math.max(
+            1,
+            this.getLevelBaseInitialCP(level) -
+            this.getLevelBaseInitialCP(previousLevel)
+        );
+        const normalLevels = Math.max(1, pace - 1);
+
         return Math.max(
-            this.getPlayerCPStart(),
-            Math.min(this.getPlayerCPMax(), value)
+            1,
+            Math.round(
+                segmentGrowth /
+                Math.ceil(normalLevels / 2)
+            )
         );
     }
 
@@ -2106,30 +2324,171 @@ export class LevelSettings extends Component
     }
 
     private getPlayerMaxAliveMilestoneCap(level: number) {
+        const schedule = this.progressionState
+            ? this.progressionState.maxAlivePackages
+            : this.createMaxAlivePackageSchedule();
+
+        const safeLevel = this.clampLevel(level);
+        const offeredDelta = schedule
+            .filter((item) =>
+                item.offerLevel <= safeLevel
+            )
+            .reduce(
+                (sum, item) => sum + item.delta,
+                0
+            );
+
+        return this.clampPlayerMaxAlive(
+            this.getPlayerMaxAliveStart() + offeredDelta
+        );
+    }
+
+    private getPlayerMaxAlivePackagesOffered(
+        level: number
+    ) {
+        const schedule = this.progressionState
+            ? this.progressionState.maxAlivePackages
+            : this.createMaxAlivePackageSchedule();
+        const safeLevel = this.clampLevel(level);
+
+        return schedule.filter((item) =>
+            item.offerLevel <= safeLevel
+        ).length;
+    }
+
+    private getNextAvailableMaxAlivePackage(
+        state: SavedProgressionState,
+        level: number
+    ) {
+        const safeLevel = this.clampLevel(level);
+
+        return state.maxAlivePackages
+            .filter((item) =>
+                !item.claimed &&
+                item.offerLevel <= safeLevel
+            )
+            .sort((a, b) =>
+                a.offerLevel - b.offerLevel ||
+                a.targetLevel - b.targetLevel ||
+                a.id.localeCompare(b.id)
+            )[0] || null;
+    }
+
+    private getPlayerMaxAliveFromState(
+        state: SavedProgressionState
+    ) {
+        const claimedDelta = state.maxAlivePackages
+            .filter((item) => item.claimed)
+            .reduce(
+                (sum, item) => sum + item.delta,
+                0
+            );
+
+        return this.clampPlayerMaxAlive(
+            this.getPlayerMaxAliveStart() + claimedDelta
+        );
+    }
+
+    private createMaxAlivePackageSchedule():
+        SavedProgressionPackage[] {
+        const result: SavedProgressionPackage[] = [];
+
         if (!this.allowMaxWave) {
-            return this.getPlayerMaxAliveMax();
+            const delta = Math.max(
+                0,
+                this.getPlayerMaxAliveMax() -
+                this.getPlayerMaxAliveStart()
+            );
+
+            for (let i = 0; i < delta; i++) {
+                result.push({
+                    id: `max-alive:1:${i + 1}`,
+                    targetLevel: 1,
+                    offerLevel: 1,
+                    delta: 1,
+                    claimed: false,
+                    claimSource: '',
+                });
+            }
+
+            return result;
         }
 
-        const total = this.getSafeTotalLevels();
-        const safeLevel = this.clampLevel(level);
-        const progress = total <= 1
-            ? 1
-            : (safeLevel - 1) / (total - 1);
-        const enemyBaseMaxAlive = Math.round(
-            this.lerp(
-                this.maxAliveWavesMin,
-                this.maxAliveWavesMax,
-                progress
-            )
+        const milestones =
+            this.getProgressionMilestoneLevels();
+        let previousLevel = 0;
+        let previousCap = this.getPlayerMaxAliveStart();
+
+        for (let i = 0; i < milestones.length; i++) {
+            const targetLevel = milestones[i];
+            const targetCap = this.clampPlayerMaxAlive(
+                Math.max(
+                    previousCap,
+                    this.getLevelBaseMaxAlive(targetLevel)
+                )
+            );
+            const totalDelta = targetCap - previousCap;
+
+            if (totalDelta <= 0) {
+                previousLevel = targetLevel;
+                previousCap = targetCap;
+                continue;
+            }
+
+            const firstOfferLevel = previousLevel > 0
+                ? previousLevel + 1
+                : 1;
+            const lastNormalLevel = targetLevel - 1;
+            const safeLastOfferLevel =
+                lastNormalLevel >= firstOfferLevel
+                    ? lastNormalLevel
+                    : targetLevel;
+            const offerLevels =
+                this.pickDeterministicOfferLevels(
+                    firstOfferLevel,
+                    safeLastOfferLevel,
+                    totalDelta,
+                    targetLevel,
+                    'max-alive'
+                );
+
+            for (let packageIndex = 0;
+                packageIndex < totalDelta;
+                packageIndex++) {
+                result.push({
+                    id: `max-alive:${targetLevel}:` +
+                        `${packageIndex + 1}`,
+                    targetLevel,
+                    offerLevel: offerLevels[
+                        packageIndex % offerLevels.length
+                    ],
+                    delta: 1,
+                    claimed: false,
+                    claimSource: '',
+                });
+            }
+
+            previousLevel = targetLevel;
+            previousCap = targetCap;
+        }
+
+        return result.sort((a, b) =>
+            a.offerLevel - b.offerLevel ||
+            a.targetLevel - b.targetLevel ||
+            a.id.localeCompare(b.id)
+        );
+    }
+
+    private getNextPlayerMaxAlivePackageSnapshot(
+        state: SavedProgressionState,
+        level: number
+    ) {
+        const item = this.getNextAvailableMaxAlivePackage(
+            state,
+            level
         );
 
-        return Math.min(
-            this.getPlayerMaxAliveMax(),
-            Math.max(
-                this.getPlayerMaxAliveStart(),
-                enemyBaseMaxAlive
-            )
-        );
+        return item ? { ...item } : null;
     }
 
     private clampPlayerMaxAlive(value: number) {
@@ -2140,12 +2499,6 @@ export class LevelSettings extends Component
                 value
             )
         );
-    }
-
-    private cloneProgressionState(
-        state: SavedProgressionState
-    ): SavedProgressionState {
-        return JSON.parse(JSON.stringify(state));
     }
 
     private loadProgressionState() {
@@ -2159,6 +2512,22 @@ export class LevelSettings extends Component
             return JSON.parse(raw);
         } catch {
             return null;
+        }
+    }
+
+    private clearProgressionStorage() {
+        const keys = [
+            this.progressionStorageKey,
+            'battle-progression-v1',
+            'battle-progression-v2',
+            'battle-progression-v3',
+            'battle-progression-v4',
+            'battle-progression-v5',
+        ];
+
+        for (let i = 0; i < keys.length; i++) {
+            if (keys.indexOf(keys[i]) !== i) continue;
+            sys.localStorage.removeItem(keys[i]);
         }
     }
 
@@ -2185,6 +2554,8 @@ export class LevelSettings extends Component
             'step',
             'numBatchPerStep',
             'end',
+            'resetProgression',
+            'reset',
         ];
 
         for (let i = 0; i < removeKeys.length; i++) {
@@ -2193,9 +2564,15 @@ export class LevelSettings extends Component
         }
 
         params.set('progression', '1');
+        params.set('progressionResume', '1');
         params.set('currentLevel', `${this.clampLevel(level)}`);
         params.set('TotalLevels', `${this.getSafeTotalLevels()}`);
+        params.set(
+            'ProgressionEndLevel',
+            `${this.getProgressionEndLevel()}`
+        );
         params.delete('totalLevels');
+        params.delete('progressionEndLevel');
 
         const origin = location.origin ||
             `${location.protocol}//${location.host}`;
@@ -2236,16 +2613,49 @@ export class LevelSettings extends Component
             ['currentLevel'],
             this.currentLevel
         );
+        const queriedProgressionEnd = this.getQueryInt(
+            params,
+            ['ProgressionEndLevel', 'progressionEndLevel'],
+            0
+        );
+        const progressionResume = this.getQueryInt(
+            params,
+            ['progressionResume'],
+            0
+        );
+        const forceProgressionReset = this.getQueryInt(
+            params,
+            ['resetProgression', 'reset'],
+            0
+        ) === 1;
+        const hasQueriedLevel =
+            params.has('currentLevel') ||
+            params.has('?currentLevel');
 
         this.resetProgressionRequested =
-            queriedLevel <= 0;
+            forceProgressionReset ||
+            queriedLevel <= 0 ||
+            (
+                hasQueriedLevel &&
+                queriedLevel === 1 &&
+                progressionResume !== 1
+            );
         this.levelQueryActive =
             totalLevels > 0 ||
+            queriedProgressionEnd > 0 ||
             progressionParam === 1 ||
-            params.has('currentLevel');
+            forceProgressionReset ||
+            hasQueriedLevel;
 
         if (totalLevels > 0) {
             this.totalLevels = Math.max(1, totalLevels);
+        }
+
+        if (queriedProgressionEnd > 0) {
+            this.progressionEndLevel = Math.max(
+                1,
+                queriedProgressionEnd
+            );
         }
 
         if (this.levelQueryActive) {
@@ -2279,18 +2689,30 @@ export class LevelSettings extends Component
     }
 
     private getDifficulty01() {
-        return this.getLevelProgress01(
+        return this.getProgression01(
             this.getSafeCurrentLevel()
         );
     }
 
-    private getLevelProgress01(level: number) {
-        const total = this.getSafeTotalLevels();
+    private getProgression01(level: number) {
+        const endLevel = this.getProgressionEndLevel();
         const safeLevel = this.clampLevel(level);
 
-        if (total <= 1) return 1;
+        if (endLevel <= 1) return 1;
 
-        return (safeLevel - 1) / (total - 1);
+        return this.clamp01(
+            (safeLevel - 1) / (endLevel - 1)
+        );
+    }
+
+    private getProgressionEndLevel() {
+        return Math.max(
+            1,
+            Math.min(
+                this.getSafeTotalLevels(),
+                Math.floor(this.progressionEndLevel)
+            )
+        );
     }
 
     private getLevelBaseInitialCP(level: number) {
@@ -2298,7 +2720,17 @@ export class LevelSettings extends Component
             this.lerp(
                 this.initialCombatPointMin,
                 this.initialCombatPointMax,
-                this.getLevelProgress01(level)
+                this.getProgression01(level)
+            )
+        );
+    }
+
+    private getLevelBaseMaxAlive(level: number) {
+        return Math.round(
+            this.lerp(
+                this.maxAliveWavesMin,
+                this.maxAliveWavesMax,
+                this.getProgression01(level)
             )
         );
     }

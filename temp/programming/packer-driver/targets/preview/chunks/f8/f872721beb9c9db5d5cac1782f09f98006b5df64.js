@@ -1,7 +1,9 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _class4, _class5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _class4, _class5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+
+  function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -145,112 +147,108 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _export("LevelSettings", LevelSettings = (_dec7 = ccclass('LevelSettings'), _dec8 = property({
         tooltip: 'Total campaign levels used to normalize difficulty from level 1 to the final level.'
       }), _dec9 = property({
-        tooltip: 'Current campaign level. Level 1 is easiest; Total Levels is hardest.'
+        min: 1,
+        step: 1,
+        displayName: 'Progression End Level',
+        tooltip: 'Level where base CP, accuracy, Max Alive, unit unlocks, and unit counts finish progressing. Later levels keep these base caps while boss multipliers still apply.'
       }), _dec10 = property({
+        tooltip: 'Current campaign level. Level 1 is easiest; Total Levels is hardest.'
+      }), _dec11 = property({
         min: 0,
         step: 1,
         tooltip: 'Every Nth level is a boss fight. Use 0 to disable boss fights.'
-      }), _dec11 = property({
+      }), _dec12 = property({
         min: 1,
         step: 0.1,
         displayName: 'Boss Initial CP Multiplier',
         tooltip: 'Multiplier applied only to enemy Initial CP on boss levels. Initial CP is not capped.'
-      }), _dec12 = property({
+      }), _dec13 = property({
         min: 1,
         step: 0.1,
         displayName: 'Boss Decision Accuracy Multiplier',
         tooltip: 'Multiplier applied only to enemy Decision Accuracy on boss levels. The result remains capped by Decision Accuracy Max.'
-      }), _dec13 = property({
+      }), _dec14 = property({
         min: 1,
         step: 0.1,
         displayName: 'Boss Max Alive Waves Multiplier',
         tooltip: 'Multiplier applied only to enemy Max Alive Waves on boss levels. The result remains capped by Max Alive Waves Max.'
-      }), _dec14 = property({
+      }), _dec15 = property({
         tooltip: 'Team affected by the automatic CP, accuracy, and Max Alive curves.'
-      }), _dec15 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+      }), _dec16 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
         error: Error()
-      }), GameManager) : GameManager), _dec16 = property({
+      }), GameManager) : GameManager), _dec17 = property({
         type: [_crd && BattleArmyBrain === void 0 ? (_reportPossibleCrUseOfBattleArmyBrain({
           error: Error()
         }), BattleArmyBrain) : BattleArmyBrain]
-      }), _dec17 = property({
-        tooltip: 'Apply initial Combat Point curve to the selected team.'
       }), _dec18 = property({
-        tooltip: 'Apply the AI decision accuracy curve. Accuracy affects unit choice only; target and lane selection stay tactical.'
+        tooltip: 'Apply initial Combat Point curve to the selected team.'
       }), _dec19 = property({
-        min: 0,
-        max: 1,
-        tooltip: 'Decision Accuracy at level 1.'
+        tooltip: 'Apply the AI decision accuracy curve. Accuracy affects unit choice only; target and lane selection stay tactical.'
       }), _dec20 = property({
         min: 0,
         max: 1,
-        tooltip: 'Decision Accuracy at the final level.'
+        tooltip: 'Decision Accuracy at level 1.'
       }), _dec21 = property({
-        tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
+        min: 0,
+        max: 1,
+        tooltip: 'Decision Accuracy at the final level.'
       }), _dec22 = property({
-        displayName: 'Easy Spawn Delay Min'
+        tooltip: 'Apply spawn interval curve. Higher levels reduce min/max spawn delay so the enemy reacts faster.'
       }), _dec23 = property({
-        displayName: 'Easy Spawn Delay Max'
+        displayName: 'Easy Spawn Delay Min'
       }), _dec24 = property({
-        displayName: 'Hard Spawn Delay Min'
+        displayName: 'Easy Spawn Delay Max'
       }), _dec25 = property({
-        displayName: 'Hard Spawn Delay Max'
+        displayName: 'Hard Spawn Delay Min'
       }), _dec26 = property({
-        tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
+        displayName: 'Hard Spawn Delay Max'
       }), _dec27 = property({
+        tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
+      }), _dec28 = property({
         displayName: 'Enable Campaign Progression',
         tooltip: 'Apply unit unlocks, enemy unit-count growth, player gold, purchases, persistence, and retry rewards.'
-      }), _dec28 = property({
-        tooltip: 'Reload browser preview after each campaign battle. A win advances one level; a loss retries the same level.'
       }), _dec29 = property({
-        tooltip: 'Let BattleArmyBrain A simulate player purchases between battles. It may buy multiple affordable packages.'
+        tooltip: 'Reload browser preview after each campaign battle. A win advances one level; a loss retries the same level.'
       }), _dec30 = property({
-        tooltip: 'Persistent campaign storage key. Use currentLevel=0 in the URL to clear this state before level 1.'
+        tooltip: 'Let BattleArmyBrain A simulate player purchases between battles. It may buy multiple affordable packages.'
       }), _dec31 = property({
-        min: 0,
-        step: 1
+        tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
       }), _dec32 = property({
         min: 0,
         step: 1
       }), _dec33 = property({
         min: 0,
-        max: 1,
-        step: 0.05,
-        displayName: 'Player CP Boss Growth Ratio',
-        tooltip: 'Each boss unlocks an Initial CP package equal to this share of the enemy CP increase since the previous boss.'
+        step: 1
       }), _dec34 = property({
-        min: 1,
+        min: 0,
         step: 1
       }), _dec35 = property({
         min: 0,
         step: 1
       }), _dec36 = property({
-        min: 0,
-        step: 1
-      }), _dec37 = property({
         min: 0.01,
         step: 0.1
+      }), _dec37 = property({
+        min: 0,
+        max: 1,
+        step: 0.05
       }), _dec38 = property({
         min: 0,
         max: 1,
         step: 0.05
       }), _dec39 = property({
-        min: 0,
-        max: 1,
-        step: 0.05
+        min: 1,
+        step: 1
       }), _dec40 = property({
         min: 1,
         step: 1
       }), _dec41 = property({
-        min: 1,
-        step: 1
-      }), _dec42 = property({
         min: 0.01,
         step: 0.1
-      }), _dec43 = property({
+      }), _dec42 = property({
         min: 1,
         step: 1
-      }), _dec44 = property({
+      }), _dec43 = property({
         type: [UnitProgressionRule]
       }), _dec7(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
@@ -258,85 +256,83 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "totalLevels", _descriptor6, this);
 
-          _initializerDefineProperty(this, "currentLevel", _descriptor7, this);
+          _initializerDefineProperty(this, "progressionEndLevel", _descriptor7, this);
 
-          _initializerDefineProperty(this, "bossStagePace", _descriptor8, this);
+          _initializerDefineProperty(this, "currentLevel", _descriptor8, this);
 
-          _initializerDefineProperty(this, "bossInitialCombatPointMultiplier", _descriptor9, this);
+          _initializerDefineProperty(this, "bossStagePace", _descriptor9, this);
 
-          _initializerDefineProperty(this, "bossDecisionAccuracyMultiplier", _descriptor10, this);
+          _initializerDefineProperty(this, "bossInitialCombatPointMultiplier", _descriptor10, this);
 
-          _initializerDefineProperty(this, "bossMaxAliveWavesMultiplier", _descriptor11, this);
+          _initializerDefineProperty(this, "bossDecisionAccuracyMultiplier", _descriptor11, this);
 
-          _initializerDefineProperty(this, "targetTeam", _descriptor12, this);
+          _initializerDefineProperty(this, "bossMaxAliveWavesMultiplier", _descriptor12, this);
 
-          _initializerDefineProperty(this, "gameManager", _descriptor13, this);
+          _initializerDefineProperty(this, "targetTeam", _descriptor13, this);
 
-          _initializerDefineProperty(this, "battleArmyBrains", _descriptor14, this);
+          _initializerDefineProperty(this, "gameManager", _descriptor14, this);
 
-          _initializerDefineProperty(this, "allowCP", _descriptor15, this);
+          _initializerDefineProperty(this, "battleArmyBrains", _descriptor15, this);
 
-          _initializerDefineProperty(this, "initialCombatPointMin", _descriptor16, this);
+          _initializerDefineProperty(this, "allowCP", _descriptor16, this);
 
-          _initializerDefineProperty(this, "initialCombatPointMax", _descriptor17, this);
+          _initializerDefineProperty(this, "initialCombatPointMin", _descriptor17, this);
 
-          _initializerDefineProperty(this, "allowDecisionAccuracy", _descriptor18, this);
+          _initializerDefineProperty(this, "initialCombatPointMax", _descriptor18, this);
 
-          _initializerDefineProperty(this, "decisionAccuracyMin", _descriptor19, this);
+          _initializerDefineProperty(this, "allowDecisionAccuracy", _descriptor19, this);
 
-          _initializerDefineProperty(this, "decisionAccuracyMax", _descriptor20, this);
+          _initializerDefineProperty(this, "decisionAccuracyMin", _descriptor20, this);
 
-          _initializerDefineProperty(this, "allowInterval", _descriptor21, this);
+          _initializerDefineProperty(this, "decisionAccuracyMax", _descriptor21, this);
 
-          _initializerDefineProperty(this, "minSpawnIntervalMinLevel", _descriptor22, this);
+          _initializerDefineProperty(this, "allowInterval", _descriptor22, this);
 
-          _initializerDefineProperty(this, "maxSpawnIntervalMinLevel", _descriptor23, this);
+          _initializerDefineProperty(this, "minSpawnIntervalMinLevel", _descriptor23, this);
 
-          _initializerDefineProperty(this, "minSpawnIntervalMaxLevel", _descriptor24, this);
+          _initializerDefineProperty(this, "maxSpawnIntervalMinLevel", _descriptor24, this);
 
-          _initializerDefineProperty(this, "maxSpawnIntervalMaxLevel", _descriptor25, this);
+          _initializerDefineProperty(this, "minSpawnIntervalMaxLevel", _descriptor25, this);
 
-          _initializerDefineProperty(this, "allowMaxWave", _descriptor26, this);
+          _initializerDefineProperty(this, "maxSpawnIntervalMaxLevel", _descriptor26, this);
 
-          _initializerDefineProperty(this, "maxAliveWavesMin", _descriptor27, this);
+          _initializerDefineProperty(this, "allowMaxWave", _descriptor27, this);
 
-          _initializerDefineProperty(this, "maxAliveWavesMax", _descriptor28, this);
+          _initializerDefineProperty(this, "maxAliveWavesMin", _descriptor28, this);
 
-          _initializerDefineProperty(this, "enableProgression", _descriptor29, this);
+          _initializerDefineProperty(this, "maxAliveWavesMax", _descriptor29, this);
 
-          _initializerDefineProperty(this, "autoReloadProgression", _descriptor30, this);
+          _initializerDefineProperty(this, "enableProgression", _descriptor30, this);
 
-          _initializerDefineProperty(this, "purchasingSimulation", _descriptor31, this);
+          _initializerDefineProperty(this, "autoReloadProgression", _descriptor31, this);
 
-          _initializerDefineProperty(this, "progressionStorageKey", _descriptor32, this);
+          _initializerDefineProperty(this, "purchasingSimulation", _descriptor32, this);
 
-          _initializerDefineProperty(this, "initialPlayerGold", _descriptor33, this);
+          _initializerDefineProperty(this, "progressionStorageKey", _descriptor33, this);
 
-          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor34, this);
+          _initializerDefineProperty(this, "initialPlayerGold", _descriptor34, this);
 
-          _initializerDefineProperty(this, "playerInitialCPBossGrowthRatio", _descriptor35, this);
+          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor35, this);
 
-          _initializerDefineProperty(this, "playerInitialCPMax", _descriptor36, this);
+          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor36, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor37, this);
+          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor37, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor38, this);
+          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor38, this);
 
-          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor39, this);
+          _initializerDefineProperty(this, "lossGoldRatio", _descriptor39, this);
 
-          _initializerDefineProperty(this, "lossGoldRatio", _descriptor40, this);
+          _initializerDefineProperty(this, "maxLossGoldRatioPerLevel", _descriptor40, this);
 
-          _initializerDefineProperty(this, "maxLossGoldRatioPerLevel", _descriptor41, this);
+          _initializerDefineProperty(this, "lossesPerVideoReward", _descriptor41, this);
 
-          _initializerDefineProperty(this, "lossesPerVideoReward", _descriptor42, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor42, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor43, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor43, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor44, this);
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor44, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor45, this);
-
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor46, this);
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor45, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -350,7 +346,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.applyTelemetryLevelQuery();
 
           if (this.resetProgressionRequested) {
-            sys.localStorage.removeItem(this.progressionStorageKey);
+            this.clearProgressionStorage();
           }
 
           var manager = this.getGameManager();
@@ -413,7 +409,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             if (this.allowMaxWave) {
-              var baseMaxAlive = Math.round(this.lerp(this.maxAliveWavesMin, this.maxAliveWavesMax, t));
+              var baseMaxAlive = this.getLevelBaseMaxAlive(this.getSafeCurrentLevel());
               brain.maxAliveWaves = Math.round(Math.min(Math.max(0, this.maxAliveWavesMax), baseMaxAlive * this.getBossMultiplier(this.bossMaxAliveWavesMultiplier, boss)));
             }
           }
@@ -433,7 +429,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyCP = manager ? Math.max(0, manager.initialCombatPoint[1]) : 0;
           var winGold = Math.max(0, Math.round(enemyCP * Math.max(0, this.winGoldPerEnemyCP)));
           var goldReward = 0;
-          var rescueGold = 0;
+          var rescueCP = 0;
+          var rescueMaxAlive = 0;
           var videoRewardTriggered = false;
           var rescueActions = [];
           var validPlayerLoss = loserTeam === 0 && this.isValidPlayerLoss(reason);
@@ -451,17 +448,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               goldReward = this.grantCappedLossGold(state, battleLevel, winGold);
             }
 
-            if (state.levelLossCount >= Math.max(1, Math.floor(this.lossesPerVideoReward))) {
-              state.adsReward++;
-              state.levelLossCount = 0;
-              videoRewardTriggered = true;
-              var rescuePlan = this.createRescuePlan();
-              rescueActions = rescuePlan.actionIds.slice();
-              rescueGold = Math.max(0, rescuePlan.totalCost - state.playerGold);
-              state.playerGold += rescueGold;
+            if (this.purchasingSimulation && state.levelLossCount >= Math.max(1, Math.floor(this.lossesPerVideoReward))) {
+              var rescue = this.applyVideoRescue(purchases);
 
-              if (this.purchasingSimulation) {
-                this.executePreferredPurchases(rescuePlan.actionIds, purchases, 'video-rescue');
+              if (rescue) {
+                var rescueDelta = Math.max(0, rescue.valueAfter - rescue.valueBefore);
+
+                if (rescue.kind === 'initial-cp') {
+                  rescueCP = rescueDelta;
+                } else if (rescue.kind === 'max-alive') {
+                  rescueMaxAlive = rescueDelta;
+                }
+
+                state.adsReward++;
+                state.levelLossCount = 0;
+                videoRewardTriggered = true;
+                rescueActions = [rescue.id];
               }
             }
           }
@@ -497,7 +499,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             winGold,
             goldReward,
             validPlayerLoss,
-            rescueGold,
+            rescueCP,
+            rescueMaxAlive,
             videoRewardTriggered,
             rescueActions,
             newlyOffered,
@@ -528,16 +531,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             isBossLevel: this.isBossLevelFor(this.battleLevel),
             purchasingSimulation: this.purchasingSimulation,
             settings: {
+              progressionEndLevel: this.getProgressionEndLevel(),
+              progression01: this.getProgression01(this.battleLevel),
               playerInitialCPStart: this.getPlayerCPStart(),
-              playerInitialCPBossGrowthRatio: this.getPlayerCPBossGrowthRatio(),
-              playerInitialCPMax: this.getPlayerCPMax(),
               playerInitialCPMilestoneCap: this.getPlayerCPMilestoneCap(this.battleLevel),
-              playerCPPackagesUnlocked: this.getPlayerCPPackagesUnlocked(this.battleLevel),
+              playerCPPackagesOffered: this.getPlayerCPPackagesOffered(this.battleLevel),
               nextPlayerCPPackage: this.getNextPlayerCPPackageSnapshot(state, this.battleLevel),
               unitProgressionEndLevel: this.getUnitProgressionEndLevel(),
               playerMaxAliveStart: this.getPlayerMaxAliveStart(),
               playerMaxAliveMax: this.getPlayerMaxAliveMax(),
               playerMaxAliveMilestoneCap: this.getPlayerMaxAliveMilestoneCap(this.battleLevel),
+              playerMaxAlivePackagesOffered: this.getPlayerMaxAlivePackagesOffered(this.battleLevel),
+              nextPlayerMaxAlivePackage: this.getNextPlayerMaxAlivePackageSnapshot(state, this.battleLevel),
               winGoldPerEnemyCP: this.winGoldPerEnemyCP,
               lossGoldRatio: this.lossGoldRatio,
               maxLossGoldRatioPerLevel: this.maxLossGoldRatioPerLevel,
@@ -553,8 +558,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               levelLossCount: state.levelLossCount,
               lossGoldClaimed: state.lossGoldClaimed,
               initialCP: state.playerInitialCP,
-              cpPackagesPurchased: this.getPlayerCPPackagesPurchased(state),
+              cpPackagesPurchased: state.cpPackages.filter(item => item.claimed).length,
+              cpPackagesOffered: this.getPlayerCPPackagesOffered(this.battleLevel),
+              cpPackageSchedule: state.cpPackages.map(item => _extends({}, item)),
+              initialCPOverflow: state.playerInitialCPOverflow,
+              rescueHistory: state.rescueHistory.slice(),
               maxAlive: state.playerMaxAlive,
+              maxAlivePackagesPurchased: state.maxAlivePackages.filter(item => item.claimed).length,
+              maxAlivePackagesOffered: this.getPlayerMaxAlivePackagesOffered(this.battleLevel),
+              maxAlivePackageSchedule: state.maxAlivePackages.map(item => _extends({}, item)),
               decisionAccuracy: playerBrain ? playerBrain.decisionAccuracy : null,
               totalPurchases: state.totalPurchases
             },
@@ -633,7 +645,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return {
-            version: 3,
+            version: 5,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(0, Math.floor(this.initialPlayerGold)),
             adsReward: 0,
@@ -641,7 +653,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             lossGoldLevel: this.getSafeCurrentLevel(),
             lossGoldClaimed: 0,
             playerInitialCP: this.getPlayerCPStart(),
-            playerInitialCPPackagesPurchased: 0,
+            playerInitialCPOverflow: 0,
+            cpPackages: this.createCPPackageSchedule(),
+            maxAlivePackages: this.createMaxAlivePackageSchedule(),
+            rescueHistory: [],
             playerMaxAlive: this.getPlayerMaxAliveStart(),
             totalPurchases: 0,
             units
@@ -652,20 +667,55 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var _this = this;
 
           var initial = this.createInitialProgressionState();
+
+          if (this.safeInteger(source.version, 0) !== 5) {
+            return initial;
+          }
+
           var savedUnits = Array.isArray(source.units) ? source.units : [];
+          var savedCPPackages = Array.isArray(source.cpPackages) ? source.cpPackages : [];
+          var savedMaxAlivePackages = Array.isArray(source.maxAlivePackages) ? source.maxAlivePackages : [];
           initial.currentLevel = this.clampLevel(this.safeInteger(source.currentLevel, initial.currentLevel));
           initial.playerGold = Math.max(0, this.safeInteger(source.playerGold, 0));
           initial.adsReward = Math.max(0, this.safeInteger(source.adsReward, 0));
           initial.levelLossCount = Math.max(0, this.safeInteger(source.levelLossCount, 0));
           initial.lossGoldLevel = this.clampLevel(this.safeInteger(source.lossGoldLevel, initial.currentLevel));
           initial.lossGoldClaimed = Math.max(0, this.safeInteger(source.lossGoldClaimed, 0));
-          initial.playerInitialCPPackagesPurchased = Math.max(0, Math.min(this.getPlayerCPPackagesUnlocked(this.getSafeTotalLevels()), this.safeInteger(source.playerInitialCPPackagesPurchased, 0)));
-          initial.playerInitialCP = this.getPlayerCPForPurchasedPackages(initial.playerInitialCPPackagesPurchased);
-          initial.playerMaxAlive = this.clampPlayerMaxAlive(this.safeInteger(source.playerMaxAlive, initial.playerMaxAlive));
-          initial.totalPurchases = Math.max(0, this.safeInteger(source.totalPurchases, 0));
+          initial.playerInitialCPOverflow = Math.max(0, this.safeInteger(source.playerInitialCPOverflow, 0));
 
           var _loop = function _loop() {
-            var unit = initial.units[i];
+            var item = initial.cpPackages[i];
+            var saved = savedCPPackages.find(candidate => candidate && candidate.id === item.id);
+            if (!saved) return 1; // continue
+
+            item.claimed = !!saved.claimed;
+            item.claimSource = item.claimed && typeof saved.claimSource === 'string' ? saved.claimSource : '';
+          };
+
+          for (var i = 0; i < initial.cpPackages.length; i++) {
+            if (_loop()) continue;
+          }
+
+          var _loop2 = function _loop2() {
+            var item = initial.maxAlivePackages[_i];
+            var saved = savedMaxAlivePackages.find(candidate => candidate && candidate.id === item.id);
+            if (!saved) return 1; // continue
+
+            item.claimed = !!saved.claimed;
+            item.claimSource = item.claimed && typeof saved.claimSource === 'string' ? saved.claimSource : '';
+          };
+
+          for (var _i = 0; _i < initial.maxAlivePackages.length; _i++) {
+            if (_loop2()) continue;
+          }
+
+          initial.rescueHistory = Array.isArray(source.rescueHistory) ? source.rescueHistory.filter(value => typeof value === 'string').slice() : [];
+          initial.playerInitialCP = this.getPlayerCPFromState(initial);
+          initial.playerMaxAlive = this.getPlayerMaxAliveFromState(initial);
+          initial.totalPurchases = Math.max(0, this.safeInteger(source.totalPurchases, 0));
+
+          var _loop3 = function _loop3() {
+            var unit = initial.units[_i2];
             var saved = savedUnits.find(candidate => candidate && candidate.key === unit.key);
 
             var rule = _this.getRuleByKey(unit.key);
@@ -677,8 +727,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             unit.unitCount = Math.max(_this.getRuleUnlockCount(rule), Math.min(_this.getRuleMaxCount(rule), _this.safeInteger(saved.unitCount, unit.unitCount)));
           };
 
-          for (var i = 0; i < initial.units.length; i++) {
-            if (_loop()) continue;
+          for (var _i2 = 0; _i2 < initial.units.length; _i2++) {
+            if (_loop3()) continue;
           }
 
           return initial;
@@ -717,8 +767,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var playerBrains = this.getTargetBattleArmyBrains(0);
 
-          for (var _i = 0; _i < playerBrains.length; _i++) {
-            playerBrains[_i].maxAliveWaves = state.playerMaxAlive;
+          for (var _i3 = 0; _i3 < playerBrains.length; _i3++) {
+            playerBrains[_i3].maxAliveWaves = state.playerMaxAlive;
           }
         }
 
@@ -767,37 +817,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
-          var unlockedCPPackages = this.getPlayerCPPackagesUnlocked(this.battleLevel);
+          var nextCPPackage = this.getNextAvailableCPPackage(state, this.battleLevel);
 
-          if (state.playerInitialCPPackagesPurchased < unlockedCPPackages) {
-            var nextPackageNumber = state.playerInitialCPPackagesPurchased + 1;
-            var targetCP = this.getPlayerCPForPurchasedPackages(nextPackageNumber);
-            var delta = Math.max(0, targetCP - state.playerInitialCP);
-
-            if (delta > 0) {
-              options.push({
-                id: 'initial-cp',
-                kind: 'initial-cp',
-                cost: Math.max(1, Math.round(delta * Math.max(0.01, this.initialCPGoldPerPoint))),
-                family: null,
-                tier: 0,
-                delta,
-                label: "+" + delta + " Initial CP"
-              });
-            }
-          }
-
-          var milestoneMaxAlive = this.getPlayerMaxAliveMilestoneCap(this.battleLevel);
-
-          if (state.playerMaxAlive < milestoneMaxAlive) {
+          if (nextCPPackage) {
             options.push({
-              id: 'max-alive',
-              kind: 'max-alive',
-              cost: Math.max(1, Math.round(Math.max(1, this.maxAliveBasePrice) * state.playerMaxAlive / Math.max(1, this.getPlayerMaxAliveStart()))),
+              id: "initial-cp:" + nextCPPackage.id,
+              kind: 'initial-cp',
+              cost: Math.max(1, Math.round(nextCPPackage.delta * Math.max(0.01, this.initialCPGoldPerPoint))),
               family: null,
               tier: 0,
-              delta: 1,
-              label: '+1 Max Alive'
+              delta: nextCPPackage.delta,
+              label: "+" + nextCPPackage.delta + " Initial CP"
+            });
+          }
+
+          var nextMaxAlivePackage = this.getNextAvailableMaxAlivePackage(state, this.battleLevel);
+
+          if (nextMaxAlivePackage) {
+            options.push({
+              id: "max-alive:" + nextMaxAlivePackage.id,
+              kind: 'max-alive',
+              cost: Math.max(1, Math.round(Math.max(1, this.maxAliveBasePrice) * state.playerMaxAlive / Math.max(1, this.getPlayerMaxAliveStart()) * nextMaxAlivePackage.delta)),
+              family: null,
+              tier: 0,
+              delta: nextMaxAlivePackage.delta,
+              label: "+" + nextMaxAlivePackage.delta + " Max Alive"
             });
           }
 
@@ -829,9 +873,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var roll = Math.random() * totalWeight;
 
-          for (var _i2 = 0; _i2 < options.length; _i2++) {
-            roll -= weights[_i2];
-            if (roll <= 0) return options[_i2];
+          for (var _i4 = 0; _i4 < options.length; _i4++) {
+            roll -= weights[_i4];
+            if (roll <= 0) return options[_i4];
           }
 
           return options[options.length - 1] || null;
@@ -869,84 +913,88 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return 1;
         }
 
-        createRescuePlan() {
-          if (!this.progressionState) {
-            return {
-              actionIds: [],
-              totalCost: 0
-            };
+        applyVideoRescue(records) {
+          if (!this.progressionState) return null;
+
+          if (!this.isBossLevelFor(this.battleLevel)) {
+            return null;
           }
 
-          var temp = this.cloneProgressionState(this.progressionState);
-          var actionIds = [];
-          var totalCost = 0;
+          var state = this.progressionState;
+          var currentCPCap = this.getPlayerCPMilestoneCap(this.battleLevel);
+          var currentMaxAliveCap = this.getPlayerMaxAliveMilestoneCap(this.battleLevel);
 
-          var addAction = option => {
-            if (!option) return;
-            actionIds.push(option.id);
-            totalCost += option.cost;
-            this.applyPurchaseToState(option, temp);
-          };
+          if (state.playerInitialCP < currentCPCap || state.playerMaxAlive < currentMaxAliveCap) {
+            return null;
+          }
 
-          var latestUnlock = this.getPurchaseOptions(temp).filter(option => option.kind === 'unit-unlock').sort((a, b) => {
-            var aRule = a.family === null ? null : this.getRule(a.family, a.tier);
-            var bRule = b.family === null ? null : this.getRule(b.family, b.tier);
-            return (bRule ? this.getRuleUnlockLevel(bRule) : 0) - (aRule ? this.getRuleUnlockLevel(aRule) : 0);
-          })[0] || null;
-          addAction(latestUnlock);
+          if (this.getNextAvailableCPPackage(state, this.battleLevel) || this.getNextAvailableMaxAlivePackage(state, this.battleLevel)) {
+            return null;
+          }
+
+          var futureCPPackage = state.cpPackages.filter(item => !item.claimed && item.offerLevel > this.battleLevel).sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id))[0] || null;
+          var futureMaxAlivePackage = state.maxAlivePackages.filter(item => !item.claimed && item.offerLevel > this.battleLevel).sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id))[0] || null;
           var enemyCP = this.getEnemyInitialCP();
-
-          while (temp.playerInitialCP < enemyCP && temp.playerInitialCP < this.getPlayerCPMax()) {
-            var option = this.getPurchaseOptions(temp).find(candidate => candidate.kind === 'initial-cp') || null;
-            if (!option) break;
-            addAction(option);
-          }
-
           var enemyMaxAlive = this.getEnemyMaxAlive();
+          var cpGapRatio = Math.max(0, enemyCP - state.playerInitialCP) / Math.max(1, enemyCP);
+          var maxAliveGapRatio = Math.max(0, enemyMaxAlive - state.playerMaxAlive) / Math.max(1, enemyMaxAlive);
+          var rescueKind = this.selectRescueKind(!!futureCPPackage || state.playerInitialCP < enemyCP, !!futureMaxAlivePackage, cpGapRatio, maxAliveGapRatio);
+          var record = null;
 
-          while (temp.playerMaxAlive < enemyMaxAlive && temp.playerMaxAlive < this.getPlayerMaxAliveMax()) {
-            var _option = this.getPurchaseOptions(temp).find(candidate => candidate.kind === 'max-alive') || null;
-
-            if (!_option) break;
-            addAction(_option);
+          if (rescueKind === 'initial-cp' && futureCPPackage) {
+            var valueBefore = state.playerInitialCP;
+            futureCPPackage.claimed = true;
+            futureCPPackage.claimSource = 'video-rescue';
+            state.playerInitialCP = this.getPlayerCPFromState(state);
+            record = this.createVideoRescueRecord("rescue:" + futureCPPackage.id, 'initial-cp', futureCPPackage.delta, valueBefore, state.playerInitialCP);
+          } else if (rescueKind === 'max-alive' && futureMaxAlivePackage) {
+            var _valueBefore = state.playerMaxAlive;
+            futureMaxAlivePackage.claimed = true;
+            futureMaxAlivePackage.claimSource = 'video-rescue';
+            state.playerMaxAlive = this.getPlayerMaxAliveFromState(state);
+            record = this.createVideoRescueRecord("rescue:" + futureMaxAlivePackage.id, 'max-alive', futureMaxAlivePackage.delta, _valueBefore, state.playerMaxAlive);
+          } else if (state.playerInitialCP < enemyCP) {
+            var _valueBefore2 = state.playerInitialCP;
+            var delta = Math.min(this.getNearestCPPackageDelta(this.battleLevel), enemyCP - state.playerInitialCP);
+            if (delta <= 0) return null;
+            state.playerInitialCPOverflow += delta;
+            state.playerInitialCP = this.getPlayerCPFromState(state);
+            record = this.createVideoRescueRecord("rescue:overflow:" + this.battleLevel + ":" + ("" + (state.adsReward + 1)), 'initial-cp', delta, _valueBefore2, state.playerInitialCP);
           }
 
-          var countOptions = this.getPurchaseOptions(temp).filter(option => option.kind === 'unit-count').sort((a, b) => this.getCountUpgradeDeficit(b, temp) - this.getCountUpgradeDeficit(a, temp) || a.cost - b.cost);
-          addAction(countOptions[0] || null);
-
-          if (actionIds.length <= 0) {
-            var cheapest = this.getPurchaseOptions(temp).sort((a, b) => a.cost - b.cost)[0] || null;
-            addAction(cheapest);
-          }
-
-          return {
-            actionIds,
-            totalCost
-          };
+          if (!record) return null;
+          state.rescueHistory.push(record.id);
+          records.push(record);
+          return record;
         }
 
-        executePreferredPurchases(actionIds, records, source) {
-          var _this2 = this;
+        selectRescueKind(canRescueCP, canRescueMaxAlive, cpGapRatio, maxAliveGapRatio) {
+          if (!canRescueCP && !canRescueMaxAlive) return null;
+          if (!canRescueCP) return 'max-alive';
+          if (!canRescueMaxAlive) return 'initial-cp';
 
-          if (!this.progressionState) return;
-
-          var _loop2 = function _loop2(i) {
-            var option = _this2.getPurchaseOptions(_this2.progressionState).find(candidate => candidate.id === actionIds[i]);
-
-            if (!option) return 0; // continue
-
-            if (option.cost > _this2.progressionState.playerGold) {
-              return 0; // continue
-            }
-
-            records.push(_this2.applyPurchase(option, _this2.progressionState, source));
-          },
-              _ret;
-
-          for (var i = 0; i < actionIds.length; i++) {
-            _ret = _loop2(i);
-            if (_ret === 0) continue;
+          if (maxAliveGapRatio !== cpGapRatio) {
+            return maxAliveGapRatio > cpGapRatio ? 'max-alive' : 'initial-cp';
           }
+
+          return 'initial-cp';
+        }
+
+        createVideoRescueRecord(id, kind, delta, valueBefore, valueAfter) {
+          return {
+            id,
+            kind,
+            label: kind === 'initial-cp' ? "Video rescue +" + delta + " Initial CP" : "Video rescue +" + delta + " Max Alive",
+            family: null,
+            familyName: '',
+            tier: 0,
+            cost: 0,
+            goldBefore: this.progressionState ? this.progressionState.playerGold : 0,
+            goldAfter: this.progressionState ? this.progressionState.playerGold : 0,
+            valueBefore,
+            valueAfter,
+            source: 'video-rescue'
+          };
         }
 
         applyPurchase(option, state, source) {
@@ -975,14 +1023,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         applyPurchaseToState(option, state) {
           if (option.kind === 'initial-cp') {
-            state.playerInitialCPPackagesPurchased++;
-            state.playerInitialCP = this.getPlayerCPForPurchasedPackages(state.playerInitialCPPackagesPurchased);
-            state.playerInitialCP = this.clampPlayerCP(state.playerInitialCP);
+            var packageId = option.id.substring('initial-cp:'.length);
+            var item = state.cpPackages.find(candidate => candidate.id === packageId);
+            if (!item || item.claimed) return;
+            item.claimed = true;
+            item.claimSource = 'purchase';
+            state.playerInitialCP = this.getPlayerCPFromState(state);
             return;
           }
 
           if (option.kind === 'max-alive') {
-            state.playerMaxAlive = this.clampPlayerMaxAlive(state.playerMaxAlive + option.delta);
+            var _packageId = option.id.substring('max-alive:'.length);
+
+            var _item = state.maxAlivePackages.find(candidate => candidate.id === _packageId);
+
+            if (!_item || _item.claimed) return;
+            _item.claimed = true;
+            _item.claimSource = 'purchase';
+            state.playerMaxAlive = this.getPlayerMaxAliveFromState(state);
             return;
           }
 
@@ -1017,14 +1075,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var saved = rule ? this.getSavedUnit(state, this.getRuleKey(rule)) : null;
           if (!saved) return 0;
           return option.kind === 'unit-unlock' ? Number(saved.unlocked) : saved.unitCount;
-        }
-
-        getCountUpgradeDeficit(option, state) {
-          if (option.family === null) return 0;
-          var rule = this.getRule(option.family, option.tier);
-          if (!rule) return 0;
-          var saved = this.getSavedUnit(state, this.getRuleKey(rule));
-          return this.getEnemyUnitCount(rule, this.battleLevel) - (saved ? saved.unitCount : 0);
         }
 
         grantCappedLossGold(state, level, winGold) {
@@ -1176,8 +1226,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleArmyBrain) : BattleArmyBrain);
 
-          for (var _i3 = 0; _i3 < brains.length; _i3++) {
-            var _brain = brains[_i3];
+          for (var _i5 = 0; _i5 < brains.length; _i5++) {
+            var _brain = brains[_i5];
             if (!_brain) continue;
             if (this.clampTeam(_brain.team) !== team) continue;
             result.push(_brain);
@@ -1245,7 +1295,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getRuleUnlockLevel(rule) {
-          return this.clampLevel(rule.unlockLevel);
+          return Math.min(this.getProgressionEndLevel(), this.clampLevel(rule.unlockLevel));
         }
 
         getRuleUnlockCount(rule) {
@@ -1260,74 +1310,131 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return Math.max(0, Math.floor(this.playerInitialCPStart));
         }
 
-        getPlayerCPMax() {
-          return Math.max(this.getPlayerCPStart(), Math.floor(this.playerInitialCPMax));
-        }
-
-        getPlayerCPPackagesUnlocked(level) {
-          var pace = Math.max(0, Math.floor(this.bossStagePace));
-          if (pace <= 0) return 0;
-          return Math.floor(this.clampLevel(level) / pace);
-        }
-
-        getPlayerCPPackagesPurchased(state) {
-          return Math.max(0, Math.min(this.getPlayerCPPackagesUnlocked(this.getSafeTotalLevels()), Math.floor(state.playerInitialCPPackagesPurchased)));
-        }
-
         getPlayerCPMilestoneCap(level) {
-          return this.getPlayerCPForPurchasedPackages(this.getPlayerCPPackagesUnlocked(level));
+          var schedule = this.progressionState ? this.progressionState.cpPackages : this.createCPPackageSchedule();
+          return this.getPlayerCPStart() + schedule.filter(item => item.offerLevel <= this.clampLevel(level)).reduce((sum, item) => sum + item.delta, 0);
         }
 
-        getPlayerCPForPurchasedPackages(packageCount) {
-          var safeCount = Math.max(0, Math.min(this.getPlayerCPPackagesUnlocked(this.getSafeTotalLevels()), Math.floor(packageCount)));
-          var cp = this.getPlayerCPStart();
+        getPlayerCPPackagesOffered(level) {
+          var schedule = this.progressionState ? this.progressionState.cpPackages : this.createCPPackageSchedule();
+          var safeLevel = this.clampLevel(level);
+          return schedule.filter(item => item.offerLevel <= safeLevel).length;
+        }
 
-          for (var packageNumber = 1; packageNumber <= safeCount; packageNumber++) {
-            cp += this.getPlayerCPPackageDelta(packageNumber);
+        getNextAvailableCPPackage(state, level) {
+          var safeLevel = this.clampLevel(level);
+          return state.cpPackages.filter(item => !item.claimed && item.offerLevel <= safeLevel).sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id))[0] || null;
+        }
 
-            if (cp >= this.getPlayerCPMax()) {
-              return this.getPlayerCPMax();
+        getPlayerCPFromState(state) {
+          return this.getPlayerCPStart() + Math.max(0, state.playerInitialCPOverflow) + state.cpPackages.filter(item => item.claimed).reduce((sum, item) => sum + item.delta, 0);
+        }
+
+        createCPPackageSchedule() {
+          var result = [];
+          var milestones = this.getProgressionMilestoneLevels();
+          var previousLevel = 0;
+          var previousCap = this.getPlayerCPStart();
+
+          for (var i = 0; i < milestones.length; i++) {
+            var targetLevel = milestones[i];
+            var targetCap = Math.max(previousCap, this.getLevelBaseInitialCP(targetLevel));
+            var totalDelta = targetCap - previousCap;
+
+            if (totalDelta <= 0) {
+              previousLevel = targetLevel;
+              previousCap = targetCap;
+              continue;
+            }
+
+            var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 1;
+            var lastNormalLevel = targetLevel - 1;
+            var candidateCount = Math.max(1, lastNormalLevel >= firstOfferLevel ? lastNormalLevel - firstOfferLevel + 1 : 1);
+            var packageCount = Math.min(totalDelta, Math.max(1, Math.ceil(candidateCount / 2)));
+            var offerLevels = this.pickDeterministicOfferLevels(firstOfferLevel, lastNormalLevel >= firstOfferLevel ? lastNormalLevel : targetLevel, packageCount, targetLevel, 'cp');
+            var distributed = 0;
+
+            for (var packageIndex = 0; packageIndex < packageCount; packageIndex++) {
+              var cumulative = Math.round(totalDelta * (packageIndex + 1) / packageCount);
+              var delta = cumulative - distributed;
+              distributed = cumulative;
+              result.push({
+                id: "cp:" + targetLevel + ":" + (packageIndex + 1),
+                targetLevel,
+                offerLevel: offerLevels[packageIndex],
+                delta,
+                claimed: false,
+                claimSource: ''
+              });
+            }
+
+            previousLevel = targetLevel;
+            previousCap = targetCap;
+          }
+
+          return result.sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id));
+        }
+
+        getProgressionMilestoneLevels() {
+          var endLevel = this.getProgressionEndLevel();
+          var pace = Math.max(0, Math.floor(this.bossStagePace));
+          var result = [];
+
+          if (pace > 0) {
+            for (var level = pace; level <= endLevel; level += pace) {
+              result.push(level);
             }
           }
 
-          return this.clampPlayerCP(cp);
+          if (result.length <= 0 || result[result.length - 1] !== endLevel) {
+            result.push(endLevel);
+          }
+
+          return result;
         }
 
-        getPlayerCPPackageDelta(packageNumber) {
-          var pace = Math.max(1, Math.floor(this.bossStagePace));
-          var currentBossLevel = Math.min(this.getSafeTotalLevels(), Math.max(1, Math.floor(packageNumber)) * pace);
-          var currentBossCP = this.getLevelInitialCP(currentBossLevel);
-          var previousBossCP = packageNumber > 1 ? this.getLevelInitialCP(currentBossLevel - pace) : this.getLevelBaseInitialCP(1);
-          var bossCPGrowth = Math.max(0, currentBossCP - previousBossCP);
-          return Math.max(0, Math.round(bossCPGrowth * this.getPlayerCPBossGrowthRatio()));
+        pickDeterministicOfferLevels(firstLevel, lastLevel, count, targetLevel, scheduleKey) {
+          var candidates = [];
+
+          for (var level = firstLevel; level <= lastLevel; level++) {
+            candidates.push({
+              level,
+              order: this.stableHash(targetLevel + ":" + level + ":" + (scheduleKey + "-offer"))
+            });
+          }
+
+          return candidates.sort((a, b) => a.order - b.order || a.level - b.level).slice(0, Math.min(count, candidates.length)).map(item => item.level).sort((a, b) => a - b);
         }
 
-        getPlayerCPBossGrowthRatio() {
-          return Math.max(0, Math.min(1, Number.isFinite(this.playerInitialCPBossGrowthRatio) ? this.playerInitialCPBossGrowthRatio : 0.5));
+        stableHash(value) {
+          var hash = 2166136261;
+
+          for (var i = 0; i < value.length; i++) {
+            hash ^= value.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+          }
+
+          return hash >>> 0;
         }
 
         getNextPlayerCPPackageSnapshot(state, level) {
-          var unlocked = this.getPlayerCPPackagesUnlocked(level);
-
-          if (state.playerInitialCPPackagesPurchased >= unlocked) {
-            return null;
-          }
-
-          var packageNumber = state.playerInitialCPPackagesPurchased + 1;
-          var targetCP = this.getPlayerCPForPurchasedPackages(packageNumber);
-          return {
-            packageNumber,
-            delta: Math.max(0, targetCP - state.playerInitialCP),
-            targetCP
-          };
+          var item = this.getNextAvailableCPPackage(state, level);
+          return item ? _extends({}, item) : null;
         }
 
         getUnitProgressionEndLevel() {
-          return Math.max(1, Math.ceil(this.getSafeTotalLevels() * 0.5));
+          return this.getProgressionEndLevel();
         }
 
-        clampPlayerCP(value) {
-          return Math.max(this.getPlayerCPStart(), Math.min(this.getPlayerCPMax(), value));
+        getNearestCPPackageDelta(level) {
+          var schedule = this.progressionState ? this.progressionState.cpPackages : this.createCPPackageSchedule();
+          var nearest = schedule.filter(item => item.delta > 0).sort((a, b) => Math.abs(a.targetLevel - level) - Math.abs(b.targetLevel - level) || a.delta - b.delta)[0] || null;
+          if (nearest) return nearest.delta;
+          var pace = Math.max(1, Math.floor(this.bossStagePace) || 1);
+          var previousLevel = Math.max(1, level - pace);
+          var segmentGrowth = Math.max(1, this.getLevelBaseInitialCP(level) - this.getLevelBaseInitialCP(previousLevel));
+          var normalLevels = Math.max(1, pace - 1);
+          return Math.max(1, Math.round(segmentGrowth / Math.ceil(normalLevels / 2)));
         }
 
         getPlayerMaxAliveStart() {
@@ -1339,23 +1446,93 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getPlayerMaxAliveMilestoneCap(level) {
+          var schedule = this.progressionState ? this.progressionState.maxAlivePackages : this.createMaxAlivePackageSchedule();
+          var safeLevel = this.clampLevel(level);
+          var offeredDelta = schedule.filter(item => item.offerLevel <= safeLevel).reduce((sum, item) => sum + item.delta, 0);
+          return this.clampPlayerMaxAlive(this.getPlayerMaxAliveStart() + offeredDelta);
+        }
+
+        getPlayerMaxAlivePackagesOffered(level) {
+          var schedule = this.progressionState ? this.progressionState.maxAlivePackages : this.createMaxAlivePackageSchedule();
+          var safeLevel = this.clampLevel(level);
+          return schedule.filter(item => item.offerLevel <= safeLevel).length;
+        }
+
+        getNextAvailableMaxAlivePackage(state, level) {
+          var safeLevel = this.clampLevel(level);
+          return state.maxAlivePackages.filter(item => !item.claimed && item.offerLevel <= safeLevel).sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id))[0] || null;
+        }
+
+        getPlayerMaxAliveFromState(state) {
+          var claimedDelta = state.maxAlivePackages.filter(item => item.claimed).reduce((sum, item) => sum + item.delta, 0);
+          return this.clampPlayerMaxAlive(this.getPlayerMaxAliveStart() + claimedDelta);
+        }
+
+        createMaxAlivePackageSchedule() {
+          var result = [];
+
           if (!this.allowMaxWave) {
-            return this.getPlayerMaxAliveMax();
+            var delta = Math.max(0, this.getPlayerMaxAliveMax() - this.getPlayerMaxAliveStart());
+
+            for (var i = 0; i < delta; i++) {
+              result.push({
+                id: "max-alive:1:" + (i + 1),
+                targetLevel: 1,
+                offerLevel: 1,
+                delta: 1,
+                claimed: false,
+                claimSource: ''
+              });
+            }
+
+            return result;
           }
 
-          var total = this.getSafeTotalLevels();
-          var safeLevel = this.clampLevel(level);
-          var progress = total <= 1 ? 1 : (safeLevel - 1) / (total - 1);
-          var enemyBaseMaxAlive = Math.round(this.lerp(this.maxAliveWavesMin, this.maxAliveWavesMax, progress));
-          return Math.min(this.getPlayerMaxAliveMax(), Math.max(this.getPlayerMaxAliveStart(), enemyBaseMaxAlive));
+          var milestones = this.getProgressionMilestoneLevels();
+          var previousLevel = 0;
+          var previousCap = this.getPlayerMaxAliveStart();
+
+          for (var _i6 = 0; _i6 < milestones.length; _i6++) {
+            var targetLevel = milestones[_i6];
+            var targetCap = this.clampPlayerMaxAlive(Math.max(previousCap, this.getLevelBaseMaxAlive(targetLevel)));
+            var totalDelta = targetCap - previousCap;
+
+            if (totalDelta <= 0) {
+              previousLevel = targetLevel;
+              previousCap = targetCap;
+              continue;
+            }
+
+            var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 1;
+            var lastNormalLevel = targetLevel - 1;
+            var safeLastOfferLevel = lastNormalLevel >= firstOfferLevel ? lastNormalLevel : targetLevel;
+            var offerLevels = this.pickDeterministicOfferLevels(firstOfferLevel, safeLastOfferLevel, totalDelta, targetLevel, 'max-alive');
+
+            for (var packageIndex = 0; packageIndex < totalDelta; packageIndex++) {
+              result.push({
+                id: "max-alive:" + targetLevel + ":" + ("" + (packageIndex + 1)),
+                targetLevel,
+                offerLevel: offerLevels[packageIndex % offerLevels.length],
+                delta: 1,
+                claimed: false,
+                claimSource: ''
+              });
+            }
+
+            previousLevel = targetLevel;
+            previousCap = targetCap;
+          }
+
+          return result.sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id));
+        }
+
+        getNextPlayerMaxAlivePackageSnapshot(state, level) {
+          var item = this.getNextAvailableMaxAlivePackage(state, level);
+          return item ? _extends({}, item) : null;
         }
 
         clampPlayerMaxAlive(value) {
           return Math.max(this.getPlayerMaxAliveStart(), Math.min(this.getPlayerMaxAliveMax(), value));
-        }
-
-        cloneProgressionState(state) {
-          return JSON.parse(JSON.stringify(state));
         }
 
         loadProgressionState() {
@@ -1369,6 +1546,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
+        clearProgressionStorage() {
+          var keys = [this.progressionStorageKey, 'battle-progression-v1', 'battle-progression-v2', 'battle-progression-v3', 'battle-progression-v4', 'battle-progression-v5'];
+
+          for (var i = 0; i < keys.length; i++) {
+            if (keys.indexOf(keys[i]) !== i) continue;
+            sys.localStorage.removeItem(keys[i]);
+          }
+        }
+
         saveProgressionState() {
           if (!this.progressionState) return;
           sys.localStorage.setItem(this.progressionStorageKey, JSON.stringify(this.progressionState));
@@ -1379,7 +1565,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!window.location) return '';
           var location = window.location;
           var params = new URLSearchParams(location.search);
-          var removeKeys = ['currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end'];
+          var removeKeys = ['currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end', 'resetProgression', 'reset'];
 
           for (var i = 0; i < removeKeys.length; i++) {
             params.delete(removeKeys[i]);
@@ -1387,9 +1573,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           params.set('progression', '1');
+          params.set('progressionResume', '1');
           params.set('currentLevel', "" + this.clampLevel(level));
           params.set('TotalLevels', "" + this.getSafeTotalLevels());
+          params.set('ProgressionEndLevel', "" + this.getProgressionEndLevel());
           params.delete('totalLevels');
+          params.delete('progressionEndLevel');
           var origin = location.origin || location.protocol + "//" + location.host;
           var query = params.toString();
           return "" + origin + location.pathname + ("" + (query ? "?" + query : '')) + ("" + (location.hash || ''));
@@ -1409,11 +1598,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var totalLevels = this.getQueryInt(params, ['TotalLevels', 'totalLevels'], 0);
           var queriedLevel = this.getQueryInt(params, ['currentLevel'], this.currentLevel);
-          this.resetProgressionRequested = queriedLevel <= 0;
-          this.levelQueryActive = totalLevels > 0 || progressionParam === 1 || params.has('currentLevel');
+          var queriedProgressionEnd = this.getQueryInt(params, ['ProgressionEndLevel', 'progressionEndLevel'], 0);
+          var progressionResume = this.getQueryInt(params, ['progressionResume'], 0);
+          var forceProgressionReset = this.getQueryInt(params, ['resetProgression', 'reset'], 0) === 1;
+          var hasQueriedLevel = params.has('currentLevel') || params.has('?currentLevel');
+          this.resetProgressionRequested = forceProgressionReset || queriedLevel <= 0 || hasQueriedLevel && queriedLevel === 1 && progressionResume !== 1;
+          this.levelQueryActive = totalLevels > 0 || queriedProgressionEnd > 0 || progressionParam === 1 || forceProgressionReset || hasQueriedLevel;
 
           if (totalLevels > 0) {
             this.totalLevels = Math.max(1, totalLevels);
+          }
+
+          if (queriedProgressionEnd > 0) {
+            this.progressionEndLevel = Math.max(1, queriedProgressionEnd);
           }
 
           if (this.levelQueryActive) {
@@ -1438,18 +1635,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getDifficulty01() {
-          return this.getLevelProgress01(this.getSafeCurrentLevel());
+          return this.getProgression01(this.getSafeCurrentLevel());
         }
 
-        getLevelProgress01(level) {
-          var total = this.getSafeTotalLevels();
+        getProgression01(level) {
+          var endLevel = this.getProgressionEndLevel();
           var safeLevel = this.clampLevel(level);
-          if (total <= 1) return 1;
-          return (safeLevel - 1) / (total - 1);
+          if (endLevel <= 1) return 1;
+          return this.clamp01((safeLevel - 1) / (endLevel - 1));
+        }
+
+        getProgressionEndLevel() {
+          return Math.max(1, Math.min(this.getSafeTotalLevels(), Math.floor(this.progressionEndLevel)));
         }
 
         getLevelBaseInitialCP(level) {
-          return Math.round(this.lerp(this.initialCombatPointMin, this.initialCombatPointMax, this.getLevelProgress01(level)));
+          return Math.round(this.lerp(this.initialCombatPointMin, this.initialCombatPointMax, this.getProgression01(level)));
+        }
+
+        getLevelBaseMaxAlive(level) {
+          return Math.round(this.lerp(this.maxAliveWavesMin, this.maxAliveWavesMax, this.getProgression01(level)));
         }
 
         getLevelInitialCP(level) {
@@ -1507,280 +1712,273 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 300;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "currentLevel", [_dec9], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "progressionEndLevel", [_dec9], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 50;
+        }
+      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "currentLevel", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "bossStagePace", [_dec10], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "bossStagePace", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "bossInitialCombatPointMultiplier", [_dec11], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "bossInitialCombatPointMultiplier", [_dec12], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.2;
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "bossDecisionAccuracyMultiplier", [_dec12], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "bossDecisionAccuracyMultiplier", [_dec13], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.2;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "bossMaxAliveWavesMultiplier", [_dec13], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "bossMaxAliveWavesMultiplier", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.2;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "targetTeam", [_dec14], {
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "targetTeam", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "gameManager", [_dec15], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "gameManager", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "battleArmyBrains", [_dec16], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "battleArmyBrains", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "allowCP", [_dec17], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "allowCP", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "initialCombatPointMin", [property], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "initialCombatPointMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 600;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class5.prototype, "initialCombatPointMax", [property], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "initialCombatPointMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1040;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class5.prototype, "allowDecisionAccuracy", [_dec18], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "allowDecisionAccuracy", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "decisionAccuracyMin", [_dec19], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "decisionAccuracyMin", [_dec20], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.4;
         }
-      }), _descriptor20 = _applyDecoratedDescriptor(_class5.prototype, "decisionAccuracyMax", [_dec20], {
+      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "decisionAccuracyMax", [_dec21], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor21 = _applyDecoratedDescriptor(_class5.prototype, "allowInterval", [_dec21], {
+      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "allowInterval", [_dec22], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor22 = _applyDecoratedDescriptor(_class5.prototype, "minSpawnIntervalMinLevel", [_dec22], {
+      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "minSpawnIntervalMinLevel", [_dec23], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5.0;
         }
-      }), _descriptor23 = _applyDecoratedDescriptor(_class5.prototype, "maxSpawnIntervalMinLevel", [_dec23], {
+      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "maxSpawnIntervalMinLevel", [_dec24], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 6.0;
         }
-      }), _descriptor24 = _applyDecoratedDescriptor(_class5.prototype, "minSpawnIntervalMaxLevel", [_dec24], {
+      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "minSpawnIntervalMaxLevel", [_dec25], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 2.7;
         }
-      }), _descriptor25 = _applyDecoratedDescriptor(_class5.prototype, "maxSpawnIntervalMaxLevel", [_dec25], {
+      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "maxSpawnIntervalMaxLevel", [_dec26], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3.7;
         }
-      }), _descriptor26 = _applyDecoratedDescriptor(_class5.prototype, "allowMaxWave", [_dec26], {
+      }), _descriptor27 = _applyDecoratedDescriptor(_class5.prototype, "allowMaxWave", [_dec27], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor27 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWavesMin", [property], {
+      }), _descriptor28 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWavesMin", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor28 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWavesMax", [property], {
+      }), _descriptor29 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWavesMax", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 15;
         }
-      }), _descriptor29 = _applyDecoratedDescriptor(_class5.prototype, "enableProgression", [_dec27], {
+      }), _descriptor30 = _applyDecoratedDescriptor(_class5.prototype, "enableProgression", [_dec28], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor30 = _applyDecoratedDescriptor(_class5.prototype, "autoReloadProgression", [_dec28], {
+      }), _descriptor31 = _applyDecoratedDescriptor(_class5.prototype, "autoReloadProgression", [_dec29], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor31 = _applyDecoratedDescriptor(_class5.prototype, "purchasingSimulation", [_dec29], {
+      }), _descriptor32 = _applyDecoratedDescriptor(_class5.prototype, "purchasingSimulation", [_dec30], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor32 = _applyDecoratedDescriptor(_class5.prototype, "progressionStorageKey", [_dec30], {
+      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "progressionStorageKey", [_dec31], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 'battle-progression-v3';
+          return 'battle-progression-v5';
         }
-      }), _descriptor33 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec31], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec32], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec32], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec33], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 300;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPBossGrowthRatio", [_dec33], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 0.5;
-        }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPMax", [_dec34], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 1248;
-        }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec35], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec34], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 4;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec36], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec35], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec37], {
+      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec36], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "lossGoldRatio", [_dec38], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "lossGoldRatio", [_dec37], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "maxLossGoldRatioPerLevel", [_dec39], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "maxLossGoldRatioPerLevel", [_dec38], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.75;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "lossesPerVideoReward", [_dec40], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "lossesPerVideoReward", [_dec39], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 5;
+          return 3;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec41], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec40], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 20;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec42], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec41], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec43], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec42], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1000;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec44], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec43], {
         configurable: true,
         enumerable: true,
         writable: true,
