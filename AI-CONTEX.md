@@ -2,10 +2,10 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last updated: 2026-08-03 after implementing the current campaign progression,
-aligning player upgrade availability with enemy progression, raising enemy
-starting accuracy to `0.4`, and analyzing the latest 68-battle run covering
-levels 1-60.
+Last updated: 2026-08-03 after replacing fixed player Initial CP purchases with
+dynamic boss-growth packages and analyzing the first complete progression-v3
+run. That run contains 65 attempts across levels 1-25 and is blocked at boss
+level 25 because the rewarded-video rescue has no legal capped upgrade to buy.
 
 This document describes the current source and active `assets/Test.scene`. It
 replaces older progression proposals and old telemetry conclusions. Read the
@@ -149,7 +149,7 @@ values.
 `LevelSettings` stores campaign state in browser local storage under:
 
 ```text
-battle-progression-v2
+battle-progression-v3
 ```
 
 Saved fields include:
@@ -160,6 +160,7 @@ Saved fields include:
 - current consecutive loss count;
 - per-level loss-Gold amount already claimed;
 - player Initial CP;
+- number of dynamic Initial CP packages purchased;
 - player Max Alive;
 - total purchase count;
 - each unit's offered, unlocked, and `unitCount` state.
@@ -176,11 +177,13 @@ storage key and then starts level 1. It does not mean battle level zero.
 To continue a saved run while explicitly selecting a level:
 
 ```text
-http://localhost:7456/?progression=1&currentLevel=61&TotalLevels=100
+http://localhost:7456/?progression=1&currentLevel=26&TotalLevels=100
 ```
 
 The queried level replaces the saved current level, but owned upgrades and Gold
-remain unless `currentLevel=0` is used.
+remain unless `currentLevel=0` is used. Version 2 state is intentionally not
+reused: the v3 key prevents old fixed `+50 CP` purchases from contaminating the
+new dynamic package curve.
 
 ### Battle Lifecycle
 
@@ -246,31 +249,41 @@ Active values:
 
 ```text
 start = 300
-step = 50
+boss-growth ratio = 0.5
 maximum = 1248
 ```
 
-One cumulative `+50 Initial CP` purchase right opens at each boss level:
+One cumulative Initial CP purchase right opens at each boss level. Its size is
+derived from half of the enemy's effective CP increase from the previous boss:
 
 ```text
 packagesUnlocked = floor(level / bossStagePace)
-milestoneCap = min(1248, 300 + packagesUnlocked * 50)
+packageDelta(n) = round(
+    max(0, effectiveBossCP(n) - effectiveBossCP(n - 1)) * 0.5
+)
+playerCP = min(1248, 300 + sum(purchased package deltas))
 ```
 
-Examples:
+For the first package, the comparison baseline is enemy base CP at level 1,
+not a fictional level-0 boss. With the active 100-level scene this gives:
 
-| Level | Player CP purchase cap |
-| ---: | ---: |
-| 1-4 | 300 |
-| 5 | 350 |
-| 10 | 400 |
-| 25 | 550 |
-| 50 | 800 |
-| 60 | 900 |
-| 95-100 | 1248 |
+| Boss level | Package delta | Cumulative player CP cap |
+| ---: | ---: | ---: |
+| 5 | +44 | 344 |
+| 10 | +24 | 368 |
+| 15 | +24 | 392 |
+| 20 | +24 | 416 |
+| 25 | +24 | 440 |
+| 50 | +24 | 560 |
+| 60 | +24 | 608 |
+| 100 | +24 | 800 |
 
 Rights accumulate. If the player cannot afford a package at its boss, it can
-be purchased later. The cap is not a free grant.
+be purchased later. Each purchase always buys the next unopened package and
+uses its exact delta; the cap is not a free grant. Package size is based on the
+enemy's effective boss CP, including the boss CP multiplier. The current player
+CP slope is therefore about `4.8 CP/level`, versus about `7.98 CP/level` for the
+enemy base curve.
 
 ### Player Max Alive
 
@@ -327,7 +340,8 @@ Current tier-1 prices:
 | +1 Axeman | 296 |
 | +1 Archer | 173 |
 | +1 Cavalry | 388 |
-| +50 Initial CP | 500 |
+| First Initial CP package (+44) | 440 |
+| Typical later Initial CP package (+24) | 240 |
 | Max Alive 4 -> 5 | 1000 |
 | Max Alive 5 -> 6 | 1250 |
 | Max Alive 6 -> 7 | 1500 |
@@ -373,6 +387,17 @@ Rescue preference order is:
 
 The plan still respects all milestone caps. There is currently no permanent
 "give up after six losses" behavior.
+
+Important source nuance: `levelLossCount` increments on any Team A loss, while
+loss Gold requires a valid exhausted loss. A rewarded-video trigger can
+therefore occur after losses that did not qualify for loss Gold. Decide whether
+this distinction is intentional before changing it.
+
+Important observed failure: a rescue plan can legally be empty. At level 25 in
+the latest run, Team A had reached every current milestone cap, so six rescue
+triggers produced `rescueActions = []` and `rescueGold = 0`. `adsReward` still
+incremented and the streak reset, but the retry state did not improve. This is
+the highest-priority unresolved progression issue.
 
 ## AI Behavior Relevant To Progression
 
@@ -483,8 +508,8 @@ Before drawing conclusions:
 6. Verify the active accuracy/CP/Max Alive values recorded in each report.
 7. Exclude reports from another reset/run rather than forcing them into the
    sequence.
-8. Report the actual covered range. The latest batch stops at level 60 and is
-   not evidence for levels 61-100.
+8. Report the actual covered range. The latest v3 batch stops at level 25 and
+   is not evidence for levels 26-100.
 
 ### Primary Experience Metrics
 
@@ -550,159 +575,201 @@ than a fixed win-rate threshold at every level:
 - by level 50 both sides can reach the complete mature tier-1 roster;
 - levels 51-100 test choices/mastery rather than unlock availability.
 
-## Latest Telemetry Evidence: Levels 1-60
+## Latest Telemetry Evidence: Progression V3, Levels 1-25
 
-Dataset:
+### Dataset And Integrity
 
-- 68 reports from `2026-08-02T19-45-59-144Z` through
-  `2026-08-02T20-09-41-127Z`;
-- 60 unique levels, complete level sequence 1-60;
-- eight reports are valid retries;
-- enemy starting accuracy `0.4` is present in the reports;
-- the run stopped after winning level 60, so campaign completion is untested.
+- 65 reports dated `2026-08-03`, covering 25 unique levels and 40 retries;
+- all reports use `storageVersion = 3`, `TotalLevels = 100`, and player CP
+  boss-growth ratio `0.5`;
+- the files form one continuous saved progression state despite a timestamp gap
+  between levels 4 and 5;
+- level 4 ended with `1048` Gold, and level 5 immediately spent `440` on the
+  first `+44 CP` package, confirming continuity;
+- the run is blocked on level 25 and contains no evidence for levels 26-100;
+- the earlier v2/fixed-`+50 CP` level-1-to-60 batch is historical only. Do not
+  combine its economy conclusions with this v3 run.
 
-### Results
-
-```text
-Battle attempts: 68
-Player wins: 60
-Player losses: 8
-Attempt win rate: 88.2%
-First-attempt clears: 55/60 = 91.7%
-Average duration: 44.2 s
-Median duration: about 43.1 s
-Duration range: 27.4-69.8 s
-Rewarded-video triggers: 0
-```
-
-Retry sequences:
-
-| Level | Sequence |
-| ---: | --- |
-| 10 | L L L W |
-| 15 | L W |
-| 25 | L L W |
-| 40 | L W |
-| 43 | L W |
-
-Seven of eight losses occurred on bosses. Across attempts, bosses won only
-`12/19` for Team A (`63.2%`), while normal levels were `48/49` (`98.0%`).
-Bosses therefore create the current challenge; normal levels are nearly free.
-
-The best observed progression loop is level 10:
-
-- Team A lost three times;
-- bounded loss Gold accumulated;
-- Axeman was purchased for `1480` Gold after the third loss;
-- Team A won the fourth attempt.
-
-At level 25, Archer was purchased after the first loss; Team A lost once more
-and then won. Levels 15, 40, and 43 resolved on retry without a new purchase,
-which is consistent with battle noise rather than a hard wall.
-
-### Accuracy Result
-
-Enemy level 1-9 spawns:
+### Experience Results
 
 ```text
-Spear: 34
-Sword: 24
-Opening Sword: 9/9
-Deliberate mistakes: 23/58 = 39.7%
+Battle attempts: 65
+Player wins: 24
+Player losses: 41
+Attempt win rate: 36.9%
+Unique levels cleared: 24/25
+First-attempt clears: 21/25 = 84.0%
+Average duration: 37.34 s
+p95 duration: 43.92 s
+Rewarded-video triggers: 6
 ```
 
-Enemy mistake rate by stage:
+Normal and boss attempts diverge sharply:
 
-| Levels | Deliberate mistakes / spawns |
-| --- | ---: |
-| 1-9 | 39.7% |
-| 10-24 | 40.9% |
-| 25-44 | 21.0% |
-| 45-60 | 15.9% |
+| Stage type | Attempts | Team A wins | Win rate |
+| --- | ---: | ---: | ---: |
+| Normal | 21 | 20 | 95.2% |
+| Boss | 44 | 4 | 9.1% |
 
-Raising starting accuracy from `0` to `0.4` materially reduced the previous
-Spear-only appearance while preserving visible early mistakes. No further
-accuracy change is currently justified by this batch.
+Normal first-attempt clears were `19/20`. Boss first-attempt clears were `2/5`.
+The campaign therefore alternates between nearly free normal levels and severe
+boss walls; the aggregate 36.9% attempt win rate hides that sawtooth.
 
-### Purchase And Gold Result
+Important retry sequences:
 
-Team A made 41 purchases:
+| Level | Sequence | Final state |
+| ---: | --- | --- |
+| 10 | `BBBBBBBBA` | Cleared on attempt 9 |
+| 15 | `BBBBA` | Cleared on attempt 5 |
+| 19 | `BA` | Normal-level retry |
+| 20 | `A` | Boss cleared first attempt |
+| 25 | 28 consecutive `B` wins | Still blocked |
+
+### Level 25 Wall
+
+Active battle values at level 25:
+
+| Metric | Team A | Team B | Enemy advantage |
+| --- | ---: | ---: | ---: |
+| Initial CP | 440 | 530 | +20.5% versus A |
+| Max Alive Waves | 5 | 8 | +60.0% capacity |
+| Accuracy | 1.0 | 0.81818 | A is smarter |
+
+Team A has `17.0%` less CP relative to Team B's total and `37.5%` fewer slots
+relative to Team B's eight. The boss simultaneously multiplies CP by `1.2` and
+Max Alive by `1.5`; this combined resource/capacity spike is the primary cause.
+
+The 28 level-25 losses are usually decisive rather than coin flips:
+
+```text
+Team B surviving units: average 16.39, minimum 5, maximum 29
+Losses with <= 10 Team B survivors: 5/28
+Team B remaining CP: average 10.57, minimum 2, maximum 22
+Average damage: Team A 4991.32, Team B 5643.04 (+13.1%)
+Average kills: Team A 45.39, Team B 52.18 (+15.0%)
+```
+
+Both sides spend almost all CP, so the wall is not caused by a no-spawn stall or
+CP hoarding. Team A melee damage/CP remains competitive; the loss is driven by
+the available force envelope and the support access that envelope creates.
+
+Level-25 spawn totals across 28 attempts:
+
+| Family | Team A waves | Team B waves |
+| --- | ---: | ---: |
+| Spear | 42 | 42 |
+| Sword | 62 | 70 |
+| Axeman | 90 | 114 |
+| Archer | 25 | 40 |
+
+Team B produces `1.43` Archer waves per attempt versus Team A's `0.89`. This is
+consistent with Team B maintaining more/durable frontline slots, not evidence
+that ranged-cap logic was bypassed.
+
+Level-25 damage/CP:
+
+| Family | Team A | Team B |
+| --- | ---: | ---: |
+| Archer | 6.33 | 7.34 |
+| Axeman | 11.72 | 11.21 |
+| Spear | 6.65 | 5.97 |
+| Sword | 11.02 | 11.35 |
+
+Across the full 65-report batch, Team A/Team B damage per CP was Archer
+`6.33/7.34`, Axeman `11.69/10.93`, Spear `6.81/6.39`, and Sword `11.19/10.36`.
+Do not rebalance tier-1 melee stats from this run: Team A's melee efficiency is
+already comparable or better despite losing the campaign wall.
+
+### Economy And Purchase Result
+
+Team A made 14 purchases and spent `5696` Gold:
 
 | Kind | Count | Gold spent |
 | --- | ---: | ---: |
-| Initial CP | 12 | 6000 |
-| Unit count | 22 | 5526 |
-| Unit unlock | 4 | 4920 |
-| Max Alive | 3 | 3750 |
+| Initial CP | 5 | 1400 |
+| Unit count | 6 | 2296 |
+| Unit unlock | 2 | 2000 |
+| Max Alive | 1 | 1000 |
+
+The CP purchases were `+44` at level 5 for `440` Gold, followed by four `+24`
+packages for `240` Gold each. Unlock purchases were Axeman (`1480`) and Archer
+(`520`). Total rewards were `9593`; Team A retained `3897` Gold at the wall.
+
+Level-25 loss Gold behaved as authored: the first three losses granted
+`133 + 133 + 132 = 398`, exactly 75% of the level's `530`-Gold win reward;
+later losses granted zero. The blocker is not insufficient currency. It is that
+every currently permitted progression purchase is capped.
+
+### Rewarded-Video Rescue Failure
+
+There were six rescue triggers: one at level 10 and five at level 25. Every one
+recorded:
 
 ```text
-Total Gold earned: 31,304
-Total Gold spent: 20,196
-Gold retained after level 60: 11,108
-Rescue Gold: 0
+rescueActions = []
+rescueGold = 0
 ```
 
-All families and mature counts were obtained by level 50. At level 60 Team A
-had CP `900`, Max Alive `7`, all families, and mature counts. No purchase was
-available after the pre-battle CP package; the large remaining Gold balance was
-therefore not a purchase-simulation refusal.
+At level 25, Team A already had all rights currently exposed by the milestone:
 
-### Current Main Concern
+- Initial CP packages `5/5`, giving CP `440`;
+- Max Alive `5`, equal to the permanent base cap at level 25, while the boss's
+  temporary multiplier raises Team B to `8`;
+- Spear/Sword/Axeman count `7`, matching current enemy/base count caps;
+- Archer unlocked at count `3`;
+- no other unit family offered yet;
+- `3897` Gold present but `availablePurchases = []`.
 
-The current difficulty curve is sawtoothed:
+`createRescuePlan()` respects the same milestone caps as ordinary purchasing,
+so it cannot create a path forward precisely when a boss spike exceeds those
+caps. It still increments `adsReward` and resets the streak. Level 10 eventually
+cleared through battle noise after eight losses; level 25 has not cleared after
+28 attempts. This is a design deadlock, not a telemetry or purchase-loop bug.
 
-- the player's `+50 CP` boss purchase is permanent;
-- the enemy's `x1.2` boss CP disappears on the following normal level;
-- player CP grows about 10 per level (`50 / 5`), while enemy base CP grows
-  about 8 per level;
-- the player also starts 50 CP ahead.
+### Current Verdict
 
-Observed average player CP advantage:
-
-| Levels | Average Team A CP advantage |
-| --- | ---: |
-| 1-9 | 39.6 |
-| 10-24 | 48.5 |
-| 25-44 | 80.9 |
-| 45-60 | 112.2 |
-
-At boss level 60 the gap was only `900 vs 865` (`+35`), but surrounding normal
-levels can give Team A roughly `+130` to `+150` CP because the boss multiplier
-has dropped. Team A won all 16 attempts from levels 45-60.
-
-Current verdict:
-
-- accuracy `0.4 -> 1`: working;
-- unit unlock/count schedule: working;
-- purchase simulation and retry loop: working;
-- boss spikes: working and meaningful;
-- five-loss rescue: implemented but not exercised;
-- normal-level challenge after midgame: too weak in this sample;
-- Gold pressure after roster maturity: too weak, with a large unspendable bank.
-
-Do not respond to this concern by reducing player AI accuracy or changing unit
-stats. The causal surfaces are player CP entitlement versus enemy base CP and
-the lack of post-maturity Gold sinks/content.
+- Dynamic CP package calculation, pricing, persistence, and telemetry work.
+- Purchase simulation spends available Gold and is not refusing legal options.
+- Loss Gold cap works.
+- Normal levels are currently too easy (`95.2%` attempt win rate).
+- Boss difficulty is too concentrated (`9.1%` attempt win rate).
+- The combined boss CP and Max Alive multipliers can create a structural wall.
+- Rewarded-video rescue is ineffective whenever all base milestone caps are
+  reached; more Gold alone cannot solve that state.
+- No unit-stat, counter, or accuracy change is justified by this batch.
+- Continuing the unchanged run will mostly generate more equivalent level-25
+  losses and is not useful evidence.
 
 ## Open Decisions For The Next Session
 
-1. Decide whether normal levels are intentionally relief stages or whether
-   their near-98% clear rate is too low-risk. This is the next product decision.
-2. If normal levels need more pressure, align the cumulative player CP
-   entitlement with the enemy base curve while preserving temporary boss
-   spikes. Avoid per-level special cases.
-3. Decide whether Gold banked after level 50 is intentional preparation for
-   future tier 2/3/cards, or whether tier-1 progression needs another meaningful
-   sink. Do not add a sink only to consume currency; it must represent player
-   power or choice.
-4. Continue levels 61-100 before claiming final-campaign behavior. The current
-   run proves only levels 1-60.
-5. Exercise the five-loss rescue in a controlled run and verify `adsReward`,
-   `rescueGold`, chosen actions, and retry behavior.
-6. Keep enemy accuracy minimum at `0.4` unless a new batch shows a concrete
-   decision-quality problem.
-7. Tier 2/3 remain future work. Do not implement them until the tier-1 campaign
-   economy and CP curve are accepted.
+Resolve the rescue deadlock before another long telemetry batch. Preferred
+direction:
+
+1. When the rescue plan is empty, allow one next locked progression milestone
+   to be pulled forward: Initial CP, Max Alive, or the largest useful count
+   upgrade. Reuse the existing purchase system rather than adding hidden combat
+   power. This is the recommended design, but it is not implemented.
+2. If the player already has enough Gold, spend that Gold. Grant only the
+   shortfall as rewarded-video Gold. An ad that only grants more unusable Gold
+   does not rescue the run.
+3. Define deterministic priority among CP, Max Alive, and count. The choice
+   should target the actual deficit, remain visible in telemetry, and advance at
+   most one future milestone per rescue trigger.
+4. Decide whether repeated rescues may pull multiple future milestones forward
+   on the same boss, or whether a per-level/per-type limit is needed.
+5. As an alternative product decision, reduce boss CP and/or Max Alive
+   multipliers. This is broader difficulty tuning and should not be combined
+   blindly with a strong rescue fallback in the same experiment.
+6. Decide whether `levelLossCount` should increment only for valid exhausted
+   losses, matching loss-Gold eligibility, or whether every loss intentionally
+   advances the rewarded-video streak.
+7. After implementing the chosen rescue rule, reset with `currentLevel=0` and
+   run a fresh v3 batch. Measure normal versus boss attempts separately and
+   verify every rescue trigger has a meaningful action.
+8. Do not tune unit stats, counter multipliers, or Team A accuracy to solve the
+   level-25 wall. The current evidence points to progression capacity.
+9. Tier 2/3 remain future work until the tier-1 progression and rescue loop are
+   accepted.
 
 ## Roadmap Artifact
 
@@ -719,11 +786,14 @@ It was updated with:
 - Cavalry at level 35;
 - Monk at level 45;
 - unit progression ending at level 50;
-- player CP boss-package caps;
+- dynamic player CP packages based on 50% of boss-to-boss effective enemy CP
+  growth;
 - enemy accuracy minimum `0.4`.
 
-The file is currently untracked in Git. Add it deliberately when preparing the
-progression changes for commit; do not assume it is already versioned.
+The file is tracked in Git (introduced by commit `05477ae0`) and currently has
+authored modifications. Keep it synchronized whenever progression formulas or
+scene values change, but treat `LevelSettings.ts` plus `assets/Test.scene` as
+the runtime source of truth.
 
 ## Preserved Performance Baseline
 
@@ -761,13 +831,13 @@ Cocos TypeScript noEmit with skipLibCheck/module override: PASS
 assets/Test.scene JSON parse: PASS
 Roadmap embedded script syntax: PASS
 git diff --check on progression files: PASS (line-ending warnings only)
-Latest telemetry parse: PASS (68 reports, 60 unique levels, 8 retries)
+Latest telemetry parse: PASS (65 reports, 25 unique levels, 40 retries)
 ```
 
 TypeScript command used because the global `npx` installation is broken:
 
 ```powershell
-& 'C:\Users\tranl\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' `
+& 'C:\Users\CPU\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' `
   'C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\lib\tsc.js' `
   --noEmit --skipLibCheck --module esnext -p tsconfig.json
 ```
@@ -789,10 +859,8 @@ Known local issues:
 Relevant authored changes currently include:
 
 - `assets/scripts/LevelSettings.ts`
-- `assets/scripts/GameManager.ts`
-- `assets/scripts/BattleTelemetry.ts`
 - `assets/Test.scene`
-- `tools/battle-progression-roadmap.html` (untracked)
+- `tools/battle-progression-roadmap.html` (tracked)
 - `AI-CONTEX.md`
 
 Cocos has also modified/generated many files under `library/`, `profiles/`, and
@@ -807,4 +875,5 @@ Before a future commit:
 3. verify the active scene values listed above;
 4. compile TypeScript;
 5. parse the scene JSON;
-6. ensure the roadmap is intentionally added if it should be versioned.
+6. keep the tracked roadmap change with the corresponding progression source
+   change.

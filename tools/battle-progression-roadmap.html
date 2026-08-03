@@ -267,7 +267,7 @@
       <h2>Player progression</h2>
       <table>
         <tbody>
-          <tr><th>Initial CP</th><td>300; mỗi boss mở thêm một gói +50 tích lũy; trần 1248</td></tr>
+          <tr><th>Initial CP</th><td>300; mỗi boss mở một gói bằng 50% mức tăng CP boss-to-boss; trần 1248</td></tr>
           <tr><th>Max Alive</th><td>Mở mua +1 theo Max Alive nền của enemy; boss không mở cap vĩnh viễn</td></tr>
           <tr><th>Accuracy</th><td>1.0 cố định trong mô phỏng</td></tr>
           <tr><th>Gold đầu game</th><td>0</td></tr>
@@ -284,7 +284,7 @@
           <tr><th>Thua hợp lệ</th><td>25% reward thắng</td></tr>
           <tr><th>Loss cap/level</th><td>75% reward thắng</td></tr>
           <tr><th>Video reward</th><td>Sau mỗi 5 trận thua</td></tr>
-          <tr><th>+50 Initial CP</th><td>500 gold; mỗi boss mở thêm một quyền mua</td></tr>
+          <tr><th>Initial CP package</th><td>10 gold/CP; delta bằng 50% mức tăng CP boss-to-boss</td></tr>
           <tr><th>+1 Max Alive</th><td><code>1000 x current / 4</code></td></tr>
         </tbody>
       </table>
@@ -327,7 +327,7 @@
     bossAlive: 1.5,
     unlockCostMultiplier: 20,
     playerCPStart: 300,
-    playerCPStep: 50,
+    playerCPBossGrowthRatio: 0.5,
     playerCPMax: 1248,
   };
 
@@ -345,15 +345,50 @@
   const bossAt = level => level % config.bossPace === 0;
   const progressAt = level => (level - 1) / (config.totalLevels - 1);
   const cpPackagesAt = level => Math.floor(level / config.bossPace);
-  const playerCPCapAt = level => Math.min(
-    config.playerCPMax,
-    config.playerCPStart + cpPackagesAt(level) * config.playerCPStep
+
+  const baseEnemyCPAt = level => Math.round(lerp(
+    config.cpMin,
+    config.cpMax,
+    progressAt(level)
+  ));
+
+  const enemyCPAt = level => Math.round(
+    baseEnemyCPAt(level) * (bossAt(level) ? config.bossCP : 1)
   );
+
+  const cpPackageDeltaAt = packageNumber => {
+    const bossLevel = Math.min(
+      config.totalLevels,
+      packageNumber * config.bossPace
+    );
+    const currentBossCP = enemyCPAt(bossLevel);
+    const previousBossCP = packageNumber > 1
+      ? enemyCPAt(bossLevel - config.bossPace)
+      : baseEnemyCPAt(1);
+
+    return Math.max(0, Math.round(
+      (currentBossCP - previousBossCP) *
+      config.playerCPBossGrowthRatio
+    ));
+  };
+
+  const playerCPCapAt = level => {
+    let cp = config.playerCPStart;
+    const packageCount = cpPackagesAt(level);
+
+    for (let packageNumber = 1;
+      packageNumber <= packageCount;
+      packageNumber++) {
+      cp += cpPackageDeltaAt(packageNumber);
+    }
+
+    return Math.min(config.playerCPMax, cp);
+  };
 
   function enemyAt(level) {
     const t = progressAt(level);
     const boss = bossAt(level);
-    const baseCP = Math.round(lerp(config.cpMin, config.cpMax, t));
+    const baseCP = baseEnemyCPAt(level);
     const baseAccuracy = lerp(config.accuracyMin, config.accuracyMax, t);
     const baseAlive = Math.round(lerp(config.aliveMin, config.aliveMax, t));
     return {

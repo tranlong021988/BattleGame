@@ -39,6 +39,7 @@ interface SavedProgressionState {
     lossGoldLevel: number;
     lossGoldClaimed: number;
     playerInitialCP: number;
+    playerInitialCPPackagesPurchased: number;
     playerMaxAlive: number;
     totalPurchases: number;
     units: SavedUnitProgression[];
@@ -237,7 +238,7 @@ export class LevelSettings extends Component
     @property({
         tooltip: 'Persistent campaign storage key. Use currentLevel=0 in the URL to clear this state before level 1.'
     })
-    progressionStorageKey = 'battle-progression-v2';
+    progressionStorageKey = 'battle-progression-v3';
 
     @property({ min: 0, step: 1 })
     initialPlayerGold = 0;
@@ -245,8 +246,14 @@ export class LevelSettings extends Component
     @property({ min: 0, step: 1 })
     playerInitialCPStart = 300;
 
-    @property({ min: 1, step: 1 })
-    playerInitialCPStep = 50;
+    @property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        displayName: 'Player CP Boss Growth Ratio',
+        tooltip: 'Each boss unlocks an Initial CP package equal to this share of the enemy CP increase since the previous boss.'
+    })
+    playerInitialCPBossGrowthRatio = 0.5;
 
     @property({ min: 1, step: 1 })
     playerInitialCPMax = 1248;
@@ -375,18 +382,8 @@ export class LevelSettings extends Component
             manager &&
             manager.unitDatabase
         ) {
-            const baseCP = Math.round(
-                this.lerp(
-                    this.initialCombatPointMin,
-                    this.initialCombatPointMax,
-                    t
-                )
-            );
-            const cp = Math.round(
-                baseCP * this.getBossMultiplier(
-                    this.bossInitialCombatPointMultiplier,
-                    boss
-                )
+            const cp = this.getLevelInitialCP(
+                this.getSafeCurrentLevel()
             );
 
             if (team === 0) {
@@ -627,10 +624,8 @@ export class LevelSettings extends Component
             settings: {
                 playerInitialCPStart:
                     this.getPlayerCPStart(),
-                playerInitialCPStep: Math.max(
-                    1,
-                    Math.floor(this.playerInitialCPStep)
-                ),
+                playerInitialCPBossGrowthRatio:
+                    this.getPlayerCPBossGrowthRatio(),
                 playerInitialCPMax:
                     this.getPlayerCPMax(),
                 playerInitialCPMilestoneCap:
@@ -639,6 +634,11 @@ export class LevelSettings extends Component
                     ),
                 playerCPPackagesUnlocked:
                     this.getPlayerCPPackagesUnlocked(
+                        this.battleLevel
+                    ),
+                nextPlayerCPPackage:
+                    this.getNextPlayerCPPackageSnapshot(
+                        state,
                         this.battleLevel
                     ),
                 unitProgressionEndLevel:
@@ -797,7 +797,7 @@ export class LevelSettings extends Component
         }
 
         return {
-            version: 2,
+            version: 3,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(
                 0,
@@ -808,6 +808,7 @@ export class LevelSettings extends Component
             lossGoldLevel: this.getSafeCurrentLevel(),
             lossGoldClaimed: 0,
             playerInitialCP: this.getPlayerCPStart(),
+            playerInitialCPPackagesPurchased: 0,
             playerMaxAlive: this.getPlayerMaxAliveStart(),
             totalPurchases: 0,
             units,
@@ -851,12 +852,22 @@ export class LevelSettings extends Component
             0,
             this.safeInteger(source.lossGoldClaimed, 0)
         );
-        initial.playerInitialCP = this.clampPlayerCP(
-            this.safeInteger(
-                source.playerInitialCP,
-                initial.playerInitialCP
+        initial.playerInitialCPPackagesPurchased = Math.max(
+            0,
+            Math.min(
+                this.getPlayerCPPackagesUnlocked(
+                    this.getSafeTotalLevels()
+                ),
+                this.safeInteger(
+                    source.playerInitialCPPackagesPurchased,
+                    0
+                )
             )
         );
+        initial.playerInitialCP =
+            this.getPlayerCPForPurchasedPackages(
+                initial.playerInitialCPPackagesPurchased
+            );
         initial.playerMaxAlive =
             this.clampPlayerMaxAlive(
                 this.safeInteger(
@@ -1037,39 +1048,46 @@ export class LevelSettings extends Component
             }
         }
 
-        const milestoneCPMax =
-            this.getPlayerCPMilestoneCap(
+        const unlockedCPPackages =
+            this.getPlayerCPPackagesUnlocked(
                 this.battleLevel
             );
 
-        if (state.playerInitialCP < milestoneCPMax) {
-            const delta = Math.min(
-                Math.max(
-                    1,
-                    Math.floor(this.playerInitialCPStep)
-                ),
-                milestoneCPMax -
-                state.playerInitialCP
+        if (
+            state.playerInitialCPPackagesPurchased <
+            unlockedCPPackages
+        ) {
+            const nextPackageNumber =
+                state.playerInitialCPPackagesPurchased + 1;
+            const targetCP =
+                this.getPlayerCPForPurchasedPackages(
+                    nextPackageNumber
+                );
+            const delta = Math.max(
+                0,
+                targetCP - state.playerInitialCP
             );
 
-            options.push({
-                id: 'initial-cp',
-                kind: 'initial-cp',
-                cost: Math.max(
-                    1,
-                    Math.round(
-                        delta *
-                        Math.max(
-                            0.01,
-                            this.initialCPGoldPerPoint
+            if (delta > 0) {
+                options.push({
+                    id: 'initial-cp',
+                    kind: 'initial-cp',
+                    cost: Math.max(
+                        1,
+                        Math.round(
+                            delta *
+                            Math.max(
+                                0.01,
+                                this.initialCPGoldPerPoint
+                            )
                         )
-                    )
-                ),
-                family: null,
-                tier: 0,
-                delta,
-                label: `+${delta} Initial CP`,
-            });
+                    ),
+                    family: null,
+                    tier: 0,
+                    delta,
+                    label: `+${delta} Initial CP`,
+                });
+            }
         }
 
         const milestoneMaxAlive =
@@ -1414,8 +1432,13 @@ export class LevelSettings extends Component
         if (
             option.kind === 'initial-cp'
         ) {
+            state.playerInitialCPPackagesPurchased++;
+            state.playerInitialCP =
+                this.getPlayerCPForPurchasedPackages(
+                    state.playerInitialCPPackagesPurchased
+                );
             state.playerInitialCP = this.clampPlayerCP(
-                state.playerInitialCP + option.delta
+                state.playerInitialCP
             );
             return;
         }
@@ -1929,33 +1952,129 @@ export class LevelSettings extends Component
     private getPlayerCPPackagesPurchased(
         state: SavedProgressionState
     ) {
-        const purchasedCP = Math.max(
+        return Math.max(
             0,
-            state.playerInitialCP - this.getPlayerCPStart()
-        );
-
-        if (purchasedCP <= 0) return 0;
-
-        return Math.ceil(
-            purchasedCP /
-            Math.max(
-                1,
-                Math.floor(this.playerInitialCPStep)
+            Math.min(
+                this.getPlayerCPPackagesUnlocked(
+                    this.getSafeTotalLevels()
+                ),
+                Math.floor(
+                    state.playerInitialCPPackagesPurchased
+                )
             )
         );
     }
 
     private getPlayerCPMilestoneCap(level: number) {
-        const step = Math.max(
+        return this.getPlayerCPForPurchasedPackages(
+            this.getPlayerCPPackagesUnlocked(level)
+        );
+    }
+
+    private getPlayerCPForPurchasedPackages(
+        packageCount: number
+    ) {
+        const safeCount = Math.max(
+            0,
+            Math.min(
+                this.getPlayerCPPackagesUnlocked(
+                    this.getSafeTotalLevels()
+                ),
+                Math.floor(packageCount)
+            )
+        );
+        let cp = this.getPlayerCPStart();
+
+        for (let packageNumber = 1;
+            packageNumber <= safeCount;
+            packageNumber++) {
+            cp += this.getPlayerCPPackageDelta(
+                packageNumber
+            );
+
+            if (cp >= this.getPlayerCPMax()) {
+                return this.getPlayerCPMax();
+            }
+        }
+
+        return this.clampPlayerCP(cp);
+    }
+
+    private getPlayerCPPackageDelta(
+        packageNumber: number
+    ) {
+        const pace = Math.max(
             1,
-            Math.floor(this.playerInitialCPStep)
+            Math.floor(this.bossStagePace)
+        );
+        const currentBossLevel = Math.min(
+            this.getSafeTotalLevels(),
+            Math.max(1, Math.floor(packageNumber)) * pace
+        );
+        const currentBossCP =
+            this.getLevelInitialCP(currentBossLevel);
+        const previousBossCP = packageNumber > 1
+            ? this.getLevelInitialCP(
+                currentBossLevel - pace
+            )
+            : this.getLevelBaseInitialCP(1);
+        const bossCPGrowth = Math.max(
+            0,
+            currentBossCP - previousBossCP
         );
 
-        return Math.min(
-            this.getPlayerCPMax(),
-            this.getPlayerCPStart() +
-            this.getPlayerCPPackagesUnlocked(level) * step
+        return Math.max(
+            0,
+            Math.round(
+                bossCPGrowth *
+                this.getPlayerCPBossGrowthRatio()
+            )
         );
+    }
+
+    private getPlayerCPBossGrowthRatio() {
+        return Math.max(
+            0,
+            Math.min(
+                1,
+                Number.isFinite(
+                    this.playerInitialCPBossGrowthRatio
+                )
+                    ? this.playerInitialCPBossGrowthRatio
+                    : 0.5
+            )
+        );
+    }
+
+    private getNextPlayerCPPackageSnapshot(
+        state: SavedProgressionState,
+        level: number
+    ) {
+        const unlocked =
+            this.getPlayerCPPackagesUnlocked(level);
+
+        if (
+            state.playerInitialCPPackagesPurchased >=
+            unlocked
+        ) {
+            return null;
+        }
+
+        const packageNumber =
+            state.playerInitialCPPackagesPurchased + 1;
+        const targetCP =
+            this.getPlayerCPForPurchasedPackages(
+                packageNumber
+            );
+
+        return {
+            packageNumber,
+            delta: Math.max(
+                0,
+                targetCP - state.playerInitialCP
+            ),
+            targetCP,
+        };
     }
 
     private getUnitProgressionEndLevel() {
@@ -2160,12 +2279,40 @@ export class LevelSettings extends Component
     }
 
     private getDifficulty01() {
+        return this.getLevelProgress01(
+            this.getSafeCurrentLevel()
+        );
+    }
+
+    private getLevelProgress01(level: number) {
         const total = this.getSafeTotalLevels();
-        const level = this.getSafeCurrentLevel();
+        const safeLevel = this.clampLevel(level);
 
         if (total <= 1) return 1;
 
-        return (level - 1) / (total - 1);
+        return (safeLevel - 1) / (total - 1);
+    }
+
+    private getLevelBaseInitialCP(level: number) {
+        return Math.round(
+            this.lerp(
+                this.initialCombatPointMin,
+                this.initialCombatPointMax,
+                this.getLevelProgress01(level)
+            )
+        );
+    }
+
+    private getLevelInitialCP(level: number) {
+        const safeLevel = this.clampLevel(level);
+
+        return Math.round(
+            this.getLevelBaseInitialCP(safeLevel) *
+            this.getBossMultiplier(
+                this.bossInitialCombatPointMultiplier,
+                this.isBossLevelFor(safeLevel)
+            )
+        );
     }
 
     private getBossMultiplier(
