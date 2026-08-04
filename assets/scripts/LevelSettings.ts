@@ -45,8 +45,6 @@ interface SavedProgressionState {
     playerGold: number;
     adsReward: number;
     levelLossCount: number;
-    lossGoldLevel: number;
-    lossGoldClaimed: number;
     playerInitialCP: number;
     playerInitialCPOverflow: number;
     cpPackages: SavedProgressionPackage[];
@@ -258,7 +256,7 @@ export class LevelSettings extends Component
     @property({
         tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
     })
-    progressionStorageKey = 'battle-progression-v5';
+    progressionStorageKey = 'battle-progression-v6';
 
     @property({ min: 0, step: 1 })
     initialPlayerGold = 0;
@@ -275,14 +273,17 @@ export class LevelSettings extends Component
     @property({ min: 0.01, step: 0.1 })
     winGoldPerEnemyCP = 1;
 
-    @property({ min: 0, max: 1, step: 0.05 })
+    @property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        displayName: 'Loss Gold Ratio',
+        tooltip: 'Gold granted after every valid player loss as a ratio of that level win reward. There is no cumulative per-level cap.'
+    })
     lossGoldRatio = 0.25;
 
-    @property({ min: 0, max: 1, step: 0.05 })
-    maxLossGoldRatioPerLevel = 0.75;
-
     @property({ min: 1, step: 1 })
-    lossesPerVideoReward = 3;
+    lossesPerVideoReward = 1;
 
     @property({ min: 1, step: 1 })
     unitUnlockCostMultiplier = 20;
@@ -440,20 +441,8 @@ export class LevelSettings extends Component
             }
 
             if (this.allowMaxWave) {
-                const baseMaxAlive =
-                    this.getLevelBaseMaxAlive(
-                        this.getSafeCurrentLevel()
-                    );
-
-                brain.maxAliveWaves = Math.round(
-                    Math.min(
-                        Math.max(0, this.maxAliveWavesMax),
-                        baseMaxAlive *
-                        this.getBossMultiplier(
-                            this.bossMaxAliveWavesMultiplier,
-                            boss
-                        )
-                    )
+                brain.maxAliveWaves = this.getLevelMaxAlive(
+                    this.getSafeCurrentLevel()
                 );
             }
         }
@@ -501,18 +490,14 @@ export class LevelSettings extends Component
             goldReward = winGold;
             state.playerGold += goldReward;
             state.levelLossCount = 0;
-            state.lossGoldLevel = 0;
-            state.lossGoldClaimed = 0;
         } else if (loserTeam === 0) {
             state.levelLossCount++;
 
             if (validPlayerLoss) {
-                goldReward =
-                    this.grantCappedLossGold(
-                        state,
-                        battleLevel,
-                        winGold
-                    );
+                goldReward = this.grantLossGold(
+                    state,
+                    winGold
+                );
             }
 
             if (
@@ -668,8 +653,6 @@ export class LevelSettings extends Component
                 winGoldPerEnemyCP:
                     this.winGoldPerEnemyCP,
                 lossGoldRatio: this.lossGoldRatio,
-                maxLossGoldRatioPerLevel:
-                    this.maxLossGoldRatioPerLevel,
                 lossesPerVideoReward:
                     this.lossesPerVideoReward,
                 unitUnlockCostMultiplier:
@@ -685,8 +668,6 @@ export class LevelSettings extends Component
                 gold: state.playerGold,
                 adsReward: state.adsReward,
                 levelLossCount: state.levelLossCount,
-                lossGoldClaimed:
-                    state.lossGoldClaimed,
                 initialCP: state.playerInitialCP,
                 cpPackagesPurchased:
                     state.cpPackages.filter((item) =>
@@ -766,6 +747,7 @@ export class LevelSettings extends Component
         this.progressionState = loaded
             ? this.sanitizeProgressionState(loaded)
             : this.createInitialProgressionState();
+        const savedLevel = this.progressionState.currentLevel;
 
         if (this.levelQueryActive) {
             this.progressionState.currentLevel =
@@ -779,13 +761,7 @@ export class LevelSettings extends Component
         this.battleLevel = this.getSafeCurrentLevel();
         this.progressionState.currentLevel = this.battleLevel;
 
-        if (
-            this.progressionState.lossGoldLevel !==
-            this.battleLevel
-        ) {
-            this.progressionState.lossGoldLevel =
-                this.battleLevel;
-            this.progressionState.lossGoldClaimed = 0;
+        if (savedLevel !== this.battleLevel) {
             this.progressionState.levelLossCount = 0;
         }
 
@@ -835,7 +811,7 @@ export class LevelSettings extends Component
         }
 
         return {
-            version: 5,
+            version: 6,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(
                 0,
@@ -843,8 +819,6 @@ export class LevelSettings extends Component
             ),
             adsReward: 0,
             levelLossCount: 0,
-            lossGoldLevel: this.getSafeCurrentLevel(),
-            lossGoldClaimed: 0,
             playerInitialCP: this.getPlayerCPStart(),
             playerInitialCPOverflow: 0,
             cpPackages: this.createCPPackageSchedule(),
@@ -863,7 +837,7 @@ export class LevelSettings extends Component
         const initial =
             this.createInitialProgressionState();
 
-        if (this.safeInteger(source.version, 0) !== 5) {
+        if (this.safeInteger(source.version, 0) !== 6) {
             return initial;
         }
 
@@ -894,16 +868,6 @@ export class LevelSettings extends Component
         initial.levelLossCount = Math.max(
             0,
             this.safeInteger(source.levelLossCount, 0)
-        );
-        initial.lossGoldLevel = this.clampLevel(
-            this.safeInteger(
-                source.lossGoldLevel,
-                initial.currentLevel
-            )
-        );
-        initial.lossGoldClaimed = Math.max(
-            0,
-            this.safeInteger(source.lossGoldClaimed, 0)
         );
         initial.playerInitialCPOverflow = Math.max(
             0,
@@ -1336,34 +1300,11 @@ export class LevelSettings extends Component
         }
 
         const state = this.progressionState;
-        const currentCPCap =
-            this.getPlayerCPMilestoneCap(this.battleLevel);
-        const currentMaxAliveCap =
-            this.getPlayerMaxAliveMilestoneCap(
-                this.battleLevel
-            );
-
-        if (
-            state.playerInitialCP < currentCPCap ||
-            state.playerMaxAlive < currentMaxAliveCap
-        ) {
-            return null;
-        }
-
-        if (
+        const rescueCPPackage =
             this.getNextAvailableCPPackage(
                 state,
                 this.battleLevel
-            ) ||
-            this.getNextAvailableMaxAlivePackage(
-                state,
-                this.battleLevel
-            )
-        ) {
-            return null;
-        }
-
-        const futureCPPackage = state.cpPackages
+            ) || state.cpPackages
             .filter((item) =>
                 !item.claimed &&
                 item.offerLevel > this.battleLevel
@@ -1373,8 +1314,11 @@ export class LevelSettings extends Component
                 a.targetLevel - b.targetLevel ||
                 a.id.localeCompare(b.id)
             )[0] || null;
-        const futureMaxAlivePackage =
-            state.maxAlivePackages
+        const rescueMaxAlivePackage =
+            this.getNextAvailableMaxAlivePackage(
+                state,
+                this.battleLevel
+            ) || state.maxAlivePackages
                 .filter((item) =>
                     !item.claimed &&
                     item.offerLevel > this.battleLevel
@@ -1394,54 +1338,51 @@ export class LevelSettings extends Component
             0,
             enemyMaxAlive - state.playerMaxAlive
         ) / Math.max(1, enemyMaxAlive);
+        const cpOverflowDelta =
+            this.getNearestCPPackageDelta(this.battleLevel);
         const rescueKind = this.selectRescueKind(
-            !!futureCPPackage ||
-                state.playerInitialCP < enemyCP,
-            !!futureMaxAlivePackage,
+            !!rescueCPPackage ||
+                cpOverflowDelta > 0,
+            !!rescueMaxAlivePackage,
             cpGapRatio,
             maxAliveGapRatio
         );
         let record: PurchaseRecord | null = null;
 
-        if (rescueKind === 'initial-cp' && futureCPPackage) {
+        if (rescueKind === 'initial-cp' && rescueCPPackage) {
             const valueBefore = state.playerInitialCP;
 
-            futureCPPackage.claimed = true;
-            futureCPPackage.claimSource = 'video-rescue';
+            rescueCPPackage.claimed = true;
+            rescueCPPackage.claimSource = 'video-rescue';
             state.playerInitialCP =
                 this.getPlayerCPFromState(state);
             record = this.createVideoRescueRecord(
-                `rescue:${futureCPPackage.id}`,
+                `rescue:${rescueCPPackage.id}`,
                 'initial-cp',
-                futureCPPackage.delta,
+                rescueCPPackage.delta,
                 valueBefore,
                 state.playerInitialCP
             );
         } else if (
             rescueKind === 'max-alive' &&
-            futureMaxAlivePackage
+            rescueMaxAlivePackage
         ) {
             const valueBefore = state.playerMaxAlive;
 
-            futureMaxAlivePackage.claimed = true;
-            futureMaxAlivePackage.claimSource = 'video-rescue';
+            rescueMaxAlivePackage.claimed = true;
+            rescueMaxAlivePackage.claimSource = 'video-rescue';
             state.playerMaxAlive =
                 this.getPlayerMaxAliveFromState(state);
             record = this.createVideoRescueRecord(
-                `rescue:${futureMaxAlivePackage.id}`,
+                `rescue:${rescueMaxAlivePackage.id}`,
                 'max-alive',
-                futureMaxAlivePackage.delta,
+                rescueMaxAlivePackage.delta,
                 valueBefore,
                 state.playerMaxAlive
             );
-        } else if (state.playerInitialCP < enemyCP) {
+        } else if (rescueKind === 'initial-cp') {
             const valueBefore = state.playerInitialCP;
-            const delta = Math.min(
-                this.getNearestCPPackageDelta(
-                    this.battleLevel
-                ),
-                enemyCP - state.playerInitialCP
-            );
+            const delta = cpOverflowDelta;
 
             if (delta <= 0) return null;
 
@@ -1659,38 +1600,18 @@ export class LevelSettings extends Component
             : saved.unitCount;
     }
 
-    private grantCappedLossGold(
+    private grantLossGold(
         state: SavedProgressionState,
-        level: number,
         winGold: number
     ) {
-        if (state.lossGoldLevel !== level) {
-            state.lossGoldLevel = level;
-            state.lossGoldClaimed = 0;
-        }
-
-        const cap = Math.max(
-            0,
-            Math.round(
-                winGold *
-                this.clamp01(
-                    this.maxLossGoldRatioPerLevel
-                )
-            )
-        );
-        const requested = Math.max(
+        const granted = Math.max(
             0,
             Math.round(
                 winGold *
                 this.clamp01(this.lossGoldRatio)
             )
         );
-        const granted = Math.min(
-            requested,
-            Math.max(0, cap - state.lossGoldClaimed)
-        );
 
-        state.lossGoldClaimed += granted;
         state.playerGold += granted;
 
         return granted;
@@ -2120,7 +2041,7 @@ export class LevelSettings extends Component
             const targetLevel = milestones[i];
             const targetCap = Math.max(
                 previousCap,
-                this.getLevelBaseInitialCP(targetLevel)
+                this.getLevelInitialCP(targetLevel)
             );
             const totalDelta = targetCap - previousCap;
 
@@ -2424,7 +2345,7 @@ export class LevelSettings extends Component
             const targetCap = this.clampPlayerMaxAlive(
                 Math.max(
                     previousCap,
-                    this.getLevelBaseMaxAlive(targetLevel)
+                    this.getLevelMaxAlive(targetLevel)
                 )
             );
             const totalDelta = targetCap - previousCap;
@@ -2523,6 +2444,7 @@ export class LevelSettings extends Component
             'battle-progression-v3',
             'battle-progression-v4',
             'battle-progression-v5',
+            'battle-progression-v6',
         ];
 
         for (let i = 0; i < keys.length; i++) {
@@ -2731,6 +2653,21 @@ export class LevelSettings extends Component
                 this.maxAliveWavesMin,
                 this.maxAliveWavesMax,
                 this.getProgression01(level)
+            )
+        );
+    }
+
+    private getLevelMaxAlive(level: number) {
+        const safeLevel = this.clampLevel(level);
+
+        return Math.round(
+            Math.min(
+                Math.max(0, this.maxAliveWavesMax),
+                this.getLevelBaseMaxAlive(safeLevel) *
+                this.getBossMultiplier(
+                    this.bossMaxAliveWavesMultiplier,
+                    this.isBossLevelFor(safeLevel)
+                )
             )
         );
     }

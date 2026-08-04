@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 36853.0076,
+      "mTimestamp": 20055.4703,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 31746093.2675,
+      "mTimestamp": 6553693.4514,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3282,7 +3282,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/LevelSettings.ts": {
       "mTimestamp": {
-        "mtime": 1785785431788.6885,
+        "mtime": 1785862387818.6567,
         "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
       },
       "chunkId": "f872721beb9c9db5d5cac1782f09f98006b5df64",
@@ -4812,7 +4812,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1785754126040,
+      "mTimestamp": 1785855972425,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -4942,7 +4942,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1785754126040,
+      "mTimestamp": 1785855972425,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
