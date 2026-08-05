@@ -2,9 +2,9 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last synchronized: 2026-08-04, after progression storage v5, deterministic
-Initial CP and Max Alive packages, direct rewarded-video package rescue, and
-analysis of the 101-report progression run ending at boss level 45.
+Last synchronized: 2026-08-05, after progression storage v6, effective-boss-cap
+Initial CP and Max Alive packages, one-loss rewarded-video rescue, and the
+latest source/scene alignment pass.
 
 This file describes the current authored source and active `assets/Test.scene`.
 It replaces all progression v1-v4 proposals, telemetry conclusions, reset URLs,
@@ -119,7 +119,7 @@ purchasingSimulation = true
 ### Player Economy
 
 ```text
-progressionStorageKey = battle-progression-v5
+progressionStorageKey = battle-progression-v6
 initialPlayerGold = 0
 playerInitialCPStart = 300
 playerMaxAliveStart = 4
@@ -127,8 +127,7 @@ playerMaxAliveMax = 10
 
 winGoldPerEnemyCP = 1
 lossGoldRatio = 0.25
-maxLossGoldRatioPerLevel = 0.75
-lossesPerVideoReward = 3
+lossesPerVideoReward = 1
 
 unitUnlockCostMultiplier = 20
 initialCPGoldPerPoint = 10
@@ -186,7 +185,7 @@ http://localhost:7456/?progression=1&resetProgression=1&currentLevel=1&TotalLeve
 
 Rules:
 
-- `resetProgression=1` (alias `reset=1`) clears v1-v5 progression keys before
+- `resetProgression=1` (alias `reset=1`) clears v1-v6 progression keys before
   initialization.
 - A manually opened `currentLevel=1` URL without `progressionResume=1` also
   starts fresh.
@@ -199,9 +198,9 @@ Rules:
 
 ### Saved State
 
-Storage version 5 persists:
+Storage version 6 persists:
 
-- current level, Gold, `adsReward`, loss streak, and capped loss-Gold usage;
+- current level, Gold, `adsReward`, and loss streak;
 - player Initial CP and rescue overflow;
 - deterministic CP and Max Alive schedules, claimed state, and claim source;
 - rescue history;
@@ -209,15 +208,15 @@ Storage version 5 persists:
 - total purchase count;
 - per-family offered/unlocked/count state.
 
-Only version 5 is sanitized into the active state. Other versions initialize a
-fresh v5 state and cannot contaminate current results.
+Only version 6 is sanitized into the active state. Other versions initialize a
+fresh v6 state and cannot contaminate current results.
 
 ### Battle Lifecycle
 
 At load:
 
 1. Parse URL and clear storage when reset is requested.
-2. Load/sanitize v5 state or create a clean state.
+2. Load/sanitize v6 state or create a clean state.
 3. Apply saved player state.
 4. Apply Team B level curve and boss modifiers.
 5. If purchase simulation is enabled, repeatedly buy weighted affordable
@@ -229,10 +228,10 @@ At battle end:
 1. Offer families introduced at the completed level.
 2. A player win receives full effective enemy CP as Gold and advances a level.
 3. A player loss repeats the same level. A valid exhausted loss receives 25%
-   of win Gold, capped cumulatively at 75% of that level's win Gold.
+   of win Gold on every loss; there is no cumulative per-level loss-Gold cap.
 4. Every player loss increments the video-rescue streak; validity only gates
    loss Gold.
-5. At three losses, attempt one boss-only direct package rescue.
+5. At one loss, attempt one boss-only direct package rescue.
 6. Purchase simulation runs again and may buy multiple affordable options.
 7. Save state, download telemetry, and reload unless campaign is complete.
 
@@ -274,8 +273,9 @@ unit +1 count = unlock price / unlockCount
 The schedule is generated dynamically from boss milestones through
 `progressionEndLevel`:
 
-- target cap at a milestone equals Team B base CP at that milestone;
-- boss `x1.2` is deliberately excluded;
+- target cap at a milestone equals Team B effective CP at that milestone;
+- boss `x1.2` is included, so the player sale cap targets the next boss's
+  actual CP rather than its base CP;
 - growth since the previous target is split across approximately half the
   normal levels in the segment;
 - offer levels are deterministic, sparse, and occur before the target boss;
@@ -284,25 +284,25 @@ The schedule is generated dynamically from boss milestones through
 
 Active 100/50 schedule:
 
-| Target | Offer levels | Deltas | Base cap |
+| Target | Offer levels | Deltas | Effective cap |
 | ---: | --- | --- | ---: |
-| 5 | 3, 4 | +7, +7 | 314 |
-| 10 | 7, 9 | +41, +40 | 395 |
-| 15 | 13, 14 | +41, +40 | 476 |
-| 20 | 16, 17 | +40, +40 | 556 |
-| 25 | 21, 23 | +41, +40 | 637 |
-| 30 | 27, 28 | +41, +40 | 718 |
-| 35 | 31, 34 | +40, +40 | 798 |
-| 40 | 37, 39 | +41, +40 | 879 |
-| 45 | 41, 44 | +40, +40 | 959 |
-| 50 | 46, 48 | +41, +40 | 1040 |
+| 5 | 3, 4 | +39, +38 | 377 |
+| 10 | 7, 9 | +49, +48 | 474 |
+| 15 | 13, 14 | +49, +48 | 571 |
+| 20 | 16, 17 | +48, +48 | 667 |
+| 25 | 21, 23 | +49, +48 | 764 |
+| 30 | 27, 28 | +49, +49 | 862 |
+| 35 | 31, 34 | +48, +48 | 958 |
+| 40 | 37, 39 | +49, +48 | 1055 |
+| 45 | 41, 44 | +48, +48 | 1151 |
+| 50 | 46, 48 | +49, +48 | 1248 |
 
 ### Max Alive Packages
 
 Max Alive now uses the same package lifecycle as CP:
 
-- target cap at a milestone equals Team B base Max Alive, excluding boss
-  multiplier;
+- target cap at a milestone equals Team B effective Max Alive, including boss
+  multiplier and the Max Alive cap;
 - each package grants exactly `+1`;
 - deterministic offers occur before the target milestone;
 - claims persist and may come from purchase or video rescue;
@@ -310,14 +310,13 @@ Max Alive now uses the same package lifecycle as CP:
 
 Active schedule:
 
-| Target | Offer | Delta | Player base cap |
+| Target | Offer | Delta | Player cap |
 | ---: | ---: | ---: | ---: |
-| 15 | 13 | +1 | 5 |
-| 20 | 17 | +1 | 6 |
-| 30 | 27 | +1 | 7 |
-| 35 | 31 | +1 | 8 |
-| 40 | 36 | +1 | 9 |
-| 50 | 46 | +1 | 10 |
+| 5 | 2 | +1 | 5 |
+| 15 | 13 | +1 | 6 |
+| 20 | 17 | +1 | 7 |
+| 30 | 27 | +1 | 8 |
+| 35 | 31, 32 | +1, +1 | 10 |
 
 ### Purchase Simulation
 
@@ -334,12 +333,12 @@ guard; package/unit milestone caps are the availability guard.
 
 ### Rewarded-Video Rescue
 
-Rescue is attempted after three player losses and only on a boss. It succeeds
-only when:
+Rescue is attempted after one player loss and only on a boss. It succeeds
+when:
 
 - purchase simulation is enabled;
-- all currently offered CP and Max Alive caps are already purchased;
-- no currently offered unclaimed CP or Max Alive package remains.
+- an available current or future CP/Max Alive package exists, or a CP overflow
+  step can be generated.
 
 The runtime finds the earliest future CP and Max Alive packages, compares
 normalized deficits against effective boss values, and pulls forward one
@@ -368,6 +367,8 @@ battle-telemetry-2026-08-03T20-16-04-557Z.json
 The range contains exactly 101 reports. It is a clean storage-v5 run beginning
 at level 1 with player CP 300, Max Alive 4, Gold 0, and starting roster only.
 It reaches boss level 45 but does not yet contain the post-third-rescue attempt.
+This is historical v5 evidence; it does not describe the current v6 rescue
+frequency or effective-boss-cap package schedule.
 
 ### Aggregate Result
 
@@ -441,11 +442,11 @@ CP 1040 / Max Alive 10 against CP 1151 / Max Alive 10.
 The run has not abandoned or deadlocked. The report stops immediately after a
 successful rescue and before its next battle.
 
-## Current Diagnosis
+## Historical Diagnosis From v5 Telemetry
 
 ### Proven
 
-- Storage reset and v5 persistence work.
+- Storage reset and v5 persistence worked.
 - CP and Max Alive schedules are deterministic and cumulative.
 - Purchase simulation buys legal affordable options and can buy multiple.
 - Unit unlock/count progression reaches parity with authored enemy caps.
@@ -456,20 +457,19 @@ successful rescue and before its next battle.
 
 ### Concern
 
-The player purchase cap deliberately reaches only each boss's base CP/Max Alive,
-while the boss receives `x1.2`. Therefore rescue is structural rather than rare:
+The v5 player purchase cap deliberately reached only each boss's base CP/Max
+Alive, while the boss received `x1.2`. Therefore rescue was structural rather
+than rare:
 
-- 15 simulated ads before finishing boss 45;
+- 15 simulated ads before finishing boss 45 under the v5 three-loss contract;
 - rescue CP gain (+404) exceeds paid CP gain (+336);
 - several bosses need two or three rescue cycles;
 - the player can hold 18,998 Gold with no legal purchase that closes the boss
   gap.
 
-One future package per three losses is not guaranteed to create a winning next
-attempt. This conflicts with the earlier product intent that rewarded-video
-rescue should make a blocked boss just passable. It may still be acceptable if
-frequent repeated ads are intentional, but that product decision has not been
-confirmed after seeing this batch.
+One future package per three losses was not guaranteed to create a winning next
+attempt. This is historical v5 evidence; validate the v6 contract before using
+these conclusions for current tuning.
 
 Do not solve this by changing combat stats or AI. The evidence points to the
 progression capacity/rescue contract.
@@ -508,9 +508,9 @@ normal progression with authored boss pressure. Flag:
 Before another overnight 100-level run, discuss the rescue contract with the
 user. Do not silently implement one of these:
 
-1. Keep one pulled package per three losses and accept multiple ads per boss.
-2. Make one rescue grant enough CP/Max Alive package power to make the next
-   attempt materially passable.
+1. Validate the v6 one-loss rescue with a fresh clean telemetry batch.
+2. If a boss still needs repeated ads, decide whether one rescue must make the
+   next attempt materially passable.
 3. Allow accumulated Gold to buy a boss-gap package before requiring an ad.
 4. Reduce the boss spike. This is broader tuning and should not be combined
    blindly with a stronger rescue in the same experiment.
@@ -536,8 +536,8 @@ roadmap embedded JavaScript syntax: PASS
 git diff --check on authored progression files: PASS
 Max Alive schedule semantic assertions: PASS
 101-report telemetry parse/grouping: PASS
-Cocos preview chunk contains storage v5 and Max Alive package/rescue code: PASS
-Cocos serialized scene cache contains battle-progression-v5: PASS
+Cocos preview chunk contains storage v6 and Max Alive package/rescue code: PASS
+Cocos serialized scene cache contains battle-progression-v6: PASS
 ```
 
 Current authored files:
@@ -550,12 +550,12 @@ Current authored files:
 Branch/commit baseline at this handoff:
 
 ```text
-main / f4c98b12 build test
+main / f68c225f progression test
 ```
 
-The authored progression work remains uncommitted. Cocos has also modified
-generated/cache/log files under `library/`, `profiles/`, and `temp/`. Do not
-revert or commit those automatically.
+The current source progression commit is `f68c225f`; this handoff update is
+uncommitted. Cocos has also modified generated/cache/log files under
+`library/`, `profiles/`, and `temp/`. Do not revert or commit those automatically.
 
 Known local operational issues:
 

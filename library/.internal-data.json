@@ -2348,7 +2348,9 @@
   },
   "d032ac98-05e1-4090-88bb-eb640dcb5fc1": {
     "url": "db://internal/default_skybox/default_skybox.hdr",
-    "value": {},
+    "value": {
+      "depends": []
+    },
     "versionCode": 1
   },
   "6f01cf7f-81bf-4a7e-bd5d-0afc19696480": {
@@ -2383,7 +2385,11 @@
   },
   "e17b4526-57a2-48d3-acc9-cf09f30aa138": {
     "url": "db://internal/default_ui/atom_new.plist",
-    "value": {},
+    "value": {
+      "depends": [
+        "24c419ea-63a8-4ea1-a9d0-7fc469489bbc@f9941"
+      ]
+    },
     "versionCode": 1
   },
   "24c419ea-63a8-4ea1-a9d0-7fc469489bbc@6c48a": {
@@ -2427,7 +2433,9 @@
   },
   "20835ba4-6145-4fbc-a58a-051ce700aa3e": {
     "url": "db://internal/default_ui/default_btn_normal.png",
-    "value": {},
+    "value": {
+      "depends": []
+    },
     "versionCode": 1
   },
   "1263d74c-8167-4928-91a6-4e2672411f47@38fd2": {
