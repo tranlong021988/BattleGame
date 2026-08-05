@@ -2,9 +2,9 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last synchronized: 2026-08-05, after progression storage v6, effective-boss-cap
-Initial CP and Max Alive packages, one-loss rewarded-video rescue, and the
-latest source/scene alignment pass.
+Last synchronized: 2026-08-06, after progression storage v7, baseline-boss
+packages, Gold-based three-loss rewarded-video rescue, multiplier 1.1, and the
+latest source/scene/telemetry alignment pass.
 
 This file describes the current authored source and active `assets/Test.scene`.
 It replaces all progression v1-v4 proposals, telemetry conclusions, reset URLs,
@@ -41,11 +41,13 @@ campaign phase. Current work evaluates player experience across a campaign:
 - Team B CP, accuracy, Max Alive, roster, and unit counts progress by level.
 - Gold purchases represent player meta progression.
 - Bosses intentionally create temporary difficulty spikes.
-- Rewarded-video rescue is simulated by `adsReward` and a direct progression
-  package; it does not grant Gold.
+- Rewarded-video rescue is simulated by `adsReward` and Gold equal to one
+  missing CP/Max Alive package; it does not claim the package for free.
 - `progressionEndLevel` decouples progression completion from total campaign
   length. With 100 total levels and end level 50, levels 51-100 use plateaued
-  base stats/full tier-1 progression while boss modifiers still apply.
+  base stats/full tier-1 progression while boss modifiers still apply. This
+  plateau is intentional for future scaling of other systems, not a current
+  progression bug.
 
 The active design is test code, not a finalized economy. Judge it by retry
 shape, usefulness of Gold purchases, rescue frequency, and whether progression
@@ -99,9 +101,9 @@ maxAliveWavesMin = 3
 maxAliveWavesMax = 10
 
 allowInterval = false
-bossInitialCombatPointMultiplier = 1.2
-bossDecisionAccuracyMultiplier = 1.2
-bossMaxAliveWavesMultiplier = 1.2
+bossInitialCombatPointMultiplier = 1.1
+bossDecisionAccuracyMultiplier = 1.1
+bossMaxAliveWavesMultiplier = 1.1
 ```
 
 Other active test values:
@@ -119,15 +121,16 @@ purchasingSimulation = true
 ### Player Economy
 
 ```text
-progressionStorageKey = battle-progression-v6
+progressionStorageKey = battle-progression-v7
 initialPlayerGold = 0
 playerInitialCPStart = 300
 playerMaxAliveStart = 4
 playerMaxAliveMax = 10
 
 winGoldPerEnemyCP = 1
-lossGoldRatio = 0.25
-lossesPerVideoReward = 1
+bossGoldRewardMultiplier = 1.15
+lossGoldRatio = 0.1
+lossesPerVideoReward = 3
 
 unitUnlockCostMultiplier = 20
 initialCPGoldPerPoint = 10
@@ -153,27 +156,26 @@ baseMaxAlive = round(lerp(3, 10, t))
 Every fifth level is a boss:
 
 ```text
-enemyCP = round(baseCP * 1.2)                 // no cap
-enemyAccuracy = min(1, baseAccuracy * 1.2)
-enemyMaxAlive = round(min(10, baseMaxAlive * 1.2))
+enemyCP = round(baseCP * 1.1)                 // no cap
+enemyAccuracy = min(1, baseAccuracy * 1.1)
+enemyMaxAlive = round(min(10, baseMaxAlive * 1.1))
 ```
 
 The multiplier is not cumulative. Runtime recomputes each base from level and
-applies one multiplier. The latest telemetry proves boss CP ratios remain
-approximately 1.2 at every boss.
+applies one multiplier. The v7 telemetry proves boss CP ratios remain
+approximately 1.1 at every boss.
 
 Max Alive is discrete, so its effective percentage differs after rounding:
 
-- `4 -> 5` is effectively `x1.25`;
-- `7 -> 8` is effectively `x1.143`;
-- `8 -> 10` is effectively `x1.25` because `8 * 1.2 = 9.6` rounds to 10;
+- `4 -> 4` can remain unchanged because `4 * 1.1 = 4.4` rounds to 4;
+- `5 -> 6` is effectively `x1.2`;
+- `8 -> 9` is effectively `x1.125`;
 - the result is capped at 10.
 
-The roadmap currently connects normal and boss totals as one sawtooth line and
-plots accuracy multiplied by 1000 on the CP axis. This can visually exaggerate
-boss jumps. It is a visualization issue, not runtime multiplier accumulation.
+The roadmap is a presentation mirror only. It now plots baseline package caps
+separately from boss values; source plus active scene remain authoritative.
 
-## Progression Runtime V5
+## Progression Runtime V7
 
 ### Reset And URL Contract
 
@@ -185,7 +187,7 @@ http://localhost:7456/?progression=1&resetProgression=1&currentLevel=1&TotalLeve
 
 Rules:
 
-- `resetProgression=1` (alias `reset=1`) clears v1-v6 progression keys before
+- `resetProgression=1` (alias `reset=1`) clears v1-v7 progression keys before
   initialization.
 - A manually opened `currentLevel=1` URL without `progressionResume=1` also
   starts fresh.
@@ -198,25 +200,25 @@ Rules:
 
 ### Saved State
 
-Storage version 6 persists:
+Storage version 7 persists:
 
 - current level, Gold, `adsReward`, and loss streak;
-- player Initial CP and rescue overflow;
+- player Initial CP and legacy rescue-overflow field;
 - deterministic CP and Max Alive schedules, claimed state, and claim source;
 - rescue history;
 - player Max Alive;
 - total purchase count;
 - per-family offered/unlocked/count state.
 
-Only version 6 is sanitized into the active state. Other versions initialize a
-fresh v6 state and cannot contaminate current results.
+Only version 7 is sanitized into the active state. Other versions initialize a
+fresh v7 state and cannot contaminate current results.
 
 ### Battle Lifecycle
 
 At load:
 
 1. Parse URL and clear storage when reset is requested.
-2. Load/sanitize v6 state or create a clean state.
+2. Load/sanitize v7 state or create a clean state.
 3. Apply saved player state.
 4. Apply Team B level curve and boss modifiers.
 5. If purchase simulation is enabled, repeatedly buy weighted affordable
@@ -226,12 +228,15 @@ At load:
 At battle end:
 
 1. Offer families introduced at the completed level.
-2. A player win receives full effective enemy CP as Gold and advances a level.
-3. A player loss repeats the same level. A valid exhausted loss receives 25%
-   of win Gold on every loss; there is no cumulative per-level loss-Gold cap.
+2. A player win receives baseline level CP as Gold; a boss win adds the 1.15x
+   boss Gold bonus without using boss CP multiplier, then advances a level.
+3. A player loss repeats the same level. A valid exhausted loss receives 10%
+   of win Gold on every loss.
 4. Every player loss increments the video-rescue streak; validity only gates
    loss Gold.
-5. At one loss, attempt one boss-only direct package rescue.
+5. At three losses, attempt one boss-only Gold rescue. It does not claim a
+   package; it makes the earliest missing CP/Max Alive package available and
+   grants Gold equal to that package's current purchase cost.
 6. Purchase simulation runs again and may buy multiple affordable options.
 7. Save state, download telemetry, and reload unless campaign is complete.
 
@@ -273,9 +278,9 @@ unit +1 count = unlock price / unlockCount
 The schedule is generated dynamically from boss milestones through
 `progressionEndLevel`:
 
-- target cap at a milestone equals Team B effective CP at that milestone;
-- boss `x1.2` is included, so the player sale cap targets the next boss's
-  actual CP rather than its base CP;
+- target cap at a milestone equals Team B baseline CP at that milestone;
+- boss multiplier is deliberately excluded, so the player sale cap targets the
+  next boss's base CP rather than its actual boss CP;
 - growth since the previous target is split across approximately half the
   normal levels in the segment;
 - offer levels are deterministic, sparse, and occur before the target boss;
@@ -284,39 +289,40 @@ The schedule is generated dynamically from boss milestones through
 
 Active 100/50 schedule:
 
-| Target | Offer levels | Deltas | Effective cap |
+| Target | Offer levels | Deltas | Baseline cap |
 | ---: | --- | --- | ---: |
-| 5 | 3, 4 | +39, +38 | 377 |
-| 10 | 7, 9 | +49, +48 | 474 |
-| 15 | 13, 14 | +49, +48 | 571 |
-| 20 | 16, 17 | +48, +48 | 667 |
-| 25 | 21, 23 | +49, +48 | 764 |
-| 30 | 27, 28 | +49, +49 | 862 |
-| 35 | 31, 34 | +48, +48 | 958 |
-| 40 | 37, 39 | +49, +48 | 1055 |
-| 45 | 41, 44 | +48, +48 | 1151 |
-| 50 | 46, 48 | +49, +48 | 1248 |
+| 5 | 3, 4 | +7, +7 | 314 |
+| 10 | 7, 9 | +41, +40 | 395 |
+| 15 | 13, 14 | +41, +40 | 476 |
+| 20 | 16, 17 | +40, +40 | 556 |
+| 25 | 21, 23 | +41, +40 | 637 |
+| 30 | 27, 28 | +41, +40 | 718 |
+| 35 | 31, 34 | +40, +40 | 798 |
+| 40 | 37, 39 | +41, +40 | 879 |
+| 45 | 41, 44 | +40, +40 | 959 |
+| 50 | 46, 48 | +41, +40 | 1040 |
 
 ### Max Alive Packages
 
 Max Alive now uses the same package lifecycle as CP:
 
-- target cap at a milestone equals Team B effective Max Alive, including boss
+- target cap at a milestone equals Team B baseline Max Alive before boss
   multiplier and the Max Alive cap;
 - each package grants exactly `+1`;
 - deterministic offers occur before the target milestone;
-- claims persist and may come from purchase or video rescue;
+- claims persist and come from purchase; video rescue only grants Gold;
 - package price is `1000 * currentMaxAlive / playerStart`.
 
 Active schedule:
 
-| Target | Offer | Delta | Player cap |
+| Target | Offer | Delta | Baseline player cap |
 | ---: | ---: | ---: | ---: |
-| 5 | 2 | +1 | 5 |
-| 15 | 13 | +1 | 6 |
-| 20 | 17 | +1 | 7 |
-| 30 | 27 | +1 | 8 |
-| 35 | 31, 32 | +1, +1 | 10 |
+| 15 | 13 | +1 | 5 |
+| 20 | 17 | +1 | 6 |
+| 30 | 27 | +1 | 7 |
+| 35 | 31 | +1 | 8 |
+| 40 | 36 | +1 | 9 |
+| 50 | 46 | +1 | 10 |
 
 ### Purchase Simulation
 
@@ -333,27 +339,120 @@ guard; package/unit milestone caps are the availability guard.
 
 ### Rewarded-Video Rescue
 
-Rescue is attempted after one player loss and only on a boss. It succeeds
+Rescue is attempted after three player losses and only on a boss. It succeeds
 when:
 
 - purchase simulation is enabled;
-- an available current or future CP/Max Alive package exists, or a CP overflow
-  step can be generated.
+- an unclaimed current or future CP/Max Alive package exists.
 
 The runtime finds the earliest future CP and Max Alive packages, compares
-normalized deficits against effective boss values, and pulls forward one
-package of the larger deficit. A tie selects CP. A successful rescue:
+normalized deficits against the actual boss values, and selects one package of
+the larger deficit. A tie selects CP. A successful rescue:
 
-- directly claims the package at zero Gold cost;
+- pulls a future package's offer level to the current boss level if needed;
+- grants Gold equal to that package's current purchase cost; the player still
+  has to buy it;
 - increments `adsReward` by one;
 - resets the loss streak;
-- records source `video-rescue` and the action in telemetry.
+- records source `video-rescue-gold` and the action in telemetry.
 
-If no future CP package remains but player CP is still below enemy CP, rescue
-uses a CP overflow step based on the nearest package size. Rescue does not pull
-unit unlock/count packages and does not guarantee that the next attempt wins.
+When no package remains, no rescue is created. Rescue does not pull unit
+unlock/count packages and does not guarantee that the next attempt wins.
 
-## Latest Telemetry Evidence
+## Current Telemetry Evidence (v7)
+
+Dataset analyzed on 2026-08-06:
+
+```text
+C:/Users/tranl/Downloads/
+battle-telemetry-2026-08-05T17-46-10-402Z.json
+through
+battle-telemetry-2026-08-05T18-48-31-449Z.json
+```
+
+The selected filename range contains 150 reports, all with storage version 7,
+covering levels 1-70 in one sequential run. This is one stochastic campaign
+trajectory, not 150 independent samples.
+
+### Aggregate Result
+
+```text
+reports = 150
+Team A wins = 70 (46.7% attempt win rate)
+Team B wins = 80
+boss wins = 14; boss losses = 66
+video rescues = 7
+rescue Gold = 8720
+final level = 70
+final Gold = 43825
+```
+
+Boss retry shape:
+
+| Boss | Attempts | Losses | Rescues | Winning attempt |
+| ---: | ---: | ---: | ---: | ---: |
+| 5 | 1 | 0 | 0 | 1 |
+| 10 | 4 | 3 | 1 | 4 |
+| 15 | 2 | 1 | 0 | 2 |
+| 20 | 8 | 7 | 2 | 8 |
+| 25 | 1 | 0 | 0 | 1 |
+| 30 | 7 | 6 | 2 | 7 |
+| 35 | 5 | 4 | 1 | 5 |
+| 40 | 1 | 0 | 0 | 1 |
+| 45 | 6 | 5 | 1 | 6 |
+| 50 | 10 | 9 | 0 | 10 |
+| 55 | 6 | 5 | 0 | 6 |
+| 60 | 9 | 8 | 0 | 9 |
+| 65 | 2 | 1 | 0 | 2 |
+| 70 | 12 | 11 | 0 | 12 |
+
+At level 70 the player has CP 1040, Max Alive 10, and all authored unit
+counts at cap. Enemy has CP 1144, Max Alive 10, and equal unit counts. All
+packages are claimed and `availablePurchases` is empty, while Gold is 42629
+before the final win. This confirms the intended post-level-50 plateau and
+also identifies the future economy extension point: Gold continues to accrue
+but has no current sink after all packages are exhausted.
+
+Economy accounting for the 150 reports:
+
+```text
+regular/loss Gold sources = 62701
+video-rescue Gold sources = 8720
+all purchase sinks = 27596
+final Gold = 43825
+```
+
+From level 51 onward, the run generated approximately 25360 regular Gold
+without any purchase sink. This is intentional plateau behavior for now, not
+an actionable bug; future work may add post-level-50 scaling or repeatable
+spends.
+
+### Current Telemetry Diagnosis
+
+Proven by deterministic state and report fields:
+
+- v7 storage, scene settings, and telemetry agree on baseline packages,
+  multiplier 1.1, boss Gold bonus 1.15, loss Gold ratio 0.1, and three-loss
+  rescue threshold;
+- rescue no longer claims packages for free; each rescue grants Gold matching
+  one CP/Max Alive package cost and the later purchase claims it;
+- CP schedule reaches baseline cap 1040 at milestone 50, and Max Alive reaches
+  baseline cap 10 at milestone 50;
+- after milestone 50 there are no CP/Max Alive packages left to rescue or buy;
+- repeated boss losses after package exhaustion can accumulate large unused
+  Gold because valid losses still receive 10% loss Gold.
+
+Observed in this single stochastic run, therefore not a population estimate:
+
+- boss pressure becomes severe at levels 20, 30, 45, 50, 60, and 70;
+- level 70 required 11 losses before the eventual win;
+- the player was not missing authored upgrades at the late wall; the remaining
+  gap is the deliberate boss CP multiplier plus combat stochasticity.
+
+The user accepts the level-50 plateau and plans to scale other systems there.
+Do not change the plateau or add post-50 sinks without explicit direction.
+
+## Historical Telemetry Evidence (v5)
 
 Dataset:
 
@@ -367,8 +466,8 @@ battle-telemetry-2026-08-03T20-16-04-557Z.json
 The range contains exactly 101 reports. It is a clean storage-v5 run beginning
 at level 1 with player CP 300, Max Alive 4, Gold 0, and starting roster only.
 It reaches boss level 45 but does not yet contain the post-third-rescue attempt.
-This is historical v5 evidence; it does not describe the current v6 rescue
-frequency or effective-boss-cap package schedule.
+This is historical v5 evidence; it does not describe the current v7 rescue
+frequency or baseline-boss package schedule.
 
 ### Aggregate Result
 
@@ -468,8 +567,8 @@ than rare:
   gap.
 
 One future package per three losses was not guaranteed to create a winning next
-attempt. This is historical v5 evidence; validate the v6 contract before using
-these conclusions for current tuning.
+attempt. This is historical v5 evidence; use the current v7 telemetry section
+above for current tuning conclusions.
 
 Do not solve this by changing combat stats or AI. The evidence points to the
 progression capacity/rescue contract.
@@ -505,39 +604,37 @@ normal progression with authored boss pressure. Flag:
 
 ## Next Decision
 
-Before another overnight 100-level run, discuss the rescue contract with the
-user. Do not silently implement one of these:
+The user accepts the intentional progression plateau at level 50 and plans to
+scale other systems from level 50 onward. Do not add repeatable post-50 sinks,
+post-50 packages, or loss-Gold suppression without explicit instruction.
 
-1. Validate the v6 one-loss rescue with a fresh clean telemetry batch.
-2. If a boss still needs repeated ads, decide whether one rescue must make the
-   next attempt materially passable.
-3. Allow accumulated Gold to buy a boss-gap package before requiring an ad.
-4. Reduce the boss spike. This is broader tuning and should not be combined
-   blindly with a stronger rescue in the same experiment.
+Future balance work may choose one of these, but each requires a new design
+decision and a fresh telemetry batch:
 
-The multiplier itself is validated. The immediate design question is how often
-rescue should be required and whether Gold should retain agency at boss walls.
+1. Add post-50 scaling for another system while leaving combat progression
+   plateaued.
+2. Add repeatable Gold sinks after all authored packages are exhausted.
+3. Add a post-50 rescue/upgrade contract if late bosses should remain
+   progression-gated rather than combat-gated.
 
-A useful short continuation is one attempt after the latest level-45 Max Alive
-rescue. A new full batch is low value until the rescue policy is accepted.
-
-Separately, improve the roadmap visualization when requested: draw base CP and
-boss bonus separately and place accuracy on its own scale. This is presentation
-only and must not change runtime formulas.
+The v7 multiplier and rescue contract are implemented and validated. Treat the
+large late-run Gold balance as an accepted future extension point, not an
+automatic bug.
 
 ## Validation State
 
 Latest focused checks:
 
 ```text
-Cocos TypeScript noEmit: PASS
+Cocos TypeScript targeted compile with bundled tsc + skipLibCheck: PASS
+Strict full-project compile: existing errors remain in BattleTelemetry, RVO,
+and Unit; no new LevelSettings error was introduced
 assets/Test.scene JSON parse: PASS
 roadmap embedded JavaScript syntax: PASS
 git diff --check on authored progression files: PASS
-Max Alive schedule semantic assertions: PASS
-101-report telemetry parse/grouping: PASS
-Cocos preview chunk contains storage v6 and Max Alive package/rescue code: PASS
-Cocos serialized scene cache contains battle-progression-v6: PASS
+baseline package/economy invariant assertions: PASS
+150-report v7 telemetry parse/grouping: PASS
+active scene v7 config alignment: PASS
 ```
 
 Current authored files:
@@ -550,12 +647,13 @@ Current authored files:
 Branch/commit baseline at this handoff:
 
 ```text
-main / f68c225f progression test
+main / f41129b7 progression test
 ```
 
-The current source progression commit is `f68c225f`; this handoff update is
-uncommitted. Cocos has also modified generated/cache/log files under
-`library/`, `profiles/`, and `temp/`. Do not revert or commit those automatically.
+The current source progression commit is `f41129b7`; the v7 source, scene,
+roadmap, and this handoff update are uncommitted. Cocos has also modified
+generated/cache/log files under `library/`, `profiles/`, and `temp/`. Do not
+revert or commit those automatically.
 
 Known local operational issues:
 

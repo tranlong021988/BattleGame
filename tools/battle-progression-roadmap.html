@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Battle Progression Roadmap v6</title>
+  <title>Battle Progression Roadmap v7</title>
   <style>
     :root {
       color-scheme: light;
@@ -107,10 +107,10 @@
 </head>
 <body>
 <main>
-  <h1>Battle Progression Roadmap v6</h1>
+  <h1>Battle Progression Roadmap v7</h1>
   <p class="lede">
     Enemy dùng một progression clock kết thúc ở level 50. Player mua các gói Initial CP và Max Alive rải thưa giữa hai boss;
-    mua đủ thì đạt đúng chỉ số hiệu lực của boss kế tiếp, có gồm boss multiplier. Unit count không làm thay đổi wave CP cost.
+    mua đủ thì đạt đúng chỉ số nền của boss kế tiếp, không gồm boss multiplier. Unit count không làm thay đổi wave CP cost.
   </p>
 
   <section>
@@ -141,10 +141,10 @@
       <table><tbody>
         <tr><th>Campaign</th><td>100 level</td></tr>
         <tr><th>Progression End</th><td>Level 50</td></tr>
-        <tr><th>Boss</th><td>Mỗi 5 level; CP/Accuracy/Max Alive x1.2, có cap tương ứng</td></tr>
+        <tr><th>Boss</th><td>Mỗi 5 level; CP/Accuracy/Max Alive x1.1, có cap tương ứng</td></tr>
         <tr><th>Enemy CP nền</th><td>250 → 1040 trong level 1–50, sau đó plateau</td></tr>
-        <tr><th>Player CP</th><td>Khởi đầu 300; cap mua của mỗi chặng bằng CP hiệu lực của boss kế tiếp, gồm multiplier</td></tr>
-        <tr><th>Player Max Alive</th><td>Khởi đầu 4; mỗi gói +1, cap mua bằng Max Alive hiệu lực của boss kế tiếp, gồm multiplier và cap</td></tr>
+        <tr><th>Player CP</th><td>Khởi đầu 300; cap mua của mỗi chặng bằng CP nền của boss kế tiếp, không gồm multiplier</td></tr>
+        <tr><th>Player Max Alive</th><td>Khởi đầu 4; mỗi gói +1, cap mua bằng Max Alive nền của boss kế tiếp, không gồm multiplier</td></tr>
         <tr><th>Lịch mở gói</th><td>Xác định theo config, rải ở khoảng một nửa normal level; reload không đổi lịch</td></tr>
         <tr><th>Reset test</th><td><code>resetProgression=1&amp;currentLevel=1</code> tạo run mới; retry level 1 không reset</td></tr>
       </tbody></table>
@@ -152,13 +152,13 @@
     <section>
       <h2>Gold và rescue</h2>
       <table><tbody>
-        <tr><th>Thắng</th><td><code>enemyInitialCP</code> gold</td></tr>
-        <tr><th>Thua hợp lệ</th><td>25% reward thắng cho mỗi lần thua, không giới hạn tổng reward theo level</td></tr>
+        <tr><th>Thắng</th><td>CP nền của level; boss nhận thêm 15% bonus, không tính boss CP multiplier</td></tr>
+        <tr><th>Thua hợp lệ</th><td>10% reward thắng cho mỗi lần thua</td></tr>
         <tr><th>Initial CP</th><td>10 gold mỗi CP</td></tr>
         <tr><th>Max Alive</th><td>Giá tăng theo số slot hiện có; mỗi gói mua thêm một slot</td></tr>
-        <tr><th>Video rescue</th><td>Sau 1 loss tại boss; ưu tiên gói CP/Max Alive đang mở nhưng chưa mua được</td></tr>
-        <tr><th>Rescue thường</th><td>So sánh tỷ lệ thiếu CP/Max Alive; nếu không còn gói hiện tại thì kéo sớm một gói tương lai; không cấp Gold</td></tr>
-        <tr><th>Rescue cuối</th><td>Khi không còn gói hiện tại hoặc tương lai, cấp CP overflow theo delta của gói gần nhất</td></tr>
+        <tr><th>Video rescue</th><td>Sau 3 loss tại boss; cấp Gold đúng bằng giá ít nhất một gói CP/Max Alive còn thiếu</td></tr>
+        <tr><th>Rescue thường</th><td>So sánh tỷ lệ thiếu CP/Max Alive; nếu cần thì kéo sớm một gói tương lai rồi cấp Gold để mua, không claim miễn phí</td></tr>
+        <tr><th>Rescue cuối</th><td>Khi không còn gói hiện tại hoặc tương lai thì không tạo rescue package mới</td></tr>
       </tbody></table>
     </section>
   </div>
@@ -177,7 +177,7 @@
       <thead><tr><th>Boss target</th><th>Offer level</th><th>Delta</th><th>Stage cap</th></tr></thead>
       <tbody id="maxAlivePackageTable"></tbody>
     </table>
-    <p class="note">The player cap follows effective boss Max Alive after multiplier and caps. Every package adds one slot.</p>
+    <p class="note">The player cap follows baseline boss Max Alive before multiplier and caps. Every package adds one slot.</p>
   </section>
 
   <section>
@@ -187,7 +187,7 @@
       <div><b>2. Đánh trận</b>BattleArmyBrain A giả lập player; B dùng cùng AI với difficulty theo progression.</div>
       <div><b>3. Thắng</b>Nhận full Gold, tăng level, reset loss streak.</div>
       <div><b>4. Thua</b>Giữ level; chỉ nhận loss Gold khi thật sự hết khả năng spawn.</div>
-      <div><b>5. Kẹt boss</b>Sau 1 loss: adsReward +1 và nhận một gói CP/Max Alive hiện tại hoặc kéo sớm gói tương lai.</div>
+      <div><b>5. Kẹt boss</b>Sau 3 loss: adsReward +1, kéo sớm một gói nếu cần và nhận Gold đủ để mua gói đó.</div>
     </div>
   </section>
 </main>
@@ -204,9 +204,9 @@
     accuracyMax: 1,
     aliveMin: 3,
     aliveMax: 10,
-    bossCP: 1.2,
-    bossAccuracy: 1.2,
-    bossAlive: 1.2,
+    bossCP: 1.1,
+    bossAccuracy: 1.1,
+    bossAlive: 1.1,
     playerCPStart: 300,
     playerAliveStart: 4,
   };
@@ -257,7 +257,7 @@
     let previousLevel = 0;
     let previousCap = config.playerCPStart;
     for (const targetLevel of milestoneLevels()) {
-      const targetCap = Math.max(previousCap, enemyCPAt(targetLevel));
+      const targetCap = Math.max(previousCap, baseEnemyCPAt(targetLevel));
       const totalDelta = targetCap - previousCap;
       if (totalDelta > 0) {
         const first = previousLevel > 0 ? previousLevel + 1 : 1;
@@ -282,7 +282,7 @@
     let previousLevel = 0;
     let previousCap = config.playerAliveStart;
     for (const targetLevel of milestoneLevels()) {
-      const targetCap = clamp(Math.max(previousCap, enemyAliveAt(targetLevel)), config.playerAliveStart, config.aliveMax);
+      const targetCap = clamp(Math.max(previousCap, baseEnemyAliveAt(targetLevel)), config.playerAliveStart, config.aliveMax);
       const totalDelta = targetCap - previousCap;
       if (totalDelta > 0) {
         const first = previousLevel > 0 ? previousLevel + 1 : 1;
@@ -326,11 +326,11 @@
     const enemy = enemyAt(level);
     const offered = packages.filter(item => item.offerLevel <= level).length;
     const values = [
-      ['Enemy CP', enemy.cp, enemy.boss ? `Base ${enemy.baseCP}, boss x1.2` : 'Base curve', 'enemy'],
+      ['Enemy CP', enemy.cp, enemy.boss ? `Base ${enemy.baseCP}, boss x1.1` : 'Base curve', 'enemy'],
       ['Accuracy', enemy.accuracy.toFixed(3), `${Math.round(enemy.accuracy * 100)}%`, 'green'],
       ['Max Alive', enemy.alive, enemy.boss ? 'Boss multiplier active' : 'Base curve', 'player'],
-      ['Player Alive cap', playerAliveCapAt(level), 'Boss-effective cap, without rescue', 'player'],
-      ['Player CP cap', playerCapAt(level), 'Không gồm rescue', 'player'],
+      ['Player Alive cap', playerAliveCapAt(level), 'Baseline boss cap, without rescue', 'player'],
+      ['Player CP cap', playerCapAt(level), 'Baseline boss cap, không gồm rescue', 'player'],
       ['CP packages', offered, `trên ${packages.length} gói đã offer`, 'gold'],
       ['Alive packages', maxAlivePackages.filter(item => item.offerLevel <= level).length, `trên ${maxAlivePackages.length} gói đã offer`, 'gold'],
       ['Progression', `${Math.round(progressionAt(level) * 100)}%`, level >= config.progressionEndLevel ? 'Plateau' : `kết thúc L${config.progressionEndLevel}`, 'boss'],

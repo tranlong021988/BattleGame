@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _class4, _class5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _class4, _class5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -227,24 +227,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 0.01,
         step: 0.1
       }), _dec37 = property({
+        min: 1,
+        step: 0.05,
+        displayName: 'Boss Gold Reward Multiplier',
+        tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
+      }), _dec38 = property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Loss Gold Ratio',
-        tooltip: 'Gold granted after every valid player loss as a ratio of that level win reward. There is no cumulative per-level cap.'
-      }), _dec38 = property({
-        min: 1,
-        step: 1
+        tooltip: 'Gold granted after every valid player loss as a ratio of that level win reward.'
       }), _dec39 = property({
         min: 1,
         step: 1
       }), _dec40 = property({
-        min: 0.01,
-        step: 0.1
-      }), _dec41 = property({
         min: 1,
         step: 1
+      }), _dec41 = property({
+        min: 0.01,
+        step: 0.1
       }), _dec42 = property({
+        min: 1,
+        step: 1
+      }), _dec43 = property({
         type: [UnitProgressionRule]
       }), _dec7(_class4 = (_class5 = class LevelSettings extends Component {
         constructor(...args) {
@@ -316,17 +321,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor38, this);
 
-          _initializerDefineProperty(this, "lossGoldRatio", _descriptor39, this);
+          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor39, this);
 
-          _initializerDefineProperty(this, "lossesPerVideoReward", _descriptor40, this);
+          _initializerDefineProperty(this, "lossGoldRatio", _descriptor40, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor41, this);
+          _initializerDefineProperty(this, "lossesPerVideoReward", _descriptor41, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor42, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor42, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor43, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor43, this);
 
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor44, this);
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor44, this);
+
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor45, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -418,12 +425,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const before = this.createTelemetrySnapshot();
           const purchases = [];
           const newlyOffered = this.offerIntroducedUnits(battleLevel);
-          const manager = this.getGameManager();
-          const enemyCP = manager ? Math.max(0, manager.initialCombatPoint[1]) : 0;
-          const winGold = Math.max(0, Math.round(enemyCP * Math.max(0, this.winGoldPerEnemyCP)));
+          const rewardBaseCP = this.getLevelBaseInitialCP(battleLevel);
+          const winGold = Math.max(0, Math.round(rewardBaseCP * Math.max(0, this.winGoldPerEnemyCP) * (this.isBossLevelFor(battleLevel) ? Math.max(1, this.bossGoldRewardMultiplier) : 1)));
           let goldReward = 0;
           let rescueCP = 0;
           let rescueMaxAlive = 0;
+          let rescueGold = 0;
           let videoRewardTriggered = false;
           let rescueActions = [];
           const validPlayerLoss = loserTeam === 0 && this.isValidPlayerLoss(reason);
@@ -443,14 +450,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               const rescue = this.applyVideoRescue(purchases);
 
               if (rescue) {
-                const rescueDelta = Math.max(0, rescue.valueAfter - rescue.valueBefore);
-
-                if (rescue.kind === 'initial-cp') {
-                  rescueCP = rescueDelta;
-                } else if (rescue.kind === 'max-alive') {
-                  rescueMaxAlive = rescueDelta;
-                }
-
+                rescueGold = Math.max(0, rescue.goldAfter - rescue.goldBefore);
                 state.adsReward++;
                 state.levelLossCount = 0;
                 videoRewardTriggered = true;
@@ -492,6 +492,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             validPlayerLoss,
             rescueCP,
             rescueMaxAlive,
+            rescueGold,
             videoRewardTriggered,
             rescueActions,
             newlyOffered,
@@ -535,6 +536,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               playerMaxAlivePackagesOffered: this.getPlayerMaxAlivePackagesOffered(this.battleLevel),
               nextPlayerMaxAlivePackage: this.getNextPlayerMaxAlivePackageSnapshot(state, this.battleLevel),
               winGoldPerEnemyCP: this.winGoldPerEnemyCP,
+              bossGoldRewardMultiplier: this.bossGoldRewardMultiplier,
               lossGoldRatio: this.lossGoldRatio,
               lossesPerVideoReward: this.lossesPerVideoReward,
               unitUnlockCostMultiplier: this.unitUnlockCostMultiplier,
@@ -635,7 +637,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return {
-            version: 6,
+            version: 7,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(0, Math.floor(this.initialPlayerGold)),
             adsReward: 0,
@@ -654,7 +656,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         sanitizeProgressionState(source) {
           const initial = this.createInitialProgressionState();
 
-          if (this.safeInteger(source.version, 0) !== 6) {
+          if (this.safeInteger(source.version, 0) !== 7) {
             return initial;
           }
 
@@ -790,7 +792,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             options.push({
               id: `initial-cp:${nextCPPackage.id}`,
               kind: 'initial-cp',
-              cost: Math.max(1, Math.round(nextCPPackage.delta * Math.max(0.01, this.initialCPGoldPerPoint))),
+              cost: this.getInitialCPPackageCost(nextCPPackage.delta),
               family: null,
               tier: 0,
               delta: nextCPPackage.delta,
@@ -804,7 +806,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             options.push({
               id: `max-alive:${nextMaxAlivePackage.id}`,
               kind: 'max-alive',
-              cost: Math.max(1, Math.round(Math.max(1, this.maxAliveBasePrice) * state.playerMaxAlive / Math.max(1, this.getPlayerMaxAliveStart()) * nextMaxAlivePackage.delta)),
+              cost: this.getMaxAlivePackageCost(nextMaxAlivePackage.delta, state.playerMaxAlive),
               family: null,
               tier: 0,
               delta: nextMaxAlivePackage.delta,
@@ -813,6 +815,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return options;
+        }
+
+        getInitialCPPackageCost(delta) {
+          return Math.max(1, Math.round(Math.max(0, delta) * Math.max(0.01, this.initialCPGoldPerPoint)));
+        }
+
+        getMaxAlivePackageCost(delta, currentMaxAlive) {
+          return Math.max(1, Math.round(Math.max(1, this.maxAliveBasePrice) * Math.max(1, currentMaxAlive) / Math.max(1, this.getPlayerMaxAliveStart()) * Math.max(0, delta)));
         }
 
         runPurchaseSimulation(records, source) {
@@ -887,40 +897,55 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           const state = this.progressionState;
-          const rescueCPPackage = this.getNextAvailableCPPackage(state, this.battleLevel) || state.cpPackages.filter(item => !item.claimed && item.offerLevel > this.battleLevel).sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id))[0] || null;
-          const rescueMaxAlivePackage = this.getNextAvailableMaxAlivePackage(state, this.battleLevel) || state.maxAlivePackages.filter(item => !item.claimed && item.offerLevel > this.battleLevel).sort((a, b) => a.offerLevel - b.offerLevel || a.targetLevel - b.targetLevel || a.id.localeCompare(b.id))[0] || null;
+          const rescueCPPackage = this.getRescuePackage(state.cpPackages);
+          const rescueMaxAlivePackage = this.getRescuePackage(state.maxAlivePackages);
           const enemyCP = this.getEnemyInitialCP();
           const enemyMaxAlive = this.getEnemyMaxAlive();
           const cpGapRatio = Math.max(0, enemyCP - state.playerInitialCP) / Math.max(1, enemyCP);
           const maxAliveGapRatio = Math.max(0, enemyMaxAlive - state.playerMaxAlive) / Math.max(1, enemyMaxAlive);
-          const cpOverflowDelta = this.getNearestCPPackageDelta(this.battleLevel);
-          const rescueKind = this.selectRescueKind(!!rescueCPPackage || cpOverflowDelta > 0, !!rescueMaxAlivePackage, cpGapRatio, maxAliveGapRatio);
+          const rescueKind = this.selectRescueKind(!!rescueCPPackage, !!rescueMaxAlivePackage, cpGapRatio, maxAliveGapRatio);
           let record = null;
 
           if (rescueKind === 'initial-cp' && rescueCPPackage) {
-            const valueBefore = state.playerInitialCP;
-            rescueCPPackage.claimed = true;
-            rescueCPPackage.claimSource = 'video-rescue';
-            state.playerInitialCP = this.getPlayerCPFromState(state);
-            record = this.createVideoRescueRecord(`rescue:${rescueCPPackage.id}`, 'initial-cp', rescueCPPackage.delta, valueBefore, state.playerInitialCP);
+            record = this.grantVideoRescueGold(state, rescueCPPackage, 'initial-cp');
           } else if (rescueKind === 'max-alive' && rescueMaxAlivePackage) {
-            const valueBefore = state.playerMaxAlive;
-            rescueMaxAlivePackage.claimed = true;
-            rescueMaxAlivePackage.claimSource = 'video-rescue';
-            state.playerMaxAlive = this.getPlayerMaxAliveFromState(state);
-            record = this.createVideoRescueRecord(`rescue:${rescueMaxAlivePackage.id}`, 'max-alive', rescueMaxAlivePackage.delta, valueBefore, state.playerMaxAlive);
-          } else if (rescueKind === 'initial-cp') {
-            const valueBefore = state.playerInitialCP;
-            const delta = cpOverflowDelta;
-            if (delta <= 0) return null;
-            state.playerInitialCPOverflow += delta;
-            state.playerInitialCP = this.getPlayerCPFromState(state);
-            record = this.createVideoRescueRecord(`rescue:overflow:${this.battleLevel}:` + `${state.adsReward + 1}`, 'initial-cp', delta, valueBefore, state.playerInitialCP);
+            record = this.grantVideoRescueGold(state, rescueMaxAlivePackage, 'max-alive');
           }
 
           if (!record) return null;
-          state.rescueHistory.push(record.id);
           records.push(record);
+          return record;
+        }
+
+        getRescuePackage(packages) {
+          return packages.filter(item => !item.claimed).sort((a, b) => Math.max(0, a.offerLevel - this.battleLevel) - Math.max(0, b.offerLevel - this.battleLevel) || a.targetLevel - b.targetLevel || a.offerLevel - b.offerLevel || a.id.localeCompare(b.id))[0] || null;
+        }
+
+        grantVideoRescueGold(state, packageItem, kind) {
+          const goldBefore = state.playerGold;
+          const valueBefore = kind === 'initial-cp' ? state.playerInitialCP : state.playerMaxAlive;
+          const cost = kind === 'initial-cp' ? this.getInitialCPPackageCost(packageItem.delta) : this.getMaxAlivePackageCost(packageItem.delta, state.playerMaxAlive);
+
+          if (packageItem.offerLevel > this.battleLevel) {
+            packageItem.offerLevel = this.battleLevel;
+          }
+
+          state.playerGold += cost;
+          const record = {
+            id: `rescue:gold:${packageItem.id}`,
+            kind,
+            label: `Video rescue +${cost} Gold`,
+            family: null,
+            familyName: '',
+            tier: 0,
+            cost: 0,
+            goldBefore,
+            goldAfter: state.playerGold,
+            valueBefore,
+            valueAfter: valueBefore,
+            source: 'video-rescue-gold'
+          };
+          state.rescueHistory.push(record.id);
           return record;
         }
 
@@ -934,23 +959,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return 'initial-cp';
-        }
-
-        createVideoRescueRecord(id, kind, delta, valueBefore, valueAfter) {
-          return {
-            id,
-            kind,
-            label: kind === 'initial-cp' ? `Video rescue +${delta} Initial CP` : `Video rescue +${delta} Max Alive`,
-            family: null,
-            familyName: '',
-            tier: 0,
-            cost: 0,
-            goldBefore: this.progressionState ? this.progressionState.playerGold : 0,
-            goldAfter: this.progressionState ? this.progressionState.playerGold : 0,
-            valueBefore,
-            valueAfter,
-            source: 'video-rescue'
-          };
         }
 
         applyPurchase(option, state, source) {
@@ -1284,7 +1292,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           for (let i = 0; i < milestones.length; i++) {
             const targetLevel = milestones[i];
-            const targetCap = Math.max(previousCap, this.getLevelInitialCP(targetLevel));
+            const targetCap = Math.max(previousCap, this.getLevelBaseInitialCP(targetLevel));
             const totalDelta = targetCap - previousCap;
 
             if (totalDelta <= 0) {
@@ -1373,17 +1381,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.getProgressionEndLevel();
         }
 
-        getNearestCPPackageDelta(level) {
-          const schedule = this.progressionState ? this.progressionState.cpPackages : this.createCPPackageSchedule();
-          const nearest = schedule.filter(item => item.delta > 0).sort((a, b) => Math.abs(a.targetLevel - level) - Math.abs(b.targetLevel - level) || a.delta - b.delta)[0] || null;
-          if (nearest) return nearest.delta;
-          const pace = Math.max(1, Math.floor(this.bossStagePace) || 1);
-          const previousLevel = Math.max(1, level - pace);
-          const segmentGrowth = Math.max(1, this.getLevelBaseInitialCP(level) - this.getLevelBaseInitialCP(previousLevel));
-          const normalLevels = Math.max(1, pace - 1);
-          return Math.max(1, Math.round(segmentGrowth / Math.ceil(normalLevels / 2)));
-        }
-
         getPlayerMaxAliveStart() {
           return Math.max(0, Math.floor(this.playerMaxAliveStart));
         }
@@ -1441,7 +1438,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           for (let i = 0; i < milestones.length; i++) {
             const targetLevel = milestones[i];
-            const targetCap = this.clampPlayerMaxAlive(Math.max(previousCap, this.getLevelMaxAlive(targetLevel)));
+            const targetCap = this.clampPlayerMaxAlive(Math.max(previousCap, this.getLevelBaseMaxAlive(targetLevel)));
             const totalDelta = targetCap - previousCap;
 
             if (totalDelta <= 0) {
@@ -1495,7 +1492,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         clearProgressionStorage() {
-          const keys = [this.progressionStorageKey, 'battle-progression-v1', 'battle-progression-v2', 'battle-progression-v3', 'battle-progression-v4', 'battle-progression-v5', 'battle-progression-v6'];
+          const keys = [this.progressionStorageKey, 'battle-progression-v1', 'battle-progression-v2', 'battle-progression-v3', 'battle-progression-v4', 'battle-progression-v5', 'battle-progression-v6', 'battle-progression-v7'];
 
           for (let i = 0; i < keys.length; i++) {
             if (keys.indexOf(keys[i]) !== i) continue;
@@ -1691,21 +1688,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 1.2;
+          return 1.1;
         }
       }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "bossDecisionAccuracyMultiplier", [_dec13], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 1.2;
+          return 1.1;
         }
       }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "bossMaxAliveWavesMultiplier", [_dec14], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 1.2;
+          return 1.1;
         }
       }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "targetTeam", [_dec15], {
         configurable: true,
@@ -1852,7 +1849,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 'battle-progression-v6';
+          return 'battle-progression-v7';
         }
       }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec32], {
         configurable: true,
@@ -1889,42 +1886,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 1;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "lossGoldRatio", [_dec37], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec37], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 0.25;
+          return 1.15;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "lossesPerVideoReward", [_dec38], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "lossGoldRatio", [_dec38], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
-          return 1;
+          return 0.1;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec39], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "lossesPerVideoReward", [_dec39], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 3;
+        }
+      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec40], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 20;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec40], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec41], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 10;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec41], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec42], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1000;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec42], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec43], {
         configurable: true,
         enumerable: true,
         writable: true,
