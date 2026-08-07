@@ -2,9 +2,11 @@
 
 Project handoff for Codex sessions working on `BattleGame`.
 
-Last synchronized: 2026-08-06, after progression storage v7, baseline-boss
-packages, Gold-based three-loss rewarded-video rescue, multiplier 1.1, and the
-latest source/scene/telemetry alignment pass.
+Last synchronized: 2026-08-07, after progression storage v7, baseline-boss
+packages, Gold-based three-loss rewarded-video rescue, multiplier 1.1, the
+latest source/scene/telemetry alignment pass, and recording the proposed Battle
+Card System design direction. The card system is design-only and is not
+implemented.
 
 This file describes the current authored source and active `assets/Test.scene`.
 It replaces all progression v1-v4 proposals, telemetry conclusions, reset URLs,
@@ -52,6 +54,58 @@ campaign phase. Current work evaluates player experience across a campaign:
 The active design is test code, not a finalized economy. Judge it by retry
 shape, usefulness of Gold purchases, rescue frequency, and whether progression
 creates agency rather than only by aggregate battle win rate.
+
+## Proposed Battle Card System (Design Only)
+
+The user is considering a support-card layer. This is a design discussion, not
+an implemented feature; do not describe cards as active in runtime or scene.
+
+Intended player-facing contract:
+
+- The player may buy and collect many cards.
+- The player equips at most 5 cards for one battle.
+- A selected card remains owned after use but enters a battle cooldown; the
+  next battle cannot reuse it unless its cooldown has finished.
+- A rewarded video may reduce or finish a card cooldown. This must use separate
+  state from progression `adsReward`, which currently records progression rescue.
+- Initial activation should preferably be automatic from battle start or a
+  condition, rather than requiring frequent manual input during battle.
+
+Candidate effect families:
+
+- temporary or battle-long damage/defense bonuses;
+- temporary or battle-long attack-range bonuses for Archer/Monk and other
+  ranged units;
+- conditional family matchups, such as Spear receiving a bonus against Axeman;
+- conditional triggers, such as a low-army-count defensive buff;
+- future risk/reward cards that strengthen the boss in exchange for rewards.
+
+Recommended technical direction if implementation is approved:
+
+- Add a `BattleCardSystem` with card definitions, deck validation, runtime
+  effects, cooldown state, and telemetry records.
+- Represent effects as modifiers layered over base stats and existing counter
+  multipliers. Do not mutate authored unit/database stats directly.
+- Separate battle-start modifiers, runtime condition checks, and battle-end
+  cooldown persistence.
+- Keep player cards, boss modifiers, and progression difficulty as separate
+  systems. Boss-strengthening cards should be deferred until the player-card
+  MVP is balanced.
+- A card definition should eventually include an id, cost/rarity, target team
+  or family, condition, effect, duration, and cooldown in battles.
+
+Important open decisions before implementation:
+
+1. Are cards reusable after cooldown, or are purchased copies consumable?
+2. Do cards activate automatically, or can the player trigger them manually?
+3. Is cooldown measured in completed battles, real time, or both?
+4. Are multiple copies of the same card allowed in the 5-card deck?
+5. Should card purchases use Gold, a separate currency, or both?
+
+Relevant existing source anchors are `GameManager.ts` for battle/stat flow,
+`CounterSettings.ts` for matchup multipliers, and `LevelSettings.ts` for
+persistence and rewarded-video progression. No card implementation should be
+assumed until the contract above is finalized.
 
 ## Source Of Truth
 
