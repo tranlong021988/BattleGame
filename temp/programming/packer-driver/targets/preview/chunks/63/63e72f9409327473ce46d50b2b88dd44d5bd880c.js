@@ -105,6 +105,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.snapshots = [];
           this.finalSnapshot = null;
           this.diagnosticEvents = [];
+          this.cardEvents = [];
           this.waveSpawnFrameById = new Map();
           this.waveSpawnTimeById = new Map();
           this.spawnInfoByUnit = new WeakMap();
@@ -138,6 +139,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.snapshots.length = 0;
           this.finalSnapshot = null;
           this.diagnosticEvents.length = 0;
+          this.cardEvents.length = 0;
           this.waveSpawnFrameById.clear();
           this.waveSpawnTimeById.clear();
           this.spawnInfoByUnit = new WeakMap();
@@ -294,6 +296,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.isEnabled()) return;
           if (!snapshot) return;
           this.finalSnapshot = snapshot;
+        }
+
+        recordCardEvent(event) {
+          if (!this.isEnabled()) return;
+          if (!event) return;
+          var normalized = {
+            type: event.type === 'card-expired' ? 'card-expired' : 'card-activated',
+            team: this.clampTeam(event.team),
+            id: event.id || '',
+            displayName: event.displayName || '',
+            trigger: event.trigger || '',
+            durationSeconds: Math.max(0, Number.isFinite(event.durationSeconds) ? event.durationSeconds : 0),
+            frame: Number.isFinite(event.frame) ? Math.floor(event.frame) : -1,
+            time: Number.isFinite(event.time) ? event.time : 0
+          };
+          this.cardEvents.push(normalized);
+          this.pushDiagnosticEvent({
+            type: normalized.type,
+            frame: normalized.frame,
+            time: normalized.time,
+            team: normalized.team,
+            reason: normalized.id
+          });
         }
 
         recordWaveSpawnDecision(decision) {
@@ -556,6 +581,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               telemetryCounterKills: this.totalCounterKills[1]
             }],
             config: this.startConfig,
+            cardEvents: this.cardEvents.slice(),
             waveSpawns: this.waveSpawns.slice(),
             spawnDecisionStats,
             diagnostics: {

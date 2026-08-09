@@ -5,7 +5,7 @@
       "time": 1776574463135.642
     },
     "scripts": {
-      "time": 1785750525778.6152,
+      "time": 1786302704584.6863,
       "uuid": "2521865e-1697-4168-b655-68ab954672f9"
     },
     "scripts\\rvo.meta": {
@@ -26,14 +26,14 @@
       "time": 1776578026202.4324
     },
     "scripts\\Unit.ts": {
-      "time": 1785248975570.02,
+      "time": 1786302764898.066,
       "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
     },
     "scripts\\GameManager.ts.meta": {
       "time": 1776578086831.221
     },
     "scripts\\GameManager.ts": {
-      "time": 1785695012154.9294,
+      "time": 1786302729114.3025,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
@@ -82,7 +82,7 @@
       "time": 1783530572234.9897
     },
     "Test.scene": {
-      "time": 1785956681362.0513,
+      "time": 1786308732223.1526,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\Obstacle.ts.meta": {
@@ -292,7 +292,7 @@
       "time": 1778599427046.7278
     },
     "scripts\\UnitBehavior.ts": {
-      "time": 1785248975571.2285,
+      "time": 1786302781358.6287,
       "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
     },
     "3D\\1989_dog.fbx.meta": {
@@ -775,7 +775,7 @@
       "time": 1782825574318.6877
     },
     "scripts\\LevelSettings.ts": {
-      "time": 1785951498390.567,
+      "time": 1786303029506.2043,
       "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
     },
     "materials\\Banner.mtl.meta": {
@@ -968,7 +968,7 @@
       "uuid": "1ea71a41-6974-45d9-b5de-b0b46c40bb6f"
     },
     "scripts\\BattleTelemetry.ts": {
-      "time": 1785694046577.9438,
+      "time": 1786302745059.3345,
       "uuid": "efefbddb-804d-4a8c-98da-68618b2263c6"
     },
     "scripts\\BattleTelemetry.ts.meta": {
@@ -987,6 +987,20 @@
     },
     "scripts\\BattlefieldEvaluator.ts.meta": {
       "time": 1784313633816.3838
+    },
+    "scripts\\BattleCardDatabase.ts.meta": {
+      "time": 1786302702780.6228
+    },
+    "scripts\\BattleCardRuntime.ts.meta": {
+      "time": 1786302704584.6863
+    },
+    "scripts\\BattleCardDatabase.ts": {
+      "time": 1786302701886.31,
+      "uuid": "3e68dd1e-0175-46da-ab03-1656b7f52067"
+    },
+    "scripts\\BattleCardRuntime.ts": {
+      "time": 1786303265728.7566,
+      "uuid": "11692af0-1f3d-46f0-a1aa-9c8837d20ab9"
     }
   },
   "missing": {}

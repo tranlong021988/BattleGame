@@ -44,6 +44,12 @@ import {
     UnitPrefabEntry,
     HeroEntry,
 } from './BattleUnitDatabase';
+import { BattleCardDatabase } from './BattleCardDatabase';
+import {
+    BattleCardModifiers,
+    BattleCardRuntime,
+    BattleCardTelemetryEvent,
+} from './BattleCardRuntime';
 import { HealthBar3D } from './HealthBar3D';
 
 export { UnitPrefabEntry } from './BattleUnitDatabase';
@@ -77,6 +83,9 @@ export class GameManager extends Component {
 
     @property(BattleUnitDatabase)
     unitDatabase: BattleUnitDatabase | null = null;
+
+    @property(BattleCardDatabase)
+    battleCardDatabase: BattleCardDatabase | null = null;
 
     @property(Component)
     cinematicController: Component | null = null;
@@ -404,6 +413,7 @@ export class GameManager extends Component {
     private readonly battleTelemetry =
         new BattleTelemetry();
     private battleElapsedTime = 0;
+    private battleCardRuntime: BattleCardRuntime | null = null;
 
     start() {
         GameManager.instance = this;
@@ -446,7 +456,9 @@ export class GameManager extends Component {
 
         this.createSimulator();
         this.buildPrefabMaps();
+        this.ensureBattleCardRuntime();
         this.resetBattleTelemetry();
+        this.battleCardRuntime?.beginBattle();
 
         this.spatialGrid.cellSize = this.spatialGridCellSize;
         this.spatialGrid.setBattlefieldBounds(
@@ -702,6 +714,11 @@ export class GameManager extends Component {
     update(deltaTime: number) {
         this.frame++;
         this.battleElapsedTime += deltaTime;
+        this.battleCardRuntime?.update(
+            deltaTime,
+            this.combatPoint,
+            this.initialCombatPoint
+        );
 
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
@@ -857,6 +874,46 @@ export class GameManager extends Component {
             this.frame,
             this.battleElapsedTime
         );
+    }
+
+    public configureBattleCardDecks(
+        playerCardIds: string[],
+        enemyCardIds: string[]
+    ) {
+        this.ensureBattleCardRuntime();
+        this.battleCardRuntime?.setDecks(
+            playerCardIds,
+            enemyCardIds
+        );
+    }
+
+    public getBattleCardModifiers(
+        team: number,
+        family: UnitFamily
+    ): BattleCardModifiers {
+        if (!this.battleCardRuntime) {
+            return {
+                damageMultiplier: 1,
+                defenseFlat: 0,
+                attackRangeMultiplier: 1,
+                damageRadiusMultiplier: 1,
+                counterImmune: false,
+            };
+        }
+
+        return this.battleCardRuntime.getModifiers(team, family);
+    }
+
+    public getBattleCardTelemetrySnapshot() {
+        return this.battleCardRuntime
+            ? this.battleCardRuntime.createTelemetrySnapshot()
+            : [];
+    }
+
+    public getActivatedBattleCardIds(team: number) {
+        return this.battleCardRuntime
+            ? this.battleCardRuntime.getActivatedCardIds(team)
+            : [];
     }
 
     public onWaveCombatStarted(
@@ -1932,6 +1989,26 @@ export class GameManager extends Component {
         );
     }
 
+    private ensureBattleCardRuntime() {
+        if (this.battleCardRuntime) return;
+
+        this.battleCardRuntime = new BattleCardRuntime(
+            this.battleCardDatabase,
+            (event) => this.recordBattleCardTelemetryEvent(event)
+        );
+    }
+
+    private recordBattleCardTelemetryEvent(
+        event: BattleCardTelemetryEvent
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        this.battleTelemetry.recordCardEvent({
+            ...event,
+            frame: this.frame,
+        });
+    }
+
     public recordBattleTelemetryWaveSpawnDecision(
         decision: BattleTelemetryWaveSpawnDecision
     ) {
@@ -2002,6 +2079,11 @@ export class GameManager extends Component {
                 this.battleTelemetry.getTotalDamage(team),
             totalHeroDamage:
                 this.battleTelemetry.getTotalHeroDamage(team),
+            activeCardIds: this.getBattleCardTelemetrySnapshot()
+                .find((entry: any) => entry.team === team)
+                ?.deck
+                .filter((card: any) => card.active)
+                .map((card: any) => card.id) || [],
             waves,
         };
     }
@@ -2710,6 +2792,7 @@ export class GameManager extends Component {
                 this.createBattleTelemetryUnitStatsSnapshot(),
             counterRules:
                 this.createBattleTelemetryCounterRuleSnapshot(),
+            cards: this.getBattleCardTelemetrySnapshot(),
             progression:
                 this.battleProgressionProvider
                     ? this.battleProgressionProvider

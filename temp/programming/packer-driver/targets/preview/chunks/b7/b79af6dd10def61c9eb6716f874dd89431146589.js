@@ -1443,7 +1443,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         getEffectiveAttackRangeAgainst(enemy) {
-          return Math.max(0, this.attackRange) + Math.max(0, this.radius) + Math.max(0, enemy.radius);
+          return this.getEffectiveAttackRange() + Math.max(0, this.radius) + Math.max(0, enemy.radius);
+        }
+
+        getEffectiveAttackRange() {
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          var modifiers = gm ? gm.getBattleCardModifiers(this.team, this.props.family) : null;
+          return Math.max(0, this.attackRange * (modifiers ? modifiers.attackRangeMultiplier : 1));
         }
 
         getAttackRangeSearchRadius() {
@@ -1451,7 +1459,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             error: Error()
           }), GameManager) : GameManager).instance;
           var maxEnemyRadius = gm && gm.spatialGrid ? gm.spatialGrid.getMaxEnemyRadius(this.team) : this.radius;
-          return Math.max(0, this.attackRange) + Math.max(0, this.radius) + Math.max(0, maxEnemyRadius);
+          return this.getEffectiveAttackRange() + Math.max(0, this.radius) + Math.max(0, maxEnemyRadius);
         }
 
         getEnemyList() {
@@ -1587,7 +1595,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var dx = target.agent.pos.x - this.agent.pos.x;
           var dz = target.agent.pos.z - this.agent.pos.z;
           var dist = Math.sqrt(dx * dx + dz * dz);
-          var range = Math.max(0.001, this.attackRange);
+          var range = Math.max(0.001, this.getEffectiveAttackRange());
           var dangerDistance = range * RANGED_DANGER_RANGE_RATIO;
           var safeMinDistance = range * RANGED_SAFE_MIN_RANGE_RATIO;
 

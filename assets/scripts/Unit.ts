@@ -1802,9 +1802,27 @@ export class Unit extends Component {
     private getEffectiveAttackRangeAgainst(
         enemy: Unit
     ) {
-        return Math.max(0, this.attackRange) +
+        return this.getEffectiveAttackRange() +
             Math.max(0, this.radius) +
             Math.max(0, enemy.radius);
+    }
+
+    private getEffectiveAttackRange() {
+        const gm = GameManager.instance;
+        const modifiers = gm
+            ? gm.getBattleCardModifiers(
+                this.team,
+                this.props.family
+            )
+            : null;
+
+        return Math.max(
+            0,
+            this.attackRange *
+            (modifiers
+                ? modifiers.attackRangeMultiplier
+                : 1)
+        );
     }
 
     private getAttackRangeSearchRadius() {
@@ -1814,7 +1832,7 @@ export class Unit extends Component {
                 ? gm.spatialGrid.getMaxEnemyRadius(this.team)
                 : this.radius;
 
-        return Math.max(0, this.attackRange) +
+        return this.getEffectiveAttackRange() +
             Math.max(0, this.radius) +
             Math.max(0, maxEnemyRadius);
     }
@@ -2017,7 +2035,7 @@ export class Unit extends Component {
         const dist =
             Math.sqrt(dx * dx + dz * dz);
         const range =
-            Math.max(0.001, this.attackRange);
+            Math.max(0.001, this.getEffectiveAttackRange());
         const dangerDistance =
             range * RANGED_DANGER_RANGE_RATIO;
         const safeMinDistance =

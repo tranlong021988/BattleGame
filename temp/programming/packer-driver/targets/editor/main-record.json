@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 28576.4152,
+      "mTimestamp": 23590.4792,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 43421.4022,
+      "mTimestamp": 1279355.8033,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -1113,7 +1113,7 @@
           }
         },
         {
-          "value": "file:///F:/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts",
+          "value": "file:///F:/Github/BattleGame/assets/scripts/BattleCardDatabase.ts",
           "resolved": "__unresolved_8",
           "loc": {
             "start": {
@@ -1122,283 +1122,283 @@
             },
             "end": {
               "line": 5,
-              "column": 1215
+              "column": 1202
+            }
+          }
+        },
+        {
+          "value": "file:///F:/Github/BattleGame/assets/scripts/BattleCardRuntime.ts",
+          "resolved": "__unresolved_9",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 1218
+            },
+            "end": {
+              "line": 5,
+              "column": 1284
+            }
+          }
+        },
+        {
+          "value": "file:///F:/Github/BattleGame/assets/scripts/BattleCinematicCameraController.ts",
+          "resolved": "__unresolved_10",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 1300
+            },
+            "end": {
+              "line": 5,
+              "column": 1380
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattleInformationIconItem.ts",
-          "resolved": "__unresolved_9",
+          "resolved": "__unresolved_11",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1231
+              "column": 1396
             },
             "end": {
               "line": 5,
-              "column": 1305
+              "column": 1470
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattleSpatialGrid.ts",
-          "resolved": "__unresolved_10",
+          "resolved": "__unresolved_12",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1321
+              "column": 1486
             },
             "end": {
               "line": 5,
-              "column": 1387
+              "column": 1552
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattleTelemetry.ts",
-          "resolved": "__unresolved_11",
+          "resolved": "__unresolved_13",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1403
+              "column": 1568
             },
             "end": {
               "line": 5,
-              "column": 1467
+              "column": 1632
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattleTypes.ts",
-          "resolved": "__unresolved_12",
+          "resolved": "__unresolved_14",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1483
+              "column": 1648
             },
             "end": {
               "line": 5,
-              "column": 1543
+              "column": 1708
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts",
-          "resolved": "__unresolved_13",
+          "resolved": "__unresolved_15",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1559
+              "column": 1724
             },
             "end": {
               "line": 5,
-              "column": 1626
+              "column": 1791
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattleWave.ts",
-          "resolved": "__unresolved_14",
+          "resolved": "__unresolved_16",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1642
+              "column": 1807
             },
             "end": {
               "line": 5,
-              "column": 1701
+              "column": 1866
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/BattlefieldEvaluator.ts",
-          "resolved": "__unresolved_15",
+          "resolved": "__unresolved_17",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1717
+              "column": 1882
             },
             "end": {
               "line": 5,
-              "column": 1786
+              "column": 1951
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/CinematicOrbitRig.ts",
-          "resolved": "__unresolved_16",
+          "resolved": "__unresolved_18",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1802
+              "column": 1967
             },
             "end": {
               "line": 5,
-              "column": 1868
+              "column": 2033
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/CounterSettings.ts",
-          "resolved": "__unresolved_17",
+          "resolved": "__unresolved_19",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1884
+              "column": 2049
             },
             "end": {
               "line": 5,
-              "column": 1948
+              "column": 2113
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/DebugStats.ts",
-          "resolved": "__unresolved_18",
+          "resolved": "__unresolved_20",
           "loc": {
             "start": {
               "line": 5,
-              "column": 1964
+              "column": 2129
             },
             "end": {
               "line": 5,
-              "column": 2023
+              "column": 2188
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/GameManager.ts",
-          "resolved": "__unresolved_19",
+          "resolved": "__unresolved_21",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2039
+              "column": 2204
             },
             "end": {
               "line": 5,
-              "column": 2099
+              "column": 2264
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/HealthBar3D.ts",
-          "resolved": "__unresolved_20",
+          "resolved": "__unresolved_22",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2115
+              "column": 2280
             },
             "end": {
               "line": 5,
-              "column": 2175
+              "column": 2340
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/LevelSettings.ts",
-          "resolved": "__unresolved_21",
+          "resolved": "__unresolved_23",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2191
+              "column": 2356
             },
             "end": {
               "line": 5,
-              "column": 2253
+              "column": 2418
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/Obstacle.ts",
-          "resolved": "__unresolved_22",
+          "resolved": "__unresolved_24",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2269
+              "column": 2434
             },
             "end": {
               "line": 5,
-              "column": 2326
+              "column": 2491
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/ObstacleCircle.ts",
-          "resolved": "__unresolved_23",
+          "resolved": "__unresolved_25",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2342
+              "column": 2507
             },
             "end": {
               "line": 5,
-              "column": 2405
+              "column": 2570
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/ObstacleRect.ts",
-          "resolved": "__unresolved_24",
+          "resolved": "__unresolved_26",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2421
+              "column": 2586
             },
             "end": {
               "line": 5,
-              "column": 2482
+              "column": 2647
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/PlayerArmyController.ts",
-          "resolved": "__unresolved_25",
+          "resolved": "__unresolved_27",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2498
+              "column": 2663
             },
             "end": {
               "line": 5,
-              "column": 2567
+              "column": 2732
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/RandomAnimcationOffset.ts",
-          "resolved": "__unresolved_26",
-          "loc": {
-            "start": {
-              "line": 5,
-              "column": 2583
-            },
-            "end": {
-              "line": 5,
-              "column": 2654
-            }
-          }
-        },
-        {
-          "value": "file:///F:/Github/BattleGame/assets/scripts/SmartArmyBrain.ts",
-          "resolved": "__unresolved_27",
-          "loc": {
-            "start": {
-              "line": 5,
-              "column": 2670
-            },
-            "end": {
-              "line": 5,
-              "column": 2733
-            }
-          }
-        },
-        {
-          "value": "file:///F:/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts",
           "resolved": "__unresolved_28",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2749
+              "column": 2748
             },
             "end": {
               "line": 5,
@@ -1407,7 +1407,7 @@
           }
         },
         {
-          "value": "file:///F:/Github/BattleGame/assets/scripts/SpectorDebugger.ts",
+          "value": "file:///F:/Github/BattleGame/assets/scripts/SmartArmyBrain.ts",
           "resolved": "__unresolved_29",
           "loc": {
             "start": {
@@ -1416,133 +1416,161 @@
             },
             "end": {
               "line": 5,
-              "column": 2899
+              "column": 2898
+            }
+          }
+        },
+        {
+          "value": "file:///F:/Github/BattleGame/assets/scripts/SpawnBackPressureGate.ts",
+          "resolved": "__unresolved_30",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 2914
+            },
+            "end": {
+              "line": 5,
+              "column": 2984
+            }
+          }
+        },
+        {
+          "value": "file:///F:/Github/BattleGame/assets/scripts/SpectorDebugger.ts",
+          "resolved": "__unresolved_31",
+          "loc": {
+            "start": {
+              "line": 5,
+              "column": 3000
+            },
+            "end": {
+              "line": 5,
+              "column": 3064
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/TopDownCameraDrag.ts",
-          "resolved": "__unresolved_30",
+          "resolved": "__unresolved_32",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2915
+              "column": 3080
             },
             "end": {
               "line": 5,
-              "column": 2981
+              "column": 3146
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/TrueMiniMapPanel.ts",
-          "resolved": "__unresolved_31",
+          "resolved": "__unresolved_33",
           "loc": {
             "start": {
               "line": 5,
-              "column": 2997
+              "column": 3162
             },
             "end": {
               "line": 5,
-              "column": 3062
+              "column": 3227
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/Unit.ts",
-          "resolved": "__unresolved_32",
+          "resolved": "__unresolved_34",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3078
+              "column": 3243
             },
             "end": {
               "line": 5,
-              "column": 3131
+              "column": 3296
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/UnitBehavior.ts",
-          "resolved": "__unresolved_33",
+          "resolved": "__unresolved_35",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3147
+              "column": 3312
             },
             "end": {
               "line": 5,
-              "column": 3208
+              "column": 3373
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/UnitProps.ts",
-          "resolved": "__unresolved_34",
+          "resolved": "__unresolved_36",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3224
+              "column": 3389
             },
             "end": {
               "line": 5,
-              "column": 3282
+              "column": 3447
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/UnitSpawner.ts",
-          "resolved": "__unresolved_35",
+          "resolved": "__unresolved_37",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3298
+              "column": 3463
             },
             "end": {
               "line": 5,
-              "column": 3358
+              "column": 3523
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/VATCharacterPlayer.ts",
-          "resolved": "__unresolved_36",
+          "resolved": "__unresolved_38",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3374
+              "column": 3539
             },
             "end": {
               "line": 5,
-              "column": 3441
+              "column": 3606
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/rvo/RVO.ts",
-          "resolved": "__unresolved_37",
+          "resolved": "__unresolved_39",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3457
+              "column": 3622
             },
             "end": {
               "line": 5,
-              "column": 3513
+              "column": 3678
             }
           }
         },
         {
           "value": "file:///F:/Github/BattleGame/assets/scripts/rvo/RVOWorkerSimulator.ts",
-          "resolved": "__unresolved_38",
+          "resolved": "__unresolved_40",
           "loc": {
             "start": {
               "line": 5,
-              "column": 3529
+              "column": 3694
             },
             "end": {
               "line": 5,
-              "column": 3600
+              "column": 3765
             }
           }
         }
@@ -1602,6 +1630,20 @@
           "resolved": {
             "type": "module",
             "url": "file:///F:/Github/BattleGame/assets/scripts/BattleArmyBrain.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleCardDatabase.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleCardRuntime.ts"
           },
           "messages": []
         },
@@ -2798,7 +2840,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/BattleTelemetry.ts": {
       "mTimestamp": {
-        "mtime": 1785694046577.9438,
+        "mtime": 1786302745059.3345,
         "uuid": "efefbddb-804d-4a8c-98da-68618b2263c6"
       },
       "chunkId": "63e72f9409327473ce46d50b2b88dd44d5bd880c",
@@ -3377,7 +3419,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1785695012154.9294,
+        "mtime": 1786302729114.3025,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "2a3d48594ca107bb253a09fa8016eb25bbe98eb1",
@@ -3602,29 +3644,57 @@
           }
         },
         {
-          "value": "./HealthBar3D",
+          "value": "./BattleCardDatabase",
           "resolved": "__unresolved_15",
           "loc": {
             "start": {
               "line": 47,
-              "column": 28
+              "column": 35
             },
             "end": {
               "line": 47,
+              "column": 57
+            }
+          }
+        },
+        {
+          "value": "./BattleCardRuntime",
+          "resolved": "__unresolved_16",
+          "loc": {
+            "start": {
+              "line": 52,
+              "column": 7
+            },
+            "end": {
+              "line": 52,
+              "column": 28
+            }
+          }
+        },
+        {
+          "value": "./HealthBar3D",
+          "resolved": "__unresolved_17",
+          "loc": {
+            "start": {
+              "line": 53,
+              "column": 28
+            },
+            "end": {
+              "line": 53,
               "column": 43
             }
           }
         },
         {
           "value": "./BattleUnitDatabase",
-          "resolved": "__unresolved_16",
+          "resolved": "__unresolved_18",
           "loc": {
             "start": {
-              "line": 49,
+              "line": 55,
               "column": 32
             },
             "end": {
-              "line": 49,
+              "line": 55,
               "column": 54
             }
           }
@@ -3755,6 +3825,20 @@
           "resolved": {
             "type": "module",
             "url": "file:///F:/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleCardDatabase.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleCardRuntime.ts"
           },
           "messages": []
         },
@@ -4643,7 +4727,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1785248975570.02,
+        "mtime": 1786302764898.066,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "b79af6dd10def61c9eb6716f874dd89431146589",
@@ -4748,7 +4832,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/UnitBehavior.ts": {
       "mTimestamp": {
-        "mtime": 1785248975571.2285,
+        "mtime": 1786302781358.6287,
         "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
       },
       "chunkId": "188da626dc7963ce445b4ca496e30fc683d92647",
@@ -5232,7 +5316,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1785951776715,
+      "mTimestamp": 1786302174840,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -5362,7 +5446,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1785951776715,
+      "mTimestamp": 1786302174840,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -5493,7 +5577,7 @@
     },
     "file:///F:/Github/BattleGame/assets/scripts/LevelSettings.ts": {
       "mTimestamp": {
-        "mtime": 1785951498390.567,
+        "mtime": 1786303029506.2043,
         "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
       },
       "chunkId": "f872721beb9c9db5d5cac1782f09f98006b5df64",
@@ -5554,11 +5638,11 @@
           "resolved": "__unresolved_3",
           "loc": {
             "start": {
-              "line": 15,
+              "line": 16,
               "column": 7
             },
             "end": {
-              "line": 15,
+              "line": 16,
               "column": 22
             }
           }
@@ -8829,6 +8913,165 @@
           "resolved": {
             "type": "module",
             "url": "cce:/internal/ml/cjs-loader.mjs"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///F:/Github/BattleGame/assets/scripts/BattleCardDatabase.ts": {
+      "mTimestamp": {
+        "mtime": 1786302701886.31,
+        "uuid": "3e68dd1e-0175-46da-ab03-1656b7f52067"
+      },
+      "chunkId": "13f6ef52eb789d5d06c2117a0e793f1704b7587b",
+      "imports": [
+        {
+          "value": "cce:/internal/code-quality/cr.mjs",
+          "resolved": "__unresolved_0"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "cc",
+          "loc": {
+            "start": {
+              "line": 1,
+              "column": 57
+            },
+            "end": {
+              "line": 1,
+              "column": 61
+            }
+          }
+        },
+        {
+          "value": "./BattleTypes",
+          "resolved": "__unresolved_1",
+          "loc": {
+            "start": {
+              "line": 2,
+              "column": 27
+            },
+            "end": {
+              "line": 2,
+              "column": 42
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/code-quality/cr.mjs"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleTypes.ts"
+          },
+          "messages": []
+        }
+      ]
+    },
+    "file:///F:/Github/BattleGame/assets/scripts/BattleCardRuntime.ts": {
+      "mTimestamp": {
+        "mtime": 1786303265728.7566,
+        "uuid": "11692af0-1f3d-46f0-a1aa-9c8837d20ab9"
+      },
+      "chunkId": "3ec9c1efaa53ae0a46aa6b2262ac9c09b328dbdc",
+      "imports": [
+        {
+          "value": "cce:/internal/code-quality/cr.mjs",
+          "resolved": "__unresolved_0"
+        },
+        {
+          "value": "cc"
+        },
+        {
+          "value": "./BattleCardDatabase",
+          "resolved": "__unresolved_1",
+          "loc": {
+            "start": {
+              "line": 7,
+              "column": 7
+            },
+            "end": {
+              "line": 7,
+              "column": 29
+            }
+          }
+        },
+        {
+          "value": "./BattleTypes",
+          "resolved": "__unresolved_2",
+          "loc": {
+            "start": {
+              "line": 8,
+              "column": 27
+            },
+            "end": {
+              "line": 8,
+              "column": 42
+            }
+          }
+        }
+      ],
+      "type": "esm",
+      "resolutions": [
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/code-quality/cr.mjs"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "cce:/internal/x/cc"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleCardDatabase.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///F:/Github/BattleGame/assets/scripts/BattleTypes.ts"
           },
           "messages": []
         }

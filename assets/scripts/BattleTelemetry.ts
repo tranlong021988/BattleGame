@@ -54,6 +54,7 @@ export interface BattleTelemetryStartConfig {
     initialCombatPoint: number[];
     unitStats: BattleTelemetryUnitSnapshot[];
     counterRules: BattleTelemetryCounterRuleSnapshot[];
+    cards?: any;
     progression?: any;
 }
 
@@ -149,7 +150,19 @@ export interface BattleTelemetryTeamSnapshot {
     counterKillCount: number;
     totalDamage: number;
     totalHeroDamage: number;
+    activeCardIds?: string[];
     waves: BattleTelemetryWaveSnapshot[];
+}
+
+export interface BattleTelemetryCardEvent {
+    type: 'card-activated' | 'card-expired';
+    team: number;
+    id: string;
+    displayName: string;
+    trigger: string;
+    durationSeconds: number;
+    frame: number;
+    time: number;
 }
 
 export interface BattleTelemetryBattleSnapshot {
@@ -290,6 +303,7 @@ export class BattleTelemetry {
     private snapshots: BattleTelemetryBattleSnapshot[] = [];
     private finalSnapshot: BattleTelemetryBattleSnapshot | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
+    private cardEvents: BattleTelemetryCardEvent[] = [];
     private waveSpawnFrameById: Map<number, number> = new Map();
     private waveSpawnTimeById: Map<number, number> = new Map();
     private spawnInfoByUnit: WeakMap<object, UnitSpawnInfo> = new WeakMap();
@@ -323,6 +337,7 @@ export class BattleTelemetry {
         this.snapshots.length = 0;
         this.finalSnapshot = null;
         this.diagnosticEvents.length = 0;
+        this.cardEvents.length = 0;
         this.waveSpawnFrameById.clear();
         this.waveSpawnTimeById.clear();
         this.spawnInfoByUnit = new WeakMap();
@@ -576,6 +591,42 @@ export class BattleTelemetry {
         if (!snapshot) return;
 
         this.finalSnapshot = snapshot;
+    }
+
+    recordCardEvent(event: BattleTelemetryCardEvent) {
+        if (!this.isEnabled()) return;
+        if (!event) return;
+
+        const normalized: BattleTelemetryCardEvent = {
+            type: event.type === 'card-expired'
+                ? 'card-expired'
+                : 'card-activated',
+            team: this.clampTeam(event.team),
+            id: event.id || '',
+            displayName: event.displayName || '',
+            trigger: event.trigger || '',
+            durationSeconds: Math.max(
+                0,
+                Number.isFinite(event.durationSeconds)
+                    ? event.durationSeconds
+                    : 0
+            ),
+            frame: Number.isFinite(event.frame)
+                ? Math.floor(event.frame)
+                : -1,
+            time: Number.isFinite(event.time)
+                ? event.time
+                : 0,
+        };
+
+        this.cardEvents.push(normalized);
+        this.pushDiagnosticEvent({
+            type: normalized.type,
+            frame: normalized.frame,
+            time: normalized.time,
+            team: normalized.team,
+            reason: normalized.id,
+        });
     }
 
     recordWaveSpawnDecision(
@@ -1009,6 +1060,7 @@ export class BattleTelemetry {
                 },
             ],
             config: this.startConfig,
+            cardEvents: this.cardEvents.slice(),
             waveSpawns: this.waveSpawns.slice(),
             spawnDecisionStats,
             diagnostics: {

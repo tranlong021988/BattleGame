@@ -1,738 +1,408 @@
 # AI-CONTEX
 
-Project handoff for Codex sessions working on `BattleGame`.
+Project handoff for Codex sessions working on BattleGame.
 
-Last synchronized: 2026-08-07, after progression storage v7, baseline-boss
-packages, Gold-based three-loss rewarded-video rescue, multiplier 1.1, the
-latest source/scene/telemetry alignment pass, and recording the proposed Battle
-Card System design direction. The card system is design-only and is not
-implemented.
+Last synchronized: 2026-08-10. This is the active authored state after the
+Battle Card System MVP was implemented, wired to assets/Test.scene, and
+validated with a fresh level 1-33 telemetry batch.
 
-This file describes the current authored source and active `assets/Test.scene`.
-It replaces all progression v1-v4 proposals, telemetry conclusions, reset URLs,
-and rescue rules. Read the source before making logic claims because Inspector
-values override TypeScript defaults.
+Read the relevant source and active scene before changing gameplay. Inspector
+values in assets/Test.scene override TypeScript defaults. This document is an
+orientation and decision record, not a second runtime source of truth.
 
 ## Working Rules
 
-- Update this file only when the user explicitly asks for a handoff update.
-- Inspect relevant source and active scene data before answering project logic
-  questions. This file is orientation, not a substitute for source inspection.
-- Active AI is `BattleArmyBrain` plus `BattlefieldEvaluator`.
-  `SmartArmyBrain` is legacy and must not receive new gameplay work unless the
-  user explicitly re-enables it.
-- Team A remains controlled by `BattleArmyBrain` and simulates the player.
-- Telemetry is test evidence only. Never feed telemetry results back into
-  runtime decisions.
-- Do not alter tier-1 combat stats, counters, AI accuracy behavior, ranged
-  support, lane choice, or wave costs to repair campaign progression unless
-  evidence proves a defect in those systems.
-- Increasing a wave's `unitCount` must not increase its battle CP cost. Gold
-  already pays for unlock/count progression.
-- Prefer one causal progression fix over new thresholds or several tuning
-  knobs. The user explicitly dislikes incremental threshold tuning.
+- Update this file only when the user explicitly requests a handoff update.
 - Work with the dirty worktree. Do not revert user/Cocos changes and do not
   stage generated files without explicit instruction.
+- Active test AI is BattleArmyBrain plus BattlefieldEvaluator. SmartArmyBrain
+  is legacy and must not receive gameplay work unless the user explicitly
+  re-enables it.
+- Team A is currently BattleArmyBrain, a test simulation of a real player.
+  Do not conflate its random purchase/deck behavior with the intended shipped
+  player experience.
+- Telemetry is test evidence only. Never feed telemetry results into runtime
+  decisions.
+- Do not alter tier-1 combat stats, counters, AI accuracy behavior, ranged
+  support, lane choice, wave costs, SpatialGrid, or RVO to repair progression
+  or cards without evidence of a defect in those systems.
+- Increasing a wave unitCount must not increase its battle CP cost. Gold already
+  pays for unlock/count progression.
+- Prefer one causal correction over adding thresholds or tuning knobs. The user
+  explicitly dislikes incremental threshold tuning.
 
-## Current Product Phase
+## Recommended Codex Skills
 
-Tier-1 symmetric battle balance and dynamic AI accuracy were tested before the
-campaign phase. Current work evaluates player experience across a campaign:
+Skills are discovered when a Codex task starts. On this local profile, the
+following shared skills are installed under C:\\Users\\tranl\\.codex\\skills.
+Use the smallest applicable set; if a session does not expose one, follow the
+same discipline manually rather than assuming it is available.
 
-- Team A accuracy is fixed at `1` and represents a skilled simulated player.
-- Team B CP, accuracy, Max Alive, roster, and unit counts progress by level.
-- Gold purchases represent player meta progression.
-- Bosses intentionally create temporary difficulty spikes.
-- Rewarded-video rescue is simulated by `adsReward` and Gold equal to one
-  missing CP/Max Alive package; it does not claim the package for free.
-- `progressionEndLevel` decouples progression completion from total campaign
-  length. With 100 total levels and end level 50, levels 51-100 use plateaued
-  base stats/full tier-1 progression while boss modifiers still apply. This
-  plateau is intentional for future scaling of other systems, not a current
-  progression bug.
+| Situation | Skill to use |
+| --- | --- |
+| Design or revise combat, cards, economy, progression, AI-facing rules | game-systems-design |
+| Check cross-system design/source/scene/telemetry consistency before a major mechanic change | game-design-consistency |
+| Analyze telemetry or diagnose a balance/economy issue | game-balance-check |
+| Verify a balance/mechanics change with before/after evidence | game-balance-regression |
+| Any code edit, debug or refactor | cautious-coding |
+| Cocos mobile/performance investigation only | cocos-performance-optimize-skills |
 
-The active design is test code, not a finalized economy. Judge it by retry
-shape, usefulness of Gold purchases, rescue frequency, and whether progression
-creates agency rather than only by aggregate battle win rate.
+The card MVP is now implemented, so a card balance change should normally use
+game-design-consistency plus game-balance-check before editing, then
+game-balance-regression after the change.
 
-## Proposed Battle Card System (Design Only)
+## Product Decisions Already Approved
 
-The user is considering a support-card layer. This is a design discussion, not
-an implemented feature; do not describe cards as active in runtime or scene.
+### Campaign and progression
 
-Intended player-facing contract:
+- The campaign has 100 levels; base progression intentionally ends at level 50.
+  Levels 51-100 keep base CP, Max Alive, and tier-1/unit-count progression at
+  their caps while boss multipliers still apply. This is reserved for future
+  systems and is not currently a bug.
+- Normal progression packages target the next boss baseline value, not its
+  multiplier-enhanced value.
+- Boss multipliers for enemy Initial CP, decision accuracy, and Max Alive are
+  each 1.1. They apply once, are non-cumulative, and Max Alive is rounded/capped.
+- A lost battle gives Gold at lossGoldRatio; a win gives baseline enemy CP as
+  Gold, with an additional boss reward multiplier.
+- Rewarded-video rescue is only considered after every three player losses and
+  only on a boss. It grants Gold equal to the earliest useful missing CP or Max
+  Alive package; it never claims an upgrade for free. The player/bot must still
+  purchase the package.
+- allowInterval is deliberately false in the active scene. When enabled later,
+  shorter enemy spawn intervals plus improving decision accuracy make enemy
+  pressure stronger; this needs a fresh balance pass.
 
-- The player may buy and collect many cards.
-- The player equips at most 5 cards for one battle.
-- A selected card remains owned after use but enters a battle cooldown; the
-  next battle cannot reuse it unless its cooldown has finished.
-- A rewarded video may reduce or finish a card cooldown. This must use separate
-  state from progression `adsReward`, which currently records progression rescue.
-- Initial activation should preferably be automatic from battle start or a
-  condition, rather than requiring frequent manual input during battle.
+### Battle cards: player-facing contract
 
-Candidate effect families:
+- Cards are reusable purchases made with Gold. Each card ID is unique; no
+  duplicate copies are bought.
+- A battle deck contains at most 3 cards, not 5.
+- Card cooldown is measured in completed battles, not real time. It starts only
+  if that card activated.
+- Duration uses battle time. A duration of 0 means active for the rest of that
+  battle.
+- A card can trigger at battle start or when its own side current CP reaches
+  the configured fraction of its initial CP. Effects can stack when their
+  targets overlap; for example, an all-army damage card and a Spear damage card
+  both affect Spear.
+- Cards currently cover damage, flat defense, attack range, Monk damage radius,
+  and temporary counter immunity. Spawn interval is intentionally not a card
+  effect.
+- Enemy cards are authored/selected by the system: exactly three cards per
+  encounter, no Gold cost and no cooldown. A different enemy is considered to
+  be met after every attempt, including retries.
+- The real shipped player will manually buy/upgrade cards outside battle and
+  manually choose up to three ready cards before battle. There is no final UI
+  for that yet. The test simulation randomly chooses ready owned cards solely
+  to make telemetry runs possible.
 
-- temporary or battle-long damage/defense bonuses;
-- temporary or battle-long attack-range bonuses for Archer/Monk and other
-  ranged units;
-- conditional family matchups, such as Spear receiving a bonus against Axeman;
-- conditional triggers, such as a low-army-count defensive buff;
-- future risk/reward cards that strengthen the boss in exchange for rewards.
+## Current Source of Truth
 
-Recommended technical direction if implementation is approved:
+| Domain | Authority | Notes |
+| --- | --- | --- |
+| Active Inspector values | assets/Test.scene | Overrides TypeScript defaults. |
+| Campaign/economy/save/card selection | assets/scripts/LevelSettings.ts | Storage v8, purchases, rescue, bot selection and player-facing APIs. |
+| Card definitions | assets/scripts/BattleCardDatabase.ts plus scene component | Inspector-editable fields; GameManager references this component. |
+| In-battle card state/effects | assets/scripts/BattleCardRuntime.ts | Deck validation, triggers, stacking, duration and card events. |
+| Battle integration/start config | assets/scripts/GameManager.ts | Owns runtime and passes modifiers to units. |
+| Effect consumers | assets/scripts/Unit.ts and UnitBehavior.ts | Range, damage, defense, radius and counter immunity. |
+| Telemetry schema | assets/scripts/BattleTelemetry.ts | Root cardEvents, start config.cards and progression snapshots. |
+| Unit authored stats | BattleUnitDatabase plus scene Inspector | Remains independent from cards. |
 
-- Add a `BattleCardSystem` with card definitions, deck validation, runtime
-  effects, cooldown state, and telemetry records.
-- Represent effects as modifiers layered over base stats and existing counter
-  multipliers. Do not mutate authored unit/database stats directly.
-- Separate battle-start modifiers, runtime condition checks, and battle-end
-  cooldown persistence.
-- Keep player cards, boss modifiers, and progression difficulty as separate
-  systems. Boss-strengthening cards should be deferred until the player-card
-  MVP is balanced.
-- A card definition should eventually include an id, cost/rarity, target team
-  or family, condition, effect, duration, and cooldown in battles.
+tools/battle-progression-roadmap.html is now a stale progression presentation
+mirror. Do not use it as a card-system authority until it is explicitly updated.
 
-Important open decisions before implementation:
+## Active Scene Values
 
-1. Are cards reusable after cooldown, or are purchased copies consumable?
-2. Do cards activate automatically, or can the player trigger them manually?
-3. Is cooldown measured in completed battles, real time, or both?
-4. Are multiple copies of the same card allowed in the 5-card deck?
-5. Should card purchases use Gold, a separate currency, or both?
+- totalLevels 100; progressionEndLevel 50; currentLevel 1; bossStagePace 5.
+- Boss Initial CP, decision accuracy, and Max Alive multipliers are 1.1.
+- CP min/max 250/1040; decision accuracy min/max 0.4/1; Max Alive min/max 3/10.
+- allowInterval false. Both endpoint spawn intervals are 1.666667/3.333333.
+- battleTimeScale 3; Worker RVO and Worker Spatial Target Query enabled;
+  spatialGridCellSize 4.
+- autoDownloadCaptureJson, autoReloadProgression and purchasingSimulation true.
+- progressionStorageKey battle-progression-v8; initial player Gold 0; player
+  Initial CP 300; player Max Alive starts 4 and caps at 10.
+- winGoldPerEnemyCP 1; bossGoldRewardMultiplier 1.15; lossGoldRatio 0.1;
+  lossesPerVideoReward 3; unitUnlockCostMultiplier 20;
+  initialCPGoldPerPoint 10; maxAliveBasePrice 1000.
 
-Relevant existing source anchors are `GameManager.ts` for battle/stat flow,
-`CounterSettings.ts` for matchup multipliers, and `LevelSettings.ts` for
-persistence and rewarded-video progression. No card implementation should be
-assumed until the contract above is finalized.
+GameManager.battleCardDatabase must point to the scene BattleCardDatabase
+component. The current scene reference is valid. If it is lost after a scene
+merge/serialization, cards silently become empty because the database is
+unavailable; verify that Inspector reference before debugging card balance.
 
-## Source Of Truth
+## Progression Runtime V8
 
-Progression work:
+Storage was bumped from v7 to v8 because card state is persistent. A v8 save
+contains the prior progression fields plus:
 
-- `assets/Test.scene`: active Inspector values; authoritative over defaults.
-- `assets/scripts/LevelSettings.ts`: difficulty curves, boss modifiers,
-  persistence, packages, Gold, purchases, unlocks/counts, rescue, URL handling,
-  and progression telemetry snapshots.
-- `assets/scripts/GameManager.ts`: result integration, end conditions, report
-  export, CP affordability, and progression reload.
-- `assets/scripts/BattleTelemetry.ts`: battle report schema.
-- `tools/battle-progression-roadmap.html`: human-readable duplicate of the
-  current formulas. Keep synchronized, but source plus scene win on conflict.
+- cards: id, owned, cooldownUpgradeLevel in 0..2, cooldownRemaining.
+- lastEnemyCardIds.
 
-AI/combat work:
-
-- `assets/scripts/BattleArmyBrain.ts`
-- `assets/scripts/BattlefieldEvaluator.ts`
-- `assets/scripts/CounterSettings.ts`
-- `assets/scripts/BattleUnitDatabase.ts`
-- `UNITSTATS.md`
-- `assets/scripts/BattleSpatialGrid.ts`
-- `assets/scripts/rvo/RVOWorkerSimulator.ts`
-
-## Active Test Scene
-
-### Campaign And Enemy Spine
-
-```text
-totalLevels = 100
-progressionEndLevel = 50
-currentLevel = 1
-bossStagePace = 5
-targetTeam = 1
-
-allowCP = true
-initialCombatPointMin = 250
-initialCombatPointMax = 1040
-
-allowDecisionAccuracy = true
-decisionAccuracyMin = 0.4
-decisionAccuracyMax = 1
-
-allowMaxWave = true
-maxAliveWavesMin = 3
-maxAliveWavesMax = 10
-
-allowInterval = false
-bossInitialCombatPointMultiplier = 1.1
-bossDecisionAccuracyMultiplier = 1.1
-bossMaxAliveWavesMultiplier = 1.1
-```
-
-Other active test values:
-
-```text
-battleTimeScale = 3
-useWorkerRVO = true
-useWorkerSpatialTargetQuery = true
-spatialGridCellSize = 4
-autoDownloadCaptureJson = true
-autoReloadProgression = true
-purchasingSimulation = true
-```
-
-### Player Economy
-
-```text
-progressionStorageKey = battle-progression-v7
-initialPlayerGold = 0
-playerInitialCPStart = 300
-playerMaxAliveStart = 4
-playerMaxAliveMax = 10
-
-winGoldPerEnemyCP = 1
-bossGoldRewardMultiplier = 1.15
-lossGoldRatio = 0.1
-lossesPerVideoReward = 3
-
-unitUnlockCostMultiplier = 20
-initialCPGoldPerPoint = 10
-maxAliveBasePrice = 1000
-```
-
-Do not copy TypeScript defaults into analysis without checking the scene. Some
-defaults intentionally differ from these active values.
-
-## Enemy Difficulty Formula
-
-For any level `L`:
-
-```text
-end = clamp(progressionEndLevel, 1, totalLevels)
-t = clamp((L - 1) / (end - 1), 0, 1)
-
-baseCP = round(lerp(250, 1040, t))
-baseAccuracy = lerp(0.4, 1, t)
-baseMaxAlive = round(lerp(3, 10, t))
-```
-
-Every fifth level is a boss:
-
-```text
-enemyCP = round(baseCP * 1.1)                 // no cap
-enemyAccuracy = min(1, baseAccuracy * 1.1)
-enemyMaxAlive = round(min(10, baseMaxAlive * 1.1))
-```
-
-The multiplier is not cumulative. Runtime recomputes each base from level and
-applies one multiplier. The v7 telemetry proves boss CP ratios remain
-approximately 1.1 at every boss.
-
-Max Alive is discrete, so its effective percentage differs after rounding:
-
-- `4 -> 4` can remain unchanged because `4 * 1.1 = 4.4` rounds to 4;
-- `5 -> 6` is effectively `x1.2`;
-- `8 -> 9` is effectively `x1.125`;
-- the result is capped at 10.
-
-The roadmap is a presentation mirror only. It now plots baseline package caps
-separately from boss values; source plus active scene remain authoritative.
-
-## Progression Runtime V7
-
-### Reset And URL Contract
-
-Clean 100-level run with progression ending at level 50:
-
-```text
+Use a clean run with:
 http://localhost:7456/?progression=1&resetProgression=1&currentLevel=1&TotalLevels=100&ProgressionEndLevel=50
-```
 
-Rules:
+The reset aliases and resume contract remain as before. resetProgression=1 or
+reset=1 clears progression before initialization; automatic reload removes the
+reset parameter and preserves progressionResume=1.
 
-- `resetProgression=1` (alias `reset=1`) clears v1-v7 progression keys before
-  initialization.
-- A manually opened `currentLevel=1` URL without `progressionResume=1` also
-  starts fresh.
-- Auto reload removes reset parameters, adds `progressionResume=1`, and keeps
-  the saved state.
-- `currentLevel<=0` remains accepted as a reset request, but the explicit reset
-  URL above is preferred.
-- Reset initializes Gold 0, player CP 300, Max Alive 4, Spear/Sword count 5,
-  zero ads, zero losses, and unclaimed package schedules.
-
-### Saved State
-
-Storage version 7 persists:
-
-- current level, Gold, `adsReward`, and loss streak;
-- player Initial CP and legacy rescue-overflow field;
-- deterministic CP and Max Alive schedules, claimed state, and claim source;
-- rescue history;
-- player Max Alive;
-- total purchase count;
-- per-family offered/unlocked/count state.
-
-Only version 7 is sanitized into the active state. Other versions initialize a
-fresh v7 state and cannot contaminate current results.
-
-### Battle Lifecycle
+### Battle lifecycle
 
 At load:
 
-1. Parse URL and clear storage when reset is requested.
-2. Load/sanitize v7 state or create a clean state.
-3. Apply saved player state.
-4. Apply Team B level curve and boss modifiers.
-5. If purchase simulation is enabled, repeatedly buy weighted affordable
-   options, up to 100 purchases.
-6. Apply purchased Team A state and run the battle.
+1. Parse/reset URL; load or create v8 state.
+2. Apply player state and Team B level/boss curve.
+3. If purchasingSimulation is enabled, make weighted legal purchases.
+4. Select/configure cards, then start battle.
 
 At battle end:
 
-1. Offer families introduced at the completed level.
-2. A player win receives baseline level CP as Gold; a boss win adds the 1.15x
-   boss Gold bonus without using boss CP multiplier, then advances a level.
-3. A player loss repeats the same level. A valid exhausted loss receives 10%
-   of win Gold on every loss.
-4. Every player loss increments the video-rescue streak; validity only gates
-   loss Gold.
-5. At three losses, attempt one boss-only Gold rescue. It does not claim a
-   package; it makes the earliest missing CP/Max Alive package available and
-   grants Gold equal to that package's current purchase cost.
-6. Purchase simulation runs again and may buy multiple affordable options.
-7. Save state, download telemetry, and reload unless campaign is complete.
+1. Record activatedPlayerCards from the runtime.
+2. Decrement every owned player card already on cooldown by one battle.
+3. Set each card that activated in the completed battle to its effective
+   cooldown.
+4. Apply normal win/loss Gold, boss rescue rules, offers and optional purchase
+   simulation; persist, export telemetry and reload.
 
-### Unit Unlock And Count Progression
+Cooldown upgrades reduce effective cooldown by one each, maximum two upgrades.
+Their prices are 60% then 90% of that card purchase price.
 
-| Family | Enemy unlock | Start count | Count at end |
-| --- | ---: | ---: | ---: |
-| Spear | 1 | 5 | 10 |
-| Sword | 1 | 5 | 10 |
-| Axeman | 10 | 5 | 10 |
-| Archer | 25 | 3 | 5 |
-| Cavalry | 35 | 5 | 10 |
-| Monk | 45 | 1 | 1 |
+Important current semantic: upgrading a card while it is already cooling down
+changes its effectiveCooldown for its next activation but does not reduce its
+current cooldownRemaining. This was observed twice in telemetry. It is an open
+design choice, not yet a confirmed bug.
 
-Enemy:
+### Purchase simulation
 
-- unlocks immediately at the authored level;
-- count grows by rounded linear interpolation from unlock count to max count;
-- all counts reach their max by `progressionEndLevel`.
+The bot first reserves Gold for baseline CP/Max Alive milestone parity. While
+it is below either baseline cap, it cannot buy card unlocks or cooldown upgrades.
+Once baseline needs are met, weighted choices include:
 
-Player:
+- card unlock weight 0.6.
+- card cooldown upgrade weight 0.2.
 
-- starts with Spear and Sword;
-- faces a newly introduced family first; it is offered after that battle;
-- pays Gold to unlock it;
-- may buy `+1` count packages up to current enemy count progression;
-- retained rights remain available later;
-- count upgrades do not change wave CP cost.
+This is only a telemetry bot policy. It must not be used to dictate real-player
+shop UX or choices.
 
-Prices:
+## Card Implementation
 
-```text
-unit unlock = wave CP cost * 20
-unit +1 count = unlock price / unlockCount
-```
+### Inspector data model
 
-### Initial CP Packages
+BattleCardDefinition in BattleCardDatabase.ts exposes:
 
-The schedule is generated dynamically from boss milestones through
-`progressionEndLevel`:
+- id, displayName, icon.
+- purchasePrice, baseCooldownBattles.
+- trigger, ownCombatPointThreshold, durationSeconds.
+- target, targetFamily.
+- modifier, modifierValue, tradeoffModifier, tradeoffValue.
+- enemyPool.
 
-- target cap at a milestone equals Team B baseline CP at that milestone;
-- boss multiplier is deliberately excluded, so the player sale cap targets the
-  next boss's base CP rather than its actual boss CP;
-- growth since the previous target is split across approximately half the
-  normal levels in the segment;
-- offer levels are deterministic, sparse, and occur before the target boss;
-- package price is `delta * 10 Gold`;
-- skipped packages remain available.
+Targets are AllUnits, UnitFamily, Frontline and Ranged. Frontline currently
+means Spear, Sword, Axeman and Cavalry. Ranged means Archer and Monk. Modifiers
+are additive percentages over a 1.0 multiplier, additive flat defense, or
+boolean counter immunity. Effects are calculated at runtime and do not mutate
+authored unit data.
 
-Active 100/50 schedule:
+### Authored card set
 
-| Target | Offer levels | Deltas | Baseline cap |
-| ---: | --- | --- | ---: |
-| 5 | 3, 4 | +7, +7 | 314 |
-| 10 | 7, 9 | +41, +40 | 395 |
-| 15 | 13, 14 | +41, +40 | 476 |
-| 20 | 16, 17 | +40, +40 | 556 |
-| 25 | 21, 23 | +41, +40 | 637 |
-| 30 | 27, 28 | +41, +40 | 718 |
-| 35 | 31, 34 | +40, +40 | 798 |
-| 40 | 37, 39 | +41, +40 | 879 |
-| 45 | 41, 44 | +40, +40 | 959 |
-| 50 | 46, 48 | +41, +40 | 1040 |
+| ID | Price | Base CD | Trigger / duration | Effect | Enemy pool |
+| --- | ---: | ---: | --- | --- | --- |
+| general-offensive | 850 | 5 | start / permanent | all units +5% damage | regular + boss |
+| battle-shields | 700 | 4 | own CP <=40% / 12s | frontline +1 defense | regular + boss |
+| anti-cavalry-spearhead | 650 | 4 | start / permanent | Spear +14% damage, -1 defense | regular + boss |
+| axe-frenzy | 650 | 4 | start / 10s | Axeman +18% damage, -0.2 defense | regular + boss |
+| sword-wall | 800 | 5 | own CP <=35% / 10s | Sword +2 defense, -10% damage | regular + boss |
+| arrow-suppression | 650 | 4 | start / 12s | Archer +12% damage, -8% range | regular + boss |
+| precise-range | 1100 | 5 | start / permanent | ranged +8% range | regular + boss |
+| wide-prayer | 1200 | 5 | own CP <=45% / 10s | Monk +30% radius, -12% damage | regular + boss |
+| counter-breaker | 1600 | 6 | own CP <=30% / 5s | all units ignore counter multiplier | boss only |
 
-### Max Alive Packages
+All cards are sale options as soon as a valid card database is loaded; there is
+no separate level unlock gate. The baseline-purchase reservation above is what
+prevents early simulation spending on cards.
 
-Max Alive now uses the same package lifecycle as CP:
+### Runtime and integration behavior
 
-- target cap at a milestone equals Team B baseline Max Alive before boss
-  multiplier and the Max Alive cap;
-- each package grants exactly `+1`;
-- deterministic offers occur before the target milestone;
-- claims persist and come from purchase; video rescue only grants Gold;
-- package price is `1000 * currentMaxAlive / playerStart`.
+- BattleCardRuntime validates distinct IDs and caps both decks at three.
+- Start cards activate at battle time 0. Conditional cards activate once when
+  own CP / own initial CP is <= configured threshold.
+- Timed cards expire in battle time; permanent cards remain active until battle
+  end. Modifiers are cached by team/family and invalidated on deck, activation
+  and expiry.
+- UnitBehavior applies card damage/defense/radius modifiers. If the defender
+  has active counter immunity, configured counter damage becomes 1.
+- Unit reads the runtime attack-range multiplier for target search, attack
+  distance and kiting behavior.
+- Stacking is intended: an eligible unit receives all active overlapping card
+  modifiers, including tradeoffs.
 
-Active schedule:
+### Real-player integration API
 
-| Target | Offer | Delta | Baseline player cap |
-| ---: | ---: | ---: | ---: |
-| 15 | 13 | +1 | 5 |
-| 20 | 17 | +1 | 6 |
-| 30 | 27 | +1 | 7 |
-| 35 | 31 | +1 | 8 |
-| 40 | 36 | +1 | 9 |
-| 50 | 46 | +1 | 10 |
+No card UI is implemented. A future UI must use the existing LevelSettings
+methods instead of reproducing shop/deck validation:
 
-### Purchase Simulation
+- tryPurchaseCard(cardId, upgradeCooldown = false): boolean.
+- setPlayerBattleCardSelection(cardIds): void.
 
-The simulated player buys repeatedly while Gold and legal options remain.
-Selection is weighted random, not fixed priority:
+setPlayerBattleCardSelection filters unowned, duplicate, cooling-down and
+over-three IDs. When purchasingSimulation is false, this selection is used for
+the next/current configured battle. When simulation is true, the bot randomly
+samples up to three owned ready cards instead.
 
-- CP weight grows with current CP deficit;
-- Max Alive weight grows with slot deficit;
-- unlock weight grows with how long the offer has been waiting;
-- count weight grows with the gap to enemy count.
+Enemy selection is random from its eligible pool and excludes all IDs from the
+previous enemy deck when at least three alternatives exist. Enemy has no card
+ownership, Gold or cooldown state.
 
-Multiple packages can be purchased before one battle. Gold is the affordability
-guard; package/unit milestone caps are the availability guard.
+## Telemetry Contract for Cards
 
-### Rewarded-Video Rescue
+Each report contains:
 
-Rescue is attempted after three player losses and only on a boss. It succeeds
-when:
+- config.cards: decks at battle start.
+- config.progression.settings.cardDefinitions.
+- config.progression.player.cards: initial state, selection and economy.
+- progression.before and after.player.cards.
+- progression.activatedPlayerCards.
+- cardEvents: card-activated/card-expired.
+- snapshots teams activeCardIds.
 
-- purchase simulation is enabled;
-- an unclaimed current or future CP/Max Alive package exists.
+A cardEvents entry includes type, team, ID, display name, trigger, duration,
+frame and battle-time seconds. Use root events to verify runtime activity;
+config.cards alone only proves selection.
 
-The runtime finds the earliest future CP and Max Alive packages, compares
-normalized deficits against the actual boss values, and selects one package of
-the larger deficit. A tie selects CP. A successful rescue:
+For each future card report, inspect:
 
-- pulls a future package's offer level to the current boss level if needed;
-- grants Gold equal to that package's current purchase cost; the player still
-  has to buy it;
-- increments `adsReward` by one;
-- resets the loss streak;
-- records source `video-rescue-gold` and the action in telemetry.
+1. Definition count and scene database reference.
+2. Player ownership, ready cards, selected deck size 0-3, cooldown before/after,
+   and actual activation/expiry events.
+3. Enemy deck size, pool eligibility and immediate-repeat rate.
+4. Purchases/Gold/rescues split by card versus baseline upgrades.
+5. Boss retries with selected cards, enemy cards, rescue state and outcomes.
+6. Controlled A/B runs before claiming a card causes a win-rate change.
 
-When no package remains, no rescue is created. Rescue does not pull unit
-unlock/count packages and does not guarantee that the next attempt wins.
+## Latest Telemetry Evidence: Card MVP
 
-## Current Telemetry Evidence (v7)
+Dataset analyzed on 2026-08-10:
 
-Dataset analyzed on 2026-08-06:
-
-```text
-C:/Users/tranl/Downloads/
-battle-telemetry-2026-08-05T17-46-10-402Z.json
+C:/Users/tranl/Downloads/battle-telemetry-2026-08-09T19-52-33-324Z.json
 through
-battle-telemetry-2026-08-05T18-48-31-449Z.json
-```
+C:/Users/tranl/Downloads/battle-telemetry-2026-08-09T20-31-38-411Z.json
 
-The selected filename range contains 150 reports, all with storage version 7,
-covering levels 1-70 in one sequential run. This is one stochastic campaign
-trajectory, not 150 independent samples.
+The exact range contains 111 reports from a single stochastic run, levels 1-33
+including retries. It is valid evidence for card wiring and economy flow, but
+not a causal card-strength study.
 
-### Aggregate Result
+### Verified
 
-```text
-reports = 150
-Team A wins = 70 (46.7% attempt win rate)
-Team B wins = 80
-boss wins = 14; boss losses = 66
-video rescues = 7
-rescue Gold = 8720
-final level = 70
-final Gold = 43825
-```
+- 9 card definitions loaded.
+- Player first owned, selected and activated Battle Shields at level 4.
+- Player decked battles: 59 / 111; player card activations: 98.
+- Enemy card activations: 333, exactly three per battle.
+- Player selected unavailable/cooling-down card: 0.
+- Decks above three cards: 0; enemy decks with other than three cards: 0.
+- Enemy immediate deck overlap: 0 / 110 transitions.
+- Counter Breaker events on normal levels: 0; Counter Breaker boss activations: 9.
 
-Boss retry shape:
+Timed player cards produced matching activation/expiry events. Enemy and player
+triggers/durations therefore execute in runtime and are visible in telemetry.
 
-| Boss | Attempts | Losses | Rescues | Winning attempt |
+Economy through level 33:
+
+- final Gold 1691.
+- owned cards 6.
+- card transactions 17.
+- card Gold spent 10735.
+- all Gold spent 21335.
+- Gold from battle rewards 20463.
+- video-rescue Gold 4410 from 4 rescues.
+
+Owned by the last report: General Offensive (CD upgrade 1), Battle Shields (2),
+Anti-Cavalry Spearhead (2), Axe Frenzy (2), Arrow Suppression (2), and Precise
+Range (2). Sword Wall, Wide Prayer and Counter Breaker remain unowned.
+
+Boss retry shape in this run:
+
+| Boss | Attempts | Wins | Losses | Rescues |
 | ---: | ---: | ---: | ---: | ---: |
-| 5 | 1 | 0 | 0 | 1 |
-| 10 | 4 | 3 | 1 | 4 |
-| 15 | 2 | 1 | 0 | 2 |
-| 20 | 8 | 7 | 2 | 8 |
-| 25 | 1 | 0 | 0 | 1 |
-| 30 | 7 | 6 | 2 | 7 |
-| 35 | 5 | 4 | 1 | 5 |
-| 40 | 1 | 0 | 0 | 1 |
-| 45 | 6 | 5 | 1 | 6 |
-| 50 | 10 | 9 | 0 | 10 |
-| 55 | 6 | 5 | 0 | 6 |
-| 60 | 9 | 8 | 0 | 9 |
-| 65 | 2 | 1 | 0 | 2 |
-| 70 | 12 | 11 | 0 | 12 |
+| 5 | 1 | 1 | 0 | 0 |
+| 10 | 5 | 1 | 4 | 1 |
+| 15 | 8 | 1 | 7 | 2 |
+| 20 | 4 | 1 | 3 | 1 |
+| 25 | 2 | 1 | 1 | 0 |
+| 30 | 1 | 1 | 0 | 0 |
 
-At level 70 the player has CP 1040, Max Alive 10, and all authored unit
-counts at cap. Enemy has CP 1144, Max Alive 10, and equal unit counts. All
-packages are claimed and `availablePurchases` is empty, while Gold is 42629
-before the final win. This confirms the intended post-level-50 plateau and
-also identifies the future economy extension point: Gold continues to accrue
-but has no current sink after all packages are exhausted.
+The three-loss rescue rule is working: level 10 had one rescue after four
+losses, level 15 had two after seven losses, and level 20 had one after three
+losses. Level 15 is the most notable early pressure point. Do not attribute
+this directly to cards: bot deck selection is random, and active conditional
+cards correlate with a side already losing CP.
 
-Economy accounting for the 150 reports:
+Observed deck size outcomes are context-confounded but useful for diagnosis:
 
-```text
-regular/loss Gold sources = 62701
-video-rescue Gold sources = 8720
-all purchase sinks = 27596
-final Gold = 43825
-```
-
-From level 51 onward, the run generated approximately 25360 regular Gold
-without any purchase sink. This is intentional plateau behavior for now, not
-an actionable bug; future work may add post-level-50 scaling or repeatable
-spends.
-
-### Current Telemetry Diagnosis
-
-Proven by deterministic state and report fields:
-
-- v7 storage, scene settings, and telemetry agree on baseline packages,
-  multiplier 1.1, boss Gold bonus 1.15, loss Gold ratio 0.1, and three-loss
-  rescue threshold;
-- rescue no longer claims packages for free; each rescue grants Gold matching
-  one CP/Max Alive package cost and the later purchase claims it;
-- CP schedule reaches baseline cap 1040 at milestone 50, and Max Alive reaches
-  baseline cap 10 at milestone 50;
-- after milestone 50 there are no CP/Max Alive packages left to rescue or buy;
-- repeated boss losses after package exhaustion can accumulate large unused
-  Gold because valid losses still receive 10% loss Gold.
-
-Observed in this single stochastic run, therefore not a population estimate:
-
-- boss pressure becomes severe at levels 20, 30, 45, 50, 60, and 70;
-- level 70 required 11 losses before the eventual win;
-- the player was not missing authored upgrades at the late wall; the remaining
-  gap is the deliberate boss CP multiplier plus combat stochasticity.
-
-The user accepts the level-50 plateau and plans to scale other systems there.
-Do not change the plateau or add post-50 sinks without explicit direction.
-
-## Historical Telemetry Evidence (v5)
-
-Dataset:
-
-```text
-C:/Users/tranl/Downloads/
-battle-telemetry-2026-08-03T19-38-20-136Z.json
-through
-battle-telemetry-2026-08-03T20-16-04-557Z.json
-```
-
-The range contains exactly 101 reports. It is a clean storage-v5 run beginning
-at level 1 with player CP 300, Max Alive 4, Gold 0, and starting roster only.
-It reaches boss level 45 but does not yet contain the post-third-rescue attempt.
-This is historical v5 evidence; it does not describe the current v7 rescue
-frequency or baseline-boss package schedule.
-
-### Aggregate Result
-
-```text
-reports = 101
-Team A wins = 44 (43.6% attempt win rate)
-Team B wins = 57
-normal battles = 45; Team A wins = 36
-boss battles = 56; Team A wins = 8
-video rescues = 15
-simulated battle time = 4791 seconds (~79.9 minutes)
-```
-
-`48/57` losses occur at bosses. Normal levels are generally passable, but boss
-retry cost grows heavily.
-
-| Boss | Attempts | Losses | Rescues | Status |
-| ---: | ---: | ---: | ---: | --- |
-| 5 | 4 | 3 | 1 | cleared |
-| 10 | 4 | 3 | 1 | cleared |
-| 15 | 8 | 7 | 2 | cleared |
-| 20 | 7 | 6 | 2 | cleared |
-| 25 | 7 | 6 | 2 | cleared |
-| 30 | 10 | 9 | 3 | cleared |
-| 35 | 1 | 0 | 0 | cleared first try; stochastic outlier |
-| 40 | 6 | 5 | 1 | cleared |
-| 45 | 9 | 9 | 3 | ongoing after latest rescue |
-
-### Multiplier Verification
-
-Boss CP is not cumulative. Telemetry reproduces one `x1.2` multiplication:
-
-| Boss | Base CP | Actual CP | Ratio |
+| Player deck size | Battles | Wins | Losses |
 | ---: | ---: | ---: | ---: |
-| 5 | 314 | 377 | 1.2006 |
-| 10 | 395 | 474 | 1.2000 |
-| 15 | 476 | 571 | 1.1996 |
-| 20 | 556 | 667 | 1.1996 |
-| 25 | 637 | 764 | 1.1994 |
-| 30 | 718 | 862 | 1.2006 |
-| 35 | 798 | 958 | 1.2005 |
-| 40 | 879 | 1055 | 1.2002 |
-| 45 | 959 | 1151 | 1.2002 |
+| 0 | 52 | 13 | 39 |
+| 1 | 27 | 11 | 16 |
+| 2 | 25 | 4 | 21 |
+| 3 | 7 | 4 | 3 |
 
-Accuracy also uses one multiplication and caps at 1. Max Alive appears less
-uniform because of integer rounding; boss 35 is base 8 -> actual 10.
+Do not use this table as proof that three cards are stronger; ownership,
+cooldowns, level, rescue and stochastic combat are uncontrolled.
 
-### Purchases And Rescue Power
+### Superseded invalid card batch
 
-Paid progression by the end of the range:
+The earlier 2026-08-09 19:25-19:44 level 1-30 batch had zero definitions,
+decks, events and card purchases. It is not card balance evidence. The cause
+was a null GameManager.battleCardDatabase scene reference. The active scene now
+correctly references the BattleCardDatabase component and the later 111-report
+batch confirms the fix.
 
-| Kind | Count | Gold spent | Power gained |
-| --- | ---: | ---: | ---: |
-| Initial CP | 10 | 3360 | +336 CP |
-| Max Alive | 1 | 2000 | +1 |
-| Unit count | 17 | 4102 | +17 units across waves |
-| Unit unlock | 4 | 4920 | Axeman, Archer, Cavalry, Monk |
+## Next Work: Do Not Assume Approval
 
-Video rescue supplied:
+The card MVP is implemented and functioning. The next Codex should not add
+systems or rebalance values automatically. The user has not approved a numeric
+card rebalance after the latest report.
 
-```text
-10 CP rescues = +404 CP
-5 Max Alive rescues = +5 slots
-```
+If asked to continue card work, recommended order is:
 
-At the last report, Team A has all level-45 units/count caps, CP 1040, Max
-Alive 9 before result, and 18,998 unused Gold. Team B has CP 1151 and Max Alive
-10. The last result claims `+1 Max Alive`, so the next attempt should start at
-CP 1040 / Max Alive 10 against CP 1151 / Max Alive 10.
+1. Clarify whether a cooldown upgrade should reduce an already-running
+   cooldownRemaining; current behavior affects only future activations.
+2. Run a controlled A/B simulation with reset state and matching seed/config:
+   cards disabled versus current cards. Compare normal/boss attempts, rescue
+   count, Gold/card spend and card event outcomes.
+3. If balance evidence supports it, tune card values/prices or purchase-bot
+   weights as a small, documented change. Do not tune from a single random run.
+4. Separately, build real-player shop/deck UI using the existing APIs. Preserve
+   manual player selection; never ship the test bot random selection.
 
-The run has not abandoned or deadlocked. The report stops immediately after a
-successful rescue and before its next battle.
+The intentional post-level-50 plateau remains a future extension point. Do not
+add repeatable post-50 sinks, packages, scaling or rescue changes without a new
+user decision.
 
-## Historical Diagnosis From v5 Telemetry
+## Validation and Operational Notes
 
-### Proven
+Focused validation after implementation:
 
-- Storage reset and v5 persistence worked.
-- CP and Max Alive schedules are deterministic and cumulative.
-- Purchase simulation buys legal affordable options and can buy multiple.
-- Unit unlock/count progression reaches parity with authored enemy caps.
-- Boss CP multiplier is exactly one `x1.2`, not cumulative.
-- Rescue now performs real CP/Max Alive actions and no longer grants unusable
-  rescue Gold.
-- Gold is not the current bottleneck by level 45; availability caps are.
+- BattleCardRuntime focused behavior checks passed: stacking General Offensive
+  plus Anti-Cavalry Spearhead, counter immunity, timed expiry/cache
+  invalidation/telemetry.
+- assets/Test.scene card database reference and 9-card content check passed.
+- Cocos bundled TypeScript targeted compile plus skipLibCheck passed.
+- git diff --check on authored changes passed.
+- 111-report card telemetry parse/grouping passed.
 
-### Concern
+Full project temp/tsconfig.cocos.json compile is currently blocked by missing
+generated Cocos declaration type roots: ./temp/declarations/cc,
+cc.custom-macro, cc.env and jsb. This is an environment/generated-config issue,
+not a card TypeScript failure. Do not use it as a regression signal until the
+Cocos generated environment is repaired.
 
-The v5 player purchase cap deliberately reached only each boss's base CP/Max
-Alive, while the boss received `x1.2`. Therefore rescue was structural rather
-than rare:
+Current authored card/progression changes are uncommitted. The worktree also
+contains Cocos-generated changes under library, profiles and temp; leave them
+untouched unless explicitly asked. For Git inspection on this machine use:
+git -c safe.directory=F:/Github/BattleGame <command>
 
-- 15 simulated ads before finishing boss 45 under the v5 three-loss contract;
-- rescue CP gain (+404) exceeds paid CP gain (+336);
-- several bosses need two or three rescue cycles;
-- the player can hold 18,998 Gold with no legal purchase that closes the boss
-  gap.
-
-One future package per three losses was not guaranteed to create a winning next
-attempt. This is historical v5 evidence; use the current v7 telemetry section
-above for current tuning conclusions.
-
-Do not solve this by changing combat stats or AI. The evidence points to the
-progression capacity/rescue contract.
-
-## Telemetry Evaluation Contract
-
-For the next progression batch, always report:
-
-1. Exact filename range and report count. Never infer groups when reports are
-   missing.
-2. Clean-reset evidence: first level, storage version, player CP/Max Alive,
-   Gold, units, ads, and package claims.
-3. Per-level attempts, wins/losses, and whether the level is boss/normal.
-4. Boss table with player/enemy CP, Max Alive, accuracy, rescue sequence, and
-   status after the last report.
-5. Paid gains versus rescue gains by type and Gold spent.
-6. Gold balance plus legal/affordable options at any wall.
-7. Unit unlock/count parity and whether a missing unlock caused no-spawn.
-8. Whether both teams exhausted CP; distinguish capacity wall from AI stall.
-9. Multiplier verification against same-level base, including rounding/caps.
-10. Normal-level and boss attempt rates separately; aggregate win rate alone
-    is misleading in a retry campaign.
-
-Do not require a smooth per-level win-rate curve. The desired shape is forgiving
-normal progression with authored boss pressure. Flag:
-
-- repeated normal walls;
-- boss retries that keep growing without useful progression;
-- rescue that makes no state change;
-- rescue frequency high enough to replace paid progression;
-- large unused Gold with no relevant option;
-- any state mismatch between telemetry, scene, roadmap, and source.
-
-## Next Decision
-
-The user accepts the intentional progression plateau at level 50 and plans to
-scale other systems from level 50 onward. Do not add repeatable post-50 sinks,
-post-50 packages, or loss-Gold suppression without explicit instruction.
-
-Future balance work may choose one of these, but each requires a new design
-decision and a fresh telemetry batch:
-
-1. Add post-50 scaling for another system while leaving combat progression
-   plateaued.
-2. Add repeatable Gold sinks after all authored packages are exhausted.
-3. Add a post-50 rescue/upgrade contract if late bosses should remain
-   progression-gated rather than combat-gated.
-
-The v7 multiplier and rescue contract are implemented and validated. Treat the
-large late-run Gold balance as an accepted future extension point, not an
-automatic bug.
-
-## Validation State
-
-Latest focused checks:
-
-```text
-Cocos TypeScript targeted compile with bundled tsc + skipLibCheck: PASS
-Strict full-project compile: existing errors remain in BattleTelemetry, RVO,
-and Unit; no new LevelSettings error was introduced
-assets/Test.scene JSON parse: PASS
-roadmap embedded JavaScript syntax: PASS
-git diff --check on authored progression files: PASS
-baseline package/economy invariant assertions: PASS
-150-report v7 telemetry parse/grouping: PASS
-active scene v7 config alignment: PASS
-```
-
-Current authored files:
-
-- `assets/scripts/LevelSettings.ts`
-- `assets/Test.scene`
-- `tools/battle-progression-roadmap.html`
-- `AI-CONTEX.md`
-
-Branch/commit baseline at this handoff:
-
-```text
-main / f41129b7 progression test
-```
-
-The current source progression commit is `f41129b7`; the v7 source, scene,
-roadmap, and this handoff update are uncommitted. Cocos has also modified
-generated/cache/log files under `library/`, `profiles/`, and `temp/`. Do not
-revert or commit those automatically.
-
-Known local operational issues:
-
-- Cocos Preview may occasionally produce `_unresolved_*`, missing chunk, or
-  `ENOENT` errors from stale packer/import-map caches. Verify source compilation
-  and refresh/restart Preview before attributing these errors to gameplay code.
-- CLI Git may report Windows `dubious ownership`; use
-  `git -c safe.directory=F:/Github/BattleGame ...` for read-only inspection
-  rather than silently changing global trust.
-- `.git/index.lock` is local to this worktree. Another machine using the same
-  remote cannot create this machine's lock file.
-
-## Preserved Non-Progression Baseline
-
-No SpatialGrid, RVO, AI accuracy, counter, ranged support, or tier-1 stat logic
-was changed by progression v5.
-
-Previously validated performance baseline remains informational only:
-
-| Main frame metric at 4x CPU slowdown | Before RVO lifecycle repair | After |
-| --- | ---: | ---: |
-| Average | 7.390 ms | 5.308 ms |
-| p95 | 16.707 ms | 12.196 ms |
-| p99 | 24.041 ms | 15.291 ms |
-| Frames over 16.67 ms | 5.07% | 0.81% |
-
-These were Cocos Preview/device-emulation results, not physical-device release
-claims. Mobile release validation with telemetry disabled remains future work.
+Stale Cocos Preview packer/import-map caches can produce unresolved asset/chunk
+or ENOENT errors. Refresh/restart Preview and verify the targeted compile before
+attributing those to gameplay logic.

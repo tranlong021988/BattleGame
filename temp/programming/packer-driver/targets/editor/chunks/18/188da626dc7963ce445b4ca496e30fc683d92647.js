@@ -143,19 +143,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
-          let finalDamage = this.props.damage;
+          const gm = this.gameManager;
+          const attackerModifiers = gm ? gm.getBattleCardModifiers(this.unit.team, this.props.family) : null;
+          const defenderModifiers = gm ? gm.getBattleCardModifiers(enemy.team, enemy.props.family) : null;
+          const attackDamage = Math.max(0, this.props.damage * (attackerModifiers ? attackerModifiers.damageMultiplier : 1));
+          const defense = Math.max(0, enemy.props.defense + (defenderModifiers ? defenderModifiers.defenseFlat : 0));
+          let finalDamage = attackDamage;
           let isCounterDamage = false;
 
           if (counter && !this.unit.isHero && !enemy.isHero) {
-            const damageMul = counter.getDamageMultiplier(this.props.family, enemy.props.family);
+            const configuredDamageMul = counter.getDamageMultiplier(this.props.family, enemy.props.family);
+            const damageMul = defenderModifiers != null && defenderModifiers.counterImmune ? 1 : configuredDamageMul;
             isCounterDamage = damageMul > 1.0001;
-            finalDamage = counter.calculateDamage(this.props, enemy.props);
+            finalDamage = Math.max(1, attackDamage - defense) * damageMul;
           } else {
-            finalDamage = Math.max(1, this.props.damage - enemy.props.defense);
+            finalDamage = Math.max(1, attackDamage - defense);
           }
 
           const actualDamage = Math.min(Math.max(0, enemy.props.health), Math.max(0, finalDamage));
-          const gm = this.gameManager;
 
           if (gm) {
             gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId);
@@ -186,7 +191,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         dealAreaDamageAround(primaryTarget, attackBatchId) {
-          const damageRadius = Math.max(0, this.props.damageRadius);
+          const modifiers = this.gameManager ? this.gameManager.getBattleCardModifiers(this.unit.team, this.props.family) : null;
+          const damageRadius = Math.max(0, this.props.damageRadius * (modifiers ? modifiers.damageRadiusMultiplier : 1));
           if (damageRadius <= 0) return;
           if (!primaryTarget || !primaryTarget.agent) return;
           const gm = this.gameManager;

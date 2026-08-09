@@ -142,6 +142,7 @@
         "7f28e1cf-c5d7-46e6-bd9d-d1a054f71615",
         "1e335392-7464-462e-b0f4-f1a62cb2f2ab",
         "6fc5265c-f2e8-478d-b01e-2a02f5a37b15",
+        "3e68dd1e-0175-46da-ab03-1656b7f52067",
         "6763c90e-a96e-4d4a-9859-896fdbcb348f",
         "05b5fa2b-3f44-4842-8e74-276cd2f32062",
         "e4db8fe8-78ac-4231-a17c-a11ff1c17914",
@@ -2203,6 +2204,16 @@
   },
   "4d5b72ea-f842-4c3b-a2fe-25c5b30f4e51": {
     "url": "db://assets/scripts/BattlefieldEvaluator.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "3e68dd1e-0175-46da-ab03-1656b7f52067": {
+    "url": "db://assets/scripts/BattleCardDatabase.ts",
+    "value": {},
+    "versionCode": 1
+  },
+  "11692af0-1f3d-46f0-a1aa-9c8837d20ab9": {
+    "url": "db://assets/scripts/BattleCardRuntime.ts",
     "value": {},
     "versionCode": 1
   }

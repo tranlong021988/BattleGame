@@ -31,6 +31,12 @@ type UnitBehaviorGameManager = {
     despawnUnit(unit: Unit): void;
     beginCombatResolution(): void;
     endCombatResolution(): void;
+    getBattleCardModifiers(team: number, family: number): {
+        damageMultiplier: number;
+        defenseFlat: number;
+        damageRadiusMultiplier: number;
+        counterImmune: boolean;
+    };
 };
 
 @ccclass('UnitBehavior')
@@ -147,8 +153,35 @@ export class UnitBehavior extends Component {
         attackBatchId: number
     ) {
         const counter = CounterSettings.instance;
+        const gm = this.gameManager;
+        const attackerModifiers = gm
+            ? gm.getBattleCardModifiers(
+                this.unit.team,
+                this.props.family
+            )
+            : null;
+        const defenderModifiers = gm
+            ? gm.getBattleCardModifiers(
+                enemy.team,
+                enemy.props.family
+            )
+            : null;
+        const attackDamage = Math.max(
+            0,
+            this.props.damage *
+            (attackerModifiers
+                ? attackerModifiers.damageMultiplier
+                : 1)
+        );
+        const defense = Math.max(
+            0,
+            enemy.props.defense +
+            (defenderModifiers
+                ? defenderModifiers.defenseFlat
+                : 0)
+        );
 
-        let finalDamage = this.props.damage;
+        let finalDamage = attackDamage;
         let isCounterDamage = false;
 
         if (
@@ -156,23 +189,25 @@ export class UnitBehavior extends Component {
             !this.unit.isHero &&
             !enemy.isHero
         ) {
-            const damageMul =
+            const configuredDamageMul =
                 counter.getDamageMultiplier(
                     this.props.family,
                     enemy.props.family
                 );
+            const damageMul = defenderModifiers?.counterImmune
+                ? 1
+                : configuredDamageMul;
 
             isCounterDamage =
                 damageMul > 1.0001;
 
-            finalDamage = counter.calculateDamage(
-                this.props,
-                enemy.props
-            );
-        } else {
             finalDamage = Math.max(
                 1,
-                this.props.damage - enemy.props.defense
+                attackDamage - defense
+            ) * damageMul;
+        } else {
+            finalDamage = Math.max(
+                1, attackDamage - defense
             );
         }
 
@@ -181,8 +216,6 @@ export class UnitBehavior extends Component {
                 Math.max(0, enemy.props.health),
                 Math.max(0, finalDamage)
             );
-
-        const gm = this.gameManager;
 
         if (gm) {
             gm.reportDamage(
@@ -229,8 +262,19 @@ export class UnitBehavior extends Component {
         primaryTarget: Unit,
         attackBatchId: number
     ) {
-        const damageRadius =
-            Math.max(0, this.props.damageRadius);
+        const modifiers = this.gameManager
+            ? this.gameManager.getBattleCardModifiers(
+                this.unit.team,
+                this.props.family
+            )
+            : null;
+        const damageRadius = Math.max(
+            0,
+            this.props.damageRadius *
+            (modifiers
+                ? modifiers.damageRadiusMultiplier
+                : 1)
+        );
 
         if (damageRadius <= 0) return;
         if (!primaryTarget || !primaryTarget.agent) return;
