@@ -332,7 +332,7 @@ export class LevelSettings extends Component
     lossesPerVideoReward = 3;
 
     @property({ min: 1, step: 1 })
-    unitUnlockCostMultiplier = 20;
+    unitUnlockCostMultiplier = 5;
 
     @property({ min: 0.01, step: 0.1 })
     initialCPGoldPerPoint = 10;
@@ -843,7 +843,7 @@ export class LevelSettings extends Component
             this.progressionState.levelLossCount = 0;
         }
 
-        this.offerUnitsFromEarlierLevels(
+        this.offerIntroducedUnits(
             this.battleLevel
         );
         this.applyProgressionRuntimeState(true);
@@ -1841,7 +1841,8 @@ export class LevelSettings extends Component
                 saved.unitCount <
                 this.getPlayerUnitCountMilestoneCap(
                     rule,
-                    this.battleLevel
+                    this.battleLevel,
+                    state
                 )
             ) {
                 options.push({
@@ -2102,6 +2103,30 @@ export class LevelSettings extends Component
                 affordable = affordable.filter((option) =>
                     option.kind !== 'card-budget-upgrade'
                 );
+            }
+
+            const currentLevelUnitUnlocks = affordable.filter(
+                (option) => {
+                    if (
+                        option.kind !== 'unit-unlock' ||
+                        option.family === null
+                    ) {
+                        return false;
+                    }
+
+                    const rule = this.getRule(
+                        option.family,
+                        option.tier
+                    );
+
+                    return !!rule &&
+                        this.getRuleUnlockLevel(rule) ===
+                        this.battleLevel;
+                }
+            );
+
+            if (currentLevelUnitUnlocks.length > 0) {
+                affordable = currentLevelUnitUnlocks;
             }
 
             if (affordable.length <= 0) return;
@@ -2463,6 +2488,10 @@ export class LevelSettings extends Component
                 2,
                 card.cooldownUpgradeLevel + 1
             );
+            card.cooldownRemaining = Math.max(
+                0,
+                card.cooldownRemaining - 1
+            );
             return;
         }
 
@@ -2655,32 +2684,6 @@ export class LevelSettings extends Component
         return result;
     }
 
-    private offerUnitsFromEarlierLevels(level: number) {
-        if (!this.progressionState) return;
-
-        for (
-            let i = 0;
-            i < this.unitProgressionRules.length;
-            i++
-        ) {
-            const rule = this.unitProgressionRules[i];
-
-            if (!rule) continue;
-            if (
-                this.getRuleUnlockLevel(rule) >= level
-            ) {
-                continue;
-            }
-
-            const saved = this.getSavedUnit(
-                this.progressionState,
-                this.getRuleKey(rule)
-            );
-
-            if (saved) saved.offered = true;
-        }
-    }
-
     private createUnitProgressionSnapshot() {
         if (!this.progressionState) return [];
 
@@ -2720,7 +2723,8 @@ export class LevelSettings extends Component
                     playerCountMilestoneCap:
                         this.getPlayerUnitCountMilestoneCap(
                             rule,
-                            this.battleLevel
+                            this.battleLevel,
+                            this.progressionState!
                         ),
                 };
             });
@@ -2728,11 +2732,17 @@ export class LevelSettings extends Component
 
     private getPlayerUnitCountMilestoneCap(
         rule: UnitProgressionRule,
-        level: number
+        level: number,
+        state: SavedProgressionState
     ) {
         return Math.min(
             this.getRuleMaxCount(rule),
-            this.getEnemyUnitCount(rule, level)
+            this.getRuleUnlockCount(rule) +
+            this.getUnitCountUpgradeRank(
+                rule,
+                level,
+                state
+            )
         );
     }
 
@@ -2740,33 +2750,88 @@ export class LevelSettings extends Component
         rule: UnitProgressionRule,
         level: number
     ) {
-        const unlockLevel =
-            this.getRuleUnlockLevel(rule);
-        const unlockCount =
-            this.getRuleUnlockCount(rule);
-        const maxCount = this.getRuleMaxCount(rule);
-        const progressionEndLevel =
-            this.getUnitProgressionEndLevel();
-
-        if (maxCount <= unlockCount) return unlockCount;
-        if (level >= progressionEndLevel) return maxCount;
-        if (level <= unlockLevel) return unlockCount;
-
-        const denominator = Math.max(
-            1,
-            progressionEndLevel - unlockLevel
-        );
-        const maturity = this.clamp01(
-            (level - unlockLevel) / denominator
-        );
-
         return Math.round(
-            this.lerp(
-                unlockCount,
-                maxCount,
-                maturity
+            Math.min(
+                this.getRuleMaxCount(rule),
+                this.getRuleUnlockCount(rule) +
+                this.getUnitCountUpgradeRank(rule, level)
             )
         );
+    }
+
+    private getUnitCountUpgradeRank(
+        rule: UnitProgressionRule,
+        level: number,
+        state: SavedProgressionState | null = null
+    ) {
+        const unlockLevel = this.getRuleUnlockLevel(rule);
+        const maxRank = Math.max(
+            0,
+            this.getRuleMaxCount(rule) -
+            this.getRuleUnlockCount(rule)
+        );
+        let rank = 0;
+        const milestones = this.getUnitUnlockMilestoneLevels();
+
+        for (let i = 0; i < milestones.length; i++) {
+            const milestone = milestones[i];
+
+            if (milestone <= unlockLevel || milestone > level) {
+                continue;
+            }
+            if (
+                state &&
+                !this.isUnitUnlockMilestoneOffered(
+                    milestone,
+                    state
+                )
+            ) {
+                continue;
+            }
+
+            rank++;
+        }
+
+        return Math.min(maxRank, rank);
+    }
+
+    private getUnitUnlockMilestoneLevels() {
+        const result: number[] = [];
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+
+            const level = this.getRuleUnlockLevel(rule);
+
+            if (level <= 1 || result.indexOf(level) >= 0) continue;
+
+            result.push(level);
+        }
+
+        return result.sort((a, b) => a - b);
+    }
+
+    private isUnitUnlockMilestoneOffered(
+        milestone: number,
+        state: SavedProgressionState
+    ) {
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            if (this.getRuleUnlockLevel(rule) !== milestone) {
+                continue;
+            }
+
+            const saved = this.getSavedUnit(
+                state,
+                this.getRuleKey(rule)
+            );
+
+            if (saved && saved.offered) return true;
+        }
+
+        return false;
     }
 
     private getUnitUnlockPrice(

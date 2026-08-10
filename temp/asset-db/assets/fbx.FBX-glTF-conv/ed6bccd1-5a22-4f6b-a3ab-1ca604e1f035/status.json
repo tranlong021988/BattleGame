@@ -1,10 +1,10 @@
 {
   "version": "2.3.14",
-  "sourceTimeStamp": 1782182912612.585,
+  "sourceTimeStamp": 1782147782131.319,
   "outputTimeStamps": {
-    "log.json": 1786345426839.8086,
-    "out.bin": 1786345426834.8083,
-    "out.gltf": 1786345426839.8086
+    "log.json": 1786375270588.923,
+    "out.bin": 1786375270583.553,
+    "out.gltf": 1786375270587.9185
   },
   "options": {
     "animationBakeRate": 30,
