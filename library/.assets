@@ -21,6 +21,8 @@
             "shaders\\VAT-Animation.effect",
             "shaders\\VATCharacter.effect",
             "scripts\\BattleArmyBrain.ts",
+            "scripts\\BattleCardDatabase.ts",
+            "scripts\\BattleCardRuntime.ts",
             "scripts\\BattleCinematicCameraController.ts",
             "scripts\\BattlefieldEvaluator.ts",
             "scripts\\BattleInformationIconItem.ts",
@@ -142,9 +144,7 @@
             "MiniMap\\images\\NewIcons\\_0004_Horse-ico.png",
             "MiniMap\\images\\NewIcons\\_0005_Monk-ico.png",
             "MiniMap\\images\\NewIcons\\_0006_Archer-ico.png",
-            "MiniMap\\images\\NewIcons\\_0007_Mace-ico.png",
-            "scripts\\BattleCardDatabase.ts",
-            "scripts\\BattleCardRuntime.ts"
+            "MiniMap\\images\\NewIcons\\_0007_Mace-ico.png"
         ]
     }
 }

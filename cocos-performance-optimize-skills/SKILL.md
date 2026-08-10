@@ -444,6 +444,31 @@ For minimap-like UI:
 - Avoid active Layout on icon roots.
 - Keep click/tap focus event-driven, not per-frame.
 
+## Battle Card Runtime
+
+When auditing the BattleGame card MVP, treat card logic as gameplay state and
+runtime modifiers, not as a reason to add per-unit polling:
+
+- Read `BattleCardRuntime.ts`, `BattleCardDatabase.ts`, `GameManager.ts`,
+  `Unit.ts`, and `UnitBehavior.ts` before proposing a card-performance change.
+- Preserve deck limits, trigger timing, cooldown semantics, effect stacking,
+  expiry, counter immunity, and telemetry events while optimizing.
+- Prefer team/family cached modifiers invalidated on deck change, activation,
+  and expiry. Do not recalculate card eligibility by scanning every card for
+  every unit every frame.
+- Keep battle-time countdowns centralized in the runtime; do not attach one
+  timer, tween, or event listener per unit affected by a card.
+- Avoid per-frame allocations when applying damage/defense/range/radius
+  modifiers. Reuse cached values and update only on activation or expiry.
+- Treat card UI as a separate performance surface: pool card entries, update
+  cooldown labels on state changes or a low-frequency interval, and avoid
+  Layout/Widget churn in a large collection or deck screen.
+- Verify `cardEvents`, active-card snapshots, and config decks after any
+  optimization. A faster path that hides activation/expiry events is a
+  gameplay regression, not a successful optimization.
+- Do not tune card prices, effects, deck size, or cooldowns under the guise of
+  performance work. Balance changes require separate evidence and approval.
+
 ## Texture, Asset, And Memory
 
 Remember GPU memory, not just file size:

@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, Vec3 } from 'cc';
 import { UnitProps } from './UnitProps';
 import { GameManager } from './GameManager';
+import { UnitFamily } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
 const FORWARD_LOOK_DOT_THRESHOLD = 0.98;
@@ -401,6 +402,45 @@ export class Unit extends Component {
         );
     }
 
+    public consumeAttackRangeCardBudget(enemy: Unit) {
+        if (!enemy || !enemy.agent || !this.agent) return false;
+
+        const gm = GameManager.instance;
+
+        if (!gm) return false;
+
+        const modifiers = gm.getBattleCardModifiers(
+            this.team,
+            this.props.family,
+            enemy.props.family
+        );
+
+        if (modifiers.attackRangeMultiplier <= 1.0001) {
+            return false;
+        }
+
+        const baseRange = Math.max(0, this.attackRange) +
+            Math.max(0, this.radius) +
+            Math.max(0, enemy.radius);
+        const effectiveRange = this.getEffectiveAttackRangeAgainst(enemy);
+        const dx = enemy.agent.pos.x - this.agent.pos.x;
+        const dz = enemy.agent.pos.z - this.agent.pos.z;
+        const distanceSq = dx * dx + dz * dz;
+
+        if (
+            distanceSq <= baseRange * baseRange ||
+            distanceSq > effectiveRange * effectiveRange
+        ) {
+            return false;
+        }
+
+        return gm.consumeAttackRangeCardBudget(
+            this.team,
+            this.props.family,
+            enemy.props.family
+        );
+    }
+
     private setCachedNearestInRangeTarget(target: Unit | null) {
         this.cachedNearestInRange = target;
         this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
@@ -558,15 +598,11 @@ export class Unit extends Component {
     }
 
     public hasReachedEnemyHeroLine() {
-        const enemyHero = this.getEnemyHero();
+        const gm = GameManager.instance;
 
-        if (!this.isValidEnemy(enemyHero)) {
-            return false;
-        }
-
-        return this.hasPassedTargetAlongForward(
-            enemyHero!
-        );
+        return gm
+            ? gm.hasUnitReachedEnemyHeroLine(this)
+            : false;
     }
 
     public getEnemyHeroTarget() {
@@ -932,6 +968,10 @@ export class Unit extends Component {
         }
 
         if (this.props && this.props.isDead()) {
+            if (this.isHero) {
+                GameManager.instance?.resolveHeroDefeat(this);
+            }
+
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
@@ -1802,17 +1842,22 @@ export class Unit extends Component {
     private getEffectiveAttackRangeAgainst(
         enemy: Unit
     ) {
-        return this.getEffectiveAttackRange() +
+        return this.getEffectiveAttackRange(
+            enemy.props.family
+        ) +
             Math.max(0, this.radius) +
             Math.max(0, enemy.radius);
     }
 
-    private getEffectiveAttackRange() {
+    private getEffectiveAttackRange(
+        opposingFamily?: UnitFamily
+    ) {
         const gm = GameManager.instance;
         const modifiers = gm
             ? gm.getBattleCardModifiers(
                 this.team,
-                this.props.family
+                this.props.family,
+                opposingFamily
             )
             : null;
 
@@ -2035,7 +2080,10 @@ export class Unit extends Component {
         const dist =
             Math.sqrt(dx * dx + dz * dz);
         const range =
-            Math.max(0.001, this.getEffectiveAttackRange());
+            Math.max(
+                0.001,
+                this.getEffectiveAttackRange(target.props.family)
+            );
         const dangerDistance =
             range * RANGED_DANGER_RANGE_RATIO;
         const safeMinDistance =

@@ -155,12 +155,12 @@ export interface BattleTelemetryTeamSnapshot {
 }
 
 export interface BattleTelemetryCardEvent {
-    type: 'card-activated' | 'card-expired';
+    type: 'card-activated' | 'card-depleted';
     team: number;
     id: string;
     displayName: string;
-    trigger: string;
-    durationSeconds: number;
+    budgetRemaining: number;
+    budgetUsed: number;
     frame: number;
     time: number;
 }
@@ -598,17 +598,22 @@ export class BattleTelemetry {
         if (!event) return;
 
         const normalized: BattleTelemetryCardEvent = {
-            type: event.type === 'card-expired'
-                ? 'card-expired'
+            type: event.type === 'card-depleted'
+                ? 'card-depleted'
                 : 'card-activated',
             team: this.clampTeam(event.team),
             id: event.id || '',
             displayName: event.displayName || '',
-            trigger: event.trigger || '',
-            durationSeconds: Math.max(
+            budgetRemaining: Math.max(
                 0,
-                Number.isFinite(event.durationSeconds)
-                    ? event.durationSeconds
+                Number.isFinite(event.budgetRemaining)
+                    ? event.budgetRemaining
+                    : 0
+            ),
+            budgetUsed: Math.max(
+                0,
+                Number.isFinite(event.budgetUsed)
+                    ? event.budgetUsed
                     : 0
             ),
             frame: Number.isFinite(event.frame)

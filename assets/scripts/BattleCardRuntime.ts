@@ -2,8 +2,8 @@ import {
     BattleCardDatabase,
     BattleCardDefinition,
     BattleCardModifier,
+    BattleCardOpponentCondition,
     BattleCardTarget,
-    BattleCardTrigger,
 } from './BattleCardDatabase';
 import { UnitFamily } from './BattleTypes';
 
@@ -16,23 +16,23 @@ export interface BattleCardModifiers {
 }
 
 export interface BattleCardTelemetryEvent {
-    type: 'card-activated' | 'card-expired';
+    type: 'card-activated' | 'card-depleted';
     team: number;
     id: string;
     displayName: string;
-    trigger: string;
-    durationSeconds: number;
+    budgetRemaining: number;
+    budgetUsed: number;
     time: number;
 }
 
 interface RuntimeBattleCard {
     definition: BattleCardDefinition;
-    activated: boolean;
     active: boolean;
-    remainingSeconds: number;
+    initialBudget: number;
+    budgetRemaining: number;
 }
 
-const MAX_CARDS_PER_DECK = 3;
+const MAX_BUDGET_UPGRADE_LEVEL = 2;
 
 export class BattleCardRuntime {
 
@@ -54,12 +54,40 @@ export class BattleCardRuntime {
         this.onTelemetryEvent = onTelemetryEvent || null;
     }
 
-    public setDecks(playerCardIds: string[], enemyCardIds: string[]) {
-        this.cardsByTeam[0] = this.createDeck(playerCardIds);
-        this.cardsByTeam[1] = this.createDeck(enemyCardIds);
+    public setDecks(
+        playerCardIds: string[],
+        enemyCardIds: string[],
+        playerBudgetUpgradeLevels: Record<string, number> = {},
+        maxPlayerCards: number = 3,
+        maxEnemyCards: number = maxPlayerCards
+    ) {
+        const shouldBeginImmediately = this.started;
+        const playerDeckSize = Math.max(
+            1,
+            Math.floor(maxPlayerCards)
+        );
+        const enemyDeckSize = Math.max(
+            0,
+            Math.floor(maxEnemyCards)
+        );
+
+        this.cardsByTeam[0] = this.createDeck(
+            playerCardIds,
+            playerBudgetUpgradeLevels,
+            playerDeckSize
+        );
+        this.cardsByTeam[1] = this.createDeck(
+            enemyCardIds,
+            {},
+            enemyDeckSize
+        );
         this.modifiersByTeamFamily.clear();
         this.started = false;
         this.elapsedTime = 0;
+
+        if (shouldBeginImmediately) {
+            this.beginBattle();
+        }
     }
 
     public beginBattle() {
@@ -74,11 +102,10 @@ export class BattleCardRuntime {
             for (let i = 0; i < cards.length; i++) {
                 const card = cards[i];
 
-                if (
-                    card.definition.trigger ===
-                    BattleCardTrigger.BattleStart
-                ) {
-                    this.activateCard(team, card);
+                card.active = card.budgetRemaining > 0;
+
+                if (card.active) {
+                    this.emitEvent('card-activated', team, card);
                 }
             }
         }
@@ -86,54 +113,26 @@ export class BattleCardRuntime {
 
     public update(
         deltaTime: number,
-        currentCombatPoint: number[],
-        initialCombatPoint: number[]
+        _currentCombatPoint: number[],
+        _initialCombatPoint: number[]
     ) {
         if (!this.started) return;
 
-        const safeDelta = Math.max(
+        this.elapsedTime += Math.max(
             0,
             Number.isFinite(deltaTime) ? deltaTime : 0
         );
-        this.elapsedTime += safeDelta;
-
-        for (let team = 0; team <= 1; team++) {
-            const cards = this.cardsByTeam[team];
-
-            for (let i = 0; i < cards.length; i++) {
-                const card = cards[i];
-
-                if (!card.activated && this.shouldActivate(
-                    card,
-                    team,
-                    currentCombatPoint,
-                    initialCombatPoint
-                )) {
-                    this.activateCard(team, card);
-                }
-
-                if (
-                    !card.active ||
-                    card.definition.durationSeconds <= 0
-                ) {
-                    continue;
-                }
-
-                card.remainingSeconds -= safeDelta;
-
-                if (card.remainingSeconds <= 0) {
-                    card.remainingSeconds = 0;
-                    card.active = false;
-                    this.modifiersByTeamFamily.clear();
-                    this.emitEvent('card-expired', team, card);
-                }
-            }
-        }
     }
 
-    public getModifiers(team: number, family: UnitFamily): BattleCardModifiers {
+    public getModifiers(
+        team: number,
+        family: UnitFamily,
+        opposingFamily?: UnitFamily
+    ): BattleCardModifiers {
         const safeTeam = this.clampTeam(team);
-        const cacheKey = `${safeTeam}:${family}`;
+        const cacheKey = `${safeTeam}:${family}:${
+            opposingFamily === undefined ? '*' : opposingFamily
+        }`;
         const cached = this.modifiersByTeamFamily.get(cacheKey);
 
         if (cached) return cached;
@@ -154,6 +153,10 @@ export class BattleCardRuntime {
             if (!this.matchesTarget(card.definition, family)) {
                 continue;
             }
+            if (!this.matchesOpponent(
+                card.definition,
+                opposingFamily
+            )) continue;
 
             this.applyModifier(
                 result,
@@ -167,10 +170,7 @@ export class BattleCardRuntime {
             );
         }
 
-        result.damageMultiplier = Math.max(
-            0,
-            result.damageMultiplier
-        );
+        result.damageMultiplier = Math.max(0, result.damageMultiplier);
         result.attackRangeMultiplier = Math.max(
             0,
             result.attackRangeMultiplier
@@ -184,9 +184,52 @@ export class BattleCardRuntime {
         return result;
     }
 
-    public getActivatedCardIds(team: number) {
+    public consumeModifier(
+        team: number,
+        family: UnitFamily,
+        modifier: BattleCardModifier,
+        opposingFamily?: UnitFamily
+    ) {
+        const cards = this.cardsByTeam[this.clampTeam(team)];
+        let consumed = false;
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+
+            if (!card.active) continue;
+            if (card.definition.modifier !== modifier) continue;
+            if (!this.matchesTarget(card.definition, family)) {
+                continue;
+            }
+            if (!this.matchesOpponent(
+                card.definition,
+                opposingFamily
+            )) continue;
+
+            card.budgetRemaining = Math.max(
+                0,
+                card.budgetRemaining - 1
+            );
+            consumed = true;
+
+            if (card.budgetRemaining <= 0) {
+                card.active = false;
+                this.emitEvent('card-depleted', team, card);
+            }
+        }
+
+        if (consumed) {
+            this.modifiersByTeamFamily.clear();
+        }
+
+        return consumed;
+    }
+
+    public getUsedCardIds(team: number) {
         return this.cardsByTeam[this.clampTeam(team)]
-            .filter((card) => card.activated)
+            .filter((card) =>
+                card.initialBudget > card.budgetRemaining
+            )
             .map((card) => card.definition.id);
     }
 
@@ -196,17 +239,25 @@ export class BattleCardRuntime {
             deck: this.cardsByTeam[team].map((card) => ({
                 id: card.definition.id,
                 displayName: card.definition.displayName,
-                trigger: BattleCardTrigger[card.definition.trigger],
-                durationSeconds: card.definition.durationSeconds,
+                baseBudget: card.definition.baseBudget,
+                initialBudget: card.initialBudget,
+                budgetRemaining: card.budgetRemaining,
+                budgetUsed: card.initialBudget - card.budgetRemaining,
                 active: card.active,
-                activated: card.activated,
-                remainingSeconds: card.remainingSeconds,
             })),
         }));
     }
 
-    private createDeck(cardIds: string[]) {
-        if (!this.database || !Array.isArray(cardIds)) {
+    private createDeck(
+        cardIds: string[],
+        budgetUpgradeLevels: Record<string, number> = {},
+        maxCards: number = 3
+    ) {
+        if (
+            !this.database ||
+            !Array.isArray(cardIds) ||
+            maxCards <= 0
+        ) {
             return [];
         }
 
@@ -217,69 +268,37 @@ export class BattleCardRuntime {
             const id = cardIds[i];
 
             if (!id || ids.has(id)) continue;
-            if (result.length >= MAX_CARDS_PER_DECK) break;
+            if (result.length >= maxCards) break;
 
             const definition = this.database.getCard(id);
 
             if (!definition) continue;
 
             ids.add(id);
+            const upgradeLevel = Math.max(
+                0,
+                Math.min(
+                    MAX_BUDGET_UPGRADE_LEVEL,
+                    Math.floor(budgetUpgradeLevels[id] || 0)
+                )
+            );
+            const initialBudget = Math.max(
+                1,
+                Math.round(
+                    Math.max(1, definition.baseBudget) *
+                    (1 + upgradeLevel * 0.4)
+                )
+            );
+
             result.push({
                 definition,
-                activated: false,
                 active: false,
-                remainingSeconds: 0,
+                initialBudget,
+                budgetRemaining: initialBudget,
             });
         }
 
         return result;
-    }
-
-    private shouldActivate(
-        card: RuntimeBattleCard,
-        team: number,
-        currentCombatPoint: number[],
-        initialCombatPoint: number[]
-    ) {
-        if (
-            card.definition.trigger !==
-            BattleCardTrigger.OwnCombatPointBelow
-        ) {
-            return false;
-        }
-
-        const safeTeam = this.clampTeam(team);
-        const initial = Math.max(
-            1,
-            Number.isFinite(initialCombatPoint[safeTeam])
-                ? initialCombatPoint[safeTeam]
-                : 1
-        );
-        const current = Math.max(
-            0,
-            Number.isFinite(currentCombatPoint[safeTeam])
-                ? currentCombatPoint[safeTeam]
-                : 0
-        );
-
-        return current / initial <=
-            Math.max(
-                0,
-                Math.min(1, card.definition.ownCombatPointThreshold)
-            );
-    }
-
-    private activateCard(team: number, card: RuntimeBattleCard) {
-        if (card.activated) return;
-
-        card.activated = true;
-        card.active = true;
-        card.remainingSeconds = Math.max(
-            0,
-            card.definition.durationSeconds
-        );
-        this.modifiersByTeamFamily.clear();
-        this.emitEvent('card-activated', team, card);
     }
 
     private matchesTarget(
@@ -300,6 +319,21 @@ export class BattleCardRuntime {
             default:
                 return true;
         }
+    }
+
+    private matchesOpponent(
+        definition: BattleCardDefinition,
+        opposingFamily?: UnitFamily
+    ) {
+        if (
+            definition.requiredEnemyFamily ===
+            BattleCardOpponentCondition.Any
+        ) {
+            return true;
+        }
+
+        return opposingFamily ===
+            definition.requiredEnemyFamily - 1;
     }
 
     private applyModifier(
@@ -340,8 +374,8 @@ export class BattleCardRuntime {
             team: this.clampTeam(team),
             id: card.definition.id,
             displayName: card.definition.displayName,
-            trigger: BattleCardTrigger[card.definition.trigger],
-            durationSeconds: card.definition.durationSeconds,
+            budgetRemaining: card.budgetRemaining,
+            budgetUsed: card.initialBudget - card.budgetRemaining,
             time: this.elapsedTime,
         });
     }

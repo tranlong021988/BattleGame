@@ -3,11 +3,6 @@ import { UnitFamily } from './BattleTypes';
 
 const { ccclass, property } = _decorator;
 
-export enum BattleCardTrigger {
-    BattleStart = 0,
-    OwnCombatPointBelow = 1,
-}
-
 export enum BattleCardTarget {
     AllUnits = 0,
     UnitFamily = 1,
@@ -30,10 +25,20 @@ export enum BattleCardEnemyPool {
     BossOnly = 2,
 }
 
-Enum(BattleCardTrigger);
+export enum BattleCardOpponentCondition {
+    Any = 0,
+    Spear = 1,
+    Sword = 2,
+    Archer = 3,
+    Cavalry = 5,
+    Axeman = 6,
+    Monk = 7,
+}
+
 Enum(BattleCardTarget);
 Enum(BattleCardModifier);
 Enum(BattleCardEnemyPool);
+Enum(BattleCardOpponentCondition);
 
 @ccclass('BattleCardDefinition')
 export class BattleCardDefinition {
@@ -53,29 +58,21 @@ export class BattleCardDefinition {
     @property({ min: 1, step: 1 })
     baseCooldownBattles = 4;
 
-    @property({ type: BattleCardTrigger })
-    trigger = BattleCardTrigger.BattleStart;
-
     @property({
-        min: 0,
-        max: 1,
-        step: 0.05,
-        tooltip: 'Only used by Own Combat Point Below. 0.3 means activate when current CP is at or below 30% of starting CP.',
+        min: 1,
+        step: 1,
+        tooltip: 'Combat-event charges available at battle start. The card deactivates immediately at zero.',
     })
-    ownCombatPointThreshold = 0.3;
-
-    @property({
-        min: 0,
-        step: 0.1,
-        tooltip: 'Seconds of battle-time. 0 means active until this battle ends.',
-    })
-    durationSeconds = 0;
+    baseBudget = 10;
 
     @property({ type: BattleCardTarget })
     target = BattleCardTarget.AllUnits;
 
     @property({ type: UnitFamily })
     targetFamily = UnitFamily.Spear;
+
+    @property({ type: BattleCardOpponentCondition })
+    requiredEnemyFamily = BattleCardOpponentCondition.Any;
 
     @property({ type: BattleCardModifier })
     modifier = BattleCardModifier.DamagePercent;
@@ -102,15 +99,16 @@ function createCard(
     displayName: string,
     purchasePrice: number,
     baseCooldownBattles: number,
-    trigger: BattleCardTrigger,
-    threshold: number,
-    durationSeconds: number,
+    baseBudget: number,
     target: BattleCardTarget,
     targetFamily: UnitFamily,
     modifier: BattleCardModifier,
     modifierValue: number,
     tradeoffModifier: BattleCardModifier = BattleCardModifier.None,
     tradeoffValue: number = 0,
+    requiredEnemyFamily:
+        BattleCardOpponentCondition =
+        BattleCardOpponentCondition.Any,
     enemyPool: BattleCardEnemyPool =
         BattleCardEnemyPool.RegularAndBoss
 ) {
@@ -119,11 +117,10 @@ function createCard(
     card.displayName = displayName;
     card.purchasePrice = purchasePrice;
     card.baseCooldownBattles = baseCooldownBattles;
-    card.trigger = trigger;
-    card.ownCombatPointThreshold = threshold;
-    card.durationSeconds = durationSeconds;
+    card.baseBudget = baseBudget;
     card.target = target;
     card.targetFamily = targetFamily;
+    card.requiredEnemyFamily = requiredEnemyFamily;
     card.modifier = modifier;
     card.modifierValue = modifierValue;
     card.tradeoffModifier = tradeoffModifier;
@@ -136,63 +133,65 @@ function createDefaultCards() {
     return [
         createCard(
             'general-offensive', 'General Offensive', 850, 5,
-            BattleCardTrigger.BattleStart, 0, 0,
+            50,
             BattleCardTarget.AllUnits, UnitFamily.Spear,
             BattleCardModifier.DamagePercent, 5
         ),
         createCard(
             'battle-shields', 'Battle Shields', 700, 4,
-            BattleCardTrigger.OwnCombatPointBelow, 0.4, 12,
+            90,
             BattleCardTarget.Frontline, UnitFamily.Spear,
             BattleCardModifier.DefenseFlat, 1
         ),
         createCard(
             'anti-cavalry-spearhead', 'Anti-Cavalry Spearhead', 650, 4,
-            BattleCardTrigger.BattleStart, 0, 0,
+            12,
             BattleCardTarget.UnitFamily, UnitFamily.Spear,
             BattleCardModifier.DamagePercent, 14,
-            BattleCardModifier.DefenseFlat, -1
+            BattleCardModifier.DefenseFlat, -1,
+            BattleCardOpponentCondition.Cavalry
         ),
         createCard(
             'axe-frenzy', 'Axe Frenzy', 650, 4,
-            BattleCardTrigger.BattleStart, 0, 10,
+            20,
             BattleCardTarget.UnitFamily, UnitFamily.Axeman,
             BattleCardModifier.DamagePercent, 18,
             BattleCardModifier.DefenseFlat, -0.2
         ),
         createCard(
             'sword-wall', 'Sword Wall', 800, 5,
-            BattleCardTrigger.OwnCombatPointBelow, 0.35, 10,
+            60,
             BattleCardTarget.UnitFamily, UnitFamily.Sword,
             BattleCardModifier.DefenseFlat, 2,
             BattleCardModifier.DamagePercent, -10
         ),
         createCard(
             'arrow-suppression', 'Arrow Suppression', 650, 4,
-            BattleCardTrigger.BattleStart, 0, 12,
+            30,
             BattleCardTarget.UnitFamily, UnitFamily.Archer,
             BattleCardModifier.DamagePercent, 12,
             BattleCardModifier.AttackRangePercent, -8
         ),
         createCard(
             'precise-range', 'Precise Range', 1100, 5,
-            BattleCardTrigger.BattleStart, 0, 0,
+            18,
             BattleCardTarget.Ranged, UnitFamily.Archer,
             BattleCardModifier.AttackRangePercent, 8
         ),
         createCard(
             'wide-prayer', 'Wide Prayer', 1200, 5,
-            BattleCardTrigger.OwnCombatPointBelow, 0.45, 10,
+            5,
             BattleCardTarget.UnitFamily, UnitFamily.Monk,
             BattleCardModifier.DamageRadiusPercent, 30,
             BattleCardModifier.DamagePercent, -12
         ),
         createCard(
             'counter-breaker', 'Counter Breaker', 1600, 6,
-            BattleCardTrigger.OwnCombatPointBelow, 0.3, 5,
+            3,
             BattleCardTarget.AllUnits, UnitFamily.Spear,
             BattleCardModifier.CounterImmunity, 0,
             BattleCardModifier.None, 0,
+            BattleCardOpponentCondition.Any,
             BattleCardEnemyPool.BossOnly
         ),
     ];
@@ -203,6 +202,21 @@ export class BattleCardDatabase extends Component {
 
     @property({ type: [BattleCardDefinition] })
     cards: BattleCardDefinition[] = createDefaultCards();
+
+    onLoad() {
+        const antiCavalry = this.getCard(
+            'anti-cavalry-spearhead'
+        );
+
+        if (
+            antiCavalry &&
+            antiCavalry.requiredEnemyFamily ===
+            BattleCardOpponentCondition.Any
+        ) {
+            antiCavalry.requiredEnemyFamily =
+                BattleCardOpponentCondition.Cavalry;
+        }
+    }
 
     public getCard(id: string) {
         for (let i = 0; i < this.cards.length; i++) {

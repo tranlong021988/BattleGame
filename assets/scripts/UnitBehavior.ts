@@ -2,6 +2,8 @@ import { _decorator, Component } from 'cc';
 import { Unit } from './Unit';
 import { UnitProps } from './UnitProps';
 import { CounterSettings } from './CounterSettings';
+import { BattleCardModifier } from './BattleCardDatabase';
+import type { BattleCardModifiers } from './BattleCardRuntime';
 
 const { ccclass, property } = _decorator;
 
@@ -31,12 +33,23 @@ type UnitBehaviorGameManager = {
     despawnUnit(unit: Unit): void;
     beginCombatResolution(): void;
     endCombatResolution(): void;
-    getBattleCardModifiers(team: number, family: number): {
+    getBattleCardModifiers(
+        team: number,
+        family: number,
+        opposingFamily?: number
+    ): {
         damageMultiplier: number;
         defenseFlat: number;
         damageRadiusMultiplier: number;
+        attackRangeMultiplier: number;
         counterImmune: boolean;
     };
+    consumeBattleCardModifier(
+        team: number,
+        family: number,
+        modifier: BattleCardModifier,
+        opposingFamily?: number
+    ): boolean;
 };
 
 @ccclass('UnitBehavior')
@@ -124,6 +137,8 @@ export class UnitBehavior extends Component {
                 ? UnitBehavior.nextAttackBatchId++
                 : -1;
 
+        this.unit.consumeAttackRangeCardBudget(enemy);
+
         if (!gm) {
             this.dealDamageToEnemy(enemy, attackBatchId);
             return;
@@ -142,28 +157,60 @@ export class UnitBehavior extends Component {
         enemy: Unit,
         attackBatchId: number
     ) {
-        this.applyDamageToEnemy(enemy, false, attackBatchId);
-        this.dealAreaDamageAround(enemy, attackBatchId);
+        const gm = this.gameManager;
+        const attackModifiers = gm
+            ? gm.getBattleCardModifiers(
+                this.unit.team,
+                this.props.family,
+                enemy.props.family
+            )
+            : null;
+
+        this.applyDamageToEnemy(
+            enemy,
+            false,
+            attackBatchId,
+            attackModifiers
+        );
+        const usedExpandedRadius = this.dealAreaDamageAround(
+            enemy,
+            attackBatchId,
+            attackModifiers
+        );
         this.finishDamagedEnemy(enemy);
+
+        if (gm) {
+            gm.consumeBattleCardModifier(
+                this.unit.team,
+                this.props.family,
+                BattleCardModifier.DamagePercent,
+                enemy.props.family
+            );
+
+            if (usedExpandedRadius) {
+                gm.consumeBattleCardModifier(
+                    this.unit.team,
+                    this.props.family,
+                    BattleCardModifier.DamageRadiusPercent,
+                    enemy.props.family
+                );
+            }
+        }
     }
 
     private applyDamageToEnemy(
         enemy: Unit,
         isAreaDamage: boolean,
-        attackBatchId: number
+        attackBatchId: number,
+        attackerModifiers: BattleCardModifiers | null
     ) {
         const counter = CounterSettings.instance;
         const gm = this.gameManager;
-        const attackerModifiers = gm
-            ? gm.getBattleCardModifiers(
-                this.unit.team,
-                this.props.family
-            )
-            : null;
         const defenderModifiers = gm
             ? gm.getBattleCardModifiers(
                 enemy.team,
-                enemy.props.family
+                enemy.props.family,
+                this.props.family
             )
             : null;
         const attackDamage = Math.max(
@@ -181,19 +228,21 @@ export class UnitBehavior extends Component {
                 : 0)
         );
 
+        const baseDefense = Math.max(0, enemy.props.defense);
         let finalDamage = attackDamage;
+        let damageWithoutDefenseCard = attackDamage;
         let isCounterDamage = false;
+        let configuredDamageMul = 1;
 
         if (
             counter &&
             !this.unit.isHero &&
             !enemy.isHero
         ) {
-            const configuredDamageMul =
-                counter.getDamageMultiplier(
-                    this.props.family,
-                    enemy.props.family
-                );
+            configuredDamageMul = counter.getDamageMultiplier(
+                this.props.family,
+                enemy.props.family
+            );
             const damageMul = defenderModifiers?.counterImmune
                 ? 1
                 : configuredDamageMul;
@@ -205,9 +254,17 @@ export class UnitBehavior extends Component {
                 1,
                 attackDamage - defense
             ) * damageMul;
+            damageWithoutDefenseCard = Math.max(
+                1,
+                attackDamage - baseDefense
+            ) * damageMul;
         } else {
             finalDamage = Math.max(
                 1, attackDamage - defense
+            );
+            damageWithoutDefenseCard = Math.max(
+                1,
+                attackDamage - baseDefense
             );
         }
 
@@ -230,6 +287,32 @@ export class UnitBehavior extends Component {
         }
 
         enemy.props.takeDamage(finalDamage);
+
+        if (!gm || !defenderModifiers) return;
+
+        if (
+            defenderModifiers.defenseFlat > 0 &&
+            finalDamage + 0.0001 < damageWithoutDefenseCard
+        ) {
+            gm.consumeBattleCardModifier(
+                enemy.team,
+                enemy.props.family,
+                BattleCardModifier.DefenseFlat,
+                this.props.family
+            );
+        }
+
+        if (
+            defenderModifiers.counterImmune &&
+            configuredDamageMul > 1.0001
+        ) {
+            gm.consumeBattleCardModifier(
+                enemy.team,
+                enemy.props.family,
+                BattleCardModifier.CounterImmunity,
+                this.props.family
+            );
+        }
     }
 
     private finishDamagedEnemy(enemy: Unit) {
@@ -260,28 +343,31 @@ export class UnitBehavior extends Component {
 
     private dealAreaDamageAround(
         primaryTarget: Unit,
-        attackBatchId: number
+        attackBatchId: number,
+        attackerModifiers: BattleCardModifiers | null
     ) {
-        const modifiers = this.gameManager
-            ? this.gameManager.getBattleCardModifiers(
-                this.unit.team,
-                this.props.family
-            )
-            : null;
+        const baseDamageRadius = Math.max(
+            0,
+            this.props.damageRadius
+        );
         const damageRadius = Math.max(
             0,
-            this.props.damageRadius *
-            (modifiers
-                ? modifiers.damageRadiusMultiplier
+            baseDamageRadius *
+            (attackerModifiers
+                ? attackerModifiers.damageRadiusMultiplier
                 : 1)
         );
 
-        if (damageRadius <= 0) return;
-        if (!primaryTarget || !primaryTarget.agent) return;
+        if (damageRadius <= 0) return false;
+        if (!primaryTarget || !primaryTarget.agent) return false;
 
         const gm = this.gameManager;
 
-        if (!gm) return;
+        if (!gm) return false;
+
+        const expandedRadius = damageRadius >
+            baseDamageRadius + 0.0001;
+        let usedExpandedRadius = false;
 
         const maxEnemyRadius =
             gm.spatialGrid
@@ -317,6 +403,10 @@ export class UnitBehavior extends Component {
                 Math.max(0, primaryTarget.radius) +
                 damageRadius +
                 Math.max(0, enemy.radius);
+            const baseEffectiveRadius =
+                Math.max(0, primaryTarget.radius) +
+                baseDamageRadius +
+                Math.max(0, enemy.radius);
             const dx = enemy.agent.pos.x - centerX;
             const dz = enemy.agent.pos.z - centerZ;
 
@@ -330,10 +420,21 @@ export class UnitBehavior extends Component {
             this.applyDamageToEnemy(
                 enemy,
                 true,
-                attackBatchId
+                attackBatchId,
+                attackerModifiers
             );
             this.finishDamagedEnemy(enemy);
+
+            if (
+                expandedRadius &&
+                dx * dx + dz * dz >
+                baseEffectiveRadius * baseEffectiveRadius
+            ) {
+                usedExpandedRadius = true;
+            }
         }
+
+        return usedExpandedRadius;
     }
 
     private getEnemyListFallback(

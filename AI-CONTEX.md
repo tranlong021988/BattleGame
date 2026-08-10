@@ -1,408 +1,261 @@
-# AI-CONTEX
+# AI-CONTEX — BattleGame handoff
 
-Project handoff for Codex sessions working on BattleGame.
+Last updated: 2026-08-10. This document records the authored state after the
+budget-based Battle Card revision and the dynamic-progression pass.
 
-Last synchronized: 2026-08-10. This is the active authored state after the
-Battle Card System MVP was implemented, wired to assets/Test.scene, and
-validated with a fresh level 1-33 telemetry batch.
+`assets/Test.scene` and the current TypeScript source are the runtime authority.
+This document is only a handoff. When it disagrees with source or Inspector,
+inspect source/scene and update this document rather than changing gameplay to
+fit the document.
 
-Read the relevant source and active scene before changing gameplay. Inspector
-values in assets/Test.scene override TypeScript defaults. This document is an
-orientation and decision record, not a second runtime source of truth.
+## Working rules
 
-## Working Rules
+- The worktree is intentionally dirty. Preserve all unrelated user/Cocos
+  changes. Do not stage or revert generated `library/`, `temp/`, or `profiles`
+  files unless the user explicitly asks.
+- Active test AI is `BattleArmyBrain` + `BattlefieldEvaluator`. `SmartArmyBrain`
+  is legacy.
+- Team A is a simulation of a player, not shipped player UX. It may make
+  weighted purchases and random card selections only when
+  `purchasingSimulation` is enabled.
+- Telemetry is evidence only. Never use previous reports as runtime inputs.
+- The user dislikes compensating one issue with new hard-coded thresholds or
+  extra knobs. Prefer one causal correction.
 
-- Update this file only when the user explicitly requests a handoff update.
-- Work with the dirty worktree. Do not revert user/Cocos changes and do not
-  stage generated files without explicit instruction.
-- Active test AI is BattleArmyBrain plus BattlefieldEvaluator. SmartArmyBrain
-  is legacy and must not receive gameplay work unless the user explicitly
-  re-enables it.
-- Team A is currently BattleArmyBrain, a test simulation of a real player.
-  Do not conflate its random purchase/deck behavior with the intended shipped
-  player experience.
-- Telemetry is test evidence only. Never feed telemetry results into runtime
-  decisions.
-- Do not alter tier-1 combat stats, counters, AI accuracy behavior, ranged
-  support, lane choice, wave costs, SpatialGrid, or RVO to repair progression
-  or cards without evidence of a defect in those systems.
-- Increasing a wave unitCount must not increase its battle CP cost. Gold already
-  pays for unlock/count progression.
-- Prefer one causal correction over adding thresholds or tuning knobs. The user
-  explicitly dislikes incremental threshold tuning.
+## Skills the next Codex must have or follow manually
 
-## Recommended Codex Skills
+The local profile used for this handoff exposes
+`cocos-performance-optimize-skills` and browser tooling, but is missing the
+following agreed BattleGame skill set. Please send/install/synchronise these
+before the next design or balance task:
 
-Skills are discovered when a Codex task starts. On this local profile, the
-following shared skills are installed under C:\\Users\\tranl\\.codex\\skills.
-Use the smallest applicable set; if a session does not expose one, follow the
-same discipline manually rather than assuming it is available.
-
-| Situation | Skill to use |
+| Needed skill | Use it for |
 | --- | --- |
-| Design or revise combat, cards, economy, progression, AI-facing rules | game-systems-design |
-| Check cross-system design/source/scene/telemetry consistency before a major mechanic change | game-design-consistency |
-| Analyze telemetry or diagnose a balance/economy issue | game-balance-check |
-| Verify a balance/mechanics change with before/after evidence | game-balance-regression |
-| Any code edit, debug or refactor | cautious-coding |
-| Cocos mobile/performance investigation only | cocos-performance-optimize-skills |
-
-The card MVP is now implemented, so a card balance change should normally use
-game-design-consistency plus game-balance-check before editing, then
-game-balance-regression after the change.
-
-## Product Decisions Already Approved
-
-### Campaign and progression
-
-- The campaign has 100 levels; base progression intentionally ends at level 50.
-  Levels 51-100 keep base CP, Max Alive, and tier-1/unit-count progression at
-  their caps while boss multipliers still apply. This is reserved for future
-  systems and is not currently a bug.
-- Normal progression packages target the next boss baseline value, not its
-  multiplier-enhanced value.
-- Boss multipliers for enemy Initial CP, decision accuracy, and Max Alive are
-  each 1.1. They apply once, are non-cumulative, and Max Alive is rounded/capped.
-- A lost battle gives Gold at lossGoldRatio; a win gives baseline enemy CP as
-  Gold, with an additional boss reward multiplier.
-- Rewarded-video rescue is only considered after every three player losses and
-  only on a boss. It grants Gold equal to the earliest useful missing CP or Max
-  Alive package; it never claims an upgrade for free. The player/bot must still
-  purchase the package.
-- allowInterval is deliberately false in the active scene. When enabled later,
-  shorter enemy spawn intervals plus improving decision accuracy make enemy
-  pressure stronger; this needs a fresh balance pass.
-
-### Battle cards: player-facing contract
-
-- Cards are reusable purchases made with Gold. Each card ID is unique; no
-  duplicate copies are bought.
-- A battle deck contains at most 3 cards, not 5.
-- Card cooldown is measured in completed battles, not real time. It starts only
-  if that card activated.
-- Duration uses battle time. A duration of 0 means active for the rest of that
-  battle.
-- A card can trigger at battle start or when its own side current CP reaches
-  the configured fraction of its initial CP. Effects can stack when their
-  targets overlap; for example, an all-army damage card and a Spear damage card
-  both affect Spear.
-- Cards currently cover damage, flat defense, attack range, Monk damage radius,
-  and temporary counter immunity. Spawn interval is intentionally not a card
-  effect.
-- Enemy cards are authored/selected by the system: exactly three cards per
-  encounter, no Gold cost and no cooldown. A different enemy is considered to
-  be met after every attempt, including retries.
-- The real shipped player will manually buy/upgrade cards outside battle and
-  manually choose up to three ready cards before battle. There is no final UI
-  for that yet. The test simulation randomly chooses ready owned cards solely
-  to make telemetry runs possible.
-
-## Current Source of Truth
-
-| Domain | Authority | Notes |
-| --- | --- | --- |
-| Active Inspector values | assets/Test.scene | Overrides TypeScript defaults. |
-| Campaign/economy/save/card selection | assets/scripts/LevelSettings.ts | Storage v8, purchases, rescue, bot selection and player-facing APIs. |
-| Card definitions | assets/scripts/BattleCardDatabase.ts plus scene component | Inspector-editable fields; GameManager references this component. |
-| In-battle card state/effects | assets/scripts/BattleCardRuntime.ts | Deck validation, triggers, stacking, duration and card events. |
-| Battle integration/start config | assets/scripts/GameManager.ts | Owns runtime and passes modifiers to units. |
-| Effect consumers | assets/scripts/Unit.ts and UnitBehavior.ts | Range, damage, defense, radius and counter immunity. |
-| Telemetry schema | assets/scripts/BattleTelemetry.ts | Root cardEvents, start config.cards and progression snapshots. |
-| Unit authored stats | BattleUnitDatabase plus scene Inspector | Remains independent from cards. |
-
-tools/battle-progression-roadmap.html is now a stale progression presentation
-mirror. Do not use it as a card-system authority until it is explicitly updated.
-
-## Active Scene Values
-
-- totalLevels 100; progressionEndLevel 50; currentLevel 1; bossStagePace 5.
-- Boss Initial CP, decision accuracy, and Max Alive multipliers are 1.1.
-- CP min/max 250/1040; decision accuracy min/max 0.4/1; Max Alive min/max 3/10.
-- allowInterval false. Both endpoint spawn intervals are 1.666667/3.333333.
-- battleTimeScale 3; Worker RVO and Worker Spatial Target Query enabled;
-  spatialGridCellSize 4.
-- autoDownloadCaptureJson, autoReloadProgression and purchasingSimulation true.
-- progressionStorageKey battle-progression-v8; initial player Gold 0; player
-  Initial CP 300; player Max Alive starts 4 and caps at 10.
-- winGoldPerEnemyCP 1; bossGoldRewardMultiplier 1.15; lossGoldRatio 0.1;
-  lossesPerVideoReward 3; unitUnlockCostMultiplier 20;
-  initialCPGoldPerPoint 10; maxAliveBasePrice 1000.
-
-GameManager.battleCardDatabase must point to the scene BattleCardDatabase
-component. The current scene reference is valid. If it is lost after a scene
-merge/serialization, cards silently become empty because the database is
-unavailable; verify that Inspector reference before debugging card balance.
-
-## Progression Runtime V8
-
-Storage was bumped from v7 to v8 because card state is persistent. A v8 save
-contains the prior progression fields plus:
-
-- cards: id, owned, cooldownUpgradeLevel in 0..2, cooldownRemaining.
-- lastEnemyCardIds.
-
-Use a clean run with:
-http://localhost:7456/?progression=1&resetProgression=1&currentLevel=1&TotalLevels=100&ProgressionEndLevel=50
-
-The reset aliases and resume contract remain as before. resetProgression=1 or
-reset=1 clears progression before initialization; automatic reload removes the
-reset parameter and preserves progressionResume=1.
-
-### Battle lifecycle
-
-At load:
-
-1. Parse/reset URL; load or create v8 state.
-2. Apply player state and Team B level/boss curve.
-3. If purchasingSimulation is enabled, make weighted legal purchases.
-4. Select/configure cards, then start battle.
-
-At battle end:
-
-1. Record activatedPlayerCards from the runtime.
-2. Decrement every owned player card already on cooldown by one battle.
-3. Set each card that activated in the completed battle to its effective
-   cooldown.
-4. Apply normal win/loss Gold, boss rescue rules, offers and optional purchase
-   simulation; persist, export telemetry and reload.
-
-Cooldown upgrades reduce effective cooldown by one each, maximum two upgrades.
-Their prices are 60% then 90% of that card purchase price.
-
-Important current semantic: upgrading a card while it is already cooling down
-changes its effectiveCooldown for its next activation but does not reduce its
-current cooldownRemaining. This was observed twice in telemetry. It is an open
-design choice, not yet a confirmed bug.
-
-### Purchase simulation
-
-The bot first reserves Gold for baseline CP/Max Alive milestone parity. While
-it is below either baseline cap, it cannot buy card unlocks or cooldown upgrades.
-Once baseline needs are met, weighted choices include:
-
-- card unlock weight 0.6.
-- card cooldown upgrade weight 0.2.
-
-This is only a telemetry bot policy. It must not be used to dictate real-player
-shop UX or choices.
-
-## Card Implementation
-
-### Inspector data model
-
-BattleCardDefinition in BattleCardDatabase.ts exposes:
-
-- id, displayName, icon.
-- purchasePrice, baseCooldownBattles.
-- trigger, ownCombatPointThreshold, durationSeconds.
-- target, targetFamily.
-- modifier, modifierValue, tradeoffModifier, tradeoffValue.
-- enemyPool.
-
-Targets are AllUnits, UnitFamily, Frontline and Ranged. Frontline currently
-means Spear, Sword, Axeman and Cavalry. Ranged means Archer and Monk. Modifiers
-are additive percentages over a 1.0 multiplier, additive flat defense, or
-boolean counter immunity. Effects are calculated at runtime and do not mutate
-authored unit data.
-
-### Authored card set
-
-| ID | Price | Base CD | Trigger / duration | Effect | Enemy pool |
-| --- | ---: | ---: | --- | --- | --- |
-| general-offensive | 850 | 5 | start / permanent | all units +5% damage | regular + boss |
-| battle-shields | 700 | 4 | own CP <=40% / 12s | frontline +1 defense | regular + boss |
-| anti-cavalry-spearhead | 650 | 4 | start / permanent | Spear +14% damage, -1 defense | regular + boss |
-| axe-frenzy | 650 | 4 | start / 10s | Axeman +18% damage, -0.2 defense | regular + boss |
-| sword-wall | 800 | 5 | own CP <=35% / 10s | Sword +2 defense, -10% damage | regular + boss |
-| arrow-suppression | 650 | 4 | start / 12s | Archer +12% damage, -8% range | regular + boss |
-| precise-range | 1100 | 5 | start / permanent | ranged +8% range | regular + boss |
-| wide-prayer | 1200 | 5 | own CP <=45% / 10s | Monk +30% radius, -12% damage | regular + boss |
-| counter-breaker | 1600 | 6 | own CP <=30% / 5s | all units ignore counter multiplier | boss only |
-
-All cards are sale options as soon as a valid card database is loaded; there is
-no separate level unlock gate. The baseline-purchase reservation above is what
-prevents early simulation spending on cards.
-
-### Runtime and integration behavior
-
-- BattleCardRuntime validates distinct IDs and caps both decks at three.
-- Start cards activate at battle time 0. Conditional cards activate once when
-  own CP / own initial CP is <= configured threshold.
-- Timed cards expire in battle time; permanent cards remain active until battle
-  end. Modifiers are cached by team/family and invalidated on deck, activation
-  and expiry.
-- UnitBehavior applies card damage/defense/radius modifiers. If the defender
-  has active counter immunity, configured counter damage becomes 1.
-- Unit reads the runtime attack-range multiplier for target search, attack
-  distance and kiting behavior.
-- Stacking is intended: an eligible unit receives all active overlapping card
-  modifiers, including tradeoffs.
-
-### Real-player integration API
-
-No card UI is implemented. A future UI must use the existing LevelSettings
-methods instead of reproducing shop/deck validation:
-
-- tryPurchaseCard(cardId, upgradeCooldown = false): boolean.
-- setPlayerBattleCardSelection(cardIds): void.
-
-setPlayerBattleCardSelection filters unowned, duplicate, cooling-down and
-over-three IDs. When purchasingSimulation is false, this selection is used for
-the next/current configured battle. When simulation is true, the bot randomly
-samples up to three owned ready cards instead.
-
-Enemy selection is random from its eligible pool and excludes all IDs from the
-previous enemy deck when at least three alternatives exist. Enemy has no card
-ownership, Gold or cooldown state.
-
-## Telemetry Contract for Cards
-
-Each report contains:
-
-- config.cards: decks at battle start.
-- config.progression.settings.cardDefinitions.
-- config.progression.player.cards: initial state, selection and economy.
-- progression.before and after.player.cards.
-- progression.activatedPlayerCards.
-- cardEvents: card-activated/card-expired.
-- snapshots teams activeCardIds.
-
-A cardEvents entry includes type, team, ID, display name, trigger, duration,
-frame and battle-time seconds. Use root events to verify runtime activity;
-config.cards alone only proves selection.
-
-For each future card report, inspect:
-
-1. Definition count and scene database reference.
-2. Player ownership, ready cards, selected deck size 0-3, cooldown before/after,
-   and actual activation/expiry events.
-3. Enemy deck size, pool eligibility and immediate-repeat rate.
-4. Purchases/Gold/rescues split by card versus baseline upgrades.
-5. Boss retries with selected cards, enemy cards, rescue state and outcomes.
-6. Controlled A/B runs before claiming a card causes a win-rate change.
-
-## Latest Telemetry Evidence: Card MVP
-
-Dataset analyzed on 2026-08-10:
-
-C:/Users/tranl/Downloads/battle-telemetry-2026-08-09T19-52-33-324Z.json
-through
-C:/Users/tranl/Downloads/battle-telemetry-2026-08-09T20-31-38-411Z.json
-
-The exact range contains 111 reports from a single stochastic run, levels 1-33
-including retries. It is valid evidence for card wiring and economy flow, but
-not a causal card-strength study.
-
-### Verified
-
-- 9 card definitions loaded.
-- Player first owned, selected and activated Battle Shields at level 4.
-- Player decked battles: 59 / 111; player card activations: 98.
-- Enemy card activations: 333, exactly three per battle.
-- Player selected unavailable/cooling-down card: 0.
-- Decks above three cards: 0; enemy decks with other than three cards: 0.
-- Enemy immediate deck overlap: 0 / 110 transitions.
-- Counter Breaker events on normal levels: 0; Counter Breaker boss activations: 9.
-
-Timed player cards produced matching activation/expiry events. Enemy and player
-triggers/durations therefore execute in runtime and are visible in telemetry.
-
-Economy through level 33:
-
-- final Gold 1691.
-- owned cards 6.
-- card transactions 17.
-- card Gold spent 10735.
-- all Gold spent 21335.
-- Gold from battle rewards 20463.
-- video-rescue Gold 4410 from 4 rescues.
-
-Owned by the last report: General Offensive (CD upgrade 1), Battle Shields (2),
-Anti-Cavalry Spearhead (2), Axe Frenzy (2), Arrow Suppression (2), and Precise
-Range (2). Sword Wall, Wide Prayer and Counter Breaker remain unowned.
-
-Boss retry shape in this run:
-
-| Boss | Attempts | Wins | Losses | Rescues |
-| ---: | ---: | ---: | ---: | ---: |
-| 5 | 1 | 1 | 0 | 0 |
-| 10 | 5 | 1 | 4 | 1 |
-| 15 | 8 | 1 | 7 | 2 |
-| 20 | 4 | 1 | 3 | 1 |
-| 25 | 2 | 1 | 1 | 0 |
-| 30 | 1 | 1 | 0 | 0 |
-
-The three-loss rescue rule is working: level 10 had one rescue after four
-losses, level 15 had two after seven losses, and level 20 had one after three
-losses. Level 15 is the most notable early pressure point. Do not attribute
-this directly to cards: bot deck selection is random, and active conditional
-cards correlate with a side already losing CP.
-
-Observed deck size outcomes are context-confounded but useful for diagnosis:
-
-| Player deck size | Battles | Wins | Losses |
-| ---: | ---: | ---: | ---: |
-| 0 | 52 | 13 | 39 |
-| 1 | 27 | 11 | 16 |
-| 2 | 25 | 4 | 21 |
-| 3 | 7 | 4 | 3 |
-
-Do not use this table as proof that three cards are stronger; ownership,
-cooldowns, level, rescue and stochastic combat are uncontrolled.
-
-### Superseded invalid card batch
-
-The earlier 2026-08-09 19:25-19:44 level 1-30 batch had zero definitions,
-decks, events and card purchases. It is not card balance evidence. The cause
-was a null GameManager.battleCardDatabase scene reference. The active scene now
-correctly references the BattleCardDatabase component and the later 111-report
-batch confirms the fix.
-
-## Next Work: Do Not Assume Approval
-
-The card MVP is implemented and functioning. The next Codex should not add
-systems or rebalance values automatically. The user has not approved a numeric
-card rebalance after the latest report.
-
-If asked to continue card work, recommended order is:
-
-1. Clarify whether a cooldown upgrade should reduce an already-running
-   cooldownRemaining; current behavior affects only future activations.
-2. Run a controlled A/B simulation with reset state and matching seed/config:
-   cards disabled versus current cards. Compare normal/boss attempts, rescue
-   count, Gold/card spend and card event outcomes.
-3. If balance evidence supports it, tune card values/prices or purchase-bot
-   weights as a small, documented change. Do not tune from a single random run.
-4. Separately, build real-player shop/deck UI using the existing APIs. Preserve
-   manual player selection; never ship the test bot random selection.
-
-The intentional post-level-50 plateau remains a future extension point. Do not
-add repeatable post-50 sinks, packages, scaling or rescue changes without a new
-user decision.
-
-## Validation and Operational Notes
-
-Focused validation after implementation:
-
-- BattleCardRuntime focused behavior checks passed: stacking General Offensive
-  plus Anti-Cavalry Spearhead, counter immunity, timed expiry/cache
-  invalidation/telemetry.
-- assets/Test.scene card database reference and 9-card content check passed.
-- Cocos bundled TypeScript targeted compile plus skipLibCheck passed.
-- git diff --check on authored changes passed.
-- 111-report card telemetry parse/grouping passed.
-
-Full project temp/tsconfig.cocos.json compile is currently blocked by missing
-generated Cocos declaration type roots: ./temp/declarations/cc,
-cc.custom-macro, cc.env and jsb. This is an environment/generated-config issue,
-not a card TypeScript failure. Do not use it as a regression signal until the
-Cocos generated environment is repaired.
-
-Current authored card/progression changes are uncommitted. The worktree also
-contains Cocos-generated changes under library, profiles and temp; leave them
-untouched unless explicitly asked. For Git inspection on this machine use:
-git -c safe.directory=F:/Github/BattleGame <command>
-
-Stale Cocos Preview packer/import-map caches can produce unresolved asset/chunk
-or ENOENT errors. Refresh/restart Preview and verify the targeted compile before
-attributing those to gameplay logic.
+| `game-systems-design` | Combat, cards, economy, progression and AI-facing rules. |
+| `game-design-consistency` | Cross-check design, source, scene and telemetry before mechanic changes. |
+| `game-balance-check` | Analyze telemetry and balance/economy problems. |
+| `game-balance-regression` | Verify mechanics/balance changes with before/after evidence. |
+| `cautious-coding` | Any code edit, debugging or refactor. |
+
+For card work, use `game-design-consistency` + `game-balance-check` before
+editing, then `game-balance-regression` afterward. The existing Cocos
+performance skill is still the right one for mobile/large-unit performance
+work, not general game design.
+
+## Primary code locations
+
+| Domain | Source |
+| --- | --- |
+| Card definitions and default values | `assets/scripts/BattleCardDatabase.ts` |
+| In-battle decks, budgets, consumption and card telemetry | `assets/scripts/BattleCardRuntime.ts` |
+| Campaign/save/shop/progression/enemy deck selection | `assets/scripts/LevelSettings.ts` |
+| Runtime integration, fixed Hero Line and battle resolution | `assets/scripts/GameManager.ts` |
+| Card effects at attack/range/defense/AOE/counter use sites | `assets/scripts/Unit.ts`, `assets/scripts/UnitBehavior.ts` |
+| Telemetry schema | `assets/scripts/BattleTelemetry.ts` |
+| Active Inspector overrides | `assets/Test.scene` |
+
+`GameManager.battleCardDatabase` must reference the `BattleCardDatabase`
+component in `assets/Test.scene`; a missing reference creates empty decks.
+
+## Battle Cards — approved contract and implementation
+
+### Decks, activation and cooldown
+
+- The player may own many unique cards but the current deck cap is **3**.
+  `LevelSettings.battleCardDeckSize` is the future deck-upgrade hook; do not
+  replace it with a new constant.
+- At battle start, every selected card with budget above zero activates. There
+  are no CP-threshold triggers and no duration expiry any more.
+- Each card has `baseBudget` (combat-event charges). At zero, it immediately
+  deactivates and emits `card-depleted`.
+- A card starts cooldown only when it actually consumed at least one charge.
+  Cooldown is in completed battles. Rewarded ad API:
+  `tryFinishCardCooldownWithAd(cardId)`; call it only after an ad succeeds.
+- Player selection API: `setPlayerBattleCardSelection(cardIds)`. It rejects
+  duplicate, unowned, cooling-down, ineligible and over-cap cards.
+- Shop API: `tryPurchaseCard(id)`, `tryPurchaseCard(id, true)` for cooldown,
+  `tryPurchaseCard(id, 'budget')` for budget.
+
+### Consumption semantics
+
+- Damage modifier: consume once per attack batch, after its target is damaged.
+- Range modifier: consume only when an attacker uses the extra portion of its
+  range; ordinary in-base-range attacks do not consume it.
+- Damage radius: consume once when that attack batch actually uses the expanded
+  radius, independent of the number of splash victims.
+- Defense and counter immunity: consume per defender actually protected from a
+  damage event. An AOE that protects five defenders can therefore consume five
+  charges; this matches the user's intended natural sequential resolution.
+- Multiple matching cards may stack and each matching card consumes one charge.
+  Runtime modifiers are cached and cache is cleared on consumption/depletion.
+
+### Current definitions
+
+| ID | Base budget | Effect | Relevant eligibility |
+| --- | ---: | --- | --- |
+| `general-offensive` | 50 | all units +5% damage | core roster |
+| `battle-shields` | 90 | frontline +1 DEF | frontline roster |
+| `anti-cavalry-spearhead` | 12 | Spear +14% DMG, -1 DEF | opponent must have Cavalry |
+| `axe-frenzy` | 20 | Axeman +18% DMG, -0.2 DEF | Axeman required |
+| `sword-wall` | 60 | Sword +2 DEF, -10% DMG | Sword required |
+| `arrow-suppression` | 30 | Archer +12% DMG, -8% range | Archer required |
+| `precise-range` | 18 | Archer/Monk +8% range | ranged roster |
+| `wide-prayer` | 5 | Monk +30% radius, -12% DMG | Monk required |
+| `counter-breaker` | 3 | ignore actual counter bonus | counter threat required; enemy pool boss-only |
+
+Purchase price and base cooldown remain authored in `BattleCardDatabase` / the
+scene. Anti-Cavalry is forcibly migrated to `requiredEnemyFamily = Cavalry` on
+database load if an old scene still says `Any`.
+
+### Card upgrades
+
+- Cooldown ranks 0..2: effective cooldown is base cooldown minus rank, floor
+  1. Cost: 60%, then 90% of purchase price.
+- Budget ranks 0..2: budget is 1.0x, 1.4x, 1.8x, rounded. Cost: 50%, then 75%
+  of purchase price.
+- Upgrade availability is dynamic and not a hard-coded level list:
+  `rankLimit = clamp(playerCardWave - cardReleaseWave, 0..2)`.
+- Waves: core cards 0; Axeman cards 1; Archer/ranged 2; Cavalry-response 3;
+  Monk and Counter Breaker 4. A player must own the relevant unit with count
+  above zero before that wave/card is eligible.
+- The test bot first reserves Gold for CP/Max Alive parity. It then prioritizes
+  eligible card unlocks before cooldown upgrades, and cooldown upgrades before
+  budget upgrades. Weights after those guards: card 0.6, cooldown 2, budget
+  1.5. This is bot-only; manual player purchases are not blocked by that
+  priority policy.
+
+## Enemy cards and progression
+
+- Eligibility is roster-aware for both sides. A card must target a family the
+  card owner has, and a conditional card requires the opposing family. Thus
+  Anti-Cavalry cannot be selected or sold before opposing Cavalry exists.
+- Counter Breaker additionally requires a real counter threat, not merely its
+  release wave.
+- Enemy capacity is dynamic from the player's card wave and the current deck
+  cap: normal = `min(2, playerCardWave, deckCap)`; boss =
+  `min(3, normal + 1, deckCap)`. This intentionally means core normal battles
+  may have zero cards; bosses can lead by one card.
+- Enemy decks are saved by level in `enemyCardIdsByLevel`. Retrying the same
+  level never rerolls the deck, even if the roster changes and a stored card
+  later has no valid target. This is an explicit user decision.
+- The saved state uses `battle-progression-v8` and now persists card ownership,
+  both upgrade ranks, cooldown, and `enemyCardIdsByLevel`. Migration copies
+  legacy `lastEnemyCardIds` to the current level if necessary.
+
+## Unit progression and dynamic scaling
+
+- `UnitProgressionRule.unlockProgression` is intended as normalized campaign
+  position. `getRuleUnlockLevel()` converts it through `progressionEndLevel`
+  then aligns to the next boss stage.
+- TypeScript defaults are: Spear/Sword 0; Axeman .2; Archer .5; Cavalry .7;
+  Monk .9. Counts are 5/5/5/3/5/1 with max 10/10/10/5/10/1.
+- **Known scene discrepancy:** `assets/Test.scene` currently serializes all
+  `unlockProgression` as 0 and carries legacy unlock levels 1/1/10/25/35/45.
+  `migrateLegacyUnitUnlockProgression()` prevents the catastrophic “all units
+  at level 1” failure, but this fallback preserves legacy levels rather than
+  true normalized scaling when `progressionEndLevel` changes. Fill the scene's
+  normalized values and re-verify Preview before claiming the entire system is
+  dynamic.
+- CP packages, Max Alive packages, unit unlock/count offers and enemy unit
+  roster all derive from the same progression helpers. Do not add per-level
+  hard caps to compensate for a mismatch; repair the shared helper/scene data.
+
+## End conditions
+
+- Hero death resolves immediately for either team: the opposite team wins.
+  Reason is `boss-killed` on a boss and `hero-killed` otherwise.
+- This is guarded in both `GameManager.despawnUnit()` and `Unit.update()` so a
+  Hero whose dead state bypasses normal despawn still ends the battle.
+- Enemy Hero Line is the defending Hero's original world-Z, captured before
+  scene Hero preparation. It does **not** follow a moving Hero. A team-1
+  forward scanner crossing team-0's stored line resolves
+  `enemy-reached-hero-line`.
+- No equivalent Team-A Hero Line win condition was requested. Do not infer one
+  without user approval.
+
+## Telemetry
+
+- `cardEvents` now contains only `card-activated` and `card-depleted`, with
+  remaining/used budget and battle time.
+- `config.cards`, progression snapshots, and runtime snapshots carry deck and
+  budget information. Use `getUsedBattleCardIds()`: it identifies cards that
+  consumed charge, not merely cards selected at battle start.
+- Recent batches before this handoff showed two invalid periods: first, stale
+  unit unlock serialization made all units available at level 1; second,
+  Preview build cache was broken. Do not use those batches to tune balance.
+
+### Latest valid batch: 2026-08-10 11:37-11:45
+
+Source reports:
+`C:/Users/CPU/Downloads/battle-telemetry-2026-08-10T11-37-48-992Z.json`
+through `battle-telemetry-2026-08-10T11-45-30-715Z.json` (27 battles, levels
+2-14 including retries).
+
+This batch is valid runtime evidence after the Preview recovery:
+
+- Every report has a result. End conditions fired as designed: 18
+  `hero-killed`, 8 `boss-killed`, and 1 `enemy-reached-hero-line`.
+- No Anti-Cavalry card was selected before Cavalry. Normal enemy deck capacity
+  stayed 0 while the player had not bought Axeman; boss capacity was 1.
+- Level 10 boss retried seven times with the same enemy `Battle Shields` deck,
+  proving retry deck persistence. The player won only once.
+- Every selected card that consumed charge reached `card-depleted` with its
+  full budget used. There is no trace of the retired trigger/duration model.
+
+Balance finding — do not blame enemy cards:
+
+- Aggregate: Team A/player bot won 12 and lost 15. Boss 10 was 1 win / 6
+  losses. Level 13 was 1 / 3. Level 14 was 0 / 6 and is the current stall.
+- From level 10 onward, enemy has Spear + Sword + Axeman. Through level 14 the
+  player still has only Spear + Sword; Axeman is offered at 1480 Gold but was
+  never affordable after CP, Max Alive and core-card spending.
+- At level 14 player Initial CP is 476 versus enemy 460, yet it still loses.
+  Normal enemy has no cards there, so the causal pressure is roster/economy
+  asymmetry, not enemy card strength.
+- The test bot bought Battle Shields (L3) and Sword Wall (L8), then General
+  Offensive (L11), before it could afford Axeman. It later spent 1000 Gold on
+  the required Max Alive milestone at L13. That is consistent with current bot
+  policy, but produces the unwinnable roster gap.
+
+When changing this, do not tune card numbers. The intended correction needs a
+user decision: either guarantee the player can buy a newly enemy-unlocked
+family by that same stage, or make the bot reserve/prioritize that unit unlock
+ahead of optional core cards. The second option is the smaller change and
+matches the approved rule that cards open after owning their relevant unit.
+
+## Preview/compiler incident — recovered; keep backup
+
+On 2026-08-10 Cocos Preview emitted SystemJS errors (`__unresolved_2`, then
+missing chunk Error#3). Investigation proved the runtime server/import map
+referenced chunks that did not exist under `temp/programming/packer-driver`.
+This was a partial/corrupt Cocos compiler cache, not a TypeScript game-logic
+error.
+
+Actions already taken:
+
+- Moved `temp/programming/packer-driver` to the reversible backup
+  `temp/programming/packer-driver.stale-20260810-1135/` after the user closed
+  Cocos.
+- No authored asset or scene was deleted. The current new `packer-driver`
+  output is generated and must not be staged.
+- Moved range-budget enum handling behind `GameManager.consumeAttackRangeCardBudget`
+  so `Unit.ts` no longer imports `BattleCardDatabase` directly. Targeted
+  Cocos TypeScript compilation passed.
+
+The valid 27-report batch above proves Preview can now run battles and export
+telemetry again. Keep the backup until a future clean browser/import-map check
+passes; only delete it with user approval.
+
+## Current validation and next work
+
+- Targeted Cocos TypeScript compile of `Unit.ts` and `GameManager.ts` passed.
+- `git diff --check` for current authored card/end-condition edits passed.
+- Preview recovery is validated by the latest exported batch. Its balance
+  finding is limited to the L10-L14 roster/economy issue above; it is not a
+  full 1-50 balance certification.
+- The authored gameplay changes remain uncommitted.
+
+When work resumes: first resolve the approved unit-unlock/economy policy, then
+populate normalized `unlockProgression` values in `assets/Test.scene` (after
+user approval if the task scope is only diagnostics). Re-run a clean telemetry
+batch before any card tuning.

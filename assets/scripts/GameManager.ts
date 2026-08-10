@@ -44,7 +44,10 @@ import {
     UnitPrefabEntry,
     HeroEntry,
 } from './BattleUnitDatabase';
-import { BattleCardDatabase } from './BattleCardDatabase';
+import {
+    BattleCardDatabase,
+    BattleCardModifier,
+} from './BattleCardDatabase';
 import {
     BattleCardModifiers,
     BattleCardRuntime,
@@ -71,6 +74,7 @@ export interface BattleProgressionProvider {
     createTelemetrySnapshot(): any;
     shouldAutoReloadAfterBattle(): boolean;
     getNextBattleUrl(): string;
+    isBossBattle?(): boolean;
 }
 
 @ccclass('GameManager')
@@ -382,6 +386,7 @@ export class GameManager extends Component {
     private teamBHeroWave: BattleWave | null = null;
     private teamAHeroEntry: HeroEntry | null = null;
     private teamBHeroEntry: HeroEntry | null = null;
+    private heroLineZ = [NaN, NaN];
     private heroForwardUnlocked = [false, false];
     private heroBattleSearchRangeActive = false;
     private readonly refreshLaneBeforeWaveForward =
@@ -430,6 +435,8 @@ export class GameManager extends Component {
         this.teamBHeroWave = null;
         this.teamAHeroEntry = null;
         this.teamBHeroEntry = null;
+        this.heroLineZ[0] = NaN;
+        this.heroLineZ[1] = NaN;
         this.heroForwardUnlocked[0] = false;
         this.heroForwardUnlocked[1] = false;
         this.heroBattleSearchRangeActive = false;
@@ -878,18 +885,25 @@ export class GameManager extends Component {
 
     public configureBattleCardDecks(
         playerCardIds: string[],
-        enemyCardIds: string[]
+        enemyCardIds: string[],
+        playerBudgetUpgradeLevels: Record<string, number> = {},
+        maxPlayerCards: number = 3,
+        maxEnemyCards: number = maxPlayerCards
     ) {
         this.ensureBattleCardRuntime();
         this.battleCardRuntime?.setDecks(
             playerCardIds,
-            enemyCardIds
+            enemyCardIds,
+            playerBudgetUpgradeLevels,
+            maxPlayerCards,
+            maxEnemyCards
         );
     }
 
     public getBattleCardModifiers(
         team: number,
-        family: UnitFamily
+        family: UnitFamily,
+        opposingFamily?: UnitFamily
     ): BattleCardModifiers {
         if (!this.battleCardRuntime) {
             return {
@@ -901,7 +915,40 @@ export class GameManager extends Component {
             };
         }
 
-        return this.battleCardRuntime.getModifiers(team, family);
+        return this.battleCardRuntime.getModifiers(
+            team,
+            family,
+            opposingFamily
+        );
+    }
+
+    public consumeBattleCardModifier(
+        team: number,
+        family: UnitFamily,
+        modifier: BattleCardModifier,
+        opposingFamily?: UnitFamily
+    ) {
+        return this.battleCardRuntime
+            ? this.battleCardRuntime.consumeModifier(
+                team,
+                family,
+                modifier,
+                opposingFamily
+            )
+            : false;
+    }
+
+    public consumeAttackRangeCardBudget(
+        team: number,
+        family: UnitFamily,
+        opposingFamily?: UnitFamily
+    ) {
+        return this.consumeBattleCardModifier(
+            team,
+            family,
+            BattleCardModifier.AttackRangePercent,
+            opposingFamily
+        );
     }
 
     public getBattleCardTelemetrySnapshot() {
@@ -910,10 +957,44 @@ export class GameManager extends Component {
             : [];
     }
 
-    public getActivatedBattleCardIds(team: number) {
+    public getUsedBattleCardIds(team: number) {
         return this.battleCardRuntime
-            ? this.battleCardRuntime.getActivatedCardIds(team)
+            ? this.battleCardRuntime.getUsedCardIds(team)
             : [];
+    }
+
+    public hasUnitReachedEnemyHeroLine(unit: Unit) {
+        if (!unit) return false;
+        if (unit.team !== 0 && unit.team !== 1) return false;
+
+        const defendingTeam = unit.team === 0 ? 1 : 0;
+        const lineZ = this.heroLineZ[defendingTeam];
+        const unitZ = unit.agent
+            ? unit.agent.pos.z
+            : unit.node.worldPosition.z;
+        const forwardZ = unit.forwardDir.z;
+
+        if (!Number.isFinite(lineZ)) return false;
+        if (!Number.isFinite(unitZ)) return false;
+        if (Math.abs(forwardZ) <= 0.0001) return false;
+
+        return (unitZ - lineZ) * forwardZ >= 0;
+    }
+
+    public resolveHeroDefeat(hero: Unit) {
+        if (!hero || !hero.isHero) return;
+
+        const team = hero.team;
+
+        if (team !== 0 && team !== 1) return;
+
+        this.resolveBattleWinner(
+            team === 0 ? 1 : 0,
+            team,
+            this.battleProgressionProvider?.isBossBattle?.()
+                ? 'boss-killed'
+                : 'hero-killed'
+        );
     }
 
     public onWaveCombatStarted(
@@ -1256,6 +1337,18 @@ export class GameManager extends Component {
             wave.getForwardScanner();
 
         if (!scanner) return;
+
+        if (
+            scanner.team === 1 &&
+            scanner.hasReachedEnemyHeroLine()
+        ) {
+            this.resolveBattleWinner(
+                1,
+                0,
+                'enemy-reached-hero-line'
+            );
+            return;
+        }
 
         const aggressiveForward =
             wave.isAggressiveForwardMode();
@@ -4721,16 +4814,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (this.enableBattleTelemetry) {
-            this.processBattleWinnerCondition(true);
-            return;
-        }
-
-        this.resolveBattleWinner(
-            team === 0 ? 1 : 0,
-            team,
-            'hero-killed'
-        );
+        this.resolveHeroDefeat(unit);
     }
 
     private removeUnitAgentFromSimulator(unit: Unit) {
@@ -4758,12 +4842,29 @@ export class GameManager extends Component {
         this.teamBHeroEntry =
             this.unitDatabase.getHeroEntry(1);
 
+        this.captureHeroLine(0, this.teamAHeroEntry);
+        this.captureHeroLine(1, this.teamBHeroEntry);
+
         this.prepareSceneHero(
             this.teamAHeroEntry
         );
         this.prepareSceneHero(
             this.teamBHeroEntry
         );
+    }
+
+    private captureHeroLine(
+        team: number,
+        heroEntry: HeroEntry | null
+    ) {
+        if (team !== 0 && team !== 1) return;
+        if (!heroEntry || !heroEntry.heroNode) return;
+
+        const lineZ = heroEntry.heroNode.worldPosition.z;
+
+        if (Number.isFinite(lineZ)) {
+            this.heroLineZ[team] = lineZ;
+        }
     }
 
     private prepareSceneHero(

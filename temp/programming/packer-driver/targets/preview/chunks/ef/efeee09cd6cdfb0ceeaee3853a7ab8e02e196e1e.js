@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, CounterSettings, _dec, _class, _class2, _descriptor, _descriptor2, _class3, _crd, ccclass, property, UnitBehavior;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Unit, UnitProps, CounterSettings, BattleCardModifier, _dec, _class, _class2, _descriptor, _descriptor2, _class3, _crd, ccclass, property, UnitBehavior;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -21,6 +21,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("CounterSettings", "./CounterSettings", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfBattleCardModifier(extras) {
+    _reporterNs.report("BattleCardModifier", "./BattleCardDatabase", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfBattleCardModifiers(extras) {
+    _reporterNs.report("BattleCardModifiers", "./BattleCardRuntime", _context.meta, extras);
+  }
+
   return {
     setters: [function (_unresolved_) {
       _reporterNs = _unresolved_;
@@ -36,6 +44,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       UnitProps = _unresolved_3.UnitProps;
     }, function (_unresolved_4) {
       CounterSettings = _unresolved_4.CounterSettings;
+    }, function (_unresolved_5) {
+      BattleCardModifier = _unresolved_5.BattleCardModifier;
     }],
     execute: function () {
       _crd = true;
@@ -118,6 +128,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.randomizeNextAttackInterval();
           var gm = this.gameManager;
           var attackBatchId = gm && gm.enableBattleTelemetry ? UnitBehavior.nextAttackBatchId++ : -1;
+          this.unit.consumeAttackRangeCardBudget(enemy);
 
           if (!gm) {
             this.dealDamageToEnemy(enemy, attackBatchId);
@@ -134,34 +145,70 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         dealDamageToEnemy(enemy, attackBatchId) {
-          this.applyDamageToEnemy(enemy, false, attackBatchId);
-          this.dealAreaDamageAround(enemy, attackBatchId);
+          var gm = this.gameManager;
+          var attackModifiers = gm ? gm.getBattleCardModifiers(this.unit.team, this.props.family, enemy.props.family) : null;
+          this.applyDamageToEnemy(enemy, false, attackBatchId, attackModifiers);
+          var usedExpandedRadius = this.dealAreaDamageAround(enemy, attackBatchId, attackModifiers);
           this.finishDamagedEnemy(enemy);
+
+          if (gm) {
+            gm.consumeBattleCardModifier(this.unit.team, this.props.family, (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).DamagePercent, enemy.props.family);
+
+            if (usedExpandedRadius) {
+              gm.consumeBattleCardModifier(this.unit.team, this.props.family, (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+                error: Error()
+              }), BattleCardModifier) : BattleCardModifier).DamageRadiusPercent, enemy.props.family);
+            }
+          }
         }
 
-        applyDamageToEnemy(enemy, isAreaDamage, attackBatchId) {
+        applyDamageToEnemy(enemy, isAreaDamage, attackBatchId, attackerModifiers) {
           var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
-          var finalDamage = this.props.damage;
+          var gm = this.gameManager;
+          var defenderModifiers = gm ? gm.getBattleCardModifiers(enemy.team, enemy.props.family, this.props.family) : null;
+          var attackDamage = Math.max(0, this.props.damage * (attackerModifiers ? attackerModifiers.damageMultiplier : 1));
+          var defense = Math.max(0, enemy.props.defense + (defenderModifiers ? defenderModifiers.defenseFlat : 0));
+          var baseDefense = Math.max(0, enemy.props.defense);
+          var finalDamage = attackDamage;
+          var damageWithoutDefenseCard = attackDamage;
           var isCounterDamage = false;
+          var configuredDamageMul = 1;
 
           if (counter && !this.unit.isHero && !enemy.isHero) {
-            var damageMul = counter.getDamageMultiplier(this.props.family, enemy.props.family);
+            configuredDamageMul = counter.getDamageMultiplier(this.props.family, enemy.props.family);
+            var damageMul = defenderModifiers != null && defenderModifiers.counterImmune ? 1 : configuredDamageMul;
             isCounterDamage = damageMul > 1.0001;
-            finalDamage = counter.calculateDamage(this.props, enemy.props);
+            finalDamage = Math.max(1, attackDamage - defense) * damageMul;
+            damageWithoutDefenseCard = Math.max(1, attackDamage - baseDefense) * damageMul;
           } else {
-            finalDamage = Math.max(1, this.props.damage - enemy.props.defense);
+            finalDamage = Math.max(1, attackDamage - defense);
+            damageWithoutDefenseCard = Math.max(1, attackDamage - baseDefense);
           }
 
           var actualDamage = Math.min(Math.max(0, enemy.props.health), Math.max(0, finalDamage));
-          var gm = this.gameManager;
 
           if (gm) {
             gm.reportDamage(this.unit, enemy, finalDamage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId);
           }
 
           enemy.props.takeDamage(finalDamage);
+          if (!gm || !defenderModifiers) return;
+
+          if (defenderModifiers.defenseFlat > 0 && finalDamage + 0.0001 < damageWithoutDefenseCard) {
+            gm.consumeBattleCardModifier(enemy.team, enemy.props.family, (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).DefenseFlat, this.props.family);
+          }
+
+          if (defenderModifiers.counterImmune && configuredDamageMul > 1.0001) {
+            gm.consumeBattleCardModifier(enemy.team, enemy.props.family, (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).CounterImmunity, this.props.family);
+          }
         }
 
         finishDamagedEnemy(enemy) {
@@ -185,12 +232,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        dealAreaDamageAround(primaryTarget, attackBatchId) {
-          var damageRadius = Math.max(0, this.props.damageRadius);
-          if (damageRadius <= 0) return;
-          if (!primaryTarget || !primaryTarget.agent) return;
+        dealAreaDamageAround(primaryTarget, attackBatchId, attackerModifiers) {
+          var baseDamageRadius = Math.max(0, this.props.damageRadius);
+          var damageRadius = Math.max(0, baseDamageRadius * (attackerModifiers ? attackerModifiers.damageRadiusMultiplier : 1));
+          if (damageRadius <= 0) return false;
+          if (!primaryTarget || !primaryTarget.agent) return false;
           var gm = this.gameManager;
-          if (!gm) return;
+          if (!gm) return false;
+          var expandedRadius = damageRadius > baseDamageRadius + 0.0001;
+          var usedExpandedRadius = false;
           var maxEnemyRadius = gm.spatialGrid ? gm.spatialGrid.getMaxEnemyRadius(this.unit.team) : primaryTarget.radius;
           var queryRadius = Math.max(0, primaryTarget.radius) + damageRadius + Math.max(0, maxEnemyRadius);
           var enemies = gm.spatialGrid ? gm.spatialGrid.queryEnemies(this.unit.team, primaryTarget.agent.pos.x, primaryTarget.agent.pos.z, queryRadius) : this.getEnemyListFallback(gm);
@@ -203,6 +253,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!enemy.agent) continue;
             if (!enemy.props || enemy.props.isDead()) continue;
             var effectiveRadius = Math.max(0, primaryTarget.radius) + damageRadius + Math.max(0, enemy.radius);
+            var baseEffectiveRadius = Math.max(0, primaryTarget.radius) + baseDamageRadius + Math.max(0, enemy.radius);
             var dx = enemy.agent.pos.x - centerX;
             var dz = enemy.agent.pos.z - centerZ;
 
@@ -210,9 +261,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            this.applyDamageToEnemy(enemy, true, attackBatchId);
+            this.applyDamageToEnemy(enemy, true, attackBatchId, attackerModifiers);
             this.finishDamagedEnemy(enemy);
+
+            if (expandedRadius && dx * dx + dz * dz > baseEffectiveRadius * baseEffectiveRadius) {
+              usedExpandedRadius = true;
+            }
           }
+
+          return usedExpandedRadius;
         }
 
         getEnemyListFallback(gm) {
