@@ -1,77 +1,82 @@
 # BattleGame handoff
 
-Last updated: 2026-08-11. This file is the handoff for the next Codex. Runtime
-source and `assets/Test.scene` are authoritative when this file disagrees.
+Last updated: 2026-08-11. This handoff records the accepted design and recent
+implementation. **Runtime source and `assets/Test.scene` are authoritative if
+they conflict with this file.** Do not reinstate old mechanics from this file
+without checking source first.
 
-## Working rules
+## Start here
 
 - The worktree is intentionally dirty. Preserve unrelated user/Cocos changes;
   never stage, reset, revert, or delete generated `library/`, `temp/`, or
   `profiles/` content without explicit permission.
-- Team A is a simulation of the eventual real player only while
-  `purchasingSimulation` is enabled. `BattleArmyBrain` makes weighted/random
-  test decisions; shipped player UX will make its own spawn, purchase and card
-  choices.
-- Use telemetry to validate mechanics/balance, never as runtime input.
-- The user prefers causal fixes and few Inspector knobs. Do not add a new
-  tuning parameter merely to cover an isolated test result.
-- Do not update this file unless the user explicitly asks for a handoff.
+- `assets/Test.scene` contains deliberate user tuning: `totalLevels = 60`,
+  `progressionEndLevel = 50`, boss initial CP multiplier `= 1`, boss Max Alive
+  multiplier `= 1`. This is intentional: levels 51--60 should let players
+  enjoy their acquired power, not force everything to finish exactly at L60.
+- Current authored changes are uncommitted. Meaningful source work is mainly
+  `assets/scripts/LevelSettings.ts`; scene changes include both user changes
+  and the reward field update. Do not treat all scene diff as Codex-owned.
+- The old rescue/ad code was removed from source in this session. Do not clean
+  generated assets merely because the worktree is noisy.
+- Update this file only when the user asks for a handoff.
 
-## Skills to install on another Codex
+## Available skills / working style
 
-The shareable bundle is `BattleGame-Codex-Skills.zip` at the repository root.
-Extract its five folders into the other Codex profile's `.codex/skills/`
-directory, skipping any folder already present:
+Use `cautious-coding` for every code change. Use:
 
-- `cautious-coding`
-- `game-systems-design`
-- `game-design-consistency`
-- `game-balance-check`
-- `game-balance-regression`
+- `game-systems-design` before designing mechanics;
+- `game-design-consistency` for cross-system audits;
+- `game-balance-check` for telemetry and balance conclusions;
+- `game-balance-regression` after a mechanics/economy/progression change;
+- `cocos-performance-optimize-skills` for mobile or large-unit performance.
 
-Use `cautious-coding` for every code change. Use `game-systems-design` before
-new mechanics, `game-design-consistency` before cross-system changes,
-`game-balance-check` for telemetry/balance analysis, and
-`game-balance-regression` after a gameplay/economy/progression change.
-`cocos-performance-optimize-skills` is already present on the local profile
-and remains the performance skill for mobile/large-unit work.
+These skills are already available in this Codex profile. The repository also
+has `BattleGame-Codex-Skills.zip` for transferring the first five game skills
+to another Codex. No specific missing skill is currently blocking work.
+
+The user prefers causal, dynamic solutions and few Inspector knobs. Do not add
+a new tuning parameter to mask one telemetry result. Telemetry validates a
+mechanic; it must never become runtime input.
 
 ## Primary locations
 
 | Area | Runtime authority |
 | --- | --- |
-| Campaign, saves, economy, shop, unit progression, bot purchase AI | `assets/scripts/LevelSettings.ts` |
+| Campaign, save, economy, shop, unit progression, bot purchase AI, ads | `assets/scripts/LevelSettings.ts` |
 | Card definitions/defaults | `assets/scripts/BattleCardDatabase.ts` |
 | In-battle card budget/telemetry | `assets/scripts/BattleCardRuntime.ts` |
-| Battle integration and resolution | `assets/scripts/GameManager.ts` |
+| Battle integration/end resolution | `assets/scripts/GameManager.ts` |
 | Card effect use sites | `assets/scripts/Unit.ts`, `assets/scripts/UnitBehavior.ts` |
 | Telemetry schema/export | `assets/scripts/BattleTelemetry.ts` |
 | Inspector overrides | `assets/Test.scene` |
 
-`GameManager.battleCardDatabase` must reference the scene's
-`BattleCardDatabase`; otherwise decks are empty.
+`GameManager.battleCardDatabase` must reference the scene database or decks
+are empty.
 
-## Active Inspector state
+## Approved campaign / progression semantics
 
-- Campaign length: 100; `progressionEndLevel`: 50; boss pace: 5.
-- Enemy multipliers for CP, Max Alive and unit count: 1.1.
-- Enemy CP scales 250 -> 1040; player Initial CP baseline/packages reach 1040.
-- Decision accuracy scales .4 -> 1.0. Spawn interval progression is disabled
-  (`allowInterval = false`). Max Alive baseline scales 3 -> 10; player starts
-  4 and can reach 10.
-- Economy: `winGoldPerEnemyCP = 1`, boss reward multiplier 1.15, valid-loss
-  gold ratio .1, video threshold 3 losses, unit unlock multiplier **5**,
-  Initial CP price 10 gold per point, Max Alive base price 1000.
-- Progression storage key/version: `battle-progression-v8`.
+- All progression derives from authored normalized progress plus boss pace;
+  avoid hard-coded level thresholds. `totalLevels` and `progressionEndLevel`
+  are deliberately separate.
+- Current campaign: 60 total levels, progression ends at 50, boss pace 5.
+  CP, units and Max Alive flatten after L50 until later systems create new
+  sinks.
+- Enemy and player progression target comparable baseline CP. Enemy multipliers
+  are 1.1 except the user-set boss initial CP/Max Alive multipliers noted above.
+- Player initial CP baseline/packages reach the current L50 target of 1040;
+  Max Alive reaches 10. `winGoldPerEnemyCP = 1.15`; boss reward multiplier is
+  1.15; valid loss reward is 10% of that level's win reward.
+- Progression save key/version remains `battle-progression-v8`. Old saved
+  `rescueHistory` data is harmlessly ignored; do not bump storage just to
+  remove an unused saved key.
 
-## Unit progression: approved current semantics
+### Unit progression
 
-### Dynamic rules
+`UnitProgressionRule.unlockProgression` is normalized to progression end and
+aligned to a boss. Current scene rules:
 
-`UnitProgressionRule.unlockProgression` is normalized against progression end
-then aligned to a boss level. Scene values are correct and must stay dynamic:
-
-| Family | Progression | Current unlock level (end 50, pace 5) | Base/max count |
+| Family | Progression | Current unlock (end 50, pace 5) | Base/max count |
 | --- | ---: | ---: | --- |
 | Spear | 0 | 1 | 5 / 10 |
 | Sword | 0 | 1 | 5 / 10 |
@@ -80,149 +85,122 @@ then aligned to a boss level. Scene values are correct and must stay dynamic:
 | Cavalry | .7 | 35 | 5 / 10 |
 | Monk | .9 | 45 | 1 / 1 |
 
-Do not restore the obsolete claim that the scene serializes all progression at
-zero; it now has .2/.5/.7/.9 for Axe/Archer/Cavalry/Monk.
+Enemy receives each eligible unit/count at its milestone. Player sees the
+matching new unit and newly opened older-unit count choices before that battle;
+the bot can buy only if it has gold. Current player count caps after L45 are
+Spear 9, Sword 9, Axe 8, Archer 5, Cavalry 6, Monk 1. They intentionally do
+not force max count at progression end.
 
-Enemy gets each eligible unit and its automatic count rank at its unlock
-level. Player count rank is available at the same milestone **only after the
-corresponding new unit is offered**. Count ranks occur at later unit-unlock
-milestones, are capped by the unit's authored max count, and are not forced to
-max at level 50. With current data, final counts after L45 are Spear 9, Sword
-9, Axe 8, Archer 5, Cavalry 6, Monk 1; they remain flat to L100. This is
-intentional.
+Unit price is `round(combatPointCost * unitUnlockCostMultiplier)`. Current
+multiplier is 5: Axe 370, Archer 130, Cavalry 485, Monk 245. Do not restore the
+old multiplier 20 or add a pre-level gold reservation without user direction.
 
-### Pre-battle shop timing (new; important)
+## Battle cards
 
-At battle initialization, `initializeProgression()` calls
-`offerIntroducedUnits(currentLevel)` **before**
-`completePreBattleProgression()` runs the bot purchase simulation. Therefore a
-unit opened at L10/L25/L35/L45 and all newly available old-unit `+1 count`
-options can be bought before that very battle. CP and Max Alive packages were
-already purchased in this pre-battle pass.
+- Deck capacity is currently 3, but its calculation is intended to be dynamic
+  so a future deck upgrade system can raise it. Do not hard-cap future design
+  at 3 in scattered code.
+- Cards activate at battle start and use event-budget charges, not duration or
+  CP-threshold triggers. At zero budget, a card deactivates immediately.
+- Consumption: damage per attack batch; defense/counter immunity per protected
+  defender; radius per batch that uses its extra radius; range only for attacks
+  in the added range band. Multiple matching cards each consume their charge.
+- Player owns reusable cards and cooldown starts only if a card consumed a
+  charge. Cooldown advances after completed battles. Cooldown ranks 0..2 reduce
+  effective cooldown by one, minimum one; budget ranks 0..2 are 1.0x/1.4x/1.8x.
+- Eligibility is roster/opponent-aware. Anti-Cavalry requires enemy Cavalry;
+  Counter Breaker requires an actual counter threat. Enemy card decks lock per
+  level in `enemyCardIdsByLevel`, so retries never reroll them.
+- Enemy card count is dynamic by progression: normal levels use a small deck,
+  bosses may use one more, maximum 3. No arbitrary per-level hard list.
+- Card unlocks/upgrades follow card waves/unit availability dynamically. Do not
+  activate or sell a card for a unit/threat that does not exist for the relevant
+  side.
 
-Player-facing meaning: a real player sees the current level's newly offered
-unit before entering battle and decides whether to buy it. Bot-facing meaning:
-the bot may buy it only if it has enough gold.
+Current cards: General Offensive, Battle Shields, Anti-Cavalry Spearhead, Axe
+Frenzy, Sword Wall, Arrow Suppression, Precise Range, Wide Prayer, Counter
+Breaker. `Precise Range` was rarely consumed on the narrow map; treat that as a
+map/value question, not a missing call, until a controlled A/B test.
 
-The bot gives an affordable unit unlocked on the **current battle level**
-priority over count and cards. It does not reserve gold in earlier levels. If
-it arrives poor, it may fight without the new unit and buy it after winning.
-This is intentional: lack of gold is an approved future hook for minigames,
-gacha, or rewarded ads. Do **not** add a reserve system, make unit unlocks
-free, or lower prices further without new user direction.
+## Combat resolution
 
-Current unit price formula is:
+- Battle ends immediately when either hero dies: enemy boss/hero death is a
+  player/bot win; player hero death is a loss.
+- The hero line is the original static player-side line. It must not follow a
+  moving hero. An enemy reaching that static line is also a player loss.
+- Keep these outcomes checked consistently for both sides; the previous bug
+  delayed resolution until an enemy later crossed the line.
 
-`round(UnitPrefabEntry.combatPointCost * unitUnlockCostMultiplier)`.
+## Bot shop and rewarded-ad simulation (latest implementation)
 
-At multiplier 5: Axeman 370, Archer 130, Cavalry 485, Monk 245. The prior
-multiplier 20 made Axeman 1480 and was rejected as unaffordable at L10.
+Team A is a simulation of an eventual player while `purchasingSimulation` is
+enabled. The real player UI/SDK is not implemented by this simulation.
 
-## Economy and rescue
+1. Before battle, current-level unit offers are created, then the bot buys all
+   normally affordable, eligible purchases.
+2. It shares one candidate list for normal buying and ads. The list respects
+   package availability, current-level unit priority, baseline CP/Max Alive
+   needs, card-unlock priority, and cooldown priority. Budget upgrades are no
+   longer blocked merely because an unaffordable cooldown upgrade exists.
+3. If a useful candidate is unaffordable, the bot may simulate **one** rewarded
+   video for that preparation. Chance is a fixed derived rule, not Inspector
+   data: 20% base, higher after losses and when CP/Max Alive trail the enemy,
+   capped at 80%.
+4. The gold reward is exactly enough for the chosen target, rounded up to a
+   pleasant multiple of 50 (minimum 50), then the target is bought immediately.
+   Telemetry writes two records: `rewarded-ad-gold:<target>` followed by the
+   actual purchase with source `rewarded-ad`.
+5. A regular second purchase pass spends any rounding remainder. Ads grant only
+   gold; they never gift a free package or rank. Multiple ads can occur across
+   separate retries of the same level, but not twice in one preparation.
 
-- Player buys CP, Max Alive, unit unlock/count, cards and card upgrades with
-  gold. Enemy is authored/scaled and never buys.
-- A valid player loss grants 10% of that level's win reward.
-- Boss video rescue attempts after every 3 losses. It grants gold only when an
-  unclaimed CP/Max Alive package exists; it is never a free package.
-- Rescue Gold is sized to fund a useful pending baseline purchase. Once all CP
-  and Max Alive packages are claimed, rescue cannot find a target and emits no
-  reward even if `levelLossCount` passes 3. This explains L50's later retries.
-- Post-L50 has no current purchase sinks or rescue targets after baseline/card
-  progression ends. Gold inflation there is expected until the user adds the
-  planned post-50 systems.
+The user explicitly accepts occasional early ads as a realistic player's
+"anxiety relief" behavior and a monetization hook. Do not remove the 20% base
+chance unless asked. The retired `lossesPerVideoReward`, boss-only rescue,
+`applyVideoRescue`, `rescueHistory`, and free-package rescue behavior must not
+be reintroduced.
 
-## Battle cards: approved implementation
+## Latest telemetry evidence
 
-### Core rules
+### Pre-ad schedule fix: 2026-08-11 09:09--09:41 (99 reports)
 
-- Player owns unique reusable cards and manually selects up to 3 ready cards
-  for the real game. The test bot selects randomly from eligible ready cards.
-- Enemy has an authored/randomized deck per level; it does not own cards, buy
-  them, upgrade them, or observe cooldown. Each enemy level deck is stored in
-  `enemyCardIdsByLevel`; retries never reroll it.
-- At battle start all selected cards activate. The retired trigger/duration
-  model does not exist in runtime. Cards use `baseBudget` combat-event charges
-  and deactivate at zero.
-- A player card starts battle-count cooldown only if it consumed at least one
-  charge. Cooldown advances after every completed battle. A rewarded ad can
-  finish cooldown only after the ad succeeds.
-- Cooldown ranks 0..2 reduce effective cooldown by 1 each, floor 1. **When a
-  cooldown upgrade is bought while the card is cooling, remaining cooldown is
-  also reduced by 1 immediately.** Budget ranks 0..2 give 1.0x/1.4x/1.8x.
-- Card upgrades unlock dynamically by card wave; all settings remain in
-  `BattleCardDatabase` / Inspector, not hard-coded level lists.
+- 60 wins / 39 losses (60.6%). L12 player CP 436 vs enemy 427 after the schedule
+  fix; L26 678 vs 653. Earlier deficits at these levels were fixed by distributing
+  CP/Max Alive offers earlier and evenly in each interval.
+- The remaining issue was affordability, not unavailable offers: e.g. L11 had
+  a visible CP +41 package costing 410 with only 73--167 gold.
+- Post-L50 retries were largely combat/card variance because baseline CP had
+  already flattened at 1040; this is consistent with the intentional L50 end.
 
-### Budget consumption
+### Rewarded-ad run: 2026-08-11 10:44--11:09 (81 reports)
 
-- Damage: once per attack batch after damage.
-- Defense/counter immunity: per protected defender.
-- Radius: once per attack batch that actually uses extra radius.
-- Range: only when attacking in the added range band; ordinary base-range
-  attacks consume nothing.
-- Matching effects stack and each matching card consumes one charge.
+- 60 wins / 21 losses (74.1%). Ten rewarded ads; total ad gold 5,400, average
+  540; final gold 14,906. Rounding surplus was 261 total (4.8%).
+- Ads selected concrete purchases and then bought them: L16 CP +40, L36 Max
+  Alive +1, L40 General Offensive budget rank 2, L46/L48 CP, L49 Precise Range
+  budget rank 2, plus selected L5/L10 card actions.
+- There is no evidence of a hard "must watch ad to win" gate. Some runs are
+  highly suggestive (L16, L46, L48, L49 lost then ad-purchased power and won),
+  but L31 still lost once after an ad and L10's first ad also lost. Proving a
+  gate needs a controlled same-seed A/B run with ads on/off, especially L16,
+  L46, L48 and L49. The user deferred this test.
 
-Current cards: General Offensive, Battle Shields, Anti-Cavalry Spearhead,
-Axe Frenzy, Sword Wall, Arrow Suppression, Precise Range, Wide Prayer, and
-Counter Breaker. Eligibility is roster/opponent-aware. Counter Breaker needs a
-real counter threat; Anti-Cavalry needs enemy Cavalry.
+## Validation already completed
 
-Telemetry proved `Precise Range` is almost unused on the narrow map: it was
-selected often but rarely consumed extra-range budget. This is a map/value
-interaction, not a missing runtime call. Do not tune it without a controlled
-card A/B test.
+- Targeted Cocos TypeScript compile passed after the progression/ad changes:
 
-## Telemetry contract
+  `node C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\lib\tsc.js --noEmit --target ES2017 --module commonjs --strict false --experimentalDecorators --skipLibCheck assets/scripts/LevelSettings.ts assets/scripts/BattleCardDatabase.ts assets/scripts/BattleCardRuntime.ts assets/scripts/BattleTelemetry.ts assets/scripts/GameManager.ts assets/scripts/Unit.ts assets/scripts/UnitBehavior.ts temp/declarations/cc.d.ts temp/declarations/jsb.d.ts`
 
-- `config.progression.units` exposes enemy/player unlocked state, count and
-  player count milestone cap.
-- `progression.before.preBattlePurchases` records purchases before combat;
-  `progression.purchases` records purchases between battles; do not count the
-  same record duplicated in `after.preBattlePurchases` twice.
-- `cardEvents` contains `card-activated` / `card-depleted`; final usage is in
-  `progression.after.battleCards`.
-- For balance conclusions, distinguish a single random campaign path from a
-  controlled multi-seed test. Enemy deck is fixed per retry while bot player
-  deck can vary with cooldown/random selection.
+- `git diff --check` passed. Static checks confirmed the evenly distributed
+  schedule (e.g. 11,13 and 26,28) and no remaining `applyVideoRescue` or
+  `lossesPerVideoReward` source use.
+- No full deterministic A/B or human playtest has been run. Do not claim ads
+  are necessary, or that post-L50 balance is validated, without that test.
 
-## Latest valid evidence
+## Likely next task
 
-### 2026-08-10 17:58-18:32 — current pricing/pre-battle run
-
-Reports `C:/Users/tranl/Downloads/battle-telemetry-2026-08-10T17-58-40-596Z.json`
-through `...18-32-59-587Z.json`: 96 battles, levels 1-50 including retries.
-
-- Campaign cleared L1-50: 50 wins, 46 losses; boss attempts 26, boss losses
-  16. This is better than the earlier single run but is not a multi-seed proof.
-- L10 Axeman was bought pre-battle: 410 gold -> 40 after paying 370; player
-  and enemy both had Axe x5 and boss L10 won first attempt.
-- L25 Archer was offered but not affordable: pre-shop gold 113 vs 130. Bot
-  won then bought it between battles.
-- L35 Cavalry was offered but not affordable: combat-start gold 20 vs 485.
-  Bot lost once, won next attempt, then bought it between battles.
-- L45 Monk was bought pre-battle: 275 -> 30 after paying 245.
-- This partial pre-battle purchase behavior is accepted design, not a bug: a
-  gold shortage is a future monetization/minigame/ad branch.
-- L50 took 10 attempts (9 losses) with player CP 1040 and Max Alive 10. No
-  rescue fired because all baseline packages were already claimed, although
-  loss count reached 9.
-- Total rewards 33,849; final gold 287. No early-game gold inflation signal.
-
-### Earlier reference only
-
-The large 2026-08-10 15:27-17:09 batch covered L1-100 before the latest unit
-price/pre-battle change. It showed post-L50 gold accumulation and narrow-map
-range-card underuse. Do not use it to judge the current early unlock pricing.
-
-## Validation and next work
-
-- Targeted Cocos TypeScript compile of card/progression/combat files passes.
-- `assets/Test.scene` parses as JSON and `git diff --check` passes for authored
-  files.
-- No fresh full 1-100 batch has been run after multiplier 5/current-level
-  priority. Do not claim post-50 balance is validated.
-- Authored changes remain uncommitted.
-
-If testing resumes, reset progression only when a clean economy comparison is
-needed. A live save will adopt the new price for unpurchased units but does not
-refund old purchases.
+There is no active implementation request. If the user resumes the ad question,
+add a controlled telemetry/simulation comparison rather than changing balance
+by intuition: same seeded deck/AI, ads enabled vs disabled, aggregate attempts
+and outcomes for the identified levels. Preserve the accepted early-ad behavior
+unless the user asks to change it.

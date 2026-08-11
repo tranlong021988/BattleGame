@@ -67,7 +67,6 @@ interface SavedProgressionState {
     playerInitialCPOverflow: number;
     cpPackages: SavedProgressionPackage[];
     maxAlivePackages: SavedProgressionPackage[];
-    rescueHistory: string[];
     playerMaxAlive: number;
     totalPurchases: number;
     units: SavedUnitProgression[];
@@ -309,7 +308,7 @@ export class LevelSettings extends Component
     playerMaxAliveMax = 10;
 
     @property({ min: 0.01, step: 0.1 })
-    winGoldPerEnemyCP = 1;
+    winGoldPerEnemyCP = 1.15;
 
     @property({
         min: 1,
@@ -327,9 +326,6 @@ export class LevelSettings extends Component
         tooltip: 'Gold granted after every valid player loss as a ratio of that level win reward.'
     })
     lossGoldRatio = 0.1;
-
-    @property({ min: 1, step: 1 })
-    lossesPerVideoReward = 3;
 
     @property({ min: 1, step: 1 })
     unitUnlockCostMultiplier = 5;
@@ -536,11 +532,6 @@ export class LevelSettings extends Component
         );
 
         let goldReward = 0;
-        let rescueCP = 0;
-        let rescueMaxAlive = 0;
-        let rescueGold = 0;
-        let videoRewardTriggered = false;
-        let rescueActions: string[] = [];
         const validPlayerLoss = loserTeam === 0 &&
             this.isValidPlayerLoss(reason);
 
@@ -558,29 +549,6 @@ export class LevelSettings extends Component
                 );
             }
 
-            if (
-                this.purchasingSimulation &&
-                state.levelLossCount >=
-                Math.max(
-                    1,
-                    Math.floor(this.lossesPerVideoReward)
-                )
-            ) {
-                const rescue = this.applyVideoRescue(
-                    purchases
-                );
-
-                if (rescue) {
-                    rescueGold = Math.max(
-                        0,
-                        rescue.goldAfter - rescue.goldBefore
-                    );
-                    state.adsReward++;
-                    state.levelLossCount = 0;
-                    videoRewardTriggered = true;
-                    rescueActions = [rescue.id];
-                }
-            }
         }
 
         if (this.purchasingSimulation) {
@@ -620,11 +588,6 @@ export class LevelSettings extends Component
             winGold,
             goldReward,
             validPlayerLoss,
-            rescueCP,
-            rescueMaxAlive,
-            rescueGold,
-            videoRewardTriggered,
-            rescueActions,
             usedPlayerCards,
             newlyOffered,
             purchases,
@@ -709,8 +672,6 @@ export class LevelSettings extends Component
                 bossGoldRewardMultiplier:
                     this.bossGoldRewardMultiplier,
                 lossGoldRatio: this.lossGoldRatio,
-                lossesPerVideoReward:
-                    this.lossesPerVideoReward,
                 unitUnlockCostMultiplier:
                     this.unitUnlockCostMultiplier,
                 initialCPGoldPerPoint:
@@ -741,8 +702,6 @@ export class LevelSettings extends Component
                     })),
                 initialCPOverflow:
                     state.playerInitialCPOverflow,
-                rescueHistory:
-                    state.rescueHistory.slice(),
                 maxAlive: state.playerMaxAlive,
                 maxAlivePackagesPurchased:
                     state.maxAlivePackages.filter((item) =>
@@ -858,6 +817,14 @@ export class LevelSettings extends Component
                 this.preBattlePurchases,
                 'pre-battle'
             );
+            if (this.trySimulateRewardedAd(
+                this.preBattlePurchases
+            )) {
+                this.runPurchaseSimulation(
+                    this.preBattlePurchases,
+                    'pre-battle'
+                );
+            }
         }
 
         this.applyProgressionRuntimeState(true);
@@ -903,7 +870,6 @@ export class LevelSettings extends Component
             cpPackages: this.createCPPackageSchedule(),
             maxAlivePackages:
                 this.createMaxAlivePackageSchedule(),
-            rescueHistory: [],
             playerMaxAlive: this.getPlayerMaxAliveStart(),
             totalPurchases: 0,
             units,
@@ -1620,15 +1586,6 @@ export class LevelSettings extends Component
                 : '';
         }
 
-        initial.rescueHistory = Array.isArray(
-            source.rescueHistory
-        )
-            ? source.rescueHistory
-                .filter((value: any) =>
-                    typeof value === 'string'
-                )
-                .slice()
-            : [];
         initial.playerInitialCP =
             this.getPlayerCPFromState(initial);
         initial.playerMaxAlive =
@@ -2071,63 +2028,10 @@ export class LevelSettings extends Component
         if (!this.progressionState) return;
 
         for (let iteration = 0; iteration < 100; iteration++) {
-            let affordable = this.getPurchaseOptions(
-                this.progressionState
-            ).filter((option) =>
-                option.cost <=
-                this.progressionState!.playerGold
+            const affordable = this.getBotPurchaseCandidates(
+                this.progressionState,
+                true
             );
-
-            if (this.shouldReserveGoldForBaseline(
-                this.progressionState
-            )) {
-                affordable = affordable.filter((option) =>
-                    option.kind !== 'card-unlock' &&
-                    option.kind !== 'card-cooldown-upgrade' &&
-                    option.kind !== 'card-budget-upgrade'
-                );
-            }
-
-            if (this.shouldBotPrioritizeCardUnlocks(
-                this.progressionState
-            )) {
-                affordable = affordable.filter((option) =>
-                    option.kind !== 'card-cooldown-upgrade' &&
-                    option.kind !== 'card-budget-upgrade'
-                );
-            }
-
-            if (this.shouldBotPrioritizeCooldownUpgrades(
-                this.progressionState
-            )) {
-                affordable = affordable.filter((option) =>
-                    option.kind !== 'card-budget-upgrade'
-                );
-            }
-
-            const currentLevelUnitUnlocks = affordable.filter(
-                (option) => {
-                    if (
-                        option.kind !== 'unit-unlock' ||
-                        option.family === null
-                    ) {
-                        return false;
-                    }
-
-                    const rule = this.getRule(
-                        option.family,
-                        option.tier
-                    );
-
-                    return !!rule &&
-                        this.getRuleUnlockLevel(rule) ===
-                        this.battleLevel;
-                }
-            );
-
-            if (currentLevelUnitUnlocks.length > 0) {
-                affordable = currentLevelUnitUnlocks;
-            }
 
             if (affordable.length <= 0) return;
 
@@ -2146,6 +2050,127 @@ export class LevelSettings extends Component
         }
     }
 
+    private getBotPurchaseCandidates(
+        state: SavedProgressionState,
+        affordableOnly: boolean
+    ) {
+        let options = this.getPurchaseOptions(state).filter(
+            (option) => !affordableOnly ||
+                option.cost <= state.playerGold
+        );
+
+        if (this.shouldReserveGoldForBaseline(state)) {
+            options = options.filter((option) =>
+                option.kind !== 'card-unlock' &&
+                option.kind !== 'card-cooldown-upgrade' &&
+                option.kind !== 'card-budget-upgrade'
+            );
+        }
+
+        if (this.shouldBotPrioritizeCardUnlocks(state)) {
+            options = options.filter((option) =>
+                option.kind !== 'card-cooldown-upgrade' &&
+                option.kind !== 'card-budget-upgrade'
+            );
+        }
+
+        if (this.shouldBotPrioritizeCooldownUpgrades(state)) {
+            options = options.filter((option) =>
+                option.kind !== 'card-budget-upgrade'
+            );
+        }
+
+        const currentLevelUnitUnlocks = options.filter((option) => {
+            if (
+                option.kind !== 'unit-unlock' ||
+                option.family === null
+            ) {
+                return false;
+            }
+
+            const rule = this.getRule(
+                option.family,
+                option.tier
+            );
+
+            return !!rule &&
+                this.getRuleUnlockLevel(rule) === this.battleLevel;
+        });
+
+        return currentLevelUnitUnlocks.length > 0
+            ? currentLevelUnitUnlocks
+            : options;
+    }
+
+    private trySimulateRewardedAd(
+        records: PurchaseRecord[]
+    ) {
+        if (!this.progressionState) return false;
+
+        const state = this.progressionState;
+        const target = this.pickWeightedPurchase(
+            this.getBotPurchaseCandidates(state, false).filter(
+                (option) => option.cost > state.playerGold
+            )
+        );
+
+        if (!target || Math.random() >=
+            this.getRewardedAdChance(state)) {
+            return false;
+        }
+
+        const goldBefore = state.playerGold;
+        const goldReward = Math.max(
+            50,
+            Math.ceil(
+                Math.max(0, target.cost - goldBefore) / 50
+            ) * 50
+        );
+
+        state.playerGold += goldReward;
+        state.adsReward++;
+        state.levelLossCount = 0;
+        records.push({
+            id: `rewarded-ad-gold:${target.id}`,
+            kind: target.kind,
+            label: `Rewarded ad +${goldReward} Gold`,
+            family: null,
+            familyName: '',
+            tier: 0,
+            cost: 0,
+            goldBefore,
+            goldAfter: state.playerGold,
+            valueBefore: this.getPurchaseValue(target, state),
+            valueAfter: this.getPurchaseValue(target, state),
+            source: 'rewarded-ad-gold',
+            cardId: target.cardId,
+        });
+        records.push(
+            this.applyPurchase(target, state, 'rewarded-ad')
+        );
+
+        return true;
+    }
+
+    private getRewardedAdChance(
+        state: SavedProgressionState
+    ) {
+        const enemyCP = this.getEnemyInitialCP();
+        const enemyMaxAlive = this.getEnemyMaxAlive();
+        const pressure = Math.max(
+            Math.max(0, enemyCP - state.playerInitialCP) /
+                Math.max(1, enemyCP),
+            Math.max(0, enemyMaxAlive - state.playerMaxAlive) /
+                Math.max(1, enemyMaxAlive)
+        );
+
+        return Math.min(
+            0.8,
+            0.2 + Math.min(3, state.levelLossCount) * 0.15 +
+                pressure * 0.5
+        );
+    }
+
     private shouldBotPrioritizeCardUnlocks(
         state: SavedProgressionState
     ) {
@@ -2158,7 +2183,8 @@ export class LevelSettings extends Component
         state: SavedProgressionState
     ) {
         return this.getPurchaseOptions(state).some((option) =>
-            option.kind === 'card-cooldown-upgrade'
+            option.kind === 'card-cooldown-upgrade' &&
+            option.cost <= state.playerGold
         );
     }
 
@@ -2274,138 +2300,6 @@ export class LevelSettings extends Component
         }
 
         return 1;
-    }
-
-    private applyVideoRescue(
-        records: PurchaseRecord[]
-    ) {
-        if (!this.progressionState) return null;
-        if (!this.isBossLevelFor(this.battleLevel)) {
-            return null;
-        }
-
-        const state = this.progressionState;
-        const rescueCPPackage = this.getRescuePackage(
-            state.cpPackages
-        );
-        const rescueMaxAlivePackage = this.getRescuePackage(
-            state.maxAlivePackages
-        );
-        const enemyCP = this.getEnemyInitialCP();
-        const enemyMaxAlive = this.getEnemyMaxAlive();
-        const cpGapRatio = Math.max(
-            0,
-            enemyCP - state.playerInitialCP
-        ) / Math.max(1, enemyCP);
-        const maxAliveGapRatio = Math.max(
-            0,
-            enemyMaxAlive - state.playerMaxAlive
-        ) / Math.max(1, enemyMaxAlive);
-        const rescueKind = this.selectRescueKind(
-            !!rescueCPPackage,
-            !!rescueMaxAlivePackage,
-            cpGapRatio,
-            maxAliveGapRatio
-        );
-        let record: PurchaseRecord | null = null;
-
-        if (rescueKind === 'initial-cp' && rescueCPPackage) {
-            record = this.grantVideoRescueGold(
-                state,
-                rescueCPPackage,
-                'initial-cp'
-            );
-        } else if (
-            rescueKind === 'max-alive' &&
-            rescueMaxAlivePackage
-        ) {
-            record = this.grantVideoRescueGold(
-                state,
-                rescueMaxAlivePackage,
-                'max-alive'
-            );
-        }
-
-        if (!record) return null;
-
-        records.push(record);
-
-        return record;
-    }
-
-    private getRescuePackage(
-        packages: SavedProgressionPackage[]
-    ) {
-        return packages
-            .filter((item) => !item.claimed)
-            .sort((a, b) =>
-                Math.max(0, a.offerLevel - this.battleLevel) -
-                Math.max(0, b.offerLevel - this.battleLevel) ||
-                a.targetLevel - b.targetLevel ||
-                a.offerLevel - b.offerLevel ||
-                a.id.localeCompare(b.id)
-            )[0] || null;
-    }
-
-    private grantVideoRescueGold(
-        state: SavedProgressionState,
-        packageItem: SavedProgressionPackage,
-        kind: 'initial-cp' | 'max-alive'
-    ): PurchaseRecord {
-        const goldBefore = state.playerGold;
-        const valueBefore = kind === 'initial-cp'
-            ? state.playerInitialCP
-            : state.playerMaxAlive;
-        const cost = kind === 'initial-cp'
-            ? this.getInitialCPPackageCost(packageItem.delta)
-            : this.getMaxAlivePackageCost(
-                packageItem.delta,
-                state.playerMaxAlive
-            );
-
-        if (packageItem.offerLevel > this.battleLevel) {
-            packageItem.offerLevel = this.battleLevel;
-        }
-
-        state.playerGold += cost;
-
-        const record: PurchaseRecord = {
-            id: `rescue:gold:${packageItem.id}`,
-            kind,
-            label: `Video rescue +${cost} Gold`,
-            family: null,
-            familyName: '',
-            tier: 0,
-            cost: 0,
-            goldBefore,
-            goldAfter: state.playerGold,
-            valueBefore,
-            valueAfter: valueBefore,
-            source: 'video-rescue-gold',
-            cardId: null,
-        };
-
-        state.rescueHistory.push(record.id);
-        return record;
-    }
-
-    private selectRescueKind(
-        canRescueCP: boolean,
-        canRescueMaxAlive: boolean,
-        cpGapRatio: number,
-        maxAliveGapRatio: number
-    ): 'initial-cp' | 'max-alive' | null {
-        if (!canRescueCP && !canRescueMaxAlive) return null;
-        if (!canRescueCP) return 'max-alive';
-        if (!canRescueMaxAlive) return 'initial-cp';
-
-        if (maxAliveGapRatio !== cpGapRatio) {
-            return maxAliveGapRatio > cpGapRatio
-                ? 'max-alive'
-                : 'initial-cp';
-        }
-
-        return 'initial-cp';
     }
 
     private applyPurchase(
@@ -3171,14 +3065,12 @@ export class LevelSettings extends Component
                 Math.max(1, Math.ceil(candidateCount / 2))
             );
             const offerLevels =
-                this.pickDeterministicOfferLevels(
+                this.pickEvenlyDistributedOfferLevels(
                     firstOfferLevel,
                     lastNormalLevel >= firstOfferLevel
                         ? lastNormalLevel
                         : targetLevel,
-                    packageCount,
-                    targetLevel,
-                    'cp'
+                    packageCount
                 );
             let distributed = 0;
 
@@ -3240,48 +3132,30 @@ export class LevelSettings extends Component
         return result;
     }
 
-    private pickDeterministicOfferLevels(
+    private pickEvenlyDistributedOfferLevels(
         firstLevel: number,
         lastLevel: number,
-        count: number,
-        targetLevel: number,
-        scheduleKey: string
+        count: number
     ) {
-        const candidates: Array<{
-            level: number;
-            order: number;
-        }> = [];
+        const candidateCount = Math.max(
+            1,
+            lastLevel - firstLevel + 1
+        );
+        const safeCount = Math.min(
+            Math.max(1, Math.floor(count)),
+            candidateCount
+        );
+        const result: number[] = [];
 
-        for (let level = firstLevel;
-            level <= lastLevel;
-            level++) {
-            candidates.push({
-                level,
-                order: this.stableHash(
-                    `${targetLevel}:${level}:` +
-                    `${scheduleKey}-offer`
-                ),
-            });
+        for (let index = 0; index < safeCount; index++) {
+            result.push(
+                firstLevel + Math.floor(
+                    index * candidateCount / safeCount
+                )
+            );
         }
 
-        return candidates
-            .sort((a, b) =>
-                a.order - b.order || a.level - b.level
-            )
-            .slice(0, Math.min(count, candidates.length))
-            .map((item) => item.level)
-            .sort((a, b) => a - b);
-    }
-
-    private stableHash(value: string) {
-        let hash = 2166136261;
-
-        for (let i = 0; i < value.length; i++) {
-            hash ^= value.charCodeAt(i);
-            hash = Math.imul(hash, 16777619);
-        }
-
-        return hash >>> 0;
+        return result;
     }
 
     private getNextPlayerCPPackageSnapshot(
@@ -3435,12 +3309,10 @@ export class LevelSettings extends Component
                     ? lastNormalLevel
                     : targetLevel;
             const offerLevels =
-                this.pickDeterministicOfferLevels(
+                this.pickEvenlyDistributedOfferLevels(
                     firstOfferLevel,
                     safeLastOfferLevel,
-                    totalDelta,
-                    targetLevel,
-                    'max-alive'
+                    totalDelta
                 );
 
             for (let packageIndex = 0;

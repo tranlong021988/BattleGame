@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -287,15 +287,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 1,
         step: 1
       }), _dec42 = property({
-        min: 1,
-        step: 1
-      }), _dec43 = property({
         min: 0.01,
         step: 0.1
-      }), _dec44 = property({
+      }), _dec43 = property({
         min: 1,
         step: 1
-      }), _dec45 = property({
+      }), _dec44 = property({
         type: [UnitProgressionRule]
       }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
@@ -373,15 +370,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "lossGoldRatio", _descriptor42, this);
 
-          _initializerDefineProperty(this, "lossesPerVideoReward", _descriptor43, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor43, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor44, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor44, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor45, this);
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor45, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor46, this);
-
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor47, this);
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor46, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -483,11 +478,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var rewardBaseCP = this.getLevelBaseInitialCP(battleLevel);
           var winGold = Math.max(0, Math.round(rewardBaseCP * Math.max(0, this.winGoldPerEnemyCP) * (this.isBossLevelFor(battleLevel) ? Math.max(1, this.bossGoldRewardMultiplier) : 1)));
           var goldReward = 0;
-          var rescueCP = 0;
-          var rescueMaxAlive = 0;
-          var rescueGold = 0;
-          var videoRewardTriggered = false;
-          var rescueActions = [];
           var validPlayerLoss = loserTeam === 0 && this.isValidPlayerLoss(reason);
 
           if (winnerTeam === 0) {
@@ -499,18 +489,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             if (validPlayerLoss) {
               goldReward = this.grantLossGold(state, winGold);
-            }
-
-            if (this.purchasingSimulation && state.levelLossCount >= Math.max(1, Math.floor(this.lossesPerVideoReward))) {
-              var rescue = this.applyVideoRescue(purchases);
-
-              if (rescue) {
-                rescueGold = Math.max(0, rescue.goldAfter - rescue.goldBefore);
-                state.adsReward++;
-                state.levelLossCount = 0;
-                videoRewardTriggered = true;
-                rescueActions = [rescue.id];
-              }
             }
           }
 
@@ -545,11 +523,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             winGold,
             goldReward,
             validPlayerLoss,
-            rescueCP,
-            rescueMaxAlive,
-            rescueGold,
-            videoRewardTriggered,
-            rescueActions,
             usedPlayerCards,
             newlyOffered,
             purchases,
@@ -594,7 +567,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               winGoldPerEnemyCP: this.winGoldPerEnemyCP,
               bossGoldRewardMultiplier: this.bossGoldRewardMultiplier,
               lossGoldRatio: this.lossGoldRatio,
-              lossesPerVideoReward: this.lossesPerVideoReward,
               unitUnlockCostMultiplier: this.unitUnlockCostMultiplier,
               initialCPGoldPerPoint: this.initialCPGoldPerPoint,
               maxAliveBasePrice: this.maxAliveBasePrice,
@@ -610,7 +582,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               cpPackagesOffered: this.getPlayerCPPackagesOffered(this.battleLevel),
               cpPackageSchedule: state.cpPackages.map(item => _extends({}, item)),
               initialCPOverflow: state.playerInitialCPOverflow,
-              rescueHistory: state.rescueHistory.slice(),
               maxAlive: state.playerMaxAlive,
               maxAlivePackagesPurchased: state.maxAlivePackages.filter(item => item.claimed).length,
               maxAlivePackagesOffered: this.getPlayerMaxAlivePackagesOffered(this.battleLevel),
@@ -669,7 +640,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.progressionState.levelLossCount = 0;
           }
 
-          this.offerUnitsFromEarlierLevels(this.battleLevel);
+          this.offerIntroducedUnits(this.battleLevel);
           this.applyProgressionRuntimeState(true);
           this.saveProgressionState();
         }
@@ -679,6 +650,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (this.purchasingSimulation) {
             this.runPurchaseSimulation(this.preBattlePurchases, 'pre-battle');
+
+            if (this.trySimulateRewardedAd(this.preBattlePurchases)) {
+              this.runPurchaseSimulation(this.preBattlePurchases, 'pre-battle');
+            }
           }
 
           this.applyProgressionRuntimeState(true);
@@ -711,7 +686,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             playerInitialCPOverflow: 0,
             cpPackages: this.createCPPackageSchedule(),
             maxAlivePackages: this.createMaxAlivePackageSchedule(),
-            rescueHistory: [],
             playerMaxAlive: this.getPlayerMaxAliveStart(),
             totalPurchases: 0,
             units,
@@ -1157,7 +1131,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (_loop2()) continue;
           }
 
-          initial.rescueHistory = Array.isArray(source.rescueHistory) ? source.rescueHistory.filter(value => typeof value === 'string').slice() : [];
           initial.playerInitialCP = this.getPlayerCPFromState(initial);
           initial.playerMaxAlive = this.getPlayerMaxAliveFromState(initial);
           initial.totalPurchases = Math.max(0, this.safeInteger(source.totalPurchases, 0));
@@ -1281,7 +1254,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               });
             }
 
-            if (saved.unlocked && saved.unitCount < this.getPlayerUnitCountMilestoneCap(rule, this.battleLevel)) {
+            if (saved.unlocked && saved.unitCount < this.getPlayerUnitCountMilestoneCap(rule, this.battleLevel, state)) {
               options.push({
                 id: "count:" + key,
                 kind: 'unit-count',
@@ -1416,20 +1389,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.progressionState) return;
 
           for (var iteration = 0; iteration < 100; iteration++) {
-            var affordable = this.getPurchaseOptions(this.progressionState).filter(option => option.cost <= this.progressionState.playerGold);
-
-            if (this.shouldReserveGoldForBaseline(this.progressionState)) {
-              affordable = affordable.filter(option => option.kind !== 'card-unlock' && option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade');
-            }
-
-            if (this.shouldBotPrioritizeCardUnlocks(this.progressionState)) {
-              affordable = affordable.filter(option => option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade');
-            }
-
-            if (this.shouldBotPrioritizeCooldownUpgrades(this.progressionState)) {
-              affordable = affordable.filter(option => option.kind !== 'card-budget-upgrade');
-            }
-
+            var affordable = this.getBotPurchaseCandidates(this.progressionState, true);
             if (affordable.length <= 0) return;
             var selected = this.pickWeightedPurchase(affordable);
             if (!selected) return;
@@ -1437,12 +1397,78 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
+        getBotPurchaseCandidates(state, affordableOnly) {
+          var options = this.getPurchaseOptions(state).filter(option => !affordableOnly || option.cost <= state.playerGold);
+
+          if (this.shouldReserveGoldForBaseline(state)) {
+            options = options.filter(option => option.kind !== 'card-unlock' && option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade');
+          }
+
+          if (this.shouldBotPrioritizeCardUnlocks(state)) {
+            options = options.filter(option => option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade');
+          }
+
+          if (this.shouldBotPrioritizeCooldownUpgrades(state)) {
+            options = options.filter(option => option.kind !== 'card-budget-upgrade');
+          }
+
+          var currentLevelUnitUnlocks = options.filter(option => {
+            if (option.kind !== 'unit-unlock' || option.family === null) {
+              return false;
+            }
+
+            var rule = this.getRule(option.family, option.tier);
+            return !!rule && this.getRuleUnlockLevel(rule) === this.battleLevel;
+          });
+          return currentLevelUnitUnlocks.length > 0 ? currentLevelUnitUnlocks : options;
+        }
+
+        trySimulateRewardedAd(records) {
+          if (!this.progressionState) return false;
+          var state = this.progressionState;
+          var target = this.pickWeightedPurchase(this.getBotPurchaseCandidates(state, false).filter(option => option.cost > state.playerGold));
+
+          if (!target || Math.random() >= this.getRewardedAdChance(state)) {
+            return false;
+          }
+
+          var goldBefore = state.playerGold;
+          var goldReward = Math.max(50, Math.ceil(Math.max(0, target.cost - goldBefore) / 50) * 50);
+          state.playerGold += goldReward;
+          state.adsReward++;
+          state.levelLossCount = 0;
+          records.push({
+            id: "rewarded-ad-gold:" + target.id,
+            kind: target.kind,
+            label: "Rewarded ad +" + goldReward + " Gold",
+            family: null,
+            familyName: '',
+            tier: 0,
+            cost: 0,
+            goldBefore,
+            goldAfter: state.playerGold,
+            valueBefore: this.getPurchaseValue(target, state),
+            valueAfter: this.getPurchaseValue(target, state),
+            source: 'rewarded-ad-gold',
+            cardId: target.cardId
+          });
+          records.push(this.applyPurchase(target, state, 'rewarded-ad'));
+          return true;
+        }
+
+        getRewardedAdChance(state) {
+          var enemyCP = this.getEnemyInitialCP();
+          var enemyMaxAlive = this.getEnemyMaxAlive();
+          var pressure = Math.max(Math.max(0, enemyCP - state.playerInitialCP) / Math.max(1, enemyCP), Math.max(0, enemyMaxAlive - state.playerMaxAlive) / Math.max(1, enemyMaxAlive));
+          return Math.min(0.8, 0.2 + Math.min(3, state.levelLossCount) * 0.15 + pressure * 0.5);
+        }
+
         shouldBotPrioritizeCardUnlocks(state) {
           return this.getPurchaseOptions(state).some(option => option.kind === 'card-unlock');
         }
 
         shouldBotPrioritizeCooldownUpgrades(state) {
-          return this.getPurchaseOptions(state).some(option => option.kind === 'card-cooldown-upgrade');
+          return this.getPurchaseOptions(state).some(option => option.kind === 'card-cooldown-upgrade' && option.cost <= state.playerGold);
         }
 
         pickWeightedPurchase(options) {
@@ -1510,79 +1536,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return 1;
         }
 
-        applyVideoRescue(records) {
-          if (!this.progressionState) return null;
-
-          if (!this.isBossLevelFor(this.battleLevel)) {
-            return null;
-          }
-
-          var state = this.progressionState;
-          var rescueCPPackage = this.getRescuePackage(state.cpPackages);
-          var rescueMaxAlivePackage = this.getRescuePackage(state.maxAlivePackages);
-          var enemyCP = this.getEnemyInitialCP();
-          var enemyMaxAlive = this.getEnemyMaxAlive();
-          var cpGapRatio = Math.max(0, enemyCP - state.playerInitialCP) / Math.max(1, enemyCP);
-          var maxAliveGapRatio = Math.max(0, enemyMaxAlive - state.playerMaxAlive) / Math.max(1, enemyMaxAlive);
-          var rescueKind = this.selectRescueKind(!!rescueCPPackage, !!rescueMaxAlivePackage, cpGapRatio, maxAliveGapRatio);
-          var record = null;
-
-          if (rescueKind === 'initial-cp' && rescueCPPackage) {
-            record = this.grantVideoRescueGold(state, rescueCPPackage, 'initial-cp');
-          } else if (rescueKind === 'max-alive' && rescueMaxAlivePackage) {
-            record = this.grantVideoRescueGold(state, rescueMaxAlivePackage, 'max-alive');
-          }
-
-          if (!record) return null;
-          records.push(record);
-          return record;
-        }
-
-        getRescuePackage(packages) {
-          return packages.filter(item => !item.claimed).sort((a, b) => Math.max(0, a.offerLevel - this.battleLevel) - Math.max(0, b.offerLevel - this.battleLevel) || a.targetLevel - b.targetLevel || a.offerLevel - b.offerLevel || a.id.localeCompare(b.id))[0] || null;
-        }
-
-        grantVideoRescueGold(state, packageItem, kind) {
-          var goldBefore = state.playerGold;
-          var valueBefore = kind === 'initial-cp' ? state.playerInitialCP : state.playerMaxAlive;
-          var cost = kind === 'initial-cp' ? this.getInitialCPPackageCost(packageItem.delta) : this.getMaxAlivePackageCost(packageItem.delta, state.playerMaxAlive);
-
-          if (packageItem.offerLevel > this.battleLevel) {
-            packageItem.offerLevel = this.battleLevel;
-          }
-
-          state.playerGold += cost;
-          var record = {
-            id: "rescue:gold:" + packageItem.id,
-            kind,
-            label: "Video rescue +" + cost + " Gold",
-            family: null,
-            familyName: '',
-            tier: 0,
-            cost: 0,
-            goldBefore,
-            goldAfter: state.playerGold,
-            valueBefore,
-            valueAfter: valueBefore,
-            source: 'video-rescue-gold',
-            cardId: null
-          };
-          state.rescueHistory.push(record.id);
-          return record;
-        }
-
-        selectRescueKind(canRescueCP, canRescueMaxAlive, cpGapRatio, maxAliveGapRatio) {
-          if (!canRescueCP && !canRescueMaxAlive) return null;
-          if (!canRescueCP) return 'max-alive';
-          if (!canRescueMaxAlive) return 'initial-cp';
-
-          if (maxAliveGapRatio !== cpGapRatio) {
-            return maxAliveGapRatio > cpGapRatio ? 'max-alive' : 'initial-cp';
-          }
-
-          return 'initial-cp';
-        }
-
         applyPurchase(option, state, source) {
           var goldBefore = state.playerGold;
           var valueBefore = this.getPurchaseValue(option, state);
@@ -1629,6 +1582,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             if (!_card3 || !_card3.owned) return;
             _card3.cooldownUpgradeLevel = Math.min(2, _card3.cooldownUpgradeLevel + 1);
+            _card3.cooldownRemaining = Math.max(0, _card3.cooldownRemaining - 1);
             return;
           }
 
@@ -1737,22 +1691,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return result;
         }
 
-        offerUnitsFromEarlierLevels(level) {
-          if (!this.progressionState) return;
-
-          for (var i = 0; i < this.unitProgressionRules.length; i++) {
-            var rule = this.unitProgressionRules[i];
-            if (!rule) continue;
-
-            if (this.getRuleUnlockLevel(rule) >= level) {
-              continue;
-            }
-
-            var saved = this.getSavedUnit(this.progressionState, this.getRuleKey(rule));
-            if (saved) saved.offered = true;
-          }
-        }
-
         createUnitProgressionSnapshot() {
           if (!this.progressionState) return [];
           return this.unitProgressionRules.filter(rule => !!rule).map(rule => {
@@ -1771,26 +1709,74 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               playerOffered: saved ? saved.offered : false,
               playerUnlocked: saved ? saved.unlocked : false,
               playerCount: saved ? saved.unitCount : 0,
-              playerCountMilestoneCap: this.getPlayerUnitCountMilestoneCap(rule, this.battleLevel)
+              playerCountMilestoneCap: this.getPlayerUnitCountMilestoneCap(rule, this.battleLevel, this.progressionState)
             };
           });
         }
 
-        getPlayerUnitCountMilestoneCap(rule, level) {
-          return Math.min(this.getRuleMaxCount(rule), this.getEnemyUnitCount(rule, level));
+        getPlayerUnitCountMilestoneCap(rule, level, state) {
+          return Math.min(this.getRuleMaxCount(rule), this.getRuleUnlockCount(rule) + this.getUnitCountUpgradeRank(rule, level, state));
         }
 
         getEnemyUnitCount(rule, level) {
+          return Math.round(Math.min(this.getRuleMaxCount(rule), this.getRuleUnlockCount(rule) + this.getUnitCountUpgradeRank(rule, level)));
+        }
+
+        getUnitCountUpgradeRank(rule, level, state) {
+          if (state === void 0) {
+            state = null;
+          }
+
           var unlockLevel = this.getRuleUnlockLevel(rule);
-          var unlockCount = this.getRuleUnlockCount(rule);
-          var maxCount = this.getRuleMaxCount(rule);
-          var progressionEndLevel = this.getUnitProgressionEndLevel();
-          if (maxCount <= unlockCount) return unlockCount;
-          if (level >= progressionEndLevel) return maxCount;
-          if (level <= unlockLevel) return unlockCount;
-          var denominator = Math.max(1, progressionEndLevel - unlockLevel);
-          var maturity = this.clamp01((level - unlockLevel) / denominator);
-          return Math.round(this.lerp(unlockCount, maxCount, maturity));
+          var maxRank = Math.max(0, this.getRuleMaxCount(rule) - this.getRuleUnlockCount(rule));
+          var rank = 0;
+          var milestones = this.getUnitUnlockMilestoneLevels();
+
+          for (var i = 0; i < milestones.length; i++) {
+            var milestone = milestones[i];
+
+            if (milestone <= unlockLevel || milestone > level) {
+              continue;
+            }
+
+            if (state && !this.isUnitUnlockMilestoneOffered(milestone, state)) {
+              continue;
+            }
+
+            rank++;
+          }
+
+          return Math.min(maxRank, rank);
+        }
+
+        getUnitUnlockMilestoneLevels() {
+          var result = [];
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            var level = this.getRuleUnlockLevel(rule);
+            if (level <= 1 || result.indexOf(level) >= 0) continue;
+            result.push(level);
+          }
+
+          return result.sort((a, b) => a - b);
+        }
+
+        isUnitUnlockMilestoneOffered(milestone, state) {
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+
+            if (this.getRuleUnlockLevel(rule) !== milestone) {
+              continue;
+            }
+
+            var saved = this.getSavedUnit(state, this.getRuleKey(rule));
+            if (saved && saved.offered) return true;
+          }
+
+          return false;
         }
 
         getUnitUnlockPrice(entry) {
@@ -1997,7 +1983,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var lastNormalLevel = targetLevel - 1;
             var candidateCount = Math.max(1, lastNormalLevel >= firstOfferLevel ? lastNormalLevel - firstOfferLevel + 1 : 1);
             var packageCount = Math.min(totalDelta, Math.max(1, Math.ceil(candidateCount / 2)));
-            var offerLevels = this.pickDeterministicOfferLevels(firstOfferLevel, lastNormalLevel >= firstOfferLevel ? lastNormalLevel : targetLevel, packageCount, targetLevel, 'cp');
+            var offerLevels = this.pickEvenlyDistributedOfferLevels(firstOfferLevel, lastNormalLevel >= firstOfferLevel ? lastNormalLevel : targetLevel, packageCount);
             var distributed = 0;
 
             for (var packageIndex = 0; packageIndex < packageCount; packageIndex++) {
@@ -2039,28 +2025,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return result;
         }
 
-        pickDeterministicOfferLevels(firstLevel, lastLevel, count, targetLevel, scheduleKey) {
-          var candidates = [];
+        pickEvenlyDistributedOfferLevels(firstLevel, lastLevel, count) {
+          var candidateCount = Math.max(1, lastLevel - firstLevel + 1);
+          var safeCount = Math.min(Math.max(1, Math.floor(count)), candidateCount);
+          var result = [];
 
-          for (var level = firstLevel; level <= lastLevel; level++) {
-            candidates.push({
-              level,
-              order: this.stableHash(targetLevel + ":" + level + ":" + (scheduleKey + "-offer"))
-            });
+          for (var index = 0; index < safeCount; index++) {
+            result.push(firstLevel + Math.floor(index * candidateCount / safeCount));
           }
 
-          return candidates.sort((a, b) => a.order - b.order || a.level - b.level).slice(0, Math.min(count, candidates.length)).map(item => item.level).sort((a, b) => a - b);
-        }
-
-        stableHash(value) {
-          var hash = 2166136261;
-
-          for (var i = 0; i < value.length; i++) {
-            hash ^= value.charCodeAt(i);
-            hash = Math.imul(hash, 16777619);
-          }
-
-          return hash >>> 0;
+          return result;
         }
 
         getNextPlayerCPPackageSnapshot(state, level) {
@@ -2141,7 +2115,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 1;
             var lastNormalLevel = targetLevel - 1;
             var safeLastOfferLevel = lastNormalLevel >= firstOfferLevel ? lastNormalLevel : targetLevel;
-            var offerLevels = this.pickDeterministicOfferLevels(firstOfferLevel, safeLastOfferLevel, totalDelta, targetLevel, 'max-alive');
+            var offerLevels = this.pickEvenlyDistributedOfferLevels(firstOfferLevel, safeLastOfferLevel, totalDelta);
 
             for (var packageIndex = 0; packageIndex < totalDelta; packageIndex++) {
               result.push({
@@ -2581,7 +2555,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 1;
+          return 1.15;
         }
       }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec39], {
         configurable: true,
@@ -2597,35 +2571,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "lossesPerVideoReward", [_dec41], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec41], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
-          return 3;
+          return 5;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec42], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 20;
-        }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec43], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec42], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec44], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec43], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1000;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec45], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec44], {
         configurable: true,
         enumerable: true,
         writable: true,
