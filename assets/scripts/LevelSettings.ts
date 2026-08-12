@@ -284,6 +284,12 @@ export class LevelSettings extends Component
     purchasingSimulation = true;
 
     @property({
+        displayName: 'Allow Ads Rescue',
+        tooltip: 'Allow the purchase simulation to watch a rewarded ad for enough gold to buy one useful unavailable package or upgrade before battle.'
+    })
+    allowAdsRescue = true;
+
+    @property({
         tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
     })
     progressionStorageKey = 'battle-progression-v8';
@@ -509,8 +515,7 @@ export class LevelSettings extends Component
         const battleLevel = this.battleLevel;
         const before = this.createTelemetrySnapshot();
         const purchases: PurchaseRecord[] = [];
-        const usedPlayerCards = this.getGameManager()
-            ?.getUsedBattleCardIds(0) || [];
+        const usedPlayerCards = this.currentPlayerBattleCardIds.slice();
         this.advancePlayerCardCooldowns(
             state,
             usedPlayerCards
@@ -817,7 +822,7 @@ export class LevelSettings extends Component
                 this.preBattlePurchases,
                 'pre-battle'
             );
-            if (this.trySimulateRewardedAd(
+            if (this.allowAdsRescue && this.trySimulateRewardedAd(
                 this.preBattlePurchases
             )) {
                 this.runPurchaseSimulation(

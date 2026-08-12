@@ -17,6 +17,7 @@ export enum BattleCardModifier {
     AttackRangePercent = 3,
     DamageRadiusPercent = 4,
     CounterImmunity = 5,
+    MoveSpeedPercent = 6,
 }
 
 export enum BattleCardEnemyPool {
@@ -78,7 +79,7 @@ export class BattleCardDefinition {
     modifier = BattleCardModifier.DamagePercent;
 
     @property({
-        tooltip: 'Percent for Damage/Range/Radius; flat amount for Defense. Counter Immunity ignores this value.',
+        tooltip: 'Percent for Damage/Move Speed/Range/Radius; flat amount for Defense. Counter Immunity ignores this value.',
     })
     modifierValue = 0;
 
@@ -176,7 +177,8 @@ function createDefaultCards() {
             'precise-range', 'Precise Range', 1100, 5,
             18,
             BattleCardTarget.Ranged, UnitFamily.Archer,
-            BattleCardModifier.AttackRangePercent, 8
+            BattleCardModifier.AttackRangePercent, 8,
+            BattleCardModifier.MoveSpeedPercent, 8
         ),
         createCard(
             'wide-prayer', 'Wide Prayer', 1200, 5,

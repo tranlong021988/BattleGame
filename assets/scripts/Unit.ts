@@ -11,7 +11,7 @@ const NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION = 2;
 const UNIT_FAMILY_ARCHER = 2;
 const UNIT_FAMILY_MONK = 6;
 const RANGED_DANGER_RANGE_RATIO = 0.5;
-const RANGED_SAFE_MIN_RANGE_RATIO = 0.7;
+const RANGED_SAFE_MIN_RANGE_RATIO = 1;
 const RANGED_COMBAT_MOVE_SPEED_RATIO = 0.75;
 const RANGED_YIELD_LOOK_BEHIND = 2.8;
 const RANGED_YIELD_SIDE_RANGE = 1.35;
@@ -403,36 +403,9 @@ export class Unit extends Component {
     }
 
     public consumeAttackRangeCardBudget(enemy: Unit) {
-        if (!enemy || !enemy.agent || !this.agent) return false;
-
         const gm = GameManager.instance;
 
         if (!gm) return false;
-
-        const modifiers = gm.getBattleCardModifiers(
-            this.team,
-            this.props.family,
-            enemy.props.family
-        );
-
-        if (modifiers.attackRangeMultiplier <= 1.0001) {
-            return false;
-        }
-
-        const baseRange = Math.max(0, this.attackRange) +
-            Math.max(0, this.radius) +
-            Math.max(0, enemy.radius);
-        const effectiveRange = this.getEffectiveAttackRangeAgainst(enemy);
-        const dx = enemy.agent.pos.x - this.agent.pos.x;
-        const dz = enemy.agent.pos.z - this.agent.pos.z;
-        const distanceSq = dx * dx + dz * dz;
-
-        if (
-            distanceSq <= baseRange * baseRange ||
-            distanceSq > effectiveRange * effectiveRange
-        ) {
-            return false;
-        }
 
         return gm.consumeAttackRangeCardBudget(
             this.team,
@@ -957,6 +930,7 @@ export class Unit extends Component {
     update(deltaTime: number) {
         if (!this.sim || !this.agent) return;
 
+        this.agent.maxSpeed = this.getEffectiveMoveSpeed();
         this.frameCounter++;
 
         if (this.props && this.shouldRunTargetSearch()) {
@@ -1867,6 +1841,22 @@ export class Unit extends Component {
             (modifiers
                 ? modifiers.attackRangeMultiplier
                 : 1)
+        );
+    }
+
+    private getEffectiveMoveSpeed() {
+        const gm = GameManager.instance;
+        const modifiers = gm
+            ? gm.getBattleCardModifiers(
+                this.team,
+                this.props.family
+            )
+            : null;
+
+        return Math.max(
+            0,
+            this.moveSpeed *
+            (modifiers ? modifiers.moveSpeedMultiplier : 1)
         );
     }
 

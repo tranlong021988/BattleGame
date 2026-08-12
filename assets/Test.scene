@@ -2199,8 +2199,8 @@
     "requiredEnemyFamily": 0,
     "modifier": 3,
     "modifierValue": 8,
-    "tradeoffModifier": 0,
-    "tradeoffValue": 0,
+    "tradeoffModifier": 6,
+    "tradeoffValue": 8,
     "enemyPool": 1
   },
   {
@@ -9370,8 +9370,8 @@
     "progressionEndLevel": 50,
     "currentLevel": 1,
     "bossStagePace": 5,
-    "bossInitialCombatPointMultiplier": 1,
-    "bossDecisionAccuracyMultiplier": 1.05,
+    "bossInitialCombatPointMultiplier": 1.05,
+    "bossDecisionAccuracyMultiplier": 1.1,
     "bossMaxAliveWavesMultiplier": 1,
     "targetTeam": 1,
     "gameManager": {
@@ -9399,6 +9399,7 @@
     "enableProgression": true,
     "autoReloadProgression": true,
     "purchasingSimulation": true,
+    "allowAdsRescue": false,
     "progressionStorageKey": "battle-progression-v8",
     "battleCardDeckSize": 3,
     "initialPlayerGold": 0,

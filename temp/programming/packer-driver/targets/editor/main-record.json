@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 19384.5208,
+      "mTimestamp": 8014.3287,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 13741641.9229,
+      "mTimestamp": 11162324.0873,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -2608,7 +2608,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleCardDatabase.ts": {
       "mTimestamp": {
-        "mtime": 1786347392714.5054,
+        "mtime": 1786521379665.1565,
         "uuid": "3e68dd1e-0175-46da-ab03-1656b7f52067"
       },
       "chunkId": "a7fc91734d3f1621e8614f18c881575f618b3c08",
@@ -2692,7 +2692,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleCardRuntime.ts": {
       "mTimestamp": {
-        "mtime": 1786355228520.7322,
+        "mtime": 1786521380235.728,
         "uuid": "11692af0-1f3d-46f0-a1aa-9c8837d20ab9"
       },
       "chunkId": "4ee0c2f86f0ad431243ac8e26f253901c9e0ef41",
@@ -3578,7 +3578,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1786361335991.6387,
+        "mtime": 1786521380761.5354,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -4071,7 +4071,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/LevelSettings.ts": {
       "mTimestamp": {
-        "mtime": 1786442647518.0623,
+        "mtime": 1786519285967.2102,
         "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
       },
       "chunkId": "8f897615a444c3f9822d8a3a627e35c696ea7282",
@@ -5054,7 +5054,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1786361336524.1494,
+        "mtime": 1786521381299.27,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -5159,7 +5159,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/UnitBehavior.ts": {
       "mTimestamp": {
-        "mtime": 1786346810653.4338,
+        "mtime": 1786521398906.6096,
         "uuid": "447a22c2-f685-4b14-bc2d-8d4b81383823"
       },
       "chunkId": "efeee09cd6cdfb0ceeaee3853a7ab8e02e196e1e",
@@ -5664,7 +5664,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1786431268463,
+      "mTimestamp": 1786510264829,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -5794,7 +5794,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1786431268463,
+      "mTimestamp": 1786510264829,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",

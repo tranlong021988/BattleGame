@@ -55,7 +55,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
       UNIT_FAMILY_ARCHER = 2;
       UNIT_FAMILY_MONK = 6;
       RANGED_DANGER_RANGE_RATIO = 0.5;
-      RANGED_SAFE_MIN_RANGE_RATIO = 0.7;
+      RANGED_SAFE_MIN_RANGE_RATIO = 1;
       RANGED_COMBAT_MOVE_SPEED_RATIO = 0.75;
       RANGED_YIELD_LOOK_BEHIND = 2.8;
       RANGED_YIELD_SIDE_RANGE = 1.35;
@@ -417,27 +417,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         consumeAttackRangeCardBudget(enemy) {
-          if (!enemy || !enemy.agent || !this.agent) return false;
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
           }), GameManager) : GameManager).instance;
           if (!gm) return false;
-          var modifiers = gm.getBattleCardModifiers(this.team, this.props.family, enemy.props.family);
-
-          if (modifiers.attackRangeMultiplier <= 1.0001) {
-            return false;
-          }
-
-          var baseRange = Math.max(0, this.attackRange) + Math.max(0, this.radius) + Math.max(0, enemy.radius);
-          var effectiveRange = this.getEffectiveAttackRangeAgainst(enemy);
-          var dx = enemy.agent.pos.x - this.agent.pos.x;
-          var dz = enemy.agent.pos.z - this.agent.pos.z;
-          var distanceSq = dx * dx + dz * dz;
-
-          if (distanceSq <= baseRange * baseRange || distanceSq > effectiveRange * effectiveRange) {
-            return false;
-          }
-
           return gm.consumeAttackRangeCardBudget(this.team, this.props.family, enemy.props.family);
         }
 
@@ -842,6 +825,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         update(deltaTime) {
           if (!this.sim || !this.agent) return;
+          this.agent.maxSpeed = this.getEffectiveMoveSpeed();
           this.frameCounter++;
 
           if (this.props && this.shouldRunTargetSearch()) {
@@ -1486,6 +1470,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           var modifiers = gm ? gm.getBattleCardModifiers(this.team, this.props.family, opposingFamily) : null;
           return Math.max(0, this.attackRange * (modifiers ? modifiers.attackRangeMultiplier : 1));
+        }
+
+        getEffectiveMoveSpeed() {
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          var modifiers = gm ? gm.getBattleCardModifiers(this.team, this.props.family) : null;
+          return Math.max(0, this.moveSpeed * (modifiers ? modifiers.moveSpeedMultiplier : 1));
         }
 
         getAttackRangeSearchRadius() {

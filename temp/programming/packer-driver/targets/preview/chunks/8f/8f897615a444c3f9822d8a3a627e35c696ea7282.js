@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -252,14 +252,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec31 = property({
         tooltip: 'Let BattleArmyBrain A simulate player purchases between battles. It may buy multiple affordable packages.'
       }), _dec32 = property({
-        tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
+        displayName: 'Allow Ads Rescue',
+        tooltip: 'Allow the purchase simulation to watch a rewarded ad for enough gold to buy one useful unavailable package or upgrade before battle.'
       }), _dec33 = property({
+        tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
+      }), _dec34 = property({
         min: 1,
         step: 1,
         tooltip: 'Cards each team may bring into one battle. This is the future deck-upgrade hook.'
-      }), _dec34 = property({
-        min: 0,
-        step: 1
       }), _dec35 = property({
         min: 0,
         step: 1
@@ -270,29 +270,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 0,
         step: 1
       }), _dec38 = property({
+        min: 0,
+        step: 1
+      }), _dec39 = property({
         min: 0.01,
         step: 0.1
-      }), _dec39 = property({
+      }), _dec40 = property({
         min: 1,
         step: 0.05,
         displayName: 'Boss Gold Reward Multiplier',
         tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
-      }), _dec40 = property({
+      }), _dec41 = property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Loss Gold Ratio',
         tooltip: 'Gold granted after every valid player loss as a ratio of that level win reward.'
-      }), _dec41 = property({
+      }), _dec42 = property({
         min: 1,
         step: 1
-      }), _dec42 = property({
+      }), _dec43 = property({
         min: 0.01,
         step: 0.1
-      }), _dec43 = property({
+      }), _dec44 = property({
         min: 1,
         step: 1
-      }), _dec44 = property({
+      }), _dec45 = property({
         type: [UnitProgressionRule]
       }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
@@ -352,31 +355,33 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "purchasingSimulation", _descriptor33, this);
 
-          _initializerDefineProperty(this, "progressionStorageKey", _descriptor34, this);
+          _initializerDefineProperty(this, "allowAdsRescue", _descriptor34, this);
 
-          _initializerDefineProperty(this, "battleCardDeckSize", _descriptor35, this);
+          _initializerDefineProperty(this, "progressionStorageKey", _descriptor35, this);
 
-          _initializerDefineProperty(this, "initialPlayerGold", _descriptor36, this);
+          _initializerDefineProperty(this, "battleCardDeckSize", _descriptor36, this);
 
-          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor37, this);
+          _initializerDefineProperty(this, "initialPlayerGold", _descriptor37, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor38, this);
+          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor38, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor39, this);
+          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor39, this);
 
-          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor40, this);
+          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor40, this);
 
-          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor41, this);
+          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor41, this);
 
-          _initializerDefineProperty(this, "lossGoldRatio", _descriptor42, this);
+          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor42, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor43, this);
+          _initializerDefineProperty(this, "lossGoldRatio", _descriptor43, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor44, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor44, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor45, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor45, this);
 
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor46, this);
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor46, this);
+
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor47, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -462,8 +467,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         handleBattleResult(winnerTeam, loserTeam, reason) {
-          var _this$getGameManager;
-
           if (!this.enableProgression || !this.progressionState) {
             return null;
           }
@@ -472,7 +475,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var battleLevel = this.battleLevel;
           var before = this.createTelemetrySnapshot();
           var purchases = [];
-          var usedPlayerCards = ((_this$getGameManager = this.getGameManager()) == null ? void 0 : _this$getGameManager.getUsedBattleCardIds(0)) || [];
+          var usedPlayerCards = this.currentPlayerBattleCardIds.slice();
           this.advancePlayerCardCooldowns(state, usedPlayerCards);
           var newlyOffered = this.offerIntroducedUnits(battleLevel);
           var rewardBaseCP = this.getLevelBaseInitialCP(battleLevel);
@@ -651,7 +654,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.purchasingSimulation) {
             this.runPurchaseSimulation(this.preBattlePurchases, 'pre-battle');
 
-            if (this.trySimulateRewardedAd(this.preBattlePurchases)) {
+            if (this.allowAdsRescue && this.trySimulateRewardedAd(this.preBattlePurchases)) {
               this.runPurchaseSimulation(this.preBattlePurchases, 'pre-battle');
             }
           }
@@ -2508,91 +2511,98 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "progressionStorageKey", [_dec32], {
+      }), _descriptor34 = _applyDecoratedDescriptor(_class5.prototype, "allowAdsRescue", [_dec32], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return true;
+        }
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "progressionStorageKey", [_dec33], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 'battle-progression-v8';
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "battleCardDeckSize", [_dec33], {
+      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "battleCardDeckSize", [_dec34], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec34], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec35], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec35], {
+      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec36], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 300;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec36], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec37], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 4;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec37], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec38], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec38], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec39], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec39], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec40], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "lossGoldRatio", [_dec40], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "lossGoldRatio", [_dec41], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.1;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec41], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec42], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec42], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec43], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec43], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec44], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1000;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec44], {
+      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec45], {
         configurable: true,
         enumerable: true,
         writable: true,

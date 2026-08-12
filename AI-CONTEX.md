@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-11. This handoff records the accepted design and recent
+Last updated: 2026-08-12. This handoff records the accepted design and recent
 implementation. **Runtime source and `assets/Test.scene` are authoritative if
 they conflict with this file.** Do not reinstate old mechanics from this file
 without checking source first.
@@ -11,12 +11,14 @@ without checking source first.
   never stage, reset, revert, or delete generated `library/`, `temp/`, or
   `profiles/` content without explicit permission.
 - `assets/Test.scene` contains deliberate user tuning: `totalLevels = 60`,
-  `progressionEndLevel = 50`, boss initial CP multiplier `= 1`, boss Max Alive
-  multiplier `= 1`. This is intentional: levels 51--60 should let players
+  `progressionEndLevel = 50`, boss initial CP multiplier `= 1.05`, boss Max
+  Alive multiplier `= 1`, and `allowAdsRescue = false` for the latest test.
+  This is intentional: levels 51--60 should let players
   enjoy their acquired power, not force everything to finish exactly at L60.
-- Current authored changes are uncommitted. Meaningful source work is mainly
-  `assets/scripts/LevelSettings.ts`; scene changes include both user changes
-  and the reward field update. Do not treat all scene diff as Codex-owned.
+- Current authored changes are uncommitted. Meaningful source work is in
+  `LevelSettings`, `BattleCardDatabase`, `BattleCardRuntime`, `GameManager`,
+  `Unit`, `UnitBehavior`, and `Test.scene`. Scene changes include user tuning;
+  do not treat all scene diff as Codex-owned.
 - The old rescue/ad code was removed from source in this session. Do not clean
   generated assets merely because the worktree is noisy.
 - Update this file only when the user asks for a handoff.
@@ -62,8 +64,9 @@ are empty.
 - Current campaign: 60 total levels, progression ends at 50, boss pace 5.
   CP, units and Max Alive flatten after L50 until later systems create new
   sinks.
-- Enemy and player progression target comparable baseline CP. Enemy multipliers
-  are 1.1 except the user-set boss initial CP/Max Alive multipliers noted above.
+- Enemy and player progression target comparable base CP. Inspect current scene
+  values rather than assuming a global enemy multiplier; the current boss-only
+  multipliers are the user-set values noted above.
 - Player initial CP baseline/packages reach the current L50 target of 1040;
   Max Alive reaches 10. `winGoldPerEnemyCP = 1.15`; boss reward multiplier is
   1.15; valid loss reward is 10% of that level's win reward.
@@ -103,10 +106,11 @@ old multiplier 20 or add a pre-level gold reservation without user direction.
 - Cards activate at battle start and use event-budget charges, not duration or
   CP-threshold triggers. At zero budget, a card deactivates immediately.
 - Consumption: damage per attack batch; defense/counter immunity per protected
-  defender; radius per batch that uses its extra radius; range only for attacks
-  in the added range band. Multiple matching cards each consume their charge.
-- Player owns reusable cards and cooldown starts only if a card consumed a
-  charge. Cooldown advances after completed battles. Cooldown ranks 0..2 reduce
+  defender; radius per batch that uses its extra radius. Multiple matching cards
+  each consume their charge.
+- A player card put into a battle deck always starts cooldown when that battle
+  ends, even if it spent zero budget. A card left out of the deck is unaffected.
+  Cooldown advances after completed battles. Cooldown ranks 0..2 reduce
   effective cooldown by one, minimum one; budget ranks 0..2 are 1.0x/1.4x/1.8x.
 - Eligibility is roster/opponent-aware. Anti-Cavalry requires enemy Cavalry;
   Counter Breaker requires an actual counter threat. Enemy card decks lock per
@@ -119,8 +123,26 @@ old multiplier 20 or add a pre-level gold reservation without user direction.
 
 Current cards: General Offensive, Battle Shields, Anti-Cavalry Spearhead, Axe
 Frenzy, Sword Wall, Arrow Suppression, Precise Range, Wide Prayer, Counter
-Breaker. `Precise Range` was rarely consumed on the narrow map; treat that as a
-map/value question, not a missing call, until a controlled A/B test.
+Breaker.
+
+### Precise Range and ranged kiting (implemented 2026-08-12)
+
+- `Precise Range` targets both Archer and Monk (`Ranged` target), not Archer
+  only. While budget remains, it grants +8% attack range and +8% move speed.
+  Move speed affects all agent movement, including approach, kite, and ranged
+  reposition.
+- Every Archer/Monk attack batch consumes one Precise Range budget while the
+  card is active, regardless of target distance. This deliberately replaced the
+  old added-range-band-only consumption rule.
+- Ranged units begin kiting below 50% of effective range and continue until
+  they regain 100% of effective range (previously 70%). The effective range
+  includes active card modifiers, so Precise Range shifts both thresholds.
+- `MoveSpeedPercent = 6` was added to `BattleCardModifier`; Precise Range uses
+  it as its second modifier. Inspector scene data was synchronized; do not rely
+  on code defaults to overwrite serialized card values.
+- Arrow Suppression's -8% range still cancels Precise Range's +8% range on
+  Archers when both are active. Precise Range still provides its +8% speed and
+  spends one charge per ranged attack in that case.
 
 ## Combat resolution
 
@@ -135,6 +157,12 @@ map/value question, not a missing call, until a controlled A/B test.
 
 Team A is a simulation of an eventual player while `purchasingSimulation` is
 enabled. The real player UI/SDK is not implemented by this simulation.
+
+`allowAdsRescue` is an Inspector checkbox, default `true` in code and currently
+`false` in `Test.scene`. It gates only the simulated rewarded ad that grants
+gold for one currently available, unaffordable purchase. When false, the bot
+must earn gold by winning/retrying. It does not gate the separate public
+`tryFinishCardCooldownWithAd()` hook, which remains for future real player UI.
 
 1. Before battle, current-level unit offers are created, then the bot buys all
    normally affordable, eligible purchases.
@@ -159,6 +187,12 @@ The user explicitly accepts occasional early ads as a realistic player's
 chance unless asked. The retired `lossesPerVideoReward`, boss-only rescue,
 `applyVideoRescue`, `rescueHistory`, and free-package rescue behavior must not
 be reintroduced.
+
+Ads never unlock a future milestone: ad selection uses the same purchase
+candidate list as normal buying. CP/Max Alive packages require
+`offerLevel <= currentLevel`; therefore in L21--L25 it can only fund packages
+offered for the L25 baseline, never L30. It funds one selected eligible target,
+not necessarily every remaining package of the current boss baseline.
 
 ## Latest telemetry evidence
 
@@ -185,6 +219,33 @@ be reintroduced.
   gate needs a controlled same-seed A/B run with ads on/off, especially L16,
   L46, L48 and L49. The user deferred this test.
 
+### Ads-off baseline run: 2026-08-12 04:54--06:58 (96 reports)
+
+- With `allowAdsRescue = false`: 60 wins / 36 losses (62.5%), completed L1--60,
+  no rewarded-ad records and final ad count 0.
+- This was the first evidence that ads make progression easier without being a
+  hard requirement. Relative to the prior ad-enabled run (74.1%), the run is
+  harder, but different random paths are not a controlled causal comparison.
+
+### Latest combat/card run: 2026-08-12 telemetry files 07:58--09:57 (130 reports)
+
+- `allowAdsRescue = false`, boss CP multiplier 1.05, boss Max Alive multiplier
+  1.0. The campaign still cleared L1--60: 60 wins / 70 losses (46.2%).
+- Bosses intentionally exceed the player's baseline CP: L50/L60 player 1040 vs
+  enemy 1092. The user raised this multiplier specifically to test whether a
+  full-baseline player can still reach L60. It can; no hard lock appeared.
+- Major retry spikes: L10 9 losses, L37 11, L42 5, L50 5, L60 2. Treat these as
+  difficulty/variance observations, not proof that cooldown is the cause. The
+  bot sometimes had no ready deck, but telemetry does not prove whether that
+  was caused chiefly by cooldown costs, ownership, or random selection.
+- Precise Range is now consumed as designed: player selected it 15 times,
+  exhausted it 13 times, 94.7% aggregate budget use (previously ~0.5%). This
+  validates its new attack-batch consumption; it does not by itself prove card
+  strength is balanced.
+- Other player card usage: Battle Shields and General Offensive 100%, Axe
+  Frenzy 99.2%, Sword Wall 87.7%, Arrow Suppression 69.6%, Anti-Cavalry 66.4%,
+  Wide Prayer 48%. Use controlled A/B before retuning values.
+
 ## Validation already completed
 
 - Targeted Cocos TypeScript compile passed after the progression/ad changes:
@@ -194,13 +255,24 @@ be reintroduced.
 - `git diff --check` passed. Static checks confirmed the evenly distributed
   schedule (e.g. 11,13 and 26,28) and no remaining `applyVideoRescue` or
   `lossesPerVideoReward` source use.
+- Targeted Cocos TypeScript compile also passed after the 2026-08-12 card,
+  movement, and cooldown changes.
 - No full deterministic A/B or human playtest has been run. Do not claim ads
-  are necessary, or that post-L50 balance is validated, without that test.
+  are necessary, that a particular card caused a retry spike, or that post-L50
+  balance is validated, without that test.
 
 ## Likely next task
 
-There is no active implementation request. If the user resumes the ad question,
-add a controlled telemetry/simulation comparison rather than changing balance
-by intuition: same seeded deck/AI, ads enabled vs disabled, aggregate attempts
-and outcomes for the identified levels. Preserve the accepted early-ad behavior
-unless the user asks to change it.
+There is no active implementation request. The approved next design direction
+is a **side mission / gold-farming branch** outside the main level path:
+
+- It gives the player/bot an active non-ad way to earn gold when underpowered.
+- It must only fund purchases already offered for the current progression
+  milestone; it must never unlock future units/cards/packages.
+- Ads should become a shortcut (for example, skip/boost the side-mission
+  reward), not the only rescue path.
+- Do not implement it until the user decides its mission format/reward loop.
+
+When work resumes, first use `game-systems-design` to specify the side loop,
+then `game-design-consistency` for progression/telemetry impacts, and
+`game-balance-regression` for a controlled ads-on/off/side-mission comparison.

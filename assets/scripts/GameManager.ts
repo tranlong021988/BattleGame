@@ -910,6 +910,7 @@ export class GameManager extends Component {
                 damageMultiplier: 1,
                 defenseFlat: 0,
                 attackRangeMultiplier: 1,
+                moveSpeedMultiplier: 1,
                 damageRadiusMultiplier: 1,
                 counterImmune: false,
             };

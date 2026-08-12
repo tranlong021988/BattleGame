@@ -11,6 +11,7 @@ export interface BattleCardModifiers {
     damageMultiplier: number;
     defenseFlat: number;
     attackRangeMultiplier: number;
+    moveSpeedMultiplier: number;
     damageRadiusMultiplier: number;
     counterImmune: boolean;
 }
@@ -141,6 +142,7 @@ export class BattleCardRuntime {
             damageMultiplier: 1,
             defenseFlat: 0,
             attackRangeMultiplier: 1,
+            moveSpeedMultiplier: 1,
             damageRadiusMultiplier: 1,
             counterImmune: false,
         };
@@ -174,6 +176,10 @@ export class BattleCardRuntime {
         result.attackRangeMultiplier = Math.max(
             0,
             result.attackRangeMultiplier
+        );
+        result.moveSpeedMultiplier = Math.max(
+            0,
+            result.moveSpeedMultiplier
         );
         result.damageRadiusMultiplier = Math.max(
             0,
@@ -352,6 +358,9 @@ export class BattleCardRuntime {
                 break;
             case BattleCardModifier.AttackRangePercent:
                 result.attackRangeMultiplier += safeValue / 100;
+                break;
+            case BattleCardModifier.MoveSpeedPercent:
+                result.moveSpeedMultiplier += safeValue / 100;
                 break;
             case BattleCardModifier.DamageRadiusPercent:
                 result.damageRadiusMultiplier += safeValue / 100;

@@ -42,6 +42,7 @@ type UnitBehaviorGameManager = {
         defenseFlat: number;
         damageRadiusMultiplier: number;
         attackRangeMultiplier: number;
+        moveSpeedMultiplier: number;
         counterImmune: boolean;
     };
     consumeBattleCardModifier(
