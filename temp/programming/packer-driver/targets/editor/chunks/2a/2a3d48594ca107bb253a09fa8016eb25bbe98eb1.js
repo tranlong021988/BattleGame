@@ -775,6 +775,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               damageMultiplier: 1,
               defenseFlat: 0,
               attackRangeMultiplier: 1,
+              moveSpeedMultiplier: 1,
               damageRadiusMultiplier: 1,
               counterImmune: false
             };

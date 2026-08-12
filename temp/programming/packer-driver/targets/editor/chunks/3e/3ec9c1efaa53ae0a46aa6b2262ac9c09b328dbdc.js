@@ -108,6 +108,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             damageMultiplier: 1,
             defenseFlat: 0,
             attackRangeMultiplier: 1,
+            moveSpeedMultiplier: 1,
             damageRadiusMultiplier: 1,
             counterImmune: false
           };
@@ -128,6 +129,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           result.damageMultiplier = Math.max(0, result.damageMultiplier);
           result.attackRangeMultiplier = Math.max(0, result.attackRangeMultiplier);
+          result.moveSpeedMultiplier = Math.max(0, result.moveSpeedMultiplier);
           result.damageRadiusMultiplier = Math.max(0, result.damageRadiusMultiplier);
           this.modifiersByTeamFamily.set(cacheKey, result);
           return result;
@@ -274,6 +276,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               error: Error()
             }), BattleCardModifier) : BattleCardModifier).AttackRangePercent:
               result.attackRangeMultiplier += safeValue / 100;
+              break;
+
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).MoveSpeedPercent:
+              result.moveSpeedMultiplier += safeValue / 100;
               break;
 
             case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({

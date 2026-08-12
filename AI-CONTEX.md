@@ -1,9 +1,108 @@
 # BattleGame handoff
 
-Last updated: 2026-08-12. This handoff records the accepted design and recent
+Last updated: 2026-08-13. This handoff records the accepted design and recent
 implementation. **Runtime source and `assets/Test.scene` are authoritative if
 they conflict with this file.** Do not reinstate old mechanics from this file
 without checking source first.
+
+## Current override: economy, side mission, and cooldown-card ads (2026-08-13)
+
+This section supersedes every conflicting statement below, especially the old
+"Bot shop and rewarded-ad simulation" and "Likely next task" sections.
+
+- Worktree remains intentionally dirty. Current authored files are
+  `assets/scripts/LevelSettings.ts`, `assets/Test.scene`, and this handoff;
+  do not clean generated `library/`, `temp/`, or `profiles` outputs.
+- `Test.scene` currently has `totalLevels = 60`, `progressionEndLevel = 50`,
+  boss CP multiplier `1.05`, boss Max Alive multiplier `1`,
+  `allowAdsRescue = true`, `winGoldPerEnemyCP = 1.15`, boss gold multiplier
+  `1.15`, and `mainBattleEntryFeeRatio = 0.35`.
+- Save key remains `battle-progression-v8`; progression state schema is v10
+  and migrates v8/v9/v10. Do not bump the key without a real incompatible save
+  change.
+
+### Main economy (implemented)
+
+1. The first main progression battle is free. Every later main battle charges
+   `ceil(mainWinGold(level) * mainBattleEntryFeeRatio / 50) * 50`. Side missions
+   are free.
+2. Bot purchase simulation reserves the next main entry fee both immediately
+   after the previous result and immediately before battle. This prevents the
+   old bug: win -> spend fee on upgrades -> forced farm purely to enter main.
+3. A main win rolls Gold or Gold x2 with ad (50/50 in bot simulation when
+   `allowAdsRescue` is true); x2 adds one `adsReward`.
+4. Main reward is dynamic, not level-fixed. Base reward is enemy baseline CP
+   times `winGoldPerEnemyCP` (and boss multiplier on bosses). It is raised when
+   needed so current gold plus reward covers the *next* entry fee and one
+   cheapest current bot-priority purchase, rounded up in 50-gold steps:
+   `max(baseReward, ceil(max(0, nextFee + targetCost - currentGold)/50)*50)`.
+   It guarantees one purchase plus entry, not every outstanding package.
+5. Old loss gold/free-package/video rescue is removed. Do not restore
+   `lossGoldRatio`, `grantLossGold`, `applyVideoRescue`, or the previous
+   one-off rewarded-ad purchase rescue.
+
+### Side-mission farming branch (implemented)
+
+- Current test gate: only when bot has an unaffordable currently offered
+  purchase, it rolls 50/50 progression versus a side mission. Real future UI
+  must expose side mission at all times; this gate is only simulation scope.
+- Browser reloads same level with `sideMission=1`. Enemy copies player unit
+  unlock/count, initial CP, and Max Alive; it uses enemy baseline accuracy for
+  that progress point. No boss multiplier and no cards for either side.
+- Side win reward targets the cheapest one or two currently unaffordable
+  bot-priority purchases, rounded to 50. It rolls Gold/Gold x2 ad exactly like
+  a main win.
+- After either side win or loss, bot rolls side again vs main. Chance is
+  `min(0.85, 0.25 + 0.15 * min(4, delayedPurchaseCount))`.
+- **Critical ordering:** On side win, `delayedPurchaseCount` must be measured
+  before the reward is granted. This was fixed on 2026-08-13. Counting after
+  reward made every chance collapse to 25%.
+- Events are persisted (latest 40) in `botSimulationEvents`: `side-mission-entry-roll`,
+  `side-mission-win-route-roll`, `side-mission-loss-roll`,
+  `main-entry-fee-paid`, and `main-entry-fee-insufficient`.
+
+### Card cooldown ads (implemented)
+
+- Human-facing API is `tryFinishCardCooldownWithAd(cardId)`; call it only after
+  real rewarded-video success. It completes that owned card's cooldown and
+  increments `adsReward`.
+- Bot card simulation rolls all owned eligible cards. Ready cards always enter
+  the candidate pool. Each cooling card independently has **50%** chance to
+  enter it, simulating user hesitation to watch an ad. If such a card is
+  actually selected, bot uses exactly one ad to complete cooldown and use it;
+  if not accepted, it is absent and ready alternatives can fill the deck.
+- Event is `card-cooldown-finish-ad`. It is created during pre-battle setup,
+  so it may appear in a later telemetry report's `before` state rather than in
+  the result `after - before` delta. Do not misdiagnose it as inactive using
+  only result deltas.
+- Card deck capacity remains 3 today but is a dynamic future upgrade hook.
+  Enemy uses predefined, per-level locked decks and has no card cooldown.
+
+### Current telemetry evidence / next validation
+
+Latest user batch: `battle-telemetry-2026-08-12T17:56--18:48` (141 reports).
+
+- Cleared L1--L60: 92 main (60 wins / 32 losses), 49 side (28 wins / 21
+  losses), final gold 16,536, final ads 262.
+- Prior batch had 82 side battles in 168 reports. The reduction is meaningful,
+  but side frequency is not yet declared balanced.
+- No new `main-entry-fee-insufficient` event occurred: the entry-fee reserve
+  plus dynamic reward floor solved the observed win-then-cannot-enter loop.
+- The supplied batch still showed side continuation `delayedPurchaseCount = 0`
+  and chance 25%; that revealed the pre-reward ordering bug now fixed. A fresh
+  run must validate nonzero delayed counts and higher continuation chances.
+- Result-level ads delta saw 40 Gold x2 claims. The remaining final ad count is
+  consistent with pre-battle card completions; inspect persistent event history
+  to audit it.
+
+Required fresh telemetry checks:
+
+1. No main win followed by fee-only side farming.
+2. Side route chance increases above 25% whenever pre-reward delayed count is
+   nonzero.
+3. Cooling cards are selected/ad-completed at roughly half the opportunity
+   rate, while ready cards remain selectable.
+4. Side mission remains intentional economy/engagement rather than a hard lock.
 
 ## Start here
 

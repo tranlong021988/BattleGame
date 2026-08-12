@@ -58,7 +58,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       error: Error()
     }), UnitFamily) : UnitFamily).Archer, BattleCardModifier.DamagePercent, 12, BattleCardModifier.AttackRangePercent, -8), createCard('precise-range', 'Precise Range', 1100, 5, 18, BattleCardTarget.Ranged, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Archer, BattleCardModifier.AttackRangePercent, 8), createCard('wide-prayer', 'Wide Prayer', 1200, 5, 5, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Archer, BattleCardModifier.AttackRangePercent, 8, BattleCardModifier.MoveSpeedPercent, 8), createCard('wide-prayer', 'Wide Prayer', 1200, 5, 5, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
     }), UnitFamily) : UnitFamily).Monk, BattleCardModifier.DamageRadiusPercent, 30, BattleCardModifier.DamagePercent, -12), createCard('counter-breaker', 'Counter Breaker', 1600, 6, 3, BattleCardTarget.AllUnits, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
@@ -110,6 +110,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         BattleCardModifier[BattleCardModifier["AttackRangePercent"] = 3] = "AttackRangePercent";
         BattleCardModifier[BattleCardModifier["DamageRadiusPercent"] = 4] = "DamageRadiusPercent";
         BattleCardModifier[BattleCardModifier["CounterImmunity"] = 5] = "CounterImmunity";
+        BattleCardModifier[BattleCardModifier["MoveSpeedPercent"] = 6] = "MoveSpeedPercent";
         return BattleCardModifier;
       }({}));
 
@@ -157,7 +158,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       }), _dec9 = property({
         type: BattleCardModifier
       }), _dec10 = property({
-        tooltip: 'Percent for Damage/Range/Radius; flat amount for Defense. Counter Immunity ignores this value.'
+        tooltip: 'Percent for Damage/Move Speed/Range/Radius; flat amount for Defense. Counter Immunity ignores this value.'
       }), _dec11 = property({
         type: BattleCardModifier
       }), _dec12 = property({
