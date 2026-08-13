@@ -5,21 +5,51 @@ implementation. **Runtime source and `assets/Test.scene` are authoritative if
 they conflict with this file.** Do not reinstate old mechanics from this file
 without checking source first.
 
-## Current override: economy, side mission, and cooldown-card ads (2026-08-13)
+## Current override: runtime transition, economy, side mission, and cooldown-card ads (2026-08-13)
 
-This section supersedes every conflicting statement below, especially the old
-"Bot shop and rewarded-ad simulation" and "Likely next task" sections.
+This section is the current implementation summary; source remains authoritative.
 
 - Worktree remains intentionally dirty. Current authored files are
-  `assets/scripts/LevelSettings.ts`, `assets/Test.scene`, and this handoff;
+  `assets/scripts/LevelSettings.ts`, `assets/scripts/GameManager.ts`,
+  `assets/Test.scene`, and this handoff;
   do not clean generated `library/`, `temp/`, or `profiles` outputs.
 - `Test.scene` currently has `totalLevels = 60`, `progressionEndLevel = 50`,
   boss CP multiplier `1.05`, boss Max Alive multiplier `1`,
   `allowAdsRescue = true`, `winGoldPerEnemyCP = 1.15`, boss gold multiplier
-  `1.15`, and `mainBattleEntryFeeRatio = 0.35`.
+  `1.15`, `mainBattleEntryFeeRatio = 0.35`, and `initialPlayerGold = 1000`.
 - Save key remains `battle-progression-v8`; progression state schema is v10
   and migrates v8/v9/v10. Do not bump the key without a real incompatible save
   change.
+
+### Runtime battle transition (implemented 2026-08-13)
+
+- Normal campaign progression no longer changes battle parameters through the
+  page URL or reloads the browser after each result.
+- `LevelSettings` saves the next `currentLevel` and `sideMissionActive` in the
+  existing progression local-storage state. `GameManager` is the sole owner of
+  the post-battle sequence: it requests telemetry export, then schedules the
+  browser-independent scene reset through `LevelSettings.resetBattle()`.
+  `resetBattle()` calls Cocos `game.restart()` rather than resolving a scene
+  name itself. This is required because Preview's launch Scene can be unnamed
+  and the project has multiple registered scenes. Cocos resets and destroys
+  the old director scene, then reloads its own configured launch scene; no
+  browser reload occurs and local-storage progression, purchases, gold, and
+  card state remain intact.
+- This route was manually tested successfully on 2026-08-13 after fixing an
+  existing teardown bug in `GameManager.unregisterWaveBannerCameraEvents()`:
+  it must only call `.off()` while the subscribed component/node is still
+  `isValid`. Do not revert that guard; `game.restart()` destroys the old scene
+  and otherwise throws repeated `Cannot read properties of null (reading 'off')`
+  errors during `GameManager.onDestroy()`.
+- A fresh Preview start (no telemetry-level URL query and not an internal scene
+  reset) clears the progression save, so each Preview begins from a clean run.
+  Internal scene resets are marked in runtime and therefore keep the save.
+- Telemetry-batch URL queries are now only read when progression is disabled
+  for a legacy telemetry/debug session. They cannot override normal campaign
+  state; local storage is the source of truth.
+- When a normal campaign ends (or automatic progression is disabled),
+  `GameManager` now stops instead of falling through to its legacy browser
+  reload path.
 
 ### Main economy (implemented)
 
@@ -46,12 +76,18 @@ This section supersedes every conflicting statement below, especially the old
 - Current test gate: only when bot has an unaffordable currently offered
   purchase, it rolls 50/50 progression versus a side mission. Real future UI
   must expose side mission at all times; this gate is only simulation scope.
-- Browser reloads same level with `sideMission=1`. Enemy copies player unit
-  unlock/count, initial CP, and Max Alive; it uses enemy baseline accuracy for
-  that progress point. No boss multiplier and no cards for either side.
-- Side win reward targets the cheapest one or two currently unaffordable
-  bot-priority purchases, rounded to 50. It rolls Gold/Gold x2 ad exactly like
-  a main win.
+- The same current Cocos scene resets with `sideMissionActive` persisted in the
+  progression save. Enemy copies player unit unlock/count, initial CP, and Max
+  Alive; it uses enemy baseline accuracy for that progress point. No boss
+  multiplier and no cards for either side.
+- Side win reward is the current level's main-win baseline, rounded up to 50,
+  then halved for each consecutive prior side win at that level (with a
+  50-gold floor): 100%, 50%, 25%, ... . Gold x2 ad rolls on this already
+  reduced reward. It no longer adds purchase costs into side reward, avoiding
+  a reward spike when the player chooses not to buy the intended package.
+- `consecutiveSideWins` increments only on a side win, does not reset on a
+  side loss, and resets when any main battle resolves. It is exposed in the
+  player telemetry snapshot and old saves default it to 0.
 - After either side win or loss, bot rolls side again vs main. Chance is
   `min(0.85, 0.25 + 0.15 * min(4, delayedPurchaseCount))`.
 - **Critical ordering:** On side win, `delayedPurchaseCount` must be measured
@@ -78,7 +114,7 @@ This section supersedes every conflicting statement below, especially the old
 - Card deck capacity remains 3 today but is a dynamic future upgrade hook.
   Enemy uses predefined, per-level locked decks and has no card cooldown.
 
-### Current telemetry evidence / next validation
+### Telemetry evidence / next validation
 
 Latest user batch: `battle-telemetry-2026-08-12T17:56--18:48` (141 reports).
 
@@ -111,7 +147,7 @@ It is already reflected in `LevelSettings.ts`; keep this list so a new agent
 can separate completed work from open decisions.
 
 - Implemented main battle entry fee, dynamic main reward floor, Gold/Gold x2
-  claims, side-mission reload loop, side-mission mirror setup, and telemetry
+  claims, side-mission transition loop, side-mission mirror setup, and telemetry
   events. Removed the old loss-gold/free rescue logic.
 - Fixed the ordering bug where side continuation counted delayed purchases
   after side reward. It now snapshots the count before the reward.
@@ -144,19 +180,6 @@ can separate completed work from open decisions.
   3,000 and L11 2,400). User accepts this as ads monetization; do not nerf it
   unless asked.
 
-#### Open decision: beginner gold, not implemented
-
-- Inspector currently remains `initialPlayerGold = 0`.
-- User wants starter gold so a human can learn by buying and experimenting
-  before being routed toward farming. Recommended next tuning value is
-  **1,000 gold**, because L1 typically has CP +7 costing 70 and cards costing
-  700/800/850: this permits a starter CP upgrade plus one starter card with
-  some remainder. Do not claim this is implemented; change `Test.scene` only
-  if the user confirms.
-- A L1 telemetry snapshot had 30 gold after CP +7, despite the scene field
-  being 0. Treat that as carried/query/save test state; reset progression for a
-  clean test when changing initial gold.
-
 ## Start here
 
 - The worktree is intentionally dirty. Preserve unrelated user/Cocos changes;
@@ -164,15 +187,13 @@ can separate completed work from open decisions.
   `profiles/` content without explicit permission.
 - `assets/Test.scene` contains deliberate user tuning: `totalLevels = 60`,
   `progressionEndLevel = 50`, boss initial CP multiplier `= 1.05`, boss Max
-  Alive multiplier `= 1`, and `allowAdsRescue = true` for the latest test.
+  Alive multiplier `= 1`, `allowAdsRescue = true`, and starter gold `= 1000`.
   This is intentional: levels 51--60 should let players
   enjoy their acquired power, not force everything to finish exactly at L60.
 - Current authored changes are uncommitted. Meaningful source work is in
   `LevelSettings`, `BattleCardDatabase`, `BattleCardRuntime`, `GameManager`,
   `Unit`, `UnitBehavior`, and `Test.scene`. Scene changes include user tuning;
   do not treat all scene diff as Codex-owned.
-- The old rescue/ad code was removed from source in this session. Do not clean
-  generated assets merely because the worktree is noisy.
 - Update this file only when the user asks for a handoff.
 
 ## Available skills / working style
@@ -221,10 +242,9 @@ are empty.
   multipliers are the user-set values noted above.
 - Player initial CP baseline/packages reach the current L50 target of 1040;
   Max Alive reaches 10. `winGoldPerEnemyCP = 1.15`; boss reward multiplier is
-  1.15; valid loss reward is 10% of that level's win reward.
-- Progression save key/version remains `battle-progression-v8`. Old saved
-  `rescueHistory` data is harmlessly ignored; do not bump storage just to
-  remove an unused saved key.
+  1.15. Main-loss gold/free-package rescue is retired.
+- Progression save key/version remains `battle-progression-v8`; do not bump
+  storage without a real incompatible schema change.
 
 ### Unit progression
 
@@ -305,126 +325,18 @@ Breaker.
 - Keep these outcomes checked consistently for both sides; the previous bug
   delayed resolution until an enemy later crossed the line.
 
-## Bot shop and rewarded-ad simulation (latest implementation)
+## Validation and next direction
 
-Team A is a simulation of an eventual player while `purchasingSimulation` is
-enabled. The real player UI/SDK is not implemented by this simulation.
-
-`allowAdsRescue` is an Inspector checkbox, default `true` in code and currently
-`false` in `Test.scene`. It gates only the simulated rewarded ad that grants
-gold for one currently available, unaffordable purchase. When false, the bot
-must earn gold by winning/retrying. It does not gate the separate public
-`tryFinishCardCooldownWithAd()` hook, which remains for future real player UI.
-
-1. Before battle, current-level unit offers are created, then the bot buys all
-   normally affordable, eligible purchases.
-2. It shares one candidate list for normal buying and ads. The list respects
-   package availability, current-level unit priority, baseline CP/Max Alive
-   needs, card-unlock priority, and cooldown priority. Budget upgrades are no
-   longer blocked merely because an unaffordable cooldown upgrade exists.
-3. If a useful candidate is unaffordable, the bot may simulate **one** rewarded
-   video for that preparation. Chance is a fixed derived rule, not Inspector
-   data: 20% base, higher after losses and when CP/Max Alive trail the enemy,
-   capped at 80%.
-4. The gold reward is exactly enough for the chosen target, rounded up to a
-   pleasant multiple of 50 (minimum 50), then the target is bought immediately.
-   Telemetry writes two records: `rewarded-ad-gold:<target>` followed by the
-   actual purchase with source `rewarded-ad`.
-5. A regular second purchase pass spends any rounding remainder. Ads grant only
-   gold; they never gift a free package or rank. Multiple ads can occur across
-   separate retries of the same level, but not twice in one preparation.
-
-The user explicitly accepts occasional early ads as a realistic player's
-"anxiety relief" behavior and a monetization hook. Do not remove the 20% base
-chance unless asked. The retired `lossesPerVideoReward`, boss-only rescue,
-`applyVideoRescue`, `rescueHistory`, and free-package rescue behavior must not
-be reintroduced.
-
-Ads never unlock a future milestone: ad selection uses the same purchase
-candidate list as normal buying. CP/Max Alive packages require
-`offerLevel <= currentLevel`; therefore in L21--L25 it can only fund packages
-offered for the L25 baseline, never L30. It funds one selected eligible target,
-not necessarily every remaining package of the current boss baseline.
-
-## Latest telemetry evidence
-
-### Pre-ad schedule fix: 2026-08-11 09:09--09:41 (99 reports)
-
-- 60 wins / 39 losses (60.6%). L12 player CP 436 vs enemy 427 after the schedule
-  fix; L26 678 vs 653. Earlier deficits at these levels were fixed by distributing
-  CP/Max Alive offers earlier and evenly in each interval.
-- The remaining issue was affordability, not unavailable offers: e.g. L11 had
-  a visible CP +41 package costing 410 with only 73--167 gold.
-- Post-L50 retries were largely combat/card variance because baseline CP had
-  already flattened at 1040; this is consistent with the intentional L50 end.
-
-### Rewarded-ad run: 2026-08-11 10:44--11:09 (81 reports)
-
-- 60 wins / 21 losses (74.1%). Ten rewarded ads; total ad gold 5,400, average
-  540; final gold 14,906. Rounding surplus was 261 total (4.8%).
-- Ads selected concrete purchases and then bought them: L16 CP +40, L36 Max
-  Alive +1, L40 General Offensive budget rank 2, L46/L48 CP, L49 Precise Range
-  budget rank 2, plus selected L5/L10 card actions.
-- There is no evidence of a hard "must watch ad to win" gate. Some runs are
-  highly suggestive (L16, L46, L48, L49 lost then ad-purchased power and won),
-  but L31 still lost once after an ad and L10's first ad also lost. Proving a
-  gate needs a controlled same-seed A/B run with ads on/off, especially L16,
-  L46, L48 and L49. The user deferred this test.
-
-### Ads-off baseline run: 2026-08-12 04:54--06:58 (96 reports)
-
-- With `allowAdsRescue = false`: 60 wins / 36 losses (62.5%), completed L1--60,
-  no rewarded-ad records and final ad count 0.
-- This was the first evidence that ads make progression easier without being a
-  hard requirement. Relative to the prior ad-enabled run (74.1%), the run is
-  harder, but different random paths are not a controlled causal comparison.
-
-### Latest combat/card run: 2026-08-12 telemetry files 07:58--09:57 (130 reports)
-
-- `allowAdsRescue = false`, boss CP multiplier 1.05, boss Max Alive multiplier
-  1.0. The campaign still cleared L1--60: 60 wins / 70 losses (46.2%).
-- Bosses intentionally exceed the player's baseline CP: L50/L60 player 1040 vs
-  enemy 1092. The user raised this multiplier specifically to test whether a
-  full-baseline player can still reach L60. It can; no hard lock appeared.
-- Major retry spikes: L10 9 losses, L37 11, L42 5, L50 5, L60 2. Treat these as
-  difficulty/variance observations, not proof that cooldown is the cause. The
-  bot sometimes had no ready deck, but telemetry does not prove whether that
-  was caused chiefly by cooldown costs, ownership, or random selection.
-- Precise Range is now consumed as designed: player selected it 15 times,
-  exhausted it 13 times, 94.7% aggregate budget use (previously ~0.5%). This
-  validates its new attack-batch consumption; it does not by itself prove card
-  strength is balanced.
-- Other player card usage: Battle Shields and General Offensive 100%, Axe
-  Frenzy 99.2%, Sword Wall 87.7%, Arrow Suppression 69.6%, Anti-Cavalry 66.4%,
-  Wide Prayer 48%. Use controlled A/B before retuning values.
-
-## Validation already completed
-
-- Targeted Cocos TypeScript compile passed after the progression/ad changes:
-
-  `node C:\ProgramData\cocos\editors\Creator\3.8.8\resources\app.asar.unpacked\node_modules\typescript\lib\tsc.js --noEmit --target ES2017 --module commonjs --strict false --experimentalDecorators --skipLibCheck assets/scripts/LevelSettings.ts assets/scripts/BattleCardDatabase.ts assets/scripts/BattleCardRuntime.ts assets/scripts/BattleTelemetry.ts assets/scripts/GameManager.ts assets/scripts/Unit.ts assets/scripts/UnitBehavior.ts temp/declarations/cc.d.ts temp/declarations/jsb.d.ts`
-
-- `git diff --check` passed. Static checks confirmed the evenly distributed
-  schedule (e.g. 11,13 and 26,28) and no remaining `applyVideoRescue` or
-  `lossesPerVideoReward` source use.
-- Targeted Cocos TypeScript compile also passed after the 2026-08-12 card,
-  movement, and cooldown changes.
-- No full deterministic A/B or human playtest has been run. Do not claim ads
-  are necessary, that a particular card caused a retry spike, or that post-L50
-  balance is validated, without that test.
-
-## Likely next task
-
-There is no active implementation request. The approved next design direction
-is a **side mission / gold-farming branch** outside the main level path:
-
-- It gives the player/bot an active non-ad way to earn gold when underpowered.
-- It must only fund purchases already offered for the current progression
-  milestone; it must never unlock future units/cards/packages.
-- Ads should become a shortcut (for example, skip/boost the side-mission
-  reward), not the only rescue path.
-- Do not implement it until the user decides its mission format/reward loop.
-
-When work resumes, first use `game-systems-design` to specify the side loop,
-then `game-design-consistency` for progression/telemetry impacts, and
-`game-balance-regression` for a controlled ads-on/off/side-mission comparison.
+- On 2026-08-13, the user manually verified that battle end still downloads
+  telemetry and then starts the next battle through Cocos runtime restart.
+  This is the accepted replacement for browser reload.
+- Source syntax transpile passed for `GameManager.ts` and `LevelSettings.ts`;
+  `git diff --check` passed. The broad legacy compile command should not be
+  presented as a fresh full-project test.
+- Side missions and the non-ad gold-farming loop are already implemented for
+  bot simulation. The next product step is to turn persistent campaign state
+  into real player-facing state/UI, rather than redesigning the side loop from
+  scratch.
+- No controlled deterministic ads-on/off A/B or human playtest has been run.
+  Do not claim ads are necessary, that a particular card caused a retry spike,
+  or that post-L50 balance is validated without one.

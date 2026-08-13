@@ -8,6 +8,7 @@ import {
     Prefab,
     Node,
     instantiate,
+    isValid,
     MeshRenderer,
     Material,
     game,
@@ -72,8 +73,8 @@ export interface BattleProgressionProvider {
         reason: string
     ): any;
     createTelemetrySnapshot(): any;
-    shouldAutoReloadAfterBattle(): boolean;
-    getNextBattleUrl(): string;
+    shouldResetBattleAfterResult(): boolean;
+    resetBattle(): boolean;
     isBossBattle?(): boolean;
 }
 
@@ -2447,45 +2448,52 @@ export class GameManager extends Component {
     }
 
     private scheduleBattleTelemetryPageReload() {
-        const progressionAutoReload =
-            !!this.battleProgressionProvider &&
-            this.battleProgressionProvider
-                .shouldAutoReloadAfterBattle();
+        const progressionProvider = this.battleProgressionProvider;
 
-        if (
-            !this.reloadPageAfterBattleTelemetryExport &&
-            !progressionAutoReload
-        ) {
+        // A real campaign keeps its state in local storage and starts its next
+        // scene only after telemetry export has been requested. This keeps the
+        // battle-end sequence in one owner instead of racing two timers.
+        if (progressionProvider) {
+            if (!progressionProvider.shouldResetBattleAfterResult()) {
+                return;
+            }
+
+            const delayMs = Math.max(
+                0,
+                this.battleTelemetryReloadDelaySeconds
+            ) * 1000;
+            const resetBattle = () => {
+                if (!progressionProvider.resetBattle()) {
+                    console.warn(
+                        '[BattleProgression] scene reset was not started.'
+                    );
+                }
+            };
+
+            console.log(
+                `[BattleProgression] restart battle runtime in ` +
+                `${(delayMs / 1000).toFixed(2)}s.`
+            );
+
+            if (typeof window !== 'undefined' && window.setTimeout) {
+                window.setTimeout(resetBattle, delayMs);
+                return;
+            }
+
+            this.scheduleOnce(resetBattle, delayMs / 1000);
             return;
         }
-        if (
-            !this.enableBattleTelemetry &&
-            !progressionAutoReload
-        ) {
+
+        if (!this.reloadPageAfterBattleTelemetryExport) {
+            return;
+        }
+        if (!this.enableBattleTelemetry) {
             return;
         }
         if (typeof window === 'undefined') return;
         if (!window.location) return;
 
-        const progressionUrl =
-            progressionAutoReload &&
-            this.battleProgressionProvider
-                ? this.battleProgressionProvider
-                    .getNextBattleUrl()
-                : '';
-        const nextBatchUrl =
-            progressionUrl ||
-            this.getNextTelemetryBatchUrl();
-
-        if (
-            progressionAutoReload &&
-            !progressionUrl
-        ) {
-            console.log(
-                '[BattleProgression] campaign complete; reload stopped.'
-            );
-            return;
-        }
+        const nextBatchUrl = this.getNextTelemetryBatchUrl();
 
         if (
             this.isTelemetryBatchQueryActive() &&
@@ -4056,16 +4064,24 @@ export class GameManager extends Component {
         const controller =
             this.registeredCinematicController;
 
-        if (controller && controller.node) {
-            controller.node.off(
-                BannerVisibilityBlockedEvent,
-                this.onWaveBannerCameraBlockedChanged,
-                this
-            );
+        if (controller && isValid(controller, true)) {
+            const controllerNode = controller.node;
+
+            if (controllerNode && isValid(controllerNode, true)) {
+                controllerNode.off(
+                    BannerVisibilityBlockedEvent,
+                    this.onWaveBannerCameraBlockedChanged,
+                    this
+                );
+            }
         }
 
-        if (this.registeredTopDownCameraDragNode) {
-            this.registeredTopDownCameraDragNode.off(
+        const topDownCameraDragNode =
+            this.registeredTopDownCameraDragNode;
+
+        if (topDownCameraDragNode &&
+            isValid(topDownCameraDragNode, true)) {
+            topDownCameraDragNode.off(
                 TopDownZoomRangeChangedEvent,
                 this.onWaveBannerCameraVisibilityChanged,
                 this

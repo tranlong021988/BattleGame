@@ -2,6 +2,7 @@ import {
     _decorator,
     Component,
     director,
+    game,
     sys,
 } from 'cc';
 import { GameManager } from './GameManager';
@@ -76,6 +77,8 @@ interface SavedProgressionState {
     playerGold: number;
     adsReward: number;
     levelLossCount: number;
+    consecutiveSideWins: number;
+    sideMissionActive: boolean;
     playerInitialCP: number;
     playerInitialCPOverflow: number;
     cpPackages: SavedProgressionPackage[];
@@ -289,7 +292,7 @@ export class LevelSettings extends Component
     enableProgression = true;
 
     @property({
-        tooltip: 'Reload browser preview after each campaign battle. A win advances one level; a loss retries the same level.'
+        tooltip: 'Reset the current Cocos battle scene after each campaign battle. A win advances one level; a loss retries the same level.'
     })
     autoReloadProgression = true;
 
@@ -400,17 +403,32 @@ export class LevelSettings extends Component
     private progressionState:
         SavedProgressionState | null = null;
     private battleLevel = 1;
-    private nextBattleUrl = '';
+    private nextBattlePending = false;
     private levelQueryActive = false;
     private resetProgressionRequested = false;
     private preBattlePurchases: PurchaseRecord[] = [];
     private currentPlayerBattleCardIds: string[] = [];
     private currentEnemyBattleCardIds: string[] = [];
     private sideMissionBattle = false;
+    private static runtimeBattleReset = false;
 
     onLoad() {
         this.migrateLegacyUnitUnlockProgression();
-        this.applyTelemetryLevelQuery();
+
+        // A real campaign owns its state in local storage. URL parameters are
+        // retained only for non-progression telemetry/debug sessions, so an
+        // old Preview URL cannot override a just-saved next battle.
+        if (!this.enableProgression) {
+            this.applyTelemetryLevelQuery();
+        }
+
+        if (
+            this.enableProgression &&
+            !this.levelQueryActive &&
+            !LevelSettings.runtimeBattleReset
+        ) {
+            this.resetProgressionRequested = true;
+        }
 
         if (this.resetProgressionRequested) {
             this.clearProgressionStorage();
@@ -538,6 +556,7 @@ export class LevelSettings extends Component
         const state = this.progressionState;
         const battleLevel = this.battleLevel;
         const before = this.createTelemetrySnapshot();
+        state.consecutiveSideWins = 0;
         const purchases: PurchaseRecord[] = [];
         const usedPlayerCards = this.currentPlayerBattleCardIds.slice();
         this.advancePlayerCardCooldowns(
@@ -602,10 +621,10 @@ export class LevelSettings extends Component
 
         this.currentLevel = state.currentLevel;
         this.applyProgressionRuntimeState(false);
+        state.sideMissionActive = false;
+        this.sideMissionBattle = false;
+        this.nextBattlePending = !campaignComplete;
         this.saveProgressionState();
-        this.nextBattleUrl = campaignComplete
-            ? ''
-            : this.buildProgressionUrl(state.currentLevel);
 
         const result = {
             battleLevel,
@@ -652,6 +671,7 @@ export class LevelSettings extends Component
                 reward.targetCost
             );
             goldReward = rewardClaim.goldGranted;
+            state.consecutiveSideWins++;
             state.levelLossCount = 0;
             route = Math.random() < continuation.chance
                 ? 'side-mission'
@@ -689,11 +709,11 @@ export class LevelSettings extends Component
         }
 
         state.currentLevel = this.battleLevel;
+        state.sideMissionActive = route === 'side-mission';
+        this.sideMissionBattle = state.sideMissionActive;
         this.currentLevel = this.battleLevel;
         this.saveProgressionState();
-        this.nextBattleUrl = route === 'side-mission'
-            ? this.buildProgressionUrl(this.battleLevel, true)
-            : this.buildProgressionUrl(this.battleLevel);
+        this.nextBattlePending = true;
 
         return {
             mode: 'side-mission',
@@ -814,6 +834,7 @@ export class LevelSettings extends Component
                 gold: state.playerGold,
                 adsReward: state.adsReward,
                 levelLossCount: state.levelLossCount,
+                consecutiveSideWins: state.consecutiveSideWins,
                 initialCP: state.playerInitialCP,
                 cpPackagesPurchased:
                     state.cpPackages.filter((item) =>
@@ -898,13 +919,33 @@ export class LevelSettings extends Component
         };
     }
 
-    public shouldAutoReloadAfterBattle() {
+    public shouldResetBattleAfterResult() {
         return this.enableProgression &&
-            this.autoReloadProgression;
+            this.autoReloadProgression &&
+            this.nextBattlePending;
     }
 
-    public getNextBattleUrl() {
-        return this.nextBattleUrl;
+    public resetBattle() {
+        if (!this.nextBattlePending) return false;
+
+        LevelSettings.runtimeBattleReset = true;
+        try {
+            void game.restart().catch((error) => {
+                LevelSettings.runtimeBattleReset = false;
+                console.error(
+                    '[BattleProgression] failed to restart battle runtime.',
+                    error
+                );
+            });
+            return true;
+        } catch (error) {
+            LevelSettings.runtimeBattleReset = false;
+            console.error(
+                '[BattleProgression] could not start battle runtime restart.',
+                error
+            );
+            return false;
+        }
     }
 
     private initializeProgression() {
@@ -922,6 +963,10 @@ export class LevelSettings extends Component
             this.currentLevel = this.clampLevel(
                 this.progressionState.currentLevel
             );
+        }
+
+        if (!this.levelQueryActive) {
+            this.sideMissionBattle = this.progressionState.sideMissionActive;
         }
 
         this.battleLevel = this.getSafeCurrentLevel();
@@ -958,16 +1003,14 @@ export class LevelSettings extends Component
             );
 
             if (this.tryRouteBotToSideMission()) {
-                this.saveProgressionState();
-                this.reloadIntoSideMission();
+                this.resetIntoSideMission();
                 return;
             }
 
             if (!this.tryPayMainBattleEntryFee(
                 this.preBattlePurchases
             )) {
-                this.saveProgressionState();
-                this.reloadIntoSideMission();
+                this.resetIntoSideMission();
                 return;
             }
         }
@@ -1010,6 +1053,8 @@ export class LevelSettings extends Component
             ),
             adsReward: 0,
             levelLossCount: 0,
+            consecutiveSideWins: 0,
+            sideMissionActive: false,
             playerInitialCP: this.getPlayerCPStart(),
             playerInitialCPOverflow: 0,
             cpPackages: this.createCPPackageSchedule(),
@@ -1711,6 +1756,11 @@ export class LevelSettings extends Component
             0,
             this.safeInteger(source.levelLossCount, 0)
         );
+        initial.consecutiveSideWins = Math.max(
+            0,
+            this.safeInteger(source.consecutiveSideWins, 0)
+        );
+        initial.sideMissionActive = !!source.sideMissionActive;
         initial.botSimulationEvents = savedBotSimulationEvents
             .filter((event: any) => event &&
                 typeof event.type === 'string' &&
@@ -2538,37 +2588,21 @@ export class LevelSettings extends Component
     private getSideMissionReward(
         state: SavedProgressionState
     ) {
-        const targets = this.getBotPurchaseCandidates(
-            state,
-            false
-        ).filter((option) => option.cost > state.playerGold)
-            .sort((a, b) => a.cost - b.cost ||
-                a.id.localeCompare(b.id))
-            .slice(0, 2);
-        const target = targets[0] || null;
-
-        if (!target) {
-            return {
-                targetId: '',
-                targetCost: 0,
-                gold: 50,
-            };
-        }
-
-        const totalCost = targets.reduce(
-            (sum, option) => sum + option.cost,
-            0
-        );
+        const baseGold = Math.ceil(
+            this.getMainBattleWinGold(this.battleLevel) / 50
+        ) * 50;
         const gold = Math.max(
             50,
             Math.ceil(
-                Math.max(0, totalCost - state.playerGold) / 50
+                baseGold /
+                Math.pow(2, state.consecutiveSideWins) /
+                50
             ) * 50
         );
 
         return {
-            targetId: target.id,
-            targetCost: target.cost,
+            targetId: '',
+            targetCost: 0,
             gold,
         };
     }
@@ -3862,69 +3896,20 @@ export class LevelSettings extends Component
         );
     }
 
-    private reloadIntoSideMission() {
-        if (typeof window === 'undefined') return;
-        if (!window.location) return;
+    private resetIntoSideMission() {
+        if (!this.progressionState) return;
 
-        const url = this.buildProgressionUrl(
-            this.battleLevel,
-            true
-        );
-
-        if (url) {
-            window.location.replace(url);
-        }
-    }
-
-    private buildProgressionUrl(
-        level: number,
-        sideMission = false
-    ) {
-        if (typeof window === 'undefined') return '';
-        if (!window.location) return '';
-
-        const location = window.location;
-        const params = new URLSearchParams(
-            location.search
-        );
-        const removeKeys = [
-            'currentAcc',
-            'currentBatch',
-            'step',
-            'numBatchPerStep',
-            'end',
-            'resetProgression',
-            'reset',
-        ];
-
-        for (let i = 0; i < removeKeys.length; i++) {
-            params.delete(removeKeys[i]);
-            params.delete(`?${removeKeys[i]}`);
-        }
-
-        params.set('progression', '1');
-        params.set('progressionResume', '1');
-        params.set('currentLevel', `${this.clampLevel(level)}`);
-        params.set('TotalLevels', `${this.getSafeTotalLevels()}`);
-        params.set(
-            'ProgressionEndLevel',
-            `${this.getProgressionEndLevel()}`
-        );
-        if (sideMission) {
-            params.set('sideMission', '1');
-        } else {
-            params.delete('sideMission');
-        }
-        params.delete('totalLevels');
-        params.delete('progressionEndLevel');
-
-        const origin = location.origin ||
-            `${location.protocol}//${location.host}`;
-        const query = params.toString();
-
-        return `${origin}${location.pathname}` +
-            `${query ? `?${query}` : ''}` +
-            `${location.hash || ''}`;
+        this.progressionState.sideMissionActive = true;
+        this.sideMissionBattle = true;
+        this.nextBattlePending = true;
+        this.saveProgressionState();
+        this.scheduleOnce(() => {
+            if (!this.resetBattle()) {
+                console.warn(
+                    '[BattleProgression] side-mission reset was not started.'
+                );
+            }
+        }, 0);
     }
 
     private applyTelemetryLevelQuery() {

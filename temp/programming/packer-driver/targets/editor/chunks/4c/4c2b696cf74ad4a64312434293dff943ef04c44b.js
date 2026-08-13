@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15", "__unresolved_16", "__unresolved_17", "__unresolved_18"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, MeshRenderer, game, profiler, director, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleTelemetry, BattleUnitDatabase, BattleCardDatabase, BattleCardModifier, BattleCardRuntime, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _descriptor55, _descriptor56, _descriptor57, _descriptor58, _descriptor59, _descriptor60, _descriptor61, _descriptor62, _descriptor63, _descriptor64, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, isValid, MeshRenderer, game, profiler, director, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleTelemetry, BattleUnitDatabase, BattleCardDatabase, BattleCardModifier, BattleCardRuntime, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _descriptor55, _descriptor56, _descriptor57, _descriptor58, _descriptor59, _descriptor60, _descriptor61, _descriptor62, _descriptor63, _descriptor64, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -123,6 +123,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       Vec3 = _cc.Vec3;
       Label = _cc.Label;
       instantiate = _cc.instantiate;
+      isValid = _cc.isValid;
       MeshRenderer = _cc.MeshRenderer;
       game = _cc.game;
       profiler = _cc.profiler;
@@ -170,7 +171,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "1e335OSdGRGLrD08aYssvKr", "GameManager", undefined);
 
-      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'MeshRenderer', 'Material', 'game', 'profiler', 'director']);
+      __checkObsolete__(['_decorator', 'Camera', 'Color', 'Component', 'Vec3', 'Label', 'Prefab', 'Node', 'instantiate', 'isValid', 'MeshRenderer', 'Material', 'game', 'profiler', 'director']);
 
       ({
         ccclass,
@@ -1740,25 +1741,45 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         scheduleBattleTelemetryPageReload() {
-          const progressionAutoReload = !!this.battleProgressionProvider && this.battleProgressionProvider.shouldAutoReloadAfterBattle();
+          const progressionProvider = this.battleProgressionProvider; // A real campaign keeps its state in local storage and starts its next
+          // scene only after telemetry export has been requested. This keeps the
+          // battle-end sequence in one owner instead of racing two timers.
 
-          if (!this.reloadPageAfterBattleTelemetryExport && !progressionAutoReload) {
+          if (progressionProvider) {
+            if (!progressionProvider.shouldResetBattleAfterResult()) {
+              return;
+            }
+
+            const delayMs = Math.max(0, this.battleTelemetryReloadDelaySeconds) * 1000;
+
+            const resetBattle = () => {
+              if (!progressionProvider.resetBattle()) {
+                console.warn('[BattleProgression] scene reset was not started.');
+              }
+            };
+
+            console.log(`[BattleProgression] restart battle runtime in ` + `${(delayMs / 1000).toFixed(2)}s.`);
+
+            if (typeof window !== 'undefined' && window.setTimeout) {
+              window.setTimeout(resetBattle, delayMs);
+              return;
+            }
+
+            this.scheduleOnce(resetBattle, delayMs / 1000);
             return;
           }
 
-          if (!this.enableBattleTelemetry && !progressionAutoReload) {
+          if (!this.reloadPageAfterBattleTelemetryExport) {
+            return;
+          }
+
+          if (!this.enableBattleTelemetry) {
             return;
           }
 
           if (typeof window === 'undefined') return;
           if (!window.location) return;
-          const progressionUrl = progressionAutoReload && this.battleProgressionProvider ? this.battleProgressionProvider.getNextBattleUrl() : '';
-          const nextBatchUrl = progressionUrl || this.getNextTelemetryBatchUrl();
-
-          if (progressionAutoReload && !progressionUrl) {
-            console.log('[BattleProgression] campaign complete; reload stopped.');
-            return;
-          }
+          const nextBatchUrl = this.getNextTelemetryBatchUrl();
 
           if (this.isTelemetryBatchQueryActive() && !nextBatchUrl) {
             console.log('[BattleTelemetry] telemetry batch query complete.');
@@ -2651,12 +2672,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         unregisterWaveBannerCameraEvents() {
           const controller = this.registeredCinematicController;
 
-          if (controller && controller.node) {
-            controller.node.off(BannerVisibilityBlockedEvent, this.onWaveBannerCameraBlockedChanged, this);
+          if (controller && isValid(controller, true)) {
+            const controllerNode = controller.node;
+
+            if (controllerNode && isValid(controllerNode, true)) {
+              controllerNode.off(BannerVisibilityBlockedEvent, this.onWaveBannerCameraBlockedChanged, this);
+            }
           }
 
-          if (this.registeredTopDownCameraDragNode) {
-            this.registeredTopDownCameraDragNode.off(TopDownZoomRangeChangedEvent, this.onWaveBannerCameraVisibilityChanged, this);
+          const topDownCameraDragNode = this.registeredTopDownCameraDragNode;
+
+          if (topDownCameraDragNode && isValid(topDownCameraDragNode, true)) {
+            topDownCameraDragNode.off(TopDownZoomRangeChangedEvent, this.onWaveBannerCameraVisibilityChanged, this);
           }
 
           this.registeredCinematicController = null;
