@@ -104,6 +104,59 @@ Required fresh telemetry checks:
    rate, while ready cards remain selectable.
 4. Side mission remains intentional economy/engagement rather than a hard lock.
 
+### Delta since receiving the prior handoff (2026-08-13)
+
+The following work happened after this agent received the previous handoff.
+It is already reflected in `LevelSettings.ts`; keep this list so a new agent
+can separate completed work from open decisions.
+
+- Implemented main battle entry fee, dynamic main reward floor, Gold/Gold x2
+  claims, side-mission reload loop, side-mission mirror setup, and telemetry
+  events. Removed the old loss-gold/free rescue logic.
+- Fixed the ordering bug where side continuation counted delayed purchases
+  after side reward. It now snapshots the count before the reward.
+- Changed bot card choice so ready cards are always eligible, while each
+  cooling card has an independent 50% chance of being offered to the bot; a
+  selected cooling card spends one ads completion.
+- Investigated Cocos error at 2026-08-13 02:08:59:
+  `UNKNOWN: unknown error, open ...targets/preview/chunks/f8/...js`.
+  This was a transient preview packer/cache access failure, not a TypeScript or
+  gameplay regression. Source compiled, and both editor/preview chunks later
+  existed. If it returns, stop Preview and restart Cocos before touching source.
+- Removed stale empty `.git/index.lock` after verifying no Git process was
+  running. Git status and source checks now work normally.
+
+#### Latest validation run: 2026-08-13 03:50--04:23 (86 reports)
+
+- Cleared L1--L60: 80 main battles (60 wins / 20 losses) and 6 side missions
+  (5 wins / 1 loss). Overall: 65 wins / 21 losses = **75.6%**; main 75.0%;
+  side 83.3%; final gold 17,878; final ads count 191.
+- No `main-entry-fee-insufficient` event. The previous fee-only side-farming
+  loop did not recur.
+- Dynamic side continuation was verified: delayed counts 3, 2, and 1 produced
+  70%, 55%, and 40% continuation chances respectively. This confirms the
+  ordering fix works.
+- Latest retained telemetry history contained 21 `card-cooldown-finish-ad`
+  events (mostly late-game), proving the cooldown-ad route is active. Result
+  deltas alone only saw 38 Gold x2 claims because card ads occur in pre-battle
+  setup.
+- Early side mission plus Gold x2 can create intended large spikes (e.g. L1
+  3,000 and L11 2,400). User accepts this as ads monetization; do not nerf it
+  unless asked.
+
+#### Open decision: beginner gold, not implemented
+
+- Inspector currently remains `initialPlayerGold = 0`.
+- User wants starter gold so a human can learn by buying and experimenting
+  before being routed toward farming. Recommended next tuning value is
+  **1,000 gold**, because L1 typically has CP +7 costing 70 and cards costing
+  700/800/850: this permits a starter CP upgrade plus one starter card with
+  some remainder. Do not claim this is implemented; change `Test.scene` only
+  if the user confirms.
+- A L1 telemetry snapshot had 30 gold after CP +7, despite the scene field
+  being 0. Treat that as carried/query/save test state; reset progression for a
+  clean test when changing initial gold.
+
 ## Start here
 
 - The worktree is intentionally dirty. Preserve unrelated user/Cocos changes;
@@ -111,7 +164,7 @@ Required fresh telemetry checks:
   `profiles/` content without explicit permission.
 - `assets/Test.scene` contains deliberate user tuning: `totalLevels = 60`,
   `progressionEndLevel = 50`, boss initial CP multiplier `= 1.05`, boss Max
-  Alive multiplier `= 1`, and `allowAdsRescue = false` for the latest test.
+  Alive multiplier `= 1`, and `allowAdsRescue = true` for the latest test.
   This is intentional: levels 51--60 should let players
   enjoy their acquired power, not force everything to finish exactly at L60.
 - Current authored changes are uncommitted. Meaningful source work is in
