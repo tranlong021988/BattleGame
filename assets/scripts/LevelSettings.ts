@@ -1517,8 +1517,19 @@ export class LevelSettings extends Component
         definition: BattleCardDefinition,
         state: SavedProgressionState
     ) {
+        if (this.hasReachedFullProgression()) {
+            return true;
+        }
+
         return this.getPlayerCardProgressionWave(state) >=
             this.getCardProgressionWave(definition);
+    }
+
+    private hasReachedFullProgression() {
+        return this.battleLevel > Math.max(
+            0,
+            Math.floor(this.progressionEndLevel)
+        );
     }
 
     private getPlayerCardProgressionWave(
@@ -1575,6 +1586,10 @@ export class LevelSettings extends Component
         definition: BattleCardDefinition,
         state: SavedProgressionState
     ) {
+        if (this.hasReachedFullProgression()) {
+            return 2;
+        }
+
         return Math.max(
             0,
             Math.min(
@@ -2209,11 +2224,12 @@ export class LevelSettings extends Component
                 );
 
                 if (!saved) continue;
-                if (!this.isCardEligibleForTeam(
-                    definition,
-                    0,
-                    state
-                )) {
+                if (!this.hasReachedFullProgression() &&
+                    !this.isCardEligibleForTeam(
+                        definition,
+                        0,
+                        state
+                    )) {
                     continue;
                 }
 

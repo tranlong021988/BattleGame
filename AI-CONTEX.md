@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-13. This handoff records the accepted design and recent
+Last updated: 2026-08-14. This handoff records the accepted design and recent
 implementation. **Runtime source and `assets/Test.scene` are authoritative if
 they conflict with this file.** Do not reinstate old mechanics from this file
 without checking source first.
@@ -114,71 +114,40 @@ This section is the current implementation summary; source remains authoritative
 - Card deck capacity remains 3 today but is a dynamic future upgrade hook.
   Enemy uses predefined, per-level locked decks and has no card cooldown.
 
-### Telemetry evidence / next validation
+### Recent implementation and telemetry (2026-08-13)
 
-Latest user batch: `battle-telemetry-2026-08-12T17:56--18:48` (141 reports).
-
-- Cleared L1--L60: 92 main (60 wins / 32 losses), 49 side (28 wins / 21
-  losses), final gold 16,536, final ads 262.
-- Prior batch had 82 side battles in 168 reports. The reduction is meaningful,
-  but side frequency is not yet declared balanced.
-- No new `main-entry-fee-insufficient` event occurred: the entry-fee reserve
-  plus dynamic reward floor solved the observed win-then-cannot-enter loop.
-- The supplied batch still showed side continuation `delayedPurchaseCount = 0`
-  and chance 25%; that revealed the pre-reward ordering bug now fixed. A fresh
-  run must validate nonzero delayed counts and higher continuation chances.
-- Result-level ads delta saw 40 Gold x2 claims. The remaining final ad count is
-  consistent with pre-battle card completions; inspect persistent event history
-  to audit it.
-
-Required fresh telemetry checks:
-
-1. No main win followed by fee-only side farming.
-2. Side route chance increases above 25% whenever pre-reward delayed count is
-   nonzero.
-3. Cooling cards are selected/ad-completed at roughly half the opportunity
-   rate, while ready cards remain selectable.
-4. Side mission remains intentional economy/engagement rather than a hard lock.
-
-### Delta since receiving the prior handoff (2026-08-13)
-
-The following work happened after this agent received the previous handoff.
-It is already reflected in `LevelSettings.ts`; keep this list so a new agent
-can separate completed work from open decisions.
-
-- Implemented main battle entry fee, dynamic main reward floor, Gold/Gold x2
-  claims, side-mission transition loop, side-mission mirror setup, and telemetry
-  events. Removed the old loss-gold/free rescue logic.
-- Fixed the ordering bug where side continuation counted delayed purchases
-  after side reward. It now snapshots the count before the reward.
-- Changed bot card choice so ready cards are always eligible, while each
-  cooling card has an independent 50% chance of being offered to the bot; a
-  selected cooling card spends one ads completion.
-- Investigated Cocos error at 2026-08-13 02:08:59:
-  `UNKNOWN: unknown error, open ...targets/preview/chunks/f8/...js`.
-  This was a transient preview packer/cache access failure, not a TypeScript or
-  gameplay regression. Source compiled, and both editor/preview chunks later
-  existed. If it returns, stop Preview and restart Cocos before touching source.
-- Removed stale empty `.git/index.lock` after verifying no Git process was
-  running. Git status and source checks now work normally.
-
-#### Latest validation run: 2026-08-13 03:50--04:23 (86 reports)
-
-- Cleared L1--L60: 80 main battles (60 wins / 20 losses) and 6 side missions
-  (5 wins / 1 loss). Overall: 65 wins / 21 losses = **75.6%**; main 75.0%;
-  side 83.3%; final gold 17,878; final ads count 191.
-- No `main-entry-fee-insufficient` event. The previous fee-only side-farming
-  loop did not recur.
-- Dynamic side continuation was verified: delayed counts 3, 2, and 1 produced
-  70%, 55%, and 40% continuation chances respectively. This confirms the
-  ordering fix works.
-- Latest retained telemetry history contained 21 `card-cooldown-finish-ad`
-  events (mostly late-game), proving the cooldown-ad route is active. Result
-  deltas alone only saw 38 Gold x2 claims because card ads occur in pre-battle
-  setup.
-- Early side mission plus Gold x2 can create intended large spikes (e.g. L1
-  3,000 and L11 2,400). User accepts this as ads monetization; do not nerf it
-  unless asked.
+- Implemented main entry fees, the dynamic main reward floor, Gold/Gold x2
+  claims, side-mission mirror/reward/continuation flow, and telemetry. The old
+  loss-gold/free-package/video rescue flow is retired.
+- Prototype transition is a direct Cocos reset, not a browser reload:
+  `GameManager` exports telemetry, persists next state, then requests
+  `LevelSettings.resetBattle()` -> `game.restart()`. The teardown validity
+  guard in `GameManager.unregisterWaveBannerCameraEvents()` is required.
+- Side-win delayed purchases are counted before reward. Continuation chance is
+  therefore dynamic again: observed counts 3/2/1 yielded 70%/55%/40%.
+- Cooling cards have a 50% independent chance to enter the bot deck candidate
+  pool; a selected cooling card consumes one rewarded ad to finish cooldown.
+- On 2026-08-13, added the post-progression card override:
+  `battleLevel > progressionEndLevel` unlocks every card sale and exposes all
+  remaining cooldown/budget ranks through rank 2. It is dynamic; it does not
+  hard-code L50. This is intentionally a gold sink after unit/CP/Max Alive
+  progression flattens.
+- Latest supplied batch `2026-08-13T19:10--20:37` has 133 reports and clears
+  L1--L60: 77 wins / 56 losses (57.9%). Main L1--50 is 50/80 (62.5%), main
+  L51--60 is 10/22 (45.5%), and side is 17/31 (54.8%). Endgame difficulty is
+  **accepted design**: later levels, especially completion bosses, may be very
+  hard. Do not tune them down solely to raise this winrate.
+- The batch proves the card override: bot purchases remaining card upgrades at
+  L51--L52, and the L60 snapshot has all nine cards at cooldown rank 2 and
+  budget rank 2. Final gold is 10,858 and final ads count 214.
+- Do not infer a precise balance improvement from one random batch: the prior
+  post-L50 main winrate was 43.5%. The change fixed the missing upgrade path;
+  it was not intended to guarantee a high endgame winrate.
+- Cocos packer error at 2026-08-13 02:08:59 (`UNKNOWN ... chunks/f8/...js`)
+  was a transient Preview/cache access error; source compiled. If it recurs,
+  stop Preview then restart Cocos before changing source.
+- `assets/Test.scene` overrides the script default and sets starter gold to
+  **1,000**. The active scene is authoritative.
 
 ## Start here
 
@@ -188,8 +157,8 @@ can separate completed work from open decisions.
 - `assets/Test.scene` contains deliberate user tuning: `totalLevels = 60`,
   `progressionEndLevel = 50`, boss initial CP multiplier `= 1.05`, boss Max
   Alive multiplier `= 1`, `allowAdsRescue = true`, and starter gold `= 1000`.
-  This is intentional: levels 51--60 should let players
-  enjoy their acquired power, not force everything to finish exactly at L60.
+  This is intentional: L51--60 are endgame. They retain a card-upgrade gold
+  sink but may be increasingly hard, with very hard completion encounters.
 - Current authored changes are uncommitted. Meaningful source work is in
   `LevelSettings`, `BattleCardDatabase`, `BattleCardRuntime`, `GameManager`,
   `Unit`, `UnitBehavior`, and `Test.scene`. Scene changes include user tuning;
@@ -289,9 +258,11 @@ old multiplier 20 or add a pre-level gold reservation without user direction.
   level in `enemyCardIdsByLevel`, so retries never reroll them.
 - Enemy card count is dynamic by progression: normal levels use a small deck,
   bosses may use one more, maximum 3. No arbitrary per-level hard list.
-- Card unlocks/upgrades follow card waves/unit availability dynamically. Do not
-  activate or sell a card for a unit/threat that does not exist for the relevant
-  side.
+- Before the progression end, card unlocks/upgrades follow card waves/unit
+  availability dynamically. After `battleLevel > progressionEndLevel`, every
+  remaining card sale and rank is exposed through rank 2, so the endgame still
+  has a card gold sink without requiring another unit wave. Deck eligibility
+  remains roster/opponent-aware.
 
 Current cards: General Offensive, Battle Shields, Anti-Cavalry Spearhead, Axe
 Frenzy, Sword Wall, Arrow Suppression, Precise Range, Wide Prayer, Counter

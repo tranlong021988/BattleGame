@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, game, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class6, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -72,6 +72,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _decorator = _cc._decorator;
       Component = _cc.Component;
       director = _cc.director;
+      game = _cc.game;
       sys = _cc.sys;
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
@@ -92,7 +93,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "8d731TSPExBjqJd6aUC3OR6", "LevelSettings", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'director', 'sys']);
+      __checkObsolete__(['_decorator', 'Component', 'director', 'game', 'sys']);
 
       ({
         ccclass,
@@ -246,7 +247,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         displayName: 'Enable Campaign Progression',
         tooltip: 'Apply unit unlocks, enemy unit-count growth, player gold, purchases, persistence, and retry rewards.'
       }), _dec30 = property({
-        tooltip: 'Reload browser preview after each campaign battle. A win advances one level; a loss retries the same level.'
+        tooltip: 'Reset the current Cocos battle scene after each campaign battle. A win advances one level; a loss retries the same level.'
       }), _dec31 = property({
         tooltip: 'Let BattleArmyBrain A simulate player purchases between battles. It may buy multiple affordable packages.'
       }), _dec32 = property({
@@ -295,7 +296,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         step: 1
       }), _dec45 = property({
         type: [UnitProgressionRule]
-      }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
+      }), _dec8(_class4 = (_class5 = (_class6 = class LevelSettings extends Component {
         constructor(...args) {
           super(...args);
 
@@ -383,7 +384,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.progressionState = null;
           this.battleLevel = 1;
-          this.nextBattleUrl = '';
+          this.nextBattlePending = false;
           this.levelQueryActive = false;
           this.resetProgressionRequested = false;
           this.preBattlePurchases = [];
@@ -393,8 +394,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         onLoad() {
-          this.migrateLegacyUnitUnlockProgression();
-          this.applyTelemetryLevelQuery();
+          this.migrateLegacyUnitUnlockProgression(); // A real campaign owns its state in local storage. URL parameters are
+          // retained only for non-progression telemetry/debug sessions, so an
+          // old Preview URL cannot override a just-saved next battle.
+
+          if (!this.enableProgression) {
+            this.applyTelemetryLevelQuery();
+          }
+
+          if (this.enableProgression && !this.levelQueryActive && !LevelSettings.runtimeBattleReset) {
+            this.resetProgressionRequested = true;
+          }
 
           if (this.resetProgressionRequested) {
             this.clearProgressionStorage();
@@ -477,6 +487,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const state = this.progressionState;
           const battleLevel = this.battleLevel;
           const before = this.createTelemetrySnapshot();
+          state.consecutiveSideWins = 0;
           const purchases = [];
           const usedPlayerCards = this.currentPlayerBattleCardIds.slice();
           this.advancePlayerCardCooldowns(state, usedPlayerCards);
@@ -513,8 +524,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.currentLevel = state.currentLevel;
           this.applyProgressionRuntimeState(false);
+          state.sideMissionActive = false;
+          this.sideMissionBattle = false;
+          this.nextBattlePending = !campaignComplete;
           this.saveProgressionState();
-          this.nextBattleUrl = campaignComplete ? '' : this.buildProgressionUrl(state.currentLevel);
           const result = {
             battleLevel,
             totalLevels: this.getSafeTotalLevels(),
@@ -547,6 +560,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             const reward = this.getSideMissionReward(state);
             rewardClaim = this.grantBotGoldClaim(state, reward.gold, 'side-mission-win', reward.targetId, reward.targetCost);
             goldReward = rewardClaim.goldGranted;
+            state.consecutiveSideWins++;
             state.levelLossCount = 0;
             route = Math.random() < continuation.chance ? 'side-mission' : 'progression';
             this.recordBotSimulationEvent(state, {
@@ -577,9 +591,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           state.currentLevel = this.battleLevel;
+          state.sideMissionActive = route === 'side-mission';
+          this.sideMissionBattle = state.sideMissionActive;
           this.currentLevel = this.battleLevel;
           this.saveProgressionState();
-          this.nextBattleUrl = route === 'side-mission' ? this.buildProgressionUrl(this.battleLevel, true) : this.buildProgressionUrl(this.battleLevel);
+          this.nextBattlePending = true;
           return {
             mode: 'side-mission',
             battleLevel: this.battleLevel,
@@ -650,6 +666,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               gold: state.playerGold,
               adsReward: state.adsReward,
               levelLossCount: state.levelLossCount,
+              consecutiveSideWins: state.consecutiveSideWins,
               initialCP: state.playerInitialCP,
               cpPackagesPurchased: state.cpPackages.filter(item => item.claimed).length,
               cpPackagesOffered: this.getPlayerCPPackagesOffered(this.battleLevel),
@@ -690,12 +707,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
         }
 
-        shouldAutoReloadAfterBattle() {
-          return this.enableProgression && this.autoReloadProgression;
+        shouldResetBattleAfterResult() {
+          return this.enableProgression && this.autoReloadProgression && this.nextBattlePending;
         }
 
-        getNextBattleUrl() {
-          return this.nextBattleUrl;
+        resetBattle() {
+          if (!this.nextBattlePending) return false;
+          LevelSettings.runtimeBattleReset = true;
+
+          try {
+            void game.restart().catch(error => {
+              LevelSettings.runtimeBattleReset = false;
+              console.error('[BattleProgression] failed to restart battle runtime.', error);
+            });
+            return true;
+          } catch (error) {
+            LevelSettings.runtimeBattleReset = false;
+            console.error('[BattleProgression] could not start battle runtime restart.', error);
+            return false;
+          }
         }
 
         initializeProgression() {
@@ -707,6 +737,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.progressionState.currentLevel = this.getSafeCurrentLevel();
           } else {
             this.currentLevel = this.clampLevel(this.progressionState.currentLevel);
+          }
+
+          if (!this.levelQueryActive) {
+            this.sideMissionBattle = this.progressionState.sideMissionActive;
           }
 
           this.battleLevel = this.getSafeCurrentLevel();
@@ -736,14 +770,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.runPurchaseSimulation(this.preBattlePurchases, 'pre-battle', reservedEntryFee);
 
             if (this.tryRouteBotToSideMission()) {
-              this.saveProgressionState();
-              this.reloadIntoSideMission();
+              this.resetIntoSideMission();
               return;
             }
 
             if (!this.tryPayMainBattleEntryFee(this.preBattlePurchases)) {
-              this.saveProgressionState();
-              this.reloadIntoSideMission();
+              this.resetIntoSideMission();
               return;
             }
           }
@@ -774,6 +806,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             playerGold: Math.max(0, Math.floor(this.initialPlayerGold)),
             adsReward: 0,
             levelLossCount: 0,
+            consecutiveSideWins: 0,
+            sideMissionActive: false,
             playerInitialCP: this.getPlayerCPStart(),
             playerInitialCPOverflow: 0,
             cpPackages: this.createCPPackageSchedule(),
@@ -1022,7 +1056,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         isCardUnlockedForPlayer(definition, state) {
+          if (this.hasReachedFullProgression()) {
+            return true;
+          }
+
           return this.getPlayerCardProgressionWave(state) >= this.getCardProgressionWave(definition);
+        }
+
+        hasReachedFullProgression() {
+          return this.battleLevel > Math.max(0, Math.floor(this.progressionEndLevel));
         }
 
         getPlayerCardProgressionWave(state) {
@@ -1090,6 +1132,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getCardUpgradeRankLimit(definition, state) {
+          if (this.hasReachedFullProgression()) {
+            return 2;
+          }
+
           return Math.max(0, Math.min(2, this.getPlayerCardProgressionWave(state) - this.getCardProgressionWave(definition)));
         }
 
@@ -1203,6 +1249,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           initial.playerGold = Math.max(0, this.safeInteger(source.playerGold, 0));
           initial.adsReward = Math.max(0, this.safeInteger(source.adsReward, 0));
           initial.levelLossCount = Math.max(0, this.safeInteger(source.levelLossCount, 0));
+          initial.consecutiveSideWins = Math.max(0, this.safeInteger(source.consecutiveSideWins, 0));
+          initial.sideMissionActive = !!source.sideMissionActive;
           initial.botSimulationEvents = savedBotSimulationEvents.filter(event => event && typeof event.type === 'string' && typeof event.choice === 'string').slice(-40).map(event => ({
             type: event.type,
             battleLevel: this.clampLevel(this.safeInteger(event.battleLevel, 1)),
@@ -1438,7 +1486,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               const saved = this.getSavedCard(state, definition.id);
               if (!saved) continue;
 
-              if (!this.isCardEligibleForTeam(definition, 0, state)) {
+              if (!this.hasReachedFullProgression() && !this.isCardEligibleForTeam(definition, 0, state)) {
                 continue;
               }
 
@@ -1647,22 +1695,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getSideMissionReward(state) {
-          const targets = this.getBotPurchaseCandidates(state, false).filter(option => option.cost > state.playerGold).sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id)).slice(0, 2);
-          const target = targets[0] || null;
-
-          if (!target) {
-            return {
-              targetId: '',
-              targetCost: 0,
-              gold: 50
-            };
-          }
-
-          const totalCost = targets.reduce((sum, option) => sum + option.cost, 0);
-          const gold = Math.max(50, Math.ceil(Math.max(0, totalCost - state.playerGold) / 50) * 50);
+          const baseGold = Math.ceil(this.getMainBattleWinGold(this.battleLevel) / 50) * 50;
+          const gold = Math.max(50, Math.ceil(baseGold / Math.pow(2, state.consecutiveSideWins) / 50) * 50);
           return {
-            targetId: target.id,
-            targetCost: target.cost,
+            targetId: '',
+            targetCost: 0,
             gold
           };
         }
@@ -2408,45 +2445,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           sys.localStorage.setItem(this.progressionStorageKey, JSON.stringify(this.progressionState));
         }
 
-        reloadIntoSideMission() {
-          if (typeof window === 'undefined') return;
-          if (!window.location) return;
-          const url = this.buildProgressionUrl(this.battleLevel, true);
-
-          if (url) {
-            window.location.replace(url);
-          }
-        }
-
-        buildProgressionUrl(level, sideMission = false) {
-          if (typeof window === 'undefined') return '';
-          if (!window.location) return '';
-          const location = window.location;
-          const params = new URLSearchParams(location.search);
-          const removeKeys = ['currentAcc', 'currentBatch', 'step', 'numBatchPerStep', 'end', 'resetProgression', 'reset'];
-
-          for (let i = 0; i < removeKeys.length; i++) {
-            params.delete(removeKeys[i]);
-            params.delete(`?${removeKeys[i]}`);
-          }
-
-          params.set('progression', '1');
-          params.set('progressionResume', '1');
-          params.set('currentLevel', `${this.clampLevel(level)}`);
-          params.set('TotalLevels', `${this.getSafeTotalLevels()}`);
-          params.set('ProgressionEndLevel', `${this.getProgressionEndLevel()}`);
-
-          if (sideMission) {
-            params.set('sideMission', '1');
-          } else {
-            params.delete('sideMission');
-          }
-
-          params.delete('totalLevels');
-          params.delete('progressionEndLevel');
-          const origin = location.origin || `${location.protocol}//${location.host}`;
-          const query = params.toString();
-          return `${origin}${location.pathname}` + `${query ? `?${query}` : ''}` + `${location.hash || ''}`;
+        resetIntoSideMission() {
+          if (!this.progressionState) return;
+          this.progressionState.sideMissionActive = true;
+          this.sideMissionBattle = true;
+          this.nextBattlePending = true;
+          this.saveProgressionState();
+          this.scheduleOnce(() => {
+            if (!this.resetBattle()) {
+              console.warn('[BattleProgression] side-mission reset was not started.');
+            }
+          }, 0);
         }
 
         applyTelemetryLevelQuery() {
@@ -2576,7 +2585,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return a + (b - a) * this.clamp01(t);
         }
 
-      }, (_descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "totalLevels", [_dec9], {
+      }, _class6.runtimeBattleReset = false, _class6), (_descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "totalLevels", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
