@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, game, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class6, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -74,7 +74,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       _decorator = _cc._decorator;
       Component = _cc.Component;
       director = _cc.director;
-      game = _cc.game;
       sys = _cc.sys;
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
@@ -95,7 +94,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
       _cclegacy._RF.push({}, "8d731TSPExBjqJd6aUC3OR6", "LevelSettings", undefined);
 
-      __checkObsolete__(['_decorator', 'Component', 'director', 'game', 'sys']);
+      __checkObsolete__(['_decorator', 'Component', 'director', 'sys']);
 
       ({
         ccclass,
@@ -191,7 +190,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 1,
         step: 1,
         displayName: 'Progression End Level',
-        tooltip: 'Level where base CP, accuracy, Max Alive, unit unlocks, and unit counts finish progressing. Later levels keep these base caps while boss multipliers still apply.'
+        tooltip: 'Level where base CP, accuracy, Max Alive, and unit unlocks finish progressing. Remaining unit-count ranks are offered on regular levels before the campaign finale.'
       }), _dec11 = property({
         tooltip: 'Current campaign level. Level 1 is easiest; Total Levels is hardest.'
       }), _dec12 = property({
@@ -298,7 +297,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         step: 1
       }), _dec45 = property({
         type: [UnitProgressionRule]
-      }), _dec8(_class4 = (_class5 = (_class6 = class LevelSettings extends Component {
+      }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
           super(...arguments);
 
@@ -404,7 +403,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.applyTelemetryLevelQuery();
           }
 
-          if (this.enableProgression && !this.levelQueryActive && !LevelSettings.runtimeBattleReset) {
+          if (this.enableProgression && !this.levelQueryActive) {
             this.resetProgressionRequested = true;
           }
 
@@ -714,19 +713,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         resetBattle() {
           if (!this.nextBattlePending) return false;
-          LevelSettings.runtimeBattleReset = true;
+          var manager = this.getGameManager();
 
-          try {
-            void game.restart().catch(error => {
-              LevelSettings.runtimeBattleReset = false;
-              console.error('[BattleProgression] failed to restart battle runtime.', error);
-            });
-            return true;
-          } catch (error) {
-            LevelSettings.runtimeBattleReset = false;
-            console.error('[BattleProgression] could not start battle runtime restart.', error);
+          if (!manager) {
+            console.error('[BattleProgression] GameManager is unavailable for reset.');
             return false;
           }
+
+          this.nextBattlePending = false;
+          manager.stopBattleRuntime();
+          this.initializeProgression();
+          this.applyLevelSettings();
+          this.completePreBattleProgression(); // Routing to a side mission schedules the next internal reset after
+          // state has been saved. Do not briefly start the obsolete main battle.
+
+          if (this.nextBattlePending) {
+            return true;
+          }
+
+          var started = manager.startBattleRuntime();
+
+          if (!started) {
+            console.error('[BattleProgression] battle runtime could not be started.');
+          }
+
+          return started;
         }
 
         initializeProgression() {
@@ -880,10 +891,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!state || !manager || !database) return;
 
           if (this.purchasingSimulation) {
-            this.currentPlayerBattleCardIds = this.selectRandomCardIds(database.cards.filter(definition => {
+            this.currentPlayerBattleCardIds = this.selectStrongestPlayerCardIds(database.cards.filter(definition => {
               var saved = this.getSavedCard(state, definition.id);
               return !!saved && saved.owned && this.isCardEligibleForTeam(definition, 0, state) && (saved.cooldownRemaining <= 0 || Math.random() < 0.5);
-            }), [], this.getBattleCardDeckSize());
+            }), state, this.getBattleCardDeckSize());
             this.finishBotSelectedCardCooldowns(state);
           } else {
             this.currentPlayerBattleCardIds = this.filterReadyPlayerCardIds(this.currentPlayerBattleCardIds);
@@ -968,6 +979,219 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return result;
+        }
+
+        selectStrongestPlayerCardIds(definitions, state, maxCount) {
+          var candidates = definitions.filter((definition, index) => !!definition && !!definition.id && definitions.findIndex(candidate => candidate && candidate.id === definition.id) === index);
+          var deckSize = Math.max(0, Math.min(maxCount, candidates.length));
+          if (deckSize <= 0) return [];
+          var bestIds = [];
+          var bestScore = Number.NEGATIVE_INFINITY;
+          var current = [];
+
+          var evaluate = startIndex => {
+            if (current.length > 0) {
+              var score = current.reduce((total, definition) => total + this.getPlayerBattleCardScore(definition, state), 0);
+
+              if (score > bestScore + 0.0001) {
+                bestScore = score;
+                bestIds = current.map(definition => definition.id);
+              }
+            }
+
+            if (current.length >= deckSize) return;
+
+            for (var i = startIndex; i < candidates.length; i++) {
+              current.push(candidates[i]);
+              evaluate(i + 1);
+              current.pop();
+            }
+          };
+
+          evaluate(0);
+          return bestIds;
+        }
+
+        getPlayerBattleCardScore(definition, state) {
+          var targetWeight = this.getCardTargetCombatWeight(definition, 0, state);
+          if (targetWeight <= 0) return 0;
+          var saved = this.getSavedCard(state, definition.id);
+          var budgetScale = saved ? this.getCardEffectiveBudget(saved) / Math.max(1, definition.baseBudget) : 1;
+          var conditionScale = this.getCardOpponentConditionWeight(definition, state);
+          var modifierScore = this.getCardModifierScore(definition, state, targetWeight);
+          return Math.max(0, targetWeight * modifierScore * budgetScale * conditionScale);
+        }
+
+        getCardTargetCombatWeight(definition, team, state) {
+          var total = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+
+            if (!rule || !this.cardMatchesFamily(definition, rule.family)) {
+              continue;
+            }
+
+            var count = this.getTeamUnitCountForCardScore(rule, team, state);
+            if (count <= 0) continue;
+            total += count * this.getUnitCombatWeightForCardScore(rule, team);
+          }
+
+          return total;
+        }
+
+        getTeamUnitCountForCardScore(rule, team, state) {
+          if (team === 1) {
+            return this.battleLevel >= this.getRuleUnlockLevel(rule) ? this.getEnemyUnitCount(rule, this.battleLevel) : 0;
+          }
+
+          var saved = this.getSavedUnit(state, this.getRuleKey(rule));
+          return saved && saved.unlocked ? Math.max(0, saved.unitCount) : 0;
+        }
+
+        getUnitCombatWeightForCardScore(rule, team) {
+          var entry = this.getUnitEntryForCardScore(rule, team);
+          return Math.max(1, entry ? entry.combatPointCost : 1);
+        }
+
+        getCardOpponentConditionWeight(definition, state) {
+          if (definition.requiredEnemyFamily === (_crd && BattleCardOpponentCondition === void 0 ? (_reportPossibleCrUseOfBattleCardOpponentCondition({
+            error: Error()
+          }), BattleCardOpponentCondition) : BattleCardOpponentCondition).Any) {
+            return 1;
+          }
+
+          var requiredFamily = definition.requiredEnemyFamily - 1;
+          var totalEnemyWeight = 0;
+          var requiredEnemyWeight = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            var weight = this.getTeamUnitCountForCardScore(rule, 1, state) * this.getUnitCombatWeightForCardScore(rule, 1);
+            totalEnemyWeight += weight;
+
+            if (rule.family === requiredFamily) {
+              requiredEnemyWeight += weight;
+            }
+          }
+
+          return totalEnemyWeight > 0 ? requiredEnemyWeight / totalEnemyWeight : 0;
+        }
+
+        getCardModifierScore(definition, state, targetWeight) {
+          return this.getCardModifierValueScore(definition, definition.modifier, definition.modifierValue, state, targetWeight) + this.getCardModifierValueScore(definition, definition.tradeoffModifier, definition.tradeoffValue, state, targetWeight);
+        }
+
+        getCardModifierValueScore(definition, modifier, value, state, targetWeight) {
+          switch (modifier) {
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).DamagePercent:
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).AttackRangePercent:
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).DamageRadiusPercent:
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).MoveSpeedPercent:
+              return value / 100;
+
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).DefenseFlat:
+              return this.getDefenseModifierScore(definition, value, state, targetWeight);
+
+            case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
+              error: Error()
+            }), BattleCardModifier) : BattleCardModifier).CounterImmunity:
+              return this.getCounterImmunityScore(definition, state, targetWeight);
+
+            default:
+              return 0;
+          }
+        }
+
+        getDefenseModifierScore(definition, value, state, targetWeight) {
+          var enemyDamage = this.getAverageUnitStatForCardScore(1, state, 'damage');
+          var targetDefense = this.getAverageTargetUnitDefenseForCardScore(definition, state, targetWeight);
+          var before = Math.max(1, enemyDamage - targetDefense);
+          var after = Math.max(1, enemyDamage - targetDefense - value);
+          return before / after - 1;
+        }
+
+        getCounterImmunityScore(definition, state, targetWeight) {
+          var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
+            error: Error()
+          }), CounterSettings) : CounterSettings).instance;
+          if (!counter || targetWeight <= 0) return 0;
+          var weightedThreat = 0;
+          var totalEnemyWeight = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var enemyRule = this.unitProgressionRules[i];
+            if (!enemyRule) continue;
+            var enemyWeight = this.getTeamUnitCountForCardScore(enemyRule, 1, state) * this.getUnitCombatWeightForCardScore(enemyRule, 1);
+            totalEnemyWeight += enemyWeight;
+
+            for (var j = 0; j < this.unitProgressionRules.length; j++) {
+              var targetRule = this.unitProgressionRules[j];
+
+              if (!targetRule || !this.cardMatchesFamily(definition, targetRule.family)) {
+                continue;
+              }
+
+              var targetUnitWeight = this.getTeamUnitCountForCardScore(targetRule, 0, state) * this.getUnitCombatWeightForCardScore(targetRule, 0);
+              weightedThreat += targetUnitWeight * enemyWeight * Math.max(0, counter.getDamageMultiplier(enemyRule.family, targetRule.family) - 1);
+            }
+          }
+
+          return totalEnemyWeight > 0 ? weightedThreat / (targetWeight * totalEnemyWeight) : 0;
+        }
+
+        getAverageUnitStatForCardScore(team, state, stat) {
+          var totalWeight = 0;
+          var totalStat = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            var count = this.getTeamUnitCountForCardScore(rule, team, state);
+            if (count <= 0) continue;
+            var entry = this.getUnitEntryForCardScore(rule, team);
+            var weight = count * this.getUnitCombatWeightForCardScore(rule, team);
+            totalWeight += weight;
+            totalStat += weight * (entry ? entry[stat] : 0);
+          }
+
+          return totalWeight > 0 ? totalStat / totalWeight : 0;
+        }
+
+        getAverageTargetUnitDefenseForCardScore(definition, state, targetWeight) {
+          if (targetWeight <= 0) return 0;
+          var totalDefense = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+
+            if (!rule || !this.cardMatchesFamily(definition, rule.family)) {
+              continue;
+            }
+
+            var weight = this.getTeamUnitCountForCardScore(rule, 0, state) * this.getUnitCombatWeightForCardScore(rule, 0);
+            var entry = this.getUnitEntryForCardScore(rule, 0);
+            totalDefense += weight * (entry ? entry.defense : 0);
+          }
+
+          return totalDefense / targetWeight;
+        }
+
+        getUnitEntryForCardScore(rule, team) {
+          var manager = this.getGameManager();
+          var entries = manager && manager.unitDatabase ? manager.unitDatabase.getTeamEntries(team) : [];
+          return entries.find(entry => entry && entry.family === rule.family && entry.tier === rule.tier) || entries.find(entry => entry && entry.family === rule.family) || null;
         }
 
         advancePlayerCardCooldowns(state, usedCardIds) {
@@ -1062,7 +1286,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         isCardUnlockedForPlayer(definition, state) {
+          if (this.hasReachedFullProgression()) {
+            return true;
+          }
+
           return this.getPlayerCardProgressionWave(state) >= this.getCardProgressionWave(definition);
+        }
+
+        hasReachedFullProgression() {
+          return this.battleLevel > Math.max(0, Math.floor(this.progressionEndLevel));
         }
 
         getPlayerCardProgressionWave(state) {
@@ -1130,6 +1362,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getCardUpgradeRankLimit(definition, state) {
+          if (this.hasReachedFullProgression()) {
+            return 2;
+          }
+
           return Math.max(0, Math.min(2, this.getPlayerCardProgressionWave(state) - this.getCardProgressionWave(definition)));
         }
 
@@ -1506,7 +1742,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
               if (!_saved) continue;
 
-              if (!this.isCardEligibleForTeam(definition, 0, state)) {
+              if (!this.hasReachedFullProgression() && !this.isCardEligibleForTeam(definition, 0, state)) {
                 continue;
               }
 
@@ -2043,8 +2279,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             state = null;
           }
 
-          var unlockLevel = this.getRuleUnlockLevel(rule);
           var maxRank = Math.max(0, this.getRuleMaxCount(rule) - this.getRuleUnlockCount(rule));
+          var safeLevel = this.clampLevel(level);
+          var milestoneRank = this.getUnitCountMilestoneRank(rule, safeLevel, state);
+          var tailRank = this.getUnitCountTailUpgradeSchedule().filter(item => item.key === this.getRuleKey(rule) && item.level <= safeLevel).length;
+          return Math.min(maxRank, milestoneRank + tailRank);
+        }
+
+        getUnitCountMilestoneRank(rule, level, state) {
+          if (state === void 0) {
+            state = null;
+          }
+
+          var unlockLevel = this.getRuleUnlockLevel(rule);
           var rank = 0;
           var milestones = this.getUnitUnlockMilestoneLevels();
 
@@ -2062,7 +2309,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             rank++;
           }
 
-          return Math.min(maxRank, rank);
+          return rank;
+        }
+
+        getUnitCountTailUpgradeSchedule() {
+          var normalLevels = this.getPostProgressionNormalLevels();
+          if (normalLevels.length <= 0) return [];
+          var pending = [];
+          var progressionEnd = this.getUnitProgressionEndLevel();
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            var maxRank = Math.max(0, this.getRuleMaxCount(rule) - this.getRuleUnlockCount(rule));
+            var remaining = maxRank - this.getUnitCountMilestoneRank(rule, progressionEnd);
+            if (remaining <= 0) continue;
+            pending.push({
+              key: this.getRuleKey(rule),
+              remaining
+            });
+          }
+
+          var keys = [];
+
+          while (pending.some(item => item.remaining > 0)) {
+            for (var _i9 = 0; _i9 < pending.length; _i9++) {
+              var item = pending[_i9];
+              if (item.remaining <= 0) continue;
+              keys.push(item.key);
+              item.remaining--;
+            }
+          }
+
+          return keys.map((key, index) => ({
+            key,
+            level: normalLevels[Math.min(normalLevels.length - 1, Math.floor(index * normalLevels.length / keys.length))]
+          }));
+        }
+
+        getPostProgressionNormalLevels() {
+          var result = [];
+          var progressionEnd = this.getUnitProgressionEndLevel();
+          var totalLevels = this.getSafeTotalLevels();
+
+          for (var level = progressionEnd + 1; level < totalLevels; level++) {
+            if (!this.isBossLevelFor(level)) {
+              result.push(level);
+            }
+          }
+
+          return result;
         }
 
         getUnitUnlockMilestoneLevels() {
@@ -2141,8 +2437,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleArmyBrain) : BattleArmyBrain);
 
-          for (var _i9 = 0; _i9 < brains.length; _i9++) {
-            var _brain = brains[_i9];
+          for (var _i10 = 0; _i10 < brains.length; _i10++) {
+            var _brain = brains[_i10];
             if (!_brain) continue;
             if (this.clampTeam(_brain.team) !== team) continue;
             result.push(_brain);
@@ -2417,8 +2713,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var previousLevel = 0;
           var previousCap = this.getPlayerMaxAliveStart();
 
-          for (var _i10 = 0; _i10 < milestones.length; _i10++) {
-            var targetLevel = milestones[_i10];
+          for (var _i11 = 0; _i11 < milestones.length; _i11++) {
+            var targetLevel = milestones[_i11];
             var targetCap = this.clampPlayerMaxAlive(Math.max(previousCap, this.getLevelBaseMaxAlive(targetLevel)));
             var totalDelta = targetCap - previousCap;
 
@@ -2625,7 +2921,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return a + (b - a) * this.clamp01(t);
         }
 
-      }, _class6.runtimeBattleReset = false, _class6), (_descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "totalLevels", [_dec9], {
+      }, (_descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "totalLevels", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -958,6 +958,16 @@ export class Unit extends Component {
             return;
         }
 
+        if (
+            GameManager.instance?.resolveUnitReachedEnemyHeroLine(
+                this
+            )
+        ) {
+            this.setAgentStopped();
+            this.sync(deltaTime, false);
+            return;
+        }
+
         if (this.updateSteadyHeroGuard(deltaTime)) {
             return;
         }

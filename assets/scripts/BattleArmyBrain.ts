@@ -124,6 +124,19 @@ export class BattleArmyBrain extends Component {
     private telemetryBatchQueryActive = false;
 
     start() {
+        this.resetForNewBattle();
+    }
+
+    public resetForNewBattle() {
+        this.timer = 0;
+        this.currentAccuracyRoll = 0;
+        this.currentAccurateDecision = true;
+        this.currentDeliberateMistake = false;
+        this.lastMeleeSpawnLaneId = -1;
+        this.consecutiveMeleeSpawnLaneCount = 0;
+        this.hasSpawnedWave = false;
+        this.testSingleWaveSpawned = false;
+
         this.applyTelemetryBatchQueryAccuracy();
 
         if (this.telemetryBatchQueryActive) {
@@ -135,6 +148,7 @@ export class BattleArmyBrain extends Component {
 
     update(dt: number) {
         if (!this.gameManager) return;
+        if (!this.gameManager.isBattleRuntimeRunning()) return;
 
         if (this.testSingleWaveBattle) {
             this.trySpawnSingleWaveTest();

@@ -67,7 +67,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var pool = this.getPool(prefab);
           var safeCount = Math.max(0, Math.floor(count));
 
-          for (var i = 0; i < safeCount; i++) {
+          for (var i = pool.length; i < safeCount; i++) {
             var node = instantiate(prefab);
             parent.addChild(node);
             node.active = false;

@@ -13,7 +13,6 @@
       "0",
       "0_0_7_0_0",
       "0_0_7_2",
-      "0_1",
       "0_3"
     ]
   },
@@ -405,6 +404,13 @@
   },
   "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36": {
     "assetUuid": "2ebb14f4-9fe1-486e-9de2-a71ca32c3e36",
+    "animationUuid": "",
+    "expandLevels": [
+      "0"
+    ]
+  },
+  "23523c9b-f176-4630-a442-eff5e3043b2c": {
+    "assetUuid": "23523c9b-f176-4630-a442-eff5e3043b2c",
     "animationUuid": "",
     "expandLevels": [
       "0"

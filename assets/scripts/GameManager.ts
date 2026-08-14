@@ -128,20 +128,20 @@ export class GameManager extends Component {
 
     @property({
         tooltip:
-            'Check battle winner rules. Normal gameplay ends on Hero death. Telemetry tests continue until a team has no living troops and cannot afford any valid spawn.',
+            'Check battle winner rules. Normal gameplay ends when a Hero dies or an opposing unit reaches the initial Hero line.',
     })
     enableBattleWinnerCheck = true;
 
     @property({
         tooltip:
-            'Fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry. Telemetry tests always use this end rule.',
+            'Optional fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry.',
     })
     enableNoAffordableSpawnWinnerFallback = false;
 
     @property({
         min: 1,
         tooltip:
-            'Frames between elimination-and-affordability winner checks. Hero death is immediate only outside telemetry tests.',
+            'Frames between optional elimination-and-affordability winner checks.',
     })
     battleWinnerCheckIntervalFrames = 1;
 
@@ -420,12 +420,23 @@ export class GameManager extends Component {
         new BattleTelemetry();
     private battleElapsedTime = 0;
     private battleCardRuntime: BattleCardRuntime | null = null;
+    private battleRuntimeActive = false;
+    private battleRuntimeRoot: Node | null = null;
+    private readonly heroSpawnPositions: Map<Node, Vec3> = new Map();
 
     start() {
+        this.startBattleRuntime();
+    }
+
+    public startBattleRuntime() {
+        if (this.battleRuntimeActive) return false;
+
         GameManager.instance = this;
         this.applyTargetFrameRate();
         this.installBattleTimeScaleHook();
         this.applyProfilerStats();
+
+        this.destroyStaleRuntimeUnits();
 
         this.teamA.length = 0;
         this.teamB.length = 0;
@@ -436,8 +447,6 @@ export class GameManager extends Component {
         this.teamBHeroWave = null;
         this.teamAHeroEntry = null;
         this.teamBHeroEntry = null;
-        this.heroLineZ[0] = NaN;
-        this.heroLineZ[1] = NaN;
         this.heroForwardUnlocked[0] = false;
         this.heroForwardUnlocked[1] = false;
         this.heroBattleSearchRangeActive = false;
@@ -457,6 +466,7 @@ export class GameManager extends Component {
         this.counterKillCount[0] = 0;
         this.counterKillCount[1] = 0;
 
+        this.frame = 0;
         this.spawnWaveTimer = 0;
         this.battleElapsedTime = 0;
 
@@ -519,6 +529,7 @@ export class GameManager extends Component {
         }
 
         this.registerDatabaseHeroes();
+        this.resetBattleRuntimeComponents();
 
         if (this.spawnImmediatelyOnStart) {
             this.spawnAutoWave();
@@ -526,22 +537,16 @@ export class GameManager extends Component {
 
         this.rebuildSpatialGrid();
         this.refreshBattleStatsUI(true);
+        this.battleRuntimeActive = true;
+
+        return true;
     }
 
-    onDestroy() {
-        if (GameManager.instance === this) {
-            GameManager.instance = null;
-        }
+    public stopBattleRuntime() {
+        if (!this.battleRuntimeActive) return;
 
-        if (this.resetBattleTimeScaleOnDestroy) {
-            this.uninstallBattleTimeScaleHook();
-        }
-
+        this.battleRuntimeActive = false;
         this.unregisterWaveBannerCameraEvents();
-
-        if (this.sim && this.sim.destroy) {
-            this.sim.destroy();
-        }
 
         for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
@@ -559,22 +564,119 @@ export class GameManager extends Component {
             this.teamBHeroWave.releaseReferences();
         }
 
-        this.waves.length = 0;
-        this.teamAHeroWave = null;
-        this.teamBHeroWave = null;
-        this.heroForwardUnlocked[0] = false;
-        this.heroForwardUnlocked[1] = false;
+        this.releaseBattleUnits(this.teamA);
+        this.releaseBattleUnits(this.teamB);
 
+        this.waves.length = 0;
         this.teamA.length = 0;
         this.teamB.length = 0;
+        this.teamAHero = null;
+        this.teamBHero = null;
+        this.teamAHeroWave = null;
+        this.teamBHeroWave = null;
+        this.teamAHeroEntry = null;
+        this.teamBHeroEntry = null;
+        this.heroForwardUnlocked[0] = false;
+        this.heroForwardUnlocked[1] = false;
+        this.heroBattleSearchRangeActive = false;
+
+        if (this.sim && this.sim.destroy) {
+            this.sim.destroy();
+        }
+
+        this.sim = null;
+        this.battleCardRuntime = null;
+        this.spatialGrid.destroy();
+        this.spatialGrid.build([], []);
+        this.spatialGridDirty = false;
+        this.battleStatsUiDirty = true;
+    }
+
+    public isBattleRuntimeRunning() {
+        return this.battleRuntimeActive;
+    }
+
+    private releaseBattleUnits(units: Unit[]) {
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!unit || !unit.node || !unit.node.isValid) continue;
+
+            if (unit.isHero) {
+                this.removeUnitAgentFromSimulator(unit);
+                unit.resetForDespawn();
+                unit.node.active = false;
+                continue;
+            }
+
+            const entry = this.getTeamEntry(
+                unit.team,
+                unit.unitTypeName
+            );
+
+            if (entry && entry.prefab && this.spawner) {
+                this.spawner.despawnUnit(unit, entry.prefab);
+            } else {
+                this.removeUnitAgentFromSimulator(unit);
+                unit.resetForDespawn();
+                unit.node.active = false;
+            }
+        }
+    }
+
+    private destroyStaleRuntimeUnits() {
+        const root = this.battleRuntimeRoot;
+
+        if (!root || !root.isValid) return;
+
+        const units = root.getComponentsInChildren(Unit);
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+
+            if (!unit || !unit.node.activeInHierarchy) continue;
+
+            this.removeUnitAgentFromSimulator(unit);
+            unit.resetForDespawn();
+            unit.node.destroy();
+        }
+    }
+
+    private resetBattleRuntimeComponents() {
+        const scene = director.getScene();
+
+        if (!scene) return;
+
+        const components = scene.getComponentsInChildren(Component);
+
+        for (let i = 0; i < components.length; i++) {
+            const component = components[i] as any;
+            const reset = component?.resetForNewBattle;
+
+            if (typeof reset === 'function') {
+                reset.call(component);
+            }
+        }
+    }
+
+    onDestroy() {
+        if (GameManager.instance === this) {
+            GameManager.instance = null;
+        }
+
+        if (this.resetBattleTimeScaleOnDestroy) {
+            this.uninstallBattleTimeScaleHook();
+        }
+
+        this.stopBattleRuntime();
 
         this.teamAPrefabMap.clear();
         this.teamBPrefabMap.clear();
         this.clearWaveBannerPools();
 
-        this.spatialGrid.destroy();
-        this.spatialGrid.build([], []);
-        this.sim = null;
+        if (this.spawner) {
+            this.spawner.clearPool();
+        }
     }
 
     private resetCombatPoint() {
@@ -720,6 +822,8 @@ export class GameManager extends Component {
     }
 
     update(deltaTime: number) {
+        if (!this.battleRuntimeActive) return;
+
         this.frame++;
         this.battleElapsedTime += deltaTime;
         this.battleCardRuntime?.update(
@@ -981,6 +1085,24 @@ export class GameManager extends Component {
         if (Math.abs(forwardZ) <= 0.0001) return false;
 
         return (unitZ - lineZ) * forwardZ >= 0;
+    }
+
+    public resolveUnitReachedEnemyHeroLine(unit: Unit) {
+        if (!this.battleRuntimeActive) return false;
+        if (this.hasBattleWinner()) return false;
+        if (!this.hasUnitReachedEnemyHeroLine(unit)) return false;
+
+        const losingTeam = unit.team === 0 ? 1 : 0;
+
+        this.resolveBattleWinner(
+            unit.team,
+            losingTeam,
+            unit.team === 1
+                ? 'enemy-reached-hero-line'
+                : 'player-reached-hero-line'
+        );
+
+        return true;
     }
 
     public resolveHeroDefeat(hero: Unit) {
@@ -1340,15 +1462,7 @@ export class GameManager extends Component {
 
         if (!scanner) return;
 
-        if (
-            scanner.team === 1 &&
-            scanner.hasReachedEnemyHeroLine()
-        ) {
-            this.resolveBattleWinner(
-                1,
-                0,
-                'enemy-reached-hero-line'
-            );
+        if (this.resolveUnitReachedEnemyHeroLine(scanner)) {
             return;
         }
 
@@ -2246,12 +2360,7 @@ export class GameManager extends Component {
 
             return;
         }
-        if (
-            !this.enableBattleTelemetry &&
-            !this.enableNoAffordableSpawnWinnerFallback
-        ) {
-            return;
-        }
+        if (!this.enableNoAffordableSpawnWinnerFallback) return;
         if (!this.isCombatPointEnabled()) return;
         if (
             !force &&
@@ -2465,7 +2574,7 @@ export class GameManager extends Component {
             const resetBattle = () => {
                 if (!progressionProvider.resetBattle()) {
                     console.warn(
-                        '[BattleProgression] scene reset was not started.'
+                        '[BattleProgression] battle runtime reset was not started.'
                     );
                 }
             };
@@ -3385,6 +3494,7 @@ export class GameManager extends Component {
     private prewarmAllUnits() {
         const teamAEntries = this.getDatabaseTeamEntries(0);
         const teamBEntries = this.getDatabaseTeamEntries(1);
+        const runtimeRoot = this.getBattleRuntimeRoot();
 
         for (const entry of teamAEntries) {
             if (!this.isValidEntry(entry)) continue;
@@ -3392,7 +3502,7 @@ export class GameManager extends Component {
             this.spawner.prewarm(
                 entry.prefab!,
                 entry.prewarmCount,
-                this.node
+                runtimeRoot
             );
         }
 
@@ -3402,7 +3512,7 @@ export class GameManager extends Component {
             this.spawner.prewarm(
                 entry.prefab!,
                 entry.prewarmCount,
-                this.node
+                runtimeRoot
             );
         }
     }
@@ -3413,6 +3523,20 @@ export class GameManager extends Component {
         }
 
         return this.unitDatabase.getTeamEntries(team);
+    }
+
+    private getBattleRuntimeRoot() {
+        const root = this.battleRuntimeRoot;
+
+        if (root && root.isValid) {
+            return root;
+        }
+
+        const nextRoot = new Node('BattleRuntime');
+        this.node.addChild(nextRoot);
+        this.battleRuntimeRoot = nextRoot;
+
+        return nextRoot;
     }
 
     private isValidEntry(entry: UnitPrefabEntry | null): boolean {
@@ -3662,6 +3786,8 @@ export class GameManager extends Component {
         aggressiveForward: boolean = false,
         spawnReason: string = ''
     ): BattleWave | null {
+        if (!this.battleRuntimeActive) return null;
+
         if (!this.isValidSpawnEntry(entry)) {
             return null;
         }
@@ -4587,7 +4713,7 @@ export class GameManager extends Component {
             entry.tier,
             pos,
             0,
-            this.node,
+            this.getBattleRuntimeRoot(),
             entry.maxSpeed,
             entry.canBePush,
             entry.canBePassedThroughByForwardAlly,
@@ -4640,7 +4766,7 @@ export class GameManager extends Component {
             entry.tier,
             pos,
             1,
-            this.node,
+            this.getBattleRuntimeRoot(),
             entry.maxSpeed,
             entry.canBePush,
             entry.canBePassedThroughByForwardAlly,
@@ -4859,6 +4985,13 @@ export class GameManager extends Component {
         this.teamBHeroEntry =
             this.unitDatabase.getHeroEntry(1);
 
+        this.captureHeroSpawnPosition(
+            this.teamAHeroEntry
+        );
+        this.captureHeroSpawnPosition(
+            this.teamBHeroEntry
+        );
+
         this.captureHeroLine(0, this.teamAHeroEntry);
         this.captureHeroLine(1, this.teamBHeroEntry);
 
@@ -4870,11 +5003,38 @@ export class GameManager extends Component {
         );
     }
 
+    private captureHeroSpawnPosition(
+        entry: HeroEntry | null
+    ) {
+        const node = entry?.heroNode;
+
+        if (!node || this.heroSpawnPositions.has(node)) return;
+
+        this.heroSpawnPositions.set(
+            node,
+            node.worldPosition.clone()
+        );
+    }
+
+    private restoreHeroSpawnPosition(
+        entry: HeroEntry
+    ) {
+        const node = entry.heroNode;
+        const position = node
+            ? this.heroSpawnPositions.get(node)
+            : null;
+
+        if (node && position) {
+            node.setWorldPosition(position);
+        }
+    }
+
     private captureHeroLine(
         team: number,
         heroEntry: HeroEntry | null
     ) {
         if (team !== 0 && team !== 1) return;
+        if (Number.isFinite(this.heroLineZ[team])) return;
         if (!heroEntry || !heroEntry.heroNode) return;
 
         const lineZ = heroEntry.heroNode.worldPosition.z;
@@ -4927,6 +5087,7 @@ export class GameManager extends Component {
         if (!heroEntry) return null;
         if (!heroEntry.heroNode) return null;
 
+        this.restoreHeroSpawnPosition(heroEntry);
         heroEntry.heroNode.active = true;
 
         const hero = heroEntry.heroNode.getComponent(Unit);

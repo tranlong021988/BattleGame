@@ -459,6 +459,10 @@ export class PlayerArmyController extends Component {
             return;
         }
 
+        if (!manager.isBattleRuntimeRunning()) {
+            return;
+        }
+
         const safeUnitName = unitName.trim();
 
         if (!safeUnitName) {

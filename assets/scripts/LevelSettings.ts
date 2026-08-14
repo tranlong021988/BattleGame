@@ -2,7 +2,6 @@ import {
     _decorator,
     Component,
     director,
-    game,
     sys,
 } from 'cc';
 import { GameManager } from './GameManager';
@@ -176,7 +175,7 @@ export class LevelSettings extends Component
         min: 1,
         step: 1,
         displayName: 'Progression End Level',
-        tooltip: 'Level where base CP, accuracy, Max Alive, unit unlocks, and unit counts finish progressing. Later levels keep these base caps while boss multipliers still apply.'
+        tooltip: 'Level where base CP, accuracy, Max Alive, and unit unlocks finish progressing. Remaining unit-count ranks are offered on regular levels before the campaign finale.'
     })
     progressionEndLevel = 50;
 
@@ -410,7 +409,6 @@ export class LevelSettings extends Component
     private currentPlayerBattleCardIds: string[] = [];
     private currentEnemyBattleCardIds: string[] = [];
     private sideMissionBattle = false;
-    private static runtimeBattleReset = false;
 
     onLoad() {
         this.migrateLegacyUnitUnlockProgression();
@@ -424,8 +422,7 @@ export class LevelSettings extends Component
 
         if (
             this.enableProgression &&
-            !this.levelQueryActive &&
-            !LevelSettings.runtimeBattleReset
+            !this.levelQueryActive
         ) {
             this.resetProgressionRequested = true;
         }
@@ -449,6 +446,7 @@ export class LevelSettings extends Component
         if (this.enableProgression) {
             this.completePreBattleProgression();
         }
+
     }
 
     onDestroy() {
@@ -928,24 +926,37 @@ export class LevelSettings extends Component
     public resetBattle() {
         if (!this.nextBattlePending) return false;
 
-        LevelSettings.runtimeBattleReset = true;
-        try {
-            void game.restart().catch((error) => {
-                LevelSettings.runtimeBattleReset = false;
-                console.error(
-                    '[BattleProgression] failed to restart battle runtime.',
-                    error
-                );
-            });
-            return true;
-        } catch (error) {
-            LevelSettings.runtimeBattleReset = false;
+        const manager = this.getGameManager();
+
+        if (!manager) {
             console.error(
-                '[BattleProgression] could not start battle runtime restart.',
-                error
+                '[BattleProgression] GameManager is unavailable for reset.'
             );
             return false;
         }
+
+        this.nextBattlePending = false;
+        manager.stopBattleRuntime();
+
+        this.initializeProgression();
+        this.applyLevelSettings();
+        this.completePreBattleProgression();
+
+        // Routing to a side mission schedules the next internal reset after
+        // state has been saved. Do not briefly start the obsolete main battle.
+        if (this.nextBattlePending) {
+            return true;
+        }
+
+        const started = manager.startBattleRuntime();
+
+        if (!started) {
+            console.error(
+                '[BattleProgression] battle runtime could not be started.'
+            );
+        }
+
+        return started;
     }
 
     private initializeProgression() {
@@ -1165,7 +1176,7 @@ export class LevelSettings extends Component
 
         if (this.purchasingSimulation) {
             this.currentPlayerBattleCardIds =
-                this.selectRandomCardIds(
+                this.selectStrongestPlayerCardIds(
                     database.cards.filter((definition) => {
                         const saved = this.getSavedCard(
                             state,
@@ -1183,7 +1194,7 @@ export class LevelSettings extends Component
                                 Math.random() < 0.5
                             );
                     }),
-                    [],
+                    state,
                     this.getBattleCardDeckSize()
                 );
             this.finishBotSelectedCardCooldowns(state);
@@ -1349,6 +1360,387 @@ export class LevelSettings extends Component
         }
 
         return result;
+    }
+
+    private selectStrongestPlayerCardIds(
+        definitions: BattleCardDefinition[],
+        state: SavedProgressionState,
+        maxCount: number
+    ) {
+        const candidates = definitions.filter((definition, index) =>
+            !!definition &&
+            !!definition.id &&
+            definitions.findIndex((candidate) =>
+                candidate && candidate.id === definition.id
+            ) === index
+        );
+        const deckSize = Math.max(0, Math.min(maxCount, candidates.length));
+
+        if (deckSize <= 0) return [];
+
+        let bestIds: string[] = [];
+        let bestScore = Number.NEGATIVE_INFINITY;
+        const current: BattleCardDefinition[] = [];
+
+        const evaluate = (startIndex: number) => {
+            if (current.length > 0) {
+                const score = current.reduce(
+                    (total, definition) => total +
+                        this.getPlayerBattleCardScore(definition, state),
+                    0
+                );
+
+                if (score > bestScore + 0.0001) {
+                    bestScore = score;
+                    bestIds = current.map((definition) => definition.id);
+                }
+            }
+
+            if (current.length >= deckSize) return;
+
+            for (let i = startIndex; i < candidates.length; i++) {
+                current.push(candidates[i]);
+                evaluate(i + 1);
+                current.pop();
+            }
+        };
+
+        evaluate(0);
+        return bestIds;
+    }
+
+    private getPlayerBattleCardScore(
+        definition: BattleCardDefinition,
+        state: SavedProgressionState
+    ) {
+        const targetWeight = this.getCardTargetCombatWeight(
+            definition,
+            0,
+            state
+        );
+
+        if (targetWeight <= 0) return 0;
+
+        const saved = this.getSavedCard(state, definition.id);
+        const budgetScale = saved
+            ? this.getCardEffectiveBudget(saved) /
+                Math.max(1, definition.baseBudget)
+            : 1;
+        const conditionScale = this.getCardOpponentConditionWeight(
+            definition,
+            state
+        );
+        const modifierScore = this.getCardModifierScore(
+            definition,
+            state,
+            targetWeight
+        );
+
+        return Math.max(
+            0,
+            targetWeight * modifierScore * budgetScale * conditionScale
+        );
+    }
+
+    private getCardTargetCombatWeight(
+        definition: BattleCardDefinition,
+        team: number,
+        state: SavedProgressionState
+    ) {
+        let total = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule || !this.cardMatchesFamily(definition, rule.family)) {
+                continue;
+            }
+
+            const count = this.getTeamUnitCountForCardScore(
+                rule,
+                team,
+                state
+            );
+
+            if (count <= 0) continue;
+
+            total += count * this.getUnitCombatWeightForCardScore(
+                rule,
+                team
+            );
+        }
+
+        return total;
+    }
+
+    private getTeamUnitCountForCardScore(
+        rule: UnitProgressionRule,
+        team: number,
+        state: SavedProgressionState
+    ) {
+        if (team === 1) {
+            return this.battleLevel >= this.getRuleUnlockLevel(rule)
+                ? this.getEnemyUnitCount(rule, this.battleLevel)
+                : 0;
+        }
+
+        const saved = this.getSavedUnit(state, this.getRuleKey(rule));
+
+        return saved && saved.unlocked
+            ? Math.max(0, saved.unitCount)
+            : 0;
+    }
+
+    private getUnitCombatWeightForCardScore(
+        rule: UnitProgressionRule,
+        team: number
+    ) {
+        const entry = this.getUnitEntryForCardScore(rule, team);
+
+        return Math.max(1, entry ? entry.combatPointCost : 1);
+    }
+
+    private getCardOpponentConditionWeight(
+        definition: BattleCardDefinition,
+        state: SavedProgressionState
+    ) {
+        if (
+            definition.requiredEnemyFamily ===
+            BattleCardOpponentCondition.Any
+        ) {
+            return 1;
+        }
+
+        const requiredFamily = definition.requiredEnemyFamily - 1;
+        let totalEnemyWeight = 0;
+        let requiredEnemyWeight = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule) continue;
+
+            const weight = this.getTeamUnitCountForCardScore(
+                rule,
+                1,
+                state
+            ) * this.getUnitCombatWeightForCardScore(rule, 1);
+            totalEnemyWeight += weight;
+
+            if (rule.family === requiredFamily) {
+                requiredEnemyWeight += weight;
+            }
+        }
+
+        return totalEnemyWeight > 0
+            ? requiredEnemyWeight / totalEnemyWeight
+            : 0;
+    }
+
+    private getCardModifierScore(
+        definition: BattleCardDefinition,
+        state: SavedProgressionState,
+        targetWeight: number
+    ) {
+        return this.getCardModifierValueScore(
+            definition,
+            definition.modifier,
+            definition.modifierValue,
+            state,
+            targetWeight
+        ) + this.getCardModifierValueScore(
+            definition,
+            definition.tradeoffModifier,
+            definition.tradeoffValue,
+            state,
+            targetWeight
+        );
+    }
+
+    private getCardModifierValueScore(
+        definition: BattleCardDefinition,
+        modifier: BattleCardModifier,
+        value: number,
+        state: SavedProgressionState,
+        targetWeight: number
+    ) {
+        switch (modifier) {
+            case BattleCardModifier.DamagePercent:
+            case BattleCardModifier.AttackRangePercent:
+            case BattleCardModifier.DamageRadiusPercent:
+            case BattleCardModifier.MoveSpeedPercent:
+                return value / 100;
+            case BattleCardModifier.DefenseFlat:
+                return this.getDefenseModifierScore(
+                    definition,
+                    value,
+                    state,
+                    targetWeight
+                );
+            case BattleCardModifier.CounterImmunity:
+                return this.getCounterImmunityScore(
+                    definition,
+                    state,
+                    targetWeight
+                );
+            default:
+                return 0;
+        }
+    }
+
+    private getDefenseModifierScore(
+        definition: BattleCardDefinition,
+        value: number,
+        state: SavedProgressionState,
+        targetWeight: number
+    ) {
+        const enemyDamage = this.getAverageUnitStatForCardScore(
+            1,
+            state,
+            'damage'
+        );
+        const targetDefense = this.getAverageTargetUnitDefenseForCardScore(
+            definition,
+            state,
+            targetWeight
+        );
+        const before = Math.max(1, enemyDamage - targetDefense);
+        const after = Math.max(1, enemyDamage - targetDefense - value);
+
+        return before / after - 1;
+    }
+
+    private getCounterImmunityScore(
+        definition: BattleCardDefinition,
+        state: SavedProgressionState,
+        targetWeight: number
+    ) {
+        const counter = CounterSettings.instance;
+
+        if (!counter || targetWeight <= 0) return 0;
+
+        let weightedThreat = 0;
+        let totalEnemyWeight = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const enemyRule = this.unitProgressionRules[i];
+
+            if (!enemyRule) continue;
+
+            const enemyWeight = this.getTeamUnitCountForCardScore(
+                enemyRule,
+                1,
+                state
+            ) * this.getUnitCombatWeightForCardScore(enemyRule, 1);
+
+            totalEnemyWeight += enemyWeight;
+
+            for (let j = 0; j < this.unitProgressionRules.length; j++) {
+                const targetRule = this.unitProgressionRules[j];
+
+                if (!targetRule || !this.cardMatchesFamily(
+                    definition,
+                    targetRule.family
+                )) {
+                    continue;
+                }
+
+                const targetUnitWeight = this.getTeamUnitCountForCardScore(
+                    targetRule,
+                    0,
+                    state
+                ) * this.getUnitCombatWeightForCardScore(targetRule, 0);
+
+                weightedThreat += targetUnitWeight * enemyWeight * Math.max(
+                    0,
+                    counter.getDamageMultiplier(
+                        enemyRule.family,
+                        targetRule.family
+                    ) - 1
+                );
+            }
+        }
+
+        return totalEnemyWeight > 0
+            ? weightedThreat / (targetWeight * totalEnemyWeight)
+            : 0;
+    }
+
+    private getAverageUnitStatForCardScore(
+        team: number,
+        state: SavedProgressionState,
+        stat: 'damage' | 'defense'
+    ) {
+        let totalWeight = 0;
+        let totalStat = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule) continue;
+
+            const count = this.getTeamUnitCountForCardScore(
+                rule,
+                team,
+                state
+            );
+
+            if (count <= 0) continue;
+
+            const entry = this.getUnitEntryForCardScore(rule, team);
+            const weight = count * this.getUnitCombatWeightForCardScore(
+                rule,
+                team
+            );
+            totalWeight += weight;
+            totalStat += weight * (entry ? entry[stat] : 0);
+        }
+
+        return totalWeight > 0 ? totalStat / totalWeight : 0;
+    }
+
+    private getAverageTargetUnitDefenseForCardScore(
+        definition: BattleCardDefinition,
+        state: SavedProgressionState,
+        targetWeight: number
+    ) {
+        if (targetWeight <= 0) return 0;
+
+        let totalDefense = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule || !this.cardMatchesFamily(definition, rule.family)) {
+                continue;
+            }
+
+            const weight = this.getTeamUnitCountForCardScore(
+                rule,
+                0,
+                state
+            ) * this.getUnitCombatWeightForCardScore(rule, 0);
+            const entry = this.getUnitEntryForCardScore(rule, 0);
+            totalDefense += weight * (entry ? entry.defense : 0);
+        }
+
+        return totalDefense / targetWeight;
+    }
+
+    private getUnitEntryForCardScore(
+        rule: UnitProgressionRule,
+        team: number
+    ) {
+        const manager = this.getGameManager();
+        const entries = manager && manager.unitDatabase
+            ? manager.unitDatabase.getTeamEntries(team)
+            : [];
+
+        return entries.find((entry) => entry &&
+            entry.family === rule.family && entry.tier === rule.tier
+        ) || entries.find((entry) => entry &&
+            entry.family === rule.family
+        ) || null;
     }
 
     private advancePlayerCardCooldowns(
@@ -3164,12 +3556,33 @@ export class LevelSettings extends Component
         level: number,
         state: SavedProgressionState | null = null
     ) {
-        const unlockLevel = this.getRuleUnlockLevel(rule);
         const maxRank = Math.max(
             0,
             this.getRuleMaxCount(rule) -
             this.getRuleUnlockCount(rule)
         );
+        const safeLevel = this.clampLevel(level);
+        const milestoneRank = this.getUnitCountMilestoneRank(
+            rule,
+            safeLevel,
+            state
+        );
+        const tailRank = this.getUnitCountTailUpgradeSchedule()
+            .filter((item) =>
+                item.key === this.getRuleKey(rule) &&
+                item.level <= safeLevel
+            )
+            .length;
+
+        return Math.min(maxRank, milestoneRank + tailRank);
+    }
+
+    private getUnitCountMilestoneRank(
+        rule: UnitProgressionRule,
+        level: number,
+        state: SavedProgressionState | null = null
+    ) {
+        const unlockLevel = this.getRuleUnlockLevel(rule);
         let rank = 0;
         const milestones = this.getUnitUnlockMilestoneLevels();
 
@@ -3192,7 +3605,80 @@ export class LevelSettings extends Component
             rank++;
         }
 
-        return Math.min(maxRank, rank);
+        return rank;
+    }
+
+    private getUnitCountTailUpgradeSchedule() {
+        const normalLevels = this.getPostProgressionNormalLevels();
+
+        if (normalLevels.length <= 0) return [];
+
+        const pending: Array<{
+            key: string;
+            remaining: number;
+        }> = [];
+        const progressionEnd = this.getUnitProgressionEndLevel();
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule) continue;
+
+            const maxRank = Math.max(
+                0,
+                this.getRuleMaxCount(rule) -
+                this.getRuleUnlockCount(rule)
+            );
+            const remaining = maxRank - this.getUnitCountMilestoneRank(
+                rule,
+                progressionEnd
+            );
+
+            if (remaining <= 0) continue;
+
+            pending.push({
+                key: this.getRuleKey(rule),
+                remaining,
+            });
+        }
+
+        const keys: string[] = [];
+
+        while (pending.some((item) => item.remaining > 0)) {
+            for (let i = 0; i < pending.length; i++) {
+                const item = pending[i];
+
+                if (item.remaining <= 0) continue;
+
+                keys.push(item.key);
+                item.remaining--;
+            }
+        }
+
+        return keys.map((key, index) => ({
+            key,
+            level: normalLevels[Math.min(
+                normalLevels.length - 1,
+                Math.floor(index * normalLevels.length / keys.length)
+            )],
+        }));
+    }
+
+    private getPostProgressionNormalLevels() {
+        const result: number[] = [];
+        const progressionEnd = this.getUnitProgressionEndLevel();
+        const totalLevels = this.getSafeTotalLevels();
+
+        for (let level = progressionEnd + 1;
+            level < totalLevels;
+            level++
+        ) {
+            if (!this.isBossLevelFor(level)) {
+                result.push(level);
+            }
+        }
+
+        return result;
     }
 
     private getUnitUnlockMilestoneLevels() {

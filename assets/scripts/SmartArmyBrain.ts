@@ -176,8 +176,21 @@ export class SmartArmyBrain extends Component {
         Record<string, number | string | boolean | undefined> | null = null;
 
     start() {
-        this.randomizeNextInterval();
+        this.resetForNewBattle();
         this.registerFastReactListener();
+    }
+
+    public resetForNewBattle() {
+        this.timer = 0;
+        this.elapsedTime = 0;
+        this.hasReachedMaxAliveWavesOnce = false;
+        this.decisionStatsAggressive = 0;
+        this.decisionStatsNormal = 0;
+        this.decisionStatsWait = 0;
+        this.decisionStatsSkip = 0;
+        this.activeEnemyIntelCount = 0;
+        this.clearTelemetryDecisionContext();
+        this.randomizeNextInterval();
     }
 
     onDestroy() {
@@ -187,6 +200,7 @@ export class SmartArmyBrain extends Component {
 
     update(deltaTime: number) {
         if (!this.gameManager) return;
+        if (!this.gameManager.isBattleRuntimeRunning()) return;
 
         if (
             this.runOnlyWhenGameManagerAutoSpawnOff &&
@@ -237,6 +251,7 @@ export class SmartArmyBrain extends Component {
     ) {
         if (!wave) return;
         if (!this.gameManager) return;
+        if (!this.gameManager.isBattleRuntimeRunning()) return;
 
         if (wave.team === this.team) {
             this.refreshMaxAliveWaveReached();

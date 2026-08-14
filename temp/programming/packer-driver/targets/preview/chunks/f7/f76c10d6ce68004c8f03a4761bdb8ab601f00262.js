@@ -160,6 +160,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         start() {
+          this.resetForNewBattle();
+        }
+
+        resetForNewBattle() {
+          this.timer = 0;
+          this.currentAccuracyRoll = 0;
+          this.currentAccurateDecision = true;
+          this.currentDeliberateMistake = false;
+          this.lastMeleeSpawnLaneId = -1;
+          this.consecutiveMeleeSpawnLaneCount = 0;
+          this.hasSpawnedWave = false;
+          this.testSingleWaveSpawned = false;
           this.applyTelemetryBatchQueryAccuracy();
 
           if (this.telemetryBatchQueryActive) {
@@ -171,6 +183,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         update(dt) {
           if (!this.gameManager) return;
+          if (!this.gameManager.isBattleRuntimeRunning()) return;
 
           if (this.testSingleWaveBattle) {
             this.trySpawnSingleWaveTest();

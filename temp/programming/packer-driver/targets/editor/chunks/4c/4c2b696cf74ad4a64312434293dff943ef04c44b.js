@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5", "__unresolved_6", "__unresolved_7", "__unresolved_8", "__unresolved_9", "__unresolved_10", "__unresolved_11", "__unresolved_12", "__unresolved_13", "__unresolved_14", "__unresolved_15", "__unresolved_16", "__unresolved_17", "__unresolved_18"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, instantiate, isValid, MeshRenderer, game, profiler, director, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleTelemetry, BattleUnitDatabase, BattleCardDatabase, BattleCardModifier, BattleCardRuntime, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _descriptor55, _descriptor56, _descriptor57, _descriptor58, _descriptor59, _descriptor60, _descriptor61, _descriptor62, _descriptor63, _descriptor64, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Camera, Color, Component, Vec3, Label, Node, instantiate, isValid, MeshRenderer, game, profiler, director, Unit, UnitProps, RVOSimulator, RVOWorkerSimulator, ObstacleCircle, ObstacleRect, UnitSpawner, UnitBehavior, BattleSpatialGrid, BattleWave, CounterSettings, UnitFamily, BattleTelemetry, BattleUnitDatabase, BattleCardDatabase, BattleCardModifier, BattleCardRuntime, HealthBar3D, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _descriptor55, _descriptor56, _descriptor57, _descriptor58, _descriptor59, _descriptor60, _descriptor61, _descriptor62, _descriptor63, _descriptor64, _class3, _crd, ccclass, property, BannerVisibilityBlockedEvent, TopDownZoomRangeChangedEvent, BattleWaveSpawnedEvent, GameManager;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -122,6 +122,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       Component = _cc.Component;
       Vec3 = _cc.Vec3;
       Label = _cc.Label;
+      Node = _cc.Node;
       instantiate = _cc.instantiate;
       isValid = _cc.isValid;
       MeshRenderer = _cc.MeshRenderer;
@@ -197,12 +198,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec9 = property({
         tooltip: 'Allow URL query params ?stats=1 or ?profiler=1 to show the Cocos profiler overlay in browser builds.'
       }), _dec10 = property({
-        tooltip: 'Check battle winner rules. Normal gameplay ends on Hero death. Telemetry tests continue until a team has no living troops and cannot afford any valid spawn.'
+        tooltip: 'Check battle winner rules. Normal gameplay ends when a Hero dies or an opposing unit reaches the initial Hero line.'
       }), _dec11 = property({
-        tooltip: 'Fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry. Telemetry tests always use this end rule.'
+        tooltip: 'Optional fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry.'
       }), _dec12 = property({
         min: 1,
-        tooltip: 'Frames between elimination-and-affordability winner checks. Hero death is immediate only outside telemetry tests.'
+        tooltip: 'Frames between optional elimination-and-affordability winner checks.'
       }), _dec13 = property({
         tooltip: 'Collect aggregate battle telemetry and export a JSON report when the battle winner rule is reached.'
       }), _dec14 = property({
@@ -438,15 +439,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleTelemetry) : BattleTelemetry)();
           this.battleElapsedTime = 0;
           this.battleCardRuntime = null;
+          this.battleRuntimeActive = false;
+          this.battleRuntimeRoot = null;
+          this.heroSpawnPositions = new Map();
         }
 
         start() {
+          this.startBattleRuntime();
+        }
+
+        startBattleRuntime() {
           var _this$battleCardRunti;
 
+          if (this.battleRuntimeActive) return false;
           GameManager.instance = this;
           this.applyTargetFrameRate();
           this.installBattleTimeScaleHook();
           this.applyProfilerStats();
+          this.destroyStaleRuntimeUnits();
           this.teamA.length = 0;
           this.teamB.length = 0;
           this.waves.length = 0;
@@ -455,8 +465,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.teamBHeroWave = null;
           this.teamAHeroEntry = null;
           this.teamBHeroEntry = null;
-          this.heroLineZ[0] = NaN;
-          this.heroLineZ[1] = NaN;
           this.heroForwardUnlocked[0] = false;
           this.heroForwardUnlocked[1] = false;
           this.heroBattleSearchRangeActive = false;
@@ -470,6 +478,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.killCount[1] = 0;
           this.counterKillCount[0] = 0;
           this.counterKillCount[1] = 0;
+          this.frame = 0;
           this.spawnWaveTimer = 0;
           this.battleElapsedTime = 0;
           this.resetCombatPoint();
@@ -504,6 +513,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.registerDatabaseHeroes();
+          this.resetBattleRuntimeComponents();
 
           if (this.spawnImmediatelyOnStart) {
             this.spawnAutoWave();
@@ -511,22 +521,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.rebuildSpatialGrid();
           this.refreshBattleStatsUI(true);
+          this.battleRuntimeActive = true;
+          return true;
         }
 
-        onDestroy() {
-          if (GameManager.instance === this) {
-            GameManager.instance = null;
-          }
-
-          if (this.resetBattleTimeScaleOnDestroy) {
-            this.uninstallBattleTimeScaleHook();
-          }
-
+        stopBattleRuntime() {
+          if (!this.battleRuntimeActive) return;
+          this.battleRuntimeActive = false;
           this.unregisterWaveBannerCameraEvents();
-
-          if (this.sim && this.sim.destroy) {
-            this.sim.destroy();
-          }
 
           for (let i = 0; i < this.waves.length; i++) {
             const wave = this.waves[i];
@@ -544,19 +546,109 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             this.teamBHeroWave.releaseReferences();
           }
 
+          this.releaseBattleUnits(this.teamA);
+          this.releaseBattleUnits(this.teamB);
           this.waves.length = 0;
-          this.teamAHeroWave = null;
-          this.teamBHeroWave = null;
-          this.heroForwardUnlocked[0] = false;
-          this.heroForwardUnlocked[1] = false;
           this.teamA.length = 0;
           this.teamB.length = 0;
+          this.teamAHero = null;
+          this.teamBHero = null;
+          this.teamAHeroWave = null;
+          this.teamBHeroWave = null;
+          this.teamAHeroEntry = null;
+          this.teamBHeroEntry = null;
+          this.heroForwardUnlocked[0] = false;
+          this.heroForwardUnlocked[1] = false;
+          this.heroBattleSearchRangeActive = false;
+
+          if (this.sim && this.sim.destroy) {
+            this.sim.destroy();
+          }
+
+          this.sim = null;
+          this.battleCardRuntime = null;
+          this.spatialGrid.destroy();
+          this.spatialGrid.build([], []);
+          this.spatialGridDirty = false;
+          this.battleStatsUiDirty = true;
+        }
+
+        isBattleRuntimeRunning() {
+          return this.battleRuntimeActive;
+        }
+
+        releaseBattleUnits(units) {
+          for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+            if (!unit || !unit.node || !unit.node.isValid) continue;
+
+            if (unit.isHero) {
+              this.removeUnitAgentFromSimulator(unit);
+              unit.resetForDespawn();
+              unit.node.active = false;
+              continue;
+            }
+
+            const entry = this.getTeamEntry(unit.team, unit.unitTypeName);
+
+            if (entry && entry.prefab && this.spawner) {
+              this.spawner.despawnUnit(unit, entry.prefab);
+            } else {
+              this.removeUnitAgentFromSimulator(unit);
+              unit.resetForDespawn();
+              unit.node.active = false;
+            }
+          }
+        }
+
+        destroyStaleRuntimeUnits() {
+          const root = this.battleRuntimeRoot;
+          if (!root || !root.isValid) return;
+          const units = root.getComponentsInChildren(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
+            error: Error()
+          }), Unit) : Unit);
+
+          for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+            if (!unit || !unit.node.activeInHierarchy) continue;
+            this.removeUnitAgentFromSimulator(unit);
+            unit.resetForDespawn();
+            unit.node.destroy();
+          }
+        }
+
+        resetBattleRuntimeComponents() {
+          const scene = director.getScene();
+          if (!scene) return;
+          const components = scene.getComponentsInChildren(Component);
+
+          for (let i = 0; i < components.length; i++) {
+            const component = components[i];
+            const reset = component == null ? void 0 : component.resetForNewBattle;
+
+            if (typeof reset === 'function') {
+              reset.call(component);
+            }
+          }
+        }
+
+        onDestroy() {
+          if (GameManager.instance === this) {
+            GameManager.instance = null;
+          }
+
+          if (this.resetBattleTimeScaleOnDestroy) {
+            this.uninstallBattleTimeScaleHook();
+          }
+
+          this.stopBattleRuntime();
           this.teamAPrefabMap.clear();
           this.teamBPrefabMap.clear();
           this.clearWaveBannerPools();
-          this.spatialGrid.destroy();
-          this.spatialGrid.build([], []);
-          this.sim = null;
+
+          if (this.spawner) {
+            this.spawner.clearPool();
+          }
         }
 
         resetCombatPoint() {
@@ -670,6 +762,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         update(deltaTime) {
           var _this$battleCardRunti2;
 
+          if (!this.battleRuntimeActive) return;
           this.frame++;
           this.battleElapsedTime += deltaTime;
           (_this$battleCardRunti2 = this.battleCardRuntime) == null || _this$battleCardRunti2.update(deltaTime, this.combatPoint, this.initialCombatPoint);
@@ -814,6 +907,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!Number.isFinite(unitZ)) return false;
           if (Math.abs(forwardZ) <= 0.0001) return false;
           return (unitZ - lineZ) * forwardZ >= 0;
+        }
+
+        resolveUnitReachedEnemyHeroLine(unit) {
+          if (!this.battleRuntimeActive) return false;
+          if (this.hasBattleWinner()) return false;
+          if (!this.hasUnitReachedEnemyHeroLine(unit)) return false;
+          const losingTeam = unit.team === 0 ? 1 : 0;
+          this.resolveBattleWinner(unit.team, losingTeam, unit.team === 1 ? 'enemy-reached-hero-line' : 'player-reached-hero-line');
+          return true;
         }
 
         resolveHeroDefeat(hero) {
@@ -1027,8 +1129,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           let scanner = wave.getForwardScanner();
           if (!scanner) return;
 
-          if (scanner.team === 1 && scanner.hasReachedEnemyHeroLine()) {
-            this.resolveBattleWinner(1, 0, 'enemy-reached-hero-line');
+          if (this.resolveUnitReachedEnemyHeroLine(scanner)) {
             return;
           }
 
@@ -1632,10 +1733,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (!this.enableBattleTelemetry && !this.enableNoAffordableSpawnWinnerFallback) {
-            return;
-          }
-
+          if (!this.enableNoAffordableSpawnWinnerFallback) return;
           if (!this.isCombatPointEnabled()) return;
 
           if (!force && !this.shouldRunFrameInterval(this.battleWinnerCheckIntervalFrames)) {
@@ -1754,7 +1852,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             const resetBattle = () => {
               if (!progressionProvider.resetBattle()) {
-                console.warn('[BattleProgression] scene reset was not started.');
+                console.warn('[BattleProgression] battle runtime reset was not started.');
               }
             };
 
@@ -2289,15 +2387,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         prewarmAllUnits() {
           const teamAEntries = this.getDatabaseTeamEntries(0);
           const teamBEntries = this.getDatabaseTeamEntries(1);
+          const runtimeRoot = this.getBattleRuntimeRoot();
 
           for (const entry of teamAEntries) {
             if (!this.isValidEntry(entry)) continue;
-            this.spawner.prewarm(entry.prefab, entry.prewarmCount, this.node);
+            this.spawner.prewarm(entry.prefab, entry.prewarmCount, runtimeRoot);
           }
 
           for (const entry of teamBEntries) {
             if (!this.isValidEntry(entry)) continue;
-            this.spawner.prewarm(entry.prefab, entry.prewarmCount, this.node);
+            this.spawner.prewarm(entry.prefab, entry.prewarmCount, runtimeRoot);
           }
         }
 
@@ -2307,6 +2406,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.unitDatabase.getTeamEntries(team);
+        }
+
+        getBattleRuntimeRoot() {
+          const root = this.battleRuntimeRoot;
+
+          if (root && root.isValid) {
+            return root;
+          }
+
+          const nextRoot = new Node('BattleRuntime');
+          this.node.addChild(nextRoot);
+          this.battleRuntimeRoot = nextRoot;
+          return nextRoot;
         }
 
         isValidEntry(entry) {
@@ -2458,6 +2570,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         spawnEntryFormation(team, entry, baseZ, spendCost, requestedLaneId = -1, aggressiveForward = false, spawnReason = '') {
+          if (!this.battleRuntimeActive) return null;
+
           if (!this.isValidSpawnEntry(entry)) {
             return null;
           }
@@ -2949,7 +3063,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 0, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.damageRadius, entry.defense);
+          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 0, this.getBattleRuntimeRoot(), entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.damageRadius, entry.defense);
           this.applyHeroBattleTargetSearchRangeToUnit(unit);
 
           if (this.teamA.indexOf(unit) < 0) {
@@ -2976,7 +3090,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return null;
           }
 
-          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 1, this.node, entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.damageRadius, entry.defense);
+          const unit = this.spawner.spawnUnit(entry.prefab, entry.name, entry.family, entry.tier, pos, 1, this.getBattleRuntimeRoot(), entry.maxSpeed, entry.canBePush, entry.canBePassedThroughByForwardAlly, entry.attackRange, entry.attackIntervalMin, entry.attackIntervalMax, entry.health, entry.damage, entry.damageRadius, entry.defense);
           this.applyHeroBattleTargetSearchRangeToUnit(unit);
 
           if (this.teamB.indexOf(unit) < 0) {
@@ -3147,14 +3261,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.unitDatabase) return;
           this.teamAHeroEntry = this.unitDatabase.getHeroEntry(0);
           this.teamBHeroEntry = this.unitDatabase.getHeroEntry(1);
+          this.captureHeroSpawnPosition(this.teamAHeroEntry);
+          this.captureHeroSpawnPosition(this.teamBHeroEntry);
           this.captureHeroLine(0, this.teamAHeroEntry);
           this.captureHeroLine(1, this.teamBHeroEntry);
           this.prepareSceneHero(this.teamAHeroEntry);
           this.prepareSceneHero(this.teamBHeroEntry);
         }
 
+        captureHeroSpawnPosition(entry) {
+          const node = entry == null ? void 0 : entry.heroNode;
+          if (!node || this.heroSpawnPositions.has(node)) return;
+          this.heroSpawnPositions.set(node, node.worldPosition.clone());
+        }
+
+        restoreHeroSpawnPosition(entry) {
+          const node = entry.heroNode;
+          const position = node ? this.heroSpawnPositions.get(node) : null;
+
+          if (node && position) {
+            node.setWorldPosition(position);
+          }
+        }
+
         captureHeroLine(team, heroEntry) {
           if (team !== 0 && team !== 1) return;
+          if (Number.isFinite(this.heroLineZ[team])) return;
           if (!heroEntry || !heroEntry.heroNode) return;
           const lineZ = heroEntry.heroNode.worldPosition.z;
 
@@ -3182,6 +3314,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         registerSceneHero(heroEntry, team, fallbackTypeName) {
           if (!heroEntry) return null;
           if (!heroEntry.heroNode) return null;
+          this.restoreHeroSpawnPosition(heroEntry);
           heroEntry.heroNode.active = true;
           const hero = heroEntry.heroNode.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()

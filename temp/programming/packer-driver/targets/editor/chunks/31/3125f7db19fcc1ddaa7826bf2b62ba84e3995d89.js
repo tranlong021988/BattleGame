@@ -804,6 +804,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update(deltaTime) {
+          var _instance2;
+
           if (!this.sim || !this.agent) return;
           this.agent.maxSpeed = this.getEffectiveMoveSpeed();
           this.frameCounter++;
@@ -831,6 +833,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
+            this.setAgentStopped();
+            this.sync(deltaTime, false);
+            return;
+          }
+
+          if ((_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) != null && _instance2.resolveUnitReachedEnemyHeroLine(this)) {
             this.setAgentStopped();
             this.sync(deltaTime, false);
             return;

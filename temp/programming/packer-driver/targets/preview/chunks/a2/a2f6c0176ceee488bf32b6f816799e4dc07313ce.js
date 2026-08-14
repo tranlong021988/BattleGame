@@ -217,8 +217,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         start() {
-          this.randomizeNextInterval();
+          this.resetForNewBattle();
           this.registerFastReactListener();
+        }
+
+        resetForNewBattle() {
+          this.timer = 0;
+          this.elapsedTime = 0;
+          this.hasReachedMaxAliveWavesOnce = false;
+          this.decisionStatsAggressive = 0;
+          this.decisionStatsNormal = 0;
+          this.decisionStatsWait = 0;
+          this.decisionStatsSkip = 0;
+          this.activeEnemyIntelCount = 0;
+          this.clearTelemetryDecisionContext();
+          this.randomizeNextInterval();
         }
 
         onDestroy() {
@@ -228,6 +241,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         update(deltaTime) {
           if (!this.gameManager) return;
+          if (!this.gameManager.isBattleRuntimeRunning()) return;
 
           if (this.runOnlyWhenGameManagerAutoSpawnOff && this.gameManager.enableAutoSpawn) {
             return;
@@ -259,6 +273,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         onBattleWaveSpawned(wave) {
           if (!wave) return;
           if (!this.gameManager) return;
+          if (!this.gameManager.isBattleRuntimeRunning()) return;
 
           if (wave.team === this.team) {
             this.refreshMaxAliveWaveReached();
