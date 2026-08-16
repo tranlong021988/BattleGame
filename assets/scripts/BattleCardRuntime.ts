@@ -31,6 +31,7 @@ interface RuntimeBattleCard {
     active: boolean;
     initialBudget: number;
     budgetRemaining: number;
+    strengthScale: number;
 }
 
 const MAX_BUDGET_UPGRADE_LEVEL = 2;
@@ -59,6 +60,8 @@ export class BattleCardRuntime {
         playerCardIds: string[],
         enemyCardIds: string[],
         playerBudgetUpgradeLevels: Record<string, number> = {},
+        playerStrengthScales: Record<string, number> = {},
+        enemyStrengthScales: Record<string, number> = {},
         maxPlayerCards: number = 3,
         maxEnemyCards: number = maxPlayerCards
     ) {
@@ -75,11 +78,13 @@ export class BattleCardRuntime {
         this.cardsByTeam[0] = this.createDeck(
             playerCardIds,
             playerBudgetUpgradeLevels,
+            playerStrengthScales,
             playerDeckSize
         );
         this.cardsByTeam[1] = this.createDeck(
             enemyCardIds,
             {},
+            enemyStrengthScales,
             enemyDeckSize
         );
         this.modifiersByTeamFamily.clear();
@@ -163,12 +168,12 @@ export class BattleCardRuntime {
             this.applyModifier(
                 result,
                 card.definition.modifier,
-                card.definition.modifierValue
+                card.definition.modifierValue * card.strengthScale
             );
             this.applyModifier(
                 result,
                 card.definition.tradeoffModifier,
-                card.definition.tradeoffValue
+                card.definition.tradeoffValue * card.strengthScale
             );
         }
 
@@ -250,6 +255,7 @@ export class BattleCardRuntime {
                 budgetRemaining: card.budgetRemaining,
                 budgetUsed: card.initialBudget - card.budgetRemaining,
                 active: card.active,
+                strengthScale: card.strengthScale,
             })),
         }));
     }
@@ -257,6 +263,7 @@ export class BattleCardRuntime {
     private createDeck(
         cardIds: string[],
         budgetUpgradeLevels: Record<string, number> = {},
+        strengthScales: Record<string, number> = {},
         maxCards: number = 3
     ) {
         if (
@@ -295,12 +302,25 @@ export class BattleCardRuntime {
                     (1 + upgradeLevel * 0.4)
                 )
             );
+            const configuredStrengthScale = strengthScales[id];
+            const strengthScale = definition.strengthUpgradeMaxRank > 0
+                ? Math.max(
+                    0,
+                    Math.min(
+                        1,
+                        Number.isFinite(configuredStrengthScale)
+                            ? configuredStrengthScale
+                            : 1
+                    )
+                )
+                : 1;
 
             result.push({
                 definition,
                 active: false,
                 initialBudget,
                 budgetRemaining: initialBudget,
+                strengthScale,
             });
         }
 

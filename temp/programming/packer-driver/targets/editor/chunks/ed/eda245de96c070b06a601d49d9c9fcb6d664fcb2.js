@@ -389,6 +389,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
+          if (!manager.isBattleRuntimeRunning()) {
+            return;
+          }
+
           const safeUnitName = unitName.trim();
 
           if (!safeUnitName) {

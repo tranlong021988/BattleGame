@@ -98,9 +98,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         update(deltaTime) {
+          var _this$gameManager;
+
           if (!this.unit || !this.props) return;
           if (!this.node.activeInHierarchy) return;
           if (this.props.isDead()) return;
+          if ((_this$gameManager = this.gameManager) != null && _this$gameManager.isBattleCombatLocked()) return;
           if (!this.unit.onBusy) return;
           var enemy = this.unit.getValidEnemyTarget();
 
@@ -148,10 +151,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var gm = this.gameManager;
           var attackModifiers = gm ? gm.getBattleCardModifiers(this.unit.team, this.props.family, enemy.props.family) : null;
           this.applyDamageToEnemy(enemy, false, attackBatchId, attackModifiers);
+
+          if (enemy.isHero && enemy.props.isDead()) {
+            this.finishDamagedEnemy(enemy);
+            return;
+          }
+
+          if (gm != null && gm.isBattleCombatLocked()) return;
           var usedExpandedRadius = this.dealAreaDamageAround(enemy, attackBatchId, attackModifiers);
+          if (gm != null && gm.isBattleCombatLocked()) return;
           this.finishDamagedEnemy(enemy);
 
-          if (gm) {
+          if (gm && !gm.isBattleCombatLocked()) {
             gm.consumeBattleCardModifier(this.unit.team, this.props.family, (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
               error: Error()
             }), BattleCardModifier) : BattleCardModifier).DamagePercent, enemy.props.family);
@@ -248,6 +259,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var centerZ = primaryTarget.agent.pos.z;
 
           for (var i = 0; i < enemies.length; i++) {
+            if (gm.isBattleCombatLocked()) break;
             var enemy = enemies[i];
             if (!enemy || enemy === primaryTarget) continue;
             if (!enemy.agent) continue;

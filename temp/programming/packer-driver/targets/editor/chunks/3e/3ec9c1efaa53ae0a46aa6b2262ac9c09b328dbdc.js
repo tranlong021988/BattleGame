@@ -60,12 +60,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onTelemetryEvent = onTelemetryEvent || null;
         }
 
-        setDecks(playerCardIds, enemyCardIds, playerBudgetUpgradeLevels = {}, maxPlayerCards = 3, maxEnemyCards = maxPlayerCards) {
+        setDecks(playerCardIds, enemyCardIds, playerBudgetUpgradeLevels = {}, playerStrengthScales = {}, enemyStrengthScales = {}, maxPlayerCards = 3, maxEnemyCards = maxPlayerCards) {
           const shouldBeginImmediately = this.started;
           const playerDeckSize = Math.max(1, Math.floor(maxPlayerCards));
           const enemyDeckSize = Math.max(0, Math.floor(maxEnemyCards));
-          this.cardsByTeam[0] = this.createDeck(playerCardIds, playerBudgetUpgradeLevels, playerDeckSize);
-          this.cardsByTeam[1] = this.createDeck(enemyCardIds, {}, enemyDeckSize);
+          this.cardsByTeam[0] = this.createDeck(playerCardIds, playerBudgetUpgradeLevels, playerStrengthScales, playerDeckSize);
+          this.cardsByTeam[1] = this.createDeck(enemyCardIds, {}, enemyStrengthScales, enemyDeckSize);
           this.modifiersByTeamFamily.clear();
           this.started = false;
           this.elapsedTime = 0;
@@ -123,8 +123,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             }
 
             if (!this.matchesOpponent(card.definition, opposingFamily)) continue;
-            this.applyModifier(result, card.definition.modifier, card.definition.modifierValue);
-            this.applyModifier(result, card.definition.tradeoffModifier, card.definition.tradeoffValue);
+            this.applyModifier(result, card.definition.modifier, card.definition.modifierValue * card.strengthScale);
+            this.applyModifier(result, card.definition.tradeoffModifier, card.definition.tradeoffValue * card.strengthScale);
           }
 
           result.damageMultiplier = Math.max(0, result.damageMultiplier);
@@ -179,12 +179,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               initialBudget: card.initialBudget,
               budgetRemaining: card.budgetRemaining,
               budgetUsed: card.initialBudget - card.budgetRemaining,
-              active: card.active
+              active: card.active,
+              strengthScale: card.strengthScale
             }))
           }));
         }
 
-        createDeck(cardIds, budgetUpgradeLevels = {}, maxCards = 3) {
+        createDeck(cardIds, budgetUpgradeLevels = {}, strengthScales = {}, maxCards = 3) {
           if (!this.database || !Array.isArray(cardIds) || maxCards <= 0) {
             return [];
           }
@@ -201,11 +202,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             ids.add(id);
             const upgradeLevel = Math.max(0, Math.min(MAX_BUDGET_UPGRADE_LEVEL, Math.floor(budgetUpgradeLevels[id] || 0)));
             const initialBudget = Math.max(1, Math.round(Math.max(1, definition.baseBudget) * (1 + upgradeLevel * 0.4)));
+            const configuredStrengthScale = strengthScales[id];
+            const strengthScale = definition.strengthUpgradeMaxRank > 0 ? Math.max(0, Math.min(1, Number.isFinite(configuredStrengthScale) ? configuredStrengthScale : 1)) : 1;
             result.push({
               definition,
               active: false,
               initialBudget,
-              budgetRemaining: initialBudget
+              budgetRemaining: initialBudget,
+              strengthScale
             });
           }
 

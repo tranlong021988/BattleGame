@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Enum, SpriteFrame, UnitFamily, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _dec14, _dec15, _class4, _class5, _descriptor15, _crd, ccclass, property, BattleCardTarget, BattleCardModifier, BattleCardEnemyPool, BattleCardOpponentCondition, BattleCardDefinition, BattleCardDatabase;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Enum, SpriteFrame, UnitFamily, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _dec18, _dec19, _class4, _class5, _descriptor19, _crd, ccclass, property, BattleCardTarget, BattleCardModifier, BattleCardEnemyPool, BattleCardOpponentCondition, BattleCardDefinition, BattleCardDatabase;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -9,7 +9,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
   function _initializerWarningHelper(descriptor, context) { throw new Error('Decorating class property failed. Please ensure that ' + 'transform-class-properties is enabled and runs after the decorators transform.'); }
 
-  function createCard(id, displayName, purchasePrice, baseCooldownBattles, baseBudget, target, targetFamily, modifier, modifierValue, tradeoffModifier = BattleCardModifier.None, tradeoffValue = 0, requiredEnemyFamily = BattleCardOpponentCondition.Any, enemyPool = BattleCardEnemyPool.RegularAndBoss) {
+  function createCard(id, displayName, purchasePrice, baseCooldownBattles, baseBudget, target, targetFamily, modifier, modifierValue, tradeoffModifier = BattleCardModifier.None, tradeoffValue = 0, requiredEnemyFamily = BattleCardOpponentCondition.Any, enemyPool = BattleCardEnemyPool.RegularAndBoss, baseStrengthScale = 1, strengthUpgradeMaxRank = 0) {
     const card = new BattleCardDefinition();
     card.id = id;
     card.displayName = displayName;
@@ -24,6 +24,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
     card.tradeoffModifier = tradeoffModifier;
     card.tradeoffValue = tradeoffValue;
     card.enemyPool = enemyPool;
+    card.baseStrengthScale = baseStrengthScale;
+    card.strengthUpgradeMaxRank = strengthUpgradeMaxRank;
     return card;
   }
 
@@ -32,13 +34,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       error: Error()
     }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DamagePercent, 5), createCard('battle-shields', 'Battle Shields', 700, 4, 90, BattleCardTarget.Frontline, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DefenseFlat, 1), createCard('anti-cavalry-spearhead', 'Anti-Cavalry Spearhead', 650, 4, 12, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DefenseFlat, 1), createCard('anti-cavalry-spearhead', 'Spear Discipline', 650, 4, 12, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DamagePercent, 14, BattleCardModifier.DefenseFlat, -1, BattleCardOpponentCondition.Cavalry), createCard('axe-frenzy', 'Axe Frenzy', 650, 4, 20, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DamagePercent, 42, BattleCardModifier.DefenseFlat, 3, BattleCardOpponentCondition.Any, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('axe-frenzy', 'Axe Vanguard', 650, 4, 20, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Axeman, BattleCardModifier.DamagePercent, 18, BattleCardModifier.DefenseFlat, -0.2), createCard('sword-wall', 'Sword Wall', 800, 5, 60, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Axeman, BattleCardModifier.DamagePercent, 45, BattleCardModifier.DefenseFlat, 4.5, BattleCardOpponentCondition.Any, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('sword-wall', 'Sword Breakthrough', 800, 5, 60, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Sword, BattleCardModifier.DefenseFlat, 2, BattleCardModifier.DamagePercent, -10), createCard('arrow-suppression', 'Arrow Suppression', 650, 4, 30, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Sword, BattleCardModifier.DamagePercent, 100, BattleCardModifier.DefenseFlat, 3.5, BattleCardOpponentCondition.Any, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('arrow-suppression', 'Arrow Suppression', 650, 4, 30, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
     }), UnitFamily) : UnitFamily).Archer, BattleCardModifier.DamagePercent, 12, BattleCardModifier.AttackRangePercent, -8), createCard('precise-range', 'Precise Range', 1100, 5, 18, BattleCardTarget.Ranged, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
@@ -149,6 +151,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         tooltip: 'Use a negative value for a stat penalty. Counter Immunity is not valid as a tradeoff.'
       }), _dec13 = property({
         type: BattleCardEnemyPool
+      }), _dec14 = property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        tooltip: 'Share of this card\'s full modifier before Strength upgrades. Keep at 1 to disable Strength progression for this card.'
+      }), _dec15 = property({
+        min: 0,
+        step: 1,
+        tooltip: 'Number of Strength ranks for this card. Rank zero disables the Strength upgrade package.'
+      }), _dec16 = property({
+        min: 0.01,
+        step: 0.05,
+        tooltip: 'Strength rank-one price as a share of this card\'s unlock price.'
+      }), _dec17 = property({
+        min: 0.01,
+        step: 0.05,
+        tooltip: 'Final Strength-rank price as a share of this card\'s unlock price. Intermediate ranks interpolate.'
       }), _dec(_class = (_class2 = class BattleCardDefinition {
         constructor() {
           _initializerDefineProperty(this, "id", _descriptor, this);
@@ -178,6 +197,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           _initializerDefineProperty(this, "tradeoffValue", _descriptor13, this);
 
           _initializerDefineProperty(this, "enemyPool", _descriptor14, this);
+
+          _initializerDefineProperty(this, "baseStrengthScale", _descriptor15, this);
+
+          _initializerDefineProperty(this, "strengthUpgradeMaxRank", _descriptor16, this);
+
+          _initializerDefineProperty(this, "strengthUpgradeFirstCostMultiplier", _descriptor17, this);
+
+          _initializerDefineProperty(this, "strengthUpgradeFinalCostMultiplier", _descriptor18, this);
         }
 
       }, (_descriptor = _applyDecoratedDescriptor(_class2.prototype, "id", [property], {
@@ -280,23 +307,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         initializer: function () {
           return BattleCardEnemyPool.RegularAndBoss;
         }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "baseStrengthScale", [_dec14], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 1;
+        }
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "strengthUpgradeMaxRank", [_dec15], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0;
+        }
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "strengthUpgradeFirstCostMultiplier", [_dec16], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.65;
+        }
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "strengthUpgradeFinalCostMultiplier", [_dec17], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.9;
+        }
       })), _class2)) || _class));
 
-      _export("BattleCardDatabase", BattleCardDatabase = (_dec14 = ccclass('BattleCardDatabase'), _dec15 = property({
+      _export("BattleCardDatabase", BattleCardDatabase = (_dec18 = ccclass('BattleCardDatabase'), _dec19 = property({
         type: [BattleCardDefinition]
-      }), _dec14(_class4 = (_class5 = class BattleCardDatabase extends Component {
+      }), _dec18(_class4 = (_class5 = class BattleCardDatabase extends Component {
         constructor(...args) {
           super(...args);
 
-          _initializerDefineProperty(this, "cards", _descriptor15, this);
-        }
-
-        onLoad() {
-          const antiCavalry = this.getCard('anti-cavalry-spearhead');
-
-          if (antiCavalry && antiCavalry.requiredEnemyFamily === BattleCardOpponentCondition.Any) {
-            antiCavalry.requiredEnemyFamily = BattleCardOpponentCondition.Cavalry;
-          }
+          _initializerDefineProperty(this, "cards", _descriptor19, this);
         }
 
         getCard(id) {
@@ -323,7 +370,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           });
         }
 
-      }, (_descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "cards", [_dec15], {
+      }, (_descriptor19 = _applyDecoratedDescriptor(_class5.prototype, "cards", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,

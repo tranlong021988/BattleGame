@@ -31,6 +31,7 @@ type UnitBehaviorGameManager = {
     ): void;
     reportKill(attacker: Unit, defender: Unit): void;
     despawnUnit(unit: Unit): void;
+    isBattleCombatLocked(): boolean;
     beginCombatResolution(): void;
     endCombatResolution(): void;
     getBattleCardModifiers(
@@ -104,6 +105,8 @@ export class UnitBehavior extends Component {
         if (!this.node.activeInHierarchy) return;
         if (this.props.isDead()) return;
 
+        if (this.gameManager?.isBattleCombatLocked()) return;
+
         if (!this.unit.onBusy) return;
         const enemy = this.unit.getValidEnemyTarget();
 
@@ -173,14 +176,25 @@ export class UnitBehavior extends Component {
             attackBatchId,
             attackModifiers
         );
+
+        if (enemy.isHero && enemy.props.isDead()) {
+            this.finishDamagedEnemy(enemy);
+            return;
+        }
+
+        if (gm?.isBattleCombatLocked()) return;
+
         const usedExpandedRadius = this.dealAreaDamageAround(
             enemy,
             attackBatchId,
             attackModifiers
         );
+
+        if (gm?.isBattleCombatLocked()) return;
+
         this.finishDamagedEnemy(enemy);
 
-        if (gm) {
+        if (gm && !gm.isBattleCombatLocked()) {
             gm.consumeBattleCardModifier(
                 this.unit.team,
                 this.props.family,
@@ -394,6 +408,8 @@ export class UnitBehavior extends Component {
         const centerZ = primaryTarget.agent.pos.z;
 
         for (let i = 0; i < enemies.length; i++) {
+            if (gm.isBattleCombatLocked()) break;
+
             const enemy = enemies[i];
 
             if (!enemy || enemy === primaryTarget) continue;

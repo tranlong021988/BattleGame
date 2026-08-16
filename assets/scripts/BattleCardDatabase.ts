@@ -93,6 +93,35 @@ export class BattleCardDefinition {
 
     @property({ type: BattleCardEnemyPool })
     enemyPool = BattleCardEnemyPool.RegularAndBoss;
+
+    @property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        tooltip: 'Share of this card\'s full modifier before Strength upgrades. Keep at 1 to disable Strength progression for this card.',
+    })
+    baseStrengthScale = 1;
+
+    @property({
+        min: 0,
+        step: 1,
+        tooltip: 'Number of Strength ranks for this card. Rank zero disables the Strength upgrade package.',
+    })
+    strengthUpgradeMaxRank = 0;
+
+    @property({
+        min: 0.01,
+        step: 0.05,
+        tooltip: 'Strength rank-one price as a share of this card\'s unlock price.',
+    })
+    strengthUpgradeFirstCostMultiplier = 0.65;
+
+    @property({
+        min: 0.01,
+        step: 0.05,
+        tooltip: 'Final Strength-rank price as a share of this card\'s unlock price. Intermediate ranks interpolate.',
+    })
+    strengthUpgradeFinalCostMultiplier = 0.9;
 }
 
 function createCard(
@@ -111,7 +140,9 @@ function createCard(
         BattleCardOpponentCondition =
         BattleCardOpponentCondition.Any,
     enemyPool: BattleCardEnemyPool =
-        BattleCardEnemyPool.RegularAndBoss
+        BattleCardEnemyPool.RegularAndBoss,
+    baseStrengthScale = 1,
+    strengthUpgradeMaxRank = 0
 ) {
     const card = new BattleCardDefinition();
     card.id = id;
@@ -127,6 +158,8 @@ function createCard(
     card.tradeoffModifier = tradeoffModifier;
     card.tradeoffValue = tradeoffValue;
     card.enemyPool = enemyPool;
+    card.baseStrengthScale = baseStrengthScale;
+    card.strengthUpgradeMaxRank = strengthUpgradeMaxRank;
     return card;
 }
 
@@ -145,26 +178,37 @@ function createDefaultCards() {
             BattleCardModifier.DefenseFlat, 1
         ),
         createCard(
-            'anti-cavalry-spearhead', 'Anti-Cavalry Spearhead', 650, 4,
+            'anti-cavalry-spearhead', 'Spear Discipline', 650, 4,
             12,
             BattleCardTarget.UnitFamily, UnitFamily.Spear,
-            BattleCardModifier.DamagePercent, 14,
-            BattleCardModifier.DefenseFlat, -1,
-            BattleCardOpponentCondition.Cavalry
+            BattleCardModifier.DamagePercent, 42,
+            BattleCardModifier.DefenseFlat, 3,
+            BattleCardOpponentCondition.Any,
+            BattleCardEnemyPool.RegularAndBoss,
+            0.4,
+            2
         ),
         createCard(
-            'axe-frenzy', 'Axe Frenzy', 650, 4,
+            'axe-frenzy', 'Axe Vanguard', 650, 4,
             20,
             BattleCardTarget.UnitFamily, UnitFamily.Axeman,
-            BattleCardModifier.DamagePercent, 18,
-            BattleCardModifier.DefenseFlat, -0.2
+            BattleCardModifier.DamagePercent, 45,
+            BattleCardModifier.DefenseFlat, 4.5,
+            BattleCardOpponentCondition.Any,
+            BattleCardEnemyPool.RegularAndBoss,
+            0.4,
+            2
         ),
         createCard(
-            'sword-wall', 'Sword Wall', 800, 5,
+            'sword-wall', 'Sword Breakthrough', 800, 5,
             60,
             BattleCardTarget.UnitFamily, UnitFamily.Sword,
-            BattleCardModifier.DefenseFlat, 2,
-            BattleCardModifier.DamagePercent, -10
+            BattleCardModifier.DamagePercent, 100,
+            BattleCardModifier.DefenseFlat, 3.5,
+            BattleCardOpponentCondition.Any,
+            BattleCardEnemyPool.RegularAndBoss,
+            0.4,
+            2
         ),
         createCard(
             'arrow-suppression', 'Arrow Suppression', 650, 4,
@@ -204,21 +248,6 @@ export class BattleCardDatabase extends Component {
 
     @property({ type: [BattleCardDefinition] })
     cards: BattleCardDefinition[] = createDefaultCards();
-
-    onLoad() {
-        const antiCavalry = this.getCard(
-            'anti-cavalry-spearhead'
-        );
-
-        if (
-            antiCavalry &&
-            antiCavalry.requiredEnemyFamily ===
-            BattleCardOpponentCondition.Any
-        ) {
-            antiCavalry.requiredEnemyFamily =
-                BattleCardOpponentCondition.Cavalry;
-        }
-    }
 
     public getCard(id: string) {
         for (let i = 0; i < this.cards.length; i++) {

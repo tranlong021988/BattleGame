@@ -682,6 +682,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
+        haltForBattleEnd() {
+          this.setEnemyTarget(null);
+          this.onBusy = false;
+          this.onForward = false;
+          this.backToLaneActive = false;
+          this.backToLaneForwardAggressive = false;
+          this.soloAggressiveSkirmishActive = false;
+          this.resetRangedCombatMovement();
+          this.invalidateNearestQueryResults();
+          this.clearCachedTargets();
+
+          if (this.agent) {
+            this.setAgentOnForward(0);
+            this.setAgentLocked(true);
+            this.setAgentStopped();
+          }
+        }
+
         applyTargetSearchRangeMultiplier(multiplier) {
           var safeMultiplier = Math.max(1, Number.isFinite(multiplier) ? multiplier : 1);
           var previousMultiplier = Math.max(1, this.appliedTargetSearchRangeMultiplier);
@@ -824,7 +842,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update(deltaTime) {
+          var _instance, _instance3;
+
           if (!this.sim || !this.agent) return;
+
+          if ((_instance = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) != null && _instance.isBattleCombatLocked()) {
+            this.haltForBattleEnd();
+            this.sync(deltaTime, false);
+            return;
+          }
+
           this.agent.maxSpeed = this.getEffectiveMoveSpeed();
           this.frameCounter++;
 
@@ -837,11 +866,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (this.props && this.props.isDead()) {
             if (this.isHero) {
-              var _instance;
+              var _instance2;
 
-              (_instance = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              (_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                 error: Error()
-              }), GameManager) : GameManager).instance) == null || _instance.resolveHeroDefeat(this);
+              }), GameManager) : GameManager).instance) == null || _instance2.resolveHeroDefeat(this);
             }
 
             this.setEnemyTarget(null);
@@ -851,6 +880,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
             this.setAgentLocked(true);
+            this.setAgentStopped();
+            this.sync(deltaTime, false);
+            return;
+          }
+
+          if ((_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) != null && _instance3.resolveUnitReachedEnemyHeroLine(this)) {
             this.setAgentStopped();
             this.sync(deltaTime, false);
             return;

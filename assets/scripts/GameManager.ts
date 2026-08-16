@@ -288,6 +288,7 @@ export class GameManager extends Component {
     battleWinnerTeam = -1;
     battleLoserTeam = -1;
     battleWinnerReason = '';
+    private heroDefeatDetected = false;
     battleProgressionProvider:
         BattleProgressionProvider | null = null;
     private combatResolutionDepth = 0;
@@ -697,6 +698,7 @@ export class GameManager extends Component {
         this.battleWinnerTeam = -1;
         this.battleLoserTeam = -1;
         this.battleWinnerReason = '';
+        this.heroDefeatDetected = false;
         this.combatResolutionDepth = 0;
         this.pendingForcedBattleWinnerCheck = false;
         this.pendingBattleWinner = null;
@@ -992,6 +994,8 @@ export class GameManager extends Component {
         playerCardIds: string[],
         enemyCardIds: string[],
         playerBudgetUpgradeLevels: Record<string, number> = {},
+        playerStrengthScales: Record<string, number> = {},
+        enemyStrengthScales: Record<string, number> = {},
         maxPlayerCards: number = 3,
         maxEnemyCards: number = maxPlayerCards
     ) {
@@ -1000,6 +1004,8 @@ export class GameManager extends Component {
             playerCardIds,
             enemyCardIds,
             playerBudgetUpgradeLevels,
+            playerStrengthScales,
+            enemyStrengthScales,
             maxPlayerCards,
             maxEnemyCards
         );
@@ -1111,6 +1117,12 @@ export class GameManager extends Component {
         const team = hero.team;
 
         if (team !== 0 && team !== 1) return;
+
+        // Lock both armies immediately. This also stops any remaining targets
+        // from the attack currently being resolved before the battle result is
+        // finalized at the end of that combat resolution.
+        this.heroDefeatDetected = true;
+        this.haltAllUnitsForBattleEnd();
 
         this.resolveBattleWinner(
             team === 0 ? 1 : 0,
@@ -2516,6 +2528,18 @@ export class GameManager extends Component {
 
     public hasBattleWinner() {
         return this.battleWinnerResolved;
+    }
+
+    public isBattleCombatLocked() {
+        return this.heroDefeatDetected || this.hasBattleWinner();
+    }
+
+    private haltAllUnitsForBattleEnd() {
+        const units = this.teamA.concat(this.teamB);
+
+        for (let i = 0; i < units.length; i++) {
+            units[i]?.haltForBattleEnd();
+        }
     }
 
     public beginCombatResolution() {

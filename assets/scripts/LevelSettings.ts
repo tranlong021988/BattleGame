@@ -32,7 +32,20 @@ type PurchaseKind =
     'max-alive' |
     'card-unlock' |
     'card-cooldown-upgrade' |
-    'card-budget-upgrade';
+    'card-budget-upgrade' |
+    'card-strength-upgrade';
+
+type CardUpgradeKind =
+    'cooldown' |
+    'budget' |
+    'strength';
+
+interface CardUpgradeOffer {
+    cardId: string;
+    upgradeKind: CardUpgradeKind;
+    rank: number;
+    offerLevel: number;
+}
 
 interface SavedUnitProgression {
     key: string;
@@ -55,6 +68,7 @@ interface SavedCardProgression {
     owned: boolean;
     cooldownUpgradeLevel: number;
     budgetUpgradeLevel: number;
+    strengthUpgradeLevel: number;
     cooldownRemaining: number;
 }
 
@@ -66,6 +80,11 @@ interface BotSimulationEvent {
     targetCost: number;
     baseGold: number;
     goldGranted: number;
+    adsReason?: string;
+    normalGold?: number;
+    doubleGold?: number;
+    normalPurchaseCount?: number;
+    doublePurchaseCount?: number;
     delayedPurchaseCount?: number;
     continuationChance?: number;
 }
@@ -116,6 +135,21 @@ interface PurchaseRecord {
     valueAfter: number;
     source: string;
     cardId: string | null;
+}
+
+interface ProgressionTelemetryAction {
+    eventId: string;
+    sequence: number;
+    phase: 'pre-battle' | 'battle-result';
+    battleLevel: number;
+    type: string;
+    goldBefore: number;
+    goldAfter: number;
+    cardId: string | null;
+    source: string;
+    cost: number;
+    goldGranted: number;
+    adsReason?: string;
 }
 
 @ccclass('UnitProgressionRule')
@@ -302,7 +336,7 @@ export class LevelSettings extends Component
 
     @property({
         displayName: 'Allow Ads Rescue',
-        tooltip: 'Allow bot simulation to choose the Gold x2 rewarded-ad claim. Side missions remain available without ads.'
+        tooltip: 'Allow rewarded-ad Gold x2 claims and card cooldown completion. Side missions remain available without ads.'
     })
     allowAdsRescue = true;
 
@@ -317,6 +351,39 @@ export class LevelSettings extends Component
         tooltip: 'Cards each team may bring into one battle. This is the future deck-upgrade hook.'
     })
     battleCardDeckSize = 3;
+
+    @property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        displayName: 'Bot Card Diversity Score Floor',
+        tooltip: 'Bot chooses with weighted variety among cards scoring at least this share of the best card. Higher values make deck selection more optimal and less varied.'
+    })
+    botCardDiversityScoreFloor = 0.65;
+
+    @property({
+        min: 1,
+        step: 0.05,
+        displayName: 'Bot Cooldown Ad Score Advantage',
+        tooltip: 'A cooling card must beat the best ready card by this multiplier before the bot uses an ad to finish its cooldown.'
+    })
+    botCooldownAdScoreAdvantage = 1.25;
+
+    @property({
+        min: 0,
+        step: 1,
+        displayName: 'Bot Max Cooldown Ads Per Battle',
+        tooltip: 'Maximum cooling cards the bot may consider for rewarded-ad completion in one main battle. The highest-value cards are considered first.'
+    })
+    botMaxCooldownAdsPerBattle = 1;
+
+    @property({
+        min: 0.01,
+        step: 0.05,
+        displayName: 'Bot Strength Upgrade Purchase Weight',
+        tooltip: 'Relative bot preference for an available independent melee-card Strength rank.'
+    })
+    botStrengthUpgradePurchaseWeight = 1.75;
 
     @property({ min: 0, step: 1 })
     initialPlayerGold = 0;
@@ -406,8 +473,13 @@ export class LevelSettings extends Component
     private levelQueryActive = false;
     private resetProgressionRequested = false;
     private preBattlePurchases: PurchaseRecord[] = [];
+    private telemetryActions: ProgressionTelemetryAction[] = [];
+    private telemetryActionSequence = 0;
+    private telemetryActionPhase: 'pre-battle' | 'battle-result' =
+        'pre-battle';
     private currentPlayerBattleCardIds: string[] = [];
     private currentEnemyBattleCardIds: string[] = [];
+    private currentPlayerCooldownAdReasons = new Map<string, string>();
     private sideMissionBattle = false;
 
     onLoad() {
@@ -554,6 +626,7 @@ export class LevelSettings extends Component
         const state = this.progressionState;
         const battleLevel = this.battleLevel;
         const before = this.createTelemetrySnapshot();
+        this.telemetryActionPhase = 'battle-result';
         state.consecutiveSideWins = 0;
         const purchases: PurchaseRecord[] = [];
         const usedPlayerCards = this.currentPlayerBattleCardIds.slice();
@@ -637,6 +710,7 @@ export class LevelSettings extends Component
             usedPlayerCards,
             newlyOffered,
             purchases,
+            telemetryActions: this.telemetryActions.slice(),
             before,
             after: this.createTelemetrySnapshot(),
         };
@@ -653,6 +727,10 @@ export class LevelSettings extends Component
 
         const state = this.progressionState;
         const before = this.createTelemetrySnapshot();
+        this.telemetryActionPhase = 'battle-result';
+        // Side missions disable cards, but still count as a completed battle
+        // for the player's existing card cooldowns.
+        this.advancePlayerCardCooldowns(state, []);
         let goldReward = 0;
         let rewardClaim: BotSimulationEvent | null = null;
         let route = 'progression';
@@ -728,6 +806,7 @@ export class LevelSettings extends Component
             usedPlayerCards: [],
             newlyOffered: [],
             purchases: [],
+            telemetryActions: this.telemetryActions.slice(),
             before,
             after: this.createTelemetrySnapshot(),
         };
@@ -820,6 +899,8 @@ export class LevelSettings extends Component
                     this.maxAliveBasePrice,
                 cardDefinitions:
                     this.createCardDefinitionSnapshot(),
+                cardUpgradeSchedule:
+                    this.getCardUpgradeSchedule(),
             },
             preBattlePurchases:
                 this.preBattlePurchases.slice(),
@@ -997,6 +1078,11 @@ export class LevelSettings extends Component
     private completePreBattleProgression() {
         if (!this.progressionState) return;
 
+        this.preBattlePurchases = [];
+        this.telemetryActions = [];
+        this.telemetryActionSequence = 0;
+        this.telemetryActionPhase = 'pre-battle';
+
         if (this.sideMissionBattle) {
             this.applySideMissionRuntimeState();
             this.configureSideMissionBattleCards();
@@ -1056,7 +1142,7 @@ export class LevelSettings extends Component
         }
 
         return {
-            version: 10,
+            version: 11,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(
                 0,
@@ -1083,12 +1169,14 @@ export class LevelSettings extends Component
 
     public tryPurchaseCard(
         cardId: string,
-        upgrade: boolean | 'budget' = false
+        upgrade: boolean | 'budget' | 'strength' = false
     ) {
         if (!this.progressionState || !cardId) return false;
 
         const expectedKind = upgrade === 'budget'
             ? 'card-budget-upgrade'
+            : upgrade === 'strength'
+                ? 'card-strength-upgrade'
             : upgrade
                 ? 'card-cooldown-upgrade'
                 : 'card-unlock';
@@ -1114,7 +1202,13 @@ export class LevelSettings extends Component
 
     // Call only after the rewarded-video callback succeeds.
     public tryFinishCardCooldownWithAd(cardId: string) {
-        if (!this.progressionState || !cardId) return false;
+        if (
+            !this.allowAdsRescue ||
+            !this.progressionState ||
+            !cardId
+        ) {
+            return false;
+        }
 
         const card = this.getSavedCard(
             this.progressionState,
@@ -1131,6 +1225,15 @@ export class LevelSettings extends Component
         const cooldownBefore = card.cooldownRemaining;
         card.cooldownRemaining = 0;
         this.progressionState.adsReward++;
+        this.recordTelemetryAction({
+            type: 'card-cooldown-finish-ad',
+            goldBefore: this.progressionState.playerGold,
+            goldAfter: this.progressionState.playerGold,
+            cardId,
+            source: 'manual-card-cooldown-ad',
+            cost: 0,
+            goldGranted: 0,
+        });
         this.recordBotSimulationEvent(this.progressionState, {
             type: 'card-cooldown-finish-ad',
             battleLevel: this.battleLevel,
@@ -1159,6 +1262,10 @@ export class LevelSettings extends Component
                 this.getPlayerCardBudgetUpgradeLevels(
                     this.progressionState
                 ),
+                this.getPlayerCardStrengthScales(
+                    this.progressionState
+                ),
+                this.getEnemyCardStrengthScales(),
                 this.getBattleCardDeckSize(),
                 this.getEnemyBattleCardDeckSize()
             );
@@ -1174,26 +1281,95 @@ export class LevelSettings extends Component
 
         if (!state || !manager || !database) return;
 
-        if (this.purchasingSimulation) {
-            this.currentPlayerBattleCardIds =
-                this.selectStrongestPlayerCardIds(
-                    database.cards.filter((definition) => {
-                        const saved = this.getSavedCard(
-                            state,
-                            definition.id
-                        );
+        const enemyDeckSize = this.configureEnemyBattleCards(
+            database,
+            state
+        );
 
-                        return !!saved &&
-                            saved.owned &&
-                            this.isCardEligibleForTeam(
+        if (this.purchasingSimulation) {
+            this.currentPlayerCooldownAdReasons.clear();
+            const eligibleDefinitions = database.cards.filter(
+                (definition) => {
+                    const saved = this.getSavedCard(
+                        state,
+                        definition.id
+                    );
+
+                    return !!saved &&
+                        saved.owned &&
+                        this.isCardEligibleForTeam(
+                            definition,
+                            0,
+                            state
+                        );
+                }
+            );
+            const readyDefinitions = eligibleDefinitions.filter(
+                (definition) => {
+                    const saved = this.getSavedCard(
+                        state,
+                        definition.id
+                    );
+
+                    return !!saved && saved.cooldownRemaining <= 0;
+                }
+            );
+            const cooldownCandidates = eligibleDefinitions.map(
+                (definition) => {
+                    const saved = this.getSavedCard(
+                        state,
+                        definition.id
+                    );
+
+                    if (!saved || saved.cooldownRemaining <= 0) {
+                        return null;
+                    }
+
+                    const decision = this.getBotCooldownAdDecision(
+                        definition,
+                        readyDefinitions,
+                        state
+                    );
+
+                    return decision.useAds
+                        ? {
+                            definition,
+                            decision,
+                            score: this.getPlayerBattleCardScore(
                                 definition,
-                                0,
                                 state
-                            ) && (
-                                saved.cooldownRemaining <= 0 ||
-                                Math.random() < 0.5
-                            );
-                    }),
+                            ),
+                        }
+                        : null;
+                }
+            ).filter((candidate): candidate is {
+                definition: BattleCardDefinition;
+                decision: { useAds: boolean; reason: string };
+                score: number;
+            } => !!candidate).sort((a, b) => b.score - a.score ||
+                a.definition.id.localeCompare(b.definition.id)).slice(
+                0,
+                Math.max(0, Math.floor(
+                    this.botMaxCooldownAdsPerBattle
+                ))
+            );
+
+            for (let i = 0; i < cooldownCandidates.length; i++) {
+                const candidate = cooldownCandidates[i];
+                this.currentPlayerCooldownAdReasons.set(
+                    candidate.definition.id,
+                    candidate.decision.reason
+                );
+            }
+            this.currentPlayerBattleCardIds =
+                this.selectDiversePlayerCardIds(
+                    readyDefinitions.concat(
+                        this.allowAdsRescue
+                            ? cooldownCandidates.map(
+                                (candidate) => candidate.definition
+                            )
+                            : []
+                    ),
                     state,
                     this.getBattleCardDeckSize()
                 );
@@ -1205,6 +1381,21 @@ export class LevelSettings extends Component
                 );
         }
 
+        manager.configureBattleCardDecks(
+            this.currentPlayerBattleCardIds,
+            this.currentEnemyBattleCardIds,
+            this.getPlayerCardBudgetUpgradeLevels(state),
+            this.getPlayerCardStrengthScales(state),
+            this.getEnemyCardStrengthScales(),
+            this.getBattleCardDeckSize(),
+            enemyDeckSize
+        );
+    }
+
+    private configureEnemyBattleCards(
+        database: NonNullable<GameManager['battleCardDatabase']>,
+        state: SavedProgressionState
+    ) {
         const enemyDeckSize = this.getEnemyBattleCardDeckSize();
         const enemyDeckKey = String(this.battleLevel);
         const savedEnemyDeck = state.enemyCardIdsByLevel[
@@ -1212,38 +1403,33 @@ export class LevelSettings extends Component
         ];
 
         if (Array.isArray(savedEnemyDeck)) {
-            // A retry must preserve the original deck, even if the player
-            // changes roster and one of its cards no longer has a target.
-            this.currentEnemyBattleCardIds = savedEnemyDeck.slice(
-                0,
+            this.currentEnemyBattleCardIds = savedEnemyDeck.filter((id) => {
+                const definition = database.getCard(id);
+
+                return !!definition && this.isCardEligibleForTeam(
+                    definition,
+                    1,
+                    state
+                );
+            }).slice(0, enemyDeckSize);
+        } else {
+            const candidates = database.getEnemyCards(
+                this.isBossLevelFor(this.battleLevel)
+            ).filter((definition) => this.isCardEligibleForTeam(
+                definition,
+                1,
+                state
+            ));
+            this.currentEnemyBattleCardIds = this.selectBestEnemyCardIds(
+                candidates,
+                state,
                 enemyDeckSize
             );
-        } else {
-            this.currentEnemyBattleCardIds =
-                this.selectRandomCardIds(
-                    database.getEnemyCards(
-                        this.isBossLevelFor(this.battleLevel)
-                    ).filter((definition) =>
-                        this.isCardEligibleForTeam(
-                            definition,
-                            1,
-                            state
-                        )
-                    ),
-                    [],
-                    enemyDeckSize
-                );
-            state.enemyCardIdsByLevel[enemyDeckKey] =
-                this.currentEnemyBattleCardIds.slice();
         }
 
-        manager.configureBattleCardDecks(
-            this.currentPlayerBattleCardIds,
-            this.currentEnemyBattleCardIds,
-            this.getPlayerCardBudgetUpgradeLevels(state),
-            this.getBattleCardDeckSize(),
-            enemyDeckSize
-        );
+        state.enemyCardIdsByLevel[enemyDeckKey] =
+            this.currentEnemyBattleCardIds.slice();
+        return enemyDeckSize;
     }
 
     private filterReadyPlayerCardIds(cardIds: string[]) {
@@ -1331,38 +1517,7 @@ export class LevelSettings extends Component
             );
     }
 
-    private selectRandomCardIds(
-        definitions: BattleCardDefinition[],
-        excludedIds: string[],
-        maxCount: number
-    ) {
-        const uniqueDefinitions = definitions.filter((definition, index) =>
-            !!definition &&
-            !!definition.id &&
-            definitions.findIndex((candidate) =>
-                candidate && candidate.id === definition.id
-            ) === index
-        );
-        const excluded = new Set(excludedIds || []);
-        const nonRepeating = uniqueDefinitions.filter(
-            (definition) => !excluded.has(definition.id)
-        );
-        const source = nonRepeating.length >= maxCount
-            ? nonRepeating.slice()
-            : uniqueDefinitions.slice();
-        const result: string[] = [];
-
-        while (source.length > 0 && result.length < maxCount) {
-            const index = Math.floor(Math.random() * source.length);
-            const definition = source.splice(index, 1)[0];
-
-            if (definition) result.push(definition.id);
-        }
-
-        return result;
-    }
-
-    private selectStrongestPlayerCardIds(
+    private selectDiversePlayerCardIds(
         definitions: BattleCardDefinition[],
         state: SavedProgressionState,
         maxCount: number
@@ -1378,67 +1533,160 @@ export class LevelSettings extends Component
 
         if (deckSize <= 0) return [];
 
-        let bestIds: string[] = [];
-        let bestScore = Number.NEGATIVE_INFINITY;
-        const current: BattleCardDefinition[] = [];
+        const remaining = candidates.map((definition) => ({
+            definition,
+            score: this.getPlayerBattleCardScore(definition, state),
+        }));
+        const selected: string[] = [];
 
-        const evaluate = (startIndex: number) => {
-            if (current.length > 0) {
-                const score = current.reduce(
-                    (total, definition) => total +
-                        this.getPlayerBattleCardScore(definition, state),
-                    0
-                );
+        while (remaining.length > 0 && selected.length < deckSize) {
+            const bestScore = Math.max(
+                ...remaining.map((candidate) => candidate.score)
+            );
+            const scoreFloor = bestScore * this.clamp01(
+                this.botCardDiversityScoreFloor
+            );
+            const pool = remaining.filter((candidate) =>
+                candidate.score >= scoreFloor
+            );
+            const totalWeight = pool.reduce(
+                (total, candidate) => total +
+                    Math.max(0.01, candidate.score),
+                0
+            );
+            let roll = Math.random() * totalWeight;
+            let selectedCandidate = pool[pool.length - 1];
 
-                if (score > bestScore + 0.0001) {
-                    bestScore = score;
-                    bestIds = current.map((definition) => definition.id);
+            for (let i = 0; i < pool.length; i++) {
+                roll -= Math.max(0.01, pool[i].score);
+
+                if (roll <= 0) {
+                    selectedCandidate = pool[i];
+                    break;
                 }
             }
 
-            if (current.length >= deckSize) return;
+            selected.push(selectedCandidate.definition.id);
+            const selectedIndex = remaining.indexOf(selectedCandidate);
 
-            for (let i = startIndex; i < candidates.length; i++) {
-                current.push(candidates[i]);
-                evaluate(i + 1);
-                current.pop();
+            if (selectedIndex >= 0) {
+                remaining.splice(selectedIndex, 1);
             }
-        };
+        }
 
-        evaluate(0);
-        return bestIds;
+        return selected;
+    }
+
+    private selectBestEnemyCardIds(
+        definitions: BattleCardDefinition[],
+        state: SavedProgressionState,
+        maxCount: number
+    ) {
+        return definitions.filter((definition) =>
+            this.getEnemyBattleCardScore(definition, state) > 0
+        ).sort((a, b) => {
+            const scoreDelta = this.getEnemyBattleCardScore(
+                b,
+                state
+            ) - this.getEnemyBattleCardScore(a, state);
+
+            return scoreDelta !== 0
+                ? scoreDelta
+                : a.id.localeCompare(b.id);
+        }).slice(0, Math.max(0, maxCount)).map(
+            (definition) => definition.id
+        );
+    }
+
+    private getBotCooldownAdDecision(
+        definition: BattleCardDefinition,
+        readyDefinitions: BattleCardDefinition[],
+        state: SavedProgressionState
+    ) {
+        const score = this.getPlayerBattleCardScore(definition, state);
+
+        if (score <= 0) {
+            return { useAds: false, reason: 'no-card-value' };
+        }
+
+        if (readyDefinitions.length < this.getBattleCardDeckSize()) {
+            return { useAds: true, reason: 'fills-empty-deck-slot' };
+        }
+
+        const bestReadyScore = Math.max(
+            ...readyDefinitions.map((candidate) =>
+                this.getPlayerBattleCardScore(candidate, state)
+            )
+        );
+
+        return {
+            useAds: score >= bestReadyScore * Math.max(
+                1,
+                this.botCooldownAdScoreAdvantage
+            ),
+            reason: 'outperforms-best-ready-card',
+        };
     }
 
     private getPlayerBattleCardScore(
         definition: BattleCardDefinition,
         state: SavedProgressionState
     ) {
-        const targetWeight = this.getCardTargetCombatWeight(
+        return this.getBattleCardScore(
             definition,
             0,
-            state
+            state,
+            this.currentEnemyBattleCardIds
+        );
+    }
+
+    private getEnemyBattleCardScore(
+        definition: BattleCardDefinition,
+        state: SavedProgressionState
+    ) {
+        // Enemy decks are a deterministic level preset. They must not adapt
+        // to the player's current collection or roster on retries.
+        return this.getBattleCardScore(definition, 1, state, [], false);
+    }
+
+    private getBattleCardScore(
+        definition: BattleCardDefinition,
+        team: number,
+        state: SavedProgressionState,
+        opposingCardIds: string[],
+        useOpponentComposition: boolean = true
+    ) {
+        const targetWeight = this.getCardTargetCombatWeight(
+            definition, team, state
         );
 
         if (targetWeight <= 0) return 0;
 
-        const saved = this.getSavedCard(state, definition.id);
+        const saved = team === 0
+            ? this.getSavedCard(state, definition.id)
+            : null;
         const budgetScale = saved
             ? this.getCardEffectiveBudget(saved) /
                 Math.max(1, definition.baseBudget)
             : 1;
         const conditionScale = this.getCardOpponentConditionWeight(
-            definition,
-            state
+            definition, state, team
         );
         const modifierScore = this.getCardModifierScore(
+            definition, state, targetWeight, team
+        );
+        const ladderThreatScale = this.getMeleeLadderThreatScale(
             definition,
+            team,
             state,
-            targetWeight
+            opposingCardIds,
+            useOpponentComposition
         );
 
         return Math.max(
             0,
-            targetWeight * modifierScore * budgetScale * conditionScale
+            targetWeight * modifierScore * budgetScale * conditionScale *
+                ladderThreatScale
         );
     }
 
@@ -1500,9 +1748,156 @@ export class LevelSettings extends Component
         return Math.max(1, entry ? entry.combatPointCost : 1);
     }
 
+    private getCardModifierStrengthScale(
+        definition: BattleCardDefinition,
+        team: number,
+        state: SavedProgressionState
+    ) {
+        if (!this.hasStrengthUpgrade(definition)) return 1;
+
+        if (team === 1) {
+            return this.getCardStrengthScale(
+                definition,
+                this.getEnemyStrengthUpgradeRank(
+                    definition,
+                    this.battleLevel
+                )
+            );
+        }
+
+        const saved = this.getSavedCard(state, definition.id);
+
+        if (!saved) {
+            return this.getCardStrengthScale(definition, 0);
+        }
+
+        return this.getCardStrengthScale(
+            definition,
+            saved.strengthUpgradeLevel
+        );
+    }
+
+    private getMeleeLadderThreatScale(
+        definition: BattleCardDefinition,
+        team: number,
+        state: SavedProgressionState,
+        opposingCardIds: string[],
+        useOpponentComposition: boolean
+    ) {
+        if (!this.hasStrengthUpgrade(definition)) return 1;
+        if (!useOpponentComposition) return 1;
+
+        const nextFamily = this.getNextMeleeLadderFamily(
+            definition.targetFamily
+        );
+
+        if (nextFamily === null) return 1;
+
+        const opposingTeam = team === 1 ? 0 : 1;
+        let totalWeight = 0;
+        let nextFamilyWeight = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule) continue;
+
+            const weight = this.getTeamUnitCountForCardScore(
+                rule, opposingTeam, state
+            ) * this.getUnitCombatWeightForCardScore(
+                rule, opposingTeam
+            );
+            totalWeight += weight;
+
+            if (rule.family === nextFamily) {
+                nextFamilyWeight += weight;
+            }
+        }
+
+        if (nextFamilyWeight <= 0 || totalWeight <= 0) return 0;
+
+        return (nextFamilyWeight / totalWeight) *
+            this.getEnemyCardPressureScale(
+                nextFamily,
+                opposingCardIds
+            );
+    }
+
+    private getNextMeleeLadderFamily(family: UnitFamily) {
+        if (family === UnitFamily.Spear) return UnitFamily.Sword;
+        if (family === UnitFamily.Sword) return UnitFamily.Axeman;
+        if (family === UnitFamily.Axeman) return UnitFamily.Cavalry;
+
+        return null;
+    }
+
+    private getEnemyCardPressureScale(
+        threatenedFamily: UnitFamily,
+        opposingCardIds: string[]
+    ) {
+        const manager = this.getGameManager();
+        const database = manager
+            ? manager.battleCardDatabase
+            : null;
+
+        if (!database) return 1;
+
+        let pressure = 0;
+
+        for (let i = 0; i < opposingCardIds.length; i++) {
+            const definition = database.getCard(opposingCardIds[i]);
+
+            if (!definition) continue;
+
+            if (this.cardMatchesFamily(definition, threatenedFamily)) {
+                pressure += definition.target === BattleCardTarget.AllUnits
+                    ? 0.1
+                    : 0.35;
+            }
+        }
+
+        return 1 + pressure;
+    }
+
+    private getStrengthUpgradeMaxRank(
+        definition: BattleCardDefinition
+    ) {
+        return Math.max(
+            0,
+            Math.floor(definition.strengthUpgradeMaxRank)
+        );
+    }
+
+    private hasStrengthUpgrade(definition: BattleCardDefinition) {
+        return this.getStrengthUpgradeMaxRank(definition) > 0;
+    }
+
+    private getCardStrengthScale(
+        definition: BattleCardDefinition,
+        rank: number
+    ) {
+        const base = this.clamp01(definition.baseStrengthScale);
+        const maxRank = this.getStrengthUpgradeMaxRank(definition);
+        if (maxRank <= 0) return 1;
+
+        return base + (1 - base) * this.clamp01(rank / maxRank);
+    }
+
+    private getEnemyStrengthUpgradeRank(
+        definition: BattleCardDefinition,
+        level: number
+    ) {
+        return this.getCardUpgradeRankLimitAtLevel(
+            definition,
+            'strength',
+            level
+        );
+    }
+
     private getCardOpponentConditionWeight(
         definition: BattleCardDefinition,
-        state: SavedProgressionState
+        state: SavedProgressionState,
+        team: number = 0
     ) {
         if (
             definition.requiredEnemyFamily ===
@@ -1521,10 +1916,11 @@ export class LevelSettings extends Component
             if (!rule) continue;
 
             const weight = this.getTeamUnitCountForCardScore(
-                rule,
-                1,
+                rule, team === 1 ? 0 : 1,
                 state
-            ) * this.getUnitCombatWeightForCardScore(rule, 1);
+            ) * this.getUnitCombatWeightForCardScore(
+                rule, team === 1 ? 0 : 1
+            );
             totalEnemyWeight += weight;
 
             if (rule.family === requiredFamily) {
@@ -1540,20 +1936,27 @@ export class LevelSettings extends Component
     private getCardModifierScore(
         definition: BattleCardDefinition,
         state: SavedProgressionState,
-        targetWeight: number
+        targetWeight: number,
+        team: number
     ) {
         return this.getCardModifierValueScore(
             definition,
             definition.modifier,
-            definition.modifierValue,
+            definition.modifierValue * this.getCardModifierStrengthScale(
+                definition, team, state
+            ),
             state,
-            targetWeight
+            targetWeight,
+            team
         ) + this.getCardModifierValueScore(
             definition,
             definition.tradeoffModifier,
-            definition.tradeoffValue,
+            definition.tradeoffValue * this.getCardModifierStrengthScale(
+                definition, team, state
+            ),
             state,
-            targetWeight
+            targetWeight,
+            team
         );
     }
 
@@ -1562,7 +1965,8 @@ export class LevelSettings extends Component
         modifier: BattleCardModifier,
         value: number,
         state: SavedProgressionState,
-        targetWeight: number
+        targetWeight: number,
+        team: number
     ) {
         switch (modifier) {
             case BattleCardModifier.DamagePercent:
@@ -1575,13 +1979,15 @@ export class LevelSettings extends Component
                     definition,
                     value,
                     state,
-                    targetWeight
+                    targetWeight,
+                    team
                 );
             case BattleCardModifier.CounterImmunity:
                 return this.getCounterImmunityScore(
                     definition,
                     state,
-                    targetWeight
+                    targetWeight,
+                    team
                 );
             default:
                 return 0;
@@ -1592,17 +1998,19 @@ export class LevelSettings extends Component
         definition: BattleCardDefinition,
         value: number,
         state: SavedProgressionState,
-        targetWeight: number
+        targetWeight: number,
+        team: number
     ) {
         const enemyDamage = this.getAverageUnitStatForCardScore(
-            1,
+            team === 1 ? 0 : 1,
             state,
             'damage'
         );
         const targetDefense = this.getAverageTargetUnitDefenseForCardScore(
             definition,
             state,
-            targetWeight
+            targetWeight,
+            team
         );
         const before = Math.max(1, enemyDamage - targetDefense);
         const after = Math.max(1, enemyDamage - targetDefense - value);
@@ -1613,7 +2021,8 @@ export class LevelSettings extends Component
     private getCounterImmunityScore(
         definition: BattleCardDefinition,
         state: SavedProgressionState,
-        targetWeight: number
+        targetWeight: number,
+        team: number
     ) {
         const counter = CounterSettings.instance;
 
@@ -1628,10 +2037,11 @@ export class LevelSettings extends Component
             if (!enemyRule) continue;
 
             const enemyWeight = this.getTeamUnitCountForCardScore(
-                enemyRule,
-                1,
+                enemyRule, team === 1 ? 0 : 1,
                 state
-            ) * this.getUnitCombatWeightForCardScore(enemyRule, 1);
+            ) * this.getUnitCombatWeightForCardScore(
+                enemyRule, team === 1 ? 0 : 1
+            );
 
             totalEnemyWeight += enemyWeight;
 
@@ -1646,10 +2056,11 @@ export class LevelSettings extends Component
                 }
 
                 const targetUnitWeight = this.getTeamUnitCountForCardScore(
-                    targetRule,
-                    0,
+                    targetRule, team,
                     state
-                ) * this.getUnitCombatWeightForCardScore(targetRule, 0);
+                ) * this.getUnitCombatWeightForCardScore(
+                    targetRule, team
+                );
 
                 weightedThreat += targetUnitWeight * enemyWeight * Math.max(
                     0,
@@ -1702,7 +2113,8 @@ export class LevelSettings extends Component
     private getAverageTargetUnitDefenseForCardScore(
         definition: BattleCardDefinition,
         state: SavedProgressionState,
-        targetWeight: number
+        targetWeight: number,
+        team: number
     ) {
         if (targetWeight <= 0) return 0;
 
@@ -1717,10 +2129,10 @@ export class LevelSettings extends Component
 
             const weight = this.getTeamUnitCountForCardScore(
                 rule,
-                0,
+                team,
                 state
-            ) * this.getUnitCombatWeightForCardScore(rule, 0);
-            const entry = this.getUnitEntryForCardScore(rule, 0);
+            ) * this.getUnitCombatWeightForCardScore(rule, team);
+            const entry = this.getUnitEntryForCardScore(rule, team);
             totalDefense += weight * (entry ? entry.defense : 0);
         }
 
@@ -1786,6 +2198,7 @@ export class LevelSettings extends Component
                 owned: false,
                 cooldownUpgradeLevel: 0,
                 budgetUpgradeLevel: 0,
+                strengthUpgradeLevel: 0,
                 cooldownRemaining: 0,
             }));
     }
@@ -1943,6 +2356,88 @@ export class LevelSettings extends Component
         return 0;
     }
 
+    private getFullPlayerCardProgressionWave() {
+        let result = 0;
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule) continue;
+
+            result = Math.max(
+                result,
+                this.getUnitFamilyCardProgressionWave(
+                    rule.family
+                )
+            );
+        }
+
+        return result;
+    }
+
+    private getPlayerCardStrengthScales(
+        state: SavedProgressionState | null
+    ) {
+        const result: Record<string, number> = {};
+
+        const manager = this.getGameManager();
+        const database = manager && manager.battleCardDatabase
+            ? manager.battleCardDatabase
+            : null;
+        if (!state || !database) return result;
+
+        for (let i = 0; i < state.cards.length; i++) {
+            const card = state.cards[i];
+
+            if (!card.owned) continue;
+            const definition = database.getCard(card.id);
+            if (!definition || !this.hasStrengthUpgrade(definition)) {
+                continue;
+            }
+
+            result[card.id] = this.getCardStrengthScale(
+                definition,
+                card.strengthUpgradeLevel
+            );
+        }
+
+        return result;
+    }
+
+    private getEnemyCardStrengthScales() {
+        const result: Record<string, number> = {};
+        const manager = this.getGameManager();
+        const database = manager && manager.battleCardDatabase
+            ? manager.battleCardDatabase
+            : null;
+        if (!database) return result;
+
+        for (let i = 0; i < database.cards.length; i++) {
+            const definition = database.cards[i];
+            if (this.hasStrengthUpgrade(definition)) {
+                result[definition.id] = this.getCardStrengthScale(
+                    definition,
+                    this.getEnemyStrengthUpgradeRank(
+                        definition,
+                        this.battleLevel
+                    )
+                );
+            }
+        }
+        return result;
+    }
+
+    private getUnitFamilyCardProgressionWave(
+        family: UnitFamily
+    ) {
+        if (family === UnitFamily.Monk) return 4;
+        if (family === UnitFamily.Cavalry) return 3;
+        if (family === UnitFamily.Archer) return 2;
+        if (family === UnitFamily.Axeman) return 1;
+
+        return 0;
+    }
+
     private getCardProgressionWave(
         definition: BattleCardDefinition
     ) {
@@ -1976,20 +2471,215 @@ export class LevelSettings extends Component
 
     private getCardUpgradeRankLimit(
         definition: BattleCardDefinition,
-        state: SavedProgressionState
+        upgradeKind: CardUpgradeKind
     ) {
-        if (this.hasReachedFullProgression()) {
-            return 2;
+        return this.getCardUpgradeRankLimitAtLevel(
+            definition,
+            upgradeKind,
+            this.battleLevel
+        );
+    }
+
+    private getCardUpgradeMaxRank(
+        definition: BattleCardDefinition,
+        upgradeKind: CardUpgradeKind
+    ) {
+        return upgradeKind === 'strength'
+            ? this.getStrengthUpgradeMaxRank(definition)
+            : 2;
+    }
+
+    private getCardUpgradeRankLimitAtLevel(
+        definition: BattleCardDefinition,
+        upgradeKind: CardUpgradeKind,
+        level: number
+    ) {
+        const safeLevel = this.clampLevel(level);
+        const maxRank = this.getCardUpgradeMaxRank(
+            definition,
+            upgradeKind
+        );
+        let rankLimit = 0;
+        const schedule = this.getCardUpgradeSchedule();
+
+        for (let rank = 1; rank <= maxRank; rank++) {
+            const offer = schedule.find((item) =>
+                item.cardId === definition.id &&
+                item.upgradeKind === upgradeKind &&
+                item.rank === rank
+            );
+
+            if (!offer || offer.offerLevel > safeLevel) break;
+            rankLimit = rank;
         }
 
-        return Math.max(
-            0,
-            Math.min(
-                2,
-                this.getPlayerCardProgressionWave(state) -
-                this.getCardProgressionWave(definition)
-            )
-        );
+        return rankLimit;
+    }
+
+    private getCardUpgradeSchedule():
+        CardUpgradeOffer[] {
+        const manager = this.getGameManager();
+        const database = manager
+            ? manager.battleCardDatabase
+            : null;
+        if (!database) return [];
+
+        const fullProgressionWave =
+            this.getFullPlayerCardProgressionWave();
+        const offersByWave = new Map<
+            number,
+            CardUpgradeOffer[]
+        >();
+        const postProgressionPending: CardUpgradeOffer[] = [];
+
+        for (let i = 0; i < database.cards.length; i++) {
+            const definition = database.cards[i];
+
+            if (!definition || !definition.id) continue;
+
+            const upgradeKinds: CardUpgradeKind[] = [
+                'cooldown',
+                'budget',
+                'strength',
+            ];
+
+            for (let kindIndex = 0; kindIndex < upgradeKinds.length; kindIndex++) {
+                const upgradeKind = upgradeKinds[kindIndex];
+                const maxRank = this.getCardUpgradeMaxRank(
+                    definition,
+                    upgradeKind
+                );
+                for (let rank = 1; rank <= maxRank; rank++) {
+                    const offerWave =
+                        this.getCardProgressionWave(definition) + rank;
+
+                    if (offerWave > fullProgressionWave) {
+                        postProgressionPending.push({
+                            cardId: definition.id,
+                            upgradeKind,
+                            rank,
+                            offerLevel: 0,
+                        });
+                        continue;
+                    }
+
+                    let pending = offersByWave.get(offerWave);
+
+                    if (!pending) {
+                        pending = [];
+                        offersByWave.set(offerWave, pending);
+                    }
+
+                    pending.push({
+                        cardId: definition.id,
+                        upgradeKind,
+                        rank,
+                        offerLevel: 0,
+                    });
+                }
+            }
+        }
+
+        const result: CardUpgradeOffer[] = [];
+        const offerWaves = Array.from(offersByWave.keys())
+            .sort((a, b) => a - b);
+
+        for (let i = 0; i < offerWaves.length; i++) {
+            const offerWave = offerWaves[i];
+            const pending = offersByWave.get(offerWave) || [];
+            const offerLevels = this.getCardUpgradeOfferLevels(
+                offerWave,
+                fullProgressionWave
+            );
+
+            if (offerLevels.length <= 0) continue;
+
+            for (let itemIndex = 0;
+                itemIndex < pending.length;
+                itemIndex++) {
+                result.push({
+                    ...pending[itemIndex],
+                    offerLevel: offerLevels[Math.min(
+                        offerLevels.length - 1,
+                        Math.floor(
+                            itemIndex * offerLevels.length /
+                            pending.length
+                        )
+                    )],
+                });
+            }
+        }
+
+        const postProgressionOfferLevels =
+            this.getCardUpgradeOfferLevels(
+                fullProgressionWave + 1,
+                fullProgressionWave
+            );
+
+        for (let index = 0;
+            index < postProgressionPending.length;
+            index++) {
+            result.push({
+                ...postProgressionPending[index],
+                offerLevel: postProgressionOfferLevels[Math.min(
+                    postProgressionOfferLevels.length - 1,
+                    Math.floor(
+                        index * postProgressionOfferLevels.length /
+                        postProgressionPending.length
+                    )
+                )],
+            });
+        }
+
+        return result;
+    }
+
+    private getCardUpgradeOfferLevels(
+        offerWave: number,
+        fullProgressionWave: number
+    ) {
+        const progressionEnd = this.getUnitProgressionEndLevel();
+        const totalLevels = this.getSafeTotalLevels();
+        const startLevel = offerWave <= fullProgressionWave
+            ? this.getCardProgressionWaveStartLevel(offerWave)
+            : progressionEnd + 1;
+        const nextWaveStart = offerWave < fullProgressionWave
+            ? this.getCardProgressionWaveStartLevel(offerWave + 1)
+            : progressionEnd + 1;
+        const endLevel = offerWave <= fullProgressionWave
+            ? Math.min(totalLevels, nextWaveStart - 1)
+            : totalLevels - 1;
+        const result: number[] = [];
+
+        for (let level = startLevel; level <= endLevel; level++) {
+            // The first level of a wave is its presentation moment, even when
+            // it is a boss. Later boss levels remain clear of new offers.
+            if (level === startLevel || !this.isBossLevelFor(level)) {
+                result.push(level);
+            }
+        }
+
+        return result.length > 0 ? result : [Math.min(totalLevels, startLevel)];
+    }
+
+    private getCardProgressionWaveStartLevel(wave: number) {
+        if (wave <= 0) return 2;
+
+        let result = this.getUnitProgressionEndLevel();
+
+        for (let i = 0; i < this.unitProgressionRules.length; i++) {
+            const rule = this.unitProgressionRules[i];
+
+            if (!rule ||
+                this.getUnitFamilyCardProgressionWave(rule.family) !== wave
+            ) {
+                continue;
+            }
+
+            result = Math.min(result, this.getRuleUnlockLevel(rule));
+        }
+
+        return result;
     }
 
     private isPlayerFamilyOwned(
@@ -2110,6 +2800,13 @@ export class LevelSettings extends Component
             tradeoffModifier: definition.tradeoffModifier,
             tradeoffValue: definition.tradeoffValue,
             enemyPool: definition.enemyPool,
+            baseStrengthScale: definition.baseStrengthScale,
+            strengthUpgradeMaxRank:
+                definition.strengthUpgradeMaxRank,
+            strengthUpgradeFirstCostMultiplier:
+                definition.strengthUpgradeFirstCostMultiplier,
+            strengthUpgradeFinalCostMultiplier:
+                definition.strengthUpgradeFinalCostMultiplier,
         }));
     }
 
@@ -2124,7 +2821,8 @@ export class LevelSettings extends Component
         if (
             sourceVersion !== 8 &&
             sourceVersion !== 9 &&
-            sourceVersion !== 10
+            sourceVersion !== 10 &&
+            sourceVersion !== 11
         ) {
             return initial;
         }
@@ -2193,6 +2891,25 @@ export class LevelSettings extends Component
                 goldGranted: Math.max(
                     0,
                     this.safeInteger(event.goldGranted, 0)
+                ),
+                adsReason: typeof event.adsReason === 'string'
+                    ? event.adsReason
+                    : '',
+                normalGold: Math.max(
+                    0,
+                    this.safeInteger(event.normalGold, 0)
+                ),
+                doubleGold: Math.max(
+                    0,
+                    this.safeInteger(event.doubleGold, 0)
+                ),
+                normalPurchaseCount: Math.max(
+                    0,
+                    this.safeInteger(event.normalPurchaseCount, 0)
+                ),
+                doublePurchaseCount: Math.max(
+                    0,
+                    this.safeInteger(event.doublePurchaseCount, 0)
                 ),
                 delayedPurchaseCount: Math.max(
                     0,
@@ -2291,6 +3008,9 @@ export class LevelSettings extends Component
 
         for (let i = 0; i < initial.cards.length; i++) {
             const card = initial.cards[i];
+            const definition = this.getGameManager()?.battleCardDatabase
+                ? this.getGameManager()!.battleCardDatabase!.getCard(card.id)
+                : null;
             const saved = savedCards.find(
                 (candidate: any) =>
                     candidate && candidate.id === card.id
@@ -2311,6 +3031,15 @@ export class LevelSettings extends Component
                 Math.min(
                     2,
                     this.safeInteger(saved.budgetUpgradeLevel, 0)
+                )
+            );
+            card.strengthUpgradeLevel = Math.max(
+                0,
+                Math.min(
+                    definition && this.hasStrengthUpgrade(definition)
+                        ? this.getStrengthUpgradeMaxRank(definition)
+                        : 0,
+                    this.safeInteger(saved.strengthUpgradeLevel, 0)
                 )
             );
             card.cooldownRemaining = Math.max(
@@ -2475,12 +3204,15 @@ export class LevelSettings extends Component
     private configureSideMissionBattleCards() {
         this.currentPlayerBattleCardIds = [];
         this.currentEnemyBattleCardIds = [];
+        this.currentPlayerCooldownAdReasons.clear();
 
         const manager = this.getGameManager();
 
         if (!manager) return;
 
-        manager.configureBattleCardDecks([], [], {}, 0, 0);
+        manager.configureBattleCardDecks(
+            [], [], {}, {}, {}, 0, 0
+        );
     }
 
     private getPurchaseOptions(
@@ -2490,6 +3222,12 @@ export class LevelSettings extends Component
         const manager = this.getGameManager();
 
         if (!manager || !manager.unitDatabase) {
+            return options;
+        }
+
+        // Level 1 is the tutorial battle: show no purchasable progression
+        // packages until the player reaches the pre-battle flow for level 2.
+        if (this.battleLevel <= 1) {
             return options;
         }
 
@@ -2642,15 +3380,25 @@ export class LevelSettings extends Component
                     continue;
                 }
 
-                const upgradeRankLimit =
+                const cooldownUpgradeRankLimit =
                     this.getCardUpgradeRankLimit(
                         definition,
-                        state
+                        'cooldown'
+                    );
+                const budgetUpgradeRankLimit =
+                    this.getCardUpgradeRankLimit(
+                        definition,
+                        'budget'
+                    );
+                const strengthUpgradeRankLimit =
+                    this.getCardUpgradeRankLimit(
+                        definition,
+                        'strength'
                     );
 
                 if (
                     saved.cooldownUpgradeLevel <
-                    upgradeRankLimit
+                    cooldownUpgradeRankLimit
                 ) {
                     const nextLevel =
                         saved.cooldownUpgradeLevel + 1;
@@ -2672,7 +3420,7 @@ export class LevelSettings extends Component
 
                 if (
                     saved.budgetUpgradeLevel <
-                    upgradeRankLimit
+                    budgetUpgradeRankLimit
                 ) {
                     const nextLevel = saved.budgetUpgradeLevel + 1;
 
@@ -2687,6 +3435,27 @@ export class LevelSettings extends Component
                         tier: 0,
                         delta: 1,
                         label: `${definition.displayName} Budget +40%`,
+                        cardId: definition.id,
+                    });
+                }
+
+                if (
+                    saved.strengthUpgradeLevel <
+                    strengthUpgradeRankLimit
+                ) {
+                    const nextLevel = saved.strengthUpgradeLevel + 1;
+
+                    options.push({
+                        id: `card-strength:${definition.id}:${nextLevel}`,
+                        kind: 'card-strength-upgrade',
+                        cost: this.getCardStrengthUpgradeCost(
+                            definition,
+                            nextLevel
+                        ),
+                        family: null,
+                        tier: 0,
+                        delta: 1,
+                        label: `${definition.displayName} Strength +1`,
                         cardId: definition.id,
                     });
                 }
@@ -2731,6 +3500,30 @@ export class LevelSettings extends Component
             Math.round(
                 Math.max(1, definition.purchasePrice) * ratio
             )
+        );
+    }
+
+    private getCardStrengthUpgradeCost(
+        definition: BattleCardDefinition,
+        nextLevel: number
+    ) {
+        const maxRank = this.getStrengthUpgradeMaxRank(definition);
+        const first = Math.max(
+            0.01,
+            definition.strengthUpgradeFirstCostMultiplier
+        );
+        const final = Math.max(
+            first,
+            definition.strengthUpgradeFinalCostMultiplier
+        );
+        const progress = maxRank <= 1
+            ? 1
+            : this.clamp01((nextLevel - 1) / (maxRank - 1));
+        const ratio = first + (final - first) * progress;
+
+        return Math.max(
+            1,
+            Math.round(Math.max(1, definition.purchasePrice) * ratio)
         );
     }
 
@@ -2804,14 +3597,16 @@ export class LevelSettings extends Component
             options = options.filter((option) =>
                 option.kind !== 'card-unlock' &&
                 option.kind !== 'card-cooldown-upgrade' &&
-                option.kind !== 'card-budget-upgrade'
+                option.kind !== 'card-budget-upgrade' &&
+                option.kind !== 'card-strength-upgrade'
             );
         }
 
         if (this.shouldBotPrioritizeCardUnlocks(state)) {
             options = options.filter((option) =>
                 option.kind !== 'card-cooldown-upgrade' &&
-                option.kind !== 'card-budget-upgrade'
+                option.kind !== 'card-budget-upgrade' &&
+                option.kind !== 'card-strength-upgrade'
             );
         }
 
@@ -2898,7 +3693,7 @@ export class LevelSettings extends Component
 
         state.playerGold -= fee;
         state.mainBattleEntryCount++;
-        records.push({
+        const record: PurchaseRecord = {
             id: `battle-entry:${this.battleLevel}`,
             kind: 'battle-entry',
             label: fee > 0
@@ -2914,7 +3709,9 @@ export class LevelSettings extends Component
             valueAfter: 0,
             source: 'main-battle-entry',
             cardId: null,
-        });
+        };
+        records.push(record);
+        this.recordPurchaseTelemetryAction(record);
         this.recordBotSimulationEvent(state, {
             type: 'main-entry-fee-paid',
             battleLevel: this.battleLevel,
@@ -3035,6 +3832,8 @@ export class LevelSettings extends Component
     private finishBotSelectedCardCooldowns(
         state: SavedProgressionState
     ) {
+        if (!this.allowAdsRescue) return;
+
         for (let i = 0; i < this.currentPlayerBattleCardIds.length; i++) {
             const cardId = this.currentPlayerBattleCardIds[i];
             const card = this.getSavedCard(state, cardId);
@@ -3046,6 +3845,18 @@ export class LevelSettings extends Component
             const cooldownBefore = card.cooldownRemaining;
             card.cooldownRemaining = 0;
             state.adsReward++;
+            this.recordTelemetryAction({
+                type: 'card-cooldown-finish-ad',
+                goldBefore: state.playerGold,
+                goldAfter: state.playerGold,
+                cardId,
+                source: 'bot-card-cooldown-ad',
+                cost: 0,
+                goldGranted: 0,
+                adsReason: this.currentPlayerCooldownAdReasons.get(
+                    cardId
+                ) || 'selected-cooling-card',
+            });
             this.recordBotSimulationEvent(state, {
                 type: 'card-cooldown-finish-ad',
                 battleLevel: this.battleLevel,
@@ -3054,6 +3865,9 @@ export class LevelSettings extends Component
                 targetCost: cooldownBefore,
                 baseGold: 0,
                 goldGranted: 0,
+                adsReason: this.currentPlayerCooldownAdReasons.get(
+                    cardId
+                ) || 'selected-cooling-card',
             });
         }
     }
@@ -3065,27 +3879,114 @@ export class LevelSettings extends Component
         targetId = '',
         targetCost = 0
     ) {
+        const reward = Math.max(0, Math.floor(baseGold));
+        const decision = this.getBotGoldClaimDecision(
+            state,
+            reward,
+            type
+        );
         const useAds = this.purchasingSimulation &&
             this.allowAdsRescue &&
-            Math.random() < 0.5;
-        const goldGranted = Math.max(
-            0,
-            Math.floor(baseGold) * (useAds ? 2 : 1)
-        );
+            decision.useAds;
+        const goldGranted = reward * (useAds ? 2 : 1);
         const event: BotSimulationEvent = {
             type,
             battleLevel: this.battleLevel,
             choice: useAds ? 'gold-x2-ad' : 'gold',
-            targetId,
-            targetCost,
-            baseGold: Math.max(0, Math.floor(baseGold)),
+            targetId: useAds && decision.targetId
+                ? decision.targetId
+                : targetId,
+            targetCost: useAds && decision.targetCost > 0
+                ? decision.targetCost
+                : targetCost,
+            baseGold: reward,
             goldGranted,
+            adsReason: !this.purchasingSimulation
+                ? 'bot-simulation-disabled'
+                : !this.allowAdsRescue
+                    ? 'ads-disabled'
+                    : decision.useAds
+                        ? decision.reason
+                        : 'no-material-benefit',
+            normalGold: decision.normalGold,
+            doubleGold: decision.doubleGold,
+            normalPurchaseCount: decision.normalPurchaseCount,
+            doublePurchaseCount: decision.doublePurchaseCount,
         };
 
+        const goldBefore = state.playerGold;
         state.playerGold += goldGranted;
         if (useAds) state.adsReward++;
+        this.recordTelemetryAction({
+            type: useAds ? 'reward-gold-x2-ad' : 'reward-gold',
+            goldBefore,
+            goldAfter: state.playerGold,
+            cardId: targetId || null,
+            source: type,
+            cost: 0,
+            goldGranted,
+            adsReason: event.adsReason,
+        });
         this.recordBotSimulationEvent(state, event);
         return event;
+    }
+
+    private getBotGoldClaimDecision(
+        state: SavedProgressionState,
+        reward: number,
+        type: string
+    ) {
+        const normalGold = state.playerGold + reward;
+        const doubleGold = normalGold + reward;
+        const nextLevel = type === 'progression-win'
+            ? Math.min(
+                this.getSafeTotalLevels(),
+                this.battleLevel + 1
+            )
+            : this.battleLevel;
+        const entryFee = type === 'progression-win' &&
+            this.battleLevel >= this.getSafeTotalLevels()
+            ? 0
+            : this.getMainBattleEntryFee(nextLevel);
+        const candidates = this.getBotPurchaseCandidates(
+            state,
+            false
+        );
+        const normalPurchases = candidates.filter((option) =>
+            option.cost <= normalGold - entryFee
+        );
+        const doubleOnlyPurchases = candidates.filter((option) =>
+            option.cost > normalGold - entryFee &&
+            option.cost <= doubleGold - entryFee
+        ).sort((a, b) => b.cost - a.cost ||
+            a.id.localeCompare(b.id));
+        const doublePurchaseCount = normalPurchases.length +
+            doubleOnlyPurchases.length;
+        const target = doubleOnlyPurchases[0] || null;
+
+        if (target) {
+            return {
+                useAds: true,
+                reason: 'unlock-purchase-and-main-entry',
+                targetId: target.id,
+                targetCost: target.cost,
+                normalGold,
+                doubleGold,
+                normalPurchaseCount: normalPurchases.length,
+                doublePurchaseCount,
+            };
+        }
+
+        return {
+            useAds: normalGold < entryFee && doubleGold >= entryFee,
+            reason: 'secure-main-entry',
+            targetId: '',
+            targetCost: entryFee,
+            normalGold,
+            doubleGold,
+            normalPurchaseCount: normalPurchases.length,
+            doublePurchaseCount,
+        };
     }
 
     private recordBotSimulationEvent(
@@ -3230,6 +4131,13 @@ export class LevelSettings extends Component
             return 1.5;
         }
 
+        if (option.kind === 'card-strength-upgrade') {
+            return Math.max(
+                0.01,
+                this.botStrengthUpgradePurchaseWeight
+            );
+        }
+
         return 1;
     }
 
@@ -3251,7 +4159,7 @@ export class LevelSettings extends Component
         this.applyPurchaseToState(option, state);
         state.totalPurchases++;
 
-        return {
+        const record: PurchaseRecord = {
             id: option.id,
             kind: option.kind,
             label: option.label,
@@ -3271,6 +4179,36 @@ export class LevelSettings extends Component
             source,
             cardId: option.cardId,
         };
+        this.recordPurchaseTelemetryAction(record);
+        return record;
+    }
+
+    private recordPurchaseTelemetryAction(record: PurchaseRecord) {
+        this.recordTelemetryAction({
+            type: record.kind,
+            goldBefore: record.goldBefore,
+            goldAfter: record.goldAfter,
+            cardId: record.cardId,
+            source: record.source,
+            cost: record.cost,
+            goldGranted: 0,
+        });
+    }
+
+    private recordTelemetryAction(
+        action: Omit<ProgressionTelemetryAction, 'eventId' | 'sequence' |
+            'phase' | 'battleLevel'>
+    ) {
+        this.telemetryActionSequence++;
+        this.telemetryActions.push({
+            ...action,
+            eventId:
+                `progression:${this.battleLevel}:` +
+                `${this.telemetryActionSequence}`,
+            sequence: this.telemetryActionSequence,
+            phase: this.telemetryActionPhase,
+            battleLevel: this.battleLevel,
+        });
     }
 
     private applyPurchaseToState(
@@ -3316,6 +4254,23 @@ export class LevelSettings extends Component
             card.cooldownRemaining = Math.max(
                 0,
                 card.cooldownRemaining - 1
+            );
+            return;
+        }
+
+        if (option.kind === 'card-strength-upgrade') {
+            const card = option.cardId
+                ? this.getSavedCard(state, option.cardId)
+                : null;
+            const definition = option.cardId && this.getGameManager()?.battleCardDatabase
+                ? this.getGameManager()!.battleCardDatabase!.getCard(option.cardId)
+                : null;
+
+            if (!card || !card.owned || !definition) return;
+
+            card.strengthUpgradeLevel = Math.min(
+                this.getStrengthUpgradeMaxRank(definition),
+                card.strengthUpgradeLevel + 1
             );
             return;
         }
@@ -3404,7 +4359,8 @@ export class LevelSettings extends Component
         if (
             option.kind === 'card-unlock' ||
             option.kind === 'card-cooldown-upgrade' ||
-            option.kind === 'card-budget-upgrade'
+            option.kind === 'card-budget-upgrade' ||
+            option.kind === 'card-strength-upgrade'
         ) {
             const card = option.cardId
                 ? this.getSavedCard(state, option.cardId)
@@ -3416,9 +4372,13 @@ export class LevelSettings extends Component
                 return Number(card.owned);
             }
 
-            return option.kind === 'card-cooldown-upgrade'
-                ? card.cooldownUpgradeLevel
-                : card.budgetUpgradeLevel;
+            if (option.kind === 'card-cooldown-upgrade') {
+                return card.cooldownUpgradeLevel;
+            }
+
+            return option.kind === 'card-budget-upgrade'
+                ? card.budgetUpgradeLevel
+                : card.strengthUpgradeLevel;
         }
 
         if (option.family === null) return 0;
@@ -4044,7 +5004,7 @@ export class LevelSettings extends Component
 
             const firstOfferLevel = previousLevel > 0
                 ? previousLevel + 1
-                : 1;
+                : 2;
             const lastNormalLevel = targetLevel - 1;
             const candidateCount = Math.max(
                 1,
@@ -4294,7 +5254,7 @@ export class LevelSettings extends Component
 
             const firstOfferLevel = previousLevel > 0
                 ? previousLevel + 1
-                : 1;
+                : 2;
             const lastNormalLevel = targetLevel - 1;
             const safeLastOfferLevel =
                 lastNormalLevel >= firstOfferLevel

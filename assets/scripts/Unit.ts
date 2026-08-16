@@ -755,6 +755,24 @@ export class Unit extends Component {
         }
     }
 
+    public haltForBattleEnd() {
+        this.setEnemyTarget(null);
+        this.onBusy = false;
+        this.onForward = false;
+        this.backToLaneActive = false;
+        this.backToLaneForwardAggressive = false;
+        this.soloAggressiveSkirmishActive = false;
+        this.resetRangedCombatMovement();
+        this.invalidateNearestQueryResults();
+        this.clearCachedTargets();
+
+        if (this.agent) {
+            this.setAgentOnForward(0);
+            this.setAgentLocked(true);
+            this.setAgentStopped();
+        }
+    }
+
     public applyTargetSearchRangeMultiplier(multiplier: number) {
         const safeMultiplier =
             Math.max(
@@ -929,6 +947,12 @@ export class Unit extends Component {
 
     update(deltaTime: number) {
         if (!this.sim || !this.agent) return;
+
+        if (GameManager.instance?.isBattleCombatLocked()) {
+            this.haltForBattleEnd();
+            this.sync(deltaTime, false);
+            return;
+        }
 
         this.agent.maxSpeed = this.getEffectiveMoveSpeed();
         this.frameCounter++;
