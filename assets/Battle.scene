@@ -2136,7 +2136,7 @@
     "baseBudget": 12,
     "target": 1,
     "targetFamily": 0,
-    "requiredEnemyFamily": 0,
+    "requiredEnemyFamily": 5,
     "modifier": 1,
     "modifierValue": 42,
     "tradeoffModifier": 2,

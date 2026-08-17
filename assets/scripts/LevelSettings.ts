@@ -413,7 +413,7 @@ export class LevelSettings extends Component
         max: 1,
         step: 0.05,
         displayName: 'Main Battle Entry Fee Ratio',
-        tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of that battle win reward and rounds up to 50. Side missions are free.'
+        tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of the previous main battle win reward and rounds up to 50. Side missions are free.'
     })
     mainBattleEntryFeeRatio = 0.35;
 
@@ -475,6 +475,8 @@ export class LevelSettings extends Component
     private preBattlePurchases: PurchaseRecord[] = [];
     private telemetryActions: ProgressionTelemetryAction[] = [];
     private telemetryActionSequence = 0;
+    private preserveTelemetryActionsForSideMission = false;
+    private mainBattleGoldPlan: number[] | null = null;
     private telemetryActionPhase: 'pre-battle' | 'battle-result' =
         'pre-battle';
     private currentPlayerBattleCardIds: string[] = [];
@@ -636,10 +638,7 @@ export class LevelSettings extends Component
         );
         const newlyOffered =
             this.offerIntroducedUnits(battleLevel);
-        const mainReward = this.getMainBattleReward(
-            state,
-            battleLevel
-        );
+        const mainReward = this.getMainBattleReward(battleLevel);
         const winGold = mainReward.gold;
 
         let goldReward = 0;
@@ -1041,6 +1040,7 @@ export class LevelSettings extends Component
     }
 
     private initializeProgression() {
+        this.mainBattleGoldPlan = null;
         const loaded = this.loadProgressionState();
 
         this.progressionState = loaded
@@ -1078,9 +1078,14 @@ export class LevelSettings extends Component
     private completePreBattleProgression() {
         if (!this.progressionState) return;
 
+        const preserveTelemetryActions =
+            this.preserveTelemetryActionsForSideMission;
+        this.preserveTelemetryActionsForSideMission = false;
         this.preBattlePurchases = [];
-        this.telemetryActions = [];
-        this.telemetryActionSequence = 0;
+        if (!preserveTelemetryActions) {
+            this.telemetryActions = [];
+            this.telemetryActionSequence = 0;
+        }
         this.telemetryActionPhase = 'pre-battle';
 
         if (this.sideMissionBattle) {
@@ -2277,13 +2282,6 @@ export class LevelSettings extends Component
         team: number,
         state: SavedProgressionState
     ) {
-        if (
-            team === 0 &&
-            !this.isCardUnlockedForPlayer(definition, state)
-        ) {
-            return false;
-        }
-
         const targetFamilies = this.getCardFamiliesForTeam(team, state)
             .filter((family) =>
                 this.cardMatchesFamily(definition, family)
@@ -2316,18 +2314,6 @@ export class LevelSettings extends Component
         }
 
         return true;
-    }
-
-    private isCardUnlockedForPlayer(
-        definition: BattleCardDefinition,
-        state: SavedProgressionState
-    ) {
-        if (this.hasReachedFullProgression()) {
-            return true;
-        }
-
-        return this.getPlayerCardProgressionWave(state) >=
-            this.getCardProgressionWave(definition);
     }
 
     private hasReachedFullProgression() {
@@ -3642,6 +3628,9 @@ export class LevelSettings extends Component
         if (!this.progressionState) return false;
 
         const state = this.progressionState;
+
+        if (state.levelLossCount <= 0) return false;
+
         const target = this.pickWeightedPurchase(
             this.getBotPurchaseCandidates(
                 state,
@@ -3740,40 +3729,144 @@ export class LevelSettings extends Component
         );
     }
 
-    private getMainBattleReward(
-        state: SavedProgressionState,
-        level: number
-    ) {
-        const baseGold = this.getMainBattleWinGold(level);
-        const nextLevel = Math.min(
-            this.getSafeTotalLevels(),
-            level + 1
-        );
-        const nextEntryFee = level >= this.getSafeTotalLevels()
-            ? 0
-            : this.getMainBattleEntryFee(nextLevel);
-        const target = this.getBotPurchaseCandidates(state, false)
-            .sort((a, b) => a.cost - b.cost ||
-                a.id.localeCompare(b.id))[0] || null;
-        const requiredGold = target
-            ? Math.max(
-                0,
-                nextEntryFee + target.cost - state.playerGold
-            )
-            : 0;
+    private getMainBattleReward(level: number) {
+        const safeLevel = this.clampLevel(level);
+        const plan = this.getMainBattleGoldPlan();
 
         return {
-            targetId: target ? target.id : '',
-            targetCost: target ? target.cost : 0,
-            gold: Math.max(
-                baseGold,
-                Math.ceil(requiredGold / 50) * 50
-            ),
+            targetId: 'mainline-gold-plan',
+            targetCost: 0,
+            gold: plan[safeLevel - 1] || 0,
         };
     }
 
+    private getMainBattleGoldPlan() {
+        const totalLevels = this.getSafeTotalLevels();
+
+        if (this.mainBattleGoldPlan &&
+            this.mainBattleGoldPlan.length === totalLevels) {
+            return this.mainBattleGoldPlan;
+        }
+
+        const plannedPurchaseBudgets =
+            this.getMainlinePlannedPurchaseBudgets();
+        const result: number[] = [];
+        let previousReward = 0;
+        let availableGold = Math.max(
+            0,
+            Math.floor(this.initialPlayerGold)
+        );
+
+        for (let level = 1; level <= totalLevels; level++) {
+            const nextLevel = level + 1;
+
+            const baseReward = Math.ceil(
+                this.getMainBattleWinGold(level) / 50
+            ) * 50;
+            let reward = Math.max(
+                previousReward,
+                baseReward
+            );
+
+            if (nextLevel <= totalLevels) {
+                const nextPurchaseBudget =
+                    plannedPurchaseBudgets[nextLevel - 1];
+
+                while (
+                    availableGold + reward <
+                    nextPurchaseBudget +
+                    this.getMainBattleEntryFeeForReward(reward)
+                ) {
+                    reward += 50;
+                }
+            }
+
+            result.push(reward);
+            previousReward = reward;
+            availableGold += reward;
+
+            if (nextLevel <= totalLevels) {
+                availableGold -=
+                    plannedPurchaseBudgets[nextLevel - 1] +
+                    this.getMainBattleEntryFeeForReward(reward);
+            }
+        }
+
+        this.mainBattleGoldPlan = result;
+        return result;
+    }
+
+    private getMainlinePlannedPurchaseBudgets() {
+        const totalLevels = this.getSafeTotalLevels();
+        const result = new Array<number>(totalLevels).fill(0);
+        const savedState = this.progressionState;
+        const savedBattleLevel = this.battleLevel;
+
+        try {
+            const planState = this.createInitialProgressionState();
+            this.progressionState = planState;
+            // This is an affordability-independent forecast. Runtime buying
+            // still uses the player's real gold and its weighted choice.
+            planState.playerGold = Number.MAX_SAFE_INTEGER;
+
+            for (let level = 1; level <= totalLevels; level++) {
+                this.battleLevel = level;
+                this.offerIntroducedUnits(level);
+
+                const options = this.getBotPurchaseCandidates(
+                    planState,
+                    false
+                );
+
+                if (options.length <= 0) continue;
+
+                // Fund the most expensive eligible choice, rather than the
+                // sum of the whole shop. This preserves a real choice while
+                // keeping the no-loss route able to buy any current option.
+                result[level - 1] = options.reduce(
+                    (highestCost, option) => Math.max(
+                        highestCost,
+                        option.cost
+                    ),
+                    0
+                );
+
+                const plannedOption = options.slice().sort((a, b) => {
+                    const weightDifference =
+                        this.getPurchaseWeight(b) -
+                        this.getPurchaseWeight(a);
+
+                    if (weightDifference !== 0) {
+                        return weightDifference;
+                    }
+
+                    return b.cost - a.cost || a.id.localeCompare(b.id);
+                })[0];
+
+                if (!plannedOption) continue;
+
+                this.applyPurchaseToState(plannedOption, planState);
+            }
+        } finally {
+            this.progressionState = savedState;
+            this.battleLevel = savedBattleLevel;
+        }
+
+        return result;
+    }
+
     private getMainBattleEntryFee(level: number) {
-        const baseFee = this.getMainBattleWinGold(level) *
+        const safeLevel = this.clampLevel(level);
+
+        if (safeLevel <= 1) return 0;
+
+        return this.getMainBattleEntryFeeForReward(
+            this.getMainBattleReward(safeLevel - 1).gold
+        );
+    }
+
+    private getMainBattleEntryFeeForReward(reward: number) {
+        const baseFee = Math.max(0, reward) *
             this.clamp01(this.mainBattleEntryFeeRatio);
 
         return Math.max(
@@ -3793,9 +3886,10 @@ export class LevelSettings extends Component
     private getSideMissionReward(
         state: SavedProgressionState
     ) {
-        const baseGold = Math.ceil(
-            this.getMainBattleWinGold(this.battleLevel) / 50
-        ) * 50;
+        const baseGold = Math.max(
+            50,
+            this.getMainBattleEntryFee(this.battleLevel)
+        );
         const gold = Math.max(
             50,
             Math.ceil(
@@ -3887,6 +3981,7 @@ export class LevelSettings extends Component
         );
         const useAds = this.purchasingSimulation &&
             this.allowAdsRescue &&
+            state.levelLossCount > 0 &&
             decision.useAds;
         const goldGranted = reward * (useAds ? 2 : 1);
         const event: BotSimulationEvent = {
@@ -3905,6 +4000,8 @@ export class LevelSettings extends Component
                 ? 'bot-simulation-disabled'
                 : !this.allowAdsRescue
                     ? 'ads-disabled'
+                    : state.levelLossCount <= 0
+                        ? 'mainline-run-no-rescue-needed'
                     : decision.useAds
                         ? decision.reason
                         : 'no-material-benefit',
@@ -5361,6 +5458,10 @@ export class LevelSettings extends Component
     private resetIntoSideMission() {
         if (!this.progressionState) return;
 
+        // Purchases can happen before bot decides to route to side. There is
+        // no battle report for that abandoned main setup, so carry its ledger
+        // into the side report that follows.
+        this.preserveTelemetryActionsForSideMission = true;
         this.progressionState.sideMissionActive = true;
         this.sideMissionBattle = true;
         this.nextBattlePending = true;

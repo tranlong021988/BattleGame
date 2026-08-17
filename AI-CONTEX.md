@@ -42,22 +42,37 @@ Save key is `battle-progression-v8`; saved schema is version 11.
   Strength exists only for Spear Discipline, Sword Breakthrough, and Axe
   Vanguard. At R2 it is designed to bring that melee family up one ladder
   step; `BattleCardDatabase.ts` is the data authority.
-- Cards are roster-aware: ranged cards require Archer/Monk, melee cards need
-  their target family, and enemy cards obey the same requirement.
+- Cards are roster-aware on both sides: a card requires a usable target family
+  for its owner, while an opponent-conditioned card also requires that family
+  to exist on the opposing roster. `Spear Discipline` specifically requires
+  Spear for its owner and Cavalry for its opponent; this same rule filters
+  enemy decks, so it must not appear against a side without Cavalry. Do not
+  restore the removed player-card-wave gate: it incorrectly required the
+  player to own Cavalry before using this Spear card.
 - Precise Range spends one budget charge per ranged attack batch while a
   ranged unit exists. It affects Archer and Monk.
 
 ## Economy, ads, and side missions
 
-- Main entry is free at L1; later fee is derived from reward and reserved by
-  bot purchase simulation before non-essential spending.
+- Main rewards are a cached, deterministic campaign plan. Each reward is at
+  least its normal level-scaled baseline and never falls below the preceding
+  reward. The plan funds one highest-cost eligible next-level purchase plus
+  the next entry fee, using the same dynamic progression/shop rules as runtime
+  rather than a fixed reward table.
+- Main entry is free at L1; each later fee is derived from the previous main
+  reward, not its own reward. The bot reserves entry before non-essential
+  spending.
 - Side mission is used when priority purchases or entry cannot be afforded.
   It mirrors current player roster/CP/Max Alive, has no cards or boss bonus,
   and advances card cooldowns like a completed battle.
+- Its initial reward scales from the current main-entry fee, then consecutive
+  side rewards decay until a main attempt resets the streak. This permits
+  recovery after a loss without creating an unlimited side-farm loop.
 - `allowAdsRescue = false` disables both Gold x2 and card cooldown-skip ads.
 - Gold x2 is accepted only when it unlocks a purchase while retaining entry,
   or secures entry. Cooldown ad choice is value-aware, constrained to one per
-  battle, and uses a diversity floor to avoid a single dominant card.
+  battle, and uses a diversity floor to avoid a single dominant card. Ads are
+  not considered on an unbeaten mainline run; `levelLossCount > 0` is required.
 
 ## Combat safety
 
@@ -75,20 +90,19 @@ Save key is `battle-progression-v8`; saved schema is version 11.
   non-cumulative ledger records with `eventId`, sequence, phase, level, type,
   gold before/after, card ID, source, cost, gold granted, and ads reason.
   It covers purchases, main-entry fees, Gold x2 claims, and cooldown-skip ads.
+- If bot purchases occur before it abandons a main setup for a side mission,
+  those actions are deliberately carried into the following side report; they
+  would otherwise be absent from every report.
 - `preBattlePurchases` is reset at the start of each battle preparation. The
   older `botSimulationEvents` remains a capped save-history diagnostic only;
   do not sum it across reports.
 
-### Latest validated run: 2026-08-16 18:00-18:52
+### Telemetry baseline
 
-- 178 continuous reports, one schedule, L1 through campaign-complete L60.
-- Main: 60/103 wins (58.3%). Side: 42/75 wins (56.0%). Total: 102/178
-  (57.3%). The bot completed the campaign with 1,402 gold.
-- Main bottlenecks: L5 and L52 (20%), L33 and L59 (25%). This is one stochastic
-  bot run, not proof of human balance.
-- Gold x2 was accepted 10 times for a material purchase/entry benefit.
-- The old files prove cooldown ads occurred but cannot count them accurately,
-  which is why `telemetryActions` was added.
+- The 2026-08-16 runs predate the current deterministic main-reward plan and
+  must not be used as a balance baseline.
+- Older reports without `progression.telemetryActions` cannot accurately count
+  cooldown ads. Treat them only as combat-history evidence.
 
 ## Key source map
 
@@ -104,11 +118,13 @@ Save key is `battle-progression-v8`; saved schema is version 11.
 
 ## Verification and next work
 
-- Targeted TypeScript check for `LevelSettings.ts` is clean. Full Cocos TypeScript
-  diagnostics still contain pre-existing engine/configuration noise; do not
-  attribute that to these progression changes.
-- Next useful verification: run a fresh L1-L60 simulation and audit only
-  `progression.telemetryActions`; then compare ads on/off and inspect main/side
-  dependency at the listed bottlenecks.
+- Static source and serialized-scene checks are required after card/data edits:
+  verify both `BattleCardDatabase.ts` and `Battle.scene`, plus player and enemy
+  calls to `isCardEligibleForTeam`. There is no standalone project TypeScript
+  compile script; full Cocos diagnostics contain pre-existing engine/config
+  noise and must be interpreted separately.
+- Before changing economy values again, use the current main-reward plan as
+  the baseline and inspect `progression.telemetryActions`; do not infer a
+  regression from reports made before the plan.
 - Use `cautious-coding` for changes, `game-balance-check` for telemetry reports,
   and `game-balance-regression` after balance/mechanic changes.

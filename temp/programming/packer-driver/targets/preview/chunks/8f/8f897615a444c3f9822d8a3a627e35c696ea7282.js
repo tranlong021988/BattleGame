@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _dec48, _dec49, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -253,7 +253,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         tooltip: 'Let BattleArmyBrain A simulate player purchases between battles. It may buy multiple affordable packages.'
       }), _dec32 = property({
         displayName: 'Allow Ads Rescue',
-        tooltip: 'Allow bot simulation to choose the Gold x2 rewarded-ad claim. Side missions remain available without ads.'
+        tooltip: 'Allow rewarded-ad Gold x2 claims and card cooldown completion. Side missions remain available without ads.'
       }), _dec33 = property({
         tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
       }), _dec34 = property({
@@ -262,40 +262,61 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         tooltip: 'Cards each team may bring into one battle. This is the future deck-upgrade hook.'
       }), _dec35 = property({
         min: 0,
-        step: 1
-      }), _dec36 = property({
-        min: 0,
-        step: 1
-      }), _dec37 = property({
-        min: 0,
-        step: 1
-      }), _dec38 = property({
-        min: 0,
-        step: 1
-      }), _dec39 = property({
-        min: 0.01,
-        step: 0.1
-      }), _dec40 = property({
-        min: 1,
-        step: 0.05,
-        displayName: 'Boss Gold Reward Multiplier',
-        tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
-      }), _dec41 = property({
-        min: 0,
         max: 1,
         step: 0.05,
-        displayName: 'Main Battle Entry Fee Ratio',
-        tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of that battle win reward and rounds up to 50. Side missions are free.'
-      }), _dec42 = property({
+        displayName: 'Bot Card Diversity Score Floor',
+        tooltip: 'Bot chooses with weighted variety among cards scoring at least this share of the best card. Higher values make deck selection more optimal and less varied.'
+      }), _dec36 = property({
         min: 1,
+        step: 0.05,
+        displayName: 'Bot Cooldown Ad Score Advantage',
+        tooltip: 'A cooling card must beat the best ready card by this multiplier before the bot uses an ad to finish its cooldown.'
+      }), _dec37 = property({
+        min: 0,
+        step: 1,
+        displayName: 'Bot Max Cooldown Ads Per Battle',
+        tooltip: 'Maximum cooling cards the bot may consider for rewarded-ad completion in one main battle. The highest-value cards are considered first.'
+      }), _dec38 = property({
+        min: 0.01,
+        step: 0.05,
+        displayName: 'Bot Strength Upgrade Purchase Weight',
+        tooltip: 'Relative bot preference for an available independent melee-card Strength rank.'
+      }), _dec39 = property({
+        min: 0,
+        step: 1
+      }), _dec40 = property({
+        min: 0,
+        step: 1
+      }), _dec41 = property({
+        min: 0,
+        step: 1
+      }), _dec42 = property({
+        min: 0,
         step: 1
       }), _dec43 = property({
         min: 0.01,
         step: 0.1
       }), _dec44 = property({
         min: 1,
-        step: 1
+        step: 0.05,
+        displayName: 'Boss Gold Reward Multiplier',
+        tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
       }), _dec45 = property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        displayName: 'Main Battle Entry Fee Ratio',
+        tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of the previous main battle win reward and rounds up to 50. Side missions are free.'
+      }), _dec46 = property({
+        min: 1,
+        step: 1
+      }), _dec47 = property({
+        min: 0.01,
+        step: 0.1
+      }), _dec48 = property({
+        min: 1,
+        step: 1
+      }), _dec49 = property({
         type: [UnitProgressionRule]
       }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
@@ -361,27 +382,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "battleCardDeckSize", _descriptor36, this);
 
-          _initializerDefineProperty(this, "initialPlayerGold", _descriptor37, this);
+          _initializerDefineProperty(this, "botCardDiversityScoreFloor", _descriptor37, this);
 
-          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor38, this);
+          _initializerDefineProperty(this, "botCooldownAdScoreAdvantage", _descriptor38, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor39, this);
+          _initializerDefineProperty(this, "botMaxCooldownAdsPerBattle", _descriptor39, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor40, this);
+          _initializerDefineProperty(this, "botStrengthUpgradePurchaseWeight", _descriptor40, this);
 
-          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor41, this);
+          _initializerDefineProperty(this, "initialPlayerGold", _descriptor41, this);
 
-          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor42, this);
+          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor42, this);
 
-          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor43, this);
+          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor43, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor44, this);
+          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor44, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor45, this);
+          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor45, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor46, this);
+          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor46, this);
 
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor47, this);
+          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor47, this);
+
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor48, this);
+
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor49, this);
+
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor50, this);
+
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor51, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -389,8 +418,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.levelQueryActive = false;
           this.resetProgressionRequested = false;
           this.preBattlePurchases = [];
+          this.telemetryActions = [];
+          this.telemetryActionSequence = 0;
+          this.preserveTelemetryActionsForSideMission = false;
+          this.mainBattleGoldPlan = null;
+          this.telemetryActionPhase = 'pre-battle';
           this.currentPlayerBattleCardIds = [];
           this.currentEnemyBattleCardIds = [];
+          this.currentPlayerCooldownAdReasons = new Map();
           this.sideMissionBattle = false;
         }
 
@@ -488,12 +523,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var state = this.progressionState;
           var battleLevel = this.battleLevel;
           var before = this.createTelemetrySnapshot();
+          this.telemetryActionPhase = 'battle-result';
           state.consecutiveSideWins = 0;
           var purchases = [];
           var usedPlayerCards = this.currentPlayerBattleCardIds.slice();
           this.advancePlayerCardCooldowns(state, usedPlayerCards);
           var newlyOffered = this.offerIntroducedUnits(battleLevel);
-          var mainReward = this.getMainBattleReward(state, battleLevel);
+          var mainReward = this.getMainBattleReward(battleLevel);
           var winGold = mainReward.gold;
           var goldReward = 0;
           var rewardClaim = null;
@@ -542,6 +578,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             usedPlayerCards,
             newlyOffered,
             purchases,
+            telemetryActions: this.telemetryActions.slice(),
             before,
             after: this.createTelemetrySnapshot()
           };
@@ -552,6 +589,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.progressionState) return null;
           var state = this.progressionState;
           var before = this.createTelemetrySnapshot();
+          this.telemetryActionPhase = 'battle-result'; // Side missions disable cards, but still count as a completed battle
+          // for the player's existing card cooldowns.
+
+          this.advancePlayerCardCooldowns(state, []);
           var goldReward = 0;
           var rewardClaim = null;
           var route = 'progression';
@@ -613,6 +654,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             usedPlayerCards: [],
             newlyOffered: [],
             purchases: [],
+            telemetryActions: this.telemetryActions.slice(),
             before,
             after: this.createTelemetrySnapshot()
           };
@@ -657,7 +699,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               unitUnlockCostMultiplier: this.unitUnlockCostMultiplier,
               initialCPGoldPerPoint: this.initialCPGoldPerPoint,
               maxAliveBasePrice: this.maxAliveBasePrice,
-              cardDefinitions: this.createCardDefinitionSnapshot()
+              cardDefinitions: this.createCardDefinitionSnapshot(),
+              cardUpgradeSchedule: this.getCardUpgradeSchedule()
             },
             preBattlePurchases: this.preBattlePurchases.slice(),
             sideMission: {
@@ -741,6 +784,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         initializeProgression() {
+          this.mainBattleGoldPlan = null;
           var loaded = this.loadProgressionState();
           this.progressionState = loaded ? this.sanitizeProgressionState(loaded) : this.createInitialProgressionState();
           var savedLevel = this.progressionState.currentLevel;
@@ -769,6 +813,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         completePreBattleProgression() {
           if (!this.progressionState) return;
+          var preserveTelemetryActions = this.preserveTelemetryActionsForSideMission;
+          this.preserveTelemetryActionsForSideMission = false;
+          this.preBattlePurchases = [];
+
+          if (!preserveTelemetryActions) {
+            this.telemetryActions = [];
+            this.telemetryActionSequence = 0;
+          }
+
+          this.telemetryActionPhase = 'pre-battle';
 
           if (this.sideMissionBattle) {
             this.applySideMissionRuntimeState();
@@ -813,7 +867,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return {
-            version: 10,
+            version: 11,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(0, Math.floor(this.initialPlayerGold)),
             adsReward: 0,
@@ -840,7 +894,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (!this.progressionState || !cardId) return false;
-          var expectedKind = upgrade === 'budget' ? 'card-budget-upgrade' : upgrade ? 'card-cooldown-upgrade' : 'card-unlock';
+          var expectedKind = upgrade === 'budget' ? 'card-budget-upgrade' : upgrade === 'strength' ? 'card-strength-upgrade' : upgrade ? 'card-cooldown-upgrade' : 'card-unlock';
           var option = this.getPurchaseOptions(this.progressionState).find(candidate => candidate.kind === expectedKind && candidate.cardId === cardId && candidate.cost <= this.progressionState.playerGold);
           if (!option) return false;
           this.applyPurchase(option, this.progressionState, 'player-card-shop');
@@ -851,7 +905,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
 
         tryFinishCardCooldownWithAd(cardId) {
-          if (!this.progressionState || !cardId) return false;
+          if (!this.allowAdsRescue || !this.progressionState || !cardId) {
+            return false;
+          }
+
           var card = this.getSavedCard(this.progressionState, cardId);
 
           if (!card || !card.owned || card.cooldownRemaining <= 0) {
@@ -861,6 +918,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var cooldownBefore = card.cooldownRemaining;
           card.cooldownRemaining = 0;
           this.progressionState.adsReward++;
+          this.recordTelemetryAction({
+            type: 'card-cooldown-finish-ad',
+            goldBefore: this.progressionState.playerGold,
+            goldAfter: this.progressionState.playerGold,
+            cardId,
+            source: 'manual-card-cooldown-ad',
+            cost: 0,
+            goldGranted: 0
+          });
           this.recordBotSimulationEvent(this.progressionState, {
             type: 'card-cooldown-finish-ad',
             battleLevel: this.battleLevel,
@@ -880,7 +946,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var manager = this.getGameManager();
 
           if (manager) {
-            manager.configureBattleCardDecks(this.currentPlayerBattleCardIds, this.currentEnemyBattleCardIds, this.getPlayerCardBudgetUpgradeLevels(this.progressionState), this.getBattleCardDeckSize(), this.getEnemyBattleCardDeckSize());
+            manager.configureBattleCardDecks(this.currentPlayerBattleCardIds, this.currentEnemyBattleCardIds, this.getPlayerCardBudgetUpgradeLevels(this.progressionState), this.getPlayerCardStrengthScales(this.progressionState), this.getEnemyCardStrengthScales(), this.getBattleCardDeckSize(), this.getEnemyBattleCardDeckSize());
           }
         }
 
@@ -889,31 +955,64 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var manager = this.getGameManager();
           var database = manager ? manager.battleCardDatabase : null;
           if (!state || !manager || !database) return;
+          var enemyDeckSize = this.configureEnemyBattleCards(database, state);
 
           if (this.purchasingSimulation) {
-            this.currentPlayerBattleCardIds = this.selectStrongestPlayerCardIds(database.cards.filter(definition => {
+            this.currentPlayerCooldownAdReasons.clear();
+            var eligibleDefinitions = database.cards.filter(definition => {
               var saved = this.getSavedCard(state, definition.id);
-              return !!saved && saved.owned && this.isCardEligibleForTeam(definition, 0, state) && (saved.cooldownRemaining <= 0 || Math.random() < 0.5);
-            }), state, this.getBattleCardDeckSize());
+              return !!saved && saved.owned && this.isCardEligibleForTeam(definition, 0, state);
+            });
+            var readyDefinitions = eligibleDefinitions.filter(definition => {
+              var saved = this.getSavedCard(state, definition.id);
+              return !!saved && saved.cooldownRemaining <= 0;
+            });
+            var cooldownCandidates = eligibleDefinitions.map(definition => {
+              var saved = this.getSavedCard(state, definition.id);
+
+              if (!saved || saved.cooldownRemaining <= 0) {
+                return null;
+              }
+
+              var decision = this.getBotCooldownAdDecision(definition, readyDefinitions, state);
+              return decision.useAds ? {
+                definition,
+                decision,
+                score: this.getPlayerBattleCardScore(definition, state)
+              } : null;
+            }).filter(candidate => !!candidate).sort((a, b) => b.score - a.score || a.definition.id.localeCompare(b.definition.id)).slice(0, Math.max(0, Math.floor(this.botMaxCooldownAdsPerBattle)));
+
+            for (var i = 0; i < cooldownCandidates.length; i++) {
+              var candidate = cooldownCandidates[i];
+              this.currentPlayerCooldownAdReasons.set(candidate.definition.id, candidate.decision.reason);
+            }
+
+            this.currentPlayerBattleCardIds = this.selectDiversePlayerCardIds(readyDefinitions.concat(this.allowAdsRescue ? cooldownCandidates.map(candidate => candidate.definition) : []), state, this.getBattleCardDeckSize());
             this.finishBotSelectedCardCooldowns(state);
           } else {
             this.currentPlayerBattleCardIds = this.filterReadyPlayerCardIds(this.currentPlayerBattleCardIds);
           }
 
+          manager.configureBattleCardDecks(this.currentPlayerBattleCardIds, this.currentEnemyBattleCardIds, this.getPlayerCardBudgetUpgradeLevels(state), this.getPlayerCardStrengthScales(state), this.getEnemyCardStrengthScales(), this.getBattleCardDeckSize(), enemyDeckSize);
+        }
+
+        configureEnemyBattleCards(database, state) {
           var enemyDeckSize = this.getEnemyBattleCardDeckSize();
           var enemyDeckKey = String(this.battleLevel);
           var savedEnemyDeck = state.enemyCardIdsByLevel[enemyDeckKey];
 
           if (Array.isArray(savedEnemyDeck)) {
-            // A retry must preserve the original deck, even if the player
-            // changes roster and one of its cards no longer has a target.
-            this.currentEnemyBattleCardIds = savedEnemyDeck.slice(0, enemyDeckSize);
+            this.currentEnemyBattleCardIds = savedEnemyDeck.filter(id => {
+              var definition = database.getCard(id);
+              return !!definition && this.isCardEligibleForTeam(definition, 1, state);
+            }).slice(0, enemyDeckSize);
           } else {
-            this.currentEnemyBattleCardIds = this.selectRandomCardIds(database.getEnemyCards(this.isBossLevelFor(this.battleLevel)).filter(definition => this.isCardEligibleForTeam(definition, 1, state)), [], enemyDeckSize);
-            state.enemyCardIdsByLevel[enemyDeckKey] = this.currentEnemyBattleCardIds.slice();
+            var candidates = database.getEnemyCards(this.isBossLevelFor(this.battleLevel)).filter(definition => this.isCardEligibleForTeam(definition, 1, state));
+            this.currentEnemyBattleCardIds = this.selectBestEnemyCardIds(candidates, state, enemyDeckSize);
           }
 
-          manager.configureBattleCardDecks(this.currentPlayerBattleCardIds, this.currentEnemyBattleCardIds, this.getPlayerCardBudgetUpgradeLevels(state), this.getBattleCardDeckSize(), enemyDeckSize);
+          state.enemyCardIdsByLevel[enemyDeckKey] = this.currentEnemyBattleCardIds.slice();
+          return enemyDeckSize;
         }
 
         filterReadyPlayerCardIds(cardIds) {
@@ -965,61 +1064,106 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.isBossLevelFor(level) ? Math.min(3, regularCapacity + 1, this.getBattleCardDeckSize()) : Math.min(2, regularCapacity, this.getBattleCardDeckSize());
         }
 
-        selectRandomCardIds(definitions, excludedIds, maxCount) {
-          var uniqueDefinitions = definitions.filter((definition, index) => !!definition && !!definition.id && definitions.findIndex(candidate => candidate && candidate.id === definition.id) === index);
-          var excluded = new Set(excludedIds || []);
-          var nonRepeating = uniqueDefinitions.filter(definition => !excluded.has(definition.id));
-          var source = nonRepeating.length >= maxCount ? nonRepeating.slice() : uniqueDefinitions.slice();
-          var result = [];
+        selectDiversePlayerCardIds(definitions, state, maxCount) {
+          var _this = this;
 
-          while (source.length > 0 && result.length < maxCount) {
-            var index = Math.floor(Math.random() * source.length);
-            var definition = source.splice(index, 1)[0];
-            if (definition) result.push(definition.id);
-          }
-
-          return result;
-        }
-
-        selectStrongestPlayerCardIds(definitions, state, maxCount) {
           var candidates = definitions.filter((definition, index) => !!definition && !!definition.id && definitions.findIndex(candidate => candidate && candidate.id === definition.id) === index);
           var deckSize = Math.max(0, Math.min(maxCount, candidates.length));
           if (deckSize <= 0) return [];
-          var bestIds = [];
-          var bestScore = Number.NEGATIVE_INFINITY;
-          var current = [];
+          var remaining = candidates.map(definition => ({
+            definition,
+            score: this.getPlayerBattleCardScore(definition, state)
+          }));
+          var selected = [];
 
-          var evaluate = startIndex => {
-            if (current.length > 0) {
-              var score = current.reduce((total, definition) => total + this.getPlayerBattleCardScore(definition, state), 0);
+          var _loop = function _loop() {
+            var bestScore = Math.max(...remaining.map(candidate => candidate.score));
 
-              if (score > bestScore + 0.0001) {
-                bestScore = score;
-                bestIds = current.map(definition => definition.id);
+            var scoreFloor = bestScore * _this.clamp01(_this.botCardDiversityScoreFloor);
+
+            var pool = remaining.filter(candidate => candidate.score >= scoreFloor);
+            var totalWeight = pool.reduce((total, candidate) => total + Math.max(0.01, candidate.score), 0);
+            var roll = Math.random() * totalWeight;
+            var selectedCandidate = pool[pool.length - 1];
+
+            for (var i = 0; i < pool.length; i++) {
+              roll -= Math.max(0.01, pool[i].score);
+
+              if (roll <= 0) {
+                selectedCandidate = pool[i];
+                break;
               }
             }
 
-            if (current.length >= deckSize) return;
+            selected.push(selectedCandidate.definition.id);
+            var selectedIndex = remaining.indexOf(selectedCandidate);
 
-            for (var i = startIndex; i < candidates.length; i++) {
-              current.push(candidates[i]);
-              evaluate(i + 1);
-              current.pop();
+            if (selectedIndex >= 0) {
+              remaining.splice(selectedIndex, 1);
             }
           };
 
-          evaluate(0);
-          return bestIds;
+          while (remaining.length > 0 && selected.length < deckSize) {
+            _loop();
+          }
+
+          return selected;
+        }
+
+        selectBestEnemyCardIds(definitions, state, maxCount) {
+          return definitions.filter(definition => this.getEnemyBattleCardScore(definition, state) > 0).sort((a, b) => {
+            var scoreDelta = this.getEnemyBattleCardScore(b, state) - this.getEnemyBattleCardScore(a, state);
+            return scoreDelta !== 0 ? scoreDelta : a.id.localeCompare(b.id);
+          }).slice(0, Math.max(0, maxCount)).map(definition => definition.id);
+        }
+
+        getBotCooldownAdDecision(definition, readyDefinitions, state) {
+          var score = this.getPlayerBattleCardScore(definition, state);
+
+          if (score <= 0) {
+            return {
+              useAds: false,
+              reason: 'no-card-value'
+            };
+          }
+
+          if (readyDefinitions.length < this.getBattleCardDeckSize()) {
+            return {
+              useAds: true,
+              reason: 'fills-empty-deck-slot'
+            };
+          }
+
+          var bestReadyScore = Math.max(...readyDefinitions.map(candidate => this.getPlayerBattleCardScore(candidate, state)));
+          return {
+            useAds: score >= bestReadyScore * Math.max(1, this.botCooldownAdScoreAdvantage),
+            reason: 'outperforms-best-ready-card'
+          };
         }
 
         getPlayerBattleCardScore(definition, state) {
-          var targetWeight = this.getCardTargetCombatWeight(definition, 0, state);
+          return this.getBattleCardScore(definition, 0, state, this.currentEnemyBattleCardIds);
+        }
+
+        getEnemyBattleCardScore(definition, state) {
+          // Enemy decks are a deterministic level preset. They must not adapt
+          // to the player's current collection or roster on retries.
+          return this.getBattleCardScore(definition, 1, state, [], false);
+        }
+
+        getBattleCardScore(definition, team, state, opposingCardIds, useOpponentComposition) {
+          if (useOpponentComposition === void 0) {
+            useOpponentComposition = true;
+          }
+
+          var targetWeight = this.getCardTargetCombatWeight(definition, team, state);
           if (targetWeight <= 0) return 0;
-          var saved = this.getSavedCard(state, definition.id);
+          var saved = team === 0 ? this.getSavedCard(state, definition.id) : null;
           var budgetScale = saved ? this.getCardEffectiveBudget(saved) / Math.max(1, definition.baseBudget) : 1;
-          var conditionScale = this.getCardOpponentConditionWeight(definition, state);
-          var modifierScore = this.getCardModifierScore(definition, state, targetWeight);
-          return Math.max(0, targetWeight * modifierScore * budgetScale * conditionScale);
+          var conditionScale = this.getCardOpponentConditionWeight(definition, state, team);
+          var modifierScore = this.getCardModifierScore(definition, state, targetWeight, team);
+          var ladderThreatScale = this.getMeleeLadderThreatScale(definition, team, state, opposingCardIds, useOpponentComposition);
+          return Math.max(0, targetWeight * modifierScore * budgetScale * conditionScale * ladderThreatScale);
         }
 
         getCardTargetCombatWeight(definition, team, state) {
@@ -1054,7 +1198,109 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return Math.max(1, entry ? entry.combatPointCost : 1);
         }
 
-        getCardOpponentConditionWeight(definition, state) {
+        getCardModifierStrengthScale(definition, team, state) {
+          if (!this.hasStrengthUpgrade(definition)) return 1;
+
+          if (team === 1) {
+            return this.getCardStrengthScale(definition, this.getEnemyStrengthUpgradeRank(definition, this.battleLevel));
+          }
+
+          var saved = this.getSavedCard(state, definition.id);
+
+          if (!saved) {
+            return this.getCardStrengthScale(definition, 0);
+          }
+
+          return this.getCardStrengthScale(definition, saved.strengthUpgradeLevel);
+        }
+
+        getMeleeLadderThreatScale(definition, team, state, opposingCardIds, useOpponentComposition) {
+          if (!this.hasStrengthUpgrade(definition)) return 1;
+          if (!useOpponentComposition) return 1;
+          var nextFamily = this.getNextMeleeLadderFamily(definition.targetFamily);
+          if (nextFamily === null) return 1;
+          var opposingTeam = team === 1 ? 0 : 1;
+          var totalWeight = 0;
+          var nextFamilyWeight = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            var weight = this.getTeamUnitCountForCardScore(rule, opposingTeam, state) * this.getUnitCombatWeightForCardScore(rule, opposingTeam);
+            totalWeight += weight;
+
+            if (rule.family === nextFamily) {
+              nextFamilyWeight += weight;
+            }
+          }
+
+          if (nextFamilyWeight <= 0 || totalWeight <= 0) return 0;
+          return nextFamilyWeight / totalWeight * this.getEnemyCardPressureScale(nextFamily, opposingCardIds);
+        }
+
+        getNextMeleeLadderFamily(family) {
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Spear) return (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Sword;
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Sword) return (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Axeman;
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Axeman) return (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Cavalry;
+          return null;
+        }
+
+        getEnemyCardPressureScale(threatenedFamily, opposingCardIds) {
+          var manager = this.getGameManager();
+          var database = manager ? manager.battleCardDatabase : null;
+          if (!database) return 1;
+          var pressure = 0;
+
+          for (var i = 0; i < opposingCardIds.length; i++) {
+            var definition = database.getCard(opposingCardIds[i]);
+            if (!definition) continue;
+
+            if (this.cardMatchesFamily(definition, threatenedFamily)) {
+              pressure += definition.target === (_crd && BattleCardTarget === void 0 ? (_reportPossibleCrUseOfBattleCardTarget({
+                error: Error()
+              }), BattleCardTarget) : BattleCardTarget).AllUnits ? 0.1 : 0.35;
+            }
+          }
+
+          return 1 + pressure;
+        }
+
+        getStrengthUpgradeMaxRank(definition) {
+          return Math.max(0, Math.floor(definition.strengthUpgradeMaxRank));
+        }
+
+        hasStrengthUpgrade(definition) {
+          return this.getStrengthUpgradeMaxRank(definition) > 0;
+        }
+
+        getCardStrengthScale(definition, rank) {
+          var base = this.clamp01(definition.baseStrengthScale);
+          var maxRank = this.getStrengthUpgradeMaxRank(definition);
+          if (maxRank <= 0) return 1;
+          return base + (1 - base) * this.clamp01(rank / maxRank);
+        }
+
+        getEnemyStrengthUpgradeRank(definition, level) {
+          return this.getCardUpgradeRankLimitAtLevel(definition, 'strength', level);
+        }
+
+        getCardOpponentConditionWeight(definition, state, team) {
+          if (team === void 0) {
+            team = 0;
+          }
+
           if (definition.requiredEnemyFamily === (_crd && BattleCardOpponentCondition === void 0 ? (_reportPossibleCrUseOfBattleCardOpponentCondition({
             error: Error()
           }), BattleCardOpponentCondition) : BattleCardOpponentCondition).Any) {
@@ -1068,7 +1314,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var i = 0; i < this.unitProgressionRules.length; i++) {
             var rule = this.unitProgressionRules[i];
             if (!rule) continue;
-            var weight = this.getTeamUnitCountForCardScore(rule, 1, state) * this.getUnitCombatWeightForCardScore(rule, 1);
+            var weight = this.getTeamUnitCountForCardScore(rule, team === 1 ? 0 : 1, state) * this.getUnitCombatWeightForCardScore(rule, team === 1 ? 0 : 1);
             totalEnemyWeight += weight;
 
             if (rule.family === requiredFamily) {
@@ -1079,11 +1325,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return totalEnemyWeight > 0 ? requiredEnemyWeight / totalEnemyWeight : 0;
         }
 
-        getCardModifierScore(definition, state, targetWeight) {
-          return this.getCardModifierValueScore(definition, definition.modifier, definition.modifierValue, state, targetWeight) + this.getCardModifierValueScore(definition, definition.tradeoffModifier, definition.tradeoffValue, state, targetWeight);
+        getCardModifierScore(definition, state, targetWeight, team) {
+          return this.getCardModifierValueScore(definition, definition.modifier, definition.modifierValue * this.getCardModifierStrengthScale(definition, team, state), state, targetWeight, team) + this.getCardModifierValueScore(definition, definition.tradeoffModifier, definition.tradeoffValue * this.getCardModifierStrengthScale(definition, team, state), state, targetWeight, team);
         }
 
-        getCardModifierValueScore(definition, modifier, value, state, targetWeight) {
+        getCardModifierValueScore(definition, modifier, value, state, targetWeight, team) {
           switch (modifier) {
             case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
               error: Error()
@@ -1102,27 +1348,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
               error: Error()
             }), BattleCardModifier) : BattleCardModifier).DefenseFlat:
-              return this.getDefenseModifierScore(definition, value, state, targetWeight);
+              return this.getDefenseModifierScore(definition, value, state, targetWeight, team);
 
             case (_crd && BattleCardModifier === void 0 ? (_reportPossibleCrUseOfBattleCardModifier({
               error: Error()
             }), BattleCardModifier) : BattleCardModifier).CounterImmunity:
-              return this.getCounterImmunityScore(definition, state, targetWeight);
+              return this.getCounterImmunityScore(definition, state, targetWeight, team);
 
             default:
               return 0;
           }
         }
 
-        getDefenseModifierScore(definition, value, state, targetWeight) {
-          var enemyDamage = this.getAverageUnitStatForCardScore(1, state, 'damage');
-          var targetDefense = this.getAverageTargetUnitDefenseForCardScore(definition, state, targetWeight);
+        getDefenseModifierScore(definition, value, state, targetWeight, team) {
+          var enemyDamage = this.getAverageUnitStatForCardScore(team === 1 ? 0 : 1, state, 'damage');
+          var targetDefense = this.getAverageTargetUnitDefenseForCardScore(definition, state, targetWeight, team);
           var before = Math.max(1, enemyDamage - targetDefense);
           var after = Math.max(1, enemyDamage - targetDefense - value);
           return before / after - 1;
         }
 
-        getCounterImmunityScore(definition, state, targetWeight) {
+        getCounterImmunityScore(definition, state, targetWeight, team) {
           var counter = (_crd && CounterSettings === void 0 ? (_reportPossibleCrUseOfCounterSettings({
             error: Error()
           }), CounterSettings) : CounterSettings).instance;
@@ -1133,7 +1379,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (var i = 0; i < this.unitProgressionRules.length; i++) {
             var enemyRule = this.unitProgressionRules[i];
             if (!enemyRule) continue;
-            var enemyWeight = this.getTeamUnitCountForCardScore(enemyRule, 1, state) * this.getUnitCombatWeightForCardScore(enemyRule, 1);
+            var enemyWeight = this.getTeamUnitCountForCardScore(enemyRule, team === 1 ? 0 : 1, state) * this.getUnitCombatWeightForCardScore(enemyRule, team === 1 ? 0 : 1);
             totalEnemyWeight += enemyWeight;
 
             for (var j = 0; j < this.unitProgressionRules.length; j++) {
@@ -1143,7 +1389,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                 continue;
               }
 
-              var targetUnitWeight = this.getTeamUnitCountForCardScore(targetRule, 0, state) * this.getUnitCombatWeightForCardScore(targetRule, 0);
+              var targetUnitWeight = this.getTeamUnitCountForCardScore(targetRule, team, state) * this.getUnitCombatWeightForCardScore(targetRule, team);
               weightedThreat += targetUnitWeight * enemyWeight * Math.max(0, counter.getDamageMultiplier(enemyRule.family, targetRule.family) - 1);
             }
           }
@@ -1169,7 +1415,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return totalWeight > 0 ? totalStat / totalWeight : 0;
         }
 
-        getAverageTargetUnitDefenseForCardScore(definition, state, targetWeight) {
+        getAverageTargetUnitDefenseForCardScore(definition, state, targetWeight, team) {
           if (targetWeight <= 0) return 0;
           var totalDefense = 0;
 
@@ -1180,8 +1426,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            var weight = this.getTeamUnitCountForCardScore(rule, 0, state) * this.getUnitCombatWeightForCardScore(rule, 0);
-            var entry = this.getUnitEntryForCardScore(rule, 0);
+            var weight = this.getTeamUnitCountForCardScore(rule, team, state) * this.getUnitCombatWeightForCardScore(rule, team);
+            var entry = this.getUnitEntryForCardScore(rule, team);
             totalDefense += weight * (entry ? entry.defense : 0);
           }
 
@@ -1222,6 +1468,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             owned: false,
             cooldownUpgradeLevel: 0,
             budgetUpgradeLevel: 0,
+            strengthUpgradeLevel: 0,
             cooldownRemaining: 0
           }));
         }
@@ -1263,10 +1510,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         isCardEligibleForTeam(definition, team, state) {
-          if (team === 0 && !this.isCardUnlockedForPlayer(definition, state)) {
-            return false;
-          }
-
           var targetFamilies = this.getCardFamiliesForTeam(team, state).filter(family => this.cardMatchesFamily(definition, family));
           if (targetFamilies.length <= 0) return false;
 
@@ -1283,14 +1526,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return true;
-        }
-
-        isCardUnlockedForPlayer(definition, state) {
-          if (this.hasReachedFullProgression()) {
-            return true;
-          }
-
-          return this.getPlayerCardProgressionWave(state) >= this.getCardProgressionWave(definition);
         }
 
         hasReachedFullProgression() {
@@ -1322,6 +1557,72 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return 1;
           }
 
+          return 0;
+        }
+
+        getFullPlayerCardProgressionWave() {
+          var result = 0;
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+            if (!rule) continue;
+            result = Math.max(result, this.getUnitFamilyCardProgressionWave(rule.family));
+          }
+
+          return result;
+        }
+
+        getPlayerCardStrengthScales(state) {
+          var result = {};
+          var manager = this.getGameManager();
+          var database = manager && manager.battleCardDatabase ? manager.battleCardDatabase : null;
+          if (!state || !database) return result;
+
+          for (var i = 0; i < state.cards.length; i++) {
+            var card = state.cards[i];
+            if (!card.owned) continue;
+            var definition = database.getCard(card.id);
+
+            if (!definition || !this.hasStrengthUpgrade(definition)) {
+              continue;
+            }
+
+            result[card.id] = this.getCardStrengthScale(definition, card.strengthUpgradeLevel);
+          }
+
+          return result;
+        }
+
+        getEnemyCardStrengthScales() {
+          var result = {};
+          var manager = this.getGameManager();
+          var database = manager && manager.battleCardDatabase ? manager.battleCardDatabase : null;
+          if (!database) return result;
+
+          for (var i = 0; i < database.cards.length; i++) {
+            var definition = database.cards[i];
+
+            if (this.hasStrengthUpgrade(definition)) {
+              result[definition.id] = this.getCardStrengthScale(definition, this.getEnemyStrengthUpgradeRank(definition, this.battleLevel));
+            }
+          }
+
+          return result;
+        }
+
+        getUnitFamilyCardProgressionWave(family) {
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Monk) return 4;
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Cavalry) return 3;
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Archer) return 2;
+          if (family === (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            error: Error()
+          }), UnitFamily) : UnitFamily).Axeman) return 1;
           return 0;
         }
 
@@ -1361,12 +1662,144 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return 0;
         }
 
-        getCardUpgradeRankLimit(definition, state) {
-          if (this.hasReachedFullProgression()) {
-            return 2;
+        getCardUpgradeRankLimit(definition, upgradeKind) {
+          return this.getCardUpgradeRankLimitAtLevel(definition, upgradeKind, this.battleLevel);
+        }
+
+        getCardUpgradeMaxRank(definition, upgradeKind) {
+          return upgradeKind === 'strength' ? this.getStrengthUpgradeMaxRank(definition) : 2;
+        }
+
+        getCardUpgradeRankLimitAtLevel(definition, upgradeKind, level) {
+          var safeLevel = this.clampLevel(level);
+          var maxRank = this.getCardUpgradeMaxRank(definition, upgradeKind);
+          var rankLimit = 0;
+          var schedule = this.getCardUpgradeSchedule();
+
+          var _loop2 = function _loop2(rank) {
+            var offer = schedule.find(item => item.cardId === definition.id && item.upgradeKind === upgradeKind && item.rank === rank);
+            if (!offer || offer.offerLevel > safeLevel) return 1; // break
+
+            rankLimit = rank;
+          };
+
+          for (var rank = 1; rank <= maxRank; rank++) {
+            if (_loop2(rank)) break;
           }
 
-          return Math.max(0, Math.min(2, this.getPlayerCardProgressionWave(state) - this.getCardProgressionWave(definition)));
+          return rankLimit;
+        }
+
+        getCardUpgradeSchedule() {
+          var manager = this.getGameManager();
+          var database = manager ? manager.battleCardDatabase : null;
+          if (!database) return [];
+          var fullProgressionWave = this.getFullPlayerCardProgressionWave();
+          var offersByWave = new Map();
+          var postProgressionPending = [];
+
+          for (var i = 0; i < database.cards.length; i++) {
+            var definition = database.cards[i];
+            if (!definition || !definition.id) continue;
+            var upgradeKinds = ['cooldown', 'budget', 'strength'];
+
+            for (var kindIndex = 0; kindIndex < upgradeKinds.length; kindIndex++) {
+              var upgradeKind = upgradeKinds[kindIndex];
+              var maxRank = this.getCardUpgradeMaxRank(definition, upgradeKind);
+
+              for (var rank = 1; rank <= maxRank; rank++) {
+                var offerWave = this.getCardProgressionWave(definition) + rank;
+
+                if (offerWave > fullProgressionWave) {
+                  postProgressionPending.push({
+                    cardId: definition.id,
+                    upgradeKind,
+                    rank,
+                    offerLevel: 0
+                  });
+                  continue;
+                }
+
+                var pending = offersByWave.get(offerWave);
+
+                if (!pending) {
+                  pending = [];
+                  offersByWave.set(offerWave, pending);
+                }
+
+                pending.push({
+                  cardId: definition.id,
+                  upgradeKind,
+                  rank,
+                  offerLevel: 0
+                });
+              }
+            }
+          }
+
+          var result = [];
+          var offerWaves = Array.from(offersByWave.keys()).sort((a, b) => a - b);
+
+          for (var _i2 = 0; _i2 < offerWaves.length; _i2++) {
+            var _offerWave = offerWaves[_i2];
+
+            var _pending = offersByWave.get(_offerWave) || [];
+
+            var offerLevels = this.getCardUpgradeOfferLevels(_offerWave, fullProgressionWave);
+            if (offerLevels.length <= 0) continue;
+
+            for (var itemIndex = 0; itemIndex < _pending.length; itemIndex++) {
+              result.push(_extends({}, _pending[itemIndex], {
+                offerLevel: offerLevels[Math.min(offerLevels.length - 1, Math.floor(itemIndex * offerLevels.length / _pending.length))]
+              }));
+            }
+          }
+
+          var postProgressionOfferLevels = this.getCardUpgradeOfferLevels(fullProgressionWave + 1, fullProgressionWave);
+
+          for (var index = 0; index < postProgressionPending.length; index++) {
+            result.push(_extends({}, postProgressionPending[index], {
+              offerLevel: postProgressionOfferLevels[Math.min(postProgressionOfferLevels.length - 1, Math.floor(index * postProgressionOfferLevels.length / postProgressionPending.length))]
+            }));
+          }
+
+          return result;
+        }
+
+        getCardUpgradeOfferLevels(offerWave, fullProgressionWave) {
+          var progressionEnd = this.getUnitProgressionEndLevel();
+          var totalLevels = this.getSafeTotalLevels();
+          var startLevel = offerWave <= fullProgressionWave ? this.getCardProgressionWaveStartLevel(offerWave) : progressionEnd + 1;
+          var nextWaveStart = offerWave < fullProgressionWave ? this.getCardProgressionWaveStartLevel(offerWave + 1) : progressionEnd + 1;
+          var endLevel = offerWave <= fullProgressionWave ? Math.min(totalLevels, nextWaveStart - 1) : totalLevels - 1;
+          var result = [];
+
+          for (var level = startLevel; level <= endLevel; level++) {
+            // The first level of a wave is its presentation moment, even when
+            // it is a boss. Later boss levels remain clear of new offers.
+            if (level === startLevel || !this.isBossLevelFor(level)) {
+              result.push(level);
+            }
+          }
+
+          return result.length > 0 ? result : [Math.min(totalLevels, startLevel)];
+        }
+
+        getCardProgressionWaveStartLevel(wave) {
+          if (wave <= 0) return 2;
+          var result = this.getUnitProgressionEndLevel();
+
+          for (var i = 0; i < this.unitProgressionRules.length; i++) {
+            var rule = this.unitProgressionRules[i];
+
+            if (!rule || this.getUnitFamilyCardProgressionWave(rule.family) !== wave) {
+              continue;
+            }
+
+            result = Math.min(result, this.getRuleUnlockLevel(rule));
+          }
+
+          return result;
         }
 
         isPlayerFamilyOwned(family, state) {
@@ -1458,17 +1891,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             modifierValue: definition.modifierValue,
             tradeoffModifier: definition.tradeoffModifier,
             tradeoffValue: definition.tradeoffValue,
-            enemyPool: definition.enemyPool
+            enemyPool: definition.enemyPool,
+            baseStrengthScale: definition.baseStrengthScale,
+            strengthUpgradeMaxRank: definition.strengthUpgradeMaxRank,
+            strengthUpgradeFirstCostMultiplier: definition.strengthUpgradeFirstCostMultiplier,
+            strengthUpgradeFinalCostMultiplier: definition.strengthUpgradeFinalCostMultiplier
           }));
         }
 
         sanitizeProgressionState(source) {
-          var _this = this;
+          var _this2 = this;
 
           var initial = this.createInitialProgressionState();
           var sourceVersion = this.safeInteger(source.version, 0);
 
-          if (sourceVersion !== 8 && sourceVersion !== 9 && sourceVersion !== 10) {
+          if (sourceVersion !== 8 && sourceVersion !== 9 && sourceVersion !== 10 && sourceVersion !== 11) {
             return initial;
           }
 
@@ -1491,12 +1928,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetCost: Math.max(0, this.safeInteger(event.targetCost, 0)),
             baseGold: Math.max(0, this.safeInteger(event.baseGold, 0)),
             goldGranted: Math.max(0, this.safeInteger(event.goldGranted, 0)),
+            adsReason: typeof event.adsReason === 'string' ? event.adsReason : '',
+            normalGold: Math.max(0, this.safeInteger(event.normalGold, 0)),
+            doubleGold: Math.max(0, this.safeInteger(event.doubleGold, 0)),
+            normalPurchaseCount: Math.max(0, this.safeInteger(event.normalPurchaseCount, 0)),
+            doublePurchaseCount: Math.max(0, this.safeInteger(event.doublePurchaseCount, 0)),
             delayedPurchaseCount: Math.max(0, this.safeInteger(event.delayedPurchaseCount, 0)),
             continuationChance: this.clamp01(typeof event.continuationChance === 'number' ? event.continuationChance : 0)
           }));
           initial.playerInitialCPOverflow = Math.max(0, this.safeInteger(source.playerInitialCPOverflow, 0));
 
-          var _loop = function _loop() {
+          var _loop3 = function _loop3() {
             var item = initial.cpPackages[i];
             var saved = savedCPPackages.find(candidate => candidate && candidate.id === item.id);
             if (!saved) return 1; // continue
@@ -1506,11 +1948,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
 
           for (var i = 0; i < initial.cpPackages.length; i++) {
-            if (_loop()) continue;
+            if (_loop3()) continue;
           }
 
-          var _loop2 = function _loop2() {
-            var item = initial.maxAlivePackages[_i2];
+          var _loop4 = function _loop4() {
+            var item = initial.maxAlivePackages[_i3];
             var saved = savedMaxAlivePackages.find(candidate => candidate && candidate.id === item.id);
             if (!saved) return 1; // continue
 
@@ -1518,8 +1960,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             item.claimSource = item.claimed && typeof saved.claimSource === 'string' ? saved.claimSource : '';
           };
 
-          for (var _i2 = 0; _i2 < initial.maxAlivePackages.length; _i2++) {
-            if (_loop2()) continue;
+          for (var _i3 = 0; _i3 < initial.maxAlivePackages.length; _i3++) {
+            if (_loop4()) continue;
           }
 
           initial.playerInitialCP = this.getPlayerCPFromState(initial);
@@ -1540,36 +1982,40 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             initial.enemyCardIdsByLevel[String(_level)] = source.lastEnemyCardIds.filter(id => typeof id === 'string').slice(0, 3);
           }
 
-          var _loop3 = function _loop3() {
-            var card = initial.cards[_i3];
+          var _loop5 = function _loop5() {
+            var _this2$getGameManager;
+
+            var card = initial.cards[_i4];
+            var definition = (_this2$getGameManager = _this2.getGameManager()) != null && _this2$getGameManager.battleCardDatabase ? _this2.getGameManager().battleCardDatabase.getCard(card.id) : null;
             var saved = savedCards.find(candidate => candidate && candidate.id === card.id);
             if (!saved) return 1; // continue
 
             card.owned = !!saved.owned;
-            card.cooldownUpgradeLevel = Math.max(0, Math.min(2, _this.safeInteger(saved.cooldownUpgradeLevel, 0)));
-            card.budgetUpgradeLevel = Math.max(0, Math.min(2, _this.safeInteger(saved.budgetUpgradeLevel, 0)));
-            card.cooldownRemaining = Math.max(0, _this.safeInteger(saved.cooldownRemaining, 0));
+            card.cooldownUpgradeLevel = Math.max(0, Math.min(2, _this2.safeInteger(saved.cooldownUpgradeLevel, 0)));
+            card.budgetUpgradeLevel = Math.max(0, Math.min(2, _this2.safeInteger(saved.budgetUpgradeLevel, 0)));
+            card.strengthUpgradeLevel = Math.max(0, Math.min(definition && _this2.hasStrengthUpgrade(definition) ? _this2.getStrengthUpgradeMaxRank(definition) : 0, _this2.safeInteger(saved.strengthUpgradeLevel, 0)));
+            card.cooldownRemaining = Math.max(0, _this2.safeInteger(saved.cooldownRemaining, 0));
           };
 
-          for (var _i3 = 0; _i3 < initial.cards.length; _i3++) {
-            if (_loop3()) continue;
+          for (var _i4 = 0; _i4 < initial.cards.length; _i4++) {
+            if (_loop5()) continue;
           }
 
-          var _loop4 = function _loop4() {
-            var unit = initial.units[_i4];
+          var _loop6 = function _loop6() {
+            var unit = initial.units[_i5];
             var saved = savedUnits.find(candidate => candidate && candidate.key === unit.key);
 
-            var rule = _this.getRuleByKey(unit.key);
+            var rule = _this2.getRuleByKey(unit.key);
 
             if (!saved || !rule) return 1; // continue
 
             unit.offered = !!saved.offered || unit.offered;
             unit.unlocked = !!saved.unlocked || unit.unlocked;
-            unit.unitCount = Math.max(_this.getRuleUnlockCount(rule), Math.min(_this.getRuleMaxCount(rule), _this.safeInteger(saved.unitCount, unit.unitCount)));
+            unit.unitCount = Math.max(_this2.getRuleUnlockCount(rule), Math.min(_this2.getRuleMaxCount(rule), _this2.safeInteger(saved.unitCount, unit.unitCount)));
           };
 
-          for (var _i4 = 0; _i4 < initial.units.length; _i4++) {
-            if (_loop4()) continue;
+          for (var _i5 = 0; _i5 < initial.units.length; _i5++) {
+            if (_loop6()) continue;
           }
 
           return initial;
@@ -1608,8 +2054,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var playerBrains = this.getTargetBattleArmyBrains(0);
 
-          for (var _i5 = 0; _i5 < playerBrains.length; _i5++) {
-            playerBrains[_i5].maxAliveWaves = state.playerMaxAlive;
+          for (var _i6 = 0; _i6 < playerBrains.length; _i6++) {
+            playerBrains[_i6].maxAliveWaves = state.playerMaxAlive;
           }
         }
 
@@ -1637,11 +2083,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyBrains = this.getTargetBattleArmyBrains(1);
           var baselineAccuracy = this.clamp01(this.lerp(this.decisionAccuracyMin, this.decisionAccuracyMax, this.getProgression01(this.battleLevel)));
 
-          for (var _i6 = 0; _i6 < enemyBrains.length; _i6++) {
-            enemyBrains[_i6].maxAliveWaves = state.playerMaxAlive;
+          for (var _i7 = 0; _i7 < enemyBrains.length; _i7++) {
+            enemyBrains[_i7].maxAliveWaves = state.playerMaxAlive;
 
             if (this.allowDecisionAccuracy) {
-              enemyBrains[_i6].decisionAccuracy = baselineAccuracy;
+              enemyBrains[_i7].decisionAccuracy = baselineAccuracy;
             }
           }
         }
@@ -1649,9 +2095,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         configureSideMissionBattleCards() {
           this.currentPlayerBattleCardIds = [];
           this.currentEnemyBattleCardIds = [];
+          this.currentPlayerCooldownAdReasons.clear();
           var manager = this.getGameManager();
           if (!manager) return;
-          manager.configureBattleCardDecks([], [], {}, 0, 0);
+          manager.configureBattleCardDecks([], [], {}, {}, {}, 0, 0);
         }
 
         getPurchaseOptions(state) {
@@ -1659,6 +2106,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var manager = this.getGameManager();
 
           if (!manager || !manager.unitDatabase) {
+            return options;
+          } // Level 1 is the tutorial battle: show no purchasable progression
+          // packages until the player reaches the pre-battle flow for level 2.
+
+
+          if (this.battleLevel <= 1) {
             return options;
           }
 
@@ -1734,8 +2187,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var cardDatabase = manager ? manager.battleCardDatabase : null;
 
           if (cardDatabase) {
-            for (var _i7 = 0; _i7 < cardDatabase.cards.length; _i7++) {
-              var definition = cardDatabase.cards[_i7];
+            for (var _i8 = 0; _i8 < cardDatabase.cards.length; _i8++) {
+              var definition = cardDatabase.cards[_i8];
               if (!definition || !definition.id) continue;
 
               var _saved = this.getSavedCard(state, definition.id);
@@ -1760,9 +2213,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                 continue;
               }
 
-              var upgradeRankLimit = this.getCardUpgradeRankLimit(definition, state);
+              var cooldownUpgradeRankLimit = this.getCardUpgradeRankLimit(definition, 'cooldown');
+              var budgetUpgradeRankLimit = this.getCardUpgradeRankLimit(definition, 'budget');
+              var strengthUpgradeRankLimit = this.getCardUpgradeRankLimit(definition, 'strength');
 
-              if (_saved.cooldownUpgradeLevel < upgradeRankLimit) {
+              if (_saved.cooldownUpgradeLevel < cooldownUpgradeRankLimit) {
                 var nextLevel = _saved.cooldownUpgradeLevel + 1;
                 options.push({
                   id: "card-cooldown:" + definition.id + ":" + nextLevel,
@@ -1776,7 +2231,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                 });
               }
 
-              if (_saved.budgetUpgradeLevel < upgradeRankLimit) {
+              if (_saved.budgetUpgradeLevel < budgetUpgradeRankLimit) {
                 var _nextLevel = _saved.budgetUpgradeLevel + 1;
 
                 options.push({
@@ -1787,6 +2242,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                   tier: 0,
                   delta: 1,
                   label: definition.displayName + " Budget +40%",
+                  cardId: definition.id
+                });
+              }
+
+              if (_saved.strengthUpgradeLevel < strengthUpgradeRankLimit) {
+                var _nextLevel2 = _saved.strengthUpgradeLevel + 1;
+
+                options.push({
+                  id: "card-strength:" + definition.id + ":" + _nextLevel2,
+                  kind: 'card-strength-upgrade',
+                  cost: this.getCardStrengthUpgradeCost(definition, _nextLevel2),
+                  family: null,
+                  tier: 0,
+                  delta: 1,
+                  label: definition.displayName + " Strength +1",
                   cardId: definition.id
                 });
               }
@@ -1807,6 +2277,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         getCardBudgetUpgradeCost(definition, nextLevel) {
           var ratio = nextLevel <= 1 ? 0.5 : 0.75;
+          return Math.max(1, Math.round(Math.max(1, definition.purchasePrice) * ratio));
+        }
+
+        getCardStrengthUpgradeCost(definition, nextLevel) {
+          var maxRank = this.getStrengthUpgradeMaxRank(definition);
+          var first = Math.max(0.01, definition.strengthUpgradeFirstCostMultiplier);
+          var final = Math.max(first, definition.strengthUpgradeFinalCostMultiplier);
+          var progress = maxRank <= 1 ? 1 : this.clamp01((nextLevel - 1) / (maxRank - 1));
+          var ratio = first + (final - first) * progress;
           return Math.max(1, Math.round(Math.max(1, definition.purchasePrice) * ratio));
         }
 
@@ -1839,11 +2318,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var options = this.getPurchaseOptions(state).filter(option => !affordableOnly || option.cost <= state.playerGold);
 
           if (this.shouldReserveGoldForBaseline(state)) {
-            options = options.filter(option => option.kind !== 'card-unlock' && option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade');
+            options = options.filter(option => option.kind !== 'card-unlock' && option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade' && option.kind !== 'card-strength-upgrade');
           }
 
           if (this.shouldBotPrioritizeCardUnlocks(state)) {
-            options = options.filter(option => option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade');
+            options = options.filter(option => option.kind !== 'card-cooldown-upgrade' && option.kind !== 'card-budget-upgrade' && option.kind !== 'card-strength-upgrade');
           }
 
           if (this.shouldBotPrioritizeCooldownUpgrades(state)) {
@@ -1864,6 +2343,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         tryRouteBotToSideMission() {
           if (!this.progressionState) return false;
           var state = this.progressionState;
+          if (state.levelLossCount <= 0) return false;
           var target = this.pickWeightedPurchase(this.getBotPurchaseCandidates(state, false).filter(option => option.cost > state.playerGold));
           if (!target) return false;
           var choice = Math.random() < 0.5 ? 'side-mission' : 'progression';
@@ -1900,7 +2380,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           state.playerGold -= fee;
           state.mainBattleEntryCount++;
-          records.push({
+          var record = {
             id: "battle-entry:" + this.battleLevel,
             kind: 'battle-entry',
             label: fee > 0 ? "Main Battle Entry Fee -" + fee + " Gold" : 'First Main Battle Entry Free',
@@ -1914,7 +2394,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             valueAfter: 0,
             source: 'main-battle-entry',
             cardId: null
-          });
+          };
+          records.push(record);
+          this.recordPurchaseTelemetryAction(record);
           this.recordBotSimulationEvent(state, {
             type: 'main-entry-fee-paid',
             battleLevel: this.battleLevel,
@@ -1932,21 +2414,104 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return Math.max(0, Math.round(rewardBaseCP * Math.max(0, this.winGoldPerEnemyCP) * (this.isBossLevelFor(level) ? Math.max(1, this.bossGoldRewardMultiplier) : 1)));
         }
 
-        getMainBattleReward(state, level) {
-          var baseGold = this.getMainBattleWinGold(level);
-          var nextLevel = Math.min(this.getSafeTotalLevels(), level + 1);
-          var nextEntryFee = level >= this.getSafeTotalLevels() ? 0 : this.getMainBattleEntryFee(nextLevel);
-          var target = this.getBotPurchaseCandidates(state, false).sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))[0] || null;
-          var requiredGold = target ? Math.max(0, nextEntryFee + target.cost - state.playerGold) : 0;
+        getMainBattleReward(level) {
+          var safeLevel = this.clampLevel(level);
+          var plan = this.getMainBattleGoldPlan();
           return {
-            targetId: target ? target.id : '',
-            targetCost: target ? target.cost : 0,
-            gold: Math.max(baseGold, Math.ceil(requiredGold / 50) * 50)
+            targetId: 'mainline-gold-plan',
+            targetCost: 0,
+            gold: plan[safeLevel - 1] || 0
           };
         }
 
+        getMainBattleGoldPlan() {
+          var totalLevels = this.getSafeTotalLevels();
+
+          if (this.mainBattleGoldPlan && this.mainBattleGoldPlan.length === totalLevels) {
+            return this.mainBattleGoldPlan;
+          }
+
+          var plannedPurchaseBudgets = this.getMainlinePlannedPurchaseBudgets();
+          var result = [];
+          var previousReward = 0;
+          var availableGold = Math.max(0, Math.floor(this.initialPlayerGold));
+
+          for (var level = 1; level <= totalLevels; level++) {
+            var nextLevel = level + 1;
+            var baseReward = Math.ceil(this.getMainBattleWinGold(level) / 50) * 50;
+            var reward = Math.max(previousReward, baseReward);
+
+            if (nextLevel <= totalLevels) {
+              var nextPurchaseBudget = plannedPurchaseBudgets[nextLevel - 1];
+
+              while (availableGold + reward < nextPurchaseBudget + this.getMainBattleEntryFeeForReward(reward)) {
+                reward += 50;
+              }
+            }
+
+            result.push(reward);
+            previousReward = reward;
+            availableGold += reward;
+
+            if (nextLevel <= totalLevels) {
+              availableGold -= plannedPurchaseBudgets[nextLevel - 1] + this.getMainBattleEntryFeeForReward(reward);
+            }
+          }
+
+          this.mainBattleGoldPlan = result;
+          return result;
+        }
+
+        getMainlinePlannedPurchaseBudgets() {
+          var totalLevels = this.getSafeTotalLevels();
+          var result = new Array(totalLevels).fill(0);
+          var savedState = this.progressionState;
+          var savedBattleLevel = this.battleLevel;
+
+          try {
+            var planState = this.createInitialProgressionState();
+            this.progressionState = planState; // This is an affordability-independent forecast. Runtime buying
+            // still uses the player's real gold and its weighted choice.
+
+            planState.playerGold = Number.MAX_SAFE_INTEGER;
+
+            for (var level = 1; level <= totalLevels; level++) {
+              this.battleLevel = level;
+              this.offerIntroducedUnits(level);
+              var options = this.getBotPurchaseCandidates(planState, false);
+              if (options.length <= 0) continue; // Fund the most expensive eligible choice, rather than the
+              // sum of the whole shop. This preserves a real choice while
+              // keeping the no-loss route able to buy any current option.
+
+              result[level - 1] = options.reduce((highestCost, option) => Math.max(highestCost, option.cost), 0);
+              var plannedOption = options.slice().sort((a, b) => {
+                var weightDifference = this.getPurchaseWeight(b) - this.getPurchaseWeight(a);
+
+                if (weightDifference !== 0) {
+                  return weightDifference;
+                }
+
+                return b.cost - a.cost || a.id.localeCompare(b.id);
+              })[0];
+              if (!plannedOption) continue;
+              this.applyPurchaseToState(plannedOption, planState);
+            }
+          } finally {
+            this.progressionState = savedState;
+            this.battleLevel = savedBattleLevel;
+          }
+
+          return result;
+        }
+
         getMainBattleEntryFee(level) {
-          var baseFee = this.getMainBattleWinGold(level) * this.clamp01(this.mainBattleEntryFeeRatio);
+          var safeLevel = this.clampLevel(level);
+          if (safeLevel <= 1) return 0;
+          return this.getMainBattleEntryFeeForReward(this.getMainBattleReward(safeLevel - 1).gold);
+        }
+
+        getMainBattleEntryFeeForReward(reward) {
+          var baseFee = Math.max(0, reward) * this.clamp01(this.mainBattleEntryFeeRatio);
           return Math.max(0, Math.ceil(baseFee / 50) * 50);
         }
 
@@ -1956,7 +2521,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getSideMissionReward(state) {
-          var baseGold = Math.ceil(this.getMainBattleWinGold(this.battleLevel) / 50) * 50;
+          var baseGold = Math.max(50, this.getMainBattleEntryFee(this.battleLevel));
           var gold = Math.max(50, Math.ceil(baseGold / Math.pow(2, state.consecutiveSideWins) / 50) * 50);
           return {
             targetId: '',
@@ -1974,6 +2539,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         finishBotSelectedCardCooldowns(state) {
+          if (!this.allowAdsRescue) return;
+
           for (var i = 0; i < this.currentPlayerBattleCardIds.length; i++) {
             var cardId = this.currentPlayerBattleCardIds[i];
             var card = this.getSavedCard(state, cardId);
@@ -1985,6 +2552,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var cooldownBefore = card.cooldownRemaining;
             card.cooldownRemaining = 0;
             state.adsReward++;
+            this.recordTelemetryAction({
+              type: 'card-cooldown-finish-ad',
+              goldBefore: state.playerGold,
+              goldAfter: state.playerGold,
+              cardId,
+              source: 'bot-card-cooldown-ad',
+              cost: 0,
+              goldGranted: 0,
+              adsReason: this.currentPlayerCooldownAdReasons.get(cardId) || 'selected-cooling-card'
+            });
             this.recordBotSimulationEvent(state, {
               type: 'card-cooldown-finish-ad',
               battleLevel: this.battleLevel,
@@ -1992,7 +2569,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               targetId: cardId,
               targetCost: cooldownBefore,
               baseGold: 0,
-              goldGranted: 0
+              goldGranted: 0,
+              adsReason: this.currentPlayerCooldownAdReasons.get(cardId) || 'selected-cooling-card'
             });
           }
         }
@@ -2006,21 +2584,75 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetCost = 0;
           }
 
-          var useAds = this.purchasingSimulation && this.allowAdsRescue && Math.random() < 0.5;
-          var goldGranted = Math.max(0, Math.floor(baseGold) * (useAds ? 2 : 1));
+          var reward = Math.max(0, Math.floor(baseGold));
+          var decision = this.getBotGoldClaimDecision(state, reward, type);
+          var useAds = this.purchasingSimulation && this.allowAdsRescue && state.levelLossCount > 0 && decision.useAds;
+          var goldGranted = reward * (useAds ? 2 : 1);
           var event = {
             type,
             battleLevel: this.battleLevel,
             choice: useAds ? 'gold-x2-ad' : 'gold',
-            targetId,
-            targetCost,
-            baseGold: Math.max(0, Math.floor(baseGold)),
-            goldGranted
+            targetId: useAds && decision.targetId ? decision.targetId : targetId,
+            targetCost: useAds && decision.targetCost > 0 ? decision.targetCost : targetCost,
+            baseGold: reward,
+            goldGranted,
+            adsReason: !this.purchasingSimulation ? 'bot-simulation-disabled' : !this.allowAdsRescue ? 'ads-disabled' : state.levelLossCount <= 0 ? 'mainline-run-no-rescue-needed' : decision.useAds ? decision.reason : 'no-material-benefit',
+            normalGold: decision.normalGold,
+            doubleGold: decision.doubleGold,
+            normalPurchaseCount: decision.normalPurchaseCount,
+            doublePurchaseCount: decision.doublePurchaseCount
           };
+          var goldBefore = state.playerGold;
           state.playerGold += goldGranted;
           if (useAds) state.adsReward++;
+          this.recordTelemetryAction({
+            type: useAds ? 'reward-gold-x2-ad' : 'reward-gold',
+            goldBefore,
+            goldAfter: state.playerGold,
+            cardId: targetId || null,
+            source: type,
+            cost: 0,
+            goldGranted,
+            adsReason: event.adsReason
+          });
           this.recordBotSimulationEvent(state, event);
           return event;
+        }
+
+        getBotGoldClaimDecision(state, reward, type) {
+          var normalGold = state.playerGold + reward;
+          var doubleGold = normalGold + reward;
+          var nextLevel = type === 'progression-win' ? Math.min(this.getSafeTotalLevels(), this.battleLevel + 1) : this.battleLevel;
+          var entryFee = type === 'progression-win' && this.battleLevel >= this.getSafeTotalLevels() ? 0 : this.getMainBattleEntryFee(nextLevel);
+          var candidates = this.getBotPurchaseCandidates(state, false);
+          var normalPurchases = candidates.filter(option => option.cost <= normalGold - entryFee);
+          var doubleOnlyPurchases = candidates.filter(option => option.cost > normalGold - entryFee && option.cost <= doubleGold - entryFee).sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
+          var doublePurchaseCount = normalPurchases.length + doubleOnlyPurchases.length;
+          var target = doubleOnlyPurchases[0] || null;
+
+          if (target) {
+            return {
+              useAds: true,
+              reason: 'unlock-purchase-and-main-entry',
+              targetId: target.id,
+              targetCost: target.cost,
+              normalGold,
+              doubleGold,
+              normalPurchaseCount: normalPurchases.length,
+              doublePurchaseCount
+            };
+          }
+
+          return {
+            useAds: normalGold < entryFee && doubleGold >= entryFee,
+            reason: 'secure-main-entry',
+            targetId: '',
+            targetCost: entryFee,
+            normalGold,
+            doubleGold,
+            normalPurchaseCount: normalPurchases.length,
+            doublePurchaseCount
+          };
         }
 
         recordBotSimulationEvent(state, event) {
@@ -2052,9 +2684,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var roll = Math.random() * totalWeight;
 
-          for (var _i8 = 0; _i8 < options.length; _i8++) {
-            roll -= weights[_i8];
-            if (roll <= 0) return options[_i8];
+          for (var _i9 = 0; _i9 < options.length; _i9++) {
+            roll -= weights[_i9];
+            if (roll <= 0) return options[_i9];
           }
 
           return options[options.length - 1] || null;
@@ -2101,6 +2733,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return 1.5;
           }
 
+          if (option.kind === 'card-strength-upgrade') {
+            return Math.max(0.01, this.botStrengthUpgradePurchaseWeight);
+          }
+
           return 1;
         }
 
@@ -2110,7 +2746,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           state.playerGold = Math.max(0, state.playerGold - option.cost);
           this.applyPurchaseToState(option, state);
           state.totalPurchases++;
-          return {
+          var record = {
             id: option.id,
             kind: option.kind,
             label: option.label,
@@ -2127,6 +2763,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             source,
             cardId: option.cardId
           };
+          this.recordPurchaseTelemetryAction(record);
+          return record;
+        }
+
+        recordPurchaseTelemetryAction(record) {
+          this.recordTelemetryAction({
+            type: record.kind,
+            goldBefore: record.goldBefore,
+            goldAfter: record.goldAfter,
+            cardId: record.cardId,
+            source: record.source,
+            cost: record.cost,
+            goldGranted: 0
+          });
+        }
+
+        recordTelemetryAction(action) {
+          this.telemetryActionSequence++;
+          this.telemetryActions.push(_extends({}, action, {
+            eventId: "progression:" + this.battleLevel + ":" + ("" + this.telemetryActionSequence),
+            sequence: this.telemetryActionSequence,
+            phase: this.telemetryActionPhase,
+            battleLevel: this.battleLevel
+          }));
         }
 
         applyPurchaseToState(option, state) {
@@ -2151,6 +2811,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!_card3 || !_card3.owned) return;
             _card3.cooldownUpgradeLevel = Math.min(2, _card3.cooldownUpgradeLevel + 1);
             _card3.cooldownRemaining = Math.max(0, _card3.cooldownRemaining - 1);
+            return;
+          }
+
+          if (option.kind === 'card-strength-upgrade') {
+            var _this$getGameManager;
+
+            var _card4 = option.cardId ? this.getSavedCard(state, option.cardId) : null;
+
+            var definition = option.cardId && (_this$getGameManager = this.getGameManager()) != null && _this$getGameManager.battleCardDatabase ? this.getGameManager().battleCardDatabase.getCard(option.cardId) : null;
+            if (!_card4 || !_card4.owned || !definition) return;
+            _card4.strengthUpgradeLevel = Math.min(this.getStrengthUpgradeMaxRank(definition), _card4.strengthUpgradeLevel + 1);
             return;
           }
 
@@ -2202,7 +2873,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return state.playerMaxAlive;
           }
 
-          if (option.kind === 'card-unlock' || option.kind === 'card-cooldown-upgrade' || option.kind === 'card-budget-upgrade') {
+          if (option.kind === 'card-unlock' || option.kind === 'card-cooldown-upgrade' || option.kind === 'card-budget-upgrade' || option.kind === 'card-strength-upgrade') {
             var card = option.cardId ? this.getSavedCard(state, option.cardId) : null;
             if (!card) return 0;
 
@@ -2210,7 +2881,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return Number(card.owned);
             }
 
-            return option.kind === 'card-cooldown-upgrade' ? card.cooldownUpgradeLevel : card.budgetUpgradeLevel;
+            if (option.kind === 'card-cooldown-upgrade') {
+              return card.cooldownUpgradeLevel;
+            }
+
+            return option.kind === 'card-budget-upgrade' ? card.budgetUpgradeLevel : card.strengthUpgradeLevel;
           }
 
           if (option.family === null) return 0;
@@ -2333,8 +3008,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var keys = [];
 
           while (pending.some(item => item.remaining > 0)) {
-            for (var _i9 = 0; _i9 < pending.length; _i9++) {
-              var item = pending[_i9];
+            for (var _i10 = 0; _i10 < pending.length; _i10++) {
+              var item = pending[_i10];
               if (item.remaining <= 0) continue;
               keys.push(item.key);
               item.remaining--;
@@ -2437,8 +3112,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleArmyBrain) : BattleArmyBrain);
 
-          for (var _i10 = 0; _i10 < brains.length; _i10++) {
-            var _brain = brains[_i10];
+          for (var _i11 = 0; _i11 < brains.length; _i11++) {
+            var _brain = brains[_i11];
             if (!_brain) continue;
             if (this.clampTeam(_brain.team) !== team) continue;
             result.push(_brain);
@@ -2591,7 +3266,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 1;
+            var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 2;
             var lastNormalLevel = targetLevel - 1;
             var candidateCount = Math.max(1, lastNormalLevel >= firstOfferLevel ? lastNormalLevel - firstOfferLevel + 1 : 1);
             var packageCount = Math.min(totalDelta, Math.max(1, Math.ceil(candidateCount / 2)));
@@ -2713,8 +3388,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var previousLevel = 0;
           var previousCap = this.getPlayerMaxAliveStart();
 
-          for (var _i11 = 0; _i11 < milestones.length; _i11++) {
-            var targetLevel = milestones[_i11];
+          for (var _i12 = 0; _i12 < milestones.length; _i12++) {
+            var targetLevel = milestones[_i12];
             var targetCap = this.clampPlayerMaxAlive(Math.max(previousCap, this.getLevelBaseMaxAlive(targetLevel)));
             var totalDelta = targetCap - previousCap;
 
@@ -2724,7 +3399,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 1;
+            var firstOfferLevel = previousLevel > 0 ? previousLevel + 1 : 2;
             var lastNormalLevel = targetLevel - 1;
             var safeLastOfferLevel = lastNormalLevel >= firstOfferLevel ? lastNormalLevel : targetLevel;
             var offerLevels = this.pickEvenlyDistributedOfferLevels(firstOfferLevel, safeLastOfferLevel, totalDelta);
@@ -2782,7 +3457,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         resetIntoSideMission() {
-          if (!this.progressionState) return;
+          if (!this.progressionState) return; // Purchases can happen before bot decides to route to side. There is
+          // no battle report for that abandoned main setup, so carry its ledger
+          // into the side report that follows.
+
+          this.preserveTelemetryActionsForSideMission = true;
           this.progressionState.sideMissionActive = true;
           this.sideMissionBattle = true;
           this.nextBattlePending = true;
@@ -3131,77 +3810,105 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec35], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "botCardDiversityScoreFloor", [_dec35], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.65;
+        }
+      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "botCooldownAdScoreAdvantage", [_dec36], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1.25;
+        }
+      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "botMaxCooldownAdsPerBattle", [_dec37], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1;
+        }
+      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "botStrengthUpgradePurchaseWeight", [_dec38], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 1.75;
+        }
+      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec39], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec36], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec40], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 300;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec37], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec41], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 4;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec38], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec42], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec39], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec43], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec40], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec44], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec41], {
+      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec45], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.35;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec42], {
+      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec46], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec43], {
+      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec47], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec44], {
+      }), _descriptor50 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec48], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1000;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec45], {
+      }), _descriptor51 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec49], {
         configurable: true,
         enumerable: true,
         writable: true,

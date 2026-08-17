@@ -183,7 +183,7 @@ function createDefaultCards() {
             BattleCardTarget.UnitFamily, UnitFamily.Spear,
             BattleCardModifier.DamagePercent, 42,
             BattleCardModifier.DefenseFlat, 3,
-            BattleCardOpponentCondition.Any,
+            BattleCardOpponentCondition.Cavalry,
             BattleCardEnemyPool.RegularAndBoss,
             0.4,
             2

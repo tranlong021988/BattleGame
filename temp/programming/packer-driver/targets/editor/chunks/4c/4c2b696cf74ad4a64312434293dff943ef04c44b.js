@@ -346,6 +346,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleWinnerTeam = -1;
           this.battleLoserTeam = -1;
           this.battleWinnerReason = '';
+          this.heroDefeatDetected = false;
           this.battleProgressionProvider = null;
           this.combatResolutionDepth = 0;
           this.pendingForcedBattleWinnerCheck = false;
@@ -662,6 +663,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleWinnerTeam = -1;
           this.battleLoserTeam = -1;
           this.battleWinnerReason = '';
+          this.heroDefeatDetected = false;
           this.combatResolutionDepth = 0;
           this.pendingForcedBattleWinnerCheck = false;
           this.pendingBattleWinner = null;
@@ -856,11 +858,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleTelemetry.recordDamage(attacker, victim, damage, actualDamage, isCounterDamage, isAreaDamage, attackBatchId, this.frame, this.battleElapsedTime);
         }
 
-        configureBattleCardDecks(playerCardIds, enemyCardIds, playerBudgetUpgradeLevels = {}, maxPlayerCards = 3, maxEnemyCards = maxPlayerCards) {
+        configureBattleCardDecks(playerCardIds, enemyCardIds, playerBudgetUpgradeLevels = {}, playerStrengthScales = {}, enemyStrengthScales = {}, maxPlayerCards = 3, maxEnemyCards = maxPlayerCards) {
           var _this$battleCardRunti3;
 
           this.ensureBattleCardRuntime();
-          (_this$battleCardRunti3 = this.battleCardRuntime) == null || _this$battleCardRunti3.setDecks(playerCardIds, enemyCardIds, playerBudgetUpgradeLevels, maxPlayerCards, maxEnemyCards);
+          (_this$battleCardRunti3 = this.battleCardRuntime) == null || _this$battleCardRunti3.setDecks(playerCardIds, enemyCardIds, playerBudgetUpgradeLevels, playerStrengthScales, enemyStrengthScales, maxPlayerCards, maxEnemyCards);
         }
 
         getBattleCardModifiers(team, family, opposingFamily) {
@@ -923,7 +925,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!hero || !hero.isHero) return;
           const team = hero.team;
-          if (team !== 0 && team !== 1) return;
+          if (team !== 0 && team !== 1) return; // Lock both armies immediately. This also stops any remaining targets
+          // from the attack currently being resolved before the battle result is
+          // finalized at the end of that combat resolution.
+
+          this.heroDefeatDetected = true;
+          this.haltAllUnitsForBattleEnd();
           this.resolveBattleWinner(team === 0 ? 1 : 0, team, (_this$battleProgressi = this.battleProgressionProvider) != null && _this$battleProgressi.isBossBattle != null && _this$battleProgressi.isBossBattle() ? 'boss-killed' : 'hero-killed');
         }
 
@@ -1810,6 +1817,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         hasBattleWinner() {
           return this.battleWinnerResolved;
+        }
+
+        isBattleCombatLocked() {
+          return this.heroDefeatDetected || this.hasBattleWinner();
+        }
+
+        haltAllUnitsForBattleEnd() {
+          const units = this.teamA.concat(this.teamB);
+
+          for (let i = 0; i < units.length; i++) {
+            var _units$i;
+
+            (_units$i = units[i]) == null || _units$i.haltForBattleEnd();
+          }
         }
 
         beginCombatResolution() {
