@@ -60,7 +60,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       error: Error()
     }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DefenseFlat, 1), createCard('anti-cavalry-spearhead', 'Spear Discipline', 650, 4, 12, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DamagePercent, 42, BattleCardModifier.DefenseFlat, 3, BattleCardOpponentCondition.Any, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('axe-frenzy', 'Axe Vanguard', 650, 4, 20, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Spear, BattleCardModifier.DamagePercent, 42, BattleCardModifier.DefenseFlat, 3, BattleCardOpponentCondition.Cavalry, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('axe-frenzy', 'Axe Vanguard', 650, 4, 20, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
     }), UnitFamily) : UnitFamily).Axeman, BattleCardModifier.DamagePercent, 45, BattleCardModifier.DefenseFlat, 4.5, BattleCardOpponentCondition.Any, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('sword-wall', 'Sword Breakthrough', 800, 5, 60, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()

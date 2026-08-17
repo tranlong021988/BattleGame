@@ -91,6 +91,9 @@ interface BotSimulationEvent {
 
 interface SavedProgressionState {
     version: number;
+    telemetryRunId: string;
+    telemetryBattleIndex: number;
+    enemyCardDeckPolicyVersion: number;
     currentLevel: number;
     playerGold: number;
     adsReward: number;
@@ -139,6 +142,9 @@ interface PurchaseRecord {
 
 interface ProgressionTelemetryAction {
     eventId: string;
+    runId: string;
+    reportId: string;
+    battleIndex: number;
     sequence: number;
     phase: 'pre-battle' | 'battle-result';
     battleLevel: number;
@@ -362,6 +368,15 @@ export class LevelSettings extends Component
     botCardDiversityScoreFloor = 0.65;
 
     @property({
+        min: 0,
+        max: 1,
+        step: 0.05,
+        displayName: 'Enemy Card Diversity Score Floor',
+        tooltip: 'Enemy keeps a level-seeded, retry-stable deck, while choosing among cards near the best score. Lower values create more level-to-level variety.'
+    })
+    enemyCardDiversityScoreFloor = 0.5;
+
+    @property({
         min: 1,
         step: 0.05,
         displayName: 'Bot Cooldown Ad Score Advantage',
@@ -483,6 +498,7 @@ export class LevelSettings extends Component
     private currentEnemyBattleCardIds: string[] = [];
     private currentPlayerCooldownAdReasons = new Map<string, string>();
     private sideMissionBattle = false;
+    private readonly enemyCardDeckPolicyVersion = 5;
 
     onLoad() {
         this.migrateLegacyUnitUnlockProgression();
@@ -709,7 +725,7 @@ export class LevelSettings extends Component
             usedPlayerCards,
             newlyOffered,
             purchases,
-            telemetryActions: this.telemetryActions.slice(),
+            telemetry: this.createProgressionTelemetryLedger(),
             before,
             after: this.createTelemetrySnapshot(),
         };
@@ -805,7 +821,7 @@ export class LevelSettings extends Component
             usedPlayerCards: [],
             newlyOffered: [],
             purchases: [],
-            telemetryActions: this.telemetryActions.slice(),
+            telemetry: this.createProgressionTelemetryLedger(),
             before,
             after: this.createTelemetrySnapshot(),
         };
@@ -831,6 +847,7 @@ export class LevelSettings extends Component
         return {
             enabled: true,
             storageVersion: state.version,
+            telemetry: this.createProgressionTelemetryIdentity(),
             currentLevel: state.currentLevel,
             battleLevel: this.battleLevel,
             totalLevels: this.getSafeTotalLevels(),
@@ -1085,6 +1102,7 @@ export class LevelSettings extends Component
         if (!preserveTelemetryActions) {
             this.telemetryActions = [];
             this.telemetryActionSequence = 0;
+            this.progressionState.telemetryBattleIndex++;
         }
         this.telemetryActionPhase = 'pre-battle';
 
@@ -1147,7 +1165,11 @@ export class LevelSettings extends Component
         }
 
         return {
-            version: 11,
+            version: 13,
+            telemetryRunId: this.createTelemetryRunId(),
+            telemetryBattleIndex: 0,
+            enemyCardDeckPolicyVersion:
+                this.enemyCardDeckPolicyVersion,
             currentLevel: this.getSafeCurrentLevel(),
             playerGold: Math.max(
                 0,
@@ -1401,6 +1423,15 @@ export class LevelSettings extends Component
         database: NonNullable<GameManager['battleCardDatabase']>,
         state: SavedProgressionState
     ) {
+        if (
+            state.enemyCardDeckPolicyVersion !==
+            this.enemyCardDeckPolicyVersion
+        ) {
+            state.enemyCardDeckPolicyVersion =
+                this.enemyCardDeckPolicyVersion;
+            state.enemyCardIdsByLevel = {};
+        }
+
         const enemyDeckSize = this.getEnemyBattleCardDeckSize();
         const enemyDeckKey = String(this.battleLevel);
         const savedEnemyDeck = state.enemyCardIdsByLevel[
@@ -1501,25 +1532,51 @@ export class LevelSettings extends Component
     }
 
     private getEnemyBattleCardDeckSizeFor(level: number) {
-        const state = this.progressionState;
-        const regularCapacity = state
-            ? Math.min(
-                2,
-                this.getPlayerCardProgressionWave(state)
-            )
-            : 0;
+        const maxCapacity = Math.min(
+            3,
+            this.getBattleCardDeckSize()
+        );
+        const bossPace = Math.max(
+            0,
+            Math.floor(this.bossStagePace)
+        );
 
-        return this.isBossLevelFor(level)
-            ? Math.min(
-                3,
-                regularCapacity + 1,
-                this.getBattleCardDeckSize()
-            )
-            : Math.min(
-                2,
-                regularCapacity,
-                this.getBattleCardDeckSize()
-            );
+        if (maxCapacity <= 0) return 0;
+
+        if (bossPace <= 0) {
+            const state = this.progressionState;
+
+            return state
+                ? Math.min(
+                    2,
+                    this.getPlayerCardProgressionWave(state),
+                    maxCapacity
+                )
+                : 0;
+        }
+
+        const safeLevel = this.clampLevel(level);
+        const intervalStart = Math.floor(
+            (safeLevel - 1) / bossPace
+        ) * bossPace + 1;
+        const intervalEnd = Math.min(
+            this.getSafeTotalLevels(),
+            intervalStart + bossPace - 1
+        );
+        const intervalLength = intervalEnd - intervalStart;
+
+        if (intervalLength <= 0) return maxCapacity;
+
+        const intervalProgress = (safeLevel - intervalStart) /
+            intervalLength;
+
+        // At a five-level boss pace this produces 0, 0, 0, 1, 3.
+        // Wider intervals preserve the quiet opening and extend only the
+        // one-card preview before the boss reveals its full deck.
+        if (intervalProgress < 0.75) return 0;
+        if (intervalProgress < 1) return Math.min(1, maxCapacity);
+
+        return maxCapacity;
     }
 
     private selectDiversePlayerCardIds(
@@ -1587,20 +1644,116 @@ export class LevelSettings extends Component
         state: SavedProgressionState,
         maxCount: number
     ) {
-        return definitions.filter((definition) =>
-            this.getEnemyBattleCardScore(definition, state) > 0
-        ).sort((a, b) => {
-            const scoreDelta = this.getEnemyBattleCardScore(
-                b,
+        const remaining = definitions.map((definition) => {
+            const score = this.getEnemyBattleCardScore(
+                definition,
                 state
-            ) - this.getEnemyBattleCardScore(a, state);
+            );
+            const recentUseCount = this.getEnemyRecentCardUseCount(
+                definition.id,
+                state
+            );
 
-            return scoreDelta !== 0
-                ? scoreDelta
-                : a.id.localeCompare(b.id);
-        }).slice(0, Math.max(0, maxCount)).map(
-            (definition) => definition.id
+            return {
+                definition,
+                score: score / (1 + recentUseCount * 0.75),
+                recentUseCount,
+            };
+        }).filter((candidate) => candidate.score > 0).sort(
+            (a, b) => b.score - a.score ||
+                a.definition.id.localeCompare(b.definition.id)
         );
+        const selected: string[] = [];
+        const deckSize = Math.max(0, Math.min(maxCount, remaining.length));
+
+        while (remaining.length > 0 && selected.length < deckSize) {
+            const slotsRemaining = deckSize - selected.length;
+            const freshCandidates = remaining.filter((candidate) =>
+                candidate.recentUseCount <= 0
+            );
+            const selectionCandidates = freshCandidates.length >=
+                slotsRemaining
+                ? freshCandidates
+                : remaining;
+            const bestScore = selectionCandidates[0].score;
+            const scoreFloor = bestScore * this.clamp01(
+                this.enemyCardDiversityScoreFloor
+            );
+            const minimumPoolSize = Math.min(
+                selectionCandidates.length,
+                Math.max(3, slotsRemaining + 2)
+            );
+            let pool = selectionCandidates.filter((candidate) =>
+                candidate.score >= scoreFloor
+            );
+
+            // Keep one credible alternative whenever it exists. This avoids
+            // a single top-ranked combination repeating for every level.
+            if (pool.length < minimumPoolSize) {
+                pool = selectionCandidates.slice(0, minimumPoolSize);
+            }
+
+            const selectedIndex = Math.max(
+                0,
+                Math.min(
+                    pool.length - 1,
+                    Math.floor(this.getEnemyDeckSeededRoll(
+                        this.battleLevel,
+                        selected.length
+                    ) * pool.length)
+                )
+            );
+            const selectedCandidate = pool[selectedIndex];
+
+            selected.push(selectedCandidate.definition.id);
+            remaining.splice(remaining.indexOf(selectedCandidate), 1);
+        }
+
+        return selected;
+    }
+
+    private getEnemyRecentCardUseCount(
+        cardId: string,
+        state: SavedProgressionState
+    ) {
+        let result = 0;
+        let inspectedDecks = 0;
+
+        for (
+            let level = this.battleLevel - 1;
+            level >= 1 && inspectedDecks < 2;
+            level--
+        ) {
+            const deck = state.enemyCardIdsByLevel[
+                String(level)
+            ];
+
+            if (!Array.isArray(deck) || deck.length <= 0) continue;
+
+            inspectedDecks++;
+
+            if (deck.indexOf(cardId) >= 0) {
+                result++;
+            }
+        }
+
+        return result;
+    }
+
+    private getEnemyDeckSeededRoll(level: number, slot: number) {
+        let value = (
+            Math.max(1, Math.floor(level)) * 73856093 +
+            (slot + 1) * 19349663 +
+            83492791
+        ) >>> 0;
+
+        value = (value ^ (value >>> 16)) >>> 0;
+        value = Math.imul(value, 0x7feb352d) >>> 0;
+        value ^= value >>> 15;
+        value = Math.imul(value, 0x846ca68b) >>> 0;
+        value = (value ^ (value >>> 16)) >>> 0;
+
+        return value / 0x100000000;
     }
 
     private getBotCooldownAdDecision(
@@ -2808,7 +2961,9 @@ export class LevelSettings extends Component
             sourceVersion !== 8 &&
             sourceVersion !== 9 &&
             sourceVersion !== 10 &&
-            sourceVersion !== 11
+            sourceVersion !== 11 &&
+            sourceVersion !== 12 &&
+            sourceVersion !== 13
         ) {
             return initial;
         }
@@ -2834,6 +2989,14 @@ export class LevelSettings extends Component
                 source.currentLevel,
                 initial.currentLevel
             )
+        );
+        initial.telemetryRunId = typeof source.telemetryRunId === 'string' &&
+            source.telemetryRunId.length > 0
+            ? source.telemetryRunId
+            : initial.telemetryRunId;
+        initial.telemetryBattleIndex = Math.max(
+            0,
+            this.safeInteger(source.telemetryBattleIndex, 0)
         );
         initial.playerGold = Math.max(
             0,
@@ -2967,8 +3130,14 @@ export class LevelSettings extends Component
             )
         );
         const savedEnemyDecks = source.enemyCardIdsByLevel;
+        const savedEnemyDeckPolicyVersion = this.safeInteger(
+            source.enemyCardDeckPolicyVersion,
+            0
+        );
 
         if (
+            savedEnemyDeckPolicyVersion ===
+            this.enemyCardDeckPolicyVersion &&
             savedEnemyDecks &&
             typeof savedEnemyDecks === 'object' &&
             !Array.isArray(savedEnemyDecks)
@@ -2983,7 +3152,11 @@ export class LevelSettings extends Component
                     deck.filter((id: any) => typeof id === 'string')
                         .slice(0, 3);
             }
-        } else if (Array.isArray(source.lastEnemyCardIds)) {
+        } else if (
+            savedEnemyDeckPolicyVersion ===
+            this.enemyCardDeckPolicyVersion &&
+            Array.isArray(source.lastEnemyCardIds)
+        ) {
             const level = initial.currentLevel;
 
             initial.enemyCardIdsByLevel[String(level)] =
@@ -4294,18 +4467,55 @@ export class LevelSettings extends Component
 
     private recordTelemetryAction(
         action: Omit<ProgressionTelemetryAction, 'eventId' | 'sequence' |
-            'phase' | 'battleLevel'>
+            'phase' | 'battleLevel' | 'runId' | 'reportId' |
+            'battleIndex'>
     ) {
+        const identity = this.createProgressionTelemetryIdentity();
         this.telemetryActionSequence++;
         this.telemetryActions.push({
             ...action,
             eventId:
-                `progression:${this.battleLevel}:` +
+                `${identity.reportId}:` +
                 `${this.telemetryActionSequence}`,
+            runId: identity.runId,
+            reportId: identity.reportId,
+            battleIndex: identity.battleIndex,
             sequence: this.telemetryActionSequence,
             phase: this.telemetryActionPhase,
             battleLevel: this.battleLevel,
         });
+    }
+
+    private createProgressionTelemetryLedger() {
+        return {
+            schemaVersion: 2,
+            ...this.createProgressionTelemetryIdentity(),
+            actions: this.telemetryActions.slice(),
+        };
+    }
+
+    private createProgressionTelemetryIdentity() {
+        const state = this.progressionState;
+        const runId = state?.telemetryRunId || 'unknown-run';
+        const battleIndex = Math.max(
+            0,
+            state?.telemetryBattleIndex || 0
+        );
+
+        return {
+            runId,
+            battleIndex,
+            reportId: `progression:${runId}:battle:${battleIndex}`,
+        };
+    }
+
+    private createTelemetryRunId() {
+        const timestamp = Date.now().toString(36);
+        const random = (
+            '0000000' +
+            Math.floor(Math.random() * 0x100000000).toString(36)
+        ).slice(-7);
+        return `run-${timestamp}-${random}`;
     }
 
     private applyPurchaseToState(

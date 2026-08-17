@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-17. Source and `assets/Battle.scene` are authoritative if
+Last updated: 2026-08-18. Source and `assets/Battle.scene` are authoritative if
 this handoff conflicts with them.
 
 ## Start here
@@ -26,7 +26,7 @@ this handoff conflicts with them.
 | Main entry-fee ratio | 0.35 |
 | Rewarded-ad simulation | enabled |
 
-Save key is `battle-progression-v8`; saved schema is version 11.
+Save key is `battle-progression-v8`; saved schema is version 13.
 
 ## Design rules currently implemented
 
@@ -37,7 +37,19 @@ Save key is `battle-progression-v8`; saved schema is version 11.
 - Remaining unit-count and card-upgrade ranks after progression end are
   spread across non-boss levels before the finale, never dumped into one level.
 - Enemy strength-card ranks use the exact same dynamic offer schedule as the
-  player; enemy decks are fixed per level so retries do not reroll them.
+  player. Enemy decks are fixed after their first generation per level, so
+  retries do not reroll them, but composition is level-seeded and roster-aware
+  rather than a static top-score preset.
+- Enemy card capacity is boss-paced: normal levels carry no cards, the level
+  immediately before a boss carries one, and a boss may carry up to three
+  eligible cards. With boss pace 5 this is `0, 0, 0, 1, 3`; it must remain
+  dynamic for other boss paces. An absent target unit reduces the actual deck.
+- Enemy deck policy is currently v5. On policy mismatch, `LevelSettings`
+  clears `enemyCardIdsByLevel` once and rebuilds it; do not preserve cached
+  decks from an earlier policy. Selection scans the two most recent non-empty
+  enemy decks to penalize repeats, and its seed hash must end as an unsigned
+  32-bit value. A signed final hash clamps to index zero and recreates the
+  `sword-wall` repetition bug.
 - Card upgrades are independent packages: Cooldown, Budget, and Strength.
   Strength exists only for Spear Discipline, Sword Breakthrough, and Axe
   Vanguard. At R2 it is designed to bring that melee family up one ladder
@@ -86,10 +98,13 @@ Save key is `battle-progression-v8`; saved schema is version 11.
 
 - `BattleTelemetry.ts` exports combat details; `LevelSettings` appends
   progression data to each report.
-- New reports now include `progression.telemetryActions`: per-report,
-  non-cumulative ledger records with `eventId`, sequence, phase, level, type,
-  gold before/after, card ID, source, cost, gold granted, and ads reason.
-  It covers purchases, main-entry fees, Gold x2 claims, and cooldown-skip ads.
+- New reports use `progression.telemetry` schema v2. It contains a persistent
+  campaign `runId`, monotonic `battleIndex`, report ID, and per-report,
+  non-cumulative `actions`. Every action ID includes the run and battle ID,
+  so retries cannot collide across a campaign. Actions include sequence,
+  phase, level, type, gold before/after, card ID, source, cost, gold granted,
+  and ads reason; they cover purchases, main-entry fees, Gold x2, and
+  cooldown-skip ads.
 - If bot purchases occur before it abandons a main setup for a side mission,
   those actions are deliberately carried into the following side report; they
   would otherwise be absent from every report.
@@ -101,8 +116,8 @@ Save key is `battle-progression-v8`; saved schema is version 11.
 
 - The 2026-08-16 runs predate the current deterministic main-reward plan and
   must not be used as a balance baseline.
-- Older reports without `progression.telemetryActions` cannot accurately count
-  cooldown ads. Treat them only as combat-history evidence.
+- Older reports without `progression.telemetry` schema v2 cannot accurately
+  count cooldown ads. Treat them only as combat-history evidence.
 
 ## Key source map
 
@@ -124,7 +139,7 @@ Save key is `battle-progression-v8`; saved schema is version 11.
   compile script; full Cocos diagnostics contain pre-existing engine/config
   noise and must be interpreted separately.
 - Before changing economy values again, use the current main-reward plan as
-  the baseline and inspect `progression.telemetryActions`; do not infer a
+  the baseline and inspect `progression.telemetry.actions`; do not infer a
   regression from reports made before the plan.
 - Use `cautious-coding` for changes, `game-balance-check` for telemetry reports,
   and `game-balance-regression` after balance/mechanic changes.

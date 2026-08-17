@@ -9439,6 +9439,7 @@
     "progressionStorageKey": "battle-progression-v8",
     "battleCardDeckSize": 3,
     "botCardDiversityScoreFloor": 0.65,
+    "enemyCardDiversityScoreFloor": 0.5,
     "botCooldownAdScoreAdvantage": 1.25,
     "botMaxCooldownAdsPerBattle": 1,
     "botStrengthUpgradePurchaseWeight": 1.75,

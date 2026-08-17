@@ -1,10 +1,10 @@
 {
   "version": "2.3.14",
-  "sourceTimeStamp": 1782209738200.131,
+  "sourceTimeStamp": 1782229147947.584,
   "outputTimeStamps": {
-    "log.json": 1786934535356.3613,
-    "out.bin": 1786934535355.358,
-    "out.gltf": 1786934535356.3613
+    "log.json": 1786980043218.687,
+    "out.bin": 1786980043215.1753,
+    "out.gltf": 1786980043217.6833
   },
   "options": {
     "smartMaterialEnabled": true,
