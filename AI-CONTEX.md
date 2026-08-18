@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-18. Source and `assets/Battle.scene` are authoritative if
+Last updated: 2026-08-19. Source and `assets/Battle.scene` are authoritative if
 this handoff conflicts with them.
 
 ## Start here
@@ -71,6 +71,19 @@ Save key is `battle-progression-v8`; saved schema is version 13.
   reward. The plan funds one highest-cost eligible next-level purchase plus
   the next entry fee, using the same dynamic progression/shop rules as runtime
   rather than a fixed reward table.
+
+### Reward-plan decision (2026-08-19)
+
+- The attempted plan that funded every currently available baseline and card
+  offer was fully reverted. Several card unlocks can appear together at L2,
+  creating a reward spike that the non-decreasing rule then preserves.
+- The restored plan is the approved stable baseline: fund only the single
+  highest-cost eligible next-level purchase and its next entry fee. Do not
+  reintroduce “fund every visible card/offer” without redesigning the unlock
+  schedule and validating the full economy curve.
+- The stale `.git/index.lock` was checked (zero bytes and no running Git
+  process) and removed on 2026-08-19. Verify that condition before removing a
+  future lock.
 - Main entry is free at L1; each later fee is derived from the previous main
   reward, not its own reward. The bot reserves entry before non-essential
   spending.
