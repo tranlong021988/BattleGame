@@ -74,17 +74,42 @@ Save key is `battle-progression-v8`; saved schema is version 13.
 - Main entry is free at L1; each later fee is derived from the previous main
   reward, not its own reward. The bot reserves entry before non-essential
   spending.
-- Side mission is used when priority purchases or entry cannot be afforded.
-  It mirrors current player roster/CP/Max Alive, has no cards or boss bonus,
-  and advances card cooldowns like a completed battle.
-- Its initial reward scales from the current main-entry fee, then consecutive
-  side rewards decay until a main attempt resets the streak. This permits
-  recovery after a loss without creating an unlimited side-farm loop.
+- Side mission mirrors current player roster/CP/Max Alive, has no cards or
+  boss bonus, and advances card cooldowns like a completed battle. Its reward
+  is the current main-entry fee (minimum 50) and does **not** decay. The bot,
+  rather than an economy penalty, prevents aimless farming.
 - `allowAdsRescue = false` disables both Gold x2 and card cooldown-skip ads.
-- Gold x2 is accepted only when it unlocks a purchase while retaining entry,
-  or secures entry. Cooldown ad choice is value-aware, constrained to one per
-  battle, and uses a diversity floor to avoid a single dominant card. Ads are
-  not considered on an unbeaten mainline run; `levelLossCount > 0` is required.
+- There is no hard cap on cooldown-skip ads. A cooldown ad is used only for a
+  card that enters the selected deck and makes the resulting deck competitive;
+  one preparation can therefore use multiple ads when each is necessary.
+- `mainLossesAtCurrentLevel` counts only failed main attempts, persists through
+  side wins, and resets on a main win or level change. Outside a deliberate
+  preparation, it raises the probability of accepting a viable cooldown-ad
+  plan: `losses / (losses + 1)`.
+
+### Bot preparation before main battle
+
+- Enemy deck is locked first, then the bot evaluates the player against that
+  exact deck. It is not allowed to enter a known disadvantaged main battle
+  merely because it can pay the entry fee.
+- The bot simulates every currently offered purchase on a clone of the saved
+  state: unit unlock/count, Initial CP, Max Alive, card unlock, and all card
+  upgrades. It selects the option with the largest projected player combat
+  strength (ties: lower cost, then stable ID).
+- If that target is unaffordable after reserving main entry, the bot routes to
+  side and continues until it can pay `target cost + entry fee`. Once funded,
+  it buys that exact target with source `pre-battle-preparation` before normal
+  weighted purchases run. This fixes the old L5 loop where the bot repeatedly
+  paid entry with 260 gold instead of saving 800 gold for Sword Wall.
+- On a side win, Gold x2 is used when doubling is the difference between
+  reaching that preparation target plus entry and not reaching it. It is not
+  globally capped. Existing x2 logic remains available for a normal purchase
+  or entry rescue when no preparation target applies.
+- If the owned deck would be competitive with cooled cards restored, the bot
+  enters deliberate deck preparation and immediately finishes every required
+  cooldown by ad. Telemetry reason is `prepared-deck-threshold`. If no single
+  available purchase improves a losing matchup, the bot does not farm forever
+  for a fictitious solution and may still attempt main.
 
 ## Combat safety
 
@@ -118,6 +143,12 @@ Save key is `battle-progression-v8`; saved schema is version 13.
   must not be used as a balance baseline.
 - Older reports without `progression.telemetry` schema v2 cannot accurately
   count cooldown ads. Treat them only as combat-history evidence.
+- The batch `battle-telemetry-2026-08-18T10-08-08-876Z` through
+  `...10-36-20-969Z` completed L60 in 99 battles (59/89 main wins, 10/10 side
+  wins). It exposed L5 as a pre-preparation baseline: Sword Wall was offered
+  at 800 gold, player repeatedly returned to main with 260 gold before the
+  150 fee, while the L5 boss used its full three-card deck. Do not use that
+  batch to judge the preparation logic above; it predates this change.
 
 ## Key source map
 
@@ -141,5 +172,10 @@ Save key is `battle-progression-v8`; saved schema is version 13.
 - Before changing economy values again, use the current main-reward plan as
   the baseline and inspect `progression.telemetry.actions`; do not infer a
   regression from reports made before the plan.
+- For the next progression audit, first inspect: `side-mission-entry-
+  preparation` diagnostic events, forced purchase source
+  `pre-battle-preparation`, `complete-preparation-target` Gold x2 events, and
+  `prepared-deck-threshold` cooldown-ad events. L5 should no longer enter
+  main repeatedly before Sword Wall plus its entry fee are funded.
 - Use `cautious-coding` for changes, `game-balance-check` for telemetry reports,
   and `game-balance-regression` after balance/mechanic changes.
