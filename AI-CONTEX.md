@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-19. Source and `assets/Battle.scene` are authoritative if
+Last updated: 2026-08-19 (latest telemetry/reset audit). Source and `assets/Battle.scene` are authoritative if
 this handoff conflicts with them.
 
 ## Start here
@@ -63,6 +63,21 @@ Save key is `battle-progression-v8`; saved schema is version 13.
   player to own Cavalry before using this Spear card.
 - Precise Range spends one budget charge per ranged attack batch while a
   ranged unit exists. It affects Archer and Monk.
+
+### Boss deck mirror (current)
+
+- On boss levels only, the enemy deck is configured first and becomes the
+  player's preparation target. The player attempts to use the exact same
+  card IDs; this is not active on normal levels or side missions.
+- If a boss card is missing, the bot prioritizes that exact card unlock. If it
+  is owned but below the enemy's effective Strength rank, the matching card
+  Strength upgrade is prioritized. Routing to side when target cost plus main
+  entry fee is unaffordable is intentional, not a balance failure.
+- Cooling mirrored cards may be finished with rewarded ads. There is no
+  one-ad-per-battle cap. Telemetry reason is `boss-deck-mirror`.
+- Equal CP and equal cards do not guarantee victory; combat variance may still
+  produce losses. The goal is to remove accidental deck disadvantage, not to
+  force a perfect win streak.
 
 ## Economy, ads, and side missions
 
@@ -163,6 +178,35 @@ Save key is `battle-progression-v8`; saved schema is version 13.
   150 fee, while the L5 boss used its full three-card deck. Do not use that
   batch to judge the preparation logic above; it predates this change.
 
+### Latest report audit: 2026-08-19 09:50–10:42
+
+- The batch contained 110 main-battle reports: 80 wins and 30 losses. It
+  reached L60. There were 24 boss attempts and 6 boss losses: two at L10 and
+  one each at L20, L30, L40, and L50.
+- L35 is healthy: player and enemy used the same three-card deck and the
+  battle was won. L60 also used an exact mirrored deck and won after three
+  `boss-deck-mirror` cooldown ads.
+- L10's early side farming is valid. The enemy used
+  `general-offensive + sword-wall + axe-frenzy`; the player did not yet own
+  `axe-frenzy`, so farming to afford that card plus entry is expected.
+- One L10 report is invalid as a combat-balance evidence point: both runtime
+  decks were `[]`, while saved `enemyCardIdsByLevel["10"]` contained the
+  three-card enemy deck. The later L10 win with the exact mirrored deck is the
+  meaningful result. Treat the empty/empty report as reset/configuration
+  anomaly, not as a cardless boss victory.
+- No main-entry hardlock was observed. Do not change entry fees, rewards, or
+  side-farming rules based on this batch.
+
+### Reset/configuration fix
+
+- `configureEnemyBattleCards` now treats an empty cached enemy deck as stale
+  when eligible enemy card candidates exist. It rebuilds and persists the
+  deck instead of allowing a main battle to start with an empty enemy deck.
+- Side missions remain the intentional empty-card mode. When auditing a main
+  report, compare saved `enemyCardIdsByLevel`, progression selected card IDs,
+  and `config.cards`; an empty runtime deck with a populated saved deck is a
+  reset/configuration anomaly and must be excluded from balance conclusions.
+
 ## Key source map
 
 | Concern | Source |
@@ -190,5 +234,9 @@ Save key is `battle-progression-v8`; saved schema is version 13.
   `pre-battle-preparation`, `complete-preparation-target` Gold x2 events, and
   `prepared-deck-threshold` cooldown-ad events. L5 should no longer enter
   main repeatedly before Sword Wall plus its entry fee are funded.
+- For boss audits, inspect `boss-deck-mirror` cooldown-ad actions and compare
+  player/enemy selected card IDs before judging a loss. A loss with equal CP
+  and equal deck is a combat-variance sample; a loss with a missing enemy card
+  is a preparation/configuration issue.
 - Use `cautious-coding` for changes, `game-balance-check` for telemetry reports,
   and `game-balance-regression` after balance/mechanic changes.

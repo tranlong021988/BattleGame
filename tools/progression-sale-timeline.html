@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Progression sale timeline L1-L60</title>
+  <link rel="stylesheet" href="progression-sale-timeline.css">
+</head>
+<body>
+<main>
+  <h1>Timeline mở bán progression — L1 đến L60</h1>
+  <p class="lede">
+    Mỗi nhãn là một gói cụ thể được mở bán ở level đó. Baseline gồm Initial CP và Max Alive;
+    Unit gồm unlock và từng lần tăng số lượng; Card gồm unlock, cooldown, budget và strength.
+    Màu chỉ là phân nhóm phụ — tên gói và level luôn được ghi trực tiếp trên canvas.
+  </p>
+  <div class="canvas-shell">
+    <svg id="timeline" class="timeline-canvas" viewBox="0 0 1600 1540" role="img"
+      aria-labelledby="timeline-title timeline-description">
+      <title id="timeline-title">Timeline mở bán các gói progression từ level 1 đến level 60</title>
+      <desc id="timeline-description">Một canvas timeline gồm baseline, unit unlock và unit count, card unlock và các card upgrade.</desc>
+    </svg>
+  </div>
+  <div class="legend" aria-label="Phân nhóm sự kiện">
+    <span class="baseline"><i aria-hidden="true"></i>Baseline: Initial CP / Max Alive</span>
+    <span class="unit"><i aria-hidden="true"></i>Unit: unlock / tăng unit count</span>
+    <span class="card"><i aria-hidden="true"></i>Card: unlock / cooldown / budget / strength</span>
+    <span class="milestone"><i aria-hidden="true"></i>Mốc boss và ranh giới progression end</span>
+  </div>
+  <p class="source-note">
+    Tham chiếu: <code>assets/Battle.scene</code> và lịch động trong <code>assets/scripts/LevelSettings.ts</code>.
+    Cấu hình hiện tại: totalLevels 60, progressionEndLevel 50, bossStagePace 5.
+  </p>
+</main>
+
+<script>
+(() => {
+  const config = {
+    totalLevels: 60,
+    progressionEndLevel: 50,
+    bossPace: 5,
+    initialCPMin: 250,
+    initialCPMax: 1040,
+    playerCPStart: 300,
+    maxAliveMin: 3,
+    maxAliveMax: 10,
+    playerMaxAliveStart: 4,
+    playerMaxAliveMax: 10,
+  };
+
+  const units = [
+    { name: 'Spear', unlock: 1, start: 5, max: 10 },
+    { name: 'Sword', unlock: 1, start: 5, max: 10 },
+    { name: 'Axeman', unlock: 10, start: 5, max: 10 },
+    { name: 'Archer', unlock: 25, start: 3, max: 5 },
+    { name: 'Cavalry', unlock: 35, start: 5, max: 10 },
+    { name: 'Monk', unlock: 45, start: 1, max: 1 },
+  ];
+
+  const cards = [
+    { id: 'general-offensive', name: 'General Offensive', unlock: 2, wave: 0, strength: 0 },
+    { id: 'battle-shields', name: 'Battle Shields', unlock: 2, wave: 0, strength: 0 },
+    { id: 'anti-cavalry-spearhead', name: 'Spear Discipline', unlock: 35, wave: 3, strength: 2 },
+    { id: 'axe-frenzy', name: 'Axe Vanguard', unlock: 10, wave: 1, strength: 2 },
+    { id: 'sword-wall', name: 'Sword Breakthrough', unlock: 2, wave: 0, strength: 2 },
+    { id: 'arrow-suppression', name: 'Arrow Suppression', unlock: 25, wave: 2, strength: 0 },
+    { id: 'precise-range', name: 'Precise Range', unlock: 25, wave: 2, strength: 0 },
+    { id: 'wide-prayer', name: 'Wide Prayer', unlock: 45, wave: 4, strength: 0 },
+    { id: 'counter-breaker', name: 'Counter Breaker', unlock: 25, wave: 4, strength: 0 },
+  ];
+
+  const svg = document.getElementById('timeline');
+  const NS = 'http://www.w3.org/2000/svg';
+  const plot = { left: 250, right: 1540, top: 150, bottom: 1330 };
+  const x = level => plot.left + (level - 1) * (plot.right - plot.left) / (config.totalLevels - 1);
+  const esc = value => String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+  const add = (tag, attrs, text = '') => {
+    const node = document.createElementNS(NS, tag);
+    Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, value));
+    if (text) node.textContent = text;
+    svg.appendChild(node);
+    return node;
+  };
+  const baseCP = level => Math.round(config.initialCPMin +
+    (config.initialCPMax - config.initialCPMin) *
+    Math.max(0, Math.min(1, (level - 1) / (config.progressionEndLevel - 1))));
+  const baseAlive = level => Math.round(config.maxAliveMin +
+    (config.maxAliveMax - config.maxAliveMin) *
+    Math.max(0, Math.min(1, (level - 1) / (config.progressionEndLevel - 1))));
+  const normalLevels = [];
+  for (let level = config.progressionEndLevel + 1; level < config.totalLevels; level++) {
+    if (level % config.bossPace !== 0) normalLevels.push(level);
+  }
+
+  function evenly(first, last, count) {
+    const candidateCount = Math.max(1, last - first + 1);
+    const safeCount = Math.min(Math.max(1, count), candidateCount);
+    return Array.from({ length: safeCount }, (_, index) =>
+      first + Math.floor(index * candidateCount / safeCount));
+  }
+
+  function createBaselinePackages(kind) {
+    const result = [];
+    let previousLevel = 0;
+    let previousCap = kind === 'cp' ? config.playerCPStart : config.playerMaxAliveStart;
+    const maxCap = kind === 'cp' ? Infinity : config.playerMaxAliveMax;
+    for (let target = config.bossPace; target <= config.progressionEndLevel; target += config.bossPace) {
+      const targetCap = kind === 'cp'
+        ? Math.max(previousCap, baseCP(target))
+        : Math.min(maxCap, Math.max(previousCap, baseAlive(target)));
+      const totalDelta = targetCap - previousCap;
+      if (totalDelta <= 0) { previousLevel = target; previousCap = targetCap; continue; }
+      const first = previousLevel > 0 ? previousLevel + 1 : 2;
+      const last = target - 1;
+      const candidates = Math.max(1, last >= first ? last - first + 1 : 1);
+      const count = kind === 'cp'
+        ? Math.min(totalDelta, Math.max(1, Math.ceil(candidates / 2)))
+        : totalDelta;
+      const offers = evenly(first, last >= first ? last : target, count);
+      let distributed = 0;
+      for (let index = 0; index < count; index++) {
+        const cumulative = kind === 'cp'
+          ? Math.round(totalDelta * (index + 1) / count)
+          : index + 1;
+        const delta = cumulative - distributed;
+        distributed = cumulative;
+        result.push({ level: offers[index % offers.length], label: kind === 'cp'
+          ? `+${delta} Initial CP` : '+1 Max Alive', kind: 'baseline', detail: `target baseline L${target}` });
+      }
+      previousLevel = target;
+      previousCap = targetCap;
+    }
+    return result;
+  }
+
+  function createUnitEvents() {
+    const result = [];
+    const unlockMilestones = [...new Set(units.map(unit => unit.unlock).filter(level => level > 1))].sort((a, b) => a - b);
+    units.forEach(unit => {
+      if (unit.unlock > 1) result.push({ level: unit.unlock, label: `Unlock ${unit.name}`, kind: 'unit', detail: `${unit.start} units at unlock` });
+      const milestoneCount = Math.max(0, unit.max - unit.start);
+      let rank = 0;
+      unlockMilestones.forEach(level => {
+        if (level > unit.unlock && rank < milestoneCount) {
+          rank++;
+          result.push({ level, label: `+1 ${unit.name}`, kind: 'unit', detail: `unit count ${unit.start + rank}/${unit.max}` });
+        }
+      });
+    });
+    const tail = [];
+    units.forEach(unit => {
+      const milestoneRanks = unlockMilestones.filter(level => level > unit.unlock).length;
+      for (let rank = milestoneRanks; rank < Math.max(0, unit.max - unit.start); rank++) tail.push(unit.name);
+    });
+    tail.forEach((name, index) => {
+      if (normalLevels[index]) result.push({ level: normalLevels[index], label: `+1 ${name}`, kind: 'unit', detail: 'post-progression count package' });
+    });
+    return result;
+  }
+
+  function createCardEvents() {
+    const result = cards.map(card => ({ level: card.unlock, label: `Unlock ${card.name}`, kind: 'card', detail: 'card unlock offer' }));
+    const fullWave = 4;
+    const byWave = new Map();
+    const post = [];
+    cards.forEach(card => {
+      ['Cooldown', 'Budget'].forEach(upgrade => {
+        for (let rank = 1; rank <= 2; rank++) {
+          const offerWave = card.wave + rank;
+          const event = { label: `${card.name} ${upgrade} R${rank}`, kind: 'card', detail: `card upgrade rank ${rank}` };
+          if (offerWave > fullWave) post.push(event);
+          else {
+            if (!byWave.has(offerWave)) byWave.set(offerWave, []);
+            byWave.get(offerWave).push(event);
+          }
+        }
+      });
+      for (let rank = 1; rank <= card.strength; rank++) {
+        const offerWave = card.wave + rank;
+        const event = { label: `${card.name} Strength R${rank}`, kind: 'card', detail: `card upgrade rank ${rank}` };
+        if (offerWave > fullWave) post.push(event);
+        else {
+          if (!byWave.has(offerWave)) byWave.set(offerWave, []);
+          byWave.get(offerWave).push(event);
+        }
+      }
+    });
+    const waveStart = { 1: 10, 2: 25, 3: 35, 4: 45 };
+    const waveEnd = { 1: 24, 2: 34, 3: 44, 4: 49 };
+    [...byWave.keys()].sort((a, b) => a - b).forEach(wave => {
+      const pending = byWave.get(wave);
+      const levels = evenly(waveStart[wave], waveEnd[wave], pending.length);
+      pending.forEach((event, index) => result.push({ ...event, level: levels[index] }));
+    });
+    const postLevels = normalLevels;
+    post.forEach((event, index) => result.push({ ...event, level: postLevels[Math.min(postLevels.length - 1, Math.floor(index * postLevels.length / post.length))] }));
+    return result;
+  }
+
+  function wrapText(text, maxChars) {
+    const words = text.split(' '), lines = [];
+    let line = '';
+    words.forEach(word => {
+      const next = line ? `${line} ${word}` : word;
+      if (next.length > maxChars && line) { lines.push(line); line = word; }
+      else line = next;
+    });
+    if (line) lines.push(line);
+    return lines.slice(0, 3);
+  }
+
+  const lanes = [
+    { name: 'Baseline — Initial CP', detail: 'CP package offers', top: 205, events: createBaselinePackages('cp') },
+    { name: 'Baseline — Max Alive', detail: 'wave capacity package offers', top: 345, events: createBaselinePackages('alive') },
+    { name: 'Unit — unlock', detail: 'new unit family becomes purchasable', top: 485, events: createUnitEvents().filter(event => event.label.startsWith('Unlock')) },
+    { name: 'Unit — count', detail: 'each +1 package is labeled by unit family', top: 625, events: createUnitEvents().filter(event => !event.label.startsWith('Unlock')) },
+    { name: 'Card — unlock', detail: 'first level where current roster/condition allows purchase', top: 765, events: cards.map(card => ({ level: card.unlock, label: `Unlock ${card.name}`, kind: 'card', detail: 'card unlock offer' })) },
+    { name: 'Card — cooldown / budget', detail: 'rank 1 and rank 2 upgrade packages', top: 905, events: createCardEvents().filter(event => event.label.includes('Cooldown') || event.label.includes('Budget')) },
+    { name: 'Card — strength', detail: 'strength rank packages', top: 1045, events: createCardEvents().filter(event => event.label.includes('Strength')) },
+  ];
+
+  add('text', { x: 34, y: 38, class: 'title' }, 'Progression sale timeline — current Battle.scene');
+  add('text', { x: 34, y: 64, class: 'subtitle' }, 'L1–L60 · baseline progression ends at L50 · boss every 5 levels · every event is labeled by name and level');
+
+  for (let level = 1; level <= config.totalLevels; level++) {
+    const px = x(level);
+    if (level % 5 === 0) add('line', { x1: px, y1: plot.top - 22, x2: px, y2: plot.bottom + 12, class: 'boss-line' });
+    if (level === config.progressionEndLevel) add('line', { x1: px, y1: plot.top - 22, x2: px, y2: plot.bottom + 12, class: 'progression-line' });
+    if (level === 1 || level % 5 === 0 || level === config.totalLevels) {
+      add('line', { x1: px, y1: plot.top - 8, x2: px, y2: plot.bottom, class: 'plot-grid' });
+      add('text', { x: px, y: plot.bottom + 30, 'text-anchor': 'middle', class: 'axis-label' }, `L${level}`);
+    }
+  }
+  add('text', { x: plot.left, y: plot.bottom + 62, class: 'axis-label' }, 'Campaign level →');
+  add('text', { x: x(config.progressionEndLevel) + 8, y: plot.top - 30, class: 'axis-label' }, 'Progression End L50');
+  add('text', { x: x(5) + 6, y: plot.top - 30, class: 'axis-label' }, 'Boss milestone');
+
+  lanes.forEach(lane => {
+    const laneY = lane.top + 42;
+    add('line', { x1: plot.left, y1: laneY, x2: plot.right, y2: laneY, class: 'lane-line' });
+    add('text', { x: 34, y: lane.top + 27, class: 'lane-label' }, lane.name);
+    add('text', { x: 34, y: lane.top + 47, class: 'lane-detail' }, lane.detail);
+    const groups = new Map();
+    lane.events.forEach(event => {
+      if (!groups.has(event.level)) groups.set(event.level, []);
+      groups.get(event.level).push(event);
+    });
+    groups.forEach((events, level) => {
+      const width = Math.max(66, Math.min(122, 122 / Math.max(1, events.length)));
+      const startX = x(level) - width * events.length / 2;
+      events.forEach((event, index) => {
+        const eventX = Math.max(plot.left, Math.min(plot.right - width, startX + index * width));
+        const rectY = lane.top + 58 + (index % 2) * 38;
+        const rect = add('rect', { x: eventX, y: rectY, width, height: 31, class: `event ${event.kind}`, tabindex: '0' });
+        const title = document.createElementNS(NS, 'title');
+        title.textContent = `L${event.level}: ${event.label} — ${event.detail}`;
+        rect.appendChild(title);
+        add('text', { x: eventX + width / 2, y: rectY + 12, 'text-anchor': 'middle', class: 'event-level event-text' }, `L${event.level}`);
+        wrapText(event.label, width < 85 ? 13 : 19).forEach((line, lineIndex) => {
+          add('text', { x: eventX + width / 2, y: rectY + 23 + lineIndex * 10, 'text-anchor': 'middle', class: 'event-label event-text' }, line);
+        });
+      });
+    });
+  });
+
+  add('text', { x: 34, y: 1255, class: 'note' }, 'L51–L59 là phần tail sau progression end: các gói unit count và card upgrade còn thiếu được dàn trải trên level thường, không mở mới ở boss level trừ level bắt đầu wave.');
+  add('text', { x: 34, y: 1280, class: 'note' }, 'Card unlock được đánh dấu ở level đầu tiên mà roster/điều kiện hiện tại cho phép bán; card upgrade đi theo card progression wave và rank.');
+  add('text', { x: 34, y: 1305, class: 'note' }, 'Nếu đổi totalLevels hoặc progressionEndLevel trong Battle.scene, cần regenerate timeline để phản ánh lịch mới.');
+})();
+</script>
+</body>
+</html>

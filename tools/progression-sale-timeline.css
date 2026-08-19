@@ -1,0 +1,113 @@
+:root {
+  color-scheme: light;
+  --ink: #17202a;
+  --muted: #5e6b78;
+  --grid: #d8e0e8;
+  --axis: #8794a2;
+  --surface: #ffffff;
+  --page: #f3f6f9;
+  --baseline: #b45309;
+  --unit: #2563eb;
+  --card: #7c3aed;
+  --milestone: #0f766e;
+  --boss: #9f1239;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--page); }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--page);
+  font: 14px/1.45 Inter, "Segoe UI", Arial, sans-serif;
+}
+
+main {
+  width: min(100% - 32px, 1680px);
+  margin: 28px auto 48px;
+}
+
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 6px; font-size: 28px; font-weight: 500; }
+h2 { margin-bottom: 8px; font-size: 17px; font-weight: 500; }
+.lede { max-width: 1100px; color: var(--muted); }
+
+.canvas-shell {
+  margin-top: 18px;
+  padding: 16px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+}
+
+.timeline-canvas {
+  display: block;
+  width: 1600px;
+  min-width: 1600px;
+  height: auto;
+}
+
+.timeline-canvas text {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  fill: var(--ink);
+}
+
+.timeline-canvas .title { font-size: 22px; font-weight: 500; }
+.timeline-canvas .subtitle { font-size: 13px; fill: var(--muted); }
+.timeline-canvas .axis-label { font-size: 12px; fill: var(--muted); }
+.timeline-canvas .lane-label { font-size: 13px; font-weight: 500; }
+.timeline-canvas .lane-detail { font-size: 11px; fill: var(--muted); }
+.timeline-canvas .event-label { font-size: 10px; font-weight: 500; }
+.timeline-canvas .event-level { font-size: 10px; font-weight: 500; }
+.timeline-canvas .note { font-size: 11px; fill: var(--muted); }
+
+.timeline-canvas .plot-grid { stroke: var(--grid); stroke-width: 1; }
+.timeline-canvas .plot-axis { stroke: var(--axis); stroke-width: 1.2; }
+.timeline-canvas .boss-line { stroke: var(--boss); stroke-width: 1; stroke-dasharray: 4 5; opacity: .42; }
+.timeline-canvas .progression-line { stroke: var(--milestone); stroke-width: 1.5; stroke-dasharray: 7 5; opacity: .72; }
+.timeline-canvas .lane-line { stroke: var(--grid); stroke-width: 1; }
+
+.timeline-canvas .event {
+  stroke: var(--surface);
+  stroke-width: 1;
+  rx: 3;
+  ry: 3;
+}
+.timeline-canvas .event.baseline { fill: var(--baseline); }
+.timeline-canvas .event.unit { fill: var(--unit); }
+.timeline-canvas .event.card { fill: var(--card); }
+.timeline-canvas .event.milestone { fill: var(--milestone); }
+.timeline-canvas .event-text { fill: var(--surface); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 2px; }
+.legend .baseline i { background: var(--baseline); }
+.legend .unit i { background: var(--unit); }
+.legend .card i { background: var(--card); }
+.legend .milestone i { background: var(--milestone); }
+
+.source-note {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.source-note code {
+  padding: 2px 4px;
+  background: #e9eef3;
+  border-radius: 3px;
+  font-family: Consolas, monospace;
+}
+
+@media (max-width: 700px) {
+  main { width: min(100% - 16px, 1680px); margin-top: 16px; }
+  .canvas-shell { padding: 10px; }
+  h1 { font-size: 23px; }
+}
