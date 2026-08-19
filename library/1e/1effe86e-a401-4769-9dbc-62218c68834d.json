@@ -9445,6 +9445,7 @@
     "playerMaxAliveStart": 4,
     "playerMaxAliveMax": 10,
     "winGoldPerEnemyCP": 1.15,
+    "mainRewardFlatBonus": 400,
     "bossGoldRewardMultiplier": 1.15,
     "mainBattleEntryFeeRatio": 0.35,
     "unitUnlockCostMultiplier": 5,

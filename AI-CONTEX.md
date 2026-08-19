@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-19 (latest telemetry/reset audit). Source and `assets/Battle.scene` are authoritative if
+Last updated: 2026-08-19 (latest economy telemetry audit). Source and `assets/Battle.scene` are authoritative if
 this handoff conflicts with them.
 
 ## Start here
@@ -21,6 +21,7 @@ this handoff conflicts with them.
 | Total levels / progression end | 60 / 50 |
 | Boss pace / CP multiplier / Max Alive multiplier | 5 / 1.0 / 1.0 |
 | Starter gold | 1,000 |
+| Main reward flat bonus | 400 gold per main battle |
 | Player initial CP / Max Alive | 300 / 4-10 |
 | Deck capacity | 3 |
 | Main entry-fee ratio | 0.35 |
@@ -96,6 +97,22 @@ Save key is `battle-progression-v8`; saved schema is version 13.
   highest-cost eligible next-level purchase and its next entry fee. Do not
   reintroduce “fund every visible card/offer” without redesigning the unlock
   schedule and validating the full economy curve.
+- Main rewards now apply a fixed inspector-controlled `mainRewardFlatBonus`
+  after the stable plan is generated. The scene value is 400 gold; it is
+  rounded to 50 and added uniformly to every main reward, so package timing
+  cannot create visible reward spikes. The existing minimum `+50` reward
+  progression invariant remains active.
+- Economy validation on the 2026-08-19 telemetry batch passed the balance
+  acceptance rule: every main loss except L48 had baseline CP at or above the
+  enemy, and L26/L47 wins with one fewer Max Alive were still CP-positive.
+  L48 was the only meaningful shortfall: player 1,000 CP versus enemy 1,008
+  CP, with equal Max Alive and unit counts. The missing CP package cost 400
+  and was unaffordable after the L48 fee, but the 8 CP gap is negligible in
+  practical combat and did not invalidate the +400 gold balance decision.
+- Treat `mainRewardFlatBonus = 400` as the approved economy setting. Do not
+  replace it with per-level reward manipulation; any future economy change
+  must recheck fee payment, baseline CP/Max Alive parity, and actual package
+  affordability across every main level, including wins.
 - The stale `.git/index.lock` was checked (zero bytes and no running Git
   process) and removed on 2026-08-19. Verify that condition before removing a
   future lock.

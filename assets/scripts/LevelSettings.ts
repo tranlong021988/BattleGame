@@ -399,6 +399,14 @@ export class LevelSettings extends Component
     winGoldPerEnemyCP = 1.15;
 
     @property({
+        min: 0,
+        step: 50,
+        displayName: 'Main Reward Flat Bonus',
+        tooltip: 'Fixed gold added to every main-battle reward after the stable progression plan is generated. Rounded to 50.'
+    })
+    mainRewardFlatBonus = 400;
+
+    @property({
         min: 1,
         step: 0.05,
         displayName: 'Boss Gold Reward Multiplier',
@@ -4471,6 +4479,19 @@ export class LevelSettings extends Component
                     result[index],
                     result[index - 1] + 50
                 );
+            }
+        }
+
+        const flatBonus = Math.max(
+            0,
+            Math.round(
+                Math.max(0, this.mainRewardFlatBonus) / 50
+            ) * 50
+        );
+
+        if (flatBonus > 0) {
+            for (let index = 0; index < result.length; index++) {
+                result[index] += flatBonus;
             }
         }
 
