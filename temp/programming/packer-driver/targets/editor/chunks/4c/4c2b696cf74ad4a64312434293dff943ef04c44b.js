@@ -931,7 +931,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.heroDefeatDetected = true;
           this.haltAllUnitsForBattleEnd();
-          this.resolveBattleWinner(team === 0 ? 1 : 0, team, (_this$battleProgressi = this.battleProgressionProvider) != null && _this$battleProgressi.isBossBattle != null && _this$battleProgressi.isBossBattle() ? 'boss-killed' : 'hero-killed');
+          this.resolveBattleWinner(team === 0 ? 1 : 0, team, team === 0 ? 'player-hero-killed' : (_this$battleProgressi = this.battleProgressionProvider) != null && _this$battleProgressi.isBossBattle != null && _this$battleProgressi.isBossBattle() ? 'boss-hero-killed' : 'enemy-hero-killed');
         }
 
         onWaveCombatStarted(unit, enemy = null, useInitialForwardGate = true) {

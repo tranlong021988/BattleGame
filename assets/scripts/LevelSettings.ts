@@ -1585,25 +1585,21 @@ export class LevelSettings extends Component
         }
 
         const safeLevel = this.clampLevel(level);
-        const intervalStart = Math.floor(
-            (safeLevel - 1) / bossPace
-        ) * bossPace + 1;
-        const intervalEnd = Math.min(
-            this.getSafeTotalLevels(),
-            intervalStart + bossPace - 1
-        );
-        const intervalLength = intervalEnd - intervalStart;
+        const nextBossLevel = Math.ceil(
+            safeLevel / bossPace
+        ) * bossPace;
 
-        if (intervalLength <= 0) return maxCapacity;
+        // A preview exists only when this interval really ends in a boss.
+        // This keeps a truncated campaign tail clear of enemy cards.
+        if (nextBossLevel > this.getSafeTotalLevels()) return 0;
 
-        const intervalProgress = (safeLevel - intervalStart) /
-            intervalLength;
+        const distanceToBoss = nextBossLevel - safeLevel;
 
-        // At a five-level boss pace this produces 0, 0, 0, 1, 3.
-        // Wider intervals preserve the quiet opening and extend only the
-        // one-card preview before the boss reveals its full deck.
-        if (intervalProgress < 0.75) return 0;
-        if (intervalProgress < 1) return Math.min(1, maxCapacity);
+        // The final normal level always previews one card, independent of
+        // boss pace. At pace 5 this remains 0, 0, 0, 1, 3; at pace 4 it is
+        // 0, 0, 1, 3 instead of skipping the preview entirely.
+        if (distanceToBoss === 1) return Math.min(1, maxCapacity);
+        if (distanceToBoss > 1) return 0;
 
         return maxCapacity;
     }

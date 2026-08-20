@@ -1,259 +1,176 @@
 # BattleGame handoff
 
-Last updated: 2026-08-19 (latest economy telemetry audit). Source and `assets/Battle.scene` are authoritative if
-this handoff conflicts with them.
+Last updated: 2026-08-20. `assets/Battle.scene` and TypeScript source are
+authoritative; this file is a decision record only. Update it only when the
+user explicitly requests it.
 
 ## Start here
 
 - Active scene: `assets/Battle.scene`.
-- Runtime ownership: `GameManager` owns live combat; `LevelSettings` owns
-  campaign save, shop, economy, ads, side missions, and progression.
-- Battles reset internally after telemetry export. Do not restore normal
-  `director.loadScene`, browser reload, or `game.restart` between battles.
-- Worktree is intentionally dirty with Cocos `library/`, `temp/`, and
-  `profiles/` output. Preserve unrelated changes. `MainGameFlow.ts` is unused
-  and is not attached to `Battle.scene`.
+- `GameManager` owns live combat, resolution, internal reset and export.
+  `LevelSettings` owns campaign save, progression offers, shop, economy, ads,
+  side missions, bot preparation and appended telemetry.
+- Battles reset internally after telemetry export. Do **not** restore browser
+  reload, `game.restart`, `director.loadScene`, or the unused
+  `MainGameFlow.ts` approach between battles.
+- The worktree is intentionally dirty with Cocos `library/`, `temp/`,
+  `profiles/`, and scene-editor output. Preserve unrelated changes. Current
+  deliberate source diffs are in `assets/scripts/GameManager.ts` and
+  `assets/scripts/LevelSettings.ts`; `assets/Battle.scene` also has editor
+  changes.
 
 ## Current scene configuration
 
 | Setting | Value |
 | --- | ---: |
 | Total levels / progression end | 60 / 50 |
-| Boss pace / CP multiplier / Max Alive multiplier | 5 / 1.0 / 1.0 |
+| Boss pace | 5 |
 | Starter gold | 1,000 |
 | Main reward flat bonus | 400 gold per main battle |
-| Player initial CP / Max Alive | 300 / 4-10 |
+| Player Initial CP / Max Alive | 300 / 4 → 10 |
 | Deck capacity | 3 |
 | Main entry-fee ratio | 0.35 |
 | Rewarded-ad simulation | enabled |
 
-Save key is `battle-progression-v8`; saved schema is version 13.
+Save key is `battle-progression-v8`; saved schema version is 13.
 
-## Design rules currently implemented
+## Progression and combat rules
 
-- L1 is tutorial: no progression package is offered there. Offers start on
-  normal stages from L2 onward where applicable.
-- Unit, card, and upgrade offers derive from normalized progression and boss
-  pacing. Do not add fixed L10/L25/L51 lists.
-- Remaining unit-count and card-upgrade ranks after progression end are
-  spread across non-boss levels before the finale, never dumped into one level.
-- Enemy strength-card ranks use the exact same dynamic offer schedule as the
-  player. Enemy decks are fixed after their first generation per level, so
-  retries do not reroll them, but composition is level-seeded and roster-aware
-  rather than a static top-score preset.
-- Enemy card capacity is boss-paced: normal levels carry no cards, the level
-  immediately before a boss carries one, and a boss may carry up to three
-  eligible cards. With boss pace 5 this is `0, 0, 0, 1, 3`; it must remain
-  dynamic for other boss paces. An absent target unit reduces the actual deck.
-- Enemy deck policy is currently v5. On policy mismatch, `LevelSettings`
-  clears `enemyCardIdsByLevel` once and rebuilds it; do not preserve cached
-  decks from an earlier policy. Selection scans the two most recent non-empty
-  enemy decks to penalize repeats, and its seed hash must end as an unsigned
-  32-bit value. A signed final hash clamps to index zero and recreates the
-  `sword-wall` repetition bug.
-- Card upgrades are independent packages: Cooldown, Budget, and Strength.
-  Strength exists only for Spear Discipline, Sword Breakthrough, and Axe
-  Vanguard. At R2 it is designed to bring that melee family up one ladder
-  step; `BattleCardDatabase.ts` is the data authority.
-- Cards are roster-aware on both sides: a card requires a usable target family
-  for its owner, while an opponent-conditioned card also requires that family
-  to exist on the opposing roster. `Spear Discipline` specifically requires
-  Spear for its owner and Cavalry for its opponent; this same rule filters
-  enemy decks, so it must not appear against a side without Cavalry. Do not
-  restore the removed player-card-wave gate: it incorrectly required the
-  player to own Cavalry before using this Spear card.
-- Precise Range spends one budget charge per ranged attack batch while a
-  ranged unit exists. It affects Archer and Monk.
+- L1 is tutorial: no progression package is offered there. Offers begin at L2
+  where applicable.
+- Unit unlocks, baseline upgrades, cards and card upgrades derive from
+  normalized progression plus boss pace. Do not add fixed L10/L25/L51 lists.
+- Rule unlock levels are normalized to `progressionEndLevel` and rounded up to
+  the nearest boss. Baseline CP/Max Alive milestones use boss pace. Pending
+  unit-count and card-upgrade ranks after progression end are distributed over
+  non-boss levels before the finale, never dumped into one level.
+- Enemy strength-card ranks use the player offer schedule. Enemy decks are
+  generated once per level and persisted, so retries must not reroll them.
+  Selection is level-seeded, roster-aware, and penalizes repeated recent decks.
+- Enemy deck capacity is distance-to-next-**real**-boss based: earlier normal
+  stages get 0 cards, the final normal stage gets 1 preview card, boss gets up
+  to 3 eligible cards. Pace 5 is `0,0,0,1,3`; pace 4 is `0,0,1,3`; pace 3 is
+  `0,1,3`. A truncated tail after the last full boss has 0 cards. This is the
+  2026-08-20 `getEnemyBattleCardDeckSizeFor` fix; do not restore the prior
+  fractional-progress calculation that skipped a preview at pace 4.
+- An absent target unit reduces actual deck size below capacity. Cards are
+  roster-aware for both teams. `Spear Discipline` requires Spear for owner
+  and Cavalry for opponent; do not restore the removed player-card-wave gate.
+- Card upgrades are independent packages: Cooldown, Budget and Strength.
+  Strength is only for Spear Discipline, Sword Breakthrough and Axe Vanguard.
+  `BattleCardDatabase.ts` is card-data authority. `Precise Range` spends one
+  budget per ranged batch and affects Archer and Monk.
 
-### Boss deck mirror (current)
+## Boss deck mirror and bot preparation
 
-- On boss levels only, the enemy deck is configured first and becomes the
-  player's preparation target. The player attempts to use the exact same
-  card IDs; this is not active on normal levels or side missions.
-- If a boss card is missing, the bot prioritizes that exact card unlock. If it
-  is owned but below the enemy's effective Strength rank, the matching card
-  Strength upgrade is prioritized. Routing to side when target cost plus main
-  entry fee is unaffordable is intentional, not a balance failure.
-- Cooling mirrored cards may be finished with rewarded ads. There is no
-  one-ad-per-battle cap. Telemetry reason is `boss-deck-mirror`.
-- Equal CP and equal cards do not guarantee victory; combat variance may still
-  produce losses. The goal is to remove accidental deck disadvantage, not to
-  force a perfect win streak.
+- Only on boss main levels, configure enemy deck first and use its exact card
+  IDs as player preparation target. It does not apply to normal levels or side
+  missions.
+- Missing mirrored card unlocks are prioritized. An owned card below enemy
+  Strength rank prioritizes its matching Strength upgrade. If target + entry
+  is unaffordable, routing to side is intentional.
+- Cooling mirrored cards may be finished by rewarded ads. There is **no**
+  one-ad-per-battle cap; telemetry reason is `boss-deck-mirror`.
+- Before a main battle the bot simulates available purchases on a clone:
+  unit unlock/count, Initial CP, Max Alive, card unlock and all card upgrades.
+  It chooses greatest projected combat-strength gain (then lower cost, stable
+  ID). If unaffordable after entry reserve, it farms side until target + entry
+  is funded, then buys source `pre-battle-preparation`.
+- If cooled selected cards would make deck competitive, bot can use necessary
+  cooldown ads immediately (`prepared-deck-threshold`). Outside deliberate
+  preparation, main losses raise viable cooldown-ad acceptance probability as
+  `losses / (losses + 1)`. Retry-versus-skip randomness remains intentional
+  human-like variance.
+- Equal CP/deck does not require a win. Such losses are valid combat variance,
+  not automatic economy or card regressions.
 
-## Economy, ads, and side missions
+## Economy, ads and side missions
 
-- Main rewards are a cached, deterministic campaign plan. Each reward is at
-  least its normal level-scaled baseline and never falls below the preceding
-  reward. The plan funds one highest-cost eligible next-level purchase plus
-  the next entry fee, using the same dynamic progression/shop rules as runtime
-  rather than a fixed reward table.
+- Main reward plan is deterministic/cached per total-level count. It is
+  strictly increasing by at least 50, starts from level-scaled win gold, then
+  smooths funding for **one** important next-level purchase plus the next
+  entry fee. The scene-controlled 400 flat bonus is added afterwards to every
+  reward.
+- Do not reintroduce a plan that funds every visible offer: several cards at
+  L2 create a spike that permanently distorts a monotonic curve.
+- Runtime logic is dynamic for total levels, progression end and pace. Changing
+  those values within an existing save is not a migration path; use fresh
+  preview/reset for a new configuration.
+- L1 entry is free. Later fee uses previous main reward:
+  `max((level - 1) * 50, ceil(previousReward * 0.35 / 50) * 50)`.
+- Side reward is `max(50, current main entry fee)`, does not decay, has no
+  cards/boss bonus, mirrors player roster/CP/Max Alive, and advances cooldowns.
+- `allowAdsRescue = false` disables Gold x2 and cooldown-skip ads. Neither has
+  a hard cap. Bot x2 must cross a concrete preparation/purchase/entry
+  threshold, not be used merely because an ad is available.
+- Main-loss count persists through side wins, resets on main win or level
+  change, and is a decision input—not a side-reward penalty.
 
-### Reward-plan decision (2026-08-19)
+## Combat, reset and telemetry correctness
 
-- The attempted plan that funded every currently available baseline and card
-  offer was fully reverted. Several card unlocks can appear together at L2,
-  creating a reward spike that the non-decreasing rule then preserves.
-- The restored plan is the approved stable baseline: fund only the single
-  highest-cost eligible next-level purchase and its next entry fee. Do not
-  reintroduce “fund every visible card/offer” without redesigning the unlock
-  schedule and validating the full economy curve.
-- Main rewards now apply a fixed inspector-controlled `mainRewardFlatBonus`
-  after the stable plan is generated. The scene value is 400 gold; it is
-  rounded to 50 and added uniformly to every main reward, so package timing
-  cannot create visible reward spikes. The existing minimum `+50` reward
-  progression invariant remains active.
-- Economy validation on the 2026-08-19 telemetry batch passed the balance
-  acceptance rule: every main loss except L48 had baseline CP at or above the
-  enemy, and L26/L47 wins with one fewer Max Alive were still CP-positive.
-  L48 was the only meaningful shortfall: player 1,000 CP versus enemy 1,008
-  CP, with equal Max Alive and unit counts. The missing CP package cost 400
-  and was unaffordable after the L48 fee, but the 8 CP gap is negligible in
-  practical combat and did not invalidate the +400 gold balance decision.
-- Treat `mainRewardFlatBonus = 400` as the approved economy setting. Do not
-  replace it with per-level reward manipulation; any future economy change
-  must recheck fee payment, baseline CP/Max Alive parity, and actual package
-  affordability across every main level, including wins.
-- The stale `.git/index.lock` was checked (zero bytes and no running Git
-  process) and removed on 2026-08-19. Verify that condition before removing a
-  future lock.
-- Main entry is free at L1; each later fee is derived from the previous main
-  reward, not its own reward. The bot reserves entry before non-essential
-  spending.
-- Side mission mirrors current player roster/CP/Max Alive, has no cards or
-  boss bonus, and advances card cooldowns like a completed battle. Its reward
-  is the current main-entry fee (minimum 50) and does **not** decay. The bot,
-  rather than an economy penalty, prevents aimless farming.
-- `allowAdsRescue = false` disables both Gold x2 and card cooldown-skip ads.
-- There is no hard cap on cooldown-skip ads. A cooldown ad is used only for a
-  card that enters the selected deck and makes the resulting deck competitive;
-  one preparation can therefore use multiple ads when each is necessary.
-- `mainLossesAtCurrentLevel` counts only failed main attempts, persists through
-  side wins, and resets on a main win or level change. Outside a deliberate
-  preparation, it raises the probability of accepting a viable cooldown-ad
-  plan: `losses / (losses + 1)`.
+- Hero death resolves battle immediately and freezes movement/damage. Hero-line
+  completion is fallback win condition. Despawn clears pooled target references.
+- `GameManager.onHeroKilled` now emits distinct reasons:
+  `player-hero-killed`, `enemy-hero-killed`, and `boss-hero-killed`. This
+  2026-08-20 change makes final-boss kills unambiguous in telemetry/audits.
+- Telemetry schema v2 has campaign run ID, monotonic battle index,
+  non-cumulative actions and unique action IDs. Actions record purchases,
+  fees, Gold x2 and cooldown ads with before/after gold, source and reason.
+- `preBattlePurchases` resets per preparation. Purchases before routing to side
+  are intentionally carried into following side report. `botSimulationEvents`
+  is capped diagnostic save history; never sum it across reports.
+- A main report with empty runtime `config.cards` but populated saved
+  `enemyCardIdsByLevel` is a reset/configuration anomaly, not balance evidence.
+  `configureEnemyBattleCards` must rebuild an empty stale cached deck when
+  eligible candidates exist. Side mission is the legitimate empty-card mode.
 
-### Bot preparation before main battle
+## Telemetry audit baseline
 
-- Enemy deck is locked first, then the bot evaluates the player against that
-  exact deck. It is not allowed to enter a known disadvantaged main battle
-  merely because it can pay the entry fee.
-- The bot simulates every currently offered purchase on a clone of the saved
-  state: unit unlock/count, Initial CP, Max Alive, card unlock, and all card
-  upgrades. It selects the option with the largest projected player combat
-  strength (ties: lower cost, then stable ID).
-- If that target is unaffordable after reserving main entry, the bot routes to
-  side and continues until it can pay `target cost + entry fee`. Once funded,
-  it buys that exact target with source `pre-battle-preparation` before normal
-  weighted purchases run. This fixes the old L5 loop where the bot repeatedly
-  paid entry with 260 gold instead of saving 800 gold for Sword Wall.
-- On a side win, Gold x2 is used when doubling is the difference between
-  reaching that preparation target plus entry and not reaching it. It is not
-  globally capped. Existing x2 logic remains available for a normal purchase
-  or entry rescue when no preparation target applies.
-- If the owned deck would be competitive with cooled cards restored, the bot
-  enters deliberate deck preparation and immediately finishes every required
-  cooldown by ad. Telemetry reason is `prepared-deck-threshold`. If no single
-  available purchase improves a losing matchup, the bot does not farm forever
-  for a fictitious solution and may still attempt main.
+- 2026-08-16 reports predate deterministic rewards and are not economy
+  baseline. Reports without telemetry v2 cannot accurately count cooldown ads.
+- The 2026-08-19 09:50–10:42 batch reached L60. Its boss deck-mirror results
+  and valid L35 result support policy. L10 side farming before acquiring a
+  missing boss card was valid preparation, not a fee hardlock. One empty/empty
+  L10 runtime deck is excluded as a reset anomaly.
+- 2026-08-20 reports exposed final-boss telemetry ambiguity. Future audits
+  must treat `boss-hero-killed` as terminal boss win and ensure no subsequent
+  retry follows that completion.
+- Do not tune reward, fee, side reward or ad limits just to smooth win rate.
+  First classify loss: meaningful power/card gap versus small gap/equal-deck
+  combat variance.
 
-## Combat safety
+## Economy visualization (analysis-only)
 
-- Any hero death resolves the battle immediately and freezes combat movement
-  and damage for both teams.
-- Despawn clears target references; pooled units must not retain targets.
-- Static original hero positions define hero lines. Hero-line completion is a
-  fallback win condition alongside hero death.
-
-## Telemetry
-
-- `BattleTelemetry.ts` exports combat details; `LevelSettings` appends
-  progression data to each report.
-- New reports use `progression.telemetry` schema v2. It contains a persistent
-  campaign `runId`, monotonic `battleIndex`, report ID, and per-report,
-  non-cumulative `actions`. Every action ID includes the run and battle ID,
-  so retries cannot collide across a campaign. Actions include sequence,
-  phase, level, type, gold before/after, card ID, source, cost, gold granted,
-  and ads reason; they cover purchases, main-entry fees, Gold x2, and
-  cooldown-skip ads.
-- If bot purchases occur before it abandons a main setup for a side mission,
-  those actions are deliberately carried into the following side report; they
-  would otherwise be absent from every report.
-- `preBattlePurchases` is reset at the start of each battle preparation. The
-  older `botSimulationEvents` remains a capped save-history diagnostic only;
-  do not sum it across reports.
-
-### Telemetry baseline
-
-- The 2026-08-16 runs predate the current deterministic main-reward plan and
-  must not be used as a balance baseline.
-- Older reports without `progression.telemetry` schema v2 cannot accurately
-  count cooldown ads. Treat them only as combat-history evidence.
-- The batch `battle-telemetry-2026-08-18T10-08-08-876Z` through
-  `...10-36-20-969Z` completed L60 in 99 battles (59/89 main wins, 10/10 side
-  wins). It exposed L5 as a pre-preparation baseline: Sword Wall was offered
-  at 800 gold, player repeatedly returned to main with 260 gold before the
-  150 fee, while the L5 boss used its full three-card deck. Do not use that
-  batch to judge the preparation logic above; it predates this change.
-
-### Latest report audit: 2026-08-19 09:50–10:42
-
-- The batch contained 110 main-battle reports: 80 wins and 30 losses. It
-  reached L60. There were 24 boss attempts and 6 boss losses: two at L10 and
-  one each at L20, L30, L40, and L50.
-- L35 is healthy: player and enemy used the same three-card deck and the
-  battle was won. L60 also used an exact mirrored deck and won after three
-  `boss-deck-mirror` cooldown ads.
-- L10's early side farming is valid. The enemy used
-  `general-offensive + sword-wall + axe-frenzy`; the player did not yet own
-  `axe-frenzy`, so farming to afford that card plus entry is expected.
-- One L10 report is invalid as a combat-balance evidence point: both runtime
-  decks were `[]`, while saved `enemyCardIdsByLevel["10"]` contained the
-  three-card enemy deck. The later L10 win with the exact mirrored deck is the
-  meaningful result. Treat the empty/empty report as reset/configuration
-  anomaly, not as a cardless boss victory.
-- No main-entry hardlock was observed. Do not change entry fees, rewards, or
-  side-farming rules based on this batch.
-
-### Reset/configuration fix
-
-- `configureEnemyBattleCards` now treats an empty cached enemy deck as stale
-  when eligible enemy card candidates exist. It rebuilds and persists the
-  deck instead of allowing a main battle to start with an empty enemy deck.
-- Side missions remain the intentional empty-card mode. When auditing a main
-  report, compare saved `enemyCardIdsByLevel`, progression selected card IDs,
-  and `config.cards`; an empty runtime deck with a populated saved deck is a
-  reset/configuration anomaly and must be excluded from balance conclusions.
+- Old static chart path redirects to:
+  `C:\Users\CPU\.codex\visualizations\2026\08\05\019fd124-855e-7140-8e3c-fe3489442ac9\battle-gold-economy-dynamic.html`.
+- It has runtime sliders for Total Levels, Progression End and Boss Pace. It
+  recalculates main/side reward, fee, package schedule and non-negative planned
+  cumulative balance without battle runtime or telemetry.
+- It is an explanatory source-config model, not authoritative simulation and
+  never writes game state. For exact runtime answers, use `LevelSettings`.
 
 ## Key source map
 
 | Concern | Source |
 | --- | --- |
 | Scene values | `assets/Battle.scene` |
-| Progression/economy/shop/ads/telemetry ledger | `assets/scripts/LevelSettings.ts` |
-| Combat setup, reset, win resolution, export | `assets/scripts/GameManager.ts` |
-| Card data and strength targets | `assets/scripts/BattleCardDatabase.ts` |
-| Card runtime and budget consumption | `assets/scripts/BattleCardRuntime.ts` |
-| Unit combat and target lifecycle | `assets/scripts/Unit.ts`, `assets/scripts/UnitBehavior.ts` |
+| Progression/economy/shop/ads/bot/telemetry ledger | `assets/scripts/LevelSettings.ts` |
+| Combat/reset/winner/export | `assets/scripts/GameManager.ts` |
+| Card data / strength targets | `assets/scripts/BattleCardDatabase.ts` |
+| Card runtime / budget consumption | `assets/scripts/BattleCardRuntime.ts` |
+| Unit combat / targets | `assets/scripts/Unit.ts`, `assets/scripts/UnitBehavior.ts` |
 | Combat telemetry export | `assets/scripts/BattleTelemetry.ts` |
 
 ## Verification and next work
 
-- Static source and serialized-scene checks are required after card/data edits:
-  verify both `BattleCardDatabase.ts` and `Battle.scene`, plus player and enemy
-  calls to `isCardEligibleForTeam`. There is no standalone project TypeScript
-  compile script; full Cocos diagnostics contain pre-existing engine/config
-  noise and must be interpreted separately.
-- Before changing economy values again, use the current main-reward plan as
-  the baseline and inspect `progression.telemetry.actions`; do not infer a
-  regression from reports made before the plan.
-- For the next progression audit, first inspect: `side-mission-entry-
-  preparation` diagnostic events, forced purchase source
-  `pre-battle-preparation`, `complete-preparation-target` Gold x2 events, and
-  `prepared-deck-threshold` cooldown-ad events. L5 should no longer enter
-  main repeatedly before Sword Wall plus its entry fee are funded.
-- For boss audits, inspect `boss-deck-mirror` cooldown-ad actions and compare
-  player/enemy selected card IDs before judging a loss. A loss with equal CP
-  and equal deck is a combat-variance sample; a loss with a missing enemy card
-  is a preparation/configuration issue.
-- Use `cautious-coding` for changes, `game-balance-check` for telemetry reports,
-  and `game-balance-regression` after balance/mechanic changes.
+- After card/data edits, inspect `BattleCardDatabase.ts`, `Battle.scene`, and
+  eligibility for both sides. After economy/progression changes, inspect offer
+  schedule, fee affordability, and action ledger through all main levels.
+- `npx tsc --noEmit -p tsconfig.json` and `git diff --check` passed after the
+  2026-08-20 pace fix. Full Cocos diagnostics can include pre-existing
+  editor/engine noise.
+- For boss audits compare saved enemy IDs, runtime cards and player selected
+  cards. Inspect `boss-deck-mirror`, `prepared-deck-threshold`,
+  `pre-battle-preparation`, and `complete-preparation-target` actions first.
+- Before removing a future `.git/index.lock`, verify it is stale and no Git
+  process is active. Do not delete Cocos generated files to make status clean.

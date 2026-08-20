@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _dec48, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -287,26 +287,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 0.01,
         step: 0.1
       }), _dec42 = property({
+        min: 0,
+        step: 50,
+        displayName: 'Main Reward Flat Bonus',
+        tooltip: 'Fixed gold added to every main-battle reward after the stable progression plan is generated. Rounded to 50.'
+      }), _dec43 = property({
         min: 1,
         step: 0.05,
         displayName: 'Boss Gold Reward Multiplier',
         tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
-      }), _dec43 = property({
+      }), _dec44 = property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Main Battle Entry Fee Ratio',
         tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of the previous main battle win reward and rounds up to 50. Side missions are free.'
-      }), _dec44 = property({
+      }), _dec45 = property({
         min: 1,
         step: 1
-      }), _dec45 = property({
+      }), _dec46 = property({
         min: 0.01,
         step: 0.1
-      }), _dec46 = property({
+      }), _dec47 = property({
         min: 1,
         step: 1
-      }), _dec47 = property({
+      }), _dec48 = property({
         type: [UnitProgressionRule]
       }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
@@ -386,17 +391,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor43, this);
 
-          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor44, this);
+          _initializerDefineProperty(this, "mainRewardFlatBonus", _descriptor44, this);
 
-          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor45, this);
+          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor45, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor46, this);
+          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor46, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor47, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor47, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor48, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor48, this);
 
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor49, this);
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor49, this);
+
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor50, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -2916,6 +2923,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
+          var flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
+
+          if (flatBonus > 0) {
+            for (var _index2 = 0; _index2 < result.length; _index2++) {
+              result[_index2] += flatBonus;
+            }
+          }
+
           this.mainBattleGoldPlan = result;
           return result;
         }
@@ -4370,42 +4385,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec42], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "mainRewardFlatBonus", [_dec42], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 400;
+        }
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec43], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec43], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec44], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.35;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec44], {
+      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec45], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec45], {
+      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec46], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec46], {
+      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec47], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1000;
         }
-      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec47], {
+      }), _descriptor50 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec48], {
         configurable: true,
         enumerable: true,
         writable: true,

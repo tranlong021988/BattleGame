@@ -9487,7 +9487,7 @@
     "family": 1,
     "tier": 1,
     "unlockLevel": 1,
-    "unlockProgression": 0,
+    "unlockProgression": 0.1,
     "unlockCount": 5,
     "maxCount": 10
   },

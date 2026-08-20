@@ -1127,9 +1127,11 @@ export class GameManager extends Component {
         this.resolveBattleWinner(
             team === 0 ? 1 : 0,
             team,
-            this.battleProgressionProvider?.isBossBattle?.()
-                ? 'boss-killed'
-                : 'hero-killed'
+            team === 0
+                ? 'player-hero-killed'
+                : this.battleProgressionProvider?.isBossBattle?.()
+                    ? 'boss-hero-killed'
+                    : 'enemy-hero-killed'
         );
     }
 
