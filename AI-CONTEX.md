@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-20. `assets/Battle.scene` and TypeScript source are
+Last updated: 2026-08-21. `assets/Battle.scene` and TypeScript source are
 authoritative; this file is a decision record only. Update it only when the
 user explicitly requests it.
 
@@ -13,11 +13,10 @@ user explicitly requests it.
 - Battles reset internally after telemetry export. Do **not** restore browser
   reload, `game.restart`, `director.loadScene`, or the unused
   `MainGameFlow.ts` approach between battles.
-- The worktree is intentionally dirty with Cocos `library/`, `temp/`,
-  `profiles/`, and scene-editor output. Preserve unrelated changes. Current
-  deliberate source diffs are in `assets/scripts/GameManager.ts` and
-  `assets/scripts/LevelSettings.ts`; `assets/Battle.scene` also has editor
-  changes.
+- The worktree can be dirty with Cocos `library/`, `temp/`, `profiles/`, and
+  scene-editor output. Preserve those unrelated generated changes. At the
+  2026-08-21 handoff, no tracked source or scene file was modified; only
+  generated Cocos output was dirty.
 
 ## Current scene configuration
 
@@ -27,6 +26,7 @@ user explicitly requests it.
 | Boss pace | 5 |
 | Starter gold | 1,000 |
 | Main reward flat bonus | 400 gold per main battle |
+| Win gold per enemy CP / boss gold multiplier | 1.15 / 1.15 |
 | Player Initial CP / Max Alive | 300 / 4 → 10 |
 | Deck capacity | 3 |
 | Main entry-fee ratio | 0.35 |
@@ -105,6 +105,52 @@ Save key is `battle-progression-v8`; saved schema version is 13.
   threshold, not be used merely because an ad is available.
 - Main-loss count persists through side wins, resets on main win or level
   change, and is a decision input—not a side-reward penalty.
+- Bosses are every fifth level. Their raw baseline reward is 15% above the
+  same-level normal reward: `baseInitialCP * winGoldPerEnemyCP *
+  bossGoldRewardMultiplier`. The boss combat-CP multiplier is deliberately
+  excluded from this reward base. The final displayed reward can differ from
+  exactly 15% because the monotonic reward plan, 50-gold rounding, and the
+  universal 400-gold bonus are applied afterwards.
+
+## Shop package inventory and UI contract
+
+- With the current 60-level scene configuration, the eventual shop inventory
+  is **104 packages**. This is a configuration-derived count, not a value UI
+  should hard-code:
+
+  | UI group | Package kinds | Count |
+  | --- | --- | ---: |
+  | Army | Unit unlock (5), unit count (22) | 27 |
+  | Army Power | Initial CP (20), Max Alive (6) | 26 |
+  | Cards | Card unlock (9), cooldown (18), budget (18), strength (6) | 51 |
+
+- Spear is the L1 starter. Current paid unit unlock milestones are Sword L5,
+  Axe L10, Archer L25, Cavalry L35 and Monk L45. Sword's normalized
+  progression is `0.1`: it is not starter-owned and must be bought on a fresh
+  progression save. Existing `battle-progression-v8` saves can retain prior
+  Sword ownership.
+- For the vertical shop timeline, use runtime offers from `LevelSettings`,
+  grouped as `Army`, `Army Power`, and `Cards`; do not mirror a static
+  per-level list. CP/Max Alive and card-upgrade placement are generated from
+  dynamic total-level/progression-end/boss-pace settings.
+- Inspector ownership: `LevelSettings` owns unit progression, unlock-cost
+  multiplier, generated CP/Max Alive schedules and economy. `BattleCardDatabase`
+  owns card definitions and card rank data. `BattleUnitDatabase` owns base
+  unit stats/CP; unit unlock price is derived from CP times the LevelSettings
+  multiplier.
+
+## Hero upgrade status (design only)
+
+- No hero-upgrade package/system is implemented.
+- Candidate approved only as a design direction: one deterministic **Hero
+  Training** track with 10 ranks at L5,10,...,50. Each rank would give a small
+  combined HP and damage increase; a working candidate is +2.5% Max HP and
+  +1.5% Damage per rank (full: +25% HP, +15% damage).
+- If implemented, enemy needs an expected Hero Rank by level, bot purchase
+  simulation and the guaranteed-win economy audit must include the package,
+  and telemetry must record player/enemy hero ranks and multipliers. Do not
+  add active skills, revive, healing, crowd control, or speed effects in the
+  first hero version because hero death immediately ends the battle.
 
 ## Combat, reset and telemetry correctness
 
