@@ -415,11 +415,20 @@ export class LevelSettings extends Component
     bossGoldRewardMultiplier = 1.15;
 
     @property({
+        min: 0.1,
+        max: 1,
+        step: 0.05,
+        displayName: 'Side Reward Fee Multiplier',
+        tooltip: 'Side-win gold as a share of the current main entry fee. Gold x2 can turn a partial recovery into a full preparation purchase. Rounds up to 50.'
+    })
+    sideRewardFeeMultiplier = 0.65;
+
+    @property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Main Battle Entry Fee Ratio',
-        tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of the previous main battle win reward and rounds up to 50. Side missions are free.'
+        tooltip: 'Gold charged before each main progression battle after the first. It uses the preceding normal main-reward curve, so a boss reward spike does not inflate the next entry fee. Rounds up to 50. Side missions are free.'
     })
     mainBattleEntryFeeRatio = 0.35;
 
@@ -482,7 +491,10 @@ export class LevelSettings extends Component
     private telemetryActions: ProgressionTelemetryAction[] = [];
     private telemetryActionSequence = 0;
     private preserveTelemetryActionsForSideMission = false;
-    private mainBattleGoldPlan: number[] | null = null;
+    // Base (pre-flat-bonus) rewards for ordinary main battles. This must be
+    // campaign-stable: the current enemy deck is runtime state, not economy
+    // configuration.
+    private mainBattleNormalGoldPlan: number[] | null = null;
     private telemetryActionPhase: 'pre-battle' | 'battle-result' =
         'pre-battle';
     private currentPlayerBattleCardIds: string[] = [];
@@ -1053,7 +1065,7 @@ export class LevelSettings extends Component
     }
 
     private initializeProgression() {
-        this.mainBattleGoldPlan = null;
+        this.mainBattleNormalGoldPlan = null;
         const loaded = this.loadProgressionState();
 
         this.progressionState = loaded
@@ -1335,92 +1347,117 @@ export class LevelSettings extends Component
 
         if (this.purchasingSimulation) {
             this.currentPlayerCooldownAdReasons.clear();
-            const eligibleDefinitions = database.cards.filter(
+            const ownedDefinitions = database.cards.filter((definition) => {
+                const saved = this.getSavedCard(state, definition.id);
+
+                return !!saved && saved.owned;
+            });
+            const readyOwnedDefinitions = ownedDefinitions.filter(
+                (definition) => {
+                    const saved = this.getSavedCard(state, definition.id);
+
+                    return !!saved && saved.cooldownRemaining <= 0;
+                }
+            );
+            const eligibleDefinitions = ownedDefinitions.filter(
+                (definition) => {
+                    return this.isCardEligibleForTeam(
+                        definition,
+                        0,
+                        state
+                    );
+                }
+            );
+            // Eligibility is a tactical filter. It must never leave the bot
+            // entering with an empty deck when an owned card has a real
+            // player target. The fallback protects the battle flow from an
+            // incomplete roster/condition evaluation; the score below still
+            // decides which applicable card is least harmful to bring.
+            const playerCardDefinitions = eligibleDefinitions.length > 0
+                ? eligibleDefinitions
+                : ownedDefinitions.filter((definition) =>
+                    this.getCardTargetCombatWeight(definition, 0, state) > 0
+                );
+
+            const mirrorCardIds = this.isBossLevelFor(this.battleLevel)
+                ? this.getBossMirrorCardIds(state, playerCardDefinitions)
+                : [];
+            const useBossMirror = mirrorCardIds.length === enemyDeckSize;
+            const deckDefinitions = useBossMirror
+                ? playerCardDefinitions.filter((definition) =>
+                    mirrorCardIds.includes(definition.id)
+                )
+                : playerCardDefinitions;
+            const readyDefinitions = deckDefinitions.filter(
                 (definition) => {
                     const saved = this.getSavedCard(
                         state,
                         definition.id
                     );
 
-                    return !!saved &&
-                        saved.owned &&
-                        this.isCardEligibleForTeam(
-                            definition,
-                            0,
-                            state
-                    );
+                    return !!saved && saved.cooldownRemaining <= 0;
                 }
             );
-
-            if (this.isBossLevelFor(this.battleLevel)) {
-                const mirrorCardIds = this.getBossMirrorCardIds(
-                    state,
-                    eligibleDefinitions
-                );
-
-                if (mirrorCardIds.length === enemyDeckSize) {
-                    this.currentPlayerBattleCardIds = mirrorCardIds;
-
-                    for (let i = 0; i < mirrorCardIds.length; i++) {
-                        const card = this.getSavedCard(
-                            state,
-                            mirrorCardIds[i]
-                        );
-
-                        if (card && card.cooldownRemaining > 0) {
-                            this.currentPlayerCooldownAdReasons.set(
-                                mirrorCardIds[i],
-                                'boss-deck-mirror'
-                            );
-                        }
-                    }
-
-                    this.finishBotSelectedCardCooldowns(state);
-                } else {
-                    this.currentPlayerBattleCardIds = [];
+            const cooldownDefinitions = deckDefinitions.filter(
+                (definition) => {
+                    const saved = this.getSavedCard(
+                        state,
+                        definition.id
+                    );
+                    return !!saved && saved.cooldownRemaining > 0;
                 }
+            );
+            const cooldownAdPlan = this.selectBotCooldownAdDeck(
+                readyDefinitions,
+                cooldownDefinitions,
+                state,
+                this.currentBattleUsesPreparedDeck || useBossMirror
+            );
+
+            for (let i = 0; i < cooldownAdPlan.candidates.length; i++) {
+                const candidate = cooldownAdPlan.candidates[i];
+                this.currentPlayerCooldownAdReasons.set(
+                    candidate.definition.id,
+                    candidate.reason
+                );
+            }
+            this.currentPlayerBattleCardIds = cooldownAdPlan.cardIds;
+
+            // Final invariant for the bot only: entering with an empty deck
+            // while an owned card is ready is never a valid decision. This
+            // remains outside player-facing rules; a human can still choose
+            // an empty deck or skip any number of cooldowns manually.
+            if (this.currentPlayerBattleCardIds.length <= 0 &&
+                readyOwnedDefinitions.length > 0) {
+                this.currentPlayerBattleCardIds =
+                    this.selectBestPlayerCardIds(
+                        readyOwnedDefinitions,
+                        state,
+                        this.getBattleCardDeckSize()
+                    );
             }
 
-            if (
-                !this.isBossLevelFor(this.battleLevel) ||
-                this.currentPlayerBattleCardIds.length !== enemyDeckSize
-            ) {
-                const readyDefinitions = eligibleDefinitions.filter(
-                    (definition) => {
-                        const saved = this.getSavedCard(
-                            state,
-                            definition.id
-                        );
-
-                        return !!saved && saved.cooldownRemaining <= 0;
-                    }
-                );
-                const cooldownDefinitions = eligibleDefinitions.filter(
-                    (definition) => {
-                        const saved = this.getSavedCard(
-                            state,
-                            definition.id
-                        );
-                        return !!saved && saved.cooldownRemaining > 0;
-                    }
-                );
-                const cooldownAdPlan = this.selectBotCooldownAdDeck(
-                    readyDefinitions,
-                    cooldownDefinitions,
+            // If every owned card is cooling, the bot uses one recovery ad
+            // rather than starting cardless. `finishBotSelectedCardCooldowns`
+            // applies the ad only to this single selected card.
+            if (this.currentPlayerBattleCardIds.length <= 0 &&
+                this.allowAdsRescue && ownedDefinitions.length > 0) {
+                const emergencyCardIds = this.selectBestPlayerCardIds(
+                    ownedDefinitions,
                     state,
-                    this.currentBattleUsesPreparedDeck
+                    1
                 );
 
-                for (let i = 0; i < cooldownAdPlan.candidates.length; i++) {
-                    const candidate = cooldownAdPlan.candidates[i];
+                if (emergencyCardIds.length > 0) {
+                    const emergencyCardId = emergencyCardIds[0];
+                    this.currentPlayerBattleCardIds = [emergencyCardId];
                     this.currentPlayerCooldownAdReasons.set(
-                        candidate.definition.id,
-                        candidate.reason
+                        emergencyCardId,
+                        'no-ready-card-emergency-recovery'
                     );
                 }
-                this.currentPlayerBattleCardIds = cooldownAdPlan.cardIds;
-                this.finishBotSelectedCardCooldowns(state);
             }
+            this.finishBotSelectedCardCooldowns(state);
         } else {
             this.currentPlayerBattleCardIds =
                 this.filterReadyPlayerCardIds(
@@ -1620,13 +1657,20 @@ export class LevelSettings extends Component
 
         if (deckSize <= 0) return [];
 
-        return candidates.map((definition) => ({
+        const scored = candidates.map((definition) => ({
             definition,
             score: this.getPlayerBattleCardScore(definition, state),
-        })).filter((candidate) => candidate.score > 0).sort(
+        })).sort(
             (a, b) => b.score - a.score ||
                 a.definition.id.localeCompare(b.definition.id)
-        ).slice(0, deckSize).map((candidate) => candidate.definition.id);
+        );
+        // Score ranks applicable cards only. It must not act as a second
+        // eligibility gate: a positive score is not required to fill a deck.
+        // Therefore this function returns at least one id whenever candidates
+        // exist and the configured deck capacity is positive.
+        return scored.slice(0, deckSize).map(
+            (candidate) => candidate.definition.id
+        );
     }
 
     private selectBestEnemyCardIds(
@@ -1798,94 +1842,84 @@ export class LevelSettings extends Component
             return { cardIds: noAdCardIds, candidates };
         }
 
-        // Build the smallest useful ad plan. Each step must improve the
-        // selected deck, and the whole plan is discarded unless it changes
-        // the matchup from disadvantaged to competitive.
-        let availableDefinitions = noAdDefinitions.slice();
-        let remainingCooldowns = cooldownDefinitions.slice();
-        let cardIds = noAdCardIds;
+        // The bot may choose at most one cooldown ad per battle. This is an
+        // AI policy only; manual player cooldown ads remain unrestricted.
+        // A card must materially improve the weak deck; it does not need to
+        // solve the entire strength gap by itself.
+        let bestDefinition: BattleCardDefinition | null = null;
+        let bestCardIds = noAdCardIds;
+        let bestScore = this.getPlayerDeckScore(
+            noAdCardIds, noAdDefinitions, state
+        );
+        const playerStrength = this.getPlayerTeamCombatWeightForCardScore(
+            state
+        );
+        const enemyStrength = this.getEnemyTeamCombatWeightForCardScore(
+            state
+        ) + this.getEnemyDeckScore(state);
+        const missingStrength = Math.max(0, enemyStrength -
+            playerStrength - bestScore);
 
-        while (remainingCooldowns.length > 0) {
-            let bestDefinition: BattleCardDefinition | null = null;
-            let bestDefinitions: BattleCardDefinition[] = [];
-            let bestCardIds = cardIds;
-            let bestScore = this.getPlayerDeckScore(
-                cardIds, availableDefinitions, state
+        for (let i = 0; i < cooldownDefinitions.length; i++) {
+            const definition = cooldownDefinitions[i];
+            const proposedDefinitions = noAdDefinitions.concat(definition);
+            const proposedCardIds = this.selectBestPlayerCardIds(
+                proposedDefinitions, state, deckSize
             );
 
-            for (let i = 0; i < remainingCooldowns.length; i++) {
-                const definition = remainingCooldowns[i];
-                const proposedDefinitions = availableDefinitions.concat(
-                    definition
-                );
-                const proposedCardIds = this.selectBestPlayerCardIds(
-                    proposedDefinitions, state, deckSize
-                );
-
-                if (!proposedCardIds.includes(definition.id)) continue;
-
-                const proposedScore = this.getPlayerDeckScore(
-                    proposedCardIds, proposedDefinitions, state
-                );
-
-                if (
-                    proposedScore > bestScore ||
-                    (proposedScore === bestScore && bestDefinition &&
-                        definition.id.localeCompare(bestDefinition.id) < 0)
-                ) {
-                    bestDefinition = definition;
-                    bestDefinitions = proposedDefinitions;
-                    bestCardIds = proposedCardIds;
-                    bestScore = proposedScore;
-                }
+            if (!proposedCardIds.includes(definition.id)) {
+                continue;
             }
 
-            if (!bestDefinition) break;
-
-            availableDefinitions = bestDefinitions;
-            cardIds = bestCardIds;
-            remainingCooldowns = remainingCooldowns.filter((definition) =>
-                definition.id !== bestDefinition!.id
+            const proposedScore = this.getPlayerDeckScore(
+                proposedCardIds, proposedDefinitions, state
             );
-            candidates.push({
+            const scoreGain = proposedScore - bestScore;
+            const materiallyImprovesDeck = forceCompetitivePlan
+                ? scoreGain > 0
+                : scoreGain >= Math.max(0.01, missingStrength * 0.15);
+
+            if (!materiallyImprovesDeck) continue;
+
+            if (
+                proposedScore > bestScore ||
+                (proposedScore === bestScore && bestDefinition &&
+                    definition.id.localeCompare(bestDefinition.id) < 0)
+            ) {
+                bestDefinition = definition;
+                bestCardIds = proposedCardIds;
+                bestScore = proposedScore;
+            }
+        }
+
+        if (bestDefinition) {
+            const mainLosses = Math.max(
+                0,
+                state.mainLossesAtCurrentLevel
+            );
+            const selectedCandidates = [{
                 definition: bestDefinition,
                 reason: 'deck-threshold-required',
-            });
+            }];
 
-            if (this.isPlayerDeckCompetitive(
-                cardIds, availableDefinitions, state
+            if (!this.shouldBotUseCooldownAdPlan(
+                mainLosses,
+                forceCompetitivePlan,
+                bestCardIds,
+                selectedCandidates,
+                state
             )) {
-                const mainLosses = Math.max(
-                    0,
-                    state.mainLossesAtCurrentLevel
-                );
-
-                const selectedCandidates = candidates.filter((candidate) =>
-                    cardIds.includes(candidate.definition.id)
-                );
-
-                if (!this.shouldBotUseCooldownAdPlan(
-                    mainLosses,
-                    forceCompetitivePlan,
-                    cardIds,
-                    selectedCandidates,
-                    state
-                )) {
-                    return { cardIds: noAdCardIds, candidates: [] };
-                }
-
-                for (let i = 0; i < selectedCandidates.length; i++) {
-                    selectedCandidates[i].reason =
-                        forceCompetitivePlan
-                            ? 'prepared-deck-threshold-roll'
-                            : `deck-threshold-after-${mainLosses}-main-losses`;
-                }
-
-                return {
-                    cardIds,
-                    candidates: selectedCandidates,
-                };
+                return { cardIds: noAdCardIds, candidates: [] };
             }
+
+            selectedCandidates[0].reason = forceCompetitivePlan
+                ? 'prepared-deck-threshold-roll'
+                : `deck-threshold-after-${mainLosses}-main-losses`;
+
+            return {
+                cardIds: bestCardIds,
+                candidates: selectedCandidates,
+            };
         }
 
         // Do not spend ads for a deck that still cannot meet the enemy.
@@ -1924,6 +1958,11 @@ export class LevelSettings extends Component
         const candidateIsIndividuallyMeaningful =
             strongestCandidate >= requiredCardStrength;
 
+        // A prepared deck has already shown that this cooling card is the
+        // sensible recovery choice. Do not turn that plan into an arbitrary
+        // retry when one ad is enough to field it.
+        if (forceCompetitivePlan) return true;
+
         // This is deliberately a human-like choice, not a guarantee. A
         // prepared deck makes ads more tempting, but the bot may still
         // stubbornly retry without using them. Repeated losses increase the
@@ -1934,12 +1973,6 @@ export class LevelSettings extends Component
             Math.max(0, mainLosses) * 0.16
         );
         if (candidateIsIndividuallyMeaningful) probability += 0.14;
-        if (selectedCandidates.length > 1) {
-            probability -= Math.min(
-                0.12,
-                (selectedCandidates.length - 1) * 0.06
-            );
-        }
 
         const clampedProbability = this.clamp01(
             Math.max(0.08, Math.min(0.86, probability))
@@ -3962,7 +3995,11 @@ export class LevelSettings extends Component
         return state.playerInitialCP <
             this.getPlayerCPMilestoneCap(this.battleLevel) ||
             state.playerMaxAlive <
-            this.getPlayerMaxAliveMilestoneCap(this.battleLevel);
+            this.getPlayerMaxAliveMilestoneCap(this.battleLevel) ||
+            this.getOpenedUnitCountBaselineOptions(
+                this.getPurchaseOptions(state),
+                state
+            ).length > 0;
     }
 
     private getMaxAlivePackageCost(
@@ -3990,7 +4027,10 @@ export class LevelSettings extends Component
         const preparationTarget = this.getBotPreparationPlan(
             this.progressionState
         ).target;
-        const targetReserve = preparationTarget
+        const goldAfterReservedCosts = this.progressionState.playerGold -
+            Math.max(0, reservedGold);
+        const targetReserve = preparationTarget &&
+            preparationTarget.cost <= goldAfterReservedCosts
             ? preparationTarget.cost
             : 0;
         const reserve = Math.max(
@@ -4024,14 +4064,25 @@ export class LevelSettings extends Component
 
     private getBotPurchaseCandidates(
         state: SavedProgressionState,
-        affordableOnly: boolean
+        affordableOnly: boolean,
+        allowBossMirror = true
     ) {
         let options = this.getPurchaseOptions(state).filter(
             (option) => !affordableOnly ||
                 option.cost <= state.playerGold
         );
 
-        if (this.isBossLevelFor(this.battleLevel)) {
+        const baselineUnitCountOptions =
+            this.getOpenedUnitCountBaselineOptions(options, state);
+
+        // An already offered unit-count rank is part of the battle
+        // baseline. Do not let an optional card or a boss mirror postpone
+        // parity with the enemy's current unit count.
+        if (baselineUnitCountOptions.length > 0) {
+            return baselineUnitCountOptions;
+        }
+
+        if (allowBossMirror && this.isBossLevelFor(this.battleLevel)) {
             const mirrorTarget = this.getNextBossMirrorPurchaseOption(state);
 
             if (mirrorTarget && (
@@ -4085,6 +4136,31 @@ export class LevelSettings extends Component
         return currentLevelUnitUnlocks.length > 0
             ? currentLevelUnitUnlocks
             : options;
+    }
+
+    private getOpenedUnitCountBaselineOptions(
+        options: PurchaseOption[],
+        state: SavedProgressionState
+    ) {
+        return options.filter((option) => {
+            if (
+                option.kind !== 'unit-count' ||
+                option.family === null
+            ) {
+                return false;
+            }
+
+            const rule = this.getRule(option.family, option.tier);
+            const saved = rule
+                ? this.getSavedUnit(state, this.getRuleKey(rule))
+                : null;
+
+            return !!rule && !!saved && saved.unlocked &&
+                saved.unitCount < this.getEnemyUnitCount(
+                    rule,
+                    this.battleLevel
+                );
+        });
     }
 
     private getBotPreparationPlan(state: SavedProgressionState): BotPreparationPlan {
@@ -4368,7 +4444,10 @@ export class LevelSettings extends Component
         return true;
     }
 
-    private getMainBattleWinGold(level: number) {
+    private getMainBattleWinGold(
+        level: number,
+        includeBossBonus = true
+    ) {
         const rewardBaseCP = this.getLevelBaseInitialCP(level);
 
         return Math.max(
@@ -4376,7 +4455,7 @@ export class LevelSettings extends Component
             Math.round(
                 rewardBaseCP *
                 Math.max(0, this.winGoldPerEnemyCP) *
-                (this.isBossLevelFor(level)
+                (includeBossBonus && this.isBossLevelFor(level)
                     ? Math.max(1, this.bossGoldRewardMultiplier)
                     : 1)
             )
@@ -4385,21 +4464,51 @@ export class LevelSettings extends Component
 
     private getMainBattleReward(level: number) {
         const safeLevel = this.clampLevel(level);
-        const plan = this.getMainBattleGoldPlan();
+        const normalGold = this.getMainBattleNormalReward(safeLevel);
+        const gold = this.isBossLevelFor(safeLevel)
+            ? this.getBossMainBattleReward(safeLevel)
+            : normalGold;
 
         return {
             targetId: 'mainline-gold-plan',
             targetCost: 0,
-            gold: plan[safeLevel - 1] || 0,
+            gold,
         };
     }
 
-    private getMainBattleGoldPlan() {
+    private getMainBattleNormalReward(level: number) {
+        const safeLevel = this.clampLevel(level);
+        const plan = this.getMainBattleNormalGoldPlan();
+        const flatBonus = Math.max(
+            0,
+            Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50
+        );
+
+        return (plan[safeLevel - 1] || 0) + flatBonus;
+    }
+
+    private getBossMainBattleReward(level: number) {
+        const safeLevel = this.clampLevel(level);
+        const plan = this.getMainBattleNormalGoldPlan();
+        const normalBaseGold = plan[safeLevel - 1] || 0;
+        const bossBaseGold = Math.ceil(
+            normalBaseGold *
+            Math.max(1, this.bossGoldRewardMultiplier) / 50
+        ) * 50;
+        const flatBonus = Math.max(
+            0,
+            Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50
+        );
+
+        return bossBaseGold + flatBonus;
+    }
+
+    private getMainBattleNormalGoldPlan() {
         const totalLevels = this.getSafeTotalLevels();
 
-        if (this.mainBattleGoldPlan &&
-            this.mainBattleGoldPlan.length === totalLevels) {
-            return this.mainBattleGoldPlan;
+        if (this.mainBattleNormalGoldPlan &&
+            this.mainBattleNormalGoldPlan.length === totalLevels) {
+            return this.mainBattleNormalGoldPlan;
         }
 
         const plannedPurchaseBudgets =
@@ -4409,12 +4518,11 @@ export class LevelSettings extends Component
 
         for (let level = 1; level <= totalLevels; level++) {
             const baseReward = Math.ceil(
-                this.getMainBattleWinGold(level) / 50
+                this.getMainBattleWinGold(level, false) / 50
             ) * 50;
-            // Mainline rewards are a visible progression signal: every
-            // battle must pay strictly more than the previous one. Purchase
-            // budgets remain a bot-planning concern and must not create a
-            // sudden reward spike at the level before a large purchase.
+            // Normal mainline rewards are a visible progression signal:
+            // every normal point on the curve must pay strictly more than
+            // the previous one. Boss bonuses are applied separately.
             let reward = Math.max(
                 previousReward + 50,
                 baseReward
@@ -4439,7 +4547,9 @@ export class LevelSettings extends Component
             let deficitIndex = -1;
 
             for (let level = 1; level <= totalLevels; level++) {
-                availableGold += result[level - 1];
+                availableGold += this.getMainBattleNormalRewardFromBase(
+                    result[level - 1]
+                );
 
                 if (level >= totalLevels) continue;
 
@@ -4447,7 +4557,9 @@ export class LevelSettings extends Component
                 availableGold -=
                     plannedPurchaseBudgets[nextLevel - 1] +
                     this.getMainBattleEntryFeeForReward(
-                        result[level - 1],
+                        this.getMainBattleNormalRewardFromBase(
+                            result[level - 1]
+                        ),
                         nextLevel
                     );
 
@@ -4478,21 +4590,18 @@ export class LevelSettings extends Component
             }
         }
 
+        this.mainBattleNormalGoldPlan = result;
+
+        return result;
+    }
+
+    private getMainBattleNormalRewardFromBase(baseReward: number) {
         const flatBonus = Math.max(
             0,
-            Math.round(
-                Math.max(0, this.mainRewardFlatBonus) / 50
-            ) * 50
+            Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50
         );
 
-        if (flatBonus > 0) {
-            for (let index = 0; index < result.length; index++) {
-                result[index] += flatBonus;
-            }
-        }
-
-        this.mainBattleGoldPlan = result;
-        return result;
+        return Math.max(0, baseReward) + flatBonus;
     }
 
     private getMainlinePlannedPurchaseBudgets() {
@@ -4512,15 +4621,13 @@ export class LevelSettings extends Component
 
                 const options = this.getBotPurchaseCandidates(
                     planState,
+                    false,
                     false
                 );
 
                 if (options.length <= 0) continue;
 
-                const preparationTarget =
-                    this.getBotPreparationPlan(planState).target;
-                const plannedOption = preparationTarget ||
-                    options.slice().sort((a, b) => {
+                const plannedOption = options.slice().sort((a, b) => {
                         const weightDifference =
                             this.getPurchaseWeight(b) -
                             this.getPurchaseWeight(a);
@@ -4552,7 +4659,7 @@ export class LevelSettings extends Component
         if (safeLevel <= 1) return 0;
 
         return this.getMainBattleEntryFeeForReward(
-            this.getMainBattleReward(safeLevel - 1).gold,
+            this.getMainBattleNormalReward(safeLevel - 1),
             safeLevel
         );
     }
@@ -4582,9 +4689,17 @@ export class LevelSettings extends Component
     }
 
     private getSideMissionReward() {
-        const baseGold = Math.max(
+        const entryFee = Math.max(
             50,
             this.getMainBattleEntryFee(this.battleLevel)
+        );
+        const multiplier = Math.max(
+            0.1,
+            Math.min(1, this.sideRewardFeeMultiplier)
+        );
+        const baseGold = Math.max(
+            50,
+            Math.ceil(entryFee * multiplier / 50) * 50
         );
 
         return {
@@ -4680,7 +4795,8 @@ export class LevelSettings extends Component
             reward,
             type
         );
-        const useAds = this.purchasingSimulation &&
+        const useAds = type === 'side-mission-win' &&
+            this.purchasingSimulation &&
             this.allowAdsRescue &&
             state.levelLossCount > 0 &&
             decision.useAds;
@@ -4701,6 +4817,8 @@ export class LevelSettings extends Component
                 ? 'bot-simulation-disabled'
                 : !this.allowAdsRescue
                     ? 'ads-disabled'
+                    : type !== 'side-mission-win'
+                        ? 'side-rescue-only'
                     : state.levelLossCount <= 0
                         ? 'mainline-run-no-rescue-needed'
                     : decision.useAds

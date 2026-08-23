@@ -1,0 +1,1200 @@
+{
+  "config": {
+    "total": 60,
+    "end": 50,
+    "bossPace": 5,
+    "cpMin": 250,
+    "cpMax": 1040,
+    "aliveMin": 3,
+    "aliveMax": 10,
+    "initialGold": 1000,
+    "cpStart": 300,
+    "aliveStart": 4,
+    "cpGold": 10,
+    "alivePrice": 1000,
+    "unitUnlockMultiplier": 5,
+    "winPerCP": 1.15,
+    "flat": 400,
+    "bossRewardMultiplier": 1.15,
+    "feeRatio": 0.35
+  },
+  "failures": [
+    {
+      "level": 2,
+      "name": "card:battle-shields",
+      "cost": 700,
+      "gold": 585,
+      "phase": "package"
+    },
+    {
+      "level": 5,
+      "name": "entry-fee",
+      "cost": 300,
+      "gold": 281,
+      "phase": "fee"
+    },
+    {
+      "level": 11,
+      "name": "entry-fee",
+      "cost": 500,
+      "gold": 237,
+      "phase": "fee"
+    },
+    {
+      "level": 26,
+      "name": "cooldown:battle-shields:R2",
+      "cost": 630,
+      "gold": 491,
+      "phase": "package"
+    },
+    {
+      "level": 26,
+      "name": "entry-fee",
+      "cost": 1250,
+      "gold": 491,
+      "phase": "fee"
+    },
+    {
+      "level": 27,
+      "name": "entry-fee",
+      "cost": 1300,
+      "gold": 795,
+      "phase": "fee"
+    },
+    {
+      "level": 28,
+      "name": "entry-fee",
+      "cost": 1350,
+      "gold": 1210,
+      "phase": "fee"
+    },
+    {
+      "level": 31,
+      "name": "entry-fee",
+      "cost": 1500,
+      "gold": 686,
+      "phase": "fee"
+    },
+    {
+      "level": 32,
+      "name": "entry-fee",
+      "cost": 1550,
+      "gold": 1480,
+      "phase": "fee"
+    },
+    {
+      "level": 33,
+      "name": "entry-fee",
+      "cost": 1600,
+      "gold": 1250,
+      "phase": "fee"
+    },
+    {
+      "level": 34,
+      "name": "entry-fee",
+      "cost": 1650,
+      "gold": 1580,
+      "phase": "fee"
+    },
+    {
+      "level": 35,
+      "name": "entry-fee",
+      "cost": 1700,
+      "gold": 513,
+      "phase": "fee"
+    },
+    {
+      "level": 36,
+      "name": "budget:axe-frenzy:R2",
+      "cost": 488,
+      "gold": 290,
+      "phase": "package"
+    },
+    {
+      "level": 36,
+      "name": "entry-fee",
+      "cost": 1750,
+      "gold": 290,
+      "phase": "fee"
+    },
+    {
+      "level": 37,
+      "name": "entry-fee",
+      "cost": 1800,
+      "gold": 1377,
+      "phase": "fee"
+    },
+    {
+      "level": 38,
+      "name": "entry-fee",
+      "cost": 1850,
+      "gold": 1710,
+      "phase": "fee"
+    },
+    {
+      "level": 45,
+      "name": "entry-fee",
+      "cost": 2200,
+      "gold": 811,
+      "phase": "fee"
+    },
+    {
+      "level": 46,
+      "name": "entry-fee",
+      "cost": 2250,
+      "gold": 217,
+      "phase": "fee"
+    },
+    {
+      "level": 47,
+      "name": "entry-fee",
+      "cost": 2300,
+      "gold": 1877,
+      "phase": "fee"
+    },
+    {
+      "level": 48,
+      "name": "entry-fee",
+      "cost": 2350,
+      "gold": 1610,
+      "phase": "fee"
+    },
+    {
+      "level": 49,
+      "name": "entry-fee",
+      "cost": 2400,
+      "gold": 2225,
+      "phase": "fee"
+    },
+    {
+      "level": 53,
+      "name": "entry-fee",
+      "cost": 2600,
+      "gold": 2095,
+      "phase": "fee"
+    },
+    {
+      "level": 57,
+      "name": "entry-fee",
+      "cost": 2800,
+      "gold": 1950,
+      "phase": "fee"
+    },
+    {
+      "level": 58,
+      "name": "entry-fee",
+      "cost": 2850,
+      "gold": 2700,
+      "phase": "fee"
+    },
+    {
+      "level": 59,
+      "name": "entry-fee",
+      "cost": 2900,
+      "gold": 2350,
+      "phase": "fee"
+    }
+  ],
+  "minGold": 815,
+  "finalGold": 4800,
+  "rows": [
+    {
+      "level": 1,
+      "before": 1000,
+      "spent": 0,
+      "fee": 0,
+      "reward": 700,
+      "after": 1700,
+      "purchases": []
+    },
+    {
+      "level": 2,
+      "before": 1700,
+      "spent": 1115,
+      "fee": 250,
+      "reward": 750,
+      "after": 1085,
+      "purchases": [
+        {
+          "name": "unlock:0",
+          "cost": 195
+        },
+        {
+          "name": "cp:+7",
+          "cost": 70
+        },
+        {
+          "name": "card:general-offensive",
+          "cost": 850
+        }
+      ]
+    },
+    {
+      "level": 3,
+      "before": 1085,
+      "spent": 770,
+      "fee": 300,
+      "reward": 800,
+      "after": 815,
+      "purchases": [
+        {
+          "name": "cp:+7",
+          "cost": 70
+        },
+        {
+          "name": "card:battle-shields",
+          "cost": 700
+        }
+      ]
+    },
+    {
+      "level": 4,
+      "before": 815,
+      "spent": 0,
+      "fee": 300,
+      "reward": 850,
+      "after": 1365,
+      "purchases": []
+    },
+    {
+      "level": 5,
+      "before": 1365,
+      "spent": 1084,
+      "fee": 300,
+      "reward": 1000,
+      "after": 1000,
+      "purchases": [
+        {
+          "name": "count:0",
+          "cost": 39
+        },
+        {
+          "name": "unlock:1",
+          "cost": 245
+        },
+        {
+          "name": "card:sword-wall",
+          "cost": 800
+        }
+      ]
+    },
+    {
+      "level": 6,
+      "before": 1000,
+      "spent": 410,
+      "fee": 350,
+      "reward": 950,
+      "after": 1190,
+      "purchases": [
+        {
+          "name": "cp:+41",
+          "cost": 410
+        }
+      ]
+    },
+    {
+      "level": 7,
+      "before": 1190,
+      "spent": 0,
+      "fee": 350,
+      "reward": 1000,
+      "after": 1840,
+      "purchases": []
+    },
+    {
+      "level": 8,
+      "before": 1840,
+      "spent": 400,
+      "fee": 350,
+      "reward": 1050,
+      "after": 2140,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        }
+      ]
+    },
+    {
+      "level": 9,
+      "before": 2140,
+      "spent": 0,
+      "fee": 400,
+      "reward": 1100,
+      "after": 2840,
+      "purchases": []
+    },
+    {
+      "level": 10,
+      "before": 2840,
+      "spent": 1618,
+      "fee": 450,
+      "reward": 1300,
+      "after": 2072,
+      "purchases": [
+        {
+          "name": "count:0",
+          "cost": 39
+        },
+        {
+          "name": "count:1",
+          "cost": 49
+        },
+        {
+          "name": "unlock:5",
+          "cost": 370
+        },
+        {
+          "name": "cooldown:general-offensive:R1",
+          "cost": 510
+        },
+        {
+          "name": "card:axe-frenzy",
+          "cost": 650
+        }
+      ]
+    },
+    {
+      "level": 11,
+      "before": 2072,
+      "spent": 1835,
+      "fee": 500,
+      "reward": 1200,
+      "after": 1200,
+      "purchases": [
+        {
+          "name": "cp:+41",
+          "cost": 410
+        },
+        {
+          "name": "max-alive:+1",
+          "cost": 1000
+        },
+        {
+          "name": "budget:general-offensive:R1",
+          "cost": 425
+        }
+      ]
+    },
+    {
+      "level": 12,
+      "before": 1200,
+      "spent": 0,
+      "fee": 550,
+      "reward": 1250,
+      "after": 1900,
+      "purchases": []
+    },
+    {
+      "level": 13,
+      "before": 1900,
+      "spent": 820,
+      "fee": 600,
+      "reward": 1300,
+      "after": 1780,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "cooldown:battle-shields:R1",
+          "cost": 420
+        }
+      ]
+    },
+    {
+      "level": 14,
+      "before": 1780,
+      "spent": 0,
+      "fee": 650,
+      "reward": 1350,
+      "after": 2480,
+      "purchases": []
+    },
+    {
+      "level": 15,
+      "before": 2480,
+      "spent": 162,
+      "fee": 700,
+      "reward": 1550,
+      "after": 3168,
+      "purchases": [
+        {
+          "name": "count:0",
+          "cost": 39
+        },
+        {
+          "name": "count:1",
+          "cost": 49
+        },
+        {
+          "name": "count:5",
+          "cost": 74
+        }
+      ]
+    },
+    {
+      "level": 16,
+      "before": 3168,
+      "spent": 2000,
+      "fee": 750,
+      "reward": 1450,
+      "after": 1868,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "max-alive:+1",
+          "cost": 1250
+        },
+        {
+          "name": "budget:battle-shields:R1",
+          "cost": 350
+        }
+      ]
+    },
+    {
+      "level": 17,
+      "before": 1868,
+      "spent": 0,
+      "fee": 800,
+      "reward": 1500,
+      "after": 2568,
+      "purchases": []
+    },
+    {
+      "level": 18,
+      "before": 2568,
+      "spent": 880,
+      "fee": 850,
+      "reward": 1550,
+      "after": 2388,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "cooldown:sword-wall:R1",
+          "cost": 480
+        }
+      ]
+    },
+    {
+      "level": 19,
+      "before": 2388,
+      "spent": 0,
+      "fee": 900,
+      "reward": 1600,
+      "after": 3088,
+      "purchases": []
+    },
+    {
+      "level": 20,
+      "before": 3088,
+      "spent": 162,
+      "fee": 950,
+      "reward": 1850,
+      "after": 3826,
+      "purchases": [
+        {
+          "name": "count:0",
+          "cost": 39
+        },
+        {
+          "name": "count:1",
+          "cost": 49
+        },
+        {
+          "name": "count:5",
+          "cost": 74
+        }
+      ]
+    },
+    {
+      "level": 21,
+      "before": 3826,
+      "spent": 810,
+      "fee": 1000,
+      "reward": 1700,
+      "after": 3716,
+      "purchases": [
+        {
+          "name": "cp:+41",
+          "cost": 410
+        },
+        {
+          "name": "budget:sword-wall:R1",
+          "cost": 400
+        }
+      ]
+    },
+    {
+      "level": 22,
+      "before": 3716,
+      "spent": 0,
+      "fee": 1050,
+      "reward": 1750,
+      "after": 4416,
+      "purchases": []
+    },
+    {
+      "level": 23,
+      "before": 4416,
+      "spent": 920,
+      "fee": 1100,
+      "reward": 1800,
+      "after": 4196,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "strength:sword-wall:R1",
+          "cost": 520
+        }
+      ]
+    },
+    {
+      "level": 24,
+      "before": 4196,
+      "spent": 0,
+      "fee": 1150,
+      "reward": 1850,
+      "after": 4896,
+      "purchases": []
+    },
+    {
+      "level": 25,
+      "before": 4896,
+      "spent": 3445,
+      "fee": 1200,
+      "reward": 2150,
+      "after": 2401,
+      "purchases": [
+        {
+          "name": "count:0",
+          "cost": 39
+        },
+        {
+          "name": "count:1",
+          "cost": 49
+        },
+        {
+          "name": "count:5",
+          "cost": 74
+        },
+        {
+          "name": "unlock:2",
+          "cost": 130
+        },
+        {
+          "name": "cooldown:general-offensive:R2",
+          "cost": 765
+        },
+        {
+          "name": "card:arrow-suppression",
+          "cost": 650
+        },
+        {
+          "name": "card:precise-range",
+          "cost": 1100
+        },
+        {
+          "name": "budget:general-offensive:R2",
+          "cost": 638
+        }
+      ]
+    },
+    {
+      "level": 26,
+      "before": 2401,
+      "spent": 1910,
+      "fee": 1250,
+      "reward": 1950,
+      "after": 1950,
+      "purchases": [
+        {
+          "name": "cp:+41",
+          "cost": 410
+        },
+        {
+          "name": "max-alive:+1",
+          "cost": 1500
+        }
+      ]
+    },
+    {
+      "level": 27,
+      "before": 1950,
+      "spent": 1155,
+      "fee": 1300,
+      "reward": 2000,
+      "after": 2000,
+      "purchases": [
+        {
+          "name": "cooldown:battle-shields:R2",
+          "cost": 630
+        },
+        {
+          "name": "budget:battle-shields:R2",
+          "cost": 525
+        }
+      ]
+    },
+    {
+      "level": 28,
+      "before": 2000,
+      "spent": 790,
+      "fee": 1350,
+      "reward": 2050,
+      "after": 2050,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "cooldown:axe-frenzy:R1",
+          "cost": 390
+        }
+      ]
+    },
+    {
+      "level": 29,
+      "before": 2050,
+      "spent": 325,
+      "fee": 1400,
+      "reward": 2100,
+      "after": 2425,
+      "purchases": [
+        {
+          "name": "budget:axe-frenzy:R1",
+          "cost": 325
+        }
+      ]
+    },
+    {
+      "level": 30,
+      "before": 2425,
+      "spent": 166,
+      "fee": 1450,
+      "reward": 2450,
+      "after": 3259,
+      "purchases": [
+        {
+          "name": "count:1",
+          "cost": 49
+        },
+        {
+          "name": "count:5",
+          "cost": 74
+        },
+        {
+          "name": "count:2",
+          "cost": 43
+        }
+      ]
+    },
+    {
+      "level": 31,
+      "before": 3259,
+      "spent": 2573,
+      "fee": 1500,
+      "reward": 2200,
+      "after": 2200,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "max-alive:+1",
+          "cost": 1750
+        },
+        {
+          "name": "strength:axe-frenzy:R1",
+          "cost": 423
+        }
+      ]
+    },
+    {
+      "level": 32,
+      "before": 2200,
+      "spent": 720,
+      "fee": 1550,
+      "reward": 2250,
+      "after": 2250,
+      "purchases": [
+        {
+          "name": "cooldown:sword-wall:R2",
+          "cost": 720
+        }
+      ]
+    },
+    {
+      "level": 33,
+      "before": 2250,
+      "spent": 1000,
+      "fee": 1600,
+      "reward": 2300,
+      "after": 2300,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "budget:sword-wall:R2",
+          "cost": 600
+        }
+      ]
+    },
+    {
+      "level": 34,
+      "before": 2300,
+      "spent": 720,
+      "fee": 1650,
+      "reward": 2350,
+      "after": 2350,
+      "purchases": [
+        {
+          "name": "strength:sword-wall:R2",
+          "cost": 720
+        }
+      ]
+    },
+    {
+      "level": 35,
+      "before": 2350,
+      "spent": 1837,
+      "fee": 1700,
+      "reward": 2700,
+      "after": 2700,
+      "purchases": [
+        {
+          "name": "count:5",
+          "cost": 74
+        },
+        {
+          "name": "count:2",
+          "cost": 43
+        },
+        {
+          "name": "unlock:4",
+          "cost": 485
+        },
+        {
+          "name": "card:anti-cavalry-spearhead",
+          "cost": 650
+        },
+        {
+          "name": "cooldown:axe-frenzy:R2",
+          "cost": 585
+        }
+      ]
+    },
+    {
+      "level": 36,
+      "before": 2700,
+      "spent": 2410,
+      "fee": 1750,
+      "reward": 2450,
+      "after": 2450,
+      "purchases": [
+        {
+          "name": "cp:+41",
+          "cost": 410
+        },
+        {
+          "name": "max-alive:+1",
+          "cost": 2000
+        }
+      ]
+    },
+    {
+      "level": 37,
+      "before": 2450,
+      "spent": 1073,
+      "fee": 1800,
+      "reward": 2500,
+      "after": 2500,
+      "purchases": [
+        {
+          "name": "budget:axe-frenzy:R2",
+          "cost": 488
+        },
+        {
+          "name": "strength:axe-frenzy:R2",
+          "cost": 585
+        }
+      ]
+    },
+    {
+      "level": 38,
+      "before": 2500,
+      "spent": 790,
+      "fee": 1850,
+      "reward": 2550,
+      "after": 2550,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "cooldown:arrow-suppression:R1",
+          "cost": 390
+        }
+      ]
+    },
+    {
+      "level": 39,
+      "before": 2550,
+      "spent": 0,
+      "fee": 1900,
+      "reward": 2600,
+      "after": 3250,
+      "purchases": []
+    },
+    {
+      "level": 40,
+      "before": 3250,
+      "spent": 97,
+      "fee": 1950,
+      "reward": 3000,
+      "after": 4203,
+      "purchases": [
+        {
+          "name": "count:4",
+          "cost": 97
+        }
+      ]
+    },
+    {
+      "level": 41,
+      "before": 4203,
+      "spent": 725,
+      "fee": 2000,
+      "reward": 2700,
+      "after": 4178,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "budget:arrow-suppression:R1",
+          "cost": 325
+        }
+      ]
+    },
+    {
+      "level": 42,
+      "before": 4178,
+      "spent": 660,
+      "fee": 2050,
+      "reward": 2750,
+      "after": 4218,
+      "purchases": [
+        {
+          "name": "cooldown:precise-range:R1",
+          "cost": 660
+        }
+      ]
+    },
+    {
+      "level": 43,
+      "before": 4218,
+      "spent": 950,
+      "fee": 2100,
+      "reward": 2800,
+      "after": 3968,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "budget:precise-range:R1",
+          "cost": 550
+        }
+      ]
+    },
+    {
+      "level": 44,
+      "before": 3968,
+      "spent": 0,
+      "fee": 2150,
+      "reward": 2850,
+      "after": 4668,
+      "purchases": []
+    },
+    {
+      "level": 45,
+      "before": 4668,
+      "spent": 3857,
+      "fee": 2200,
+      "reward": 3300,
+      "after": 3300,
+      "purchases": [
+        {
+          "name": "count:4",
+          "cost": 97
+        },
+        {
+          "name": "unlock:6",
+          "cost": 245
+        },
+        {
+          "name": "cooldown:anti-cavalry-spearhead:R1",
+          "cost": 390
+        },
+        {
+          "name": "card:wide-prayer",
+          "cost": 1200
+        },
+        {
+          "name": "card:counter-breaker",
+          "cost": 1600
+        },
+        {
+          "name": "budget:anti-cavalry-spearhead:R1",
+          "cost": 325
+        }
+      ]
+    },
+    {
+      "level": 46,
+      "before": 3300,
+      "spent": 3083,
+      "fee": 2250,
+      "reward": 2950,
+      "after": 2950,
+      "purchases": [
+        {
+          "name": "cp:+41",
+          "cost": 410
+        },
+        {
+          "name": "max-alive:+1",
+          "cost": 2250
+        },
+        {
+          "name": "strength:anti-cavalry-spearhead:R1",
+          "cost": 423
+        }
+      ]
+    },
+    {
+      "level": 47,
+      "before": 2950,
+      "spent": 1073,
+      "fee": 2300,
+      "reward": 3000,
+      "after": 3000,
+      "purchases": [
+        {
+          "name": "cooldown:arrow-suppression:R2",
+          "cost": 585
+        },
+        {
+          "name": "budget:arrow-suppression:R2",
+          "cost": 488
+        }
+      ]
+    },
+    {
+      "level": 48,
+      "before": 3000,
+      "spent": 1390,
+      "fee": 2350,
+      "reward": 3050,
+      "after": 3050,
+      "purchases": [
+        {
+          "name": "cp:+40",
+          "cost": 400
+        },
+        {
+          "name": "cooldown:precise-range:R2",
+          "cost": 990
+        }
+      ]
+    },
+    {
+      "level": 49,
+      "before": 3050,
+      "spent": 825,
+      "fee": 2400,
+      "reward": 3100,
+      "after": 3100,
+      "purchases": [
+        {
+          "name": "budget:precise-range:R2",
+          "cost": 825
+        }
+      ]
+    },
+    {
+      "level": 50,
+      "before": 3100,
+      "spent": 97,
+      "fee": 2450,
+      "reward": 3600,
+      "after": 4153,
+      "purchases": [
+        {
+          "name": "count:4",
+          "cost": 97
+        }
+      ]
+    },
+    {
+      "level": 51,
+      "before": 4153,
+      "spent": 1073,
+      "fee": 2500,
+      "reward": 3200,
+      "after": 3780,
+      "purchases": [
+        {
+          "name": "cooldown:anti-cavalry-spearhead:R2",
+          "cost": 585
+        },
+        {
+          "name": "budget:anti-cavalry-spearhead:R2",
+          "cost": 488
+        }
+      ]
+    },
+    {
+      "level": 52,
+      "before": 3780,
+      "spent": 585,
+      "fee": 2550,
+      "reward": 3250,
+      "after": 3895,
+      "purchases": [
+        {
+          "name": "strength:anti-cavalry-spearhead:R2",
+          "cost": 585
+        }
+      ]
+    },
+    {
+      "level": 53,
+      "before": 3895,
+      "spent": 1800,
+      "fee": 2600,
+      "reward": 3300,
+      "after": 3300,
+      "purchases": [
+        {
+          "name": "cooldown:wide-prayer:R1",
+          "cost": 720
+        },
+        {
+          "name": "cooldown:wide-prayer:R2",
+          "cost": 1080
+        }
+      ]
+    },
+    {
+      "level": 54,
+      "before": 3300,
+      "spent": 600,
+      "fee": 2650,
+      "reward": 3350,
+      "after": 3400,
+      "purchases": [
+        {
+          "name": "budget:wide-prayer:R1",
+          "cost": 600
+        }
+      ]
+    },
+    {
+      "level": 55,
+      "before": 3400,
+      "spent": 0,
+      "fee": 2700,
+      "reward": 3850,
+      "after": 4550,
+      "purchases": []
+    },
+    {
+      "level": 56,
+      "before": 4550,
+      "spent": 900,
+      "fee": 2750,
+      "reward": 3450,
+      "after": 4350,
+      "purchases": [
+        {
+          "name": "budget:wide-prayer:R2",
+          "cost": 900
+        }
+      ]
+    },
+    {
+      "level": 57,
+      "before": 4350,
+      "spent": 2400,
+      "fee": 2800,
+      "reward": 3500,
+      "after": 3500,
+      "purchases": [
+        {
+          "name": "cooldown:counter-breaker:R1",
+          "cost": 960
+        },
+        {
+          "name": "cooldown:counter-breaker:R2",
+          "cost": 1440
+        }
+      ]
+    },
+    {
+      "level": 58,
+      "before": 3500,
+      "spent": 800,
+      "fee": 2850,
+      "reward": 3550,
+      "after": 3550,
+      "purchases": [
+        {
+          "name": "budget:counter-breaker:R1",
+          "cost": 800
+        }
+      ]
+    },
+    {
+      "level": 59,
+      "before": 3550,
+      "spent": 1200,
+      "fee": 2900,
+      "reward": 3600,
+      "after": 3600,
+      "purchases": [
+        {
+          "name": "budget:counter-breaker:R2",
+          "cost": 1200
+        }
+      ]
+    },
+    {
+      "level": 60,
+      "before": 3600,
+      "spent": 0,
+      "fee": 2950,
+      "reward": 4150,
+      "after": 4800,
+      "purchases": []
+    }
+  ]
+}

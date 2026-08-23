@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-21. `assets/Battle.scene` and TypeScript source are
+Last updated: 2026-08-24. `assets/Battle.scene` and TypeScript source are
 authoritative; this file is a decision record only. Update it only when the
 user explicitly requests it.
 
@@ -25,11 +25,12 @@ user explicitly requests it.
 | Total levels / progression end | 60 / 50 |
 | Boss pace | 5 |
 | Starter gold | 1,000 |
-| Main reward flat bonus | 400 gold per main battle |
+| Main reward flat bonus | 650 gold per main battle |
 | Win gold per enemy CP / boss gold multiplier | 1.15 / 1.15 |
 | Player Initial CP / Max Alive | 300 / 4 → 10 |
 | Deck capacity | 3 |
 | Main entry-fee ratio | 0.35 |
+| Side reward fee multiplier | 0.65 |
 | Rewarded-ad simulation | enabled |
 
 Save key is `battle-progression-v8`; saved schema version is 13.
@@ -81,6 +82,11 @@ Save key is `battle-progression-v8`; saved schema version is 13.
   preparation, main losses raise viable cooldown-ad acceptance probability as
   `losses / (losses + 1)`. Retry-versus-skip randomness remains intentional
   human-like variance.
+- A main battle must not enter with an empty deck when the bot owns an eligible
+  card. The selection chain is: ready eligible cards, then owned eligible cards
+  with a necessary cooldown ad, then an emergency owned-card fallback. Side
+  missions intentionally have no cards. Player-facing cooldown ads have no
+  hard per-battle cap; any one-card limit is bot choice only.
 - Equal CP/deck does not require a win. Such losses are valid combat variance,
   not automatic economy or card regressions.
 
@@ -89,8 +95,8 @@ Save key is `battle-progression-v8`; saved schema version is 13.
 - Main reward plan is deterministic/cached per total-level count. It is
   strictly increasing by at least 50, starts from level-scaled win gold, then
   smooths funding for **one** important next-level purchase plus the next
-  entry fee. The scene-controlled 400 flat bonus is added afterwards to every
-  reward.
+  entry fee. The scene-controlled 650 flat bonus is added afterwards to every
+  reward and remains rounded to 50.
 - Do not reintroduce a plan that funds every visible offer: several cards at
   L2 create a spike that permanently distorts a monotonic curve.
 - Runtime logic is dynamic for total levels, progression end and pace. Changing
@@ -98,8 +104,9 @@ Save key is `battle-progression-v8`; saved schema version is 13.
   preview/reset for a new configuration.
 - L1 entry is free. Later fee uses previous main reward:
   `max((level - 1) * 50, ceil(previousReward * 0.35 / 50) * 50)`.
-- Side reward is `max(50, current main entry fee)`, does not decay, has no
-  cards/boss bonus, mirrors player roster/CP/Max Alive, and advances cooldowns.
+- Side reward is `max(50, ceil(current main entry fee * 0.65 / 50) * 50)`,
+  does not decay, has no cards/boss bonus, mirrors player roster/CP/Max Alive,
+  and advances cooldowns.
 - `allowAdsRescue = false` disables Gold x2 and cooldown-skip ads. Neither has
   a hard cap. Bot x2 must cross a concrete preparation/purchase/entry
   threshold, not be used merely because an ad is available.
@@ -184,6 +191,46 @@ Save key is `battle-progression-v8`; saved schema version is 13.
 - Do not tune reward, fee, side reward or ad limits just to smooth win rate.
   First classify loss: meaningful power/card gap versus small gap/equal-deck
   combat variance.
+
+## Telemetry issue-classification contract
+
+Apply these rules before proposing any balance change. They are based on the
+2026-08-24 audit and prevent false positives.
+
+1. Group reports by telemetry `runId` and sort by `battleIndex`; do not infer a
+   run from filenames or Windows modified time. Filenames are UTC (`Z`), while
+   Explorer shows local UTC+7 time.
+2. The protected flawless-run contract is: L1->60, always win, no side and no
+   Gold x2, must pay every main fee and buy every package when it is offered.
+   The audit must include unit unlock/count, CP, Max Alive, card unlock,
+   cooldown, budget and Strength packages. A failure here is a design issue.
+3. For an actual main battle, compare the *pre-battle runtime values* of CP,
+   Max Alive, and every enemy-unlocked unit count. CP alone is not a baseline.
+   Boss multipliers are already reflected in runtime enemy values and must not
+   be guessed from the normal-level curve.
+4. A main loss with player baseline at or above enemy baseline is combat/card
+   variance, not an economy defect. A small CP difference that cannot fund an
+   additional unit is also not, by itself, a meaningful imbalance.
+5. If player baseline is below enemy, trace prior main losses and the gold
+   ledger. A shortfall caused by earlier losses is an intended side-recovery
+   case, provided the flawless-run contract passes. It is a defect only when
+   the flawless run fails, an entry action has `goldBefore < cost`, or the bot
+   had enough gold but declined a relevant opened baseline package.
+6. Empty cards are valid only in side missions or before any card is owned. A
+   main battle with ready eligible owned cards but no selected player card is a
+   card-selection regression. Do not flag normal side empty decks.
+7. Frequent cooldown-skip ads are desirable when a needed card is cooling; do
+   not tune them down merely for count. Gold x2 is only meaningful when the
+   telemetry action is `reward-gold-x2-ad`: zero Main x2 alone is not a bug if
+   the run wins frequently, while side x2 after losses is expected recovery.
+
+Latest reference run: `run-mt64po40-0wm1dcj`, 79 battles, filenames
+2026-08-23T18:17Z..18:40Z (local 01:17..01:40 on 2026-08-24). It used the
+650 bonus and finished L60: main 60W/10L, side 7W/2L, all 104 packages bought,
+no unpaid main entry and no baseline deficit. Gold x2 was Main 0 / Side 5;
+the five side ads crossed concrete entry or purchase+entry thresholds. There
+were 26 cooldown ads and no invalid empty main deck. Treat this as HEALTHY,
+not evidence that Main reward should be reduced further.
 
 ## Economy visualization (analysis-only)
 

@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _dec48, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _dec48, _dec49, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -297,21 +297,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         displayName: 'Boss Gold Reward Multiplier',
         tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
       }), _dec44 = property({
+        min: 0.1,
+        max: 1,
+        step: 0.05,
+        displayName: 'Side Reward Fee Multiplier',
+        tooltip: 'Side-win gold as a share of the current main entry fee. Gold x2 can turn a partial recovery into a full preparation purchase. Rounds up to 50.'
+      }), _dec45 = property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Main Battle Entry Fee Ratio',
-        tooltip: 'Gold charged before each main progression battle after the first. It is a ratio of the previous main battle win reward and rounds up to 50. Side missions are free.'
-      }), _dec45 = property({
+        tooltip: 'Gold charged before each main progression battle after the first. It uses the preceding normal main-reward curve, so a boss reward spike does not inflate the next entry fee. Rounds up to 50. Side missions are free.'
+      }), _dec46 = property({
         min: 1,
         step: 1
-      }), _dec46 = property({
+      }), _dec47 = property({
         min: 0.01,
         step: 0.1
-      }), _dec47 = property({
+      }), _dec48 = property({
         min: 1,
         step: 1
-      }), _dec48 = property({
+      }), _dec49 = property({
         type: [UnitProgressionRule]
       }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor() {
@@ -395,15 +401,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor45, this);
 
-          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor46, this);
+          _initializerDefineProperty(this, "sideRewardFeeMultiplier", _descriptor46, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor47, this);
+          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor47, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor48, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor48, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor49, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor49, this);
 
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor50, this);
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor50, this);
+
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor51, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -414,7 +422,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.telemetryActions = [];
           this.telemetryActionSequence = 0;
           this.preserveTelemetryActionsForSideMission = false;
-          this.mainBattleGoldPlan = null;
+          // Base (pre-flat-bonus) rewards for ordinary main battles. This must be
+          // campaign-stable: the current enemy deck is runtime state, not economy
+          // configuration.
+          this.mainBattleNormalGoldPlan = null;
           this.telemetryActionPhase = 'pre-battle';
           this.currentPlayerBattleCardIds = [];
           this.currentEnemyBattleCardIds = [];
@@ -786,7 +797,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         initializeProgression() {
-          this.mainBattleGoldPlan = null;
+          this.mainBattleNormalGoldPlan = null;
           var loaded = this.loadProgressionState();
           this.progressionState = loaded ? this.sanitizeProgressionState(loaded) : this.createInitialProgressionState();
           var savedLevel = this.progressionState.currentLevel;
@@ -979,50 +990,64 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (this.purchasingSimulation) {
             this.currentPlayerCooldownAdReasons.clear();
-            var eligibleDefinitions = database.cards.filter(definition => {
+            var ownedDefinitions = database.cards.filter(definition => {
               var saved = this.getSavedCard(state, definition.id);
-              return !!saved && saved.owned && this.isCardEligibleForTeam(definition, 0, state);
+              return !!saved && saved.owned;
             });
+            var readyOwnedDefinitions = ownedDefinitions.filter(definition => {
+              var saved = this.getSavedCard(state, definition.id);
+              return !!saved && saved.cooldownRemaining <= 0;
+            });
+            var eligibleDefinitions = ownedDefinitions.filter(definition => {
+              return this.isCardEligibleForTeam(definition, 0, state);
+            }); // Eligibility is a tactical filter. It must never leave the bot
+            // entering with an empty deck when an owned card has a real
+            // player target. The fallback protects the battle flow from an
+            // incomplete roster/condition evaluation; the score below still
+            // decides which applicable card is least harmful to bring.
 
-            if (this.isBossLevelFor(this.battleLevel)) {
-              var mirrorCardIds = this.getBossMirrorCardIds(state, eligibleDefinitions);
+            var playerCardDefinitions = eligibleDefinitions.length > 0 ? eligibleDefinitions : ownedDefinitions.filter(definition => this.getCardTargetCombatWeight(definition, 0, state) > 0);
+            var mirrorCardIds = this.isBossLevelFor(this.battleLevel) ? this.getBossMirrorCardIds(state, playerCardDefinitions) : [];
+            var useBossMirror = mirrorCardIds.length === enemyDeckSize;
+            var deckDefinitions = useBossMirror ? playerCardDefinitions.filter(definition => mirrorCardIds.includes(definition.id)) : playerCardDefinitions;
+            var readyDefinitions = deckDefinitions.filter(definition => {
+              var saved = this.getSavedCard(state, definition.id);
+              return !!saved && saved.cooldownRemaining <= 0;
+            });
+            var cooldownDefinitions = deckDefinitions.filter(definition => {
+              var saved = this.getSavedCard(state, definition.id);
+              return !!saved && saved.cooldownRemaining > 0;
+            });
+            var cooldownAdPlan = this.selectBotCooldownAdDeck(readyDefinitions, cooldownDefinitions, state, this.currentBattleUsesPreparedDeck || useBossMirror);
 
-              if (mirrorCardIds.length === enemyDeckSize) {
-                this.currentPlayerBattleCardIds = mirrorCardIds;
+            for (var i = 0; i < cooldownAdPlan.candidates.length; i++) {
+              var candidate = cooldownAdPlan.candidates[i];
+              this.currentPlayerCooldownAdReasons.set(candidate.definition.id, candidate.reason);
+            }
 
-                for (var i = 0; i < mirrorCardIds.length; i++) {
-                  var card = this.getSavedCard(state, mirrorCardIds[i]);
+            this.currentPlayerBattleCardIds = cooldownAdPlan.cardIds; // Final invariant for the bot only: entering with an empty deck
+            // while an owned card is ready is never a valid decision. This
+            // remains outside player-facing rules; a human can still choose
+            // an empty deck or skip any number of cooldowns manually.
 
-                  if (card && card.cooldownRemaining > 0) {
-                    this.currentPlayerCooldownAdReasons.set(mirrorCardIds[i], 'boss-deck-mirror');
-                  }
-                }
+            if (this.currentPlayerBattleCardIds.length <= 0 && readyOwnedDefinitions.length > 0) {
+              this.currentPlayerBattleCardIds = this.selectBestPlayerCardIds(readyOwnedDefinitions, state, this.getBattleCardDeckSize());
+            } // If every owned card is cooling, the bot uses one recovery ad
+            // rather than starting cardless. `finishBotSelectedCardCooldowns`
+            // applies the ad only to this single selected card.
 
-                this.finishBotSelectedCardCooldowns(state);
-              } else {
-                this.currentPlayerBattleCardIds = [];
+
+            if (this.currentPlayerBattleCardIds.length <= 0 && this.allowAdsRescue && ownedDefinitions.length > 0) {
+              var emergencyCardIds = this.selectBestPlayerCardIds(ownedDefinitions, state, 1);
+
+              if (emergencyCardIds.length > 0) {
+                var emergencyCardId = emergencyCardIds[0];
+                this.currentPlayerBattleCardIds = [emergencyCardId];
+                this.currentPlayerCooldownAdReasons.set(emergencyCardId, 'no-ready-card-emergency-recovery');
               }
             }
 
-            if (!this.isBossLevelFor(this.battleLevel) || this.currentPlayerBattleCardIds.length !== enemyDeckSize) {
-              var readyDefinitions = eligibleDefinitions.filter(definition => {
-                var saved = this.getSavedCard(state, definition.id);
-                return !!saved && saved.cooldownRemaining <= 0;
-              });
-              var cooldownDefinitions = eligibleDefinitions.filter(definition => {
-                var saved = this.getSavedCard(state, definition.id);
-                return !!saved && saved.cooldownRemaining > 0;
-              });
-              var cooldownAdPlan = this.selectBotCooldownAdDeck(readyDefinitions, cooldownDefinitions, state, this.currentBattleUsesPreparedDeck);
-
-              for (var _i = 0; _i < cooldownAdPlan.candidates.length; _i++) {
-                var candidate = cooldownAdPlan.candidates[_i];
-                this.currentPlayerCooldownAdReasons.set(candidate.definition.id, candidate.reason);
-              }
-
-              this.currentPlayerBattleCardIds = cooldownAdPlan.cardIds;
-              this.finishBotSelectedCardCooldowns(state);
-            }
+            this.finishBotSelectedCardCooldowns(state);
           } else {
             this.currentPlayerBattleCardIds = this.filterReadyPlayerCardIds(this.currentPlayerBattleCardIds);
           }
@@ -1129,10 +1154,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var candidates = definitions.filter((definition, index) => !!definition && !!definition.id && definitions.findIndex(candidate => candidate && candidate.id === definition.id) === index);
           var deckSize = Math.max(0, Math.min(maxCount, candidates.length));
           if (deckSize <= 0) return [];
-          return candidates.map(definition => ({
+          var scored = candidates.map(definition => ({
             definition,
             score: this.getPlayerBattleCardScore(definition, state)
-          })).filter(candidate => candidate.score > 0).sort((a, b) => b.score - a.score || a.definition.id.localeCompare(b.definition.id)).slice(0, deckSize).map(candidate => candidate.definition.id);
+          })).sort((a, b) => b.score - a.score || a.definition.id.localeCompare(b.definition.id)); // Score ranks applicable cards only. It must not act as a second
+          // eligibility gate: a positive score is not required to fill a deck.
+          // Therefore this function returns at least one id whenever candidates
+          // exist and the configured deck capacity is positive.
+
+          return scored.slice(0, deckSize).map(candidate => candidate.definition.id);
         }
 
         selectBestEnemyCardIds(definitions, state, maxCount) {
@@ -1240,8 +1270,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         selectBotCooldownAdDeck(readyDefinitions, cooldownDefinitions, state, forceCompetitivePlan) {
-          var _this3 = this;
-
           if (forceCompetitivePlan === void 0) {
             forceCompetitivePlan = false;
           }
@@ -1263,81 +1291,59 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               cardIds: noAdCardIds,
               candidates
             };
-          } // Build the smallest useful ad plan. Each step must improve the
-          // selected deck, and the whole plan is discarded unless it changes
-          // the matchup from disadvantaged to competitive.
+          } // The bot may choose at most one cooldown ad per battle. This is an
+          // AI policy only; manual player cooldown ads remain unrestricted.
+          // A card must materially improve the weak deck; it does not need to
+          // solve the entire strength gap by itself.
 
 
-          var availableDefinitions = noAdDefinitions.slice();
-          var remainingCooldowns = cooldownDefinitions.slice();
-          var cardIds = noAdCardIds;
+          var bestDefinition = null;
+          var bestCardIds = noAdCardIds;
+          var bestScore = this.getPlayerDeckScore(noAdCardIds, noAdDefinitions, state);
+          var playerStrength = this.getPlayerTeamCombatWeightForCardScore(state);
+          var enemyStrength = this.getEnemyTeamCombatWeightForCardScore(state) + this.getEnemyDeckScore(state);
+          var missingStrength = Math.max(0, enemyStrength - playerStrength - bestScore);
 
-          var _loop3 = function _loop3() {
-            var bestDefinition = null;
-            var bestDefinitions = [];
-            var bestCardIds = cardIds;
+          for (var i = 0; i < cooldownDefinitions.length; i++) {
+            var definition = cooldownDefinitions[i];
+            var proposedDefinitions = noAdDefinitions.concat(definition);
+            var proposedCardIds = this.selectBestPlayerCardIds(proposedDefinitions, state, deckSize);
 
-            var bestScore = _this3.getPlayerDeckScore(cardIds, availableDefinitions, state);
-
-            for (var i = 0; i < remainingCooldowns.length; i++) {
-              var definition = remainingCooldowns[i];
-              var proposedDefinitions = availableDefinitions.concat(definition);
-
-              var proposedCardIds = _this3.selectBestPlayerCardIds(proposedDefinitions, state, deckSize);
-
-              if (!proposedCardIds.includes(definition.id)) continue;
-
-              var proposedScore = _this3.getPlayerDeckScore(proposedCardIds, proposedDefinitions, state);
-
-              if (proposedScore > bestScore || proposedScore === bestScore && bestDefinition && definition.id.localeCompare(bestDefinition.id) < 0) {
-                bestDefinition = definition;
-                bestDefinitions = proposedDefinitions;
-                bestCardIds = proposedCardIds;
-                bestScore = proposedScore;
-              }
+            if (!proposedCardIds.includes(definition.id)) {
+              continue;
             }
 
-            if (!bestDefinition) return 0; // break
+            var proposedScore = this.getPlayerDeckScore(proposedCardIds, proposedDefinitions, state);
+            var scoreGain = proposedScore - bestScore;
+            var materiallyImprovesDeck = forceCompetitivePlan ? scoreGain > 0 : scoreGain >= Math.max(0.01, missingStrength * 0.15);
+            if (!materiallyImprovesDeck) continue;
 
-            availableDefinitions = bestDefinitions;
-            cardIds = bestCardIds;
-            remainingCooldowns = remainingCooldowns.filter(definition => definition.id !== bestDefinition.id);
-            candidates.push({
+            if (proposedScore > bestScore || proposedScore === bestScore && bestDefinition && definition.id.localeCompare(bestDefinition.id) < 0) {
+              bestDefinition = definition;
+              bestCardIds = proposedCardIds;
+              bestScore = proposedScore;
+            }
+          }
+
+          if (bestDefinition) {
+            var mainLosses = Math.max(0, state.mainLossesAtCurrentLevel);
+            var selectedCandidates = [{
               definition: bestDefinition,
               reason: 'deck-threshold-required'
-            });
+            }];
 
-            if (_this3.isPlayerDeckCompetitive(cardIds, availableDefinitions, state)) {
-              var mainLosses = Math.max(0, state.mainLossesAtCurrentLevel);
-              var selectedCandidates = candidates.filter(candidate => cardIds.includes(candidate.definition.id));
-
-              if (!_this3.shouldBotUseCooldownAdPlan(mainLosses, forceCompetitivePlan, cardIds, selectedCandidates, state)) {
-                return {
-                  v: {
-                    cardIds: noAdCardIds,
-                    candidates: []
-                  }
-                };
-              }
-
-              for (var _i2 = 0; _i2 < selectedCandidates.length; _i2++) {
-                selectedCandidates[_i2].reason = forceCompetitivePlan ? 'prepared-deck-threshold-roll' : "deck-threshold-after-" + mainLosses + "-main-losses";
-              }
-
+            if (!this.shouldBotUseCooldownAdPlan(mainLosses, forceCompetitivePlan, bestCardIds, selectedCandidates, state)) {
               return {
-                v: {
-                  cardIds,
-                  candidates: selectedCandidates
-                }
+                cardIds: noAdCardIds,
+                candidates: []
               };
             }
-          },
-              _ret2;
 
-          while (remainingCooldowns.length > 0) {
-            _ret2 = _loop3();
-            if (_ret2 === 0) break;
-            if (_ret2) return _ret2.v;
+            selectedCandidates[0].reason = forceCompetitivePlan ? 'prepared-deck-threshold-roll' : "deck-threshold-after-" + mainLosses + "-main-losses";
+            return {
+              cardIds: bestCardIds,
+              candidates: selectedCandidates
+            };
           } // Do not spend ads for a deck that still cannot meet the enemy.
 
 
@@ -1352,7 +1358,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyStrength = this.getEnemyTeamCombatWeightForCardScore(state) + this.getEnemyDeckScore(state);
           var strongestCandidate = selectedCandidates.reduce((best, candidate) => Math.max(best, this.getPlayerBattleCardScore(candidate.definition, state)), 0);
           var requiredCardStrength = Math.max(1, enemyStrength - playerTeamStrength);
-          var candidateIsIndividuallyMeaningful = strongestCandidate >= requiredCardStrength; // This is deliberately a human-like choice, not a guarantee. A
+          var candidateIsIndividuallyMeaningful = strongestCandidate >= requiredCardStrength; // A prepared deck has already shown that this cooling card is the
+          // sensible recovery choice. Do not turn that plan into an arbitrary
+          // retry when one ad is enough to field it.
+
+          if (forceCompetitivePlan) return true; // This is deliberately a human-like choice, not a guarantee. A
           // prepared deck makes ads more tempting, but the bot may still
           // stubbornly retry without using them. Repeated losses increase the
           // pressure to prepare, while preserving meaningful bad decisions.
@@ -1360,11 +1370,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var probability = forceCompetitivePlan ? 0.28 : 0.12;
           probability += Math.min(0.48, Math.max(0, mainLosses) * 0.16);
           if (candidateIsIndividuallyMeaningful) probability += 0.14;
-
-          if (selectedCandidates.length > 1) {
-            probability -= Math.min(0.12, (selectedCandidates.length - 1) * 0.06);
-          }
-
           var clampedProbability = this.clamp01(Math.max(0.08, Math.min(0.86, probability)));
           var useAds = Math.random() < clampedProbability;
           var target = selectedCandidates[0];
@@ -1740,8 +1745,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             card.cooldownRemaining = Math.max(0, card.cooldownRemaining - 1);
           }
 
-          for (var _i3 = 0; _i3 < usedCardIds.length; _i3++) {
-            var _card = this.getSavedCard(state, usedCardIds[_i3]);
+          for (var _i = 0; _i < usedCardIds.length; _i++) {
+            var _card = this.getSavedCard(state, usedCardIds[_i]);
 
             if (!_card || !_card.owned) continue;
             _card.cooldownRemaining = this.getCardEffectiveCooldown(_card);
@@ -1965,7 +1970,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var rankLimit = 0;
           var schedule = this.getCardUpgradeSchedule();
 
-          var _loop4 = function _loop4(rank) {
+          var _loop3 = function _loop3(rank) {
             var offer = schedule.find(item => item.cardId === definition.id && item.upgradeKind === upgradeKind && item.rank === rank);
             if (!offer || offer.offerLevel > safeLevel) return 1; // break
 
@@ -1973,7 +1978,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
 
           for (var rank = 1; rank <= maxRank; rank++) {
-            if (_loop4(rank)) break;
+            if (_loop3(rank)) break;
           }
 
           return rankLimit;
@@ -2029,8 +2034,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var result = [];
           var offerWaves = Array.from(offersByWave.keys()).sort((a, b) => a - b);
 
-          for (var _i4 = 0; _i4 < offerWaves.length; _i4++) {
-            var _offerWave = offerWaves[_i4];
+          for (var _i2 = 0; _i2 < offerWaves.length; _i2++) {
+            var _offerWave = offerWaves[_i2];
 
             var _pending = offersByWave.get(_offerWave) || [];
 
@@ -2189,7 +2194,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         sanitizeProgressionState(source) {
-          var _this4 = this;
+          var _this3 = this;
 
           var initial = this.createInitialProgressionState();
           var sourceVersion = this.safeInteger(source.version, 0);
@@ -2230,7 +2235,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }));
           initial.playerInitialCPOverflow = Math.max(0, this.safeInteger(source.playerInitialCPOverflow, 0));
 
-          var _loop5 = function _loop5() {
+          var _loop4 = function _loop4() {
             var item = initial.cpPackages[i];
             var saved = savedCPPackages.find(candidate => candidate && candidate.id === item.id);
             if (!saved) return 1; // continue
@@ -2240,11 +2245,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
 
           for (var i = 0; i < initial.cpPackages.length; i++) {
-            if (_loop5()) continue;
+            if (_loop4()) continue;
           }
 
-          var _loop6 = function _loop6() {
-            var item = initial.maxAlivePackages[_i5];
+          var _loop5 = function _loop5() {
+            var item = initial.maxAlivePackages[_i3];
             var saved = savedMaxAlivePackages.find(candidate => candidate && candidate.id === item.id);
             if (!saved) return 1; // continue
 
@@ -2252,8 +2257,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             item.claimSource = item.claimed && typeof saved.claimSource === 'string' ? saved.claimSource : '';
           };
 
-          for (var _i5 = 0; _i5 < initial.maxAlivePackages.length; _i5++) {
-            if (_loop6()) continue;
+          for (var _i3 = 0; _i3 < initial.maxAlivePackages.length; _i3++) {
+            if (_loop5()) continue;
           }
 
           initial.playerInitialCP = this.getPlayerCPFromState(initial);
@@ -2275,40 +2280,40 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             initial.enemyCardIdsByLevel[String(_level)] = source.lastEnemyCardIds.filter(id => typeof id === 'string').slice(0, 3);
           }
 
-          var _loop7 = function _loop7() {
-            var _this4$getGameManager;
+          var _loop6 = function _loop6() {
+            var _this3$getGameManager;
 
-            var card = initial.cards[_i6];
-            var definition = (_this4$getGameManager = _this4.getGameManager()) != null && _this4$getGameManager.battleCardDatabase ? _this4.getGameManager().battleCardDatabase.getCard(card.id) : null;
+            var card = initial.cards[_i4];
+            var definition = (_this3$getGameManager = _this3.getGameManager()) != null && _this3$getGameManager.battleCardDatabase ? _this3.getGameManager().battleCardDatabase.getCard(card.id) : null;
             var saved = savedCards.find(candidate => candidate && candidate.id === card.id);
             if (!saved) return 1; // continue
 
             card.owned = !!saved.owned;
-            card.cooldownUpgradeLevel = Math.max(0, Math.min(2, _this4.safeInteger(saved.cooldownUpgradeLevel, 0)));
-            card.budgetUpgradeLevel = Math.max(0, Math.min(2, _this4.safeInteger(saved.budgetUpgradeLevel, 0)));
-            card.strengthUpgradeLevel = Math.max(0, Math.min(definition && _this4.hasStrengthUpgrade(definition) ? _this4.getStrengthUpgradeMaxRank(definition) : 0, _this4.safeInteger(saved.strengthUpgradeLevel, 0)));
-            card.cooldownRemaining = Math.max(0, _this4.safeInteger(saved.cooldownRemaining, 0));
+            card.cooldownUpgradeLevel = Math.max(0, Math.min(2, _this3.safeInteger(saved.cooldownUpgradeLevel, 0)));
+            card.budgetUpgradeLevel = Math.max(0, Math.min(2, _this3.safeInteger(saved.budgetUpgradeLevel, 0)));
+            card.strengthUpgradeLevel = Math.max(0, Math.min(definition && _this3.hasStrengthUpgrade(definition) ? _this3.getStrengthUpgradeMaxRank(definition) : 0, _this3.safeInteger(saved.strengthUpgradeLevel, 0)));
+            card.cooldownRemaining = Math.max(0, _this3.safeInteger(saved.cooldownRemaining, 0));
           };
 
-          for (var _i6 = 0; _i6 < initial.cards.length; _i6++) {
-            if (_loop7()) continue;
+          for (var _i4 = 0; _i4 < initial.cards.length; _i4++) {
+            if (_loop6()) continue;
           }
 
-          var _loop8 = function _loop8() {
-            var unit = initial.units[_i7];
+          var _loop7 = function _loop7() {
+            var unit = initial.units[_i5];
             var saved = savedUnits.find(candidate => candidate && candidate.key === unit.key);
 
-            var rule = _this4.getRuleByKey(unit.key);
+            var rule = _this3.getRuleByKey(unit.key);
 
             if (!saved || !rule) return 1; // continue
 
             unit.offered = !!saved.offered || unit.offered;
             unit.unlocked = !!saved.unlocked || unit.unlocked;
-            unit.unitCount = Math.max(_this4.getRuleUnlockCount(rule), Math.min(_this4.getRuleMaxCount(rule), _this4.safeInteger(saved.unitCount, unit.unitCount)));
+            unit.unitCount = Math.max(_this3.getRuleUnlockCount(rule), Math.min(_this3.getRuleMaxCount(rule), _this3.safeInteger(saved.unitCount, unit.unitCount)));
           };
 
-          for (var _i7 = 0; _i7 < initial.units.length; _i7++) {
-            if (_loop8()) continue;
+          for (var _i5 = 0; _i5 < initial.units.length; _i5++) {
+            if (_loop7()) continue;
           }
 
           return initial;
@@ -2347,8 +2352,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var playerBrains = this.getTargetBattleArmyBrains(0);
 
-          for (var _i8 = 0; _i8 < playerBrains.length; _i8++) {
-            playerBrains[_i8].maxAliveWaves = state.playerMaxAlive;
+          for (var _i6 = 0; _i6 < playerBrains.length; _i6++) {
+            playerBrains[_i6].maxAliveWaves = state.playerMaxAlive;
           }
         }
 
@@ -2376,11 +2381,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyBrains = this.getTargetBattleArmyBrains(1);
           var baselineAccuracy = this.clamp01(this.lerp(this.decisionAccuracyMin, this.decisionAccuracyMax, this.getProgression01(this.battleLevel)));
 
-          for (var _i9 = 0; _i9 < enemyBrains.length; _i9++) {
-            enemyBrains[_i9].maxAliveWaves = state.playerMaxAlive;
+          for (var _i7 = 0; _i7 < enemyBrains.length; _i7++) {
+            enemyBrains[_i7].maxAliveWaves = state.playerMaxAlive;
 
             if (this.allowDecisionAccuracy) {
-              enemyBrains[_i9].decisionAccuracy = baselineAccuracy;
+              enemyBrains[_i7].decisionAccuracy = baselineAccuracy;
             }
           }
         }
@@ -2480,8 +2485,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var cardDatabase = manager ? manager.battleCardDatabase : null;
 
           if (cardDatabase) {
-            for (var _i10 = 0; _i10 < cardDatabase.cards.length; _i10++) {
-              var definition = cardDatabase.cards[_i10];
+            for (var _i8 = 0; _i8 < cardDatabase.cards.length; _i8++) {
+              var definition = cardDatabase.cards[_i8];
               if (!definition || !definition.id) continue;
 
               var _saved = this.getSavedCard(state, definition.id);
@@ -2583,7 +2588,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         shouldReserveGoldForBaseline(state) {
-          return state.playerInitialCP < this.getPlayerCPMilestoneCap(this.battleLevel) || state.playerMaxAlive < this.getPlayerMaxAliveMilestoneCap(this.battleLevel);
+          return state.playerInitialCP < this.getPlayerCPMilestoneCap(this.battleLevel) || state.playerMaxAlive < this.getPlayerMaxAliveMilestoneCap(this.battleLevel) || this.getOpenedUnitCountBaselineOptions(this.getPurchaseOptions(state), state).length > 0;
         }
 
         getMaxAlivePackageCost(delta, currentMaxAlive) {
@@ -2597,7 +2602,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!this.progressionState) return;
           var preparationTarget = this.getBotPreparationPlan(this.progressionState).target;
-          var targetReserve = preparationTarget ? preparationTarget.cost : 0;
+          var goldAfterReservedCosts = this.progressionState.playerGold - Math.max(0, reservedGold);
+          var targetReserve = preparationTarget && preparationTarget.cost <= goldAfterReservedCosts ? preparationTarget.cost : 0;
           var reserve = Math.max(0, Math.floor(reservedGold + targetReserve));
 
           for (var iteration = 0; iteration < 100; iteration++) {
@@ -2609,10 +2615,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        getBotPurchaseCandidates(state, affordableOnly) {
-          var options = this.getPurchaseOptions(state).filter(option => !affordableOnly || option.cost <= state.playerGold);
+        getBotPurchaseCandidates(state, affordableOnly, allowBossMirror) {
+          if (allowBossMirror === void 0) {
+            allowBossMirror = true;
+          }
 
-          if (this.isBossLevelFor(this.battleLevel)) {
+          var options = this.getPurchaseOptions(state).filter(option => !affordableOnly || option.cost <= state.playerGold);
+          var baselineUnitCountOptions = this.getOpenedUnitCountBaselineOptions(options, state); // An already offered unit-count rank is part of the battle
+          // baseline. Do not let an optional card or a boss mirror postpone
+          // parity with the enemy's current unit count.
+
+          if (baselineUnitCountOptions.length > 0) {
+            return baselineUnitCountOptions;
+          }
+
+          if (allowBossMirror && this.isBossLevelFor(this.battleLevel)) {
             var mirrorTarget = this.getNextBossMirrorPurchaseOption(state);
 
             if (mirrorTarget && (!affordableOnly || mirrorTarget.cost <= state.playerGold)) {
@@ -2641,6 +2658,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return !!rule && this.getRuleUnlockLevel(rule) === this.battleLevel;
           });
           return currentLevelUnitUnlocks.length > 0 ? currentLevelUnitUnlocks : options;
+        }
+
+        getOpenedUnitCountBaselineOptions(options, state) {
+          return options.filter(option => {
+            if (option.kind !== 'unit-count' || option.family === null) {
+              return false;
+            }
+
+            var rule = this.getRule(option.family, option.tier);
+            var saved = rule ? this.getSavedUnit(state, this.getRuleKey(rule)) : null;
+            return !!rule && !!saved && saved.unlocked && saved.unitCount < this.getEnemyUnitCount(rule, this.battleLevel);
+          });
         }
 
         getBotPreparationPlan(state) {
@@ -2682,25 +2711,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getNextBossMirrorPurchaseOption(state) {
-          var _this5 = this;
+          var _this4 = this;
 
           if (!this.isBossLevelFor(this.battleLevel)) return null;
           var manager = this.getGameManager();
           var database = manager ? manager.battleCardDatabase : null;
           if (!database) return null;
 
-          var _loop9 = function _loop9() {
-            var cardId = _this5.currentEnemyBattleCardIds[i];
+          var _loop8 = function _loop8() {
+            var cardId = _this4.currentEnemyBattleCardIds[i];
             var definition = database.getCard(cardId);
 
-            var saved = _this5.getSavedCard(state, cardId);
+            var saved = _this4.getSavedCard(state, cardId);
 
-            if (!definition || !_this5.isCardEligibleForTeam(definition, 0, state)) {
+            if (!definition || !_this4.isCardEligibleForTeam(definition, 0, state)) {
               return 0; // continue
             }
 
             if (!saved || !saved.owned) {
-              var unlock = _this5.getPurchaseOptions(state).find(option => option.kind === 'card-unlock' && option.cardId === cardId);
+              var unlock = _this4.getPurchaseOptions(state).find(option => option.kind === 'card-unlock' && option.cardId === cardId);
 
               if (unlock) return {
                 v: unlock
@@ -2708,22 +2737,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return 0; // continue
             }
 
-            var enemyStrengthRank = _this5.getEnemyStrengthUpgradeRank(definition, _this5.battleLevel);
+            var enemyStrengthRank = _this4.getEnemyStrengthUpgradeRank(definition, _this4.battleLevel);
 
             if (saved.strengthUpgradeLevel < enemyStrengthRank) {
-              var strengthUpgrade = _this5.getPurchaseOptions(state).find(option => option.kind === 'card-strength-upgrade' && option.cardId === cardId);
+              var strengthUpgrade = _this4.getPurchaseOptions(state).find(option => option.kind === 'card-strength-upgrade' && option.cardId === cardId);
 
               if (strengthUpgrade) return {
                 v: strengthUpgrade
               };
             }
           },
-              _ret3;
+              _ret2;
 
           for (var i = 0; i < this.currentEnemyBattleCardIds.length; i++) {
-            _ret3 = _loop9();
-            if (_ret3 === 0) continue;
-            if (_ret3) return _ret3.v;
+            _ret2 = _loop8();
+            if (_ret2 === 0) continue;
+            if (_ret2) return _ret2.v;
           }
 
           return null;
@@ -2851,26 +2880,47 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return true;
         }
 
-        getMainBattleWinGold(level) {
+        getMainBattleWinGold(level, includeBossBonus) {
+          if (includeBossBonus === void 0) {
+            includeBossBonus = true;
+          }
+
           var rewardBaseCP = this.getLevelBaseInitialCP(level);
-          return Math.max(0, Math.round(rewardBaseCP * Math.max(0, this.winGoldPerEnemyCP) * (this.isBossLevelFor(level) ? Math.max(1, this.bossGoldRewardMultiplier) : 1)));
+          return Math.max(0, Math.round(rewardBaseCP * Math.max(0, this.winGoldPerEnemyCP) * (includeBossBonus && this.isBossLevelFor(level) ? Math.max(1, this.bossGoldRewardMultiplier) : 1)));
         }
 
         getMainBattleReward(level) {
           var safeLevel = this.clampLevel(level);
-          var plan = this.getMainBattleGoldPlan();
+          var normalGold = this.getMainBattleNormalReward(safeLevel);
+          var gold = this.isBossLevelFor(safeLevel) ? this.getBossMainBattleReward(safeLevel) : normalGold;
           return {
             targetId: 'mainline-gold-plan',
             targetCost: 0,
-            gold: plan[safeLevel - 1] || 0
+            gold
           };
         }
 
-        getMainBattleGoldPlan() {
+        getMainBattleNormalReward(level) {
+          var safeLevel = this.clampLevel(level);
+          var plan = this.getMainBattleNormalGoldPlan();
+          var flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
+          return (plan[safeLevel - 1] || 0) + flatBonus;
+        }
+
+        getBossMainBattleReward(level) {
+          var safeLevel = this.clampLevel(level);
+          var plan = this.getMainBattleNormalGoldPlan();
+          var normalBaseGold = plan[safeLevel - 1] || 0;
+          var bossBaseGold = Math.ceil(normalBaseGold * Math.max(1, this.bossGoldRewardMultiplier) / 50) * 50;
+          var flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
+          return bossBaseGold + flatBonus;
+        }
+
+        getMainBattleNormalGoldPlan() {
           var totalLevels = this.getSafeTotalLevels();
 
-          if (this.mainBattleGoldPlan && this.mainBattleGoldPlan.length === totalLevels) {
-            return this.mainBattleGoldPlan;
+          if (this.mainBattleNormalGoldPlan && this.mainBattleNormalGoldPlan.length === totalLevels) {
+            return this.mainBattleNormalGoldPlan;
           }
 
           var plannedPurchaseBudgets = this.getMainlinePlannedPurchaseBudgets();
@@ -2878,10 +2928,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var previousReward = 0;
 
           for (var level = 1; level <= totalLevels; level++) {
-            var baseReward = Math.ceil(this.getMainBattleWinGold(level) / 50) * 50; // Mainline rewards are a visible progression signal: every
-            // battle must pay strictly more than the previous one. Purchase
-            // budgets remain a bot-planning concern and must not create a
-            // sudden reward spike at the level before a large purchase.
+            var baseReward = Math.ceil(this.getMainBattleWinGold(level, false) / 50) * 50; // Normal mainline rewards are a visible progression signal:
+            // every normal point on the curve must pay strictly more than
+            // the previous one. Boss bonuses are applied separately.
 
             var reward = Math.max(previousReward + 50, baseReward);
             result.push(reward);
@@ -2899,10 +2948,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             var deficitIndex = -1;
 
             for (var _level2 = 1; _level2 <= totalLevels; _level2++) {
-              availableGold += result[_level2 - 1];
+              availableGold += this.getMainBattleNormalRewardFromBase(result[_level2 - 1]);
               if (_level2 >= totalLevels) continue;
               var nextLevel = _level2 + 1;
-              availableGold -= plannedPurchaseBudgets[nextLevel - 1] + this.getMainBattleEntryFeeForReward(result[_level2 - 1], nextLevel);
+              availableGold -= plannedPurchaseBudgets[nextLevel - 1] + this.getMainBattleEntryFeeForReward(this.getMainBattleNormalRewardFromBase(result[_level2 - 1]), nextLevel);
 
               if (availableGold < deficit) {
                 deficit = availableGold;
@@ -2923,16 +2972,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
           }
 
-          var flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
-
-          if (flatBonus > 0) {
-            for (var _index2 = 0; _index2 < result.length; _index2++) {
-              result[_index2] += flatBonus;
-            }
-          }
-
-          this.mainBattleGoldPlan = result;
+          this.mainBattleNormalGoldPlan = result;
           return result;
+        }
+
+        getMainBattleNormalRewardFromBase(baseReward) {
+          var flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
+          return Math.max(0, baseReward) + flatBonus;
         }
 
         getMainlinePlannedPurchaseBudgets() {
@@ -2949,10 +2995,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             for (var level = 1; level <= totalLevels; level++) {
               this.battleLevel = level;
               this.offerIntroducedUnits(level);
-              var options = this.getBotPurchaseCandidates(planState, false);
+              var options = this.getBotPurchaseCandidates(planState, false, false);
               if (options.length <= 0) continue;
-              var preparationTarget = this.getBotPreparationPlan(planState).target;
-              var plannedOption = preparationTarget || options.slice().sort((a, b) => {
+              var plannedOption = options.slice().sort((a, b) => {
                 var weightDifference = this.getPurchaseWeight(b) - this.getPurchaseWeight(a);
 
                 if (weightDifference !== 0) {
@@ -2976,7 +3021,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         getMainBattleEntryFee(level) {
           var safeLevel = this.clampLevel(level);
           if (safeLevel <= 1) return 0;
-          return this.getMainBattleEntryFeeForReward(this.getMainBattleReward(safeLevel - 1).gold, safeLevel);
+          return this.getMainBattleEntryFeeForReward(this.getMainBattleNormalReward(safeLevel - 1), safeLevel);
         }
 
         getMainBattleEntryFeeForReward(reward, level) {
@@ -2995,7 +3040,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getSideMissionReward() {
-          var baseGold = Math.max(50, this.getMainBattleEntryFee(this.battleLevel));
+          var entryFee = Math.max(50, this.getMainBattleEntryFee(this.battleLevel));
+          var multiplier = Math.max(0.1, Math.min(1, this.sideRewardFeeMultiplier));
+          var baseGold = Math.max(50, Math.ceil(entryFee * multiplier / 50) * 50);
           return {
             targetId: '',
             targetCost: 0,
@@ -3066,7 +3113,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var reward = Math.max(0, Math.floor(baseGold));
           var decision = this.getBotGoldClaimDecision(state, reward, type);
-          var useAds = this.purchasingSimulation && this.allowAdsRescue && state.levelLossCount > 0 && decision.useAds;
+          var useAds = type === 'side-mission-win' && this.purchasingSimulation && this.allowAdsRescue && state.levelLossCount > 0 && decision.useAds;
           var goldGranted = reward * (useAds ? 2 : 1);
           var event = {
             type,
@@ -3076,7 +3123,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetCost: useAds && decision.targetCost > 0 ? decision.targetCost : targetCost,
             baseGold: reward,
             goldGranted,
-            adsReason: !this.purchasingSimulation ? 'bot-simulation-disabled' : !this.allowAdsRescue ? 'ads-disabled' : state.levelLossCount <= 0 ? 'mainline-run-no-rescue-needed' : decision.useAds ? decision.reason : 'no-material-benefit',
+            adsReason: !this.purchasingSimulation ? 'bot-simulation-disabled' : !this.allowAdsRescue ? 'ads-disabled' : type !== 'side-mission-win' ? 'side-rescue-only' : state.levelLossCount <= 0 ? 'mainline-run-no-rescue-needed' : decision.useAds ? decision.reason : 'no-material-benefit',
             normalGold: decision.normalGold,
             doubleGold: decision.doubleGold,
             normalPurchaseCount: decision.normalPurchaseCount,
@@ -3181,9 +3228,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           var roll = Math.random() * totalWeight;
 
-          for (var _i11 = 0; _i11 < options.length; _i11++) {
-            roll -= weights[_i11];
-            if (roll <= 0) return options[_i11];
+          for (var _i9 = 0; _i9 < options.length; _i9++) {
+            roll -= weights[_i9];
+            if (roll <= 0) return options[_i9];
           }
 
           return options[options.length - 1] || null;
@@ -3534,8 +3581,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var keys = [];
 
           while (pending.some(item => item.remaining > 0)) {
-            for (var _i12 = 0; _i12 < pending.length; _i12++) {
-              var item = pending[_i12];
+            for (var _i10 = 0; _i10 < pending.length; _i10++) {
+              var item = pending[_i10];
               if (item.remaining <= 0) continue;
               keys.push(item.key);
               item.remaining--;
@@ -3638,8 +3685,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleArmyBrain) : BattleArmyBrain);
 
-          for (var _i13 = 0; _i13 < brains.length; _i13++) {
-            var _brain = brains[_i13];
+          for (var _i11 = 0; _i11 < brains.length; _i11++) {
+            var _brain = brains[_i11];
             if (!_brain) continue;
             if (this.clampTeam(_brain.team) !== team) continue;
             result.push(_brain);
@@ -3914,8 +3961,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var previousLevel = 0;
           var previousCap = this.getPlayerMaxAliveStart();
 
-          for (var _i14 = 0; _i14 < milestones.length; _i14++) {
-            var targetLevel = milestones[_i14];
+          for (var _i12 = 0; _i12 < milestones.length; _i12++) {
+            var targetLevel = milestones[_i12];
             var targetCap = this.clampPlayerMaxAlive(Math.max(previousCap, this.getLevelBaseMaxAlive(targetLevel)));
             var totalDelta = targetCap - previousCap;
 
@@ -4399,35 +4446,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function initializer() {
           return 1.15;
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec44], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "sideRewardFeeMultiplier", [_dec44], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return 0.65;
+        }
+      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec45], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.35;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec45], {
+      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec46], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 5;
         }
-      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec46], {
+      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec47], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 10;
         }
-      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec47], {
+      }), _descriptor50 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec48], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 1000;
         }
-      }), _descriptor50 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec48], {
+      }), _descriptor51 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec49], {
         configurable: true,
         enumerable: true,
         writable: true,

@@ -754,7 +754,7 @@
       "time": 1782825574318.6877
     },
     "scripts\\LevelSettings.ts": {
-      "time": 1787239488207.787,
+      "time": 1787506398640.61,
       "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
     },
     "materials\\Banner.mtl.meta": {
@@ -985,7 +985,7 @@
       "time": 1786716186538.6284
     },
     "Battle.scene": {
-      "time": 1787239488178.3496,
+      "time": 1787509006364.695,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\MainGameFlow.ts.meta": {
