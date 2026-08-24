@@ -39,8 +39,6 @@ Use this skill to audit and optimize Cocos Creator projects with a bias toward m
 
 ## Coding Discipline Overlay
 
-Inspired by the public `CLAUDE.md` from `multica-ai/andrej-karpathy-skills`; use this as a general caution layer before changing code.
-
 - Think before coding:
   - State assumptions when they matter.
   - Surface tradeoffs instead of silently choosing a risky interpretation.
