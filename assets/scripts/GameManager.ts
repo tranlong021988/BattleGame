@@ -864,6 +864,7 @@ export class GameManager extends Component {
         }
 
         this.processDynamicWaveLanes();
+        this.processWaveHuntScannerRefreshes();
         this.processWaveForwardSearches();
         this.processWaveForwardRecoveries();
         this.processWaveBanners();
@@ -1146,6 +1147,12 @@ export class GameManager extends Component {
         if (!wave) return;
         if (wave.isDead()) return;
 
+        this.trySetWaveTargetFromEngagement(
+            wave,
+            unit,
+            enemy
+        );
+
         if (
             !this.shouldUseSoloAggressiveCombat(
                 wave,
@@ -1204,6 +1211,32 @@ export class GameManager extends Component {
             wave,
             unit,
             enemy
+        );
+    }
+
+    private trySetWaveTargetFromScanner(
+        wave: BattleWave,
+        scanner: Unit | null,
+        target: Unit | null
+    ) {
+        if (!wave || !scanner || !target) return false;
+
+        return wave.trySetTargetWaveFromScanner(
+            scanner,
+            target
+        );
+    }
+
+    private trySetWaveTargetFromEngagement(
+        wave: BattleWave,
+        unit: Unit | null,
+        target: Unit | null
+    ) {
+        if (!wave || !unit || !target) return false;
+
+        return wave.trySetTargetWaveFromEngagement(
+            unit,
+            target
         );
     }
 
@@ -1338,10 +1371,53 @@ export class GameManager extends Component {
         if (!wave) return false;
         if (wave.isDead()) return false;
 
+        if (!this.trySetWaveTargetFromScanner(
+            wave,
+            unit,
+            target
+        )) {
+            return false;
+        }
         wave.releaseForwardToFreeHunt();
         unit.setWaveSearchTarget(target);
 
         return true;
+    }
+
+    public isWaveHuntScanner(unit: Unit | null) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave || wave.isDeadRuntime(this.frame)) {
+            return false;
+        }
+
+        if (wave.isForwardMode()) return false;
+
+        return wave.isCurrentScanner(unit);
+    }
+
+    public getWaveTargetForUnit(unit: Unit | null) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        return wave ? wave.getTargetWave() : null;
+    }
+
+    public onWaveHuntScannerTargetFound(
+        scanner: Unit | null,
+        target: Unit | null
+    ) {
+        const wave =
+            BattleWave.getWaveForUnit(scanner);
+
+        if (!wave) return false;
+
+        return this.trySetWaveTargetFromScanner(
+            wave,
+            scanner,
+            target
+        );
     }
 
     public findSharedWaveTargetForUnit(
@@ -1464,6 +1540,25 @@ export class GameManager extends Component {
         }
     }
 
+    private processWaveHuntScannerRefreshes() {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave.isForwardMode()) continue;
+            if (wave.isDeadRuntime(this.frame)) continue;
+            if (
+                !this.shouldRunFrameInterval(
+                    wave.getTargetSearchIntervalFrames(),
+                    wave.id
+                )
+            ) {
+                continue;
+            }
+
+            wave.getHuntScanner(true);
+        }
+    }
+
     private searchForwardWaveTarget(
         wave: BattleWave | null
     ) {
@@ -1580,7 +1675,19 @@ export class GameManager extends Component {
                     ? 'passed-deepest-adjacent-wave'
                     : 'observed-adjacent-boundary-cleared'
             );
-            wave.releaseForwardToFreeHunt();
+
+            // The adjacent wave is already known at the release boundary.
+            // Carry it into Free Hunt now instead of waiting for the hunt
+            // scanner's next search interval.
+            if (
+                !adjacentRearGuard ||
+                !this.onWaveForwardTargetFound(
+                    scanner,
+                    adjacentRearGuard
+                )
+            ) {
+                wave.releaseForwardToFreeHunt();
+            }
             return;
         }
 

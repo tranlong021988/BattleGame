@@ -791,6 +791,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.processDynamicWaveLanes();
+          this.processWaveHuntScannerRefreshes();
           this.processWaveForwardSearches();
           this.processWaveForwardRecoveries();
           this.processWaveBanners();
@@ -982,6 +983,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return;
           if (wave.isDead()) return;
+          this.trySetWaveTargetFromEngagement(wave, unit, enemy);
 
           if (!this.shouldUseSoloAggressiveCombat(wave, unit, enemy) && !this.shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate)) {
             wave.enterCombatMode();
@@ -1007,6 +1009,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!wave) return false;
           if (wave.isDead()) return false;
           return this.shouldUseSoloAggressiveCombat(wave, unit, enemy);
+        }
+
+        trySetWaveTargetFromScanner(wave, scanner, target) {
+          if (!wave || !scanner || !target) return false;
+          return wave.trySetTargetWaveFromScanner(scanner, target);
+        }
+
+        trySetWaveTargetFromEngagement(wave, unit, target) {
+          if (!wave || !unit || !target) return false;
+          return wave.trySetTargetWaveFromEngagement(unit, target);
         }
 
         shouldUseSoloAggressiveCombat(wave, unit, enemy) {
@@ -1085,9 +1097,42 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return false;
           if (wave.isDead()) return false;
+
+          if (!this.trySetWaveTargetFromScanner(wave, unit, target)) {
+            return false;
+          }
+
           wave.releaseForwardToFreeHunt();
           unit.setWaveSearchTarget(target);
           return true;
+        }
+
+        isWaveHuntScanner(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+
+          if (!wave || wave.isDeadRuntime(this.frame)) {
+            return false;
+          }
+
+          if (wave.isForwardMode()) return false;
+          return wave.isCurrentScanner(unit);
+        }
+
+        getWaveTargetForUnit(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          return wave ? wave.getTargetWave() : null;
+        }
+
+        onWaveHuntScannerTargetFound(scanner, target) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(scanner);
+          if (!wave) return false;
+          return this.trySetWaveTargetFromScanner(wave, scanner, target);
         }
 
         findSharedWaveTargetForUnit(unit) {
@@ -1171,6 +1216,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
+        processWaveHuntScannerRefreshes() {
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+            if (!wave || wave.isForwardMode()) continue;
+            if (wave.isDeadRuntime(this.frame)) continue;
+
+            if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
+              continue;
+            }
+
+            wave.getHuntScanner(true);
+          }
+        }
+
         searchForwardWaveTarget(wave) {
           if (!wave) return;
           if (!wave.isForwardMode()) return;
@@ -1225,8 +1284,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               return;
             }
 
-            this.recordAggressiveForwardEvent('aggressive-freehunt-release', wave, scanner, adjacentRearGuard, 0, adjacentRearGuard ? 'passed-deepest-adjacent-wave' : 'observed-adjacent-boundary-cleared');
-            wave.releaseForwardToFreeHunt();
+            this.recordAggressiveForwardEvent('aggressive-freehunt-release', wave, scanner, adjacentRearGuard, 0, adjacentRearGuard ? 'passed-deepest-adjacent-wave' : 'observed-adjacent-boundary-cleared'); // The adjacent wave is already known at the release boundary.
+            // Carry it into Free Hunt now instead of waiting for the hunt
+            // scanner's next search interval.
+
+            if (!adjacentRearGuard || !this.onWaveForwardTargetFound(scanner, adjacentRearGuard)) {
+              wave.releaseForwardToFreeHunt();
+            }
+
             return;
           }
 

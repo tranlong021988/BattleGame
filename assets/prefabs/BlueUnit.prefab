@@ -587,7 +587,7 @@
     "canBePassedThroughByForwardAlly": false,
     "attackRange": 1.2,
     "attackCheckIntervalFrames": 10,
-    "targetSearchRange": 16,
+    "targetSearchRange": 8,
     "targetSearchIntervalFrames": 30,
     "aggressiveForward": false,
     "forwardDir": {

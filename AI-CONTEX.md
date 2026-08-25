@@ -177,6 +177,74 @@ Save key is `battle-progression-v8`; saved schema version is 13.
   `configureEnemyBattleCards` must rebuild an empty stale cached deck when
   eligible candidates exist. Side mission is the legitimate empty-card mode.
 
+### Scanner-led Free Hunt (authoritative combat direction, 2026-08-25)
+
+The purpose is to stop every free unit from independently nearest-searching
+and scattering across the map. A wave has one shared strategic order
+(`targetWave`) plus independent local combat. This is deliberately not a
+formation lock: it gives idle allies a common direction while protecting units
+already fighting.
+
+- **Scanner selection:** keep the existing dynamic frontmost-unit rule. In
+  Forward, scanner must still be `onForward`; in Free Hunt, use the frontmost
+  alive unit regardless of `onForward`. Do not turn scanner into a permanent
+  captain or add a second scanner system.
+- **Scanner authority:** scanner performs strategic search only when its wave
+  has no live `targetWave`. It chooses one enemy wave. While that target wave
+  remains valid, scanner must not continuously search for a better wave or
+  overwrite the order.
+- **Borrowed targets:** idle non-scanners do not globally nearest-search. They
+  borrow a valid target only from the current `targetWave`. Each can select a
+  different unit within that enemy wave, so they may spread naturally, but do
+  not fan out toward unrelated waves.
+- **Local combat remains unrestricted:** attack-range collision and retaliation
+  are per-unit. Any enemy in direct attack range is valid, and a ranged hit may
+  cause only the hit unit to retaliate/chase locally. A unit already `onBusy`
+  ignores a new ranged hit for targeting and does not abandon its current
+  combat.
+- **The only passive retarget event:** when a unit actually transitions to
+  `onBusy`, its enemy's wave immediately replaces its own wave's `targetWave`.
+  This may replace a still-living targetWave. Busy allies continue their own
+  combat; only idle allies are immediately primed to join the newly engaged
+  wave. Multiple near-simultaneous engagements may therefore retarget in
+  sequence; that is intentional for this narrow battlefield.
+- **Do not retarget on projectile impact alone:** `Unit.reactToAttacker()` is
+  local chase setup only. It must not call `GameManager.onWaveCombatStarted`.
+  The wave event is emitted only after `onBusy = true` in the direct-range and
+  steady-guard combat transitions.
+- **Target loss and Forward:** `targetWave` clears when released or dead. With
+  no targetWave, scanner may make one new strategic search. If it confirms no
+  target and every surviving unit is idle and has no valid local target, the
+  wave resumes Forward. A local chase that never reaches combat therefore does
+  not lock the rest of the wave.
+- **Immediate transitions:** whenever a wave gains/replaces `targetWave` while
+  already in Free Hunt, prime every idle unit with its nearest live unit in
+  that target wave and set its preferred velocity immediately. Do not wait for
+  each unit's next search interval. Likewise, an aggressive Forward wave that
+  passes a known adjacent enemy wave must carry that scanner target into
+  `onWaveForwardTargetFound`; only fall back to targetless Free Hunt when the
+  adjacent target is gone/invalid.
+- **Performance boundary:** strategic nearest search is one scanner per wave,
+  not one search per idle unit. Per-unit attack-range checks and local
+  retaliation remain necessary combat work and are intentionally retained.
+
+Implementation ownership:
+
+| Responsibility | Source | Required invariant |
+| --- | --- | --- |
+| Scanner identity, targetWave lifetime, borrowed-wave filtering and immediate idle-unit priming | `BattleWave.ts` | Scanner cannot replace a live order; an actual engagement can. |
+| Forward/Free Hunt transition, adjacent-lane fast path and engagement event routing | `GameManager.ts` | `onWaveCombatStarted` receives an already-busy initiating unit; it does not manufacture a symmetric target order for a unit that is not busy. |
+| Direct range -> `onBusy`, local retaliation/chase, scanner-only strategic search | `Unit.ts` | Receiving damage while free is not itself a wave-retarget event. |
+
+Common regressions to reject:
+
+1. Reintroducing `onWaveCombatStarted()` from `reactToAttacker()`.
+2. Blocking scanner/retarget decisions merely because another ally is busy.
+3. Letting scanner overwrite a valid live `targetWave` without a real
+   `onBusy` engagement.
+4. Releasing from Forward with a known adjacent target but waiting for a later
+   Free Hunt search tick before setting velocity.
+
 ## Telemetry audit baseline
 
 - 2026-08-16 reports predate deterministic rewards and are not economy

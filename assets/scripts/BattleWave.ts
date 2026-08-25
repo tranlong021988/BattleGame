@@ -34,7 +34,10 @@ export class BattleWave {
     private aggressiveOwnLaneBlockObserved = false;
     private initialForwardCombatGateActive = true;
     private initialForwardCombatReleaseThreshold = 1;
-    private forwardScannerUnit: Unit | null = null;
+    // One dynamic scanner per wave. In Forward it must still be marching;
+    // in Free Hunt the frontmost alive unit takes the same captain role.
+    private scannerUnit: Unit | null = null;
+    private targetWave: BattleWave | null = null;
     private representativeUnit: Unit | null = null;
     private waveBannerNode: Node | null = null;
     private waveBannerRecycle:
@@ -554,6 +557,10 @@ export class BattleWave {
         if (!this.isUnitAlive(requester)) return null;
         if (!requester!.agent) return null;
 
+        const targetWave = this.getTargetWave();
+
+        if (!targetWave) return null;
+
         let best: Unit | null = null;
         let bestDistSq = Infinity;
 
@@ -566,6 +573,12 @@ export class BattleWave {
             const target = ally.getValidEnemyTarget();
 
             if (!target) continue;
+            if (
+                targetWave &&
+                BattleWave.getWaveForUnit(target) !== targetWave
+            ) {
+                continue;
+            }
 
             const dx =
                 target.agent!.pos.x -
@@ -616,7 +629,7 @@ export class BattleWave {
         this.aggressiveAdjacentBoundaryObserved = false;
         this.aggressiveOwnLaneBlockObserved = false;
         this.initialForwardCombatGateActive = false;
-        this.forwardScannerUnit = null;
+        this.scannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -627,6 +640,8 @@ export class BattleWave {
                 searchRange
             );
         }
+
+        this.primeTargetWaveHuntTargets();
     }
 
     enterCombatMode() {
@@ -640,7 +655,7 @@ export class BattleWave {
         this.aggressiveAdjacentBoundaryObserved = false;
         this.aggressiveOwnLaneBlockObserved = false;
         this.initialForwardCombatGateActive = false;
-        this.forwardScannerUnit = null;
+        this.scannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -649,6 +664,8 @@ export class BattleWave {
 
             u.enterWaveCombatMode();
         }
+
+        this.primeTargetWaveHuntTargets();
     }
 
     forceForwardMode() {
@@ -659,7 +676,8 @@ export class BattleWave {
         this.forwardModeActive = true;
         this.freeHuntActive = false;
         this.initialForwardCombatGateActive = false;
-        this.forwardScannerUnit = null;
+        this.scannerUnit = null;
+        this.clearTargetWave();
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -721,16 +739,123 @@ export class BattleWave {
         if (
             !refresh &&
             this.isForwardScannerEligible(
-                this.forwardScannerUnit
+                this.scannerUnit
             )
         ) {
-            return this.forwardScannerUnit;
+            return this.scannerUnit;
         }
 
-        this.forwardScannerUnit =
+        this.scannerUnit =
             this.findFrontmostAliveUnit(true);
 
-        return this.forwardScannerUnit;
+        return this.scannerUnit;
+    }
+
+    getHuntScanner(
+        refresh: boolean = false
+    ): Unit | null {
+        if (this.released || !this.freeHuntActive) {
+            return null;
+        }
+
+        if (
+            !refresh &&
+            this.isHuntScannerEligible(this.scannerUnit)
+        ) {
+            return this.scannerUnit;
+        }
+
+        this.scannerUnit =
+            this.findFrontmostAliveUnit(false);
+
+        return this.scannerUnit;
+    }
+
+    isCurrentScanner(
+        unit: Unit | null,
+        refresh: boolean = false
+    ) {
+        if (!unit || this.released) return false;
+
+        const scanner = this.isForwardMode()
+            ? this.getForwardScanner(refresh)
+            : this.getHuntScanner(refresh);
+
+        return scanner === unit;
+    }
+
+    getTargetWave() {
+        if (
+            this.targetWave &&
+            (this.targetWave.released || this.targetWave.isDead())
+        ) {
+            this.clearTargetWave();
+        }
+
+        return this.targetWave;
+    }
+
+    trySetTargetWaveFromScanner(
+        scanner: Unit | null,
+        target: Unit | null
+    ) {
+        if (!scanner || !target || this.released) return false;
+        if (!this.isCurrentScanner(scanner)) return false;
+
+        const nextTargetWave =
+            BattleWave.getWaveForUnit(target);
+
+        if (!nextTargetWave) return false;
+        if (nextTargetWave === this) return false;
+        if (nextTargetWave.team === this.team) return false;
+        if (nextTargetWave.released || nextTargetWave.isDead()) {
+            return false;
+        }
+
+        if (this.targetWave === nextTargetWave) {
+            return true;
+        }
+
+        // Scanner search establishes the initial order only. A live order is
+        // replaced exclusively by a real local engagement.
+        if (this.getTargetWave()) return false;
+
+        this.targetWave = nextTargetWave;
+
+        if (this.freeHuntActive) {
+            this.primeTargetWaveHuntTargets();
+        }
+
+        return true;
+    }
+
+    trySetTargetWaveFromEngagement(
+        unit: Unit | null,
+        target: Unit | null
+    ) {
+        if (!unit || !target || this.released) return false;
+        if (!this.isUnitAlive(unit)) return false;
+        if (!unit.onBusy) return false;
+
+        const nextTargetWave =
+            BattleWave.getWaveForUnit(target);
+
+        if (!nextTargetWave) return false;
+        if (nextTargetWave === this) return false;
+        if (nextTargetWave.team === this.team) return false;
+        if (nextTargetWave.released || nextTargetWave.isDead()) {
+            return false;
+        }
+
+        // A real engagement is a passive order change: busy units keep their
+        // local combat, while free allies begin hunting this enemy wave.
+        this.targetWave = nextTargetWave;
+
+        if (this.freeHuntActive) {
+            this.primeTargetWaveHuntTargets();
+        }
+
+        return true;
     }
 
     getProgressScanner(): Unit | null {
@@ -768,6 +893,10 @@ export class BattleWave {
         if (this.released) return false;
         if (!this.freeHuntActive) return false;
 
+        this.getTargetWave();
+
+        if (this.targetWave) return false;
+
         let aliveCount = 0;
 
         for (let i = 0; i < this.units.length; i++) {
@@ -779,12 +908,15 @@ export class BattleWave {
 
             if (u.onBusy) return false;
             if (u.hasValidEnemyTarget()) return false;
-            if (!u.hasConfirmedNoTargetSearch()) {
-                return false;
-            }
         }
 
         if (aliveCount <= 0) return false;
+
+        const scanner = this.getHuntScanner();
+
+        if (!scanner || !scanner.hasConfirmedNoTargetSearch()) {
+            return false;
+        }
 
         if (beforeResume) {
             beforeResume(this);
@@ -793,7 +925,7 @@ export class BattleWave {
         this.forwardModeActive = true;
         this.freeHuntActive = false;
         this.initialForwardCombatGateActive = false;
-        this.forwardScannerUnit = null;
+        this.scannerUnit = null;
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
@@ -877,7 +1009,8 @@ export class BattleWave {
         this.aggressiveOwnLaneBlockObserved = false;
         this.initialForwardCombatGateActive = false;
         this.initialForwardCombatReleaseThreshold = 1;
-        this.forwardScannerUnit = null;
+        this.scannerUnit = null;
+        this.clearTargetWave();
         this.representativeUnit = null;
         this.units.length = 0;
     }
@@ -900,6 +1033,54 @@ export class BattleWave {
 
             if (d < best) {
                 best = d;
+            }
+        }
+
+        return best;
+    }
+
+    private primeTargetWaveHuntTargets() {
+        const targetWave = this.getTargetWave();
+
+        if (!targetWave) return;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+
+            if (!this.isUnitAlive(unit)) continue;
+            if (unit.onBusy) continue;
+            if (!unit.agent) continue;
+
+            const target = targetWave.getClosestAliveUnitTo(
+                unit.agent.pos.x,
+                unit.agent.pos.z
+            );
+
+            if (!target) continue;
+
+            unit.primeWaveHuntTarget(target);
+        }
+    }
+
+    private getClosestAliveUnitTo(
+        x: number,
+        z: number
+    ): Unit | null {
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+
+            if (!this.isUnitAlive(unit)) continue;
+
+            const dx = unit.agent!.pos.x - x;
+            const dz = unit.agent!.pos.z - z;
+            const distSq = dx * dx + dz * dz;
+
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                best = unit;
             }
         }
 
@@ -930,6 +1111,16 @@ export class BattleWave {
         if (!this.isUnitAlive(unit)) return false;
 
         return !!unit!.onForward;
+    }
+
+    private isHuntScannerEligible(
+        unit: Unit | null
+    ) {
+        return !!unit && this.isUnitAlive(unit);
+    }
+
+    private clearTargetWave() {
+        this.targetWave = null;
     }
 
     private pickRepresentativeUnit(
