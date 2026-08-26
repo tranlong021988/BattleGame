@@ -111,6 +111,8 @@ export class Unit extends Component {
     private retaliationTargetLifeId = -1;
     private targetSearchPending = false;
     private targetSearchConfirmedNoTarget = false;
+    private freeHuntContinuityActive = false;
+    private freeHuntContinuityDir = { x: 0, z: 0 };
     private soloAggressiveSkirmishActive = false;
     private backToLaneActive = false;
     private backToLaneForwardAggressive = false;
@@ -177,6 +179,7 @@ export class Unit extends Component {
 
         this.setEnemyTarget(null);
         this.onBusy = false;
+        this.clearFreeHuntContinuity();
         this.soloAggressiveSkirmishActive = false;
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
@@ -217,6 +220,7 @@ export class Unit extends Component {
         if (value) {
             this.setEnemyTarget(null);
             this.onBusy = false;
+            this.clearFreeHuntContinuity();
             this.onForward = false;
             this.backToLaneActive = false;
 
@@ -236,6 +240,7 @@ export class Unit extends Component {
 
         this.setEnemyTarget(null);
         this.onBusy = false;
+        this.clearFreeHuntContinuity();
         this.onForward = useForwardPhase;
         this.backToLaneActive = false;
         this.resetRangedCombatMovement();
@@ -274,6 +279,87 @@ export class Unit extends Component {
         }
 
         this.sim.setPrefVelocity(this.agent, x, z);
+    }
+
+    private beginFreeHuntContinuity() {
+        if (!this.agent) return;
+
+        const prefVelocity = this.agent.prefVel;
+        const x = Math.abs(prefVelocity.x) > 0.0001
+            ? prefVelocity.x
+            : this.forwardDir.x;
+        const z = Math.abs(prefVelocity.z) > 0.0001
+            ? prefVelocity.z
+            : this.forwardDir.z;
+
+        this.setFreeHuntContinuityDirection(x, z);
+    }
+
+    private setFreeHuntContinuityDirection(x: number, z: number) {
+        const length = Math.sqrt(x * x + z * z);
+
+        if (length <= 0.0001) return;
+
+        this.freeHuntContinuityDir.x = x / length;
+        this.freeHuntContinuityDir.z = z / length;
+        this.freeHuntContinuityActive = true;
+    }
+
+    private clearFreeHuntContinuity() {
+        this.freeHuntContinuityActive = false;
+        this.freeHuntContinuityDir.x = 0;
+        this.freeHuntContinuityDir.z = 0;
+    }
+
+    private continueFreeHuntContinuity(deltaTime: number) {
+        if (!this.agent) return false;
+        if (!this.freeHuntContinuityActive) return false;
+
+        const gm = GameManager.instance;
+
+        if (
+            !gm ||
+            gm.hasWaveHuntScannerConfirmedNoTarget(this)
+        ) {
+            this.clearFreeHuntContinuity();
+            return false;
+        }
+
+        this.setAgentLocked(false);
+        this.setAgentOnForward(0);
+
+        const scanner = gm.getWaveHuntScannerForUnit(this);
+
+        if (scanner && scanner !== this && scanner.agent) {
+            const dx = scanner.agent.pos.x - this.agent.pos.x;
+            const dz = scanner.agent.pos.z - this.agent.pos.z;
+            const length = Math.sqrt(dx * dx + dz * dz);
+
+            if (length > 0.0001) {
+                this.setAgentPrefVelocity(
+                    (dx / length) * this.agent.maxSpeed,
+                    (dz / length) * this.agent.maxSpeed
+                );
+                this.lookMoveIntentSmooth(deltaTime);
+                this.sync(deltaTime, false);
+                return true;
+            }
+        }
+
+        this.setAgentPrefVelocity(
+            this.freeHuntContinuityDir.x * this.agent.maxSpeed,
+            this.freeHuntContinuityDir.z * this.agent.maxSpeed
+        );
+        this.lookMoveIntentSmooth(deltaTime);
+        this.sync(deltaTime, false);
+        return true;
+    }
+
+    public isContinuingFreeHuntIntent() {
+        return this.freeHuntContinuityActive &&
+            !this.onBusy &&
+            !this.onForward &&
+            !this.hasValidEnemyTarget();
     }
 
     private zeroAgentVelocity() {
@@ -729,6 +815,10 @@ export class Unit extends Component {
         this.setEnemyTarget(null);
         this.onBusy = false;
 
+        // Keep the last free-hunt intent while the scanner waits for the
+        // next wave order. Movement modes that must stop or redirect
+        // (steady, forward, and back-to-lane) clear it explicitly.
+
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.resetRangedCombatMovement();
@@ -742,6 +832,7 @@ export class Unit extends Component {
     public haltForBattleEnd() {
         this.setEnemyTarget(null);
         this.onBusy = false;
+        this.clearFreeHuntContinuity();
         this.onForward = false;
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
@@ -831,6 +922,10 @@ export class Unit extends Component {
         this.clearCachedTargets();
 
         if (!this.onBusy) {
+            this.beginFreeHuntContinuity();
+        }
+
+        if (!this.onBusy) {
             this.setEnemyTarget(null);
         }
 
@@ -839,7 +934,12 @@ export class Unit extends Component {
             this.setAgentOnForward(0);
 
             if (!this.onBusy) {
-                this.setAgentStopped();
+                this.setAgentPrefVelocity(
+                    this.freeHuntContinuityDir.x *
+                        this.agent.maxSpeed,
+                    this.freeHuntContinuityDir.z *
+                        this.agent.maxSpeed
+                );
             }
         }
     }
@@ -854,6 +954,7 @@ export class Unit extends Component {
 
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
+        this.clearFreeHuntContinuity();
 
         if (this.agent) {
             this.setAgentOnForward(0);
@@ -884,6 +985,10 @@ export class Unit extends Component {
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
 
+        if (!this.onBusy) {
+            this.beginFreeHuntContinuity();
+        }
+
         if (this.agent) {
             this.setAgentOnForward(0);
 
@@ -910,6 +1015,7 @@ export class Unit extends Component {
 
         this.setEnemyTarget(null);
         this.onBusy = false;
+        this.clearFreeHuntContinuity();
         this.onForward = true;
         this.aggressiveForward = aggressiveForward;
         this.soloAggressiveSkirmishActive = false;
@@ -1135,6 +1241,7 @@ export class Unit extends Component {
             const dist = Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
+                this.setFreeHuntContinuityDirection(dx, dz);
                 this.setAgentPrefVelocity(
                     (dx / dist) * this.agent.maxSpeed,
                     (dz / dist) * this.agent.maxSpeed
@@ -1144,6 +1251,10 @@ export class Unit extends Component {
             this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
         } else {
+            if (this.continueFreeHuntContinuity(deltaTime)) {
+                return;
+            }
+
             this.setAgentStopped();
             this.sync(deltaTime, true);
         }
@@ -1191,6 +1302,7 @@ export class Unit extends Component {
 
         this.setEnemyTarget(null);
         this.onBusy = false;
+        this.clearFreeHuntContinuity();
         this.onForward = false;
         this.aggressiveForward = aggressiveForward;
         this.soloAggressiveSkirmishActive = false;

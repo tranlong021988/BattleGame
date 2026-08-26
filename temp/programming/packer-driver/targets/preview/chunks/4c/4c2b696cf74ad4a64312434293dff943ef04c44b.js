@@ -441,8 +441,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleTelemetry) : BattleTelemetry)();
           this.battleElapsedTime = 0;
+          this.telemetryFrameDeltaHistogram = new Array(101).fill(0);
+          this.telemetryFrameSampleCount = 0;
+          this.telemetryFrameDeltaTotalMs = 0;
+          this.telemetryFrameDeltaMaxMs = 0;
+          this.telemetryFramesOver16_67Ms = 0;
+          this.telemetryFramesOver33_33Ms = 0;
+          this.telemetryPeakAliveUnits = 0;
+          this.telemetryPeakAliveWaves = 0;
+          this.telemetryManagerUpdateSampleCount = 0;
+          this.telemetryManagerUpdateTotalMs = 0;
+          this.telemetryManagerUpdateMaxMs = 0;
+          this.telemetryManagerUpdateSampleInterval = 30;
           this.battleCardRuntime = null;
           this.battleRuntimeActive = false;
+          this.rvoStepAccumulatedDelta = 0;
           this.battleRuntimeRoot = null;
           this.heroSpawnPositions = new Map();
         }
@@ -484,6 +497,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.frame = 0;
           this.spawnWaveTimer = 0;
           this.battleElapsedTime = 0;
+          this.rvoStepAccumulatedDelta = 0;
+          this.resetBattleFramePerformanceTelemetry();
           this.resetCombatPoint();
           this.createSimulator();
           this.buildPrefabMaps();
@@ -768,14 +783,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!this.battleRuntimeActive) return;
           this.frame++;
+          this.recordBattleFrameDelta(deltaTime);
+          var managerUpdateStart = this.shouldSampleBattleManagerUpdate() ? this.getPerformanceNow() : -1;
           this.battleElapsedTime += deltaTime;
           (_this$battleCardRunti2 = this.battleCardRuntime) == null || _this$battleCardRunti2.update(deltaTime, this.combatPoint, this.initialCombatPoint);
           (_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit).visualLerpT = 1 - Math.exp(-this.visualSmooth * deltaTime);
+          this.rvoStepAccumulatedDelta += deltaTime;
 
           if (this.shouldRunFrameInterval(this.updateInterval, this.rvoUpdateFrameOffset)) {
-            this.stepRvoSimulation(deltaTime);
+            this.stepRvoSimulation(this.rvoStepAccumulatedDelta);
+            this.rvoStepAccumulatedDelta = 0;
           }
 
           if (this.shouldRunFrameInterval(this.spatialGridUpdateInterval, this.spatialGridUpdateFrameOffset)) {
@@ -800,6 +819,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.recordBattleTelemetrySnapshotIfNeeded();
           this.processBattleWinnerCondition();
           this.refreshBattleStatsUI();
+
+          if (managerUpdateStart >= 0) {
+            var elapsed = this.getPerformanceNow();
+
+            if (elapsed >= managerUpdateStart) {
+              this.recordBattleManagerUpdateTime(elapsed - managerUpdateStart);
+            }
+          }
         }
 
         shouldRunFrameInterval(interval, offset) {
@@ -810,6 +837,106 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var safeInterval = Math.max(1, Math.floor(interval));
           var phase = (Math.floor(offset) % safeInterval + safeInterval) % safeInterval;
           return (this.frame + phase) % safeInterval === 0;
+        }
+
+        resetBattleFramePerformanceTelemetry() {
+          for (var i = 0; i < this.telemetryFrameDeltaHistogram.length; i++) {
+            this.telemetryFrameDeltaHistogram[i] = 0;
+          }
+
+          this.telemetryFrameSampleCount = 0;
+          this.telemetryFrameDeltaTotalMs = 0;
+          this.telemetryFrameDeltaMaxMs = 0;
+          this.telemetryFramesOver16_67Ms = 0;
+          this.telemetryFramesOver33_33Ms = 0;
+          this.telemetryPeakAliveUnits = 0;
+          this.telemetryPeakAliveWaves = 0;
+          this.telemetryManagerUpdateSampleCount = 0;
+          this.telemetryManagerUpdateTotalMs = 0;
+          this.telemetryManagerUpdateMaxMs = 0;
+        }
+
+        recordBattleFrameDelta(deltaTime) {
+          if (!this.enableBattleTelemetry) return;
+          if (!this.battleTelemetry.isEnabled()) return;
+          if (!Number.isFinite(deltaTime) || deltaTime <= 0) return;
+          var milliseconds = deltaTime * 1000;
+          var histogramIndex = Math.max(0, Math.min(this.telemetryFrameDeltaHistogram.length - 1, Math.floor(milliseconds)));
+          this.telemetryFrameSampleCount++;
+          this.telemetryFrameDeltaTotalMs += milliseconds;
+          this.telemetryFrameDeltaMaxMs = Math.max(this.telemetryFrameDeltaMaxMs, milliseconds);
+          this.telemetryFrameDeltaHistogram[histogramIndex]++;
+
+          if (milliseconds > 16.67) {
+            this.telemetryFramesOver16_67Ms++;
+          }
+
+          if (milliseconds > 33.33) {
+            this.telemetryFramesOver33_33Ms++;
+          }
+
+          this.telemetryPeakAliveUnits = Math.max(this.telemetryPeakAliveUnits, this.getTotalAliveUnitCount());
+          this.telemetryPeakAliveWaves = Math.max(this.telemetryPeakAliveWaves, this.waves.length);
+        }
+
+        shouldSampleBattleManagerUpdate() {
+          if (!this.enableBattleTelemetry) return false;
+          if (!this.battleTelemetry.isEnabled()) return false;
+          return this.frame % this.telemetryManagerUpdateSampleInterval === 0;
+        }
+
+        getPerformanceNow() {
+          var timing = globalThis.performance;
+
+          if (!timing || typeof timing.now !== 'function') {
+            return -1;
+          }
+
+          return timing.now();
+        }
+
+        recordBattleManagerUpdateTime(milliseconds) {
+          if (!Number.isFinite(milliseconds) || milliseconds < 0) {
+            return;
+          }
+
+          this.telemetryManagerUpdateSampleCount++;
+          this.telemetryManagerUpdateTotalMs += milliseconds;
+          this.telemetryManagerUpdateMaxMs = Math.max(this.telemetryManagerUpdateMaxMs, milliseconds);
+        }
+
+        getBattleFrameDeltaPercentile(percentile) {
+          if (this.telemetryFrameSampleCount <= 0) return 0;
+          var target = Math.max(1, Math.ceil(this.telemetryFrameSampleCount * percentile));
+          var accumulated = 0;
+
+          for (var i = 0; i < this.telemetryFrameDeltaHistogram.length; i++) {
+            accumulated += this.telemetryFrameDeltaHistogram[i];
+
+            if (accumulated >= target) {
+              return i + 1;
+            }
+          }
+
+          return this.telemetryFrameDeltaHistogram.length;
+        }
+
+        recordBattleFramePerformanceSummary() {
+          var frameCount = this.telemetryFrameSampleCount;
+          this.battleTelemetry.setFramePerformance({
+            frameCount,
+            averageDeltaMs: frameCount > 0 ? this.telemetryFrameDeltaTotalMs / frameCount : 0,
+            p95DeltaMs: this.getBattleFrameDeltaPercentile(0.95),
+            p99DeltaMs: this.getBattleFrameDeltaPercentile(0.99),
+            maxDeltaMs: this.telemetryFrameDeltaMaxMs,
+            framesOver16_67Ms: this.telemetryFramesOver16_67Ms,
+            framesOver33_33Ms: this.telemetryFramesOver33_33Ms,
+            peakAliveUnits: this.telemetryPeakAliveUnits,
+            peakAliveWaves: this.telemetryPeakAliveWaves,
+            managerUpdateSamples: this.telemetryManagerUpdateSampleCount,
+            averageManagerUpdateMs: this.telemetryManagerUpdateSampleCount > 0 ? this.telemetryManagerUpdateTotalMs / this.telemetryManagerUpdateSampleCount : 0,
+            maxManagerUpdateMs: this.telemetryManagerUpdateMaxMs
+          });
         }
 
         stepRvoSimulation(deltaTime) {
@@ -1011,14 +1138,76 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return this.shouldUseSoloAggressiveCombat(wave, unit, enemy);
         }
 
-        trySetWaveTargetFromScanner(wave, scanner, target) {
+        trySetWaveTargetFromScanner(wave, scanner, target, source) {
+          var _wave$getTargetWave$i, _wave$getTargetWave;
+
           if (!wave || !scanner || !target) return false;
-          return wave.trySetTargetWaveFromScanner(scanner, target);
+          var previousTargetWaveId = (_wave$getTargetWave$i = (_wave$getTargetWave = wave.getTargetWave()) == null ? void 0 : _wave$getTargetWave.id) != null ? _wave$getTargetWave$i : -1;
+          var assigned = wave.trySetTargetWaveFromScanner(scanner, target);
+          this.recordWaveTargetAssignment(wave, scanner, target, previousTargetWaveId, source, assigned);
+          return assigned;
         }
 
         trySetWaveTargetFromEngagement(wave, unit, target) {
+          var _wave$getTargetWave$i2, _wave$getTargetWave2;
+
           if (!wave || !unit || !target) return false;
-          return wave.trySetTargetWaveFromEngagement(unit, target);
+          var previousTargetWaveId = (_wave$getTargetWave$i2 = (_wave$getTargetWave2 = wave.getTargetWave()) == null ? void 0 : _wave$getTargetWave2.id) != null ? _wave$getTargetWave$i2 : -1;
+          var assigned = wave.trySetTargetWaveFromEngagement(unit, target);
+          this.recordWaveTargetAssignment(wave, unit, target, previousTargetWaveId, 'engagement', assigned);
+          return assigned;
+        }
+
+        recordWaveTargetAssignment(wave, unit, target, previousTargetWaveId, source, assigned) {
+          var _unit$unitTypeName, _wave$family, _targetWave$family;
+
+          if (!this.enableBattleTelemetry || !assigned) return;
+          var targetWave = wave.getTargetWave();
+
+          if (!targetWave || targetWave.id === previousTargetWaveId) {
+            return;
+          }
+
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-target-assigned',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: (_unit$unitTypeName = unit == null ? void 0 : unit.unitTypeName) != null ? _unit$unitTypeName : wave.unitName,
+            familyName: (_wave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family : String(wave.family),
+            targetWaveId: targetWave.id,
+            targetTeam: targetWave.team,
+            targetLaneId: targetWave.laneId,
+            targetFamilyName: (_targetWave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[targetWave.family]) != null ? _targetWave$family : String(targetWave.family),
+            previousTargetWaveId,
+            targetSource: source
+          });
+        }
+
+        recordWaveForwardResume(wave) {
+          var _wave$family2;
+
+          if (!this.enableBattleTelemetry) return;
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-forward-resumed',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: (_wave$family2 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family2 : String(wave.family),
+            targetWaveId: -1,
+            targetSource: 'scanner-confirmed-no-target'
+          });
         }
 
         shouldUseSoloAggressiveCombat(wave, unit, enemy) {
@@ -1098,7 +1287,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!wave) return false;
           if (wave.isDead()) return false;
 
-          if (!this.trySetWaveTargetFromScanner(wave, unit, target)) {
+          if (!this.trySetWaveTargetFromScanner(wave, unit, target, 'forward-scanner')) {
             return false;
           }
 
@@ -1120,6 +1309,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return wave.isCurrentScanner(unit);
         }
 
+        getWaveHuntScannerForUnit(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+
+          if (!wave || wave.isDeadRuntime(this.frame)) {
+            return null;
+          }
+
+          return wave.getHuntScanner();
+        }
+
         getWaveTargetForUnit(unit) {
           var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
@@ -1127,12 +1328,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return wave ? wave.getTargetWave() : null;
         }
 
+        hasWaveHuntScannerConfirmedNoTarget(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+
+          if (!wave || wave.isDeadRuntime(this.frame)) {
+            return true;
+          }
+
+          return wave.hasHuntScannerConfirmedNoTarget();
+        }
+
         onWaveHuntScannerTargetFound(scanner, target) {
           var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(scanner);
           if (!wave) return false;
-          return this.trySetWaveTargetFromScanner(wave, scanner, target);
+          return this.trySetWaveTargetFromScanner(wave, scanner, target, 'hunt-scanner');
         }
 
         findSharedWaveTargetForUnit(unit) {
@@ -1266,12 +1479,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               if (wave.observeAggressiveAdjacentBoundary()) {
                 this.recordAggressiveForwardEvent('aggressive-boundary-observed', wave, scanner, adjacentRearGuard, 0, 'deepest-adjacent-enemy-wave');
               }
-            } else if (!wave.hasObservedAggressiveAdjacentBoundary()) {
-              return;
-            }
-
-            if (adjacentRearGuard && !scanner.hasPassedForwardTarget(adjacentRearGuard)) {
-              return;
             }
 
             var enemiesAhead = this.countEnemiesAheadInSameLane(scanner);
@@ -1282,15 +1489,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               }
 
               return;
-            }
+            } // An aggressive wave treats a neighbouring enemy wave as flank
+            // information, not a forward-release boundary. With its own lane
+            // clear it keeps marching toward the enemy line; an actual
+            // same-lane combat still switches the wave through the normal
+            // combat path in onWaveCombatStarted.
 
-            this.recordAggressiveForwardEvent('aggressive-freehunt-release', wave, scanner, adjacentRearGuard, 0, adjacentRearGuard ? 'passed-deepest-adjacent-wave' : 'observed-adjacent-boundary-cleared'); // The adjacent wave is already known at the release boundary.
-            // Carry it into Free Hunt now instead of waiting for the hunt
-            // scanner's next search interval.
-
-            if (!adjacentRearGuard || !this.onWaveForwardTargetFound(scanner, adjacentRearGuard)) {
-              wave.releaseForwardToFreeHunt();
-            }
 
             return;
           }
@@ -1383,7 +1587,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         recordAggressiveForwardEvent(type, wave, scanner, boundary, enemiesAhead, reason) {
-          var _wave$family;
+          var _wave$family3;
 
           if (!this.enableBattleTelemetry) return;
           var boundaryWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
@@ -1397,9 +1601,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             waveId: wave.id,
             laneId: wave.laneId,
             unitName: wave.unitName,
-            familyName: (_wave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            familyName: (_wave$family3 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family : String(wave.family),
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family3 : String(wave.family),
             reason,
             boundaryWaveId: boundaryWave ? boundaryWave.id : -1,
             boundaryLaneId: boundaryWave ? boundaryWave.laneId : -1,
@@ -1418,7 +1622,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             wave.refreshInitialForwardCombatGate();
-            wave.tryResumeForward(this.refreshLaneBeforeWaveForward);
+            var resumed = wave.tryResumeForward(this.refreshLaneBeforeWaveForward);
+
+            if (resumed) {
+              this.recordWaveForwardResume(wave);
+            }
           }
         }
 
@@ -1797,10 +2005,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         createBattleTelemetryWaveSnapshot(wave) {
-          var _wave$family2;
+          var _wave$family4;
 
           var busyCount = 0;
           var targetCount = 0;
+          var continuityCount = 0;
           var forwardCount = 0;
 
           for (var i = 0; i < wave.units.length; i++) {
@@ -1808,28 +2017,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!this.isAliveUnit(unit)) continue;
             if (unit.onBusy) busyCount++;
             if (unit.hasValidEnemyTarget()) targetCount++;
+
+            if (unit.isContinuingFreeHuntIntent()) {
+              continuityCount++;
+            }
+
             if (unit.onForward) forwardCount++;
           }
 
-          return {
+          var targetState = wave.getTelemetryTargetState();
+          return _extends({
             waveId: wave.id,
             team: wave.team,
             laneId: wave.laneId,
             unitName: wave.unitName,
             family: wave.family,
-            familyName: (_wave$family2 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            familyName: (_wave$family4 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family2 : String(wave.family),
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family4 : String(wave.family),
             tier: wave.tier,
             totalCount: wave.totalCount,
             aliveCount: wave.getRuntimeAliveCount(this.frame),
             busyCount,
             targetCount,
+            continuityCount,
             forwardCount,
             healthRatio: wave.getRuntimeHealthRatio(this.frame),
             forwardMode: wave.isForwardMode(),
             aggressiveForward: wave.isAggressiveForwardMode()
-          };
+          }, targetState);
         }
 
         getBattleTelemetryHeroHealthRatio(team) {
@@ -1916,6 +2132,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (canFinishTelemetry) {
             this.battleTelemetry.recordFinalSnapshot(this.createBattleTelemetrySnapshot());
+            this.recordBattleFramePerformanceSummary();
           }
 
           var progressionResult = this.battleProgressionProvider ? this.battleProgressionProvider.handleBattleResult(winnerTeam, loserTeam, reason) : null;

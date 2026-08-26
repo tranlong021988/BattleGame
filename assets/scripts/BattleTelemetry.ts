@@ -134,10 +134,17 @@ export interface BattleTelemetryWaveSnapshot {
     aliveCount: number;
     busyCount: number;
     targetCount: number;
+    continuityCount: number;
     forwardCount: number;
     healthRatio: number;
     forwardMode: boolean;
     aggressiveForward: boolean;
+    targetWaveId: number;
+    scannerUnitName: string;
+    scannerLifeId: number;
+    scannerBusy: boolean;
+    scannerForward: boolean;
+    scannerConfirmedNoTarget: boolean;
 }
 
 export interface BattleTelemetryTeamSnapshot {
@@ -208,6 +215,23 @@ export interface BattleTelemetryDiagnosticEvent {
     enemiesAhead?: number;
     combatPoint?: number;
     targetSearchRangeMultiplier?: number;
+    previousTargetWaveId?: number;
+    targetSource?: string;
+}
+
+export interface BattleTelemetryFramePerformance {
+    frameCount: number;
+    averageDeltaMs: number;
+    p95DeltaMs: number;
+    p99DeltaMs: number;
+    maxDeltaMs: number;
+    framesOver16_67Ms: number;
+    framesOver33_33Ms: number;
+    peakAliveUnits: number;
+    peakAliveWaves: number;
+    managerUpdateSamples: number;
+    averageManagerUpdateMs: number;
+    maxManagerUpdateMs: number;
 }
 
 interface UnitSpawnInfo {
@@ -302,6 +326,7 @@ export class BattleTelemetry {
     private waveSpawns: BattleTelemetryWaveSpawnDecision[] = [];
     private snapshots: BattleTelemetryBattleSnapshot[] = [];
     private finalSnapshot: BattleTelemetryBattleSnapshot | null = null;
+    private framePerformance: BattleTelemetryFramePerformance | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
     private cardEvents: BattleTelemetryCardEvent[] = [];
     private waveSpawnFrameById: Map<number, number> = new Map();
@@ -336,6 +361,7 @@ export class BattleTelemetry {
         this.waveSpawns.length = 0;
         this.snapshots.length = 0;
         this.finalSnapshot = null;
+        this.framePerformance = null;
         this.diagnosticEvents.length = 0;
         this.cardEvents.length = 0;
         this.waveSpawnFrameById.clear();
@@ -591,6 +617,23 @@ export class BattleTelemetry {
         if (!snapshot) return;
 
         this.finalSnapshot = snapshot;
+    }
+
+    setFramePerformance(
+        performance: BattleTelemetryFramePerformance | null
+    ) {
+        this.framePerformance = performance
+            ? { ...performance }
+            : null;
+    }
+
+    recordDiagnosticEvent(
+        event: BattleTelemetryDiagnosticEvent
+    ) {
+        if (!this.isEnabled()) return;
+        if (!event) return;
+
+        this.pushDiagnosticEvent(event);
     }
 
     recordCardEvent(event: BattleTelemetryCardEvent) {
@@ -1084,6 +1127,7 @@ export class BattleTelemetry {
                     firstHeroDamageByFrameTeam:
                         this.firstHeroDamageByFrameTeam.slice(),
                 },
+                performance: this.framePerformance,
                 snapshots: this.snapshots.slice(),
                 finalSnapshot: this.finalSnapshot,
                 events: this.diagnosticEvents.slice(),

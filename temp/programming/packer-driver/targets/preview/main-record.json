@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 7748.374,
+      "mTimestamp": 7640.15,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 7360262.7031,
+      "mTimestamp": 17969598.2968,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -2474,7 +2474,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleTelemetry.ts": {
       "mTimestamp": {
-        "mtime": 1786344444899.866,
+        "mtime": 1787735252388.6506,
         "uuid": "efefbddb-804d-4a8c-98da-68618b2263c6"
       },
       "chunkId": "220bf6d52a94be16729ca4c58ede2a9e0e4f747a",
@@ -2664,7 +2664,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1787657684726.527,
+        "mtime": 1787744149672.0164,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -3053,7 +3053,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1787657902417.4292,
+        "mtime": 1787744080511.384,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -4361,7 +4361,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1787657637626.2297,
+        "mtime": 1787737919799.2734,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -4971,7 +4971,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1787650565173,
+      "mTimestamp": 1787726271754,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -5101,7 +5101,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1787650565173,
+      "mTimestamp": 1787726271754,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",

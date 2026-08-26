@@ -465,34 +465,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         findSharedTargetForUnit(requester) {
           if (this.released) return null;
           if (!this.isUnitAlive(requester)) return null;
-          if (!requester.agent) return null;
           var targetWave = this.getTargetWave();
-          if (!targetWave) return null;
-          var best = null;
-          var bestDistSq = Infinity;
+          if (!targetWave) return null; // A wave order must not depend on another ally still retaining an
+          // individual target. That created an O(n²) fallback and could leave
+          // every free unit stopped after their local targets died. The target
+          // wave's cached representative keeps the order alive; initial/changed
+          // orders still distribute nearest targets in primeTargetWaveHuntTargets.
 
-          for (var i = 0; i < this.units.length; i++) {
-            var ally = this.units[i];
-            if (ally === requester) continue;
-            if (!this.isUnitAlive(ally)) continue;
-            var target = ally.getValidEnemyTarget();
-            if (!target) continue;
+          return targetWave.getRepresentativeUnit();
+        }
 
-            if (targetWave && BattleWave.getWaveForUnit(target) !== targetWave) {
-              continue;
-            }
-
-            var dx = target.agent.pos.x - requester.agent.pos.x;
-            var dz = target.agent.pos.z - requester.agent.pos.z;
-            var d = dx * dx + dz * dz;
-
-            if (d < bestDistSq) {
-              bestDistSq = d;
-              best = target;
-            }
-          }
-
-          return best;
+        getTelemetryTargetState() {
+          var targetWave = this.getTargetWave();
+          var scanner = this.isForwardMode() ? this.getForwardScanner() : this.getHuntScanner();
+          return {
+            targetWaveId: targetWave ? targetWave.id : -1,
+            scannerUnitName: scanner ? scanner.unitTypeName : '',
+            scannerLifeId: scanner ? scanner.lifeId : -1,
+            scannerBusy: !!(scanner != null && scanner.onBusy),
+            scannerForward: !!(scanner != null && scanner.onForward),
+            scannerConfirmedNoTarget: !!(scanner != null && scanner.hasConfirmedNoTargetSearch())
+          };
         }
 
         setLaneId(laneId) {
@@ -592,10 +585,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return true;
         }
 
-        hasObservedAggressiveAdjacentBoundary() {
-          return !this.released && this.aggressiveAdjacentBoundaryObserved;
-        }
-
         observeAggressiveOwnLaneBlock() {
           if (!this.isAggressiveForwardMode()) return false;
           if (this.aggressiveOwnLaneBlockObserved) return false;
@@ -635,6 +624,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.scannerUnit = this.findFrontmostAliveUnit(false);
           return this.scannerUnit;
+        }
+
+        hasHuntScannerConfirmedNoTarget() {
+          var scanner = this.getHuntScanner();
+          return !!(scanner != null && scanner.hasConfirmedNoTargetSearch());
         }
 
         isCurrentScanner(unit, refresh) {
@@ -750,9 +744,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           if (aliveCount <= 0) return false;
-          var scanner = this.getHuntScanner();
 
-          if (!scanner || !scanner.hasConfirmedNoTargetSearch()) {
+          if (!this.hasHuntScannerConfirmedNoTarget()) {
             return false;
           }
 

@@ -165,6 +165,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.retaliationTargetLifeId = -1;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
+          this.freeHuntContinuityActive = false;
+          this.freeHuntContinuityDir = {
+            x: 0,
+            z: 0
+          };
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
@@ -211,6 +216,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.agent.radius = this.radius;
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.clearFreeHuntContinuity();
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
@@ -249,6 +255,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (value) {
             this.setEnemyTarget(null);
             this.onBusy = false;
+            this.clearFreeHuntContinuity();
             this.onForward = false;
             this.backToLaneActive = false;
             this.initialYaw = this.getVisualEulerY();
@@ -266,6 +273,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.clearFreeHuntContinuity();
           this.onForward = useForwardPhase;
           this.backToLaneActive = false;
           this.resetRangedCombatMovement();
@@ -296,6 +304,67 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.sim.setPrefVelocity(this.agent, x, z);
+        }
+
+        beginFreeHuntContinuity() {
+          if (!this.agent) return;
+          var prefVelocity = this.agent.prefVel;
+          var x = Math.abs(prefVelocity.x) > 0.0001 ? prefVelocity.x : this.forwardDir.x;
+          var z = Math.abs(prefVelocity.z) > 0.0001 ? prefVelocity.z : this.forwardDir.z;
+          this.setFreeHuntContinuityDirection(x, z);
+        }
+
+        setFreeHuntContinuityDirection(x, z) {
+          var length = Math.sqrt(x * x + z * z);
+          if (length <= 0.0001) return;
+          this.freeHuntContinuityDir.x = x / length;
+          this.freeHuntContinuityDir.z = z / length;
+          this.freeHuntContinuityActive = true;
+        }
+
+        clearFreeHuntContinuity() {
+          this.freeHuntContinuityActive = false;
+          this.freeHuntContinuityDir.x = 0;
+          this.freeHuntContinuityDir.z = 0;
+        }
+
+        continueFreeHuntContinuity(deltaTime) {
+          if (!this.agent) return false;
+          if (!this.freeHuntContinuityActive) return false;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+
+          if (!gm || gm.hasWaveHuntScannerConfirmedNoTarget(this)) {
+            this.clearFreeHuntContinuity();
+            return false;
+          }
+
+          this.setAgentLocked(false);
+          this.setAgentOnForward(0);
+          var scanner = gm.getWaveHuntScannerForUnit(this);
+
+          if (scanner && scanner !== this && scanner.agent) {
+            var dx = scanner.agent.pos.x - this.agent.pos.x;
+            var dz = scanner.agent.pos.z - this.agent.pos.z;
+            var length = Math.sqrt(dx * dx + dz * dz);
+
+            if (length > 0.0001) {
+              this.setAgentPrefVelocity(dx / length * this.agent.maxSpeed, dz / length * this.agent.maxSpeed);
+              this.lookMoveIntentSmooth(deltaTime);
+              this.sync(deltaTime, false);
+              return true;
+            }
+          }
+
+          this.setAgentPrefVelocity(this.freeHuntContinuityDir.x * this.agent.maxSpeed, this.freeHuntContinuityDir.z * this.agent.maxSpeed);
+          this.lookMoveIntentSmooth(deltaTime);
+          this.sync(deltaTime, false);
+          return true;
+        }
+
+        isContinuingFreeHuntIntent() {
+          return this.freeHuntContinuityActive && !this.onBusy && !this.onForward && !this.hasValidEnemyTarget();
         }
 
         zeroAgentVelocity() {
@@ -664,7 +733,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
         clearEnemy() {
           this.setEnemyTarget(null);
-          this.onBusy = false;
+          this.onBusy = false; // Keep the last free-hunt intent while the scanner waits for the
+          // next wave order. Movement modes that must stop or redirect
+          // (steady, forward, and back-to-lane) clear it explicitly.
+
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
           this.resetRangedCombatMovement();
@@ -678,6 +750,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         haltForBattleEnd() {
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.clearFreeHuntContinuity();
           this.onForward = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
@@ -743,6 +816,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.clearCachedTargets();
 
           if (!this.onBusy) {
+            this.beginFreeHuntContinuity();
+          }
+
+          if (!this.onBusy) {
             this.setEnemyTarget(null);
           }
 
@@ -751,7 +828,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentOnForward(0);
 
             if (!this.onBusy) {
-              this.setAgentStopped();
+              this.setAgentPrefVelocity(this.freeHuntContinuityDir.x * this.agent.maxSpeed, this.freeHuntContinuityDir.z * this.agent.maxSpeed);
             }
           }
         }
@@ -765,6 +842,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.resetRangedCombatMovement();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
+          this.clearFreeHuntContinuity();
 
           if (this.agent) {
             this.setAgentOnForward(0);
@@ -794,6 +872,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
 
+          if (!this.onBusy) {
+            this.beginFreeHuntContinuity();
+          }
+
           if (this.agent) {
             this.setAgentOnForward(0);
 
@@ -816,6 +898,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.clearFreeHuntContinuity();
           this.onForward = true;
           this.aggressiveForward = aggressiveForward;
           this.soloAggressiveSkirmishActive = false;
@@ -999,12 +1082,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var dist = Math.sqrt(dx * dx + dz * dz);
 
             if (dist > 0.0001) {
+              this.setFreeHuntContinuityDirection(dx, dz);
               this.setAgentPrefVelocity(dx / dist * this.agent.maxSpeed, dz / dist * this.agent.maxSpeed);
             }
 
             this.lookAtTargetSmooth(enemy, deltaTime);
             this.sync(deltaTime, false);
           } else {
+            if (this.continueFreeHuntContinuity(deltaTime)) {
+              return;
+            }
+
             this.setAgentStopped();
             this.sync(deltaTime, true);
           }
@@ -1038,6 +1126,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (dir === 0) return false;
           this.setEnemyTarget(null);
           this.onBusy = false;
+          this.clearFreeHuntContinuity();
           this.onForward = false;
           this.aggressiveForward = aggressiveForward;
           this.soloAggressiveSkirmishActive = false;

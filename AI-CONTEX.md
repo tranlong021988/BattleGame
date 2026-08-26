@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-24. `assets/Battle.scene` and TypeScript source are
+Last updated: 2026-08-26. `assets/Battle.scene` and TypeScript source are
 authoritative; this file is a decision record only. Update it only when the
 user explicitly requests it.
 
@@ -220,10 +220,11 @@ already fighting.
 - **Immediate transitions:** whenever a wave gains/replaces `targetWave` while
   already in Free Hunt, prime every idle unit with its nearest live unit in
   that target wave and set its preferred velocity immediately. Do not wait for
-  each unit's next search interval. Likewise, an aggressive Forward wave that
-  passes a known adjacent enemy wave must carry that scanner target into
-  `onWaveForwardTargetFound`; only fall back to targetless Free Hunt when the
-  adjacent target is gone/invalid.
+  each unit's next search interval. During the short gap before a Free Hunt
+  order is usable, idle units keep moving toward their hunt scanner (or their
+  last valid intent if the scanner is unavailable), rather than stopping or
+  independently searching. This is a visual-continuity rule, not a new target
+  search rule.
 - **Performance boundary:** strategic nearest search is one scanner per wave,
   not one search per idle unit. Per-unit attack-range checks and local
   retaliation remain necessary combat work and are intentionally retained.
@@ -242,8 +243,69 @@ Common regressions to reject:
 2. Blocking scanner/retarget decisions merely because another ally is busy.
 3. Letting scanner overwrite a valid live `targetWave` without a real
    `onBusy` engagement.
-4. Releasing from Forward with a known adjacent target but waiting for a later
-   Free Hunt search tick before setting velocity.
+4. Letting idle Free Hunt units halt while waiting for their scanner's next
+   search result, instead of preserving a scanner-directed continuity intent.
+
+### Aggressive Forward and enemy-line victory (authoritative, 2026-08-26)
+
+Aggressive Forward is a lane-pushing behaviour, not an instruction to clear
+every enemy wave on the way. Its purpose is to let a wave exploit a clear lane
+and reach the opponent's hero line. Reaching that line calls
+`resolveUnitReachedEnemyHeroLine()` and immediately resolves the battle; hero
+death is not required.
+
+- A neighbouring-lane enemy scanner is **flank telemetry only**. It may emit
+  `aggressive-boundary-observed`, but it must not force an aggressive wave out
+  of Forward, assign that wave as the strategic target, or require the scanner
+  to pass it first. The old
+  `hasObservedAggressiveAdjacentBoundary`/`hasPassedForwardTarget` release
+  gate was deliberately removed.
+- Enemy units ahead in the same lane are still observed as
+  `aggressive-own-lane-blocked`. More importantly, a direct same-lane
+  attack-range encounter follows the normal `onWaveCombatStarted` path and
+  turns the wave into combat/Free Hunt. This is the intended obstruction to a
+  lane push.
+- A cross-lane collision, pursuit or retaliation remains a **solo aggressive
+  skirmish**. The initiating unit can fight locally, but its free allies stay
+  in aggressive Forward and continue toward the enemy line. This prevents a
+  flank incident from freezing or turning the whole wave.
+- `onWaveCombatStarted()` may still update the wave's `targetWave` from a real
+  `onBusy` engagement, including one in a neighbouring lane. While the wave is
+  still in Forward, that is dormant strategic state: it does not redirect free
+  allies. It becomes actionable only if the wave later enters Free Hunt. Busy
+  units never abandon their current local combat merely because the shared
+  target changes.
+
+This distinction is the key invariant: **strategic target assignment is not
+movement authority while a wave remains in Forward**. Do not change the
+aggressive branch into an early `releaseForwardToFreeHunt()` merely because an
+adjacent enemy exists; that would reverse the lane-push design.
+
+### Combat telemetry and performance instrumentation (2026-08-26)
+
+The scanner changes added diagnostics to distinguish a genuine stall from the
+normal short period between asynchronous unit updates. They are analysis-only;
+they do not change balance, economy or bot decisions.
+
+- Each wave snapshot now records `targetWaveId`, scanner identity/state,
+  `busyCount`, `targetCount`, `forwardCount` and `continuityCount`. A wave is
+  not a stall merely because it has no individual target if continuity movement
+  is active or its scanner has not yet confirmed no target.
+- Diagnostic events include `wave-target-assigned`, `wave-forward-resumed`,
+  `aggressive-boundary-observed` and `aggressive-own-lane-blocked`. Audit these
+  in run/battle-index order before inferring a combat regression.
+- Final telemetry includes frame average/p95/p99/max delta, counts above
+  16.67ms and 33.33ms, peak alive units/waves, plus sampled `GameManager`
+  update cost. Use these numbers to distinguish real frame-time pressure from
+  perceived slowness, especially when preview time scale is x3.
+- RVO now receives accumulated simulation delta across staggered RVO update
+  frames. Do not pass only the last render-frame delta again, otherwise
+  movement slows whenever simulation updates are intentionally intervalled.
+
+For performance triage, first compare the same scenario at x1 and x3. An x3
+preview makes spawning, combat, path updates and visual state changes occur
+three times as frequently in wall-clock time; it is not representative of the
+shipping x1 budget.
 
 ## Telemetry audit baseline
 

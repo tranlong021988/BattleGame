@@ -420,8 +420,22 @@ export class GameManager extends Component {
     private readonly battleTelemetry =
         new BattleTelemetry();
     private battleElapsedTime = 0;
+    private readonly telemetryFrameDeltaHistogram: number[] =
+        new Array(101).fill(0);
+    private telemetryFrameSampleCount = 0;
+    private telemetryFrameDeltaTotalMs = 0;
+    private telemetryFrameDeltaMaxMs = 0;
+    private telemetryFramesOver16_67Ms = 0;
+    private telemetryFramesOver33_33Ms = 0;
+    private telemetryPeakAliveUnits = 0;
+    private telemetryPeakAliveWaves = 0;
+    private telemetryManagerUpdateSampleCount = 0;
+    private telemetryManagerUpdateTotalMs = 0;
+    private telemetryManagerUpdateMaxMs = 0;
+    private readonly telemetryManagerUpdateSampleInterval = 30;
     private battleCardRuntime: BattleCardRuntime | null = null;
     private battleRuntimeActive = false;
+    private rvoStepAccumulatedDelta = 0;
     private battleRuntimeRoot: Node | null = null;
     private readonly heroSpawnPositions: Map<Node, Vec3> = new Map();
 
@@ -470,6 +484,8 @@ export class GameManager extends Component {
         this.frame = 0;
         this.spawnWaveTimer = 0;
         this.battleElapsedTime = 0;
+        this.rvoStepAccumulatedDelta = 0;
+        this.resetBattleFramePerformanceTelemetry();
 
         this.resetCombatPoint();
 
@@ -827,6 +843,11 @@ export class GameManager extends Component {
         if (!this.battleRuntimeActive) return;
 
         this.frame++;
+        this.recordBattleFrameDelta(deltaTime);
+        const managerUpdateStart =
+            this.shouldSampleBattleManagerUpdate()
+                ? this.getPerformanceNow()
+                : -1;
         this.battleElapsedTime += deltaTime;
         this.battleCardRuntime?.update(
             deltaTime,
@@ -837,13 +858,16 @@ export class GameManager extends Component {
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
 
+        this.rvoStepAccumulatedDelta += deltaTime;
+
         if (
             this.shouldRunFrameInterval(
                 this.updateInterval,
                 this.rvoUpdateFrameOffset
             )
         ) {
-            this.stepRvoSimulation(deltaTime);
+            this.stepRvoSimulation(this.rvoStepAccumulatedDelta);
+            this.rvoStepAccumulatedDelta = 0;
         }
 
         if (
@@ -874,6 +898,16 @@ export class GameManager extends Component {
         this.processBattleWinnerCondition();
 
         this.refreshBattleStatsUI();
+
+        if (managerUpdateStart >= 0) {
+            const elapsed = this.getPerformanceNow();
+
+            if (elapsed >= managerUpdateStart) {
+                this.recordBattleManagerUpdateTime(
+                    elapsed - managerUpdateStart
+                );
+            }
+        }
     }
 
     private shouldRunFrameInterval(
@@ -888,6 +922,156 @@ export class GameManager extends Component {
             safeInterval;
 
         return (this.frame + phase) % safeInterval === 0;
+    }
+
+    private resetBattleFramePerformanceTelemetry() {
+        for (
+            let i = 0;
+            i < this.telemetryFrameDeltaHistogram.length;
+            i++
+        ) {
+            this.telemetryFrameDeltaHistogram[i] = 0;
+        }
+
+        this.telemetryFrameSampleCount = 0;
+        this.telemetryFrameDeltaTotalMs = 0;
+        this.telemetryFrameDeltaMaxMs = 0;
+        this.telemetryFramesOver16_67Ms = 0;
+        this.telemetryFramesOver33_33Ms = 0;
+        this.telemetryPeakAliveUnits = 0;
+        this.telemetryPeakAliveWaves = 0;
+        this.telemetryManagerUpdateSampleCount = 0;
+        this.telemetryManagerUpdateTotalMs = 0;
+        this.telemetryManagerUpdateMaxMs = 0;
+    }
+
+    private recordBattleFrameDelta(deltaTime: number) {
+        if (!this.enableBattleTelemetry) return;
+        if (!this.battleTelemetry.isEnabled()) return;
+        if (!Number.isFinite(deltaTime) || deltaTime <= 0) return;
+
+        const milliseconds = deltaTime * 1000;
+        const histogramIndex = Math.max(
+            0,
+            Math.min(
+                this.telemetryFrameDeltaHistogram.length - 1,
+                Math.floor(milliseconds)
+            )
+        );
+
+        this.telemetryFrameSampleCount++;
+        this.telemetryFrameDeltaTotalMs += milliseconds;
+        this.telemetryFrameDeltaMaxMs = Math.max(
+            this.telemetryFrameDeltaMaxMs,
+            milliseconds
+        );
+        this.telemetryFrameDeltaHistogram[histogramIndex]++;
+
+        if (milliseconds > 16.67) {
+            this.telemetryFramesOver16_67Ms++;
+        }
+
+        if (milliseconds > 33.33) {
+            this.telemetryFramesOver33_33Ms++;
+        }
+
+        this.telemetryPeakAliveUnits = Math.max(
+            this.telemetryPeakAliveUnits,
+            this.getTotalAliveUnitCount()
+        );
+        this.telemetryPeakAliveWaves = Math.max(
+            this.telemetryPeakAliveWaves,
+            this.waves.length
+        );
+    }
+
+    private shouldSampleBattleManagerUpdate() {
+        if (!this.enableBattleTelemetry) return false;
+        if (!this.battleTelemetry.isEnabled()) return false;
+
+        return this.frame %
+            this.telemetryManagerUpdateSampleInterval === 0;
+    }
+
+    private getPerformanceNow() {
+        const timing = globalThis.performance;
+
+        if (!timing || typeof timing.now !== 'function') {
+            return -1;
+        }
+
+        return timing.now();
+    }
+
+    private recordBattleManagerUpdateTime(milliseconds: number) {
+        if (!Number.isFinite(milliseconds) || milliseconds < 0) {
+            return;
+        }
+
+        this.telemetryManagerUpdateSampleCount++;
+        this.telemetryManagerUpdateTotalMs += milliseconds;
+        this.telemetryManagerUpdateMaxMs = Math.max(
+            this.telemetryManagerUpdateMaxMs,
+            milliseconds
+        );
+    }
+
+    private getBattleFrameDeltaPercentile(percentile: number) {
+        if (this.telemetryFrameSampleCount <= 0) return 0;
+
+        const target = Math.max(
+            1,
+            Math.ceil(
+                this.telemetryFrameSampleCount * percentile
+            )
+        );
+        let accumulated = 0;
+
+        for (
+            let i = 0;
+            i < this.telemetryFrameDeltaHistogram.length;
+            i++
+        ) {
+            accumulated += this.telemetryFrameDeltaHistogram[i];
+
+            if (accumulated >= target) {
+                return i + 1;
+            }
+        }
+
+        return this.telemetryFrameDeltaHistogram.length;
+    }
+
+    private recordBattleFramePerformanceSummary() {
+        const frameCount = this.telemetryFrameSampleCount;
+
+        this.battleTelemetry.setFramePerformance({
+            frameCount,
+            averageDeltaMs:
+                frameCount > 0
+                    ? this.telemetryFrameDeltaTotalMs / frameCount
+                    : 0,
+            p95DeltaMs:
+                this.getBattleFrameDeltaPercentile(0.95),
+            p99DeltaMs:
+                this.getBattleFrameDeltaPercentile(0.99),
+            maxDeltaMs: this.telemetryFrameDeltaMaxMs,
+            framesOver16_67Ms:
+                this.telemetryFramesOver16_67Ms,
+            framesOver33_33Ms:
+                this.telemetryFramesOver33_33Ms,
+            peakAliveUnits: this.telemetryPeakAliveUnits,
+            peakAliveWaves: this.telemetryPeakAliveWaves,
+            managerUpdateSamples:
+                this.telemetryManagerUpdateSampleCount,
+            averageManagerUpdateMs:
+                this.telemetryManagerUpdateSampleCount > 0
+                    ? this.telemetryManagerUpdateTotalMs /
+                    this.telemetryManagerUpdateSampleCount
+                    : 0,
+            maxManagerUpdateMs:
+                this.telemetryManagerUpdateMaxMs,
+        });
     }
 
     private stepRvoSimulation(deltaTime: number) {
@@ -1217,14 +1401,28 @@ export class GameManager extends Component {
     private trySetWaveTargetFromScanner(
         wave: BattleWave,
         scanner: Unit | null,
-        target: Unit | null
+        target: Unit | null,
+        source: string
     ) {
         if (!wave || !scanner || !target) return false;
 
-        return wave.trySetTargetWaveFromScanner(
+        const previousTargetWaveId =
+            wave.getTargetWave()?.id ?? -1;
+        const assigned = wave.trySetTargetWaveFromScanner(
             scanner,
             target
         );
+
+        this.recordWaveTargetAssignment(
+            wave,
+            scanner,
+            target,
+            previousTargetWaveId,
+            source,
+            assigned
+        );
+
+        return assigned;
     }
 
     private trySetWaveTargetFromEngagement(
@@ -1234,10 +1432,74 @@ export class GameManager extends Component {
     ) {
         if (!wave || !unit || !target) return false;
 
-        return wave.trySetTargetWaveFromEngagement(
+        const previousTargetWaveId =
+            wave.getTargetWave()?.id ?? -1;
+        const assigned = wave.trySetTargetWaveFromEngagement(
             unit,
             target
         );
+
+        this.recordWaveTargetAssignment(
+            wave,
+            unit,
+            target,
+            previousTargetWaveId,
+            'engagement',
+            assigned
+        );
+
+        return assigned;
+    }
+
+    private recordWaveTargetAssignment(
+        wave: BattleWave,
+        unit: Unit | null,
+        target: Unit | null,
+        previousTargetWaveId: number,
+        source: string,
+        assigned: boolean
+    ) {
+        if (!this.enableBattleTelemetry || !assigned) return;
+
+        const targetWave = wave.getTargetWave();
+        if (!targetWave || targetWave.id === previousTargetWaveId) {
+            return;
+        }
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-target-assigned',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: unit?.unitTypeName ?? wave.unitName,
+            familyName: UnitFamily[wave.family] ?? String(wave.family),
+            targetWaveId: targetWave.id,
+            targetTeam: targetWave.team,
+            targetLaneId: targetWave.laneId,
+            targetFamilyName:
+                UnitFamily[targetWave.family] ?? String(targetWave.family),
+            previousTargetWaveId,
+            targetSource: source,
+        });
+    }
+
+    private recordWaveForwardResume(wave: BattleWave) {
+        if (!this.enableBattleTelemetry) return;
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-forward-resumed',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: UnitFamily[wave.family] ?? String(wave.family),
+            targetWaveId: -1,
+            targetSource: 'scanner-confirmed-no-target',
+        });
     }
 
     private shouldUseSoloAggressiveCombat(
@@ -1374,7 +1636,8 @@ export class GameManager extends Component {
         if (!this.trySetWaveTargetFromScanner(
             wave,
             unit,
-            target
+            target,
+            'forward-scanner'
         )) {
             return false;
         }
@@ -1397,11 +1660,35 @@ export class GameManager extends Component {
         return wave.isCurrentScanner(unit);
     }
 
+    public getWaveHuntScannerForUnit(unit: Unit | null) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave || wave.isDeadRuntime(this.frame)) {
+            return null;
+        }
+
+        return wave.getHuntScanner();
+    }
+
     public getWaveTargetForUnit(unit: Unit | null) {
         const wave =
             BattleWave.getWaveForUnit(unit);
 
         return wave ? wave.getTargetWave() : null;
+    }
+
+    public hasWaveHuntScannerConfirmedNoTarget(
+        unit: Unit | null
+    ) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave || wave.isDeadRuntime(this.frame)) {
+            return true;
+        }
+
+        return wave.hasHuntScannerConfirmedNoTarget();
     }
 
     public onWaveHuntScannerTargetFound(
@@ -1416,7 +1703,8 @@ export class GameManager extends Component {
         return this.trySetWaveTargetFromScanner(
             wave,
             scanner,
-            target
+            target,
+            'hunt-scanner'
         );
     }
 
@@ -1628,19 +1916,6 @@ export class GameManager extends Component {
                         'deepest-adjacent-enemy-wave'
                     );
                 }
-            } else if (
-                !wave.hasObservedAggressiveAdjacentBoundary()
-            ) {
-                return;
-            }
-
-            if (
-                adjacentRearGuard &&
-                !scanner.hasPassedForwardTarget(
-                    adjacentRearGuard
-                )
-            ) {
-                return;
             }
 
             const enemiesAhead =
@@ -1665,29 +1940,11 @@ export class GameManager extends Component {
                 return;
             }
 
-            this.recordAggressiveForwardEvent(
-                'aggressive-freehunt-release',
-                wave,
-                scanner,
-                adjacentRearGuard,
-                0,
-                adjacentRearGuard
-                    ? 'passed-deepest-adjacent-wave'
-                    : 'observed-adjacent-boundary-cleared'
-            );
-
-            // The adjacent wave is already known at the release boundary.
-            // Carry it into Free Hunt now instead of waiting for the hunt
-            // scanner's next search interval.
-            if (
-                !adjacentRearGuard ||
-                !this.onWaveForwardTargetFound(
-                    scanner,
-                    adjacentRearGuard
-                )
-            ) {
-                wave.releaseForwardToFreeHunt();
-            }
+            // An aggressive wave treats a neighbouring enemy wave as flank
+            // information, not a forward-release boundary. With its own lane
+            // clear it keeps marching toward the enemy line; an actual
+            // same-lane combat still switches the wave through the normal
+            // combat path in onWaveCombatStarted.
             return;
         }
 
@@ -1894,9 +2151,13 @@ export class GameManager extends Component {
             }
 
             wave.refreshInitialForwardCombatGate();
-            wave.tryResumeForward(
+            const resumed = wave.tryResumeForward(
                 this.refreshLaneBeforeWaveForward
             );
+
+            if (resumed) {
+                this.recordWaveForwardResume(wave);
+            }
         }
     }
 
@@ -2423,6 +2684,7 @@ export class GameManager extends Component {
     ) {
         let busyCount = 0;
         let targetCount = 0;
+        let continuityCount = 0;
         let forwardCount = 0;
 
         for (let i = 0; i < wave.units.length; i++) {
@@ -2432,8 +2694,13 @@ export class GameManager extends Component {
 
             if (unit.onBusy) busyCount++;
             if (unit.hasValidEnemyTarget()) targetCount++;
+            if (unit.isContinuingFreeHuntIntent()) {
+                continuityCount++;
+            }
             if (unit.onForward) forwardCount++;
         }
+
+        const targetState = wave.getTelemetryTargetState();
 
         return {
             waveId: wave.id,
@@ -2450,12 +2717,14 @@ export class GameManager extends Component {
                 wave.getRuntimeAliveCount(this.frame),
             busyCount,
             targetCount,
+            continuityCount,
             forwardCount,
             healthRatio:
                 wave.getRuntimeHealthRatio(this.frame),
             forwardMode: wave.isForwardMode(),
             aggressiveForward:
                 wave.isAggressiveForwardMode(),
+            ...targetState,
         };
     }
 
@@ -2593,6 +2862,7 @@ export class GameManager extends Component {
             this.battleTelemetry.recordFinalSnapshot(
                 this.createBattleTelemetrySnapshot()
             );
+            this.recordBattleFramePerformanceSummary();
         }
 
         const progressionResult =

@@ -555,46 +555,34 @@ export class BattleWave {
     ) {
         if (this.released) return null;
         if (!this.isUnitAlive(requester)) return null;
-        if (!requester!.agent) return null;
 
         const targetWave = this.getTargetWave();
 
         if (!targetWave) return null;
 
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
+        // A wave order must not depend on another ally still retaining an
+        // individual target. That created an O(n²) fallback and could leave
+        // every free unit stopped after their local targets died. The target
+        // wave's cached representative keeps the order alive; initial/changed
+        // orders still distribute nearest targets in primeTargetWaveHuntTargets.
+        return targetWave.getRepresentativeUnit();
+    }
 
-        for (let i = 0; i < this.units.length; i++) {
-            const ally = this.units[i];
+    getTelemetryTargetState() {
+        const targetWave = this.getTargetWave();
+        const scanner = this.isForwardMode()
+            ? this.getForwardScanner()
+            : this.getHuntScanner();
 
-            if (ally === requester) continue;
-            if (!this.isUnitAlive(ally)) continue;
-
-            const target = ally.getValidEnemyTarget();
-
-            if (!target) continue;
-            if (
-                targetWave &&
-                BattleWave.getWaveForUnit(target) !== targetWave
-            ) {
-                continue;
-            }
-
-            const dx =
-                target.agent!.pos.x -
-                requester!.agent.pos.x;
-            const dz =
-                target.agent!.pos.z -
-                requester!.agent.pos.z;
-            const d = dx * dx + dz * dz;
-
-            if (d < bestDistSq) {
-                bestDistSq = d;
-                best = target;
-            }
-        }
-
-        return best;
+        return {
+            targetWaveId: targetWave ? targetWave.id : -1,
+            scannerUnitName: scanner ? scanner.unitTypeName : '',
+            scannerLifeId: scanner ? scanner.lifeId : -1,
+            scannerBusy: !!scanner?.onBusy,
+            scannerForward: !!scanner?.onForward,
+            scannerConfirmedNoTarget:
+                !!scanner?.hasConfirmedNoTargetSearch(),
+        };
     }
 
     setLaneId(laneId: number) {
@@ -716,11 +704,6 @@ export class BattleWave {
         return true;
     }
 
-    hasObservedAggressiveAdjacentBoundary() {
-        return !this.released &&
-            this.aggressiveAdjacentBoundaryObserved;
-    }
-
     observeAggressiveOwnLaneBlock() {
         if (!this.isAggressiveForwardMode()) return false;
         if (this.aggressiveOwnLaneBlockObserved) return false;
@@ -769,6 +752,12 @@ export class BattleWave {
             this.findFrontmostAliveUnit(false);
 
         return this.scannerUnit;
+    }
+
+    hasHuntScannerConfirmedNoTarget() {
+        const scanner = this.getHuntScanner();
+
+        return !!scanner?.hasConfirmedNoTargetSearch();
     }
 
     isCurrentScanner(
@@ -912,9 +901,7 @@ export class BattleWave {
 
         if (aliveCount <= 0) return false;
 
-        const scanner = this.getHuntScanner();
-
-        if (!scanner || !scanner.hasConfirmedNoTargetSearch()) {
+        if (!this.hasHuntScannerConfirmedNoTarget()) {
             return false;
         }
 

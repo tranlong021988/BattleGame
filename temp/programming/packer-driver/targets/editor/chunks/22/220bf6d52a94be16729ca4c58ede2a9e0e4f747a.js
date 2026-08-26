@@ -102,6 +102,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveSpawns = [];
           this.snapshots = [];
           this.finalSnapshot = null;
+          this.framePerformance = null;
           this.diagnosticEvents = [];
           this.cardEvents = [];
           this.waveSpawnFrameById = new Map();
@@ -136,6 +137,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveSpawns.length = 0;
           this.snapshots.length = 0;
           this.finalSnapshot = null;
+          this.framePerformance = null;
           this.diagnosticEvents.length = 0;
           this.cardEvents.length = 0;
           this.waveSpawnFrameById.clear();
@@ -294,6 +296,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.isEnabled()) return;
           if (!snapshot) return;
           this.finalSnapshot = snapshot;
+        }
+
+        setFramePerformance(performance) {
+          this.framePerformance = performance ? { ...performance
+          } : null;
+        }
+
+        recordDiagnosticEvent(event) {
+          if (!this.isEnabled()) return;
+          if (!event) return;
+          this.pushDiagnosticEvent(event);
         }
 
         recordCardEvent(event) {
@@ -569,6 +582,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
                 firstKillByFrameTeam: this.firstKillByFrameTeam.slice(),
                 firstHeroDamageByFrameTeam: this.firstHeroDamageByFrameTeam.slice()
               },
+              performance: this.framePerformance,
               snapshots: this.snapshots.slice(),
               finalSnapshot: this.finalSnapshot,
               events: this.diagnosticEvents.slice()
