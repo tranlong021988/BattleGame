@@ -38,6 +38,7 @@ export class BattleWave {
     // in Free Hunt the frontmost alive unit takes the same captain role.
     private scannerUnit: Unit | null = null;
     private targetWave: BattleWave | null = null;
+    private immediateTargetSearchPending = false;
     private representativeUnit: Unit | null = null;
     private waveBannerNode: Node | null = null;
     private waveBannerRecycle:
@@ -560,19 +561,21 @@ export class BattleWave {
 
         if (!targetWave) return null;
 
-        // A wave order must not depend on another ally still retaining an
-        // individual target. That created an O(n²) fallback and could leave
-        // every free unit stopped after their local targets died. The target
-        // wave's cached representative keeps the order alive; initial/changed
-        // orders still distribute nearest targets in primeTargetWaveHuntTargets.
-        return targetWave.getRepresentativeUnit();
+        if (!requester.agent) return null;
+
+        // A free unit may only borrow a nearby member of its assigned enemy
+        // wave. Never fall back to that wave's representative: it can be far
+        // away and pull the whole wave across multiple lanes.
+        return targetWave.getClosestAliveUnitTo(
+            requester.agent.pos.x,
+            requester.agent.pos.z,
+            requester.targetSearchRange
+        );
     }
 
     getTelemetryTargetState() {
         const targetWave = this.getTargetWave();
-        const scanner = this.isForwardMode()
-            ? this.getForwardScanner()
-            : this.getHuntScanner();
+        const scanner = this.getScanner();
 
         return {
             targetWaveId: targetWave ? targetWave.id : -1,
@@ -712,50 +715,37 @@ export class BattleWave {
         return true;
     }
 
-    getForwardScanner(
-        refresh: boolean = false
-    ): Unit | null {
-        if (!this.isForwardMode()) {
+    /**
+     * The single wave scanner. Forward and Free Hunt share the same cache;
+     * their mode only changes which units are eligible to lead the search.
+     */
+    getScanner(refresh: boolean = false): Unit | null {
+        if (this.released) return null;
+
+        const requiresForwardUnit = this.isForwardMode();
+        if (!requiresForwardUnit && !this.freeHuntActive) {
             return null;
         }
 
         if (
             !refresh &&
-            this.isForwardScannerEligible(
-                this.scannerUnit
+            this.isScannerEligible(
+                this.scannerUnit,
+                requiresForwardUnit
             )
         ) {
             return this.scannerUnit;
         }
 
-        this.scannerUnit =
-            this.findFrontmostAliveUnit(true);
-
-        return this.scannerUnit;
-    }
-
-    getHuntScanner(
-        refresh: boolean = false
-    ): Unit | null {
-        if (this.released || !this.freeHuntActive) {
-            return null;
-        }
-
-        if (
-            !refresh &&
-            this.isHuntScannerEligible(this.scannerUnit)
-        ) {
-            return this.scannerUnit;
-        }
-
-        this.scannerUnit =
-            this.findFrontmostAliveUnit(false);
+        this.scannerUnit = this.findFrontmostAliveUnit(
+            requiresForwardUnit
+        );
 
         return this.scannerUnit;
     }
 
     hasHuntScannerConfirmedNoTarget() {
-        const scanner = this.getHuntScanner();
+        const scanner = this.getScanner();
 
         return !!scanner?.hasConfirmedNoTargetSearch();
     }
@@ -766,9 +756,7 @@ export class BattleWave {
     ) {
         if (!unit || this.released) return false;
 
-        const scanner = this.isForwardMode()
-            ? this.getForwardScanner(refresh)
-            : this.getHuntScanner(refresh);
+        const scanner = this.getScanner(refresh);
 
         return scanner === unit;
     }
@@ -778,10 +766,39 @@ export class BattleWave {
             this.targetWave &&
             (this.targetWave.released || this.targetWave.isDead())
         ) {
-            this.clearTargetWave();
+            // The current strategic order has genuinely ended. Let the one
+            // scanner search once on the next safe GameManager pass instead
+            // of waiting for its normal interval.
+            this.clearTargetWave(true);
         }
 
         return this.targetWave;
+    }
+
+    hasImmediateTargetSearchPending() {
+        this.getTargetWave();
+
+        return this.immediateTargetSearchPending;
+    }
+
+    consumeImmediateTargetSearch() {
+        this.getTargetWave();
+
+        if (!this.immediateTargetSearchPending) return false;
+
+        // A new strategic order won before the forced scan ran, or the wave
+        // has left Free Hunt. Never let an old request overwrite that state.
+        if (
+            this.released ||
+            !this.freeHuntActive ||
+            this.targetWave
+        ) {
+            this.immediateTargetSearchPending = false;
+            return false;
+        }
+
+        this.immediateTargetSearchPending = false;
+        return true;
     }
 
     trySetTargetWaveFromScanner(
@@ -810,8 +827,10 @@ export class BattleWave {
         if (this.getTargetWave()) return false;
 
         this.targetWave = nextTargetWave;
+        this.immediateTargetSearchPending = false;
 
         if (this.freeHuntActive) {
+            this.clearIdleHuntTargets();
             this.primeTargetWaveHuntTargets();
         }
 
@@ -839,8 +858,10 @@ export class BattleWave {
         // A real engagement is a passive order change: busy units keep their
         // local combat, while free allies begin hunting this enemy wave.
         this.targetWave = nextTargetWave;
+        this.immediateTargetSearchPending = false;
 
         if (this.freeHuntActive) {
+            this.clearIdleHuntTargets();
             this.primeTargetWaveHuntTargets();
         }
 
@@ -885,6 +906,7 @@ export class BattleWave {
         this.getTargetWave();
 
         if (this.targetWave) return false;
+        if (this.immediateTargetSearchPending) return false;
 
         let aliveCount = 0;
 
@@ -1040,7 +1062,8 @@ export class BattleWave {
 
             const target = targetWave.getClosestAliveUnitTo(
                 unit.agent.pos.x,
-                unit.agent.pos.z
+                unit.agent.pos.z,
+                unit.targetSearchRange
             );
 
             if (!target) continue;
@@ -1051,10 +1074,14 @@ export class BattleWave {
 
     private getClosestAliveUnitTo(
         x: number,
-        z: number
+        z: number,
+        maxRange: number = Infinity
     ): Unit | null {
         let best: Unit | null = null;
         let bestDistSq = Infinity;
+        const maxRangeSq = Number.isFinite(maxRange)
+            ? Math.max(0, maxRange) * Math.max(0, maxRange)
+            : Infinity;
 
         for (let i = 0; i < this.units.length; i++) {
             const unit = this.units[i];
@@ -1064,6 +1091,8 @@ export class BattleWave {
             const dx = unit.agent!.pos.x - x;
             const dz = unit.agent!.pos.z - z;
             const distSq = dx * dx + dz * dz;
+
+            if (distSq > maxRangeSq) continue;
 
             if (distSq < bestDistSq) {
                 bestDistSq = distSq;
@@ -1092,22 +1121,34 @@ export class BattleWave {
         return true;
     }
 
-    private isForwardScannerEligible(
-        unit: Unit | null
+    private isScannerEligible(
+        unit: Unit | null,
+        requiresForwardUnit: boolean
     ) {
         if (!this.isUnitAlive(unit)) return false;
 
-        return !!unit!.onForward;
+        return !requiresForwardUnit || !!unit!.onForward;
     }
 
-    private isHuntScannerEligible(
-        unit: Unit | null
+    private clearTargetWave(
+        requestImmediateSearch: boolean = false
     ) {
-        return !!unit && this.isUnitAlive(unit);
+        this.targetWave = null;
+        this.immediateTargetSearchPending =
+            requestImmediateSearch &&
+            !this.released &&
+            this.freeHuntActive;
     }
 
-    private clearTargetWave() {
-        this.targetWave = null;
+    private clearIdleHuntTargets() {
+        for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+
+            if (!this.isUnitAlive(unit)) continue;
+            if (unit.onBusy) continue;
+
+            unit.clearEnemy();
+        }
     }
 
     private pickRepresentativeUnit(

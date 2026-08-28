@@ -104,6 +104,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.finalSnapshot = null;
           this.framePerformance = null;
           this.diagnosticEvents = [];
+          this.scannerTraces = [];
           this.cardEvents = [];
           this.waveSpawnFrameById = new Map();
           this.waveSpawnTimeById = new Map();
@@ -123,7 +124,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.activeDamageBatch = null;
           this.maxSnapshots = 240;
           this.maxDiagnosticEvents = 3000;
+          this.maxScannerTraces = 6000;
           this.droppedDiagnosticEventCount = 0;
+          this.overwrittenScannerTraceCount = 0;
+          this.scannerTraceWriteIndex = 0;
           this.nextSpawnId = 1;
         }
 
@@ -139,6 +143,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.finalSnapshot = null;
           this.framePerformance = null;
           this.diagnosticEvents.length = 0;
+          this.scannerTraces.length = 0;
           this.cardEvents.length = 0;
           this.waveSpawnFrameById.clear();
           this.waveSpawnTimeById.clear();
@@ -165,12 +170,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastHeroDamageFrame = -1;
           this.activeDamageBatch = null;
           this.droppedDiagnosticEventCount = 0;
+          this.overwrittenScannerTraceCount = 0;
+          this.scannerTraceWriteIndex = 0;
           this.nextSpawnId = 1;
         }
 
-        configureDiagnostics(maxSnapshots, maxDiagnosticEvents) {
+        configureDiagnostics(maxSnapshots, maxDiagnosticEvents, maxScannerTraces = this.maxScannerTraces) {
           this.maxSnapshots = Math.max(0, Math.floor(maxSnapshots));
           this.maxDiagnosticEvents = Math.max(0, Math.floor(maxDiagnosticEvents));
+          this.maxScannerTraces = Math.max(0, Math.floor(maxScannerTraces));
         }
 
         isEnabled() {
@@ -307,6 +315,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.isEnabled()) return;
           if (!event) return;
           this.pushDiagnosticEvent(event);
+        }
+
+        recordScannerTrace(trace) {
+          if (!this.isEnabled()) return;
+          if (!trace) return;
+          if (this.maxScannerTraces <= 0) return;
+          const normalized = { ...trace,
+            frame: Math.max(0, Math.floor(trace.frame || 0)),
+            time: Number.isFinite(trace.time) ? trace.time : 0,
+            observedEnemyCount: Math.max(0, Math.floor(trace.observedEnemyCount || 0))
+          };
+
+          if (this.scannerTraces.length < this.maxScannerTraces) {
+            this.scannerTraces.push(normalized);
+            return;
+          }
+
+          this.scannerTraces[this.scannerTraceWriteIndex] = normalized;
+          this.scannerTraceWriteIndex = (this.scannerTraceWriteIndex + 1) % this.maxScannerTraces;
+          this.overwrittenScannerTraceCount++;
         }
 
         recordCardEvent(event) {
@@ -575,7 +603,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               limits: {
                 maxSnapshots: this.maxSnapshots,
                 maxDiagnosticEvents: this.maxDiagnosticEvents,
-                droppedDiagnosticEventCount: this.droppedDiagnosticEventCount
+                droppedDiagnosticEventCount: this.droppedDiagnosticEventCount,
+                maxScannerTraces: this.maxScannerTraces,
+                overwrittenScannerTraceCount: this.overwrittenScannerTraceCount
               },
               frameOrderStats: {
                 firstDamageByFrameTeam: this.firstDamageByFrameTeam.slice(),
@@ -585,7 +615,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               performance: this.framePerformance,
               snapshots: this.snapshots.slice(),
               finalSnapshot: this.finalSnapshot,
-              events: this.diagnosticEvents.slice()
+              events: this.diagnosticEvents.slice(),
+              scannerTraces: this.getScannerTracesChronological()
             },
             unitTypes
           };
@@ -813,6 +844,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.diagnosticEvents.push(event);
+        }
+
+        getScannerTracesChronological() {
+          if (this.scannerTraces.length < this.maxScannerTraces || this.scannerTraceWriteIndex <= 0) {
+            return this.scannerTraces.slice();
+          }
+
+          return this.scannerTraces.slice(this.scannerTraceWriteIndex).concat(this.scannerTraces.slice(0, this.scannerTraceWriteIndex));
         }
 
         clampTeam(team) {

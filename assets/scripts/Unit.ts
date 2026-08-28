@@ -122,7 +122,6 @@ export class Unit extends Component {
     private rangedCombatDecisionTargetLifeId = -1;
     private nearestEnemyQueryToken = 0;
     private nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
-    private appliedTargetSearchRangeMultiplier = 1;
     private readonly onNearestEnemyQueryResult = (
         target: Unit | null,
         token: number
@@ -848,42 +847,6 @@ export class Unit extends Component {
         }
     }
 
-    public applyTargetSearchRangeMultiplier(multiplier: number) {
-        const safeMultiplier =
-            Math.max(
-                1,
-                Number.isFinite(multiplier)
-                    ? multiplier
-                    : 1
-            );
-        const previousMultiplier =
-            Math.max(
-                1,
-                this.appliedTargetSearchRangeMultiplier
-            );
-
-        if (
-            Math.abs(
-                safeMultiplier -
-                previousMultiplier
-            ) < 0.0001
-        ) {
-            return;
-        }
-
-        this.targetSearchRange =
-            Math.max(
-                0,
-                this.targetSearchRange *
-                    safeMultiplier /
-                    previousMultiplier
-            );
-        this.appliedTargetSearchRangeMultiplier =
-            safeMultiplier;
-        this.invalidateNearestQueryResults();
-        this.clearCachedTargets();
-    }
-
     public disengageCurrentEnemyForChase() {
         if (!this.hasValidEnemyTarget()) {
             this.clearEnemy();
@@ -1210,9 +1173,30 @@ export class Unit extends Component {
             : null;
 
         // Local retaliation remains free to react to the attacker. Strategic
-        // free-hunt searching is scanner-only; allies borrow the captain's
-        // wave target instead of independently fanning out.
+        // free-hunt searching is scanner-only; allies borrow the assigned
+        // enemy wave instead of independently fanning out.
         this.refreshRetaliationTargetIfNeeded();
+
+        // A live wave order never keeps an idle scanner chasing a stale or
+        // out-of-range individual target. Busy local combat is deliberately
+        // preserved. Missing a scan does not cancel the strategic target
+        // wave; only its destruction or a real engagement can replace it.
+        if (isHuntScanner && targetWave && !this.onBusy) {
+            const currentTarget = this.getValidEnemyTarget();
+            const isTargetInAssignedWave =
+                !!currentTarget &&
+                currentTarget.waveRuntimeId === targetWave.id;
+
+            if (
+                !isTargetInAssignedWave ||
+                !this.isValidEnemyWithinRange(
+                    currentTarget,
+                    this.targetSearchRange
+                )
+            ) {
+                this.setEnemyTarget(null);
+            }
+        }
 
         if (!this.hasValidEnemyTarget()) {
             const sharedTarget =
@@ -1421,32 +1405,71 @@ export class Unit extends Component {
             : null;
     }
 
+    public forceHuntScannerTargetSearch() {
+        return this.refreshHuntScannerTarget(
+            -1,
+            true,
+            'hunt-scanner-forced'
+        );
+    }
+
     private refreshHuntScannerTarget(
-        targetWaveId: number
+        targetWaveId: number,
+        force: boolean = false,
+        telemetrySource: string = 'hunt-scanner'
     ) {
-        if (!this.shouldRunTargetSearch()) {
+        if (!force && !this.shouldRunTargetSearch()) {
             return false;
         }
 
         const target = targetWaveId >= 0
             ? this.findNearestEnemyInWave(targetWaveId)
-            : this.findNearestEnemy();
+            : this.findNearestEnemyInFreeHuntSearchLanes();
 
         this.completeTargetSearch(target);
 
+        const gm = GameManager.instance;
+        const targetWaveBefore = gm
+            ? gm.getWaveTargetForUnit(this)
+            : null;
+
         if (!target) {
+            gm?.recordWaveScannerTrace(
+                this,
+                null,
+                telemetrySource,
+                force
+                    ? 'no-target-after-target-wave-death'
+                    : targetWaveId >= 0
+                        ? 'no-target-in-target-wave'
+                        : 'no-target-in-search-lanes',
+                targetWaveBefore,
+                0
+            );
             return false;
         }
 
-        const gm = GameManager.instance;
-
-        if (
-            !gm ||
-            !gm.onWaveHuntScannerTargetFound(
+        const accepted =
+            !!gm &&
+            gm.onWaveHuntScannerTargetFound(
                 this,
                 target
-            )
-        ) {
+            );
+
+        gm?.recordWaveScannerTrace(
+            this,
+            target,
+            telemetrySource,
+            accepted
+                ? force
+                    ? 'target-confirmed-after-target-wave-death'
+                    : 'target-confirmed'
+                : 'target-rejected',
+            targetWaveBefore,
+            1
+        );
+
+        if (!accepted) {
             return false;
         }
 
@@ -1874,6 +1897,53 @@ export class Unit extends Component {
 
             if (!this.isValidEnemy(enemy)) continue;
             if (enemy.waveRuntimeId !== targetWaveId) continue;
+
+            const dx = enemy.agent!.pos.x - this.agent.pos.x;
+            const dz = enemy.agent!.pos.z - this.agent.pos.z;
+            const distSq = dx * dx + dz * dz;
+
+            if (distSq > searchRangeSq) continue;
+
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                best = enemy;
+            }
+        }
+
+        return best;
+    }
+
+    /**
+     * A hunt scanner starts a new wave target only from its own lane or an
+     * adjacent lane. Once a target wave is established, engagement handling
+     * may still replace it with the wave that actually engaged this wave.
+     */
+    private findNearestEnemyInFreeHuntSearchLanes(): Unit | null {
+        if (!this.agent || this.laneId < 0) return null;
+
+        const gm = GameManager.instance;
+        const ownLane = gm
+            ? gm.clampLaneId(this.laneId)
+            : this.laneId;
+        const enemies = this.getNearbyEnemyList(
+            this.targetSearchRange
+        );
+        const searchRangeSq =
+            this.targetSearchRange * this.targetSearchRange;
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+
+            if (!this.isValidEnemy(enemy)) continue;
+            if (enemy.laneId < 0) continue;
+
+            const enemyLane = gm
+                ? gm.clampLaneId(enemy.laneId)
+                : enemy.laneId;
+
+            if (Math.abs(ownLane - enemyLane) > 1) continue;
 
             const dx = enemy.agent!.pos.x - this.agent.pos.x;
             const dz = enemy.agent!.pos.z - this.agent.pos.z;

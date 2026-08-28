@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Material, Node, Prefab, UnitFamily, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _dec11, _dec12, _dec13, _dec14, _class4, _class5, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _class7, _class8, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _crd, ccclass, property, UnitPrefabEntry, HeroEntry, BattleUnitDatabase;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Color, Component, Material, Node, Prefab, UnitFamily, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _dec11, _dec12, _dec13, _dec14, _class4, _class5, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _class7, _class8, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _crd, ccclass, property, UnitPrefabEntry, HeroEntry, BattleUnitDatabase;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -391,15 +391,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
       })), _class5)) || _class4));
 
-      _export("BattleUnitDatabase", BattleUnitDatabase = (_dec15 = ccclass('BattleUnitDatabase'), _dec16 = property({
-        min: 1,
-        tooltip: 'Global target-search multiplier applied to every current and future unit after the first Hero enters battle.'
-      }), _dec17 = property(Color), _dec18 = property(Color), _dec19 = property({
+      _export("BattleUnitDatabase", BattleUnitDatabase = (_dec15 = ccclass('BattleUnitDatabase'), _dec16 = property(Color), _dec17 = property(Color), _dec18 = property({
         type: Material,
         tooltip: 'Shared material for every troop wave banner. Assign UnlitBillboard with the icon sheet here to avoid one material per troop type.'
-      }), _dec20 = property(HeroEntry), _dec21 = property(HeroEntry), _dec22 = property({
+      }), _dec19 = property(HeroEntry), _dec20 = property(HeroEntry), _dec21 = property({
         type: [UnitPrefabEntry]
-      }), _dec23 = property({
+      }), _dec22 = property({
         type: [UnitPrefabEntry]
       }), _dec15(_class7 = (_class8 = class BattleUnitDatabase extends Component {
         constructor() {
@@ -415,21 +412,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "counterKillRewardCostWeight", _descriptor39, this);
 
-          _initializerDefineProperty(this, "heroBattleTargetSearchRangeMultiplier", _descriptor40, this);
+          _initializerDefineProperty(this, "teamAWaveBannerBackgroundColor", _descriptor40, this);
 
-          _initializerDefineProperty(this, "teamAWaveBannerBackgroundColor", _descriptor41, this);
+          _initializerDefineProperty(this, "teamBWaveBannerBackgroundColor", _descriptor41, this);
 
-          _initializerDefineProperty(this, "teamBWaveBannerBackgroundColor", _descriptor42, this);
+          _initializerDefineProperty(this, "waveBannerMaterial", _descriptor42, this);
 
-          _initializerDefineProperty(this, "waveBannerMaterial", _descriptor43, this);
+          _initializerDefineProperty(this, "teamAHero", _descriptor43, this);
 
-          _initializerDefineProperty(this, "teamAHero", _descriptor44, this);
+          _initializerDefineProperty(this, "teamBHero", _descriptor44, this);
 
-          _initializerDefineProperty(this, "teamBHero", _descriptor45, this);
+          _initializerDefineProperty(this, "teamAUnits", _descriptor45, this);
 
-          _initializerDefineProperty(this, "teamAUnits", _descriptor46, this);
-
-          _initializerDefineProperty(this, "teamBUnits", _descriptor47, this);
+          _initializerDefineProperty(this, "teamBUnits", _descriptor46, this);
         }
 
         getTeamEntries(team) {
@@ -509,56 +504,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         initializer: function initializer() {
           return 0.15;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class8.prototype, "heroBattleTargetSearchRangeMultiplier", [_dec16], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function initializer() {
-          return 2;
-        }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class8.prototype, "teamAWaveBannerBackgroundColor", [_dec17], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class8.prototype, "teamAWaveBannerBackgroundColor", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new Color(0, 70, 255, 255);
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class8.prototype, "teamBWaveBannerBackgroundColor", [_dec18], {
+      }), _descriptor41 = _applyDecoratedDescriptor(_class8.prototype, "teamBWaveBannerBackgroundColor", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new Color(255, 0, 0, 255);
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class8.prototype, "waveBannerMaterial", [_dec19], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class8.prototype, "waveBannerMaterial", [_dec18], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class8.prototype, "teamAHero", [_dec20], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class8.prototype, "teamAHero", [_dec19], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new HeroEntry();
         }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class8.prototype, "teamBHero", [_dec21], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class8.prototype, "teamBHero", [_dec20], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return new HeroEntry();
         }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class8.prototype, "teamAUnits", [_dec22], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class8.prototype, "teamAUnits", [_dec21], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class8.prototype, "teamBUnits", [_dec23], {
+      }), _descriptor46 = _applyDecoratedDescriptor(_class8.prototype, "teamBUnits", [_dec22], {
         configurable: true,
         enumerable: true,
         writable: true,

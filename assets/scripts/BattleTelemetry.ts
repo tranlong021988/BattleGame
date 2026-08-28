@@ -219,6 +219,37 @@ export interface BattleTelemetryDiagnosticEvent {
     targetSource?: string;
 }
 
+export interface BattleTelemetryScannerTrace {
+    frame: number;
+    time: number;
+    source: string;
+    reason: string;
+    team: number;
+    waveId: number;
+    laneId: number;
+    scannerUnitName: string;
+    scannerLifeId: number;
+    scannerX: number;
+    scannerZ: number;
+    scannerPrefVelocityX: number;
+    scannerPrefVelocityZ: number;
+    scannerBusy: boolean;
+    scannerForward: boolean;
+    waveForward: boolean;
+    aggressiveForward: boolean;
+    targetWaveIdBefore: number;
+    targetLaneIdBefore: number;
+    targetWaveIdAfter: number;
+    targetLaneIdAfter: number;
+    candidateWaveId: number;
+    candidateLaneId: number;
+    candidateUnitName: string;
+    candidateLifeId: number;
+    candidateX: number;
+    candidateZ: number;
+    observedEnemyCount: number;
+}
+
 export interface BattleTelemetryFramePerformance {
     frameCount: number;
     averageDeltaMs: number;
@@ -328,6 +359,7 @@ export class BattleTelemetry {
     private finalSnapshot: BattleTelemetryBattleSnapshot | null = null;
     private framePerformance: BattleTelemetryFramePerformance | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
+    private scannerTraces: BattleTelemetryScannerTrace[] = [];
     private cardEvents: BattleTelemetryCardEvent[] = [];
     private waveSpawnFrameById: Map<number, number> = new Map();
     private waveSpawnTimeById: Map<number, number> = new Map();
@@ -348,7 +380,10 @@ export class BattleTelemetry {
         DamageBatchAccumulator | null = null;
     private maxSnapshots = 240;
     private maxDiagnosticEvents = 3000;
+    private maxScannerTraces = 6000;
     private droppedDiagnosticEventCount = 0;
+    private overwrittenScannerTraceCount = 0;
+    private scannerTraceWriteIndex = 0;
     private nextSpawnId = 1;
 
     reset(enabled: boolean, config: BattleTelemetryStartConfig) {
@@ -363,6 +398,7 @@ export class BattleTelemetry {
         this.finalSnapshot = null;
         this.framePerformance = null;
         this.diagnosticEvents.length = 0;
+        this.scannerTraces.length = 0;
         this.cardEvents.length = 0;
         this.waveSpawnFrameById.clear();
         this.waveSpawnTimeById.clear();
@@ -389,12 +425,15 @@ export class BattleTelemetry {
         this.lastHeroDamageFrame = -1;
         this.activeDamageBatch = null;
         this.droppedDiagnosticEventCount = 0;
+        this.overwrittenScannerTraceCount = 0;
+        this.scannerTraceWriteIndex = 0;
         this.nextSpawnId = 1;
     }
 
     configureDiagnostics(
         maxSnapshots: number,
-        maxDiagnosticEvents: number
+        maxDiagnosticEvents: number,
+        maxScannerTraces: number = this.maxScannerTraces
     ) {
         this.maxSnapshots = Math.max(
             0,
@@ -403,6 +442,10 @@ export class BattleTelemetry {
         this.maxDiagnosticEvents = Math.max(
             0,
             Math.floor(maxDiagnosticEvents)
+        );
+        this.maxScannerTraces = Math.max(
+            0,
+            Math.floor(maxScannerTraces)
         );
     }
 
@@ -634,6 +677,33 @@ export class BattleTelemetry {
         if (!event) return;
 
         this.pushDiagnosticEvent(event);
+    }
+
+    recordScannerTrace(trace: BattleTelemetryScannerTrace) {
+        if (!this.isEnabled()) return;
+        if (!trace) return;
+        if (this.maxScannerTraces <= 0) return;
+
+        const normalized: BattleTelemetryScannerTrace = {
+            ...trace,
+            frame: Math.max(0, Math.floor(trace.frame || 0)),
+            time: Number.isFinite(trace.time) ? trace.time : 0,
+            observedEnemyCount: Math.max(
+                0,
+                Math.floor(trace.observedEnemyCount || 0)
+            ),
+        };
+
+        if (this.scannerTraces.length < this.maxScannerTraces) {
+            this.scannerTraces.push(normalized);
+            return;
+        }
+
+        this.scannerTraces[this.scannerTraceWriteIndex] = normalized;
+        this.scannerTraceWriteIndex =
+            (this.scannerTraceWriteIndex + 1) %
+            this.maxScannerTraces;
+        this.overwrittenScannerTraceCount++;
     }
 
     recordCardEvent(event: BattleTelemetryCardEvent) {
@@ -1118,6 +1188,9 @@ export class BattleTelemetry {
                         this.maxDiagnosticEvents,
                     droppedDiagnosticEventCount:
                         this.droppedDiagnosticEventCount,
+                    maxScannerTraces: this.maxScannerTraces,
+                    overwrittenScannerTraceCount:
+                        this.overwrittenScannerTraceCount,
                 },
                 frameOrderStats: {
                     firstDamageByFrameTeam:
@@ -1131,6 +1204,8 @@ export class BattleTelemetry {
                 snapshots: this.snapshots.slice(),
                 finalSnapshot: this.finalSnapshot,
                 events: this.diagnosticEvents.slice(),
+                scannerTraces:
+                    this.getScannerTracesChronological(),
             },
             unitTypes,
         };
@@ -1604,6 +1679,24 @@ export class BattleTelemetry {
         }
 
         this.diagnosticEvents.push(event);
+    }
+
+    private getScannerTracesChronological() {
+        if (
+            this.scannerTraces.length < this.maxScannerTraces ||
+            this.scannerTraceWriteIndex <= 0
+        ) {
+            return this.scannerTraces.slice();
+        }
+
+        return this.scannerTraces
+            .slice(this.scannerTraceWriteIndex)
+            .concat(
+                this.scannerTraces.slice(
+                    0,
+                    this.scannerTraceWriteIndex
+                )
+            );
     }
 
     private clampTeam(team: number): TeamIndex {

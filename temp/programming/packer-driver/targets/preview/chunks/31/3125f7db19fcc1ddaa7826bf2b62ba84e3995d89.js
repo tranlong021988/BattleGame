@@ -179,7 +179,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.rangedCombatDecisionTargetLifeId = -1;
           this.nearestEnemyQueryToken = 0;
           this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
-          this.appliedTargetSearchRangeMultiplier = 1;
 
           this.onNearestEnemyQueryResult = (target, token) => {
             if (token !== this.nearestEnemyQueryToken) {
@@ -766,20 +765,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        applyTargetSearchRangeMultiplier(multiplier) {
-          var safeMultiplier = Math.max(1, Number.isFinite(multiplier) ? multiplier : 1);
-          var previousMultiplier = Math.max(1, this.appliedTargetSearchRangeMultiplier);
-
-          if (Math.abs(safeMultiplier - previousMultiplier) < 0.0001) {
-            return;
-          }
-
-          this.targetSearchRange = Math.max(0, this.targetSearchRange * safeMultiplier / previousMultiplier);
-          this.appliedTargetSearchRangeMultiplier = safeMultiplier;
-          this.invalidateNearestQueryResults();
-          this.clearCachedTargets();
-        }
-
         disengageCurrentEnemyForChase() {
           if (!this.hasValidEnemyTarget()) {
             this.clearEnemy();
@@ -1060,10 +1045,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           var isHuntScanner = !!gm && gm.isWaveHuntScanner(this);
           var targetWave = gm ? gm.getWaveTargetForUnit(this) : null; // Local retaliation remains free to react to the attacker. Strategic
-          // free-hunt searching is scanner-only; allies borrow the captain's
-          // wave target instead of independently fanning out.
+          // free-hunt searching is scanner-only; allies borrow the assigned
+          // enemy wave instead of independently fanning out.
 
-          this.refreshRetaliationTargetIfNeeded();
+          this.refreshRetaliationTargetIfNeeded(); // A live wave order never keeps an idle scanner chasing a stale or
+          // out-of-range individual target. Busy local combat is deliberately
+          // preserved. Missing a scan does not cancel the strategic target
+          // wave; only its destruction or a real engagement can replace it.
+
+          if (isHuntScanner && targetWave && !this.onBusy) {
+            var currentTarget = this.getValidEnemyTarget();
+            var isTargetInAssignedWave = !!currentTarget && currentTarget.waveRuntimeId === targetWave.id;
+
+            if (!isTargetInAssignedWave || !this.isValidEnemyWithinRange(currentTarget, this.targetSearchRange)) {
+              this.setEnemyTarget(null);
+            }
+          }
 
           if (!this.hasValidEnemyTarget()) {
             var sharedTarget = isHuntScanner && !targetWave ? null : this.getSharedWaveTarget();
@@ -1207,23 +1204,39 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.isValidEnemyWithinAttackRange(this.cachedNearestInRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
         }
 
-        refreshHuntScannerTarget(targetWaveId) {
-          if (!this.shouldRunTargetSearch()) {
+        forceHuntScannerTargetSearch() {
+          return this.refreshHuntScannerTarget(-1, true, 'hunt-scanner-forced');
+        }
+
+        refreshHuntScannerTarget(targetWaveId, force, telemetrySource) {
+          if (force === void 0) {
+            force = false;
+          }
+
+          if (telemetrySource === void 0) {
+            telemetrySource = 'hunt-scanner';
+          }
+
+          if (!force && !this.shouldRunTargetSearch()) {
             return false;
           }
 
-          var target = targetWaveId >= 0 ? this.findNearestEnemyInWave(targetWaveId) : this.findNearestEnemy();
+          var target = targetWaveId >= 0 ? this.findNearestEnemyInWave(targetWaveId) : this.findNearestEnemyInFreeHuntSearchLanes();
           this.completeTargetSearch(target);
-
-          if (!target) {
-            return false;
-          }
-
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
           }), GameManager) : GameManager).instance;
+          var targetWaveBefore = gm ? gm.getWaveTargetForUnit(this) : null;
 
-          if (!gm || !gm.onWaveHuntScannerTargetFound(this, target)) {
+          if (!target) {
+            gm == null || gm.recordWaveScannerTrace(this, null, telemetrySource, force ? 'no-target-after-target-wave-death' : targetWaveId >= 0 ? 'no-target-in-target-wave' : 'no-target-in-search-lanes', targetWaveBefore, 0);
+            return false;
+          }
+
+          var accepted = !!gm && gm.onWaveHuntScannerTargetFound(this, target);
+          gm == null || gm.recordWaveScannerTrace(this, target, telemetrySource, accepted ? force ? 'target-confirmed-after-target-wave-death' : 'target-confirmed' : 'target-rejected', targetWaveBefore, 1);
+
+          if (!accepted) {
             return false;
           }
 
@@ -1514,6 +1527,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var enemy = enemies[i];
             if (!this.isValidEnemy(enemy)) continue;
             if (enemy.waveRuntimeId !== targetWaveId) continue;
+            var dx = enemy.agent.pos.x - this.agent.pos.x;
+            var dz = enemy.agent.pos.z - this.agent.pos.z;
+            var distSq = dx * dx + dz * dz;
+            if (distSq > searchRangeSq) continue;
+
+            if (distSq < bestDistSq) {
+              bestDistSq = distSq;
+              best = enemy;
+            }
+          }
+
+          return best;
+        }
+        /**
+         * A hunt scanner starts a new wave target only from its own lane or an
+         * adjacent lane. Once a target wave is established, engagement handling
+         * may still replace it with the wave that actually engaged this wave.
+         */
+
+
+        findNearestEnemyInFreeHuntSearchLanes() {
+          if (!this.agent || this.laneId < 0) return null;
+          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance;
+          var ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
+          var enemies = this.getNearbyEnemyList(this.targetSearchRange);
+          var searchRangeSq = this.targetSearchRange * this.targetSearchRange;
+          var best = null;
+          var bestDistSq = Infinity;
+
+          for (var i = 0; i < enemies.length; i++) {
+            var enemy = enemies[i];
+            if (!this.isValidEnemy(enemy)) continue;
+            if (enemy.laneId < 0) continue;
+            var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
+            if (Math.abs(ownLane - enemyLane) > 1) continue;
             var dx = enemy.agent.pos.x - this.agent.pos.x;
             var dz = enemy.agent.pos.z - this.agent.pos.z;
             var distSq = dx * dx + dz * dz;

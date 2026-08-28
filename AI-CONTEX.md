@@ -1,6 +1,6 @@
 # BattleGame handoff
 
-Last updated: 2026-08-26. `assets/Battle.scene` and TypeScript source are
+Last updated: 2026-08-27. `assets/Battle.scene` and TypeScript source are
 authoritative; this file is a decision record only. Update it only when the
 user explicitly requests it.
 
@@ -187,16 +187,21 @@ already fighting.
 
 - **Scanner selection:** keep the existing dynamic frontmost-unit rule. In
   Forward, scanner must still be `onForward`; in Free Hunt, use the frontmost
-  alive unit regardless of `onForward`. Do not turn scanner into a permanent
-  captain or add a second scanner system.
+  alive unit regardless of `onForward`. `BattleWave.getScanner()` is the only
+  scanner API and the only cached scanner identity. State changes may re-elect
+  that one scanner when Forward eligibility changes; do not recreate separate
+  Forward and Hunt scanner caches, permanent captains, or a second scanner
+  system.
 - **Scanner authority:** scanner performs strategic search only when its wave
   has no live `targetWave`. It chooses one enemy wave. While that target wave
   remains valid, scanner must not continuously search for a better wave or
   overwrite the order.
 - **Borrowed targets:** idle non-scanners do not globally nearest-search. They
   borrow a valid target only from the current `targetWave`. Each can select a
-  different unit within that enemy wave, so they may spread naturally, but do
-  not fan out toward unrelated waves.
+  different nearby unit within that enemy wave, so they may spread naturally,
+  but do not fan out toward unrelated waves. The candidate must be inside that
+  requesting unit's actual `targetSearchRange`; never fall back to a distant
+  representative unit merely because the wave has one.
 - **Local combat remains unrestricted:** attack-range collision and retaliation
   are per-unit. Any enemy in direct attack range is valid, and a ranged hit may
   cause only the hit unit to retaliate/chase locally. A unit already `onBusy`
@@ -213,10 +218,13 @@ already fighting.
   The wave event is emitted only after `onBusy = true` in the direct-range and
   steady-guard combat transitions.
 - **Target loss and Forward:** `targetWave` clears when released or dead. With
-  no targetWave, scanner may make one new strategic search. If it confirms no
-  target and every surviving unit is idle and has no valid local target, the
-  wave resumes Forward. A local chase that never reaches combat therefore does
-  not lock the rest of the wave.
+  no targetWave, scanner may make one new strategic search. A live targetWave
+  is retained even when its members temporarily leave scanner range: range
+  limits individual borrowed targets and new scanner searches, not the
+  strategic order. If no targetWave exists, scanner confirms no target, and
+  every surviving unit is idle with no valid local target, the wave goes Back
+  To Lane before it resumes Forward/Aggressive Forward. A local chase that
+  never reaches combat therefore does not lock the rest of the wave.
 - **Immediate transitions:** whenever a wave gains/replaces `targetWave` while
   already in Free Hunt, prime every idle unit with its nearest live unit in
   that target wave and set its preferred velocity immediately. Do not wait for
@@ -245,6 +253,33 @@ Common regressions to reject:
    `onBusy` engagement.
 4. Letting idle Free Hunt units halt while waiting for their scanner's next
    search result, instead of preserving a scanner-directed continuity intent.
+
+### Scanner lane authority and targeting boundary (2026-08-27)
+
+`wave.laneId` is strategic metadata. Its source of truth is the physical lane
+of the wave's current `getScanner()` result, sampled at the existing staggered
+scanner interval. It is **not** a majority vote of all members: local combat,
+retaliation and Back To Lane can temporarily spread members across lanes and
+must not redefine the wave's lane. During Back To Lane there is no active
+scanner command, so lane metadata is retained until normal movement resumes.
+
+When a wave has a live `targetWave`, idle units hunt only units in that exact
+enemy wave and only within their own range. There is no fallback that borrows a
+unit from an allied wave, selects a global nearest enemy, or treats a distant
+enemy-wave representative as a movement target. This is the protection against
+accidental lane 0 <-> 2 free-hunt orders. A targetWave may change only when:
+
+1. Its scanner has no live targetWave and finds a valid enemy wave in range.
+2. A unit in the wave has actually entered `onBusy` combat with another enemy
+   wave (same lane or adjacent lane only). This is an immediate, intentional
+   passive retarget; busy units retain local combat and only idle allies react.
+3. The current target wave is released/dead, after which normal no-target flow
+   returns the wave to lane before Forward/Aggressive Forward.
+
+Do not batch, debounce or coalesce valid engagement retargets merely to make
+movement look smoother. The desired behaviour is immediate reaction. FPS/frame
+hitches are a separate rendering/simulation-performance investigation, not a
+reason to alter targetWave authority.
 
 ### Aggressive Forward and enemy-line victory (authoritative, 2026-08-26)
 
@@ -307,6 +342,13 @@ preview makes spawning, combat, path updates and visual state changes occur
 three times as frequently in wall-clock time; it is not representative of the
 shipping x1 budget.
 
+The configured `targetSearchInterval` currently used in Inspector testing is
+30 frames. Scanner traces are recorded at these strategic-search opportunities;
+they are not a complete per-frame movement path. Regular prefab units use the
+configured 8-unit search range. Scene hero values must be inspected separately:
+the 2026-08-27 reports show Hero B still has a base range of 40, not the
+removed runtime hero multiplier.
+
 ## Telemetry audit baseline
 
 - 2026-08-16 reports predate deterministic rewards and are not economy
@@ -362,6 +404,100 @@ the five side ads crossed concrete entry or purchase+entry thresholds. There
 were 26 cooldown ads and no invalid empty main deck. Treat this as HEALTHY,
 not evidence that Main reward should be reduced further.
 
+### Combat telemetry reference: 2026-08-27 scanner batch
+
+Batch files `battle-telemetry-2026-08-27T09:57Z..10:14Z` contain 86 reports
+for L1--60 (battle index 1--85). Team 0 won 69 and lost 17; L60 had 4 wins and
+5 losses. The scanner-path instrumentation is active: 10,313 traces and 1,149
+confirmed hunt targets were captured.
+
+- Of 18,578 `wave-target-assigned` events, zero assigned a target separated by
+  more than one lane. This is the actual invariant; do not infer a violation
+  from a diagnostic candidate alone.
+- Eleven traces show a lane-0/2 candidate, but every one is
+  `no-target-in-target-wave`: telemetry retains the existing targetWave as
+  diagnostic context after no nearby unit was found. They are not new target
+  assignments or long-distance movement orders.
+- Regular-unit confirmed hunt distance peaked at 7.97, consistent with range
+  8. Hero B confirmations reached 18.46 because of its scene base range 40.
+- Engagement retargeting is frequent by design: 13,303 real replacements, with
+  4,645 different-target changes within five frames. This is not an AI bug
+  under the current immediate-engagement rule. Do not “fix” it by coalescing;
+  evaluate it only if direct visual testing shows a gameplay problem.
+- `GameManager` averaged 0.437 ms/update in this batch (maximum 7.9 ms), while
+  browser frame delta p95 was 52.58 ms and one delta reached 989.1 ms. This
+  does not identify manager/scanner work as a sustained FPS bottleneck. If FPS
+  hitches remain at x1, profile render, RVO worker messaging, allocation/GC
+  and browser stalls before changing combat targeting.
+
+### Combat telemetry reference: 2026-08-28 forced scanner refresh
+
+The current `targetWave` model is deliberately sticky: after a wave has an
+assigned enemy wave, it keeps free-hunting that exact wave until the enemy wave
+is fully dead, or a real enemy engagement replaces it. A scanner must never
+continuously search for a “better” wave while that order is live. Regular
+units borrow only a nearby unit in that same target wave; do not restore a
+representative-unit fallback, because it can pull a whole wave across lanes.
+
+When the last enemy unit of the current target wave dies, waiting for the
+normal Inspector `targetSearchInterval` (currently 30) felt like an avoidable
+pause. The implementation is intentionally a one-shot state transition:
+
+1. `BattleWave.getTargetWave()` detects that the assigned wave is dead and
+   sets `immediateTargetSearchPending` while retaining Free Hunt.
+2. After the spatial grid rebuild, `GameManager.processWaveHuntScannerRefreshes`
+   lets the one wave scanner bypass its normal interval exactly once.
+3. If it finds a valid same/adjacent-lane enemy wave in its own configured
+   range, that becomes the new `targetWave`. If none exists, normal recovery
+   returns the wave to lane and then Forward/Aggressive Forward.
+4. A new real engagement wins over the pending request and clears it, so an
+   old forced scan cannot overwrite a newer passive engagement order. A busy
+   scanner waits only for its real local combat; a non-busy ranged chase is not
+   allowed to block the strategic refresh.
+
+Telemetry marks this path as `hunt-scanner-forced`, with either
+`target-confirmed-after-target-wave-death` or
+`no-target-after-target-wave-death`. It must be used to prove the behavior,
+not inferred from apparent movement pauses.
+
+Batch `run-mtcs7hst-0dr2rv8`, files
+`battle-telemetry-2026-08-28T10:01Z..10:24Z`, has 108 battles (60 main wins,
+31 side attempts). It validates the design:
+
+- 3,078 forced scans immediately found a new target wave; all confirmed wave
+  assignments stayed same or adjacent lane (forced assignments: 1,670 same
+  lane and 1,408 adjacent lane).
+- 183 forced scans found no wave. 182 then resumed Forward: 143 in the same
+  frame, 38 one frame later, and one after 11 frames because it still had
+  local combat. This is not an interval-30 stall.
+- One no-target case lacked a later Forward event because the battle ended;
+  do not flag it as a deadlock without checking the terminal result.
+- Normal hunt traces can say `no-target-in-target-wave` while the target wave
+  remains alive but outside the scanner's local range. This is expected under
+  the sticky targetWave contract; it is not permission to retarget or release
+  that wave.
+
+Hero range is intentional. Standard unit prefabs currently use range 8;
+scene Hero A/B use their explicitly serialized range 40. The earlier runtime
+hero multiplier was removed, but the hero base range 40 is a design choice,
+not an issue. In this batch normal units confirmed up to 7.97 while hero forced
+scans reached 13.96, all within their own configured range and never over a
+two-lane assignment.
+
+For end-condition analysis in the same batch, do not treat aggressive Forward
+as a replacement for combat: 89/108 battles ended by hero kill and 19/108 by
+reaching the enemy line. Across the 60 mainline bot wins, reach-line won 13
+(21.7%): L2, 6--9, 12, 35, 38, 40, 45, 48, 51, 52. Early reach wins correlate
+with Max Alive 3--4 and several aggressive waves finding clear lanes; lower CP
+and Max Alive create opportunities but a clear lane is the direct trigger.
+
+Performance numbers in this batch must be interpreted with preview
+`battleTimeScale = 3`: the time-scale hook multiplies `director.tick` delta,
+so average telemetry delta 50.28 ms is roughly 16.76 ms wall-clock at x3,
+not proof of 20 FPS. `GameManager` averaged 0.432 ms and peaked at 1.7 ms
+with 142 peak alive units. There is no evidence here that scanner work causes
+a sustained frame-rate bottleneck; profile at x1 before changing AI for FPS.
+
 ## Economy visualization (analysis-only)
 
 - Old static chart path redirects to:
@@ -379,6 +515,7 @@ not evidence that Main reward should be reduced further.
 | Scene values | `assets/Battle.scene` |
 | Progression/economy/shop/ads/bot/telemetry ledger | `assets/scripts/LevelSettings.ts` |
 | Combat/reset/winner/export | `assets/scripts/GameManager.ts` |
+| Scanner identity, wave lane, targetWave and shared hunt targets | `assets/scripts/BattleWave.ts` |
 | Card data / strength targets | `assets/scripts/BattleCardDatabase.ts` |
 | Card runtime / budget consumption | `assets/scripts/BattleCardRuntime.ts` |
 | Unit combat / targets | `assets/scripts/Unit.ts`, `assets/scripts/UnitBehavior.ts` |
@@ -392,6 +529,10 @@ not evidence that Main reward should be reduced further.
 - `npx tsc --noEmit -p tsconfig.json` and `git diff --check` passed after the
   2026-08-20 pace fix. Full Cocos diagnostics can include pre-existing
   editor/engine noise.
+- The project currently has no local TypeScript CLI dependency; do not let
+  `npx tsc` fetch an unrelated registry package during an offline verification.
+  Use Cocos compilation/diagnostics for current source validation, plus
+  `git diff --check` for patch hygiene.
 - For boss audits compare saved enemy IDs, runtime cards and player selected
   cards. Inspect `boss-deck-mirror`, `prepared-deck-threshold`,
   `pre-battle-preparation`, and `complete-preparation-target` actions first.

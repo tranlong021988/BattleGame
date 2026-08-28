@@ -123,10 +123,10 @@
       "componentType": 5126,
       "count": 20,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Hips/translation/Input",
       "type": "SCALAR"
@@ -143,10 +143,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Hips/rotation/Input",
       "type": "SCALAR"
@@ -163,10 +163,10 @@
       "componentType": 5126,
       "count": 64,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Spine/rotation/Input",
       "type": "SCALAR"
@@ -183,10 +183,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Spine1/rotation/Input",
       "type": "SCALAR"
@@ -203,10 +203,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Spine2/rotation/Input",
       "type": "SCALAR"
@@ -223,10 +223,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Neck/rotation/Input",
       "type": "SCALAR"
@@ -243,10 +243,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:Head/rotation/Input",
       "type": "SCALAR"
@@ -263,10 +263,10 @@
       "componentType": 5126,
       "count": 59,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftShoulder/rotation/Input",
       "type": "SCALAR"
@@ -283,10 +283,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftArm/rotation/Input",
       "type": "SCALAR"
@@ -303,10 +303,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftForeArm/rotation/Input",
       "type": "SCALAR"
@@ -323,10 +323,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftHand/rotation/Input",
       "type": "SCALAR"
@@ -343,10 +343,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:LeftHandThumb1/rotation/Input",
       "type": "SCALAR"
@@ -363,10 +363,10 @@
       "componentType": 5126,
       "count": 53,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftHandThumb2/rotation/Input",
       "type": "SCALAR"
@@ -383,10 +383,10 @@
       "componentType": 5126,
       "count": 48,
       "max": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftHandThumb3/rotation/Input",
       "type": "SCALAR"
@@ -403,10 +403,10 @@
       "componentType": 5126,
       "count": 22,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftHandIndex1/rotation/Input",
       "type": "SCALAR"
@@ -423,10 +423,10 @@
       "componentType": 5126,
       "count": 32,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.20000000298023224
+        0.1666666716337204
       ],
       "name": "mixamorig:LeftHandIndex2/rotation/Input",
       "type": "SCALAR"
@@ -443,10 +443,10 @@
       "componentType": 5126,
       "count": 57,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftHandIndex3/rotation/Input",
       "type": "SCALAR"
@@ -463,10 +463,10 @@
       "componentType": 5126,
       "count": 17,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftHandMiddle1/rotation/Input",
       "type": "SCALAR"
@@ -483,10 +483,10 @@
       "componentType": 5126,
       "count": 25,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:LeftHandMiddle2/rotation/Input",
       "type": "SCALAR"
@@ -503,10 +503,10 @@
       "componentType": 5126,
       "count": 26,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftHandMiddle3/rotation/Input",
       "type": "SCALAR"
@@ -523,10 +523,10 @@
       "componentType": 5126,
       "count": 18,
       "max": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftHandRing1/rotation/Input",
       "type": "SCALAR"
@@ -543,10 +543,10 @@
       "componentType": 5126,
       "count": 16,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:LeftHandRing2/rotation/Input",
       "type": "SCALAR"
@@ -563,10 +563,10 @@
       "componentType": 5126,
       "count": 27,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:LeftHandRing3/rotation/Input",
       "type": "SCALAR"
@@ -583,10 +583,10 @@
       "componentType": 5126,
       "count": 36,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftHandPinky1/rotation/Input",
       "type": "SCALAR"
@@ -603,10 +603,10 @@
       "componentType": 5126,
       "count": 15,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.30000001192092896
+        0.2666666805744171
       ],
       "name": "mixamorig:LeftHandPinky2/rotation/Input",
       "type": "SCALAR"
@@ -623,10 +623,10 @@
       "componentType": 5126,
       "count": 52,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftHandPinky3/rotation/Input",
       "type": "SCALAR"
@@ -643,10 +643,10 @@
       "componentType": 5126,
       "count": 21,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightShoulder/rotation/Input",
       "type": "SCALAR"
@@ -663,10 +663,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:RightArm/rotation/Input",
       "type": "SCALAR"
@@ -683,10 +683,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:RightForeArm/rotation/Input",
       "type": "SCALAR"
@@ -703,10 +703,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:RightHand/rotation/Input",
       "type": "SCALAR"
@@ -723,10 +723,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightHandThumb1/rotation/Input",
       "type": "SCALAR"
@@ -743,10 +743,10 @@
       "componentType": 5126,
       "count": 53,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightHandThumb2/rotation/Input",
       "type": "SCALAR"
@@ -763,10 +763,10 @@
       "componentType": 5126,
       "count": 49,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightHandThumb3/rotation/Input",
       "type": "SCALAR"
@@ -783,10 +783,10 @@
       "componentType": 5126,
       "count": 63,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightHandIndex1/rotation/Input",
       "type": "SCALAR"
@@ -803,10 +803,10 @@
       "componentType": 5126,
       "count": 22,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.06666667014360428
+        0.03333333507180214
       ],
       "name": "mixamorig:RightHandIndex2/rotation/Input",
       "type": "SCALAR"
@@ -823,10 +823,10 @@
       "componentType": 5126,
       "count": 19,
       "max": [
-        2.1666667461395264
+        2.133333444595337
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightHandIndex3/rotation/Input",
       "type": "SCALAR"
@@ -843,10 +843,10 @@
       "componentType": 5126,
       "count": 35,
       "max": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:RightHandMiddle1/rotation/Input",
       "type": "SCALAR"
@@ -863,10 +863,10 @@
       "componentType": 5126,
       "count": 15,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:RightHandMiddle2/rotation/Input",
       "type": "SCALAR"
@@ -883,10 +883,10 @@
       "componentType": 5126,
       "count": 19,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:RightHandMiddle3/rotation/Input",
       "type": "SCALAR"
@@ -903,10 +903,10 @@
       "componentType": 5126,
       "count": 37,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:RightHandRing1/rotation/Input",
       "type": "SCALAR"
@@ -923,10 +923,10 @@
       "componentType": 5126,
       "count": 14,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.13333334028720856
+        0.10000000149011612
       ],
       "name": "mixamorig:RightHandRing2/rotation/Input",
       "type": "SCALAR"
@@ -943,10 +943,10 @@
       "componentType": 5126,
       "count": 21,
       "max": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:RightHandRing3/rotation/Input",
       "type": "SCALAR"
@@ -963,10 +963,10 @@
       "componentType": 5126,
       "count": 33,
       "max": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightHandPinky1/rotation/Input",
       "type": "SCALAR"
@@ -983,10 +983,10 @@
       "componentType": 5126,
       "count": 15,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.23333333432674408
+        0.20000000298023224
       ],
       "name": "mixamorig:RightHandPinky2/rotation/Input",
       "type": "SCALAR"
@@ -1003,10 +1003,10 @@
       "componentType": 5126,
       "count": 1,
       "max": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "min": [
-        2.2333333492279053
+        2.200000047683716
       ],
       "name": "mixamorig:RightHandPinky3/rotation/Input",
       "type": "SCALAR"
@@ -1023,10 +1023,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftUpLeg/rotation/Input",
       "type": "SCALAR"
@@ -1043,10 +1043,10 @@
       "componentType": 5126,
       "count": 29,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.10000000149011612
+        0.06666667014360428
       ],
       "name": "mixamorig:LeftLeg/rotation/Input",
       "type": "SCALAR"
@@ -1063,10 +1063,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftFoot/rotation/Input",
       "type": "SCALAR"
@@ -1083,10 +1083,10 @@
       "componentType": 5126,
       "count": 51,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:LeftToeBase/rotation/Input",
       "type": "SCALAR"
@@ -1103,10 +1103,10 @@
       "componentType": 5126,
       "count": 66,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightUpLeg/rotation/Input",
       "type": "SCALAR"
@@ -1123,10 +1123,10 @@
       "componentType": 5126,
       "count": 28,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.36666667461395264
+        0.3333333432674408
       ],
       "name": "mixamorig:RightLeg/rotation/Input",
       "type": "SCALAR"
@@ -1143,10 +1143,10 @@
       "componentType": 5126,
       "count": 65,
       "max": [
-        2.200000047683716
+        2.1666667461395264
       ],
       "min": [
-        0.03333333507180214
+        0.0
       ],
       "name": "mixamorig:RightFoot/rotation/Input",
       "type": "SCALAR"
@@ -1163,10 +1163,10 @@
       "componentType": 5126,
       "count": 41,
       "max": [
-        2.0
+        1.9666666984558105
       ],
       "min": [
-        0.4333333373069763
+        0.4000000059604645
       ],
       "name": "mixamorig:RightToeBase/rotation/Input",
       "type": "SCALAR"

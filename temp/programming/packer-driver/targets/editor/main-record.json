@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 7581.3082,
+      "mTimestamp": 7660.5279,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -997,7 +997,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 17968784.145,
+      "mTimestamp": 901103.2587,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -3020,7 +3020,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleTelemetry.ts": {
       "mTimestamp": {
-        "mtime": 1787735252388.6506,
+        "mtime": 1787806167013.9678,
         "uuid": "efefbddb-804d-4a8c-98da-68618b2263c6"
       },
       "chunkId": "220bf6d52a94be16729ca4c58ede2a9e0e4f747a",
@@ -3126,7 +3126,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleUnitDatabase.ts": {
       "mTimestamp": {
-        "mtime": 1785231801397.1643,
+        "mtime": 1787814856214.9324,
         "uuid": "6763c90e-a96e-4d4a-9859-896fdbcb348f"
       },
       "chunkId": "227f4ec588615be1e06e78c2255d3a85fe864d18",
@@ -3210,7 +3210,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1787744149672.0164,
+        "mtime": 1787911135083.1775,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -3599,7 +3599,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1787744080511.384,
+        "mtime": 1787911135679.016,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",
@@ -5075,7 +5075,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1787737919799.2734,
+        "mtime": 1787911089100.7646,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -5685,7 +5685,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1787726271754,
+      "mTimestamp": 1787910357847,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -5815,7 +5815,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1787726271754,
+      "mTimestamp": 1787910357847,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
