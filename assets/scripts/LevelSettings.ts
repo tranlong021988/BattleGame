@@ -432,6 +432,15 @@ export class LevelSettings extends Component
     })
     mainBattleEntryFeeRatio = 0.35;
 
+    @property({
+        min: 0,
+        max: 1,
+        step: 0.01,
+        displayName: 'Main Loss Reward Fee Ratio',
+        tooltip: 'Gold granted after a main-battle loss as a share of that battle\'s entry fee. Rounds to the nearest 10. A fee-free battle grants no loss reward.'
+    })
+    mainLossRewardFeeRatio = 0.25;
+
     @property({ min: 1, step: 1 })
     unitUnlockCostMultiplier = 5;
 
@@ -660,6 +669,7 @@ export class LevelSettings extends Component
             this.offerIntroducedUnits(battleLevel);
         const mainReward = this.getMainBattleReward(battleLevel);
         const winGold = mainReward.gold;
+        const lossGold = this.getMainBattleLossReward(battleLevel);
 
         let goldReward = 0;
         let rewardClaim: BotSimulationEvent | null = null;
@@ -676,6 +686,14 @@ export class LevelSettings extends Component
             state.levelLossCount = 0;
             state.mainLossesAtCurrentLevel = 0;
         } else if (loserTeam === 0) {
+            rewardClaim = this.grantBotGoldClaim(
+                state,
+                lossGold,
+                'progression-loss',
+                'main-loss-fee-reward',
+                this.getMainBattleEntryFee(battleLevel)
+            );
+            goldReward = rewardClaim.goldGranted;
             state.levelLossCount++;
             state.mainLossesAtCurrentLevel++;
         }
@@ -726,6 +744,7 @@ export class LevelSettings extends Component
             reason,
             campaignComplete,
             winGold,
+            lossGold,
             goldReward,
             rewardClaim,
             usedPlayerCards,
@@ -910,8 +929,14 @@ export class LevelSettings extends Component
                     this.bossGoldRewardMultiplier,
                 mainBattleEntryFeeRatio:
                     this.mainBattleEntryFeeRatio,
+                mainLossRewardFeeRatio:
+                    this.mainLossRewardFeeRatio,
                 mainBattleEntryFee:
                     this.getMainBattleEntryFee(
+                        this.battleLevel
+                    ),
+                mainBattleLossReward:
+                    this.getMainBattleLossReward(
                         this.battleLevel
                     ),
                 unitUnlockCostMultiplier:
@@ -4661,6 +4686,16 @@ export class LevelSettings extends Component
         return this.getMainBattleEntryFeeForReward(
             this.getMainBattleNormalReward(safeLevel - 1),
             safeLevel
+        );
+    }
+
+    private getMainBattleLossReward(level: number) {
+        const entryFee = this.getMainBattleEntryFee(level);
+        const ratio = this.clamp01(this.mainLossRewardFeeRatio);
+
+        return Math.max(
+            0,
+            Math.round(entryFee * ratio / 10) * 10
         );
     }
 
