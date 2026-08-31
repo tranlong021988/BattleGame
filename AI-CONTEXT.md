@@ -6,7 +6,14 @@ Updated: 2026-08-31
 
 The experiment that moved player-facing unit, card, and package availability one level later than the boss introduction was **reverted**. Do not assume that offset is active or reintroduce it without a new explicit decision.
 
-`assets/scripts/LevelSettings.ts` contains no remaining gameplay change from that experiment. Its Git `M` status is Editor/line-ending noise rather than an active gameplay diff.
+`assets/scripts/LevelSettings.ts` contains no remaining gameplay change from that experiment. It does, however, contain the active Cavalry Charge economy/progression changes described below.
+
+## Active Cavalry Charge design (2026-08-31)
+
+- Added `Cavalry Charge`: targets Cavalry, applies `+300% Damage` at full strength, with no defensive modifier. It intentionally has no Spear exception: a charged Cavalry may overpower Spear during its limited active use.
+- Base package: 2,000 gold, cooldown 6 battles, budget 12. Strength has two upgrades and uses the standard dynamic pricing / availability pipeline.
+- The card maps to progression wave 3 (the Cavalry wave). Unlock and its cooldown, budget, and strength upgrades therefore flow through the existing dynamic scheduler instead of hard-coded level offers.
+- `mainRewardFlatBonus` is set to 1,000 in the live `Battle.scene` and default `LevelSettings`. A strict source-model audit that charges all planned packages immediately was negative at 950 and non-negative at 1,000 after including the new card. This is tuning evidence, not a substitute for an actual Cocos no-loss run.
 
 ## Git and Cocos workspace safety
 
@@ -15,13 +22,23 @@ The experiment that moved player-facing unit, card, and package availability one
 
 ## Latest audited telemetry
 
-Use run `run-mtg1mecu-197njcx`:
+Use run `run-mth2oei1-1122jbd` (2026-08-31 10:05:20–10:25:52):
 
-- 130 telemetry records, 2026-08-30 16:48:13–17:14:55.
-- Main: 83 battles, 60 wins / 23 losses (72.3%).
-- Side: 47 battles, 17 wins / 30 losses (36.2%).
-- Boss main: 12 wins / 6 losses.
-- Campaign completed with an L60 win; post-reward gold: 4,986.
+- 102 telemetry records. Main: 83 battles, 60 wins / 23 losses (72.3%). Side: 19 battles, 8 wins / 11 losses (42.1%).
+- Campaign completed at L60 (`boss-hero-killed`); post-reward gold: 5,766.
+- There were 111 successful progression package purchases. All 58 card package purchases were completed: 10 unlocks, 20 cooldown upgrades, 20 budget upgrades, and 8 strength upgrades.
+- No recorded spending action had `goldBefore < cost`, and no action recorded a negative gold balance. The lowest recorded balance was 20 gold. This confirms the observed run, not the separate flawless/no-loss design contract.
+
+### Cavalry Charge observations
+
+- The live telemetry snapshot includes `cavalry-charge` with price 2,000, cooldown 6, budget 12, +300% damage, and two strength ranks.
+- Unlock: L35. Its seven permanent purchases all completed: unlock; cooldown ranks 1–2; budget ranks 1–2; strength ranks 1–2.
+- It was selected for 13 main battles, activated in all 13, and depleted its battle budget in 12. One L51 battle used 15/17 budget before ending.
+- Cooldown-skip ads for this card: 7.
+
+### User gold chart
+
+`C:\Users\CPU\.codex\visualizations\2026\08\05\019fd124-855e-7140-8e3c-fe3489442ac9\user-gold-by-battle.html` visualizes the actual post-battle player gold for all 102 records, rewards, main entry fee, and every purchase/upgrade marker. It is an analysis artifact; regenerate it from a new batch rather than treating it as live data.
 
 ### Reward and ad results
 

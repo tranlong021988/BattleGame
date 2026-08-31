@@ -25,7 +25,7 @@ user explicitly requests it.
 | Total levels / progression end | 60 / 50 |
 | Boss pace | 5 |
 | Starter gold | 1,000 |
-| Main reward flat bonus | 650 gold per main battle |
+| Main reward flat bonus | 1,000 gold per main battle |
 | Win gold per enemy CP / boss gold multiplier | 1.15 / 1.15 |
 | Player Initial CP / Max Alive | 300 / 4 → 10 |
 | Deck capacity | 3 |
@@ -58,7 +58,8 @@ Save key is `battle-progression-v8`; saved schema version is 13.
   roster-aware for both teams. `Spear Discipline` requires Spear for owner
   and Cavalry for opponent; do not restore the removed player-card-wave gate.
 - Card upgrades are independent packages: Cooldown, Budget and Strength.
-  Strength is only for Spear Discipline, Sword Breakthrough and Axe Vanguard.
+  Strength is available for Spear Discipline, Sword Breakthrough, Axe Vanguard
+  and Cavalry Charge.
   `BattleCardDatabase.ts` is card-data authority. `Precise Range` spends one
   budget per ranged batch and affects Archer and Monk.
 
@@ -95,7 +96,7 @@ Save key is `battle-progression-v8`; saved schema version is 13.
 - Main reward plan is deterministic/cached per total-level count. It is
   strictly increasing by at least 50, starts from level-scaled win gold, then
   smooths funding for **one** important next-level purchase plus the next
-  entry fee. The scene-controlled 650 flat bonus is added afterwards to every
+  entry fee. The scene-controlled 1,000 flat bonus is added afterwards to every
   reward and remains rounded to 50.
 - Do not reintroduce a plan that funds every visible offer: several cards at
   L2 create a spike that permanently distorts a monotonic curve.
@@ -117,19 +118,19 @@ Save key is `battle-progression-v8`; saved schema version is 13.
   bossGoldRewardMultiplier`. The boss combat-CP multiplier is deliberately
   excluded from this reward base. The final displayed reward can differ from
   exactly 15% because the monotonic reward plan, 50-gold rounding, and the
-  universal 400-gold bonus are applied afterwards.
+  universal 1,000-gold bonus are applied afterwards.
 
 ## Shop package inventory and UI contract
 
 - With the current 60-level scene configuration, the eventual shop inventory
-  is **104 packages**. This is a configuration-derived count, not a value UI
+  is **111 packages**. This is a configuration-derived count, not a value UI
   should hard-code:
 
   | UI group | Package kinds | Count |
   | --- | --- | ---: |
   | Army | Unit unlock (5), unit count (22) | 27 |
   | Army Power | Initial CP (20), Max Alive (6) | 26 |
-  | Cards | Card unlock (9), cooldown (18), budget (18), strength (6) | 51 |
+  | Cards | Card unlock (10), cooldown (20), budget (20), strength (8) | 58 |
 
 - Spear is the L1 starter. Current paid unit unlock milestones are Sword L5,
   Axe L10, Archer L25, Cavalry L35 and Monk L45. Sword's normalized

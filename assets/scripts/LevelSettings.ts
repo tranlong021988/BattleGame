@@ -404,7 +404,7 @@ export class LevelSettings extends Component
         displayName: 'Main Reward Flat Bonus',
         tooltip: 'Fixed gold added to every main-battle reward after the stable progression plan is generated. Rounded to 50.'
     })
-    mainRewardFlatBonus = 400;
+    mainRewardFlatBonus = 1000;
 
     @property({
         min: 1,
@@ -2917,6 +2917,9 @@ export class LevelSettings extends Component
             definition.requiredEnemyFamily ===
             BattleCardOpponentCondition.Cavalry
         ) {
+            return 3;
+        }
+        if (definition.targetFamily === UnitFamily.Cavalry) {
             return 3;
         }
         if (

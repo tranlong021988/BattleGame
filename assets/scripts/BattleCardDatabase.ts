@@ -232,6 +232,17 @@ function createDefaultCards() {
             BattleCardModifier.DamagePercent, -12
         ),
         createCard(
+            'cavalry-charge', 'Cavalry Charge', 2000, 6,
+            12,
+            BattleCardTarget.UnitFamily, UnitFamily.Cavalry,
+            BattleCardModifier.DamagePercent, 300,
+            BattleCardModifier.None, 0,
+            BattleCardOpponentCondition.Any,
+            BattleCardEnemyPool.RegularAndBoss,
+            0.4,
+            2
+        ),
+        createCard(
             'counter-breaker', 'Counter Breaker', 1600, 6,
             3,
             BattleCardTarget.AllUnits, UnitFamily.Spear,

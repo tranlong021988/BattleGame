@@ -1,0 +1,854 @@
+System.register(["__unresolved_0", "cc"], function (_export, _context) {
+  "use strict";
+
+  var _reporterNs, _cclegacy, BattleSpatialGrid, _crd;
+
+  function _reportPossibleCrUseOfUnit(extras) {
+    _reporterNs.report("Unit", "./Unit", _context.meta, extras);
+  }
+
+  _export("BattleSpatialGrid", void 0);
+
+  return {
+    setters: [function (_unresolved_) {
+      _reporterNs = _unresolved_;
+    }, function (_cc) {
+      _cclegacy = _cc.cclegacy;
+    }],
+    execute: function () {
+      _crd = true;
+
+      _cclegacy._RF.push({}, "52095+WcUBImo9/C5SYfL/n", "BattleSpatialGrid", undefined);
+
+      _export("BattleSpatialGrid", BattleSpatialGrid = class BattleSpatialGrid {
+        constructor() {
+          this.cellSize = 4;
+          this.useWorkerTargetQuery = true;
+          this.teamAGrid = new Map();
+          this.teamBGrid = new Map();
+          this.teamAUnits = [];
+          this.teamBUnits = [];
+          this.gridKeyRows = new Map();
+          this.teamAActiveCells = [];
+          this.teamBActiveCells = [];
+          this.teamAMaxRadius = 0;
+          this.teamBMaxRadius = 0;
+          this.battleMinX = -Infinity;
+          this.battleMaxX = Infinity;
+          this.battleMinZ = -Infinity;
+          this.battleMaxZ = Infinity;
+          this.tempResult = [];
+          this.nearestSearchBest = null;
+          this.nearestSearchBestDistSq = Infinity;
+          this.queryCellBounds = {
+            minX: 0,
+            maxX: -1,
+            minZ: 0,
+            maxZ: -1
+          };
+          this.worker = null;
+          this.workerReady = false;
+          this.workerFailed = false;
+          this.workerSeq = 0;
+          this.nextUnitId = 1;
+          this.nextRequestId = 1;
+          this.unitIds = new WeakMap();
+          this.unitsById = new Map();
+          this.targetSnapshot = new Float32Array(0);
+          this.targetSnapshotLength = 0;
+          this.targetSnapshotVersion = 0;
+          this.workerTargetSnapshotVersion = -1;
+          this.packedRequestData = new Float32Array(0);
+          this.pendingNearestRequests = [];
+          this.activeNearestRequests = new Map();
+          this.nearestRequestPool = [];
+          this.flushScheduled = false;
+          this.workerResponseTimeout = null;
+          this.workerResponseTimeoutSeq = 0;
+          this.lastCompletedWorkerSeq = 0;
+        }
+
+        setBattlefieldBounds(minX, maxX, minZ, maxZ) {
+          this.battleMinX = Math.min(minX, maxX);
+          this.battleMaxX = Math.max(minX, maxX);
+          this.battleMinZ = Math.min(minZ, maxZ);
+          this.battleMaxZ = Math.max(minZ, maxZ);
+        }
+
+        build(teamA, teamB) {
+          this.clearActiveGridCells(this.teamAActiveCells);
+          this.clearActiveGridCells(this.teamBActiveCells);
+          this.unitsById.clear();
+          this.targetSnapshotLength = 0;
+          this.teamAUnits.length = 0;
+          this.teamBUnits.length = 0;
+          this.teamAMaxRadius = 0;
+          this.teamBMaxRadius = 0;
+          this.fillGrid(this.teamAGrid, this.teamAActiveCells, this.teamAUnits, teamA, 0);
+          this.fillGrid(this.teamBGrid, this.teamBActiveCells, this.teamBUnits, teamB, 1);
+          this.targetSnapshotVersion++;
+        }
+
+        destroy() {
+          this.clearWorkerResponseTimeout();
+
+          if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+          }
+
+          this.workerReady = false;
+          this.workerFailed = false;
+          this.flushScheduled = false;
+          this.recycleNearestRequestList(this.pendingNearestRequests);
+          this.pendingNearestRequests.length = 0;
+          this.recycleActiveNearestRequests();
+          this.activeNearestRequests.clear();
+          this.teamAGrid.clear();
+          this.teamBGrid.clear();
+          this.teamAUnits.length = 0;
+          this.teamBUnits.length = 0;
+          this.gridKeyRows.clear();
+          this.teamAActiveCells.length = 0;
+          this.teamBActiveCells.length = 0;
+          this.teamAMaxRadius = 0;
+          this.teamBMaxRadius = 0;
+          this.unitsById.clear();
+          this.targetSnapshot = new Float32Array(0);
+          this.targetSnapshotLength = 0;
+          this.targetSnapshotVersion = 0;
+          this.workerTargetSnapshotVersion = -1;
+          this.packedRequestData = new Float32Array(0);
+        }
+
+        fillGrid(grid, activeCells, activeUnits, units, team) {
+          for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.agent) continue;
+            if (!unit.props || unit.props.isDead()) continue;
+            var gx = Math.floor(unit.agent.pos.x / this.cellSize);
+            var gz = Math.floor(unit.agent.pos.z / this.cellSize);
+            var key = this.getKey(gx, gz);
+            var list = grid.get(key);
+
+            if (!list) {
+              list = [];
+              grid.set(key, list);
+            }
+
+            if (list.length <= 0) {
+              activeCells.push(list);
+            }
+
+            list.push(unit);
+            activeUnits.push(unit);
+
+            if (team === 0) {
+              this.teamAMaxRadius = Math.max(this.teamAMaxRadius, unit.radius);
+            } else {
+              this.teamBMaxRadius = Math.max(this.teamBMaxRadius, unit.radius);
+            }
+
+            var id = this.getUnitId(unit);
+            this.unitsById.set(id, unit);
+            this.appendTargetSnapshot(id, unit.lifeId, team, unit.agent.pos.x, unit.agent.pos.z);
+          }
+        }
+
+        queryEnemies(team, x, z, radius) {
+          return this.queryGrid(this.getEnemyGrid(team), x, z, radius);
+        }
+
+        queryAllies(team, x, z, radius) {
+          return this.queryGrid(this.getAllyGrid(team), x, z, radius);
+        }
+
+        queryGrid(grid, x, z, radius) {
+          this.tempResult.length = 0;
+          var cx = Math.floor(x / this.cellSize);
+          var cz = Math.floor(z / this.cellSize);
+          var bounds = this.getQueryCellBounds(cx, cz, radius);
+
+          if (!bounds) {
+            return this.tempResult;
+          }
+
+          var radiusSq = radius * radius;
+
+          for (var gx = bounds.minX; gx <= bounds.maxX; gx++) {
+            for (var gz = bounds.minZ; gz <= bounds.maxZ; gz++) {
+              var key = this.findExistingKey(gx, gz);
+              if (!key) continue;
+              var list = grid.get(key);
+              if (!list) continue;
+
+              for (var i = 0; i < list.length; i++) {
+                var unit = list[i];
+                if (!unit) continue;
+                if (!unit.node.activeInHierarchy) continue;
+                if (!unit.agent) continue;
+                if (!unit.props || unit.props.isDead()) continue;
+                var dx = unit.agent.pos.x - x;
+                var dz = unit.agent.pos.z - z;
+                var d = dx * dx + dz * dz;
+
+                if (d <= radiusSq) {
+                  this.tempResult.push(unit);
+                }
+              }
+            }
+          }
+
+          return this.tempResult;
+        }
+
+        findNearestEnemy(team, x, z, radius) {
+          var enemyGrid = this.getEnemyGrid(team);
+          var enemyUnits = this.getEnemyUnits(team);
+          var activeEnemyCount = this.getActiveEnemyUnitCount(team);
+          var cx = Math.floor(x / this.cellSize);
+          var cz = Math.floor(z / this.cellSize);
+          var bounds = this.getQueryCellBounds(cx, cz, radius);
+
+          if (!bounds || activeEnemyCount <= 0) {
+            return null;
+          }
+
+          var radiusSq = radius * radius;
+          this.nearestSearchBest = null;
+          this.nearestSearchBestDistSq = Infinity;
+          var boundedCellCount = (bounds.maxX - bounds.minX + 1) * (bounds.maxZ - bounds.minZ + 1);
+
+          if (boundedCellCount >= activeEnemyCount) {
+            this.scanUnitsForNearest(enemyUnits, x, z, radiusSq);
+            return this.nearestSearchBest;
+          }
+
+          var maxRing = Math.max(Math.abs(bounds.minX - cx), Math.abs(bounds.maxX - cx), Math.abs(bounds.minZ - cz), Math.abs(bounds.maxZ - cz));
+
+          for (var ring = 0; ring <= maxRing; ring++) {
+            var ringMinDistSq = this.getRingMinDistanceSq(cx, cz, ring, x, z);
+
+            if (ringMinDistSq > radiusSq) {
+              break;
+            }
+
+            if (this.nearestSearchBest && ringMinDistSq > this.nearestSearchBestDistSq) {
+              break;
+            }
+
+            this.scanRingForNearest(enemyGrid, cx, cz, ring, x, z, radiusSq, bounds);
+          }
+
+          return this.nearestSearchBest;
+        }
+
+        scanUnitsForNearest(units, x, z, radiusSq) {
+          for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.agent) continue;
+            if (!unit.props || unit.props.isDead()) continue;
+            var dx = unit.agent.pos.x - x;
+            var dz = unit.agent.pos.z - z;
+            var d = dx * dx + dz * dz;
+            if (d > radiusSq) continue;
+
+            if (d < this.nearestSearchBestDistSq) {
+              this.nearestSearchBestDistSq = d;
+              this.nearestSearchBest = unit;
+            }
+          }
+        }
+
+        scanRingForNearest(enemyGrid, cx, cz, ring, x, z, radiusSq, bounds) {
+          if (ring <= 0) {
+            this.scanCellForNearest(enemyGrid, cx, cz, x, z, radiusSq, bounds);
+            return;
+          }
+
+          var minX = cx - ring;
+          var maxX = cx + ring;
+          var minZ = cz - ring;
+          var maxZ = cz + ring;
+
+          for (var gx = minX; gx <= maxX; gx++) {
+            this.scanCellForNearest(enemyGrid, gx, minZ, x, z, radiusSq, bounds);
+            this.scanCellForNearest(enemyGrid, gx, maxZ, x, z, radiusSq, bounds);
+          }
+
+          for (var gz = minZ + 1; gz <= maxZ - 1; gz++) {
+            this.scanCellForNearest(enemyGrid, minX, gz, x, z, radiusSq, bounds);
+            this.scanCellForNearest(enemyGrid, maxX, gz, x, z, radiusSq, bounds);
+          }
+        }
+
+        scanCellForNearest(enemyGrid, gx, gz, x, z, radiusSq, bounds) {
+          if (gx < bounds.minX || gx > bounds.maxX || gz < bounds.minZ || gz > bounds.maxZ) {
+            return;
+          }
+
+          var key = this.findExistingKey(gx, gz);
+          if (!key) return;
+          var list = enemyGrid.get(key);
+          if (!list) return;
+
+          for (var i = 0; i < list.length; i++) {
+            var unit = list[i];
+            if (!unit) continue;
+            if (!unit.node.activeInHierarchy) continue;
+            if (!unit.agent) continue;
+            if (!unit.props || unit.props.isDead()) continue;
+            var dx = unit.agent.pos.x - x;
+            var dz = unit.agent.pos.z - z;
+            var d = dx * dx + dz * dz;
+            if (d > radiusSq) continue;
+
+            if (d < this.nearestSearchBestDistSq) {
+              this.nearestSearchBestDistSq = d;
+              this.nearestSearchBest = unit;
+            }
+          }
+        }
+
+        findNearestEnemyInRange(team, x, z, range) {
+          return this.findNearestEnemy(team, x, z, range);
+        }
+
+        getMaxEnemyRadius(team) {
+          return team === 0 ? this.teamBMaxRadius : this.teamAMaxRadius;
+        }
+
+        requestNearestEnemy(unit, team, x, z, radius, callback, callbackToken) {
+          if (callbackToken === void 0) {
+            callbackToken = -1;
+          }
+
+          if (!this.canUseWorkerTargetQuery()) {
+            return false;
+          }
+
+          if (this.targetSnapshotLength <= 0) {
+            return false;
+          }
+
+          var request = this.getNearestRequest(unit, team, x, z, radius, callback, callbackToken);
+          this.pendingNearestRequests.push(request);
+
+          if (!this.flushScheduled) {
+            this.flushScheduled = true;
+            Promise.resolve().then(() => {
+              this.flushScheduled = false;
+              this.flushNearestWorkerRequests();
+            });
+          }
+
+          return true;
+        }
+
+        getKey(x, z) {
+          var row = this.gridKeyRows.get(x);
+
+          if (!row) {
+            row = new Map();
+            this.gridKeyRows.set(x, row);
+          }
+
+          var key = row.get(z);
+
+          if (!key) {
+            key = x + "_" + z;
+            row.set(z, key);
+          }
+
+          return key;
+        }
+
+        findExistingKey(x, z) {
+          var row = this.gridKeyRows.get(x);
+          return row ? row.get(z) : undefined;
+        }
+
+        getQueryCellBounds(cx, cz, radius) {
+          var safeCellSize = Math.max(0.001, this.cellSize);
+          var cellRange = Math.ceil(Math.max(0, radius) / safeCellSize);
+          var bounds = this.queryCellBounds;
+          bounds.minX = cx - cellRange;
+          bounds.maxX = cx + cellRange;
+          bounds.minZ = cz - cellRange;
+          bounds.maxZ = cz + cellRange;
+
+          if (Number.isFinite(this.battleMinX) && Number.isFinite(this.battleMaxX)) {
+            bounds.minX = Math.max(bounds.minX, Math.floor(this.battleMinX / safeCellSize));
+            bounds.maxX = Math.min(bounds.maxX, Math.floor(this.battleMaxX / safeCellSize));
+          }
+
+          if (Number.isFinite(this.battleMinZ) && Number.isFinite(this.battleMaxZ)) {
+            bounds.minZ = Math.max(bounds.minZ, Math.floor(this.battleMinZ / safeCellSize));
+            bounds.maxZ = Math.min(bounds.maxZ, Math.floor(this.battleMaxZ / safeCellSize));
+          }
+
+          if (bounds.minX > bounds.maxX || bounds.minZ > bounds.maxZ) {
+            return null;
+          }
+
+          return bounds;
+        }
+
+        getEnemyUnits(team) {
+          return team === 0 ? this.teamBUnits : this.teamAUnits;
+        }
+
+        getActiveEnemyUnitCount(team) {
+          return this.getEnemyUnits(team).length;
+        }
+
+        canUseWorkerTargetQuery() {
+          if (!this.useWorkerTargetQuery) return false;
+          if (this.workerFailed) return false;
+
+          if (!this.worker) {
+            this.createWorker();
+          }
+
+          return !!this.worker && this.workerReady;
+        }
+
+        flushNearestWorkerRequests() {
+          if (!this.worker || !this.workerReady || this.pendingNearestRequests.length <= 0) {
+            return;
+          }
+
+          var requests = this.pendingNearestRequests;
+          var packedCapacity = requests.length * 5;
+          this.ensurePackedRequestCapacity(packedCapacity);
+          var packedRequests = this.packedRequestData;
+          var packedLength = 0;
+
+          for (var i = 0; i < requests.length; i++) {
+            var request = requests[i];
+
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              this.recycleNearestRequest(request);
+              continue;
+            }
+
+            this.activeNearestRequests.set(request.requestId, request);
+            packedRequests[packedLength++] = request.requestId;
+            packedRequests[packedLength++] = request.team;
+            packedRequests[packedLength++] = request.x;
+            packedRequests[packedLength++] = request.z;
+            packedRequests[packedLength++] = request.radius;
+          }
+
+          this.pendingNearestRequests.length = 0;
+
+          if (packedLength <= 0) {
+            return;
+          }
+
+          var requestData = packedRequests.subarray(0, packedLength);
+
+          try {
+            var seq = ++this.workerSeq;
+            var needsSnapshot = this.workerTargetSnapshotVersion !== this.targetSnapshotVersion;
+            var unitData = needsSnapshot ? this.targetSnapshot.subarray(0, this.targetSnapshotLength) : null;
+            var unitLength = needsSnapshot ? this.targetSnapshotLength : 0;
+            this.worker.postMessage({
+              type: 'findNearestBatch',
+              seq,
+              cellSize: this.cellSize,
+              battleMinX: this.battleMinX,
+              battleMaxX: this.battleMaxX,
+              battleMinZ: this.battleMinZ,
+              battleMaxZ: this.battleMaxZ,
+              snapshotVersion: this.targetSnapshotVersion,
+              units: unitData,
+              unitLength,
+              requests: requestData,
+              requestLength: packedLength
+            });
+
+            if (needsSnapshot) {
+              this.workerTargetSnapshotVersion = this.targetSnapshotVersion;
+            }
+
+            this.armWorkerResponseTimeout(seq);
+          } catch (err) {
+            this.failWorkerAndCompleteRequests();
+          }
+        }
+
+        clearActiveGridCells(activeCells) {
+          for (var i = 0; i < activeCells.length; i++) {
+            activeCells[i].length = 0;
+          }
+
+          activeCells.length = 0;
+        }
+
+        applyWorkerResults(results) {
+          for (var i = 0; i < results.length; i += 3) {
+            var requestId = results[i];
+            var targetId = results[i + 1];
+            var targetLifeId = results[i + 2];
+            var request = this.activeNearestRequests.get(requestId);
+            this.activeNearestRequests.delete(requestId);
+            if (!request) continue;
+            var callback = request.callback;
+            var callbackToken = request.callbackToken;
+
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
+              continue;
+            }
+
+            var _target = this.unitsById.get(targetId);
+
+            if (!_target || !this.isValidTargetUnit(_target, targetLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
+              continue;
+            }
+
+            callback(_target, callbackToken);
+            this.recycleNearestRequest(request);
+          }
+        }
+
+        completeActiveRequestsOnMainThread() {
+          var requests = Array.from(this.activeNearestRequests.values());
+          this.activeNearestRequests.clear();
+
+          for (var i = 0; i < requests.length; i++) {
+            var request = requests[i];
+            var callback = request.callback;
+            var callbackToken = request.callbackToken;
+
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
+              continue;
+            }
+
+            callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
+            this.recycleNearestRequest(request);
+          }
+        }
+
+        completePendingRequestsOnMainThread() {
+          var requests = this.pendingNearestRequests;
+          this.pendingNearestRequests = [];
+
+          for (var i = 0; i < requests.length; i++) {
+            var request = requests[i];
+            var callback = request.callback;
+            var callbackToken = request.callbackToken;
+
+            if (!this.isValidRequestUnit(request.unit, request.unitLifeId)) {
+              callback(null, callbackToken);
+              this.recycleNearestRequest(request);
+              continue;
+            }
+
+            callback(this.findNearestEnemy(request.team, request.x, request.z, request.radius), callbackToken);
+            this.recycleNearestRequest(request);
+          }
+        }
+
+        armWorkerResponseTimeout(seq) {
+          if (this.workerResponseTimeout !== null) {
+            return;
+          }
+
+          this.workerResponseTimeoutSeq = seq;
+          this.workerResponseTimeout = setTimeout(() => {
+            this.workerResponseTimeout = null;
+
+            if (this.lastCompletedWorkerSeq >= this.workerResponseTimeoutSeq) {
+              return;
+            }
+
+            this.failWorkerAndCompleteRequests();
+          }, BattleSpatialGrid.workerResponseTimeoutMs);
+        }
+
+        completeWorkerBatch(seq) {
+          this.lastCompletedWorkerSeq = Math.max(this.lastCompletedWorkerSeq, seq);
+
+          if (this.workerResponseTimeout !== null && seq >= this.workerResponseTimeoutSeq) {
+            this.clearWorkerResponseTimeout();
+          }
+
+          if (this.activeNearestRequests.size > 0) {
+            this.armWorkerResponseTimeout(seq + 1);
+          }
+        }
+
+        clearWorkerResponseTimeout() {
+          if (this.workerResponseTimeout !== null) {
+            clearTimeout(this.workerResponseTimeout);
+            this.workerResponseTimeout = null;
+          }
+
+          this.workerResponseTimeoutSeq = 0;
+        }
+
+        failWorkerAndCompleteRequests() {
+          this.clearWorkerResponseTimeout();
+          this.workerFailed = true;
+          this.workerReady = false;
+          this.workerTargetSnapshotVersion = -1;
+
+          if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+          }
+
+          this.completeActiveRequestsOnMainThread();
+          this.completePendingRequestsOnMainThread();
+        }
+
+        getNearestRequest(unit, team, x, z, radius, callback, callbackToken) {
+          var request = this.nearestRequestPool.pop() || {
+            requestId: 0,
+            unit: null,
+            unitLifeId: -1,
+            team: 0,
+            x: 0,
+            z: 0,
+            radius: 0,
+            callbackToken: -1,
+            callback: BattleSpatialGrid.noopNearestEnemyCallback
+          };
+          request.requestId = this.nextRequestId++;
+          request.unit = unit;
+          request.unitLifeId = unit.lifeId;
+          request.team = team;
+          request.x = x;
+          request.z = z;
+          request.radius = radius;
+          request.callbackToken = callbackToken;
+          request.callback = callback;
+          return request;
+        }
+
+        recycleNearestRequest(request) {
+          if (!request) return;
+          request.requestId = 0;
+          request.unit = null;
+          request.unitLifeId = -1;
+          request.team = 0;
+          request.x = 0;
+          request.z = 0;
+          request.radius = 0;
+          request.callbackToken = -1;
+          request.callback = BattleSpatialGrid.noopNearestEnemyCallback;
+
+          if (this.nearestRequestPool.length < 512) {
+            this.nearestRequestPool.push(request);
+          }
+        }
+
+        recycleNearestRequestList(requests) {
+          for (var i = 0; i < requests.length; i++) {
+            this.recycleNearestRequest(requests[i]);
+          }
+        }
+
+        recycleActiveNearestRequests() {
+          this.activeNearestRequests.forEach(request => {
+            this.recycleNearestRequest(request);
+          });
+        }
+
+        isValidRequestUnit(unit, lifeId) {
+          if (lifeId === void 0) {
+            lifeId = -1;
+          }
+
+          if (!unit) return false;
+          if (lifeId >= 0 && unit.lifeId !== lifeId) return false;
+          if (!unit.node.activeInHierarchy) return false;
+          if (!unit.agent) return false;
+          if (!unit.props || unit.props.isDead()) return false;
+          return true;
+        }
+
+        isValidTargetUnit(unit, lifeId) {
+          if (lifeId === void 0) {
+            lifeId = -1;
+          }
+
+          return this.isValidRequestUnit(unit, lifeId);
+        }
+
+        getUnitId(unit) {
+          var id = this.unitIds.get(unit);
+
+          if (!id) {
+            id = this.nextUnitId++;
+            this.unitIds.set(unit, id);
+          }
+
+          return id;
+        }
+
+        appendTargetSnapshot(id, lifeId, team, x, z) {
+          this.ensureTargetSnapshotCapacity(this.targetSnapshotLength + 5);
+          var data = this.targetSnapshot;
+          var index = this.targetSnapshotLength;
+          data[index++] = id;
+          data[index++] = lifeId;
+          data[index++] = team;
+          data[index++] = x;
+          data[index++] = z;
+          this.targetSnapshotLength = index;
+        }
+
+        ensureTargetSnapshotCapacity(length) {
+          if (this.targetSnapshot.length >= length) {
+            return;
+          }
+
+          var capacity = Math.max(length, this.targetSnapshot.length * 2, 256);
+          var next = new Float32Array(capacity);
+          next.set(this.targetSnapshot.subarray(0, this.targetSnapshotLength));
+          this.targetSnapshot = next;
+        }
+
+        ensurePackedRequestCapacity(length) {
+          if (this.packedRequestData.length >= length) {
+            return;
+          }
+
+          var capacity = Math.max(length, this.packedRequestData.length * 2, 128);
+          this.packedRequestData = new Float32Array(capacity);
+        }
+
+        createWorker() {
+          if (typeof Worker === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) {
+            this.workerFailed = true;
+            return;
+          }
+
+          try {
+            this.workerTargetSnapshotVersion = -1;
+            var blob = new Blob([this.workerSource()], {
+              type: 'application/javascript'
+            });
+            var url = URL.createObjectURL(blob);
+            this.worker = this.createNamedWorker(url, 'BattleSpatialGridTargetWorker');
+            URL.revokeObjectURL(url);
+
+            this.worker.onmessage = event => {
+              var data = event.data;
+              if (!data) return;
+
+              if (data.type === 'ready') {
+                this.workerReady = true;
+                return;
+              }
+
+              if (data.type === 'findNearestBatchResult') {
+                this.applyWorkerResults(data.results || []);
+                this.completeWorkerBatch(data.seq || 0);
+              }
+            };
+
+            this.worker.onerror = () => {
+              this.failWorkerAndCompleteRequests();
+            };
+          } catch (err) {
+            this.workerFailed = true;
+            this.workerReady = false;
+            this.worker = null;
+          }
+        }
+
+        createNamedWorker(url, name) {
+          try {
+            return new Worker(url, {
+              name
+            });
+          } catch (err) {
+            return new Worker(url);
+          }
+        }
+
+        workerSource() {
+          return "\nvar gridKeyRows = Object.create(null);\n\nfunction getKey(x, z) {\n    var row = gridKeyRows[x];\n\n    if (!row) {\n        row = Object.create(null);\n        gridKeyRows[x] = row;\n    }\n\n    var result = row[z];\n\n    if (!result) {\n        result = x + '_' + z;\n        row[z] = result;\n    }\n\n    return result;\n}\n\nfunction findExistingKey(x, z) {\n    var row = gridKeyRows[x];\n\n    return row ? row[z] : undefined;\n}\n\nvar teamAGrid = Object.create(null);\nvar teamBGrid = Object.create(null);\nvar teamAGridKeys = [];\nvar teamBGridKeys = [];\nvar snapshotUnits = null;\nvar snapshotUnitLength = 0;\nvar teamAUnitCount = 0;\nvar teamBUnitCount = 0;\nvar battleMinX = -Infinity;\nvar battleMaxX = Infinity;\nvar battleMinZ = -Infinity;\nvar battleMaxZ = Infinity;\nvar queryMinCellX = 0;\nvar queryMaxCellX = -1;\nvar queryMinCellZ = 0;\nvar queryMaxCellZ = -1;\nvar resultBuffer = new Int32Array(0);\nvar hasSnapshot = false;\nvar bestId = 0;\nvar bestLifeId = 0;\nvar bestDistSq = Infinity;\n\nfunction getCellMinDistanceSq(gx, gz, x, z, cellSize) {\n    return getRectMinDistanceSq(gx, gx, gz, gz, x, z, cellSize);\n}\n\nfunction getRectMinDistanceSq(minGx, maxGx, minGz, maxGz, x, z, cellSize) {\n    if (minGx > maxGx || minGz > maxGz) {\n        return Infinity;\n    }\n\n    var minX = minGx * cellSize;\n    var maxX = (maxGx + 1) * cellSize;\n    var minZ = minGz * cellSize;\n    var maxZ = (maxGz + 1) * cellSize;\n    var dx = 0;\n    var dz = 0;\n\n    if (x < minX) {\n        dx = minX - x;\n    } else if (x > maxX) {\n        dx = x - maxX;\n    }\n\n    if (z < minZ) {\n        dz = minZ - z;\n    } else if (z > maxZ) {\n        dz = z - maxZ;\n    }\n\n    return dx * dx + dz * dz;\n}\n\nfunction scanCell(grid, gx, gz, x, z, radiusSq) {\n    if (\n        gx < queryMinCellX ||\n        gx > queryMaxCellX ||\n        gz < queryMinCellZ ||\n        gz > queryMaxCellZ\n    ) {\n        return;\n    }\n\n    var key = findExistingKey(gx, gz);\n\n    if (!key) return;\n\n    var list = grid[key];\n\n    if (!list) return;\n\n    for (var i = 0; i < list.length; i += 5) {\n        var id = list[i];\n        var lifeId = list[i + 1];\n        var ux = list[i + 3];\n        var uz = list[i + 4];\n        var dx = ux - x;\n        var dz = uz - z;\n        var d = dx * dx + dz * dz;\n\n        if (d > radiusSq) continue;\n\n        if (d < bestDistSq) {\n            bestDistSq = d;\n            bestId = id;\n            bestLifeId = lifeId;\n        }\n    }\n}\n\nfunction scanSnapshotForNearest(\n    team,\n    x,\n    z,\n    radiusSq\n) {\n    if (!snapshotUnits) return;\n\n    for (var i = 0; i < snapshotUnitLength; i += 5) {\n        if (snapshotUnits[i + 2] !== team) continue;\n\n        var ux = snapshotUnits[i + 3];\n        var uz = snapshotUnits[i + 4];\n        var dx = ux - x;\n        var dz = uz - z;\n        var d = dx * dx + dz * dz;\n\n        if (d > radiusSq) continue;\n\n        if (d < bestDistSq) {\n            bestDistSq = d;\n            bestId = snapshotUnits[i];\n            bestLifeId = snapshotUnits[i + 1];\n        }\n    }\n}\n\nfunction findNearest(\n    grid,\n    team,\n    activeUnitCount,\n    x,\n    z,\n    radius,\n    cellSize\n) {\n    var cellRange = Math.ceil(radius / cellSize);\n    var cx = Math.floor(x / cellSize);\n    var cz = Math.floor(z / cellSize);\n    var radiusSq = radius * radius;\n    queryMinCellX = cx - cellRange;\n    queryMaxCellX = cx + cellRange;\n    queryMinCellZ = cz - cellRange;\n    queryMaxCellZ = cz + cellRange;\n\n    if (Number.isFinite(battleMinX) && Number.isFinite(battleMaxX)) {\n        queryMinCellX = Math.max(\n            queryMinCellX,\n            Math.floor(battleMinX / cellSize)\n        );\n        queryMaxCellX = Math.min(\n            queryMaxCellX,\n            Math.floor(battleMaxX / cellSize)\n        );\n    }\n\n    if (Number.isFinite(battleMinZ) && Number.isFinite(battleMaxZ)) {\n        queryMinCellZ = Math.max(\n            queryMinCellZ,\n            Math.floor(battleMinZ / cellSize)\n        );\n        queryMaxCellZ = Math.min(\n            queryMaxCellZ,\n            Math.floor(battleMaxZ / cellSize)\n        );\n    }\n\n    bestId = 0;\n    bestLifeId = 0;\n    bestDistSq = Infinity;\n\n    if (\n        queryMinCellX > queryMaxCellX ||\n        queryMinCellZ > queryMaxCellZ ||\n        activeUnitCount <= 0\n    ) {\n        return 0;\n    }\n\n    var boundedCellCount =\n        (queryMaxCellX - queryMinCellX + 1) *\n        (queryMaxCellZ - queryMinCellZ + 1);\n\n    if (boundedCellCount >= activeUnitCount) {\n        scanSnapshotForNearest(\n            team,\n            x,\n            z,\n            radiusSq\n        );\n\n        return bestId;\n    }\n\n    var maxRing = Math.max(\n        Math.abs(queryMinCellX - cx),\n        Math.abs(queryMaxCellX - cx),\n        Math.abs(queryMinCellZ - cz),\n        Math.abs(queryMaxCellZ - cz)\n    );\n\n    for (var ring = 0; ring <= maxRing; ring++) {\n        var ringMinDistSq;\n\n        if (ring <= 0) {\n            ringMinDistSq = getCellMinDistanceSq(cx, cz, x, z, cellSize);\n        } else {\n            var minX = cx - ring;\n            var maxX = cx + ring;\n            var minZ = cz - ring;\n            var maxZ = cz + ring;\n\n            ringMinDistSq = Math.min(\n                getRectMinDistanceSq(minX, minX, minZ + 1, maxZ - 1, x, z, cellSize),\n                getRectMinDistanceSq(maxX, maxX, minZ + 1, maxZ - 1, x, z, cellSize),\n                getRectMinDistanceSq(minX, maxX, minZ, minZ, x, z, cellSize),\n                getRectMinDistanceSq(minX, maxX, maxZ, maxZ, x, z, cellSize)\n            );\n        }\n\n        if (ringMinDistSq > radiusSq) {\n            break;\n        }\n\n        if (bestId && ringMinDistSq > bestDistSq) {\n            break;\n        }\n\n        if (ring <= 0) {\n            scanCell(grid, cx, cz, x, z, radiusSq);\n            continue;\n        }\n\n        var left = cx - ring;\n        var right = cx + ring;\n        var bottom = cz - ring;\n        var top = cz + ring;\n\n        for (var gx = left; gx <= right; gx++) {\n            scanCell(grid, gx, bottom, x, z, radiusSq);\n            scanCell(grid, gx, top, x, z, radiusSq);\n        }\n\n        for (var gz = bottom + 1; gz <= top - 1; gz++) {\n            scanCell(grid, left, gz, x, z, radiusSq);\n            scanCell(grid, right, gz, x, z, radiusSq);\n        }\n    }\n\n    return bestId;\n}\n\nfunction clearGrid(grid, keys) {\n    for (var i = 0; i < keys.length; i++) {\n        var list = grid[keys[i]];\n\n        if (list) {\n            list.length = 0;\n        }\n    }\n\n    keys.length = 0;\n}\n\nfunction buildGrid(units, unitLength, team, cellSize, grid, keys) {\n    clearGrid(grid, keys);\n    var activeUnitCount = 0;\n\n    for (var i = 0; i < unitLength; i += 5) {\n        if (units[i + 2] !== team) continue;\n        activeUnitCount++;\n\n        var x = units[i + 3];\n        var z = units[i + 4];\n        var gx = Math.floor(x / cellSize);\n        var gz = Math.floor(z / cellSize);\n        var key = getKey(gx, gz);\n        var list = grid[key];\n\n        if (!list) {\n            list = [];\n            grid[key] = list;\n        }\n\n        if (list.length <= 0) {\n            keys.push(key);\n        }\n\n        list.push(\n            units[i],\n            units[i + 1],\n            units[i + 2],\n            x,\n            z\n        );\n    }\n\n    return activeUnitCount;\n}\n\nfunction ensureResultCapacity(length) {\n    if (resultBuffer.length >= length) {\n        return resultBuffer;\n    }\n\n    var capacity = Math.max(\n        length,\n        resultBuffer.length * 2,\n        64\n    );\n\n    resultBuffer = new Int32Array(capacity);\n\n    return resultBuffer;\n}\n\nself.onmessage = function(event) {\n    var data = event.data;\n\n    if (!data) return;\n\n    if (data.type === 'findNearestBatch') {\n        var units = data.units || null;\n        var unitLength = data.unitLength || 0;\n        var requests = data.requests || [];\n        var requestLength = data.requestLength || requests.length;\n        var cellSize = Math.max(0.001, data.cellSize || 4);\n        battleMinX = data.battleMinX;\n        battleMaxX = data.battleMaxX;\n        battleMinZ = data.battleMinZ;\n        battleMaxZ = data.battleMaxZ;\n        var requestCount = Math.floor(requestLength / 5);\n\n        if (units && unitLength > 0) {\n            snapshotUnits = units;\n            snapshotUnitLength = unitLength;\n            teamAUnitCount = buildGrid(\n                units,\n                unitLength,\n                0,\n                cellSize,\n                teamAGrid,\n                teamAGridKeys\n            );\n            teamBUnitCount = buildGrid(\n                units,\n                unitLength,\n                1,\n                cellSize,\n                teamBGrid,\n                teamBGridKeys\n            );\n            hasSnapshot = true;\n        }\n\n        if (!hasSnapshot) {\n            var emptyResults = ensureResultCapacity(\n                requestCount * 3\n            );\n            var emptyLength = 0;\n\n            for (var emptyI = 0; emptyI < requestLength; emptyI += 5) {\n                emptyResults[emptyLength++] = requests[emptyI];\n                emptyResults[emptyLength++] = 0;\n                emptyResults[emptyLength++] = 0;\n            }\n\n            self.postMessage({\n                type: 'findNearestBatchResult',\n                seq: data.seq,\n                results: emptyResults.subarray(0, emptyLength)\n            });\n\n            return;\n        }\n\n        var results = ensureResultCapacity(\n            requestCount * 3\n        );\n        var resultLength = 0;\n\n        for (var i = 0; i < requestLength; i += 5) {\n            var requestId = requests[i];\n            var team = requests[i + 1];\n            var x = requests[i + 2];\n            var z = requests[i + 3];\n            var radius = requests[i + 4];\n            var grid = team === 0\n                ? teamBGrid\n                : teamAGrid;\n            var enemyTeam = team === 0 ? 1 : 0;\n            var activeEnemyCount = team === 0\n                ? teamBUnitCount\n                : teamAUnitCount;\n\n            results[resultLength++] = requestId;\n            results[resultLength++] =\n                findNearest(\n                    grid,\n                    enemyTeam,\n                    activeEnemyCount,\n                    x,\n                    z,\n                    radius,\n                    cellSize\n                );\n            results[resultLength++] = bestLifeId;\n        }\n\n        self.postMessage({\n            type: 'findNearestBatchResult',\n            seq: data.seq,\n            results: results.subarray(0, resultLength)\n        });\n    }\n};\n\nself.postMessage({ type: 'ready' });\n";
+        }
+
+        getRingMinDistanceSq(cx, cz, ring, x, z) {
+          if (ring <= 0) {
+            return this.getCellMinDistanceSq(cx, cz, x, z);
+          }
+
+          var minX = cx - ring;
+          var maxX = cx + ring;
+          var minZ = cz - ring;
+          var maxZ = cz + ring;
+          var left = this.getRectMinDistanceSq(minX, minX, minZ + 1, maxZ - 1, x, z);
+          var right = this.getRectMinDistanceSq(maxX, maxX, minZ + 1, maxZ - 1, x, z);
+          var bottom = this.getRectMinDistanceSq(minX, maxX, minZ, minZ, x, z);
+          var top = this.getRectMinDistanceSq(minX, maxX, maxZ, maxZ, x, z);
+          return Math.min(left, right, bottom, top);
+        }
+
+        getCellMinDistanceSq(gx, gz, x, z) {
+          return this.getRectMinDistanceSq(gx, gx, gz, gz, x, z);
+        }
+
+        getRectMinDistanceSq(minGx, maxGx, minGz, maxGz, x, z) {
+          if (minGx > maxGx || minGz > maxGz) {
+            return Infinity;
+          }
+
+          var minX = minGx * this.cellSize;
+          var maxX = (maxGx + 1) * this.cellSize;
+          var minZ = minGz * this.cellSize;
+          var maxZ = (maxGz + 1) * this.cellSize;
+          var dx = 0;
+          var dz = 0;
+
+          if (x < minX) {
+            dx = minX - x;
+          } else if (x > maxX) {
+            dx = x - maxX;
+          }
+
+          if (z < minZ) {
+            dz = minZ - z;
+          } else if (z > maxZ) {
+            dz = z - maxZ;
+          }
+
+          return dx * dx + dz * dz;
+        }
+
+        getEnemyGrid(team) {
+          return team === 0 ? this.teamBGrid : this.teamAGrid;
+        }
+
+        getAllyGrid(team) {
+          return team === 0 ? this.teamAGrid : this.teamBGrid;
+        }
+
+      });
+
+      BattleSpatialGrid.workerResponseTimeoutMs = 2000;
+
+      BattleSpatialGrid.noopNearestEnemyCallback = () => {};
+
+      _cclegacy._RF.pop();
+
+      _crd = false;
+    }
+  };
+});
+//# sourceMappingURL=5d8e4021ccee3efd23657fb998ca8d2669ce83fb.js.map
