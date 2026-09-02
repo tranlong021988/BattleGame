@@ -100,6 +100,7 @@ interface SavedProgressionState {
     levelLossCount: number;
     mainLossesAtCurrentLevel: number;
     consecutiveSideWins: number;
+    consecutiveSideRecoveryLosses: number;
     sideMissionActive: boolean;
     playerInitialCP: number;
     playerInitialCPOverflow: number;
@@ -163,6 +164,7 @@ interface ProgressionTelemetryAction {
     source: string;
     cost: number;
     goldGranted: number;
+    controller: 'bot-simulation' | 'player';
     adsReason?: string;
 }
 
@@ -350,9 +352,15 @@ export class LevelSettings extends Component
 
     @property({
         displayName: 'Allow Ads Rescue',
-        tooltip: 'Allow rewarded-ad Gold x2 claims and card cooldown completion. Side missions remain available without ads.'
+        tooltip: 'Allow bot rewarded-ad mechanics, including card cooldown completion. Gold x2 has its own toggle. Side missions remain available without ads.'
     })
     allowAdsRescue = true;
+
+    @property({
+        displayName: 'Allow Bot Gold X2 Ads',
+        tooltip: 'Allow purchasing simulation to use rewarded ads to double side-mission gold. This does not restrict human-player ad rewards.'
+    })
+    allowBotGoldX2Ads = true;
 
     @property({
         tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
@@ -383,6 +391,14 @@ export class LevelSettings extends Component
     })
     botStrengthUpgradePurchaseWeight = 1.75;
 
+    @property({
+        min: 0,
+        step: 1,
+        displayName: 'Max Player Packages Per Level',
+        tooltip: 'Reserves slots for baseline packages and card unlocks first, then delays only player card upgrades until the level has this many packages. Baseline itself may exceed the cap. Set 0 to disable. Enemy card strength timing is unchanged.'
+    })
+    maxPlayerPackagesPerLevel = 3;
+
     @property({ min: 0, step: 1 })
     initialPlayerGold = 0;
 
@@ -395,16 +411,13 @@ export class LevelSettings extends Component
     @property({ min: 0, step: 1 })
     playerMaxAliveMax = 10;
 
-    @property({ min: 0.01, step: 0.1 })
-    winGoldPerEnemyCP = 1.15;
-
     @property({
         min: 0,
         step: 50,
-        displayName: 'Main Reward Flat Bonus',
-        tooltip: 'Fixed gold added to every main-battle reward after the stable progression plan is generated. Rounded to 50.'
+        displayName: 'No-Loss Gold Reserve',
+        tooltip: 'Target gold kept after paying each newly opened package and the next main entry fee on the no-loss route. A low reserve makes losses create a real funding deficit; all rewards remain generated dynamically from package timing and fees.'
     })
-    mainRewardFlatBonus = 1000;
+    mainlineNoLossGoldReserve = 0;
 
     @property({
         min: 1,
@@ -422,6 +435,15 @@ export class LevelSettings extends Component
         tooltip: 'Side-win gold as a share of the current main entry fee. Gold x2 can turn a partial recovery into a full preparation purchase. Rounds up to 50.'
     })
     sideRewardFeeMultiplier = 0.65;
+
+    @property({
+        min: 0.01,
+        max: 1,
+        step: 0.05,
+        displayName: 'Side Recovery Accuracy Multiplier',
+        tooltip: 'After each lost side battle while main entry plus the cheapest currently opened package is unaffordable, the next side enemy accuracy is multiplied by this value. Resets after a side win or when the recovery need clears.'
+    })
+    sideRecoveryAccuracyMultiplier = 0.75;
 
     @property({
         min: 0,
@@ -504,6 +526,7 @@ export class LevelSettings extends Component
     // campaign-stable: the current enemy deck is runtime state, not economy
     // configuration.
     private mainBattleNormalGoldPlan: number[] | null = null;
+    private playerNonCardUpgradeOfferCounts: number[] | null = null;
     private telemetryActionPhase: 'pre-battle' | 'battle-result' =
         'pre-battle';
     private currentPlayerBattleCardIds: string[] = [];
@@ -786,6 +809,7 @@ export class LevelSettings extends Component
             );
             goldReward = rewardClaim.goldGranted;
             state.consecutiveSideWins++;
+            state.consecutiveSideRecoveryLosses = 0;
             state.levelLossCount = 0;
             const continuation =
                 this.getSideMissionContinuation(state);
@@ -805,6 +829,10 @@ export class LevelSettings extends Component
                 continuationChance: continuation.chance,
             });
         } else {
+            const recovery = this.getSideEconomyRecoveryStatus(state);
+            state.consecutiveSideRecoveryLosses = recovery.active
+                ? state.consecutiveSideRecoveryLosses + 1
+                : 0;
             const continuation =
                 this.getSideMissionContinuation(state);
             // A lost side mission did not improve the economy. Retry only if
@@ -869,6 +897,16 @@ export class LevelSettings extends Component
             this.getFirstBrainForTeam(1);
         const playerBrain =
             this.getFirstBrainForTeam(0);
+        const sideEconomyRecovery =
+            this.getSideEconomyRecoveryStatus(state);
+        const sideRecoveryAccuracyMultiplier = sideEconomyRecovery.active
+            ? Math.pow(
+                this.clamp01(this.sideRecoveryAccuracyMultiplier),
+                state.consecutiveSideRecoveryLosses
+            )
+            : 1;
+        const noLossEconomyAudit =
+            this.getMainlineNoLossEconomyAudit();
 
         return {
             enabled: true,
@@ -882,6 +920,10 @@ export class LevelSettings extends Component
             ),
             purchasingSimulation:
                 this.purchasingSimulation,
+            controller: this.purchasingSimulation
+                ? 'bot-simulation'
+                : 'player',
+            allowBotGoldX2Ads: this.allowBotGoldX2Ads,
             settings: {
                 progressionEndLevel:
                     this.getProgressionEndLevel(),
@@ -923,14 +965,16 @@ export class LevelSettings extends Component
                         state,
                         this.battleLevel
                     ),
-                winGoldPerEnemyCP:
-                    this.winGoldPerEnemyCP,
+                mainlineNoLossGoldReserve:
+                    this.mainlineNoLossGoldReserve,
                 bossGoldRewardMultiplier:
                     this.bossGoldRewardMultiplier,
                 mainBattleEntryFeeRatio:
                     this.mainBattleEntryFeeRatio,
                 mainLossRewardFeeRatio:
                     this.mainLossRewardFeeRatio,
+                sideRecoveryAccuracyMultiplier:
+                    this.sideRecoveryAccuracyMultiplier,
                 mainBattleEntryFee:
                     this.getMainBattleEntryFee(
                         this.battleLevel
@@ -949,11 +993,24 @@ export class LevelSettings extends Component
                     this.createCardDefinitionSnapshot(),
                 cardUpgradeSchedule:
                     this.getCardUpgradeSchedule(),
+                noLossEconomyAudit,
             },
             preBattlePurchases:
                 this.preBattlePurchases.slice(),
             sideMission: {
                 active: this.sideMissionBattle,
+                economyRecovery: {
+                    active: sideEconomyRecovery.active,
+                    consecutiveLosses:
+                        state.consecutiveSideRecoveryLosses,
+                    accuracyMultiplier:
+                        sideRecoveryAccuracyMultiplier,
+                    entryFee: sideEconomyRecovery.entryFee,
+                    cheapestPackageCost:
+                        sideEconomyRecovery.cheapestPackageCost,
+                    requiredGold: sideEconomyRecovery.requiredGold,
+                    shortfall: sideEconomyRecovery.shortfall,
+                },
                 botSimulationEvents:
                     state.botSimulationEvents.slice(),
             },
@@ -1007,6 +1064,18 @@ export class LevelSettings extends Component
                 })),
                 selectedBattleCardIds:
                     this.currentPlayerBattleCardIds.slice(),
+                readyOwnedCardIds: state.cards.filter((card) =>
+                    card.owned && card.cooldownRemaining <= 0
+                ).map((card) => card.id),
+                coolingOwnedCards: state.cards.filter((card) =>
+                    card.owned && card.cooldownRemaining > 0
+                ).map((card) => ({
+                    id: card.id,
+                    cooldownRemaining: card.cooldownRemaining,
+                })),
+                cooldownAdReasons: Array.from(
+                    this.currentPlayerCooldownAdReasons.entries()
+                ).map(([cardId, reason]) => ({ cardId, reason })),
             },
             enemy: {
                 initialCP:
@@ -1091,6 +1160,7 @@ export class LevelSettings extends Component
 
     private initializeProgression() {
         this.mainBattleNormalGoldPlan = null;
+        this.playerNonCardUpgradeOfferCounts = null;
         const loaded = this.loadProgressionState();
 
         this.progressionState = loaded
@@ -1221,7 +1291,7 @@ export class LevelSettings extends Component
         }
 
         return {
-            version: 13,
+            version: 14,
             telemetryRunId: this.createTelemetryRunId(),
             telemetryBattleIndex: 0,
             enemyCardDeckPolicyVersion:
@@ -1235,6 +1305,7 @@ export class LevelSettings extends Component
             levelLossCount: 0,
             mainLossesAtCurrentLevel: 0,
             consecutiveSideWins: 0,
+            consecutiveSideRecoveryLosses: 0,
             sideMissionActive: false,
             playerInitialCP: this.getPlayerCPStart(),
             playerInitialCPOverflow: 0,
@@ -2372,7 +2443,8 @@ export class LevelSettings extends Component
         return this.getCardUpgradeRankLimitAtLevel(
             definition,
             'strength',
-            level
+            level,
+            0
         );
     }
 
@@ -2958,7 +3030,8 @@ export class LevelSettings extends Component
     private getCardUpgradeRankLimitAtLevel(
         definition: BattleCardDefinition,
         upgradeKind: CardUpgradeKind,
-        level: number
+        level: number,
+        offerLevelOffset: number = 1
     ) {
         const safeLevel = this.clampLevel(level);
         const maxRank = this.getCardUpgradeMaxRank(
@@ -2966,7 +3039,7 @@ export class LevelSettings extends Component
             upgradeKind
         );
         let rankLimit = 0;
-        const schedule = this.getCardUpgradeSchedule();
+        const schedule = this.getCardUpgradeSchedule(offerLevelOffset);
 
         for (let rank = 1; rank <= maxRank; rank++) {
             const offer = schedule.find((item) =>
@@ -2982,7 +3055,9 @@ export class LevelSettings extends Component
         return rankLimit;
     }
 
-    private getCardUpgradeSchedule():
+    private getCardUpgradeSchedule(
+        offerLevelOffset: number = 1
+    ):
         CardUpgradeOffer[] {
         const manager = this.getGameManager();
         const database = manager
@@ -2990,6 +3065,7 @@ export class LevelSettings extends Component
             : null;
         if (!database) return [];
 
+        const totalLevels = this.getSafeTotalLevels();
         const fullProgressionWave =
             this.getFullPlayerCardProgressionWave();
         const offersByWave = new Map<
@@ -3065,13 +3141,16 @@ export class LevelSettings extends Component
                 itemIndex++) {
                 result.push({
                     ...pending[itemIndex],
-                    offerLevel: offerLevels[Math.min(
-                        offerLevels.length - 1,
-                        Math.floor(
-                            itemIndex * offerLevels.length /
-                            pending.length
-                        )
-                    )],
+                    offerLevel: Math.min(
+                        totalLevels,
+                        offerLevels[Math.min(
+                            offerLevels.length - 1,
+                            Math.floor(
+                                itemIndex * offerLevels.length /
+                                pending.length
+                            )
+                        )] + offerLevelOffset
+                    ),
                 });
             }
         }
@@ -3087,17 +3166,109 @@ export class LevelSettings extends Component
             index++) {
             result.push({
                 ...postProgressionPending[index],
-                offerLevel: postProgressionOfferLevels[Math.min(
-                    postProgressionOfferLevels.length - 1,
-                    Math.floor(
-                        index * postProgressionOfferLevels.length /
-                        postProgressionPending.length
-                    )
-                )],
+                offerLevel: Math.min(
+                    totalLevels,
+                    postProgressionOfferLevels[Math.min(
+                        postProgressionOfferLevels.length - 1,
+                        Math.floor(
+                            index * postProgressionOfferLevels.length /
+                            postProgressionPending.length
+                        )
+                    )] + offerLevelOffset
+                ),
+            });
+        }
+
+        return offerLevelOffset > 0
+            ? this.applyPlayerPackageOfferCap(result)
+            : result;
+    }
+
+    private applyPlayerPackageOfferCap(
+        upgrades: CardUpgradeOffer[]
+    ) {
+        const cap = Math.max(
+            0,
+            Math.floor(this.maxPlayerPackagesPerLevel)
+        );
+        if (cap <= 0 || upgrades.length <= 0) return upgrades;
+
+        const totalLevels = this.getSafeTotalLevels();
+        const packageCounts = this.getPlayerNonCardUpgradeOfferCounts();
+        const ordered = upgrades.map((offer, order) => ({ offer, order }))
+            .sort((a, b) =>
+                a.offer.offerLevel - b.offer.offerLevel ||
+                a.order - b.order
+            );
+        const result: CardUpgradeOffer[] = [];
+
+        for (let index = 0; index < ordered.length; index++) {
+            const item = ordered[index];
+            let offerLevel = Math.max(1, item.offer.offerLevel);
+
+            while (offerLevel < totalLevels &&
+                (packageCounts[offerLevel - 1] || 0) >= cap) {
+                offerLevel++;
+            }
+
+            // Existing content must remain reachable even if a future content
+            // expansion exhausts all remaining campaign slots. The current
+            // configuration has spare capacity; this fallback is only safer
+            // than silently dropping an earned upgrade.
+            offerLevel = Math.min(totalLevels, offerLevel);
+            packageCounts[offerLevel - 1] =
+                (packageCounts[offerLevel - 1] || 0) + 1;
+            result.push({
+                ...item.offer,
+                offerLevel,
             });
         }
 
         return result;
+    }
+
+    private getPlayerNonCardUpgradeOfferCounts() {
+        const totalLevels = this.getSafeTotalLevels();
+        if (this.playerNonCardUpgradeOfferCounts &&
+            this.playerNonCardUpgradeOfferCounts.length === totalLevels) {
+            return this.playerNonCardUpgradeOfferCounts.slice();
+        }
+
+        const result = new Array<number>(totalLevels).fill(0);
+        const savedState = this.progressionState;
+        const savedBattleLevel = this.battleLevel;
+
+        try {
+            const planState = this.createInitialProgressionState();
+            planState.playerGold = Number.MAX_SAFE_INTEGER;
+            this.progressionState = planState;
+
+            for (let level = 1; level <= totalLevels; level++) {
+                this.battleLevel = level;
+                this.offerIntroducedUnits(level);
+
+                // Apply the no-loss baseline route only. Card upgrades are
+                // deliberately excluded: this helper reserves their slots.
+                for (let pass = 0; pass < 1000; pass++) {
+                    const option = this.getPurchaseOptions(
+                        planState,
+                        false
+                    ).slice().sort((a, b) =>
+                        a.cost - b.cost || a.id.localeCompare(b.id)
+                    )[0];
+                    if (!option) break;
+
+                    result[level - 1]++;
+                    this.applyPurchaseToState(option, planState);
+                }
+            }
+        } finally {
+            this.progressionState = savedState;
+            this.battleLevel = savedBattleLevel;
+        }
+
+        this.playerNonCardUpgradeOfferCounts = result;
+        return result.slice();
     }
 
     private getCardUpgradeOfferLevels(
@@ -3290,7 +3461,8 @@ export class LevelSettings extends Component
             sourceVersion !== 10 &&
             sourceVersion !== 11 &&
             sourceVersion !== 12 &&
-            sourceVersion !== 13
+            sourceVersion !== 13 &&
+            sourceVersion !== 14
         ) {
             return initial;
         }
@@ -3344,6 +3516,10 @@ export class LevelSettings extends Component
         initial.consecutiveSideWins = Math.max(
             0,
             this.safeInteger(source.consecutiveSideWins, 0)
+        );
+        initial.consecutiveSideRecoveryLosses = Math.max(
+            0,
+            this.safeInteger(source.consecutiveSideRecoveryLosses, 0)
         );
         initial.sideMissionActive = !!source.sideMissionActive;
         initial.botSimulationEvents = savedBotSimulationEvents
@@ -3681,12 +3857,26 @@ export class LevelSettings extends Component
                 this.getProgression01(this.battleLevel)
             )
         );
+        const recovery = this.getSideEconomyRecoveryStatus(state);
+
+        if (!recovery.active) {
+            state.consecutiveSideRecoveryLosses = 0;
+        }
+
+        const recoveryAccuracyMultiplier = recovery.active
+            ? Math.pow(
+                this.clamp01(this.sideRecoveryAccuracyMultiplier),
+                state.consecutiveSideRecoveryLosses
+            )
+            : 1;
 
         for (let i = 0; i < enemyBrains.length; i++) {
             enemyBrains[i].maxAliveWaves = state.playerMaxAlive;
 
             if (this.allowDecisionAccuracy) {
-                enemyBrains[i].decisionAccuracy = baselineAccuracy;
+                enemyBrains[i].decisionAccuracy = this.clamp01(
+                    baselineAccuracy * recoveryAccuracyMultiplier
+                );
             }
         }
     }
@@ -3706,7 +3896,8 @@ export class LevelSettings extends Component
     }
 
     private getPurchaseOptions(
-        state: SavedProgressionState
+        state: SavedProgressionState,
+        includeCardUpgrades: boolean = true
     ): PurchaseOption[] {
         const options: PurchaseOption[] = [];
         const manager = this.getGameManager();
@@ -3869,6 +4060,8 @@ export class LevelSettings extends Component
                     });
                     continue;
                 }
+
+                if (!includeCardUpgrades) continue;
 
                 const cooldownUpgradeRankLimit =
                     this.getCardUpgradeRankLimit(
@@ -4472,24 +4665,6 @@ export class LevelSettings extends Component
         return true;
     }
 
-    private getMainBattleWinGold(
-        level: number,
-        includeBossBonus = true
-    ) {
-        const rewardBaseCP = this.getLevelBaseInitialCP(level);
-
-        return Math.max(
-            0,
-            Math.round(
-                rewardBaseCP *
-                Math.max(0, this.winGoldPerEnemyCP) *
-                (includeBossBonus && this.isBossLevelFor(level)
-                    ? Math.max(1, this.bossGoldRewardMultiplier)
-                    : 1)
-            )
-        );
-    }
-
     private getMainBattleReward(level: number) {
         const safeLevel = this.clampLevel(level);
         const normalGold = this.getMainBattleNormalReward(safeLevel);
@@ -4507,28 +4682,17 @@ export class LevelSettings extends Component
     private getMainBattleNormalReward(level: number) {
         const safeLevel = this.clampLevel(level);
         const plan = this.getMainBattleNormalGoldPlan();
-        const flatBonus = Math.max(
-            0,
-            Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50
-        );
 
-        return (plan[safeLevel - 1] || 0) + flatBonus;
+        return plan[safeLevel - 1] || 0;
     }
 
     private getBossMainBattleReward(level: number) {
         const safeLevel = this.clampLevel(level);
         const plan = this.getMainBattleNormalGoldPlan();
-        const normalBaseGold = plan[safeLevel - 1] || 0;
-        const bossBaseGold = Math.ceil(
-            normalBaseGold *
-            Math.max(1, this.bossGoldRewardMultiplier) / 50
-        ) * 50;
-        const flatBonus = Math.max(
-            0,
-            Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50
+        return this.getMainBattleRewardForNormalBase(
+            safeLevel,
+            plan[safeLevel - 1] || 0
         );
-
-        return bossBaseGold + flatBonus;
     }
 
     private getMainBattleNormalGoldPlan() {
@@ -4539,83 +4703,123 @@ export class LevelSettings extends Component
             return this.mainBattleNormalGoldPlan;
         }
 
-        const plannedPurchaseBudgets =
-            this.getMainlinePlannedPurchaseBudgets();
+        const contentFundingBudgets =
+            this.getMainlineContentFundingBudgets();
         const result: number[] = [];
         let previousReward = 0;
-
-        for (let level = 1; level <= totalLevels; level++) {
-            const baseReward = Math.ceil(
-                this.getMainBattleWinGold(level, false) / 50
-            ) * 50;
-            // Normal mainline rewards are a visible progression signal:
-            // every normal point on the curve must pay strictly more than
-            // the previous one. Boss bonuses are applied separately.
-            let reward = Math.max(
-                previousReward + 50,
-                baseReward
-            );
-
-            result.push(reward);
-            previousReward = reward;
-        }
-
-        // Smoothly fund one important planned purchase plus the next entry
-        // fee. Deficits are spread across the levels that precede them so
-        // the curve stays strictly increasing without a late spike.
-        const feeRatio = this.clamp01(
-            this.mainBattleEntryFeeRatio
+        let availableGold = Math.max(
+            0,
+            Math.floor(this.initialPlayerGold)
         );
-        for (let pass = 0; pass < 100; pass++) {
-            let availableGold = Math.max(
-                0,
-                Math.floor(this.initialPlayerGold)
-            );
-            let deficit = 0;
-            let deficitIndex = -1;
+        const targetReserve = Math.max(
+            0,
+            Math.round(
+                Math.max(0, this.mainlineNoLossGoldReserve) / 50
+            ) * 50
+        );
 
-            for (let level = 1; level <= totalLevels; level++) {
-                availableGold += this.getMainBattleNormalRewardFromBase(
-                    result[level - 1]
+        // Rewards are paced by bossStagePace instead of rising every battle.
+        // A pace has one normal reward; the following pace raises it by at
+        // least 50. At each pace start, look ahead through the entire pace so
+        // a package near its end cannot create an arbitrary normal-level
+        // reward spike.
+        for (let level = 1; level <= totalLevels; level++) {
+            const entryFee = level <= 1
+                ? 0
+                : this.getMainBattleEntryFeeForReward(
+                    previousReward,
+                    level
                 );
+            availableGold -= contentFundingBudgets[level - 1] + entryFee;
 
-                if (level >= totalLevels) continue;
+            const paceStart = level <= 1 ||
+                this.getRewardPaceIndex(level) !==
+                this.getRewardPaceIndex(level - 1);
+            let normalReward = paceStart
+                ? previousReward + 50
+                : previousReward;
 
-                const nextLevel = level + 1;
-                availableGold -=
-                    plannedPurchaseBudgets[nextLevel - 1] +
-                    this.getMainBattleEntryFeeForReward(
-                        this.getMainBattleNormalRewardFromBase(
-                            result[level - 1]
-                        ),
-                        nextLevel
-                    );
+            if (paceStart) {
+                const paceEnd = Math.min(
+                    totalLevels,
+                    this.getRewardPaceEndLevel(level)
+                );
+                const canFundPace = (candidate: number) => {
+                    let projectedGold = availableGold;
 
-                if (availableGold < deficit) {
-                    deficit = availableGold;
-                    deficitIndex = level - 1;
+                    for (let projectedLevel = level;
+                        projectedLevel <= paceEnd;
+                        projectedLevel++) {
+                        if (projectedLevel > level) {
+                            const projectedFee =
+                                this.getMainBattleEntryFeeForReward(
+                                    candidate,
+                                    projectedLevel
+                                );
+                            projectedGold -=
+                                contentFundingBudgets[projectedLevel - 1] +
+                                projectedFee;
+                            // A pace must fund every individual battle gate, not merely
+                            // recover by its final reward. Otherwise this calculation
+                            // implicitly borrows gold from a later battle reward.
+                            if (projectedGold < 0) {
+                                return false;
+                            }
+                        }
+                        projectedGold +=
+                            this.getMainBattleRewardForNormalBase(
+                                projectedLevel,
+                                candidate
+                            );
+                    }
+
+                    if (paceEnd >= totalLevels) return true;
+
+                    const nextLevel = paceEnd + 1;
+                    const nextEntryFee =
+                        this.getMainBattleEntryFeeForReward(
+                            candidate,
+                            nextLevel
+                        );
+
+                    return projectedGold >=
+                        contentFundingBudgets[nextLevel - 1] +
+                        nextEntryFee + targetReserve;
+                };
+
+                if (!canFundPace(normalReward)) {
+                    let lowStep = Math.ceil(normalReward / 50);
+                    let highStep = lowStep;
+
+                    for (let pass = 0; pass < 32; pass++) {
+                        highStep += Math.pow(2, pass);
+                        if (canFundPace(highStep * 50)) {
+                            break;
+                        }
+                    }
+
+                    while (lowStep < highStep) {
+                        const middleStep = Math.floor(
+                            (lowStep + highStep) / 2
+                        );
+
+                        if (canFundPace(middleStep * 50)) {
+                            highStep = middleStep;
+                        } else {
+                            lowStep = middleStep + 1;
+                        }
+                    }
+
+                    normalReward = highStep * 50;
                 }
             }
 
-            if (deficitIndex < 0) break;
-
-            const levelsToFund = deficitIndex + 1;
-            const uplift = Math.ceil(
-                (-deficit) /
-                Math.max(0.01, levelsToFund * (1 - feeRatio)) /
-                50
-            ) * 50;
-
-            for (let index = 0; index <= deficitIndex; index++) {
-                result[index] += uplift;
-            }
-
-            for (let index = 1; index < result.length; index++) {
-                result[index] = Math.max(
-                    result[index],
-                    result[index - 1] + 50
-                );
-            }
+            result.push(normalReward);
+            availableGold += this.getMainBattleRewardForNormalBase(
+                level,
+                normalReward
+            );
+            previousReward = normalReward;
         }
 
         this.mainBattleNormalGoldPlan = result;
@@ -4623,16 +4827,37 @@ export class LevelSettings extends Component
         return result;
     }
 
-    private getMainBattleNormalRewardFromBase(baseReward: number) {
-        const flatBonus = Math.max(
-            0,
-            Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50
-        );
+    private getRewardPaceIndex(level: number) {
+        const pace = Math.max(0, Math.floor(this.bossStagePace));
+        const safeLevel = Math.max(1, Math.floor(level));
 
-        return Math.max(0, baseReward) + flatBonus;
+        return pace > 0
+            ? Math.floor((safeLevel - 1) / pace)
+            : safeLevel - 1;
     }
 
-    private getMainlinePlannedPurchaseBudgets() {
+    private getRewardPaceEndLevel(level: number) {
+        const pace = Math.max(0, Math.floor(this.bossStagePace));
+
+        if (pace <= 0) return Math.max(1, Math.floor(level));
+
+        return (this.getRewardPaceIndex(level) + 1) * pace;
+    }
+
+    private getMainBattleRewardForNormalBase(
+        level: number,
+        normalReward: number
+    ) {
+        const safeReward = Math.max(0, normalReward);
+
+        if (!this.isBossLevelFor(level)) return safeReward;
+
+        return Math.ceil(
+            safeReward * Math.max(1, this.bossGoldRewardMultiplier) / 50
+        ) * 50;
+    }
+
+    private getMainlineContentFundingBudgets() {
         const totalLevels = this.getSafeTotalLevels();
         const result = new Array<number>(totalLevels).fill(0);
         const savedState = this.progressionState;
@@ -4647,31 +4872,20 @@ export class LevelSettings extends Component
                 this.battleLevel = level;
                 this.offerIntroducedUnits(level);
 
-                const options = this.getBotPurchaseCandidates(
-                    planState,
-                    false,
-                    false
-                );
+                // Purchase every option made available at this level. Repeat
+                // because an unlock can expose its upgrade packages.
+                for (let pass = 0; pass < 1000; pass++) {
+                    const options = this.getPurchaseOptions(planState)
+                        .slice()
+                        .sort((a, b) => a.cost - b.cost ||
+                            a.id.localeCompare(b.id));
+                    const option = options[0];
 
-                if (options.length <= 0) continue;
+                    if (!option) break;
 
-                const plannedOption = options.slice().sort((a, b) => {
-                        const weightDifference =
-                            this.getPurchaseWeight(b) -
-                            this.getPurchaseWeight(a);
-
-                        if (weightDifference !== 0) {
-                            return weightDifference;
-                        }
-
-                        return b.cost - a.cost ||
-                            a.id.localeCompare(b.id);
-                    })[0];
-
-                if (!plannedOption) continue;
-
-                result[level - 1] = plannedOption.cost;
-                this.applyPurchaseToState(plannedOption, planState);
+                    result[level - 1] += option.cost;
+                    this.applyPurchaseToState(option, planState);
+                }
             }
         } finally {
             this.progressionState = savedState;
@@ -4679,6 +4893,85 @@ export class LevelSettings extends Component
         }
 
         return result;
+    }
+
+    private getMainlineNoLossEconomyAudit() {
+        const totalLevels = this.getSafeTotalLevels();
+        const savedState = this.progressionState;
+        const savedBattleLevel = this.battleLevel;
+        const auditState = this.createInitialProgressionState();
+        let minimumGold = auditState.playerGold;
+
+        try {
+            this.progressionState = auditState;
+
+            for (let level = 1; level <= totalLevels; level++) {
+                this.battleLevel = level;
+                this.offerIntroducedUnits(level);
+
+                for (let pass = 0; pass < 1000; pass++) {
+                    const options = this.getPurchaseOptions(auditState)
+                        .slice()
+                        .sort((a, b) => a.cost - b.cost ||
+                            a.id.localeCompare(b.id));
+                    const option = options[0];
+
+                    if (!option) break;
+                    if (auditState.playerGold < option.cost) {
+                        return {
+                            passed: false,
+                            failure: 'package',
+                            level,
+                            gold: auditState.playerGold,
+                            requiredGold: option.cost,
+                            packageId: option.id,
+                            minimumGold,
+                        };
+                    }
+
+                    auditState.playerGold -= option.cost;
+                    minimumGold = Math.min(
+                        minimumGold,
+                        auditState.playerGold
+                    );
+                    this.applyPurchaseToState(option, auditState);
+                }
+
+                const fee = this.getMainBattleEntryFee(level);
+
+                if (auditState.playerGold < fee) {
+                    return {
+                        passed: false,
+                        failure: 'entry-fee',
+                        level,
+                        gold: auditState.playerGold,
+                        requiredGold: fee,
+                        packageId: '',
+                        minimumGold,
+                    };
+                }
+
+                auditState.playerGold -= fee;
+                minimumGold = Math.min(
+                    minimumGold,
+                    auditState.playerGold
+                );
+                auditState.playerGold += this.getMainBattleReward(level).gold;
+            }
+
+            return {
+                passed: true,
+                failure: '',
+                level: totalLevels,
+                gold: auditState.playerGold,
+                requiredGold: 0,
+                packageId: '',
+                minimumGold,
+            };
+        } finally {
+            this.progressionState = savedState;
+            this.battleLevel = savedBattleLevel;
+        }
     }
 
     private getMainBattleEntryFee(level: number) {
@@ -4744,6 +5037,33 @@ export class LevelSettings extends Component
             targetId: '',
             targetCost: 0,
             gold: baseGold,
+        };
+    }
+
+    private getSideEconomyRecoveryStatus(
+        state: SavedProgressionState
+    ) {
+        const entryFee = this.getMainBattleEntryFee(this.battleLevel);
+        const options = this.getPurchaseOptions(state);
+        let cheapestPackageCost = 0;
+
+        for (let i = 0; i < options.length; i++) {
+            const cost = Math.max(0, options[i].cost);
+
+            if (cheapestPackageCost <= 0 || cost < cheapestPackageCost) {
+                cheapestPackageCost = cost;
+            }
+        }
+
+        const requiredGold = entryFee + cheapestPackageCost;
+        const shortfall = Math.max(0, requiredGold - state.playerGold);
+
+        return {
+            entryFee,
+            cheapestPackageCost,
+            requiredGold,
+            shortfall,
+            active: shortfall > 0,
         };
     }
 
@@ -4836,6 +5156,7 @@ export class LevelSettings extends Component
         const useAds = type === 'side-mission-win' &&
             this.purchasingSimulation &&
             this.allowAdsRescue &&
+            this.allowBotGoldX2Ads &&
             state.levelLossCount > 0 &&
             decision.useAds;
         const goldGranted = reward * (useAds ? 2 : 1);
@@ -4855,6 +5176,8 @@ export class LevelSettings extends Component
                 ? 'bot-simulation-disabled'
                 : !this.allowAdsRescue
                     ? 'ads-disabled'
+                    : !this.allowBotGoldX2Ads
+                        ? 'gold-x2-disabled'
                     : type !== 'side-mission-win'
                         ? 'side-rescue-only'
                     : state.levelLossCount <= 0
@@ -5177,7 +5500,7 @@ export class LevelSettings extends Component
     private recordTelemetryAction(
         action: Omit<ProgressionTelemetryAction, 'eventId' | 'sequence' |
             'phase' | 'battleLevel' | 'runId' | 'reportId' |
-            'battleIndex'>
+            'battleIndex' | 'controller'>
     ) {
         const identity = this.createProgressionTelemetryIdentity();
         this.telemetryActionSequence++;
@@ -5192,12 +5515,15 @@ export class LevelSettings extends Component
             sequence: this.telemetryActionSequence,
             phase: this.telemetryActionPhase,
             battleLevel: this.battleLevel,
+            controller: this.purchasingSimulation
+                ? 'bot-simulation'
+                : 'player',
         });
     }
 
     private createProgressionTelemetryLedger() {
         return {
-            schemaVersion: 2,
+            schemaVersion: 4,
             ...this.createProgressionTelemetryIdentity(),
             actions: this.telemetryActions.slice(),
         };

@@ -54,6 +54,7 @@ export interface BattleTelemetryStartConfig {
     initialCombatPoint: number[];
     unitStats: BattleTelemetryUnitSnapshot[];
     counterRules: BattleTelemetryCounterRuleSnapshot[];
+    cardEffectsEnabled?: boolean;
     cards?: any;
     progression?: any;
 }
@@ -178,6 +179,37 @@ export interface BattleTelemetryBattleSnapshot {
     teams: BattleTelemetryTeamSnapshot[];
 }
 
+export interface BattleTelemetryHeroDefeatContext {
+    frame: number;
+    time: number;
+    heroTeam: number;
+    heroUnitName: string;
+    heroLaneId: number;
+    guardRadius: number;
+    heroX: number;
+    heroZ: number;
+    allyNonHeroAlive: number;
+    enemyNonHeroAlive: number;
+    allyNearHero: number;
+    enemyNearHero: number;
+    allyInHeroLane: number;
+    enemyInHeroLane: number;
+    nearestAllyDistance: number;
+    nearestEnemyDistance: number;
+    lastHeroDamage?: {
+        attackerTeam: number;
+        attackerWaveId: number;
+        attackerUnitName: string;
+        attackerFamilyName: string;
+        damage: number;
+        actualDamage: number;
+        isCounter: boolean;
+        isArea: boolean;
+        frame: number;
+        time: number;
+    };
+}
+
 export interface BattleTelemetryDiagnosticEvent {
     type: string;
     frame: number;
@@ -217,6 +249,10 @@ export interface BattleTelemetryDiagnosticEvent {
     targetSearchRangeMultiplier?: number;
     previousTargetWaveId?: number;
     targetSource?: string;
+    heroSupportUnitsPerLane?: number[];
+    heroSelectedLaneSupportUnits?: number;
+    heroBestLaneSupportUnits?: number;
+    heroLaneSelectionMatchesBest?: boolean;
 }
 
 export interface BattleTelemetryScannerTrace {
@@ -357,6 +393,7 @@ export class BattleTelemetry {
     private waveSpawns: BattleTelemetryWaveSpawnDecision[] = [];
     private snapshots: BattleTelemetryBattleSnapshot[] = [];
     private finalSnapshot: BattleTelemetryBattleSnapshot | null = null;
+    private heroDefeatContext: BattleTelemetryHeroDefeatContext | null = null;
     private framePerformance: BattleTelemetryFramePerformance | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
     private scannerTraces: BattleTelemetryScannerTrace[] = [];
@@ -376,6 +413,9 @@ export class BattleTelemetry {
     private lastDamageFrame = -1;
     private lastKillFrame = -1;
     private lastHeroDamageFrame = -1;
+    private lastHeroDamageByVictimTeam: Array<
+        BattleTelemetryHeroDefeatContext['lastHeroDamage'] | null
+    > = [null, null];
     private activeDamageBatch:
         DamageBatchAccumulator | null = null;
     private maxSnapshots = 240;
@@ -396,6 +436,7 @@ export class BattleTelemetry {
         this.waveSpawns.length = 0;
         this.snapshots.length = 0;
         this.finalSnapshot = null;
+        this.heroDefeatContext = null;
         this.framePerformance = null;
         this.diagnosticEvents.length = 0;
         this.scannerTraces.length = 0;
@@ -423,6 +464,8 @@ export class BattleTelemetry {
         this.lastDamageFrame = -1;
         this.lastKillFrame = -1;
         this.lastHeroDamageFrame = -1;
+        this.lastHeroDamageByVictimTeam[0] = null;
+        this.lastHeroDamageByVictimTeam[1] = null;
         this.activeDamageBatch = null;
         this.droppedDiagnosticEventCount = 0;
         this.overwrittenScannerTraceCount = 0;
@@ -660,6 +703,24 @@ export class BattleTelemetry {
         if (!snapshot) return;
 
         this.finalSnapshot = snapshot;
+    }
+
+    recordHeroDefeatContext(
+        context: BattleTelemetryHeroDefeatContext
+    ) {
+        if (!this.isEnabled()) return;
+        if (!context) return;
+
+        const victimTeam = this.clampTeam(context.heroTeam);
+        this.heroDefeatContext = {
+            ...context,
+            lastHeroDamage:
+                this.lastHeroDamageByVictimTeam[victimTeam]
+                    ? {
+                        ...this.lastHeroDamageByVictimTeam[victimTeam]!,
+                    }
+                    : undefined,
+        };
     }
 
     setFramePerformance(
@@ -907,6 +968,20 @@ export class BattleTelemetry {
         if (victim.isHero) {
             attackerStats.totalHeroDamageDealt += dealt;
             this.totalHeroDamage[this.clampTeam(attacker.team)] += dealt;
+            this.lastHeroDamageByVictimTeam[
+                this.clampTeam(victim.team)
+            ] = {
+                attackerTeam: this.clampTeam(attacker.team),
+                attackerWaveId: this.getUnitWaveId(attacker),
+                attackerUnitName: attacker.unitTypeName || 'unknown',
+                attackerFamilyName: attackerStats.familyName,
+                damage,
+                actualDamage: dealt,
+                isCounter: isCounterDamage,
+                isArea: isAreaDamage,
+                frame,
+                time,
+            };
         }
 
         if (attacker.isHero) {
@@ -1207,6 +1282,9 @@ export class BattleTelemetry {
                 scannerTraces:
                     this.getScannerTracesChronological(),
             },
+            heroDefeatContext: this.heroDefeatContext
+                ? { ...this.heroDefeatContext }
+                : null,
             unitTypes,
         };
     }

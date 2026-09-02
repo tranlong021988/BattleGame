@@ -233,7 +233,7 @@ function createDefaultCards() {
         ),
         createCard(
             'cavalry-charge', 'Cavalry Charge', 2000, 6,
-            12,
+            18,
             BattleCardTarget.UnitFamily, UnitFamily.Cavalry,
             BattleCardModifier.DamagePercent, 300,
             BattleCardModifier.None, 0,

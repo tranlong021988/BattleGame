@@ -102,6 +102,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveSpawns = [];
           this.snapshots = [];
           this.finalSnapshot = null;
+          this.heroDefeatContext = null;
           this.framePerformance = null;
           this.diagnosticEvents = [];
           this.scannerTraces = [];
@@ -121,6 +122,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastDamageFrame = -1;
           this.lastKillFrame = -1;
           this.lastHeroDamageFrame = -1;
+          this.lastHeroDamageByVictimTeam = [null, null];
           this.activeDamageBatch = null;
           this.maxSnapshots = 240;
           this.maxDiagnosticEvents = 3000;
@@ -141,6 +143,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.waveSpawns.length = 0;
           this.snapshots.length = 0;
           this.finalSnapshot = null;
+          this.heroDefeatContext = null;
           this.framePerformance = null;
           this.diagnosticEvents.length = 0;
           this.scannerTraces.length = 0;
@@ -168,6 +171,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastDamageFrame = -1;
           this.lastKillFrame = -1;
           this.lastHeroDamageFrame = -1;
+          this.lastHeroDamageByVictimTeam[0] = null;
+          this.lastHeroDamageByVictimTeam[1] = null;
           this.activeDamageBatch = null;
           this.droppedDiagnosticEventCount = 0;
           this.overwrittenScannerTraceCount = 0;
@@ -304,6 +309,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.isEnabled()) return;
           if (!snapshot) return;
           this.finalSnapshot = snapshot;
+        }
+
+        recordHeroDefeatContext(context) {
+          if (!this.isEnabled()) return;
+          if (!context) return;
+          const victimTeam = this.clampTeam(context.heroTeam);
+          this.heroDefeatContext = { ...context,
+            lastHeroDamage: this.lastHeroDamageByVictimTeam[victimTeam] ? { ...this.lastHeroDamageByVictimTeam[victimTeam]
+            } : undefined
+          };
         }
 
         setFramePerformance(performance) {
@@ -453,6 +468,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (victim.isHero) {
             attackerStats.totalHeroDamageDealt += dealt;
             this.totalHeroDamage[this.clampTeam(attacker.team)] += dealt;
+            this.lastHeroDamageByVictimTeam[this.clampTeam(victim.team)] = {
+              attackerTeam: this.clampTeam(attacker.team),
+              attackerWaveId: this.getUnitWaveId(attacker),
+              attackerUnitName: attacker.unitTypeName || 'unknown',
+              attackerFamilyName: attackerStats.familyName,
+              damage,
+              actualDamage: dealt,
+              isCounter: isCounterDamage,
+              isArea: isAreaDamage,
+              frame,
+              time
+            };
           }
 
           if (attacker.isHero) {
@@ -618,6 +645,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               events: this.diagnosticEvents.slice(),
               scannerTraces: this.getScannerTracesChronological()
             },
+            heroDefeatContext: this.heroDefeatContext ? { ...this.heroDefeatContext
+            } : null,
             unitTypes
           };
         }

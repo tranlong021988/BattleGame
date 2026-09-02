@@ -1900,6 +1900,7 @@
     "battleCardDatabase": {
       "__id__": 45
     },
+    "enableBattleCardEffects": true,
     "cinematicController": {
       "__id__": 144
     },
@@ -2284,7 +2285,7 @@
     "icon": null,
     "purchasePrice": 2000,
     "baseCooldownBattles": 6,
-    "baseBudget": 12,
+    "baseBudget": 18,
     "target": 1,
     "targetFamily": 4,
     "requiredEnemyFamily": 0,
@@ -9393,7 +9394,7 @@
     "currentLevel": 1,
     "bossStagePace": 5,
     "bossInitialCombatPointMultiplier": 1,
-    "bossDecisionAccuracyMultiplier": 1.1,
+    "bossDecisionAccuracyMultiplier": 1.3,
     "bossMaxAliveWavesMultiplier": 1,
     "targetTeam": 1,
     "gameManager": {
@@ -9422,18 +9423,20 @@
     "autoReloadProgression": true,
     "purchasingSimulation": true,
     "allowAdsRescue": true,
+    "allowBotGoldX2Ads": true,
     "progressionStorageKey": "battle-progression-v8",
     "battleCardDeckSize": 3,
     "enemyCardDiversityScoreFloor": 0.5,
     "botStrengthUpgradePurchaseWeight": 1.75,
+    "maxPlayerPackagesPerLevel": 3,
     "initialPlayerGold": 1000,
     "playerInitialCPStart": 300,
     "playerMaxAliveStart": 4,
     "playerMaxAliveMax": 10,
-    "winGoldPerEnemyCP": 1.15,
-    "mainRewardFlatBonus": 1000,
+    "mainlineNoLossGoldReserve": 0,
     "bossGoldRewardMultiplier": 1.15,
     "sideRewardFeeMultiplier": 0.65,
+    "sideRecoveryAccuracyMultiplier": 0.75,
     "mainBattleEntryFeeRatio": 0.35,
     "mainLossRewardFeeRatio": 0.25,
     "unitUnlockCostMultiplier": 5,

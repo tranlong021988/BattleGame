@@ -65,6 +65,14 @@ const TopDownZoomRangeChangedEvent =
     'battle-camera-topdown-zoom-range-changed';
 const BattleWaveSpawnedEvent =
     'battle-wave-spawned';
+const NoBattleCardModifiers: BattleCardModifiers = {
+    damageMultiplier: 1,
+    defenseFlat: 0,
+    attackRangeMultiplier: 1,
+    moveSpeedMultiplier: 1,
+    damageRadiusMultiplier: 1,
+    counterImmune: false,
+};
 
 export interface BattleProgressionProvider {
     handleBattleResult(
@@ -91,6 +99,13 @@ export class GameManager extends Component {
 
     @property(BattleCardDatabase)
     battleCardDatabase: BattleCardDatabase | null = null;
+
+    @property({
+        displayName: 'Enable Battle Card Effects',
+        tooltip:
+            'When disabled, player and enemy cards remain owned, purchasable, and upgradeable, but no card activates or affects combat. Card cooldowns and cooldown-skip ads are also inactive for that battle.',
+    })
+    enableBattleCardEffects = true;
 
     @property(Component)
     cinematicController: Component | null = null;
@@ -497,7 +512,9 @@ export class GameManager extends Component {
         this.buildPrefabMaps();
         this.ensureBattleCardRuntime();
         this.resetBattleTelemetry();
-        this.battleCardRuntime?.beginBattle();
+        if (this.enableBattleCardEffects) {
+            this.battleCardRuntime?.beginBattle();
+        }
 
         this.spatialGrid.cellSize = this.spatialGridCellSize;
         this.spatialGrid.setBattlefieldBounds(
@@ -852,11 +869,13 @@ export class GameManager extends Component {
                 ? this.getPerformanceNow()
                 : -1;
         this.battleElapsedTime += deltaTime;
-        this.battleCardRuntime?.update(
-            deltaTime,
-            this.combatPoint,
-            this.initialCombatPoint
-        );
+        if (this.enableBattleCardEffects) {
+            this.battleCardRuntime?.update(
+                deltaTime,
+                this.combatPoint,
+                this.initialCombatPoint
+            );
+        }
 
         Unit.visualLerpT =
             1 - Math.exp(-this.visualSmooth * deltaTime);
@@ -1204,15 +1223,8 @@ export class GameManager extends Component {
         family: UnitFamily,
         opposingFamily?: UnitFamily
     ): BattleCardModifiers {
-        if (!this.battleCardRuntime) {
-            return {
-                damageMultiplier: 1,
-                defenseFlat: 0,
-                attackRangeMultiplier: 1,
-                moveSpeedMultiplier: 1,
-                damageRadiusMultiplier: 1,
-                counterImmune: false,
-            };
+        if (!this.enableBattleCardEffects || !this.battleCardRuntime) {
+            return NoBattleCardModifiers;
         }
 
         return this.battleCardRuntime.getModifiers(
@@ -1228,7 +1240,7 @@ export class GameManager extends Component {
         modifier: BattleCardModifier,
         opposingFamily?: UnitFamily
     ) {
-        return this.battleCardRuntime
+        return this.enableBattleCardEffects && this.battleCardRuntime
             ? this.battleCardRuntime.consumeModifier(
                 team,
                 family,
@@ -1258,7 +1270,7 @@ export class GameManager extends Component {
     }
 
     public getUsedBattleCardIds(team: number) {
-        return this.battleCardRuntime
+        return this.enableBattleCardEffects && this.battleCardRuntime
             ? this.battleCardRuntime.getUsedCardIds(team)
             : [];
     }
@@ -1321,6 +1333,87 @@ export class GameManager extends Component {
                     ? 'boss-hero-killed'
                     : 'enemy-hero-killed'
         );
+    }
+
+    private recordHeroDefeatTelemetryContext(hero: Unit) {
+        if (!this.enableBattleTelemetry) return;
+        if (!this.battleTelemetry.isEnabled()) return;
+
+        const heroTeam = hero.team;
+        if (heroTeam !== 0 && heroTeam !== 1) return;
+        const enemyTeam = heroTeam === 0 ? 1 : 0;
+        const heroWave = BattleWave.getWaveForUnit(hero);
+        const heroLaneId = heroWave
+            ? heroWave.laneId
+            : this.getHeroLaneId();
+        const guardRadius = Math.max(0, hero.heroGuardDistance);
+        const nearbyRadius = Math.max(0.01, guardRadius);
+        const nearbyRadiusSquared = nearbyRadius * nearbyRadius;
+        const heroPosition = hero.node.worldPosition;
+        const collect = (team: number) => {
+            const units = this.getAliveUnits(team);
+            let alive = 0;
+            let nearHero = 0;
+            let inHeroLane = 0;
+            let nearestDistance = Number.POSITIVE_INFINITY;
+
+            for (let i = 0; i < units.length; i++) {
+                const unit = units[i];
+
+                if (!this.isAliveUnit(unit) || unit.isHero) continue;
+
+                alive++;
+                const position = unit.node.worldPosition;
+                const dx = position.x - heroPosition.x;
+                const dz = position.z - heroPosition.z;
+                const distanceSquared = dx * dx + dz * dz;
+
+                if (distanceSquared <= nearbyRadiusSquared) {
+                    nearHero++;
+                }
+
+                nearestDistance = Math.min(
+                    nearestDistance,
+                    Math.sqrt(distanceSquared)
+                );
+
+                const wave = BattleWave.getWaveForUnit(unit);
+                if (wave && wave.laneId === heroLaneId) {
+                    inHeroLane++;
+                }
+            }
+
+            return {
+                alive,
+                nearHero,
+                inHeroLane,
+                nearestDistance:
+                    Number.isFinite(nearestDistance)
+                        ? nearestDistance
+                        : -1,
+            };
+        };
+        const allies = collect(heroTeam);
+        const enemies = collect(enemyTeam);
+
+        this.battleTelemetry.recordHeroDefeatContext({
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            heroTeam,
+            heroUnitName: hero.unitTypeName || 'hero',
+            heroLaneId,
+            guardRadius,
+            heroX: heroPosition.x,
+            heroZ: heroPosition.z,
+            allyNonHeroAlive: allies.alive,
+            enemyNonHeroAlive: enemies.alive,
+            allyNearHero: allies.nearHero,
+            enemyNearHero: enemies.nearHero,
+            allyInHeroLane: allies.inHeroLane,
+            enemyInHeroLane: enemies.inHeroLane,
+            nearestAllyDistance: allies.nearestDistance,
+            nearestEnemyDistance: enemies.nearestDistance,
+        });
     }
 
     public onWaveCombatStarted(
@@ -2498,18 +2591,26 @@ export class GameManager extends Component {
             return;
         }
 
+        const laneSelection = this.getHeroSupportLaneSelection(team);
         const hero =
-            this.activateHeroForTeam(team);
+            this.activateHeroForTeam(
+                team,
+                laneSelection.laneId,
+                laneSelection.unitsPerLane
+            );
 
         if (!this.isAliveUnit(hero)) {
             return;
         }
 
-        this.unlockHeroForward(team, hero!);
+        this.unlockHeroForward(team, hero!, laneSelection.laneId);
     }
 
-    private unlockHeroForward(team: number, hero: Unit) {
-        const laneId = this.getHeroLaneId();
+    private unlockHeroForward(
+        team: number,
+        hero: Unit,
+        laneId: number
+    ) {
         let heroWave =
             team === 0
                 ? this.teamAHeroWave
@@ -2525,7 +2626,8 @@ export class GameManager extends Component {
                     : UnitFamily.Sword,
                 hero.props
                     ? hero.props.tier
-                    : 1
+                    : 1,
+                laneId
             );
 
             heroWave =
@@ -3429,6 +3531,7 @@ export class GameManager extends Component {
                 this.createBattleTelemetryUnitStatsSnapshot(),
             counterRules:
                 this.createBattleTelemetryCounterRuleSnapshot(),
+            cardEffectsEnabled: this.enableBattleCardEffects,
             cards: this.getBattleCardTelemetrySnapshot(),
             progression:
                 this.battleProgressionProvider
@@ -5300,6 +5403,10 @@ export class GameManager extends Component {
     private handleHeroDeath(unit: Unit) {
         const team = unit.team;
 
+        // Capture the tactical state while the hero is still registered,
+        // before despawn removes its wave and agent from the battlefield.
+        this.recordHeroDefeatTelemetryContext(unit);
+
         if (team === 0 || team === 1) {
             // A hero is a one-time final deployment. Keep this latched after
             // death so the low-CP activation check cannot respawn it.
@@ -5471,7 +5578,9 @@ export class GameManager extends Component {
     }
 
     private activateHeroForTeam(
-        team: number
+        team: number,
+        laneId: number,
+        supportUnitsPerLane: number[]
     ): Unit | null {
         const existing =
             team === 0
@@ -5490,16 +5599,18 @@ export class GameManager extends Component {
         return this.registerSceneHero(
             entry,
             team,
-            team === 0
-                ? 'hero_a'
-                : 'hero_b'
+            team === 0 ? 'hero_a' : 'hero_b',
+            laneId,
+            supportUnitsPerLane
         );
     }
 
     private registerSceneHero(
         heroEntry: HeroEntry | null,
         team: number,
-        fallbackTypeName: string
+        fallbackTypeName: string,
+        laneId: number,
+        supportUnitsPerLane: number[]
     ): Unit | null {
 
         if (!heroEntry) return null;
@@ -5556,9 +5667,7 @@ export class GameManager extends Component {
             hero.node.worldPosition;
 
         this.tempSpawnPos.set(
-            this.getLaneCenterX(
-                this.getHeroLaneId()
-            ),
+            this.getLaneCenterX(laneId),
             currentPosition.y,
             currentPosition.z
         );
@@ -5584,7 +5693,8 @@ export class GameManager extends Component {
             team,
             unitTypeName,
             heroEntry.family,
-            heroEntry.tier
+            heroEntry.tier,
+            laneId
         );
 
         if (team === 0) {
@@ -5639,7 +5749,7 @@ export class GameManager extends Component {
                     heroWave
                         ? heroWave.id
                         : -1,
-                laneId: this.getHeroLaneId(),
+                laneId,
                 unitName: unitTypeName,
                 familyName:
                     UnitFamily[heroEntry.family] ??
@@ -5648,6 +5758,15 @@ export class GameManager extends Component {
                 reason: 'cannot-afford-any-melee-wave',
                 combatPoint:
                     this.combatPoint[team] || 0,
+                heroSupportUnitsPerLane:
+                    supportUnitsPerLane.slice(),
+                heroSelectedLaneSupportUnits:
+                    supportUnitsPerLane[laneId] || 0,
+                heroBestLaneSupportUnits:
+                    Math.max(...supportUnitsPerLane, 0),
+                heroLaneSelectionMatchesBest:
+                    (supportUnitsPerLane[laneId] || 0) >=
+                    Math.max(...supportUnitsPerLane, 0),
             });
         }
 
@@ -5662,11 +5781,9 @@ export class GameManager extends Component {
         team: number,
         unitTypeName: string,
         family: UnitFamily,
-        tier: number
+        tier: number,
+        laneId: number
     ) {
-        const laneId =
-            this.getHeroLaneId();
-
         const previousWave =
             team === 0
                 ? this.teamAHeroWave
@@ -5743,6 +5860,43 @@ export class GameManager extends Component {
         return this.clampLaneId(
             Math.floor(this.getSafeLaneCount() / 2)
         );
+    }
+
+    private getHeroSupportLaneSelection(team: number) {
+        const fallbackLaneId = this.getHeroLaneId();
+        const laneCount = this.getSafeLaneCount();
+        const unitsPerLane = new Array<number>(laneCount).fill(0);
+        if (team !== 0 && team !== 1) {
+            return { laneId: fallbackLaneId, unitsPerLane };
+        }
+
+        const units = this.getAliveUnits(team);
+
+        for (let i = 0; i < units.length; i++) {
+            const unit = units[i];
+            if (!this.isAliveUnit(unit) || unit.isHero) continue;
+
+            const wave = BattleWave.getWaveForUnit(unit);
+            const laneId = wave
+                ? this.clampLaneId(wave.laneId)
+                : this.getNearestLaneIdForX(unit.node.worldPosition.x);
+
+            if (laneId >= 0 && laneId < laneCount) {
+                unitsPerLane[laneId]++;
+            }
+        }
+
+        let selectedLaneId = fallbackLaneId;
+        let mostUnits = unitsPerLane[fallbackLaneId] || 0;
+
+        for (let laneId = 0; laneId < laneCount; laneId++) {
+            if (unitsPerLane[laneId] > mostUnits) {
+                selectedLaneId = laneId;
+                mostUnits = unitsPerLane[laneId];
+            }
+        }
+
+        return { laneId: selectedLaneId, unitsPerLane };
     }
 
     private requestBattleStatsUIRefresh() {
