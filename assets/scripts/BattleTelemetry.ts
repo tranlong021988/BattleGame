@@ -55,6 +55,7 @@ export interface BattleTelemetryStartConfig {
     unitStats: BattleTelemetryUnitSnapshot[];
     counterRules: BattleTelemetryCounterRuleSnapshot[];
     cardEffectsEnabled?: boolean;
+    rangedKitePolicy?: 'own-side';
     cards?: any;
     progression?: any;
 }
@@ -253,6 +254,17 @@ export interface BattleTelemetryDiagnosticEvent {
     heroSelectedLaneSupportUnits?: number;
     heroBestLaneSupportUnits?: number;
     heroLaneSelectionMatchesBest?: boolean;
+    unitLifeId?: number;
+    targetLifeId?: number;
+    unitX?: number;
+    unitZ?: number;
+    targetX?: number;
+    targetZ?: number;
+    targetDistance?: number;
+    forwardDirX?: number;
+    forwardDirZ?: number;
+    moveX?: number;
+    moveZ?: number;
 }
 
 export interface BattleTelemetryScannerTrace {

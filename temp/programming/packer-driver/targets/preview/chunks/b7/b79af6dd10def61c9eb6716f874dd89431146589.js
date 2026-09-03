@@ -735,6 +735,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.onBusy = false; // Keep the last free-hunt intent while the scanner waits for the
           // next wave order. Movement modes that must stop or redirect
           // (steady, forward, and back-to-lane) clear it explicitly.
+          // A wave can retain a live strategic target while this unit's local
+          // target dies or moves beyond its search radius. Combat mode clears
+          // the old continuity, so restore it here: otherwise the unit reaches
+          // the no-target branch below and remains stopped until an enemy comes
+          // back within range. On the next update it follows the wave scanner,
+          // or preserves its last travel direction while the scanner searches.
+
+          if (this.shouldResumeWaveHuntContinuity()) {
+            this.beginFreeHuntContinuity();
+          }
 
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -744,6 +754,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentStopped();
             this.setAgentLocked(this.isSteady);
           }
+        }
+
+        shouldResumeWaveHuntContinuity() {
+          var _instance;
+
+          if (!this.agent) return false;
+          if (this.isSteady) return false;
+          if (this.onForward) return false;
+          if (this.backToLaneActive) return false;
+          return !!((_instance = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) != null && _instance.getWaveTargetForUnit(this));
         }
 
         haltForBattleEnd() {
@@ -903,13 +925,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update(deltaTime) {
-          var _instance, _instance3;
+          var _instance2, _instance4;
 
           if (!this.sim || !this.agent) return;
 
-          if ((_instance = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance.isBattleCombatLocked()) {
+          }), GameManager) : GameManager).instance) != null && _instance2.isBattleCombatLocked()) {
             this.haltForBattleEnd();
             this.sync(deltaTime, false);
             return;
@@ -927,11 +949,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (this.props && this.props.isDead()) {
             if (this.isHero) {
-              var _instance2;
+              var _instance3;
 
-              (_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              (_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                 error: Error()
-              }), GameManager) : GameManager).instance) == null || _instance2.resolveHeroDefeat(this);
+              }), GameManager) : GameManager).instance) == null || _instance3.resolveHeroDefeat(this);
             }
 
             this.setEnemyTarget(null);
@@ -946,9 +968,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          if ((_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance4 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance3.resolveUnitReachedEnemyHeroLine(this)) {
+          }), GameManager) : GameManager).instance) != null && _instance4.resolveUnitReachedEnemyHeroLine(this)) {
             this.setAgentStopped();
             this.sync(deltaTime, false);
             return;
@@ -1302,11 +1324,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.setAgentLocked(true);
 
               if (!wasBusy) {
-                var _instance4;
+                var _instance5;
 
-                (_instance4 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+                (_instance5 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                   error: Error()
-                }), GameManager) : GameManager).instance) == null || _instance4.onWaveCombatStarted(this, target, false);
+                }), GameManager) : GameManager).instance) == null || _instance5.onWaveCombatStarted(this, target, false);
               }
 
               this.setAgentStopped();
@@ -1825,7 +1847,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (dist < dangerDistance || this.rangedKiteActive && dist < safeMinDistance) {
             this.rangedKiteActive = true;
-            this.setRangedCombatMoveAwayFrom(dx, dz);
+            this.setRangedCombatMoveTowardOwnSide();
             return;
           }
 
@@ -1841,22 +1863,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        setRangedCombatMoveAwayFrom(targetDx, targetDz) {
-          var x = -targetDx;
-          var z = -targetDz;
-          var len = Math.sqrt(x * x + z * z);
-
-          if (len <= 0.0001) {
-            x = -this.forwardDir.x;
-            z = -this.forwardDir.z;
-          } else {
-            x /= len;
-            z /= len;
-          }
-
+        setRangedCombatMoveTowardOwnSide() {
           var speed = this.getRangedCombatMoveSpeed();
-          this.rangedCombatMoveX = x * speed;
-          this.rangedCombatMoveZ = z * speed;
+          this.rangedCombatMoveX = -this.forwardDir.x * speed;
+          this.rangedCombatMoveZ = -this.forwardDir.z * speed;
         }
 
         setRangedCombatMoveToward(targetDx, targetDz) {

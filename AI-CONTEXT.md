@@ -1,6 +1,6 @@
 # BattleGame — AI Context / Handoff
 
-Updated: 2026-09-03
+Updated: 2026-09-04
 
 ## Read this before modifying gameplay
 
@@ -84,15 +84,38 @@ Important: `progression.usedPlayerCards` remained populated in this cards-off ru
 
 `run-mtjwfvli-0urmrir` (2026-09-02 09:34–09:58): 119 records; completed L60; 8 side gold-x2 events; 33 cooldown-skip ads. The only material entry deficits were L19 (-1 maxAlive, CP +16) and L21 (-16 CP); both followed loss pressure and were repaired through side/x2. No conclusion of forced farming was warranted.
 
+## Ranged wave-hunt and kiting — active source changes, awaiting live verification
+
+The user observed two distinct ranged behaviours. Do not conflate them:
+
+1. **No local target while an enemy target-wave remains alive.** `Unit.clearEnemy()` now restores free-hunt continuity only for a non-steady, non-forward, non-back-to-lane unit when `GameManager.getWaveTargetForUnit(this)` still returns a wave. This is intended to prevent a unit from remaining stopped while the wave scanner reacquires a target. It is not whole-map hunting: the unit retains its existing lane/wave movement intent and normal target search rules.
+2. **Kiting direction scattering.** The old danger path moved directly away from each unit's current target. Ranged in one wave could therefore retreat on different diagonals. The current danger path uses `-forwardDir`, i.e. directly toward that team's own side/backline. Target approach and lateral yield for a forward melee ally remain unchanged.
+
+### New telemetry contract for kiting
+
+- `config.rangedKitePolicy: "own-side"` is emitted in new reports. It identifies the source-side policy expected by the audit. It is not a build hash; telemetry still cannot independently prove which binary generated an old report.
+- `diagnostics.events` now records `type: "ranged-kite"` only when a ranged unit begins a kite state. It carries unit/target team, wave, lane, life IDs, positions, target distance, `forwardDirX/Z`, and the issued `moveX/Z`.
+- The event is intentionally not emitted per frame. The per-report diagnostic cap and `droppedDiagnosticEventCount` remain the protection against unbounded output.
+- Verification rule for a new live report: for every `ranged-kite` event with non-zero move vector, `move` must point opposite `forwardDir` (negative dot product; near-zero 2D cross product). If no ranged-kite event occurs, the batch does not test this behaviour. Inspect `diagnostics.limits.droppedDiagnosticEventCount` before declaring the trace complete.
+- The current telemetry does not measure full formation spread over time. Do not claim that a batch proves “no scattering” merely because it contains no errors or completes the campaign. The kiting event proves issued intent, not final RVO displacement.
+
+### Latest cards-on batch after the kiting source edit
+
+`run-mtlxynhg-0bzeeu9` (2026-09-03 19:52–20:12): 104 records; cards enabled; campaign completed L60. Main: 60W/19L (75.9%); side: 10W/15L (40.0%); 3,072.7 seconds; final gold 5,766; 381 actual `cardEvents` (team 0: 246; team 1: 135). Cooldown skips: 30, predominantly Sword Wall (24).
+
+Comparison with cards-on `run-mtlwj6bu-1ku312m` (92 records, main 60W/17L = 77.9%, side 9W/6L, final gold 7,206): serialized static config matches apart from runtime fields. The newer run has 2 more main losses and 12 more battle attempts. Classification: **NEEDS TESTING**. These are separate stochastic campaigns and telemetry has no build hash nor ranged-kite event in this already-exported batch, so do not attribute the difference to the kiting change and do not retune economy/cards from it.
+
+The latest run contains seven main entry states with a CP or maxAlive deficit but no missing unit unlock/count. They occur after earlier retry history in the campaign and are not a no-loss baseline failure. Do not classify them as forced-side/economy issues without proving the player had enough gold yet skipped a required baseline purchase.
+
 ## Source/worktree safety
 
-- Gameplay source currently modified includes `assets/scripts/LevelSettings.ts`, `GameManager.ts`, `BattleTelemetry.ts`, and related scene/database changes from approved prior work. Preserve unrelated dirty changes.
+- Gameplay source currently modified includes prior approved changes plus the current work in `assets/scripts/Unit.ts`, `GameManager.ts`, and `BattleTelemetry.ts`. The current edits implement free-hunt continuity, own-side ranged kiting, and kiting telemetry. Preserve unrelated dirty changes, especially `assets/Battle.scene` and Cocos-generated artifacts.
 - `AI-CONTEXT.md` itself is intentionally updated by this handoff.
 - `library/`, `profiles/`, and `temp/` are live Cocos cache/log artifacts. Never clean, revert, or delete them unless explicitly asked and the Editor is closed.
-- `.git/index.lock` was found as a zero-byte stale lock dated 2026-09-01. Before deleting any lock, verify it exists and no `git` process is running. Do not remove a live lock.
+- On 2026-09-04, `.git/index.lock` was a zero-byte file and no Git process was running; it was removed after verification. Before deleting any future lock, repeat both checks. Do not remove a live lock.
 
 ## Current status / next action
 
-No rebalance or new gameplay change is pending. The card-off flag exists; the first paired comparison and the separate 2026-09-03 cards-off retest have been analyzed.
+No rebalance is pending. The current unfinished verification is the ranged movement change: run a fresh battle batch with ranged units active and inspect `config.rangedKitePolicy` plus `diagnostics.events[type="ranged-kite"]`. Do not declare the visual formation issue fixed from aggregate win rate.
 
 The user plans to continue testing elsewhere. The most valuable next artifact is a controlled paired set: start both modes from the same save/progression snapshot and seed, change only `Enable Battle Card Effects`, preserve card purchase/upgrade schedules, verify `config.cardEffectsEnabled` and `cardEvents`, then report normal/boss results, retry count, and duration separately. Run 5–10 pairs before considering a card rebalance.

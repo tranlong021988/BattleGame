@@ -119,6 +119,7 @@ export class Unit extends Component {
     private rangedCombatMoveX = 0;
     private rangedCombatMoveZ = 0;
     private rangedKiteActive = false;
+    private rangedKiteTelemetryTargetLifeId = -1;
     private rangedCombatDecisionTargetLifeId = -1;
     private nearestEnemyQueryToken = 0;
     private nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
@@ -818,6 +819,16 @@ export class Unit extends Component {
         // next wave order. Movement modes that must stop or redirect
         // (steady, forward, and back-to-lane) clear it explicitly.
 
+        // A wave can retain a live strategic target while this unit's local
+        // target dies or moves beyond its search radius. Combat mode clears
+        // the old continuity, so restore it here: otherwise the unit reaches
+        // the no-target branch below and remains stopped until an enemy comes
+        // back within range. On the next update it follows the wave scanner,
+        // or preserves its last travel direction while the scanner searches.
+        if (this.shouldResumeWaveHuntContinuity()) {
+            this.beginFreeHuntContinuity();
+        }
+
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
         this.resetRangedCombatMovement();
@@ -826,6 +837,15 @@ export class Unit extends Component {
             this.setAgentStopped();
             this.setAgentLocked(this.isSteady);
         }
+    }
+
+    private shouldResumeWaveHuntContinuity() {
+        if (!this.agent) return false;
+        if (this.isSteady) return false;
+        if (this.onForward) return false;
+        if (this.backToLaneActive) return false;
+
+        return !!GameManager.instance?.getWaveTargetForUnit(this);
     }
 
     public haltForBattleEnd() {
@@ -2333,14 +2353,16 @@ export class Unit extends Component {
             )
         ) {
             this.rangedKiteActive = true;
-            this.setRangedCombatMoveAwayFrom(
-                dx,
-                dz
+            this.setRangedCombatMoveTowardOwnSide();
+            this.recordRangedKiteTelemetry(
+                target,
+                dist
             );
             return;
         }
 
         this.rangedKiteActive = false;
+        this.rangedKiteTelemetryTargetLifeId = -1;
 
         if (dist > range) {
             this.setRangedCombatMoveToward(
@@ -2355,27 +2377,31 @@ export class Unit extends Component {
         }
     }
 
-    private setRangedCombatMoveAwayFrom(
-        targetDx: number,
-        targetDz: number
-    ) {
-        let x = -targetDx;
-        let z = -targetDz;
-        const len = Math.sqrt(x * x + z * z);
-
-        if (len <= 0.0001) {
-            x = -this.forwardDir.x;
-            z = -this.forwardDir.z;
-        } else {
-            x /= len;
-            z /= len;
-        }
-
+    private setRangedCombatMoveTowardOwnSide() {
         const speed =
             this.getRangedCombatMoveSpeed();
 
-        this.rangedCombatMoveX = x * speed;
-        this.rangedCombatMoveZ = z * speed;
+        this.rangedCombatMoveX = -this.forwardDir.x * speed;
+        this.rangedCombatMoveZ = -this.forwardDir.z * speed;
+    }
+
+    private recordRangedKiteTelemetry(
+        target: Unit,
+        targetDistance: number
+    ) {
+        if (this.rangedKiteTelemetryTargetLifeId === target.lifeId) {
+            return;
+        }
+
+        this.rangedKiteTelemetryTargetLifeId = target.lifeId;
+        GameManager.instance?.recordBattleTelemetryRangedKite(
+            this,
+            target,
+            'started',
+            targetDistance,
+            this.rangedCombatMoveX,
+            this.rangedCombatMoveZ
+        );
     }
 
     private setRangedCombatMoveToward(
@@ -2538,6 +2564,7 @@ export class Unit extends Component {
         this.rangedCombatMoveX = 0;
         this.rangedCombatMoveZ = 0;
         this.rangedKiteActive = false;
+        this.rangedKiteTelemetryTargetLifeId = -1;
         this.rangedCombatDecisionTargetLifeId = -1;
     }
 

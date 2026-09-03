@@ -2735,6 +2735,49 @@ export class GameManager extends Component {
         );
     }
 
+    public recordBattleTelemetryRangedKite(
+        unit: Unit,
+        target: Unit,
+        reason: string,
+        targetDistance: number,
+        moveX: number,
+        moveZ: number
+    ) {
+        if (!this.enableBattleTelemetry) return;
+        if (!unit?.agent || !target?.agent) return;
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'ranged-kite',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: unit.waveRuntimeId,
+            laneId: unit.laneId,
+            unitName: unit.unitTypeName,
+            familyName: unit.props
+                ? UnitFamily[unit.props.family] ?? String(unit.props.family)
+                : '',
+            unitLifeId: unit.lifeId,
+            targetTeam: target.team,
+            targetWaveId: target.waveRuntimeId,
+            targetLaneId: target.laneId,
+            targetFamilyName: target.props
+                ? UnitFamily[target.props.family] ?? String(target.props.family)
+                : '',
+            targetLifeId: target.lifeId,
+            unitX: unit.agent.pos.x,
+            unitZ: unit.agent.pos.z,
+            targetX: target.agent.pos.x,
+            targetZ: target.agent.pos.z,
+            targetDistance,
+            forwardDirX: unit.forwardDir.x,
+            forwardDirZ: unit.forwardDir.z,
+            moveX,
+            moveZ,
+            reason,
+        });
+    }
+
     public getBattleElapsedTime() {
         return this.battleElapsedTime;
     }
@@ -3532,6 +3575,7 @@ export class GameManager extends Component {
             counterRules:
                 this.createBattleTelemetryCounterRuleSnapshot(),
             cardEffectsEnabled: this.enableBattleCardEffects,
+            rangedKitePolicy: 'own-side' as const,
             cards: this.getBattleCardTelemetrySnapshot(),
             progression:
                 this.battleProgressionProvider
