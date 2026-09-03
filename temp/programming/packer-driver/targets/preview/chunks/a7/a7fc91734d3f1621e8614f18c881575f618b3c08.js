@@ -70,7 +70,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       error: Error()
     }), UnitFamily) : UnitFamily).Archer, BattleCardModifier.AttackRangePercent, 8, BattleCardModifier.MoveSpeedPercent, 8), createCard('wide-prayer', 'Wide Prayer', 1200, 5, 5, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
-    }), UnitFamily) : UnitFamily).Monk, BattleCardModifier.DamageRadiusPercent, 30, BattleCardModifier.DamagePercent, -12), createCard('cavalry-charge', 'Cavalry Charge', 2000, 6, 12, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+    }), UnitFamily) : UnitFamily).Monk, BattleCardModifier.DamageRadiusPercent, 30, BattleCardModifier.DamagePercent, -12), createCard('cavalry-charge', 'Cavalry Charge', 2000, 6, 18, BattleCardTarget.UnitFamily, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()
     }), UnitFamily) : UnitFamily).Cavalry, BattleCardModifier.DamagePercent, 300, BattleCardModifier.None, 0, BattleCardOpponentCondition.Any, BattleCardEnemyPool.RegularAndBoss, 0.4, 2), createCard('counter-breaker', 'Counter Breaker', 1600, 6, 3, BattleCardTarget.AllUnits, (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
       error: Error()

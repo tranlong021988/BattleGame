@@ -70,6 +70,16 @@ Interpretation:
 - Cards-off final gold (5,656) versus cards-on (5,046) must not be read as economy being easier: histories had different retry/side/x2 paths. The common no-loss audit is the economy invariant.
 - If a precise effect size is needed, run 5–10 seeds per mode with the same settings and compare normal-main rate, boss rate, retry count, and cardEvents. Do not retune card values from this one paired run.
 
+## Secondary cards-off retest (awaiting a controlled comparator)
+
+`run-mtlat0xg-0yxeujk` (2026-09-03 09:03–09:45) is a separate L1–60 cards-off run supplied after the paired audit above. It has **136 battle attempts**, completed L60, and records `config.cardEffectsEnabled: false` with **0 `cardEvents`**. The bot won 83 attempts and lost 53 (61.0% attempt win rate); 19 levels required at least one retry and 14 required four or more attempts. The most retry-heavy level was L32 (16 attempts).
+
+The user asked to compare it with the earlier 2026-08-31 batch (102 attempts, 68 bot wins / 34 losses). That descriptive comparison showed 34 extra attempts and 19 extra loss attempts in the cards-off retest, concentrated in L21–40 (57 attempts / 25 losses versus 26 / 6). Per-attempt duration changed only slightly (30.76s versus 30.20s), so the longer campaign came primarily from retries, not longer individual battles.
+
+Classification: `LIKELY`, not a pure causal measurement. The two saved telemetry configuration snapshots differ in more than the visible flag and they are different stochastic campaigns. Do not merge this secondary comparison into the paired card-on/off result above or retune values from it.
+
+Important: `progression.usedPlayerCards` remained populated in this cards-off run (190 selected-card entries across 92 attempts). That is expected selection/economy state, not proof of in-battle card effects; `cardEvents = 0` is the relevant verification.
+
 ## Recent telemetry before card-off test
 
 `run-mtjwfvli-0urmrir` (2026-09-02 09:34–09:58): 119 records; completed L60; 8 side gold-x2 events; 33 cooldown-skip ads. The only material entry deficits were L19 (-1 maxAlive, CP +16) and L21 (-16 CP); both followed loss pressure and were repaired through side/x2. No conclusion of forced farming was warranted.
@@ -83,6 +93,6 @@ Interpretation:
 
 ## Current status / next action
 
-No rebalance or new gameplay change is pending. The current user-facing task is complete: the card-off flag exists and the first paired telemetry comparison was delivered.
+No rebalance or new gameplay change is pending. The card-off flag exists; the first paired comparison and the separate 2026-09-03 cards-off retest have been analyzed.
 
-If the user asks to continue, the most valuable next test is repeated seeded cards-on versus cards-off campaigns. Keep cards purchase/upgrade schedules fixed, verify `config.cardEffectsEnabled` and `cardEvents`, and report normal and boss outcomes separately.
+The user plans to continue testing elsewhere. The most valuable next artifact is a controlled paired set: start both modes from the same save/progression snapshot and seed, change only `Enable Battle Card Effects`, preserve card purchase/upgrade schedules, verify `config.cardEffectsEnabled` and `cardEvents`, then report normal/boss results, retry count, and duration separately. Run 5–10 pairs before considering a card rebalance.

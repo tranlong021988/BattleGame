@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3", "__unresolved_4", "__unresolved_5"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _dec48, _dec49, _dec50, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, director, sys, GameManager, BattleArmyBrain, BattleCardModifier, BattleCardOpponentCondition, BattleCardTarget, CounterSettings, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _dec18, _dec19, _dec20, _dec21, _dec22, _dec23, _dec24, _dec25, _dec26, _dec27, _dec28, _dec29, _dec30, _dec31, _dec32, _dec33, _dec34, _dec35, _dec36, _dec37, _dec38, _dec39, _dec40, _dec41, _dec42, _dec43, _dec44, _dec45, _dec46, _dec47, _dec48, _dec49, _dec50, _dec51, _dec52, _class4, _class5, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _descriptor25, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _descriptor33, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52, _descriptor53, _descriptor54, _crd, ccclass, property, UnitProgressionRule, LevelSettings;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -251,30 +251,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         tooltip: 'Let BattleArmyBrain A simulate player purchases between battles. It may buy multiple affordable packages.'
       }), _dec32 = property({
         displayName: 'Allow Ads Rescue',
-        tooltip: 'Allow rewarded-ad Gold x2 claims and card cooldown completion. Side missions remain available without ads.'
+        tooltip: 'Allow bot rewarded-ad mechanics, including card cooldown completion. Gold x2 has its own toggle. Side missions remain available without ads.'
       }), _dec33 = property({
-        tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
+        displayName: 'Allow Bot Gold X2 Ads',
+        tooltip: 'Allow purchasing simulation to use rewarded ads to double side-mission gold. This does not restrict human-player ad rewards.'
       }), _dec34 = property({
+        tooltip: 'Persistent campaign storage key. Opening currentLevel=1 starts a fresh run; use resetProgression=1 to force reset even from a resume URL.'
+      }), _dec35 = property({
         min: 1,
         step: 1,
         tooltip: 'Cards each team may bring into one battle. This is the future deck-upgrade hook.'
-      }), _dec35 = property({
+      }), _dec36 = property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Enemy Card Diversity Score Floor',
         tooltip: 'Enemy keeps a level-seeded, retry-stable deck, while choosing among cards near the best score. Lower values create more level-to-level variety.'
-      }), _dec36 = property({
+      }), _dec37 = property({
         min: 0.01,
         step: 0.05,
         displayName: 'Bot Strength Upgrade Purchase Weight',
         tooltip: 'Relative bot preference for an available independent melee-card Strength rank.'
-      }), _dec37 = property({
-        min: 0,
-        step: 1
       }), _dec38 = property({
         min: 0,
-        step: 1
+        step: 1,
+        displayName: 'Max Player Packages Per Level',
+        tooltip: 'Reserves slots for baseline packages and card unlocks first, then delays only player card upgrades until the level has this many packages. Baseline itself may exceed the cap. Set 0 to disable. Enemy card strength timing is unchanged.'
       }), _dec39 = property({
         min: 0,
         step: 1
@@ -282,46 +284,55 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         min: 0,
         step: 1
       }), _dec41 = property({
-        min: 0.01,
-        step: 0.1
+        min: 0,
+        step: 1
       }), _dec42 = property({
         min: 0,
-        step: 50,
-        displayName: 'Main Reward Flat Bonus',
-        tooltip: 'Fixed gold added to every main-battle reward after the stable progression plan is generated. Rounded to 50.'
+        step: 1
       }), _dec43 = property({
+        min: 0,
+        step: 50,
+        displayName: 'No-Loss Gold Reserve',
+        tooltip: 'Target gold kept after paying each newly opened package and the next main entry fee on the no-loss route. A low reserve makes losses create a real funding deficit; all rewards remain generated dynamically from package timing and fees.'
+      }), _dec44 = property({
         min: 1,
         step: 0.05,
         displayName: 'Boss Gold Reward Multiplier',
         tooltip: 'Small bonus applied to baseline CP reward on boss wins. Boss CP multiplier is not included in the reward base.'
-      }), _dec44 = property({
+      }), _dec45 = property({
         min: 0.1,
         max: 1,
         step: 0.05,
         displayName: 'Side Reward Fee Multiplier',
         tooltip: 'Side-win gold as a share of the current main entry fee. Gold x2 can turn a partial recovery into a full preparation purchase. Rounds up to 50.'
-      }), _dec45 = property({
+      }), _dec46 = property({
+        min: 0.01,
+        max: 1,
+        step: 0.05,
+        displayName: 'Side Recovery Accuracy Multiplier',
+        tooltip: 'After each lost side battle while main entry plus the cheapest currently opened package is unaffordable, the next side enemy accuracy is multiplied by this value. Resets after a side win or when the recovery need clears.'
+      }), _dec47 = property({
         min: 0,
         max: 1,
         step: 0.05,
         displayName: 'Main Battle Entry Fee Ratio',
         tooltip: 'Gold charged before each main progression battle after the first. It uses the preceding normal main-reward curve, so a boss reward spike does not inflate the next entry fee. Rounds up to 50. Side missions are free.'
-      }), _dec46 = property({
+      }), _dec48 = property({
         min: 0,
         max: 1,
         step: 0.01,
         displayName: 'Main Loss Reward Fee Ratio',
         tooltip: 'Gold granted after a main-battle loss as a share of that battle\'s entry fee. Rounds to the nearest 10. A fee-free battle grants no loss reward.'
-      }), _dec47 = property({
-        min: 1,
-        step: 1
-      }), _dec48 = property({
-        min: 0.01,
-        step: 0.1
       }), _dec49 = property({
         min: 1,
         step: 1
       }), _dec50 = property({
+        min: 0.01,
+        step: 0.1
+      }), _dec51 = property({
+        min: 1,
+        step: 1
+      }), _dec52 = property({
         type: [UnitProgressionRule]
       }), _dec8(_class4 = (_class5 = class LevelSettings extends Component {
         constructor(...args) {
@@ -383,41 +394,45 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "allowAdsRescue", _descriptor34, this);
 
-          _initializerDefineProperty(this, "progressionStorageKey", _descriptor35, this);
+          _initializerDefineProperty(this, "allowBotGoldX2Ads", _descriptor35, this);
 
-          _initializerDefineProperty(this, "battleCardDeckSize", _descriptor36, this);
+          _initializerDefineProperty(this, "progressionStorageKey", _descriptor36, this);
 
-          _initializerDefineProperty(this, "enemyCardDiversityScoreFloor", _descriptor37, this);
+          _initializerDefineProperty(this, "battleCardDeckSize", _descriptor37, this);
 
-          _initializerDefineProperty(this, "botStrengthUpgradePurchaseWeight", _descriptor38, this);
+          _initializerDefineProperty(this, "enemyCardDiversityScoreFloor", _descriptor38, this);
 
-          _initializerDefineProperty(this, "initialPlayerGold", _descriptor39, this);
+          _initializerDefineProperty(this, "botStrengthUpgradePurchaseWeight", _descriptor39, this);
 
-          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor40, this);
+          _initializerDefineProperty(this, "maxPlayerPackagesPerLevel", _descriptor40, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor41, this);
+          _initializerDefineProperty(this, "initialPlayerGold", _descriptor41, this);
 
-          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor42, this);
+          _initializerDefineProperty(this, "playerInitialCPStart", _descriptor42, this);
 
-          _initializerDefineProperty(this, "winGoldPerEnemyCP", _descriptor43, this);
+          _initializerDefineProperty(this, "playerMaxAliveStart", _descriptor43, this);
 
-          _initializerDefineProperty(this, "mainRewardFlatBonus", _descriptor44, this);
+          _initializerDefineProperty(this, "playerMaxAliveMax", _descriptor44, this);
 
-          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor45, this);
+          _initializerDefineProperty(this, "mainlineNoLossGoldReserve", _descriptor45, this);
 
-          _initializerDefineProperty(this, "sideRewardFeeMultiplier", _descriptor46, this);
+          _initializerDefineProperty(this, "bossGoldRewardMultiplier", _descriptor46, this);
 
-          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor47, this);
+          _initializerDefineProperty(this, "sideRewardFeeMultiplier", _descriptor47, this);
 
-          _initializerDefineProperty(this, "mainLossRewardFeeRatio", _descriptor48, this);
+          _initializerDefineProperty(this, "sideRecoveryAccuracyMultiplier", _descriptor48, this);
 
-          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor49, this);
+          _initializerDefineProperty(this, "mainBattleEntryFeeRatio", _descriptor49, this);
 
-          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor50, this);
+          _initializerDefineProperty(this, "mainLossRewardFeeRatio", _descriptor50, this);
 
-          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor51, this);
+          _initializerDefineProperty(this, "unitUnlockCostMultiplier", _descriptor51, this);
 
-          _initializerDefineProperty(this, "unitProgressionRules", _descriptor52, this);
+          _initializerDefineProperty(this, "initialCPGoldPerPoint", _descriptor52, this);
+
+          _initializerDefineProperty(this, "maxAliveBasePrice", _descriptor53, this);
+
+          _initializerDefineProperty(this, "unitProgressionRules", _descriptor54, this);
 
           this.progressionState = null;
           this.battleLevel = 1;
@@ -432,6 +447,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           // campaign-stable: the current enemy deck is runtime state, not economy
           // configuration.
           this.mainBattleNormalGoldPlan = null;
+          this.playerNonCardUpgradeOfferCounts = null;
           this.telemetryActionPhase = 'pre-battle';
           this.currentPlayerBattleCardIds = [];
           this.currentEnemyBattleCardIds = [];
@@ -620,6 +636,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             rewardClaim = this.grantBotGoldClaim(state, reward.gold, 'side-mission-win', reward.targetId, reward.targetCost);
             goldReward = rewardClaim.goldGranted;
             state.consecutiveSideWins++;
+            state.consecutiveSideRecoveryLosses = 0;
             state.levelLossCount = 0;
             const continuation = this.getSideMissionContinuation(state);
             route = Math.random() < continuation.chance ? 'side-mission' : 'progression';
@@ -635,6 +652,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continuationChance: continuation.chance
             });
           } else {
+            const recovery = this.getSideEconomyRecoveryStatus(state);
+            state.consecutiveSideRecoveryLosses = recovery.active ? state.consecutiveSideRecoveryLosses + 1 : 0;
             const continuation = this.getSideMissionContinuation(state); // A lost side mission did not improve the economy. Retry only if
             // main entry is still impossible; pre-battle entry handling will
             // route there in that case.
@@ -691,6 +710,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const manager = this.getGameManager();
           const enemyBrain = this.getFirstBrainForTeam(1);
           const playerBrain = this.getFirstBrainForTeam(0);
+          const sideEconomyRecovery = this.getSideEconomyRecoveryStatus(state);
+          const sideRecoveryAccuracyMultiplier = sideEconomyRecovery.active ? Math.pow(this.clamp01(this.sideRecoveryAccuracyMultiplier), state.consecutiveSideRecoveryLosses) : 1;
+          const noLossEconomyAudit = this.getMainlineNoLossEconomyAudit();
           return {
             enabled: true,
             storageVersion: state.version,
@@ -700,6 +722,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             totalLevels: this.getSafeTotalLevels(),
             isBossLevel: this.isBossLevelFor(this.battleLevel),
             purchasingSimulation: this.purchasingSimulation,
+            controller: this.purchasingSimulation ? 'bot-simulation' : 'player',
+            allowBotGoldX2Ads: this.allowBotGoldX2Ads,
             settings: {
               progressionEndLevel: this.getProgressionEndLevel(),
               progression01: this.getProgression01(this.battleLevel),
@@ -713,21 +737,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               playerMaxAliveMilestoneCap: this.getPlayerMaxAliveMilestoneCap(this.battleLevel),
               playerMaxAlivePackagesOffered: this.getPlayerMaxAlivePackagesOffered(this.battleLevel),
               nextPlayerMaxAlivePackage: this.getNextPlayerMaxAlivePackageSnapshot(state, this.battleLevel),
-              winGoldPerEnemyCP: this.winGoldPerEnemyCP,
+              mainlineNoLossGoldReserve: this.mainlineNoLossGoldReserve,
               bossGoldRewardMultiplier: this.bossGoldRewardMultiplier,
               mainBattleEntryFeeRatio: this.mainBattleEntryFeeRatio,
               mainLossRewardFeeRatio: this.mainLossRewardFeeRatio,
+              sideRecoveryAccuracyMultiplier: this.sideRecoveryAccuracyMultiplier,
               mainBattleEntryFee: this.getMainBattleEntryFee(this.battleLevel),
               mainBattleLossReward: this.getMainBattleLossReward(this.battleLevel),
               unitUnlockCostMultiplier: this.unitUnlockCostMultiplier,
               initialCPGoldPerPoint: this.initialCPGoldPerPoint,
               maxAliveBasePrice: this.maxAliveBasePrice,
               cardDefinitions: this.createCardDefinitionSnapshot(),
-              cardUpgradeSchedule: this.getCardUpgradeSchedule()
+              cardUpgradeSchedule: this.getCardUpgradeSchedule(),
+              noLossEconomyAudit
             },
             preBattlePurchases: this.preBattlePurchases.slice(),
             sideMission: {
               active: this.sideMissionBattle,
+              economyRecovery: {
+                active: sideEconomyRecovery.active,
+                consecutiveLosses: state.consecutiveSideRecoveryLosses,
+                accuracyMultiplier: sideRecoveryAccuracyMultiplier,
+                entryFee: sideEconomyRecovery.entryFee,
+                cheapestPackageCost: sideEconomyRecovery.cheapestPackageCost,
+                requiredGold: sideEconomyRecovery.requiredGold,
+                shortfall: sideEconomyRecovery.shortfall
+              },
               botSimulationEvents: state.botSimulationEvents.slice()
             },
             player: {
@@ -754,7 +789,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                 effectiveCooldown: this.getCardEffectiveCooldown(card),
                 effectiveBudget: this.getCardEffectiveBudget(card)
               })),
-              selectedBattleCardIds: this.currentPlayerBattleCardIds.slice()
+              selectedBattleCardIds: this.currentPlayerBattleCardIds.slice(),
+              readyOwnedCardIds: state.cards.filter(card => card.owned && card.cooldownRemaining <= 0).map(card => card.id),
+              coolingOwnedCards: state.cards.filter(card => card.owned && card.cooldownRemaining > 0).map(card => ({
+                id: card.id,
+                cooldownRemaining: card.cooldownRemaining
+              })),
+              cooldownAdReasons: Array.from(this.currentPlayerCooldownAdReasons.entries()).map(([cardId, reason]) => ({
+                cardId,
+                reason
+              }))
             },
             enemy: {
               initialCP: manager ? manager.initialCombatPoint[1] : null,
@@ -811,6 +855,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
         initializeProgression() {
           this.mainBattleNormalGoldPlan = null;
+          this.playerNonCardUpgradeOfferCounts = null;
           const loaded = this.loadProgressionState();
           this.progressionState = loaded ? this.sanitizeProgressionState(loaded) : this.createInitialProgressionState();
           const savedLevel = this.progressionState.currentLevel;
@@ -907,7 +952,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return {
-            version: 13,
+            version: 14,
             telemetryRunId: this.createTelemetryRunId(),
             telemetryBattleIndex: 0,
             enemyCardDeckPolicyVersion: this.enemyCardDeckPolicyVersion,
@@ -917,6 +962,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             levelLossCount: 0,
             mainLossesAtCurrentLevel: 0,
             consecutiveSideWins: 0,
+            consecutiveSideRecoveryLosses: 0,
             sideMissionActive: false,
             playerInitialCP: this.getPlayerCPStart(),
             playerInitialCPOverflow: 0,
@@ -1567,7 +1613,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         getEnemyStrengthUpgradeRank(definition, level) {
-          return this.getCardUpgradeRankLimitAtLevel(definition, 'strength', level);
+          return this.getCardUpgradeRankLimitAtLevel(definition, 'strength', level, 0);
         }
 
         getCardOpponentConditionWeight(definition, state, team = 0) {
@@ -1945,11 +1991,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return upgradeKind === 'strength' ? this.getStrengthUpgradeMaxRank(definition) : 2;
         }
 
-        getCardUpgradeRankLimitAtLevel(definition, upgradeKind, level) {
+        getCardUpgradeRankLimitAtLevel(definition, upgradeKind, level, offerLevelOffset = 1) {
           const safeLevel = this.clampLevel(level);
           const maxRank = this.getCardUpgradeMaxRank(definition, upgradeKind);
           let rankLimit = 0;
-          const schedule = this.getCardUpgradeSchedule();
+          const schedule = this.getCardUpgradeSchedule(offerLevelOffset);
 
           for (let rank = 1; rank <= maxRank; rank++) {
             const offer = schedule.find(item => item.cardId === definition.id && item.upgradeKind === upgradeKind && item.rank === rank);
@@ -1960,10 +2006,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return rankLimit;
         }
 
-        getCardUpgradeSchedule() {
+        getCardUpgradeSchedule(offerLevelOffset = 1) {
           const manager = this.getGameManager();
           const database = manager ? manager.battleCardDatabase : null;
           if (!database) return [];
+          const totalLevels = this.getSafeTotalLevels();
           const fullProgressionWave = this.getFullPlayerCardProgressionWave();
           const offersByWave = new Map();
           const postProgressionPending = [];
@@ -2018,7 +2065,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             for (let itemIndex = 0; itemIndex < pending.length; itemIndex++) {
               result.push({ ...pending[itemIndex],
-                offerLevel: offerLevels[Math.min(offerLevels.length - 1, Math.floor(itemIndex * offerLevels.length / pending.length))]
+                offerLevel: Math.min(totalLevels, offerLevels[Math.min(offerLevels.length - 1, Math.floor(itemIndex * offerLevels.length / pending.length))] + offerLevelOffset)
               });
             }
           }
@@ -2027,11 +2074,81 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           for (let index = 0; index < postProgressionPending.length; index++) {
             result.push({ ...postProgressionPending[index],
-              offerLevel: postProgressionOfferLevels[Math.min(postProgressionOfferLevels.length - 1, Math.floor(index * postProgressionOfferLevels.length / postProgressionPending.length))]
+              offerLevel: Math.min(totalLevels, postProgressionOfferLevels[Math.min(postProgressionOfferLevels.length - 1, Math.floor(index * postProgressionOfferLevels.length / postProgressionPending.length))] + offerLevelOffset)
+            });
+          }
+
+          return offerLevelOffset > 0 ? this.applyPlayerPackageOfferCap(result) : result;
+        }
+
+        applyPlayerPackageOfferCap(upgrades) {
+          const cap = Math.max(0, Math.floor(this.maxPlayerPackagesPerLevel));
+          if (cap <= 0 || upgrades.length <= 0) return upgrades;
+          const totalLevels = this.getSafeTotalLevels();
+          const packageCounts = this.getPlayerNonCardUpgradeOfferCounts();
+          const ordered = upgrades.map((offer, order) => ({
+            offer,
+            order
+          })).sort((a, b) => a.offer.offerLevel - b.offer.offerLevel || a.order - b.order);
+          const result = [];
+
+          for (let index = 0; index < ordered.length; index++) {
+            const item = ordered[index];
+            let offerLevel = Math.max(1, item.offer.offerLevel);
+
+            while (offerLevel < totalLevels && (packageCounts[offerLevel - 1] || 0) >= cap) {
+              offerLevel++;
+            } // Existing content must remain reachable even if a future content
+            // expansion exhausts all remaining campaign slots. The current
+            // configuration has spare capacity; this fallback is only safer
+            // than silently dropping an earned upgrade.
+
+
+            offerLevel = Math.min(totalLevels, offerLevel);
+            packageCounts[offerLevel - 1] = (packageCounts[offerLevel - 1] || 0) + 1;
+            result.push({ ...item.offer,
+              offerLevel
             });
           }
 
           return result;
+        }
+
+        getPlayerNonCardUpgradeOfferCounts() {
+          const totalLevels = this.getSafeTotalLevels();
+
+          if (this.playerNonCardUpgradeOfferCounts && this.playerNonCardUpgradeOfferCounts.length === totalLevels) {
+            return this.playerNonCardUpgradeOfferCounts.slice();
+          }
+
+          const result = new Array(totalLevels).fill(0);
+          const savedState = this.progressionState;
+          const savedBattleLevel = this.battleLevel;
+
+          try {
+            const planState = this.createInitialProgressionState();
+            planState.playerGold = Number.MAX_SAFE_INTEGER;
+            this.progressionState = planState;
+
+            for (let level = 1; level <= totalLevels; level++) {
+              this.battleLevel = level;
+              this.offerIntroducedUnits(level); // Apply the no-loss baseline route only. Card upgrades are
+              // deliberately excluded: this helper reserves their slots.
+
+              for (let pass = 0; pass < 1000; pass++) {
+                const option = this.getPurchaseOptions(planState, false).slice().sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))[0];
+                if (!option) break;
+                result[level - 1]++;
+                this.applyPurchaseToState(option, planState);
+              }
+            }
+          } finally {
+            this.progressionState = savedState;
+            this.battleLevel = savedBattleLevel;
+          }
+
+          this.playerNonCardUpgradeOfferCounts = result;
+          return result.slice();
         }
 
         getCardUpgradeOfferLevels(offerWave, fullProgressionWave) {
@@ -2171,7 +2288,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const initial = this.createInitialProgressionState();
           const sourceVersion = this.safeInteger(source.version, 0);
 
-          if (sourceVersion !== 8 && sourceVersion !== 9 && sourceVersion !== 10 && sourceVersion !== 11 && sourceVersion !== 12 && sourceVersion !== 13) {
+          if (sourceVersion !== 8 && sourceVersion !== 9 && sourceVersion !== 10 && sourceVersion !== 11 && sourceVersion !== 12 && sourceVersion !== 13 && sourceVersion !== 14) {
             return initial;
           }
 
@@ -2188,6 +2305,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           initial.levelLossCount = Math.max(0, this.safeInteger(source.levelLossCount, 0));
           initial.mainLossesAtCurrentLevel = Math.max(0, this.safeInteger(source.mainLossesAtCurrentLevel, 0));
           initial.consecutiveSideWins = Math.max(0, this.safeInteger(source.consecutiveSideWins, 0));
+          initial.consecutiveSideRecoveryLosses = Math.max(0, this.safeInteger(source.consecutiveSideRecoveryLosses, 0));
           initial.sideMissionActive = !!source.sideMissionActive;
           initial.botSimulationEvents = savedBotSimulationEvents.filter(event => event && typeof event.type === 'string' && typeof event.choice === 'string').slice(-40).map(event => ({
             type: event.type,
@@ -2330,12 +2448,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           manager.combatPoint[1] = state.playerInitialCP;
           const enemyBrains = this.getTargetBattleArmyBrains(1);
           const baselineAccuracy = this.clamp01(this.lerp(this.decisionAccuracyMin, this.decisionAccuracyMax, this.getProgression01(this.battleLevel)));
+          const recovery = this.getSideEconomyRecoveryStatus(state);
+
+          if (!recovery.active) {
+            state.consecutiveSideRecoveryLosses = 0;
+          }
+
+          const recoveryAccuracyMultiplier = recovery.active ? Math.pow(this.clamp01(this.sideRecoveryAccuracyMultiplier), state.consecutiveSideRecoveryLosses) : 1;
 
           for (let i = 0; i < enemyBrains.length; i++) {
             enemyBrains[i].maxAliveWaves = state.playerMaxAlive;
 
             if (this.allowDecisionAccuracy) {
-              enemyBrains[i].decisionAccuracy = baselineAccuracy;
+              enemyBrains[i].decisionAccuracy = this.clamp01(baselineAccuracy * recoveryAccuracyMultiplier);
             }
           }
         }
@@ -2349,7 +2474,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           manager.configureBattleCardDecks([], [], {}, {}, {}, 0, 0);
         }
 
-        getPurchaseOptions(state) {
+        getPurchaseOptions(state, includeCardUpgrades = true) {
           const options = [];
           const manager = this.getGameManager();
 
@@ -2459,6 +2584,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
                 continue;
               }
 
+              if (!includeCardUpgrades) continue;
               const cooldownUpgradeRankLimit = this.getCardUpgradeRankLimit(definition, 'cooldown');
               const budgetUpgradeRankLimit = this.getCardUpgradeRankLimit(definition, 'budget');
               const strengthUpgradeRankLimit = this.getCardUpgradeRankLimit(definition, 'strength');
@@ -2798,11 +2924,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return true;
         }
 
-        getMainBattleWinGold(level, includeBossBonus = true) {
-          const rewardBaseCP = this.getLevelBaseInitialCP(level);
-          return Math.max(0, Math.round(rewardBaseCP * Math.max(0, this.winGoldPerEnemyCP) * (includeBossBonus && this.isBossLevelFor(level) ? Math.max(1, this.bossGoldRewardMultiplier) : 1)));
-        }
-
         getMainBattleReward(level) {
           const safeLevel = this.clampLevel(level);
           const normalGold = this.getMainBattleNormalReward(safeLevel);
@@ -2817,17 +2938,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         getMainBattleNormalReward(level) {
           const safeLevel = this.clampLevel(level);
           const plan = this.getMainBattleNormalGoldPlan();
-          const flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
-          return (plan[safeLevel - 1] || 0) + flatBonus;
+          return plan[safeLevel - 1] || 0;
         }
 
         getBossMainBattleReward(level) {
           const safeLevel = this.clampLevel(level);
           const plan = this.getMainBattleNormalGoldPlan();
-          const normalBaseGold = plan[safeLevel - 1] || 0;
-          const bossBaseGold = Math.ceil(normalBaseGold * Math.max(1, this.bossGoldRewardMultiplier) / 50) * 50;
-          const flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
-          return bossBaseGold + flatBonus;
+          return this.getMainBattleRewardForNormalBase(safeLevel, plan[safeLevel - 1] || 0);
         }
 
         getMainBattleNormalGoldPlan() {
@@ -2837,65 +2954,103 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return this.mainBattleNormalGoldPlan;
           }
 
-          const plannedPurchaseBudgets = this.getMainlinePlannedPurchaseBudgets();
+          const contentFundingBudgets = this.getMainlineContentFundingBudgets();
           const result = [];
           let previousReward = 0;
+          let availableGold = Math.max(0, Math.floor(this.initialPlayerGold));
+          const targetReserve = Math.max(0, Math.round(Math.max(0, this.mainlineNoLossGoldReserve) / 50) * 50); // Rewards are paced by bossStagePace instead of rising every battle.
+          // A pace has one normal reward; the following pace raises it by at
+          // least 50. At each pace start, look ahead through the entire pace so
+          // a package near its end cannot create an arbitrary normal-level
+          // reward spike.
 
           for (let level = 1; level <= totalLevels; level++) {
-            const baseReward = Math.ceil(this.getMainBattleWinGold(level, false) / 50) * 50; // Normal mainline rewards are a visible progression signal:
-            // every normal point on the curve must pay strictly more than
-            // the previous one. Boss bonuses are applied separately.
+            const entryFee = level <= 1 ? 0 : this.getMainBattleEntryFeeForReward(previousReward, level);
+            availableGold -= contentFundingBudgets[level - 1] + entryFee;
+            const paceStart = level <= 1 || this.getRewardPaceIndex(level) !== this.getRewardPaceIndex(level - 1);
+            let normalReward = paceStart ? previousReward + 50 : previousReward;
 
-            let reward = Math.max(previousReward + 50, baseReward);
-            result.push(reward);
-            previousReward = reward;
-          } // Smoothly fund one important planned purchase plus the next entry
-          // fee. Deficits are spread across the levels that precede them so
-          // the curve stays strictly increasing without a late spike.
+            if (paceStart) {
+              const paceEnd = Math.min(totalLevels, this.getRewardPaceEndLevel(level));
 
+              const canFundPace = candidate => {
+                let projectedGold = availableGold;
 
-          const feeRatio = this.clamp01(this.mainBattleEntryFeeRatio);
+                for (let projectedLevel = level; projectedLevel <= paceEnd; projectedLevel++) {
+                  if (projectedLevel > level) {
+                    const projectedFee = this.getMainBattleEntryFeeForReward(candidate, projectedLevel);
+                    projectedGold -= contentFundingBudgets[projectedLevel - 1] + projectedFee; // A pace must fund every individual battle gate, not merely
+                    // recover by its final reward. Otherwise this calculation
+                    // implicitly borrows gold from a later battle reward.
 
-          for (let pass = 0; pass < 100; pass++) {
-            let availableGold = Math.max(0, Math.floor(this.initialPlayerGold));
-            let deficit = 0;
-            let deficitIndex = -1;
+                    if (projectedGold < 0) {
+                      return false;
+                    }
+                  }
 
-            for (let level = 1; level <= totalLevels; level++) {
-              availableGold += this.getMainBattleNormalRewardFromBase(result[level - 1]);
-              if (level >= totalLevels) continue;
-              const nextLevel = level + 1;
-              availableGold -= plannedPurchaseBudgets[nextLevel - 1] + this.getMainBattleEntryFeeForReward(this.getMainBattleNormalRewardFromBase(result[level - 1]), nextLevel);
+                  projectedGold += this.getMainBattleRewardForNormalBase(projectedLevel, candidate);
+                }
 
-              if (availableGold < deficit) {
-                deficit = availableGold;
-                deficitIndex = level - 1;
+                if (paceEnd >= totalLevels) return true;
+                const nextLevel = paceEnd + 1;
+                const nextEntryFee = this.getMainBattleEntryFeeForReward(candidate, nextLevel);
+                return projectedGold >= contentFundingBudgets[nextLevel - 1] + nextEntryFee + targetReserve;
+              };
+
+              if (!canFundPace(normalReward)) {
+                let lowStep = Math.ceil(normalReward / 50);
+                let highStep = lowStep;
+
+                for (let pass = 0; pass < 32; pass++) {
+                  highStep += Math.pow(2, pass);
+
+                  if (canFundPace(highStep * 50)) {
+                    break;
+                  }
+                }
+
+                while (lowStep < highStep) {
+                  const middleStep = Math.floor((lowStep + highStep) / 2);
+
+                  if (canFundPace(middleStep * 50)) {
+                    highStep = middleStep;
+                  } else {
+                    lowStep = middleStep + 1;
+                  }
+                }
+
+                normalReward = highStep * 50;
               }
             }
 
-            if (deficitIndex < 0) break;
-            const levelsToFund = deficitIndex + 1;
-            const uplift = Math.ceil(-deficit / Math.max(0.01, levelsToFund * (1 - feeRatio)) / 50) * 50;
-
-            for (let index = 0; index <= deficitIndex; index++) {
-              result[index] += uplift;
-            }
-
-            for (let index = 1; index < result.length; index++) {
-              result[index] = Math.max(result[index], result[index - 1] + 50);
-            }
+            result.push(normalReward);
+            availableGold += this.getMainBattleRewardForNormalBase(level, normalReward);
+            previousReward = normalReward;
           }
 
           this.mainBattleNormalGoldPlan = result;
           return result;
         }
 
-        getMainBattleNormalRewardFromBase(baseReward) {
-          const flatBonus = Math.max(0, Math.round(Math.max(0, this.mainRewardFlatBonus) / 50) * 50);
-          return Math.max(0, baseReward) + flatBonus;
+        getRewardPaceIndex(level) {
+          const pace = Math.max(0, Math.floor(this.bossStagePace));
+          const safeLevel = Math.max(1, Math.floor(level));
+          return pace > 0 ? Math.floor((safeLevel - 1) / pace) : safeLevel - 1;
         }
 
-        getMainlinePlannedPurchaseBudgets() {
+        getRewardPaceEndLevel(level) {
+          const pace = Math.max(0, Math.floor(this.bossStagePace));
+          if (pace <= 0) return Math.max(1, Math.floor(level));
+          return (this.getRewardPaceIndex(level) + 1) * pace;
+        }
+
+        getMainBattleRewardForNormalBase(level, normalReward) {
+          const safeReward = Math.max(0, normalReward);
+          if (!this.isBossLevelFor(level)) return safeReward;
+          return Math.ceil(safeReward * Math.max(1, this.bossGoldRewardMultiplier) / 50) * 50;
+        }
+
+        getMainlineContentFundingBudgets() {
           const totalLevels = this.getSafeTotalLevels();
           const result = new Array(totalLevels).fill(0);
           const savedState = this.progressionState;
@@ -2908,21 +3063,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             for (let level = 1; level <= totalLevels; level++) {
               this.battleLevel = level;
-              this.offerIntroducedUnits(level);
-              const options = this.getBotPurchaseCandidates(planState, false, false);
-              if (options.length <= 0) continue;
-              const plannedOption = options.slice().sort((a, b) => {
-                const weightDifference = this.getPurchaseWeight(b) - this.getPurchaseWeight(a);
+              this.offerIntroducedUnits(level); // Purchase every option made available at this level. Repeat
+              // because an unlock can expose its upgrade packages.
 
-                if (weightDifference !== 0) {
-                  return weightDifference;
-                }
-
-                return b.cost - a.cost || a.id.localeCompare(b.id);
-              })[0];
-              if (!plannedOption) continue;
-              result[level - 1] = plannedOption.cost;
-              this.applyPurchaseToState(plannedOption, planState);
+              for (let pass = 0; pass < 1000; pass++) {
+                const options = this.getPurchaseOptions(planState).slice().sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
+                const option = options[0];
+                if (!option) break;
+                result[level - 1] += option.cost;
+                this.applyPurchaseToState(option, planState);
+              }
             }
           } finally {
             this.progressionState = savedState;
@@ -2930,6 +3080,76 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return result;
+        }
+
+        getMainlineNoLossEconomyAudit() {
+          const totalLevels = this.getSafeTotalLevels();
+          const savedState = this.progressionState;
+          const savedBattleLevel = this.battleLevel;
+          const auditState = this.createInitialProgressionState();
+          let minimumGold = auditState.playerGold;
+
+          try {
+            this.progressionState = auditState;
+
+            for (let level = 1; level <= totalLevels; level++) {
+              this.battleLevel = level;
+              this.offerIntroducedUnits(level);
+
+              for (let pass = 0; pass < 1000; pass++) {
+                const options = this.getPurchaseOptions(auditState).slice().sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
+                const option = options[0];
+                if (!option) break;
+
+                if (auditState.playerGold < option.cost) {
+                  return {
+                    passed: false,
+                    failure: 'package',
+                    level,
+                    gold: auditState.playerGold,
+                    requiredGold: option.cost,
+                    packageId: option.id,
+                    minimumGold
+                  };
+                }
+
+                auditState.playerGold -= option.cost;
+                minimumGold = Math.min(minimumGold, auditState.playerGold);
+                this.applyPurchaseToState(option, auditState);
+              }
+
+              const fee = this.getMainBattleEntryFee(level);
+
+              if (auditState.playerGold < fee) {
+                return {
+                  passed: false,
+                  failure: 'entry-fee',
+                  level,
+                  gold: auditState.playerGold,
+                  requiredGold: fee,
+                  packageId: '',
+                  minimumGold
+                };
+              }
+
+              auditState.playerGold -= fee;
+              minimumGold = Math.min(minimumGold, auditState.playerGold);
+              auditState.playerGold += this.getMainBattleReward(level).gold;
+            }
+
+            return {
+              passed: true,
+              failure: '',
+              level: totalLevels,
+              gold: auditState.playerGold,
+              requiredGold: 0,
+              packageId: '',
+              minimumGold
+            };
+          } finally {
+            this.progressionState = savedState;
+            this.battleLevel = savedBattleLevel;
+          }
         }
 
         getMainBattleEntryFee(level) {
@@ -2963,6 +3183,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetId: '',
             targetCost: 0,
             gold: baseGold
+          };
+        }
+
+        getSideEconomyRecoveryStatus(state) {
+          const entryFee = this.getMainBattleEntryFee(this.battleLevel);
+          const options = this.getPurchaseOptions(state);
+          let cheapestPackageCost = 0;
+
+          for (let i = 0; i < options.length; i++) {
+            const cost = Math.max(0, options[i].cost);
+
+            if (cheapestPackageCost <= 0 || cost < cheapestPackageCost) {
+              cheapestPackageCost = cost;
+            }
+          }
+
+          const requiredGold = entryFee + cheapestPackageCost;
+          const shortfall = Math.max(0, requiredGold - state.playerGold);
+          return {
+            entryFee,
+            cheapestPackageCost,
+            requiredGold,
+            shortfall,
+            active: shortfall > 0
           };
         }
 
@@ -3021,7 +3265,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         grantBotGoldClaim(state, baseGold, type, targetId = '', targetCost = 0) {
           const reward = Math.max(0, Math.floor(baseGold));
           const decision = this.getBotGoldClaimDecision(state, reward, type);
-          const useAds = type === 'side-mission-win' && this.purchasingSimulation && this.allowAdsRescue && state.levelLossCount > 0 && decision.useAds;
+          const useAds = type === 'side-mission-win' && this.purchasingSimulation && this.allowAdsRescue && this.allowBotGoldX2Ads && state.levelLossCount > 0 && decision.useAds;
           const goldGranted = reward * (useAds ? 2 : 1);
           const event = {
             type,
@@ -3031,7 +3275,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetCost: useAds && decision.targetCost > 0 ? decision.targetCost : targetCost,
             baseGold: reward,
             goldGranted,
-            adsReason: !this.purchasingSimulation ? 'bot-simulation-disabled' : !this.allowAdsRescue ? 'ads-disabled' : type !== 'side-mission-win' ? 'side-rescue-only' : state.levelLossCount <= 0 ? 'mainline-run-no-rescue-needed' : decision.useAds ? decision.reason : 'no-material-benefit',
+            adsReason: !this.purchasingSimulation ? 'bot-simulation-disabled' : !this.allowAdsRescue ? 'ads-disabled' : !this.allowBotGoldX2Ads ? 'gold-x2-disabled' : type !== 'side-mission-win' ? 'side-rescue-only' : state.levelLossCount <= 0 ? 'mainline-run-no-rescue-needed' : decision.useAds ? decision.reason : 'no-material-benefit',
             normalGold: decision.normalGold,
             doubleGold: decision.doubleGold,
             normalPurchaseCount: decision.normalPurchaseCount,
@@ -3240,13 +3484,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             battleIndex: identity.battleIndex,
             sequence: this.telemetryActionSequence,
             phase: this.telemetryActionPhase,
-            battleLevel: this.battleLevel
+            battleLevel: this.battleLevel,
+            controller: this.purchasingSimulation ? 'bot-simulation' : 'player'
           });
         }
 
         createProgressionTelemetryLedger() {
           return {
-            schemaVersion: 2,
+            schemaVersion: 4,
             ...this.createProgressionTelemetryIdentity(),
             actions: this.telemetryActions.slice()
           };
@@ -4265,126 +4510,140 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return true;
         }
-      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "progressionStorageKey", [_dec33], {
+      }), _descriptor35 = _applyDecoratedDescriptor(_class5.prototype, "allowBotGoldX2Ads", [_dec33], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return true;
+        }
+      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "progressionStorageKey", [_dec34], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 'battle-progression-v8';
         }
-      }), _descriptor36 = _applyDecoratedDescriptor(_class5.prototype, "battleCardDeckSize", [_dec34], {
+      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "battleCardDeckSize", [_dec35], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 3;
         }
-      }), _descriptor37 = _applyDecoratedDescriptor(_class5.prototype, "enemyCardDiversityScoreFloor", [_dec35], {
+      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "enemyCardDiversityScoreFloor", [_dec36], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.5;
         }
-      }), _descriptor38 = _applyDecoratedDescriptor(_class5.prototype, "botStrengthUpgradePurchaseWeight", [_dec36], {
+      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "botStrengthUpgradePurchaseWeight", [_dec37], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.75;
         }
-      }), _descriptor39 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec37], {
+      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "maxPlayerPackagesPerLevel", [_dec38], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 3;
+        }
+      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "initialPlayerGold", [_dec39], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0;
         }
-      }), _descriptor40 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec38], {
+      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "playerInitialCPStart", [_dec40], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 300;
         }
-      }), _descriptor41 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec39], {
+      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveStart", [_dec41], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 4;
         }
-      }), _descriptor42 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec40], {
+      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "playerMaxAliveMax", [_dec42], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 10;
         }
-      }), _descriptor43 = _applyDecoratedDescriptor(_class5.prototype, "winGoldPerEnemyCP", [_dec41], {
+      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "mainlineNoLossGoldReserve", [_dec43], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0;
+        }
+      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec44], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1.15;
         }
-      }), _descriptor44 = _applyDecoratedDescriptor(_class5.prototype, "mainRewardFlatBonus", [_dec42], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 1000;
-        }
-      }), _descriptor45 = _applyDecoratedDescriptor(_class5.prototype, "bossGoldRewardMultiplier", [_dec43], {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        initializer: function () {
-          return 1.15;
-        }
-      }), _descriptor46 = _applyDecoratedDescriptor(_class5.prototype, "sideRewardFeeMultiplier", [_dec44], {
+      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "sideRewardFeeMultiplier", [_dec45], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.65;
         }
-      }), _descriptor47 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec45], {
+      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "sideRecoveryAccuracyMultiplier", [_dec46], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.75;
+        }
+      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "mainBattleEntryFeeRatio", [_dec47], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.35;
         }
-      }), _descriptor48 = _applyDecoratedDescriptor(_class5.prototype, "mainLossRewardFeeRatio", [_dec46], {
+      }), _descriptor50 = _applyDecoratedDescriptor(_class5.prototype, "mainLossRewardFeeRatio", [_dec48], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 0.25;
         }
-      }), _descriptor49 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec47], {
+      }), _descriptor51 = _applyDecoratedDescriptor(_class5.prototype, "unitUnlockCostMultiplier", [_dec49], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 5;
         }
-      }), _descriptor50 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec48], {
+      }), _descriptor52 = _applyDecoratedDescriptor(_class5.prototype, "initialCPGoldPerPoint", [_dec50], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 10;
         }
-      }), _descriptor51 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec49], {
+      }), _descriptor53 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveBasePrice", [_dec51], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 1000;
         }
-      }), _descriptor52 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec50], {
+      }), _descriptor54 = _applyDecoratedDescriptor(_class5.prototype, "unitProgressionRules", [_dec52], {
         configurable: true,
         enumerable: true,
         writable: true,
