@@ -625,10 +625,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!this.progressionState) return null;
           var state = this.progressionState;
           var before = this.createTelemetrySnapshot();
-          this.telemetryActionPhase = 'battle-result'; // Side missions disable cards, but still count as a completed battle
-          // for the player's existing card cooldowns.
+          this.telemetryActionPhase = 'battle-result'; // Side missions use the same cooldown contract as Main: existing
+          // cooldowns advance and every selected player card begins cooldown.
 
-          this.advancePlayerCardCooldowns(state, []);
+          var usedPlayerCards = this.currentPlayerBattleCardIds.slice();
+          this.advancePlayerCardCooldowns(state, usedPlayerCards);
           var goldReward = 0;
           var rewardClaim = null;
           var route = 'progression';
@@ -2548,12 +2549,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         configureSideMissionBattleCards() {
-          this.currentPlayerBattleCardIds = [];
           this.currentEnemyBattleCardIds = [];
           this.currentPlayerCooldownAdReasons.clear();
           var manager = this.getGameManager();
           if (!manager) return;
-          manager.configureBattleCardDecks([], [], {}, {}, {}, 0, 0);
+          var state = this.progressionState;
+          var database = manager.battleCardDatabase;
+
+          if (!state || !database) {
+            this.currentPlayerBattleCardIds = [];
+            manager.configureBattleCardDecks([], [], {}, {}, {}, 0, 0);
+            return;
+          }
+
+          if (this.purchasingSimulation) {
+            var readyOwnedDefinitions = database.cards.filter(definition => {
+              var saved = this.getSavedCard(state, definition.id);
+              return !!saved && saved.owned && saved.cooldownRemaining <= 0 && this.isCardEligibleForTeam(definition, 0, state);
+            });
+            this.currentPlayerBattleCardIds = this.selectBestPlayerCardIds(readyOwnedDefinitions, state, this.getBattleCardDeckSize());
+          } else {
+            this.currentPlayerBattleCardIds = this.filterReadyPlayerCardIds(this.currentPlayerBattleCardIds);
+          }
+
+          manager.configureBattleCardDecks(this.currentPlayerBattleCardIds, [], this.getPlayerCardBudgetUpgradeLevels(state), this.getPlayerCardStrengthScales(state), {}, this.getBattleCardDeckSize(), 0);
         }
 
         getPurchaseOptions(state, includeCardUpgrades) {

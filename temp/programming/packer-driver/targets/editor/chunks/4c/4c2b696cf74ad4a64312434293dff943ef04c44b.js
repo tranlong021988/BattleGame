@@ -2007,6 +2007,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.battleTelemetry.recordWaveSpawnDecision(decision);
         }
 
+        recordBattleTelemetryRangedKite(unit, target, reason, targetDistance, moveX, moveZ) {
+          var _unit$props$family, _target$props$family;
+
+          if (!this.enableBattleTelemetry) return;
+          if (!(unit != null && unit.agent) || !(target != null && target.agent)) return;
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'ranged-kite',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: unit.waveRuntimeId,
+            laneId: unit.laneId,
+            unitName: unit.unitTypeName,
+            familyName: unit.props ? (_unit$props$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[unit.props.family]) != null ? _unit$props$family : String(unit.props.family) : '',
+            unitLifeId: unit.lifeId,
+            targetTeam: target.team,
+            targetWaveId: target.waveRuntimeId,
+            targetLaneId: target.laneId,
+            targetFamilyName: target.props ? (_target$props$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[target.props.family]) != null ? _target$props$family : String(target.props.family) : '',
+            targetLifeId: target.lifeId,
+            unitX: unit.agent.pos.x,
+            unitZ: unit.agent.pos.z,
+            targetX: target.agent.pos.x,
+            targetZ: target.agent.pos.z,
+            targetDistance,
+            forwardDirX: unit.forwardDir.x,
+            forwardDirZ: unit.forwardDir.z,
+            moveX,
+            moveZ,
+            reason
+          });
+        }
+
         getBattleElapsedTime() {
           return this.battleElapsedTime;
         }
@@ -2471,6 +2508,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             unitStats: this.createBattleTelemetryUnitStatsSnapshot(),
             counterRules: this.createBattleTelemetryCounterRuleSnapshot(),
             cardEffectsEnabled: this.enableBattleCardEffects,
+            rangedKitePolicy: 'own-side',
             cards: this.getBattleCardTelemetrySnapshot(),
             progression: this.battleProgressionProvider ? this.battleProgressionProvider.createTelemetrySnapshot() : undefined
           };

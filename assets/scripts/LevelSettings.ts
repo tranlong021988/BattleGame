@@ -791,9 +791,10 @@ export class LevelSettings extends Component
         const state = this.progressionState;
         const before = this.createTelemetrySnapshot();
         this.telemetryActionPhase = 'battle-result';
-        // Side missions disable cards, but still count as a completed battle
-        // for the player's existing card cooldowns.
-        this.advancePlayerCardCooldowns(state, []);
+        // Side missions use the same cooldown contract as Main: existing
+        // cooldowns advance and every selected player card begins cooldown.
+        const usedPlayerCards = this.currentPlayerBattleCardIds.slice();
+        this.advancePlayerCardCooldowns(state, usedPlayerCards);
         let goldReward = 0;
         let rewardClaim: BotSimulationEvent | null = null;
         let route = 'progression';
@@ -3882,7 +3883,6 @@ export class LevelSettings extends Component
     }
 
     private configureSideMissionBattleCards() {
-        this.currentPlayerBattleCardIds = [];
         this.currentEnemyBattleCardIds = [];
         this.currentPlayerCooldownAdReasons.clear();
 
@@ -3890,8 +3890,56 @@ export class LevelSettings extends Component
 
         if (!manager) return;
 
+        const state = this.progressionState;
+        const database = manager.battleCardDatabase;
+
+        if (!state || !database) {
+            this.currentPlayerBattleCardIds = [];
+            manager.configureBattleCardDecks(
+                [], [], {}, {}, {}, 0, 0
+            );
+            return;
+        }
+
+        if (this.purchasingSimulation) {
+            const readyOwnedDefinitions = database.cards.filter(
+                (definition) => {
+                    const saved = this.getSavedCard(
+                        state,
+                        definition.id
+                    );
+
+                    return !!saved && saved.owned &&
+                        saved.cooldownRemaining <= 0 &&
+                        this.isCardEligibleForTeam(
+                            definition,
+                            0,
+                            state
+                        );
+                }
+            );
+
+            this.currentPlayerBattleCardIds =
+                this.selectBestPlayerCardIds(
+                    readyOwnedDefinitions,
+                    state,
+                    this.getBattleCardDeckSize()
+                );
+        } else {
+            this.currentPlayerBattleCardIds =
+                this.filterReadyPlayerCardIds(
+                    this.currentPlayerBattleCardIds
+                );
+        }
+
         manager.configureBattleCardDecks(
-            [], [], {}, {}, {}, 0, 0
+            this.currentPlayerBattleCardIds,
+            [],
+            this.getPlayerCardBudgetUpgradeLevels(state),
+            this.getPlayerCardStrengthScales(state),
+            {},
+            this.getBattleCardDeckSize(),
+            0
         );
     }
 

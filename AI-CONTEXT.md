@@ -16,7 +16,7 @@ The user wants evidence-led balance work, not automatic retuning. Treat attached
 4. **Baseline issue threshold.** Call it an issue only if the player had enough gold but failed to buy a required baseline package, or an adequately funded/no-loss state still enters main materially weaker than enemy.
 5. **Combat luck is not automatically a bug.** A hero dying while surrounded can be valid emergent gameplay. Any criticism must state the counterfactual: what would happen without the alleged issue, and why the observed result violates it.
 6. **Evidence labels are mandatory.** `PROVEN` needs a deterministic invariant or direct telemetry field. `LIKELY` is a strong directional observation. `NEEDS TESTING` is a hypothesis or a single stochastic run. Do not present one campaign as statistical proof.
-7. **Compare like with like.** Group telemetry by nested `progression.telemetry.runId`, then verify `config` and progression settings before comparing. Side intentionally has no cards for either team; do not attribute side-only variation to card combat effects.
+7. **Compare like with like.** Group telemetry by nested `progression.telemetry.runId`, then verify `config` and progression settings before comparing. In Side, player/team 0 may use its eligible ready cards; enemy/team 1 has no card deck. Do not attribute side-only variation to card combat effects without checking the telemetry card events by team.
 
 ## Active economy/progression contract
 
@@ -66,7 +66,7 @@ Interpretation:
 - `LIKELY`: Cards materially improve **normal** main performance: removing combat effects required 16 extra main losses and reduced normal main win rate by 15.3 percentage points.
 - `NOT PROVEN`: Cards do not show a boss benefit in this pair; both runs have 12 boss wins, and the sample is too small/stochastic for a boss conclusion.
 - 36 of 40 card-off main losses had CP and maxAlive parity or advantage. The normal-main decline is therefore more consistent with lost combat effects than economy shortage.
-- Side has no cards in both modes. The larger card-off side volume follows extra main failures; its side win-rate change is not evidence about cards.
+- These historical paired runs predate Side player-card access; Side had no cards in both modes then. The larger card-off side volume follows extra main failures; its side win-rate change is not evidence about cards or the current Side-card rule.
 - Cards-off final gold (5,656) versus cards-on (5,046) must not be read as economy being easier: histories had different retry/side/x2 paths. The common no-loss audit is the economy invariant.
 - If a precise effect size is needed, run 5–10 seeds per mode with the same settings and compare normal-main rate, boss rate, retry count, and cardEvents. Do not retune card values from this one paired run.
 
@@ -99,6 +99,30 @@ The user observed two distinct ranged behaviours. Do not conflate them:
 - Verification rule for a new live report: for every `ranged-kite` event with non-zero move vector, `move` must point opposite `forwardDir` (negative dot product; near-zero 2D cross product). If no ranged-kite event occurs, the batch does not test this behaviour. Inspect `diagnostics.limits.droppedDiagnosticEventCount` before declaring the trace complete.
 - The current telemetry does not measure full formation spread over time. Do not claim that a batch proves “no scattering” merely because it contains no errors or completes the campaign. The kiting event proves issued intent, not final RVO displacement.
 
+## Ranged range and Side card access (2026-09-04)
+
+- Runtime scene defaults for both teams were increased by 1.5x: Monk `5.8 -> 8.7`, Archer `6.2 -> 9.3`. The prefab's generic component default is not the runtime source for these spawned entries.
+- Kiting was inspected but intentionally not retuned. `Unit.updateRangedBusyCombat()` refreshes the retreat/approach vector only when `targetSearchIntervalFrames` elapses (the current scene/prefabs set it to 30) and otherwise preserves the previous vector. Therefore a ranged unit can continue retreating after crossing the safe threshold until the next refresh. The source condition itself exits kite at base range, while the actual attack check includes both units' radii. Treat any remaining visible overshoot as an interval/RVO verification item, not as proof that the distance condition is wrong.
+- Side battle cards now differ by team: player/team 0 retains ready selected cards in normal play, while purchasing simulation selects its best eligible ready owned cards. Player card budget and Strength upgrades are passed through. Enemy/team 1 is always configured with an empty deck and zero deck capacity.
+- The Side bot path deliberately does not add a new automatic cooldown-skip ad. A card on cooldown is unavailable for that Side battle; this keeps the change to permission for ready player cards only.
+- Side result handling follows the Main cooldown contract: it advances all existing player cooldowns and starts the effective cooldown for every selected Side card. Do not revert this to an empty used-card list: that was the old Side-without-cards behavior and allowed a card activated in Side to be selected again immediately.
+- Side-card live verification is complete in `run-mtmue1fd-145jbht` (130 reports, 2026-09-04): 29 Side battles had a player deck (73 selected card IDs); every selected ID appeared in the post-Side cooling list. There were five immediate Side-to-Side transitions and no selected-card reuse. The only immediate Side-to-Main repeated deck card was `battle-shields`; its next Main report explicitly recorded `cooldownAdReasons: ["battle-shields"]`, so that reuse came from the pre-existing Main cooldown-finish ad path, not a Side cooldown bypass. Side recorded 124 team-0 card events and zero team-1 card events.
+- A fresh ranged report should be run at normal time scale if visual retreat distance needs a conclusion. The current telemetry proves issued kite intent, not final RVO displacement or formation cohesion.
+
+### Side cooldown regression: defect, contract, and result
+
+The original Side result path advanced existing cooldowns with an empty `usedPlayerCards` list. That was harmless while Side cards were disabled, but once team 0 could use cards in Side it meant a just-used card did not start cooldown. The earlier 2026-09-04 Side batch exposed this: 17 of 30 Side activations reselected a just-activated card in the immediately following battle.
+
+`handleSideMissionBattleResult()` now snapshots the effective player deck before state reset and passes it to `advancePlayerCardCooldowns`, matching Main battle settlement. The contract is: a completed player battle advances pre-existing cooldowns once; every selected player deck card then receives its own effective cooldown. Enemy/team 1 never receives a Side deck or card effects. Do not restore the empty-used-card call unless Side cards are deliberately removed again.
+
+Post-fix telemetry above verifies this contract. No further cooldown change is pending. A future audit must distinguish a true cooldown bypass from an explicit Main cooldown-finish ad, which is permitted to make a card ready before the next Main battle.
+
+### Current-rule batch summary (2026-09-04)
+
+`run-mtmue1fd-145jbht` completed L60 in 130 attempts: all battles 87W/43L (66.9%); Main 60W/35L (63.2%); normal Main 48W/19L (71.6%); Boss Main 12W/16L (42.9%); Side 27W/8L (77.1%). Final actual gold was 5,616. The user explicitly accepts the Boss result as normal and does not want it treated as a balance issue.
+
+The shared no-loss economy audit still passes (final 5,386 gold; minimum 29). In this actual campaign, 17 Main entries had at least one affordable-purchase shortfall, and all occurred after at least three cumulative Main losses. That supports the intended rule: perfect/no-loss progression funds baseline purchases; repeated losses can erode gold and delay them. Do not classify these shortages as an economy defect without first rerunning the no-loss audit under the same rules.
+
 ### Latest cards-on batch after the kiting source edit
 
 `run-mtlxynhg-0bzeeu9` (2026-09-03 19:52–20:12): 104 records; cards enabled; campaign completed L60. Main: 60W/19L (75.9%); side: 10W/15L (40.0%); 3,072.7 seconds; final gold 5,766; 381 actual `cardEvents` (team 0: 246; team 1: 135). Cooldown skips: 30, predominantly Sword Wall (24).
@@ -109,13 +133,13 @@ The latest run contains seven main entry states with a CP or maxAlive deficit bu
 
 ## Source/worktree safety
 
-- Gameplay source currently modified includes prior approved changes plus the current work in `assets/scripts/Unit.ts`, `GameManager.ts`, and `BattleTelemetry.ts`. The current edits implement free-hunt continuity, own-side ranged kiting, and kiting telemetry. Preserve unrelated dirty changes, especially `assets/Battle.scene` and Cocos-generated artifacts.
+- Relevant approved gameplay/config work includes `assets/scripts/Unit.ts`, `GameManager.ts`, and `BattleTelemetry.ts` for free-hunt continuity, own-side ranged kiting, and kiting telemetry; `assets/scripts/LevelSettings.ts` for Side player-card eligibility and Side cooldown settlement; and `assets/Battle.scene` for the Archer/Monk 1.5x default attack ranges. Preserve unrelated dirty changes and Cocos-generated artifacts.
 - `AI-CONTEXT.md` itself is intentionally updated by this handoff.
 - `library/`, `profiles/`, and `temp/` are live Cocos cache/log artifacts. Never clean, revert, or delete them unless explicitly asked and the Editor is closed.
 - On 2026-09-04, `.git/index.lock` was a zero-byte file and no Git process was running; it was removed after verification. Before deleting any future lock, repeat both checks. Do not remove a live lock.
 
 ## Current status / next action
 
-No rebalance is pending. The current unfinished verification is the ranged movement change: run a fresh battle batch with ranged units active and inspect `config.rangedKitePolicy` plus `diagnostics.events[type="ranged-kite"]`. Do not declare the visual formation issue fixed from aggregate win rate.
+No rebalance is pending. Side-card cooldown is verified and should not be revisited unless a new telemetry regression appears. The remaining unfinished verification is ranged movement at normal time scale: run a fresh batch with ranged units active and inspect `config.rangedKitePolicy` plus `diagnostics.events[type="ranged-kite"]`. Do not declare the visual formation issue fixed from aggregate win rate. Do not change the 30-frame target-search interval without a direct design request; it is the configured runtime cadence and is also the likely source of any residual retreat overshoot.
 
 The user plans to continue testing elsewhere. The most valuable next artifact is a controlled paired set: start both modes from the same save/progression snapshot and seed, change only `Enable Battle Card Effects`, preserve card purchase/upgrade schedules, verify `config.cardEffectsEnabled` and `cardEvents`, then report normal/boss results, retry count, and duration separately. Run 5–10 pairs before considering a card rebalance.
