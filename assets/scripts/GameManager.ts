@@ -413,6 +413,10 @@ export class GameManager extends Component {
     private heroForwardUnlocked = [false, false];
     private readonly refreshLaneBeforeWaveForward =
         (wave: BattleWave) => {
+            if (wave.applyDefeatedTargetLaneForRegroup()) {
+                return;
+            }
+
             this.refreshDynamicLaneForWave(
                 wave,
                 true
@@ -910,6 +914,7 @@ export class GameManager extends Component {
         }
 
         this.processDynamicWaveLanes();
+        this.processWaveTargetClearTelemetry();
         this.processWaveHuntScannerRefreshes();
         this.processWaveForwardSearches();
         this.processWaveForwardRecoveries();
@@ -1433,12 +1438,35 @@ export class GameManager extends Component {
                 unit,
                 enemy
             );
+        const waveForwardBefore = wave.isForwardMode();
+        const aggressiveForwardBefore =
+            wave.isAggressiveForwardMode();
+        const sameLaneWaveEngagement =
+            this.isSameLaneWaveEngagement(wave, enemy);
         const canEscalateWaveCombat =
             !soloAggressiveCombat &&
+            // A frontal same-lane engagement is a wave battle for either
+            // Forward mode. Normal Forward retains its passed-target gate
+            // only for adjacent-lane targets.
+            (!wave.isForwardMode() ||
+                wave.isAggressiveForwardMode() ||
+                sameLaneWaveEngagement) &&
             this.canEscalateWaveCombatFromEngagement(
                 wave,
                 enemy
             );
+        const initialForwardCombatDelayed =
+            canEscalateWaveCombat &&
+            this.shouldDelayInitialForwardCombat(
+                wave,
+                unit,
+                enemy,
+                useInitialForwardGate
+            );
+        const waveCombatEscalated =
+            canEscalateWaveCombat &&
+            !initialForwardCombatDelayed &&
+            waveForwardBefore;
 
         if (canEscalateWaveCombat) {
             this.trySetWaveTargetFromEngagement(
@@ -1450,15 +1478,23 @@ export class GameManager extends Component {
 
         if (
             canEscalateWaveCombat &&
-            !this.shouldDelayInitialForwardCombat(
-                wave,
-                unit,
-                enemy,
-                useInitialForwardGate
-            )
+            !initialForwardCombatDelayed
         ) {
             wave.enterCombatMode();
         }
+
+        this.recordWaveCombatEscalationDecision(
+            wave,
+            unit,
+            enemy,
+            aggressiveForwardBefore,
+            waveForwardBefore,
+            sameLaneWaveEngagement,
+            soloAggressiveCombat,
+            canEscalateWaveCombat,
+            initialForwardCombatDelayed,
+            waveCombatEscalated
+        );
 
         const enemyWave =
             BattleWave.getWaveForUnit(enemy);
@@ -1471,25 +1507,59 @@ export class GameManager extends Component {
             return;
         }
 
-        if (
-            !this.shouldUseSoloAggressiveCombat(
+        const enemySoloAggressiveCombat =
+            this.shouldUseSoloAggressiveCombat(
                 enemyWave,
                 enemy,
                 unit
-            ) &&
+            );
+        const enemyWaveForwardBefore =
+            enemyWave.isForwardMode();
+        const enemyAggressiveForwardBefore =
+            enemyWave.isAggressiveForwardMode();
+        const enemySameLaneWaveEngagement =
+            this.isSameLaneWaveEngagement(enemyWave, unit);
+        const enemyCanEscalateWaveCombat =
+            !enemySoloAggressiveCombat &&
+            (!enemyWave.isForwardMode() ||
+                enemyWave.isAggressiveForwardMode() ||
+                enemySameLaneWaveEngagement) &&
             this.canEscalateWaveCombatFromEngagement(
                 enemyWave,
                 unit
-            ) &&
-            !this.shouldDelayInitialForwardCombat(
+            );
+        const enemyInitialForwardCombatDelayed =
+            enemyCanEscalateWaveCombat &&
+            this.shouldDelayInitialForwardCombat(
                 enemyWave,
                 enemy,
                 unit,
                 useInitialForwardGate
-            )
+            );
+        const enemyWaveCombatEscalated =
+            enemyCanEscalateWaveCombat &&
+            !enemyInitialForwardCombatDelayed &&
+            enemyWaveForwardBefore;
+
+        if (
+            enemyCanEscalateWaveCombat &&
+            !enemyInitialForwardCombatDelayed
         ) {
             enemyWave.enterCombatMode();
         }
+
+        this.recordWaveCombatEscalationDecision(
+            enemyWave,
+            enemy,
+            unit,
+            enemyAggressiveForwardBefore,
+            enemyWaveForwardBefore,
+            enemySameLaneWaveEngagement,
+            enemySoloAggressiveCombat,
+            enemyCanEscalateWaveCombat,
+            enemyInitialForwardCombatDelayed,
+            enemyWaveCombatEscalated
+        );
     }
 
     public shouldUseSoloAggressiveSkirmish(
@@ -1583,6 +1653,64 @@ export class GameManager extends Component {
         ) <= 1;
     }
 
+    private isSameLaneWaveEngagement(
+        wave: BattleWave,
+        target: Unit | null
+    ) {
+        const targetWave = BattleWave.getWaveForUnit(target);
+
+        if (!targetWave) return false;
+        if (wave.laneId < 0 || targetWave.laneId < 0) {
+            return false;
+        }
+
+        return this.clampLaneId(wave.laneId) ===
+            this.clampLaneId(targetWave.laneId);
+    }
+
+    private recordWaveCombatEscalationDecision(
+        wave: BattleWave,
+        unit: Unit | null,
+        target: Unit | null,
+        aggressiveForwardBefore: boolean,
+        waveForwardBefore: boolean,
+        sameLaneWaveEngagement: boolean,
+        soloAggressiveCombat: boolean,
+        canEscalateWaveCombat: boolean,
+        initialForwardCombatDelayed: boolean,
+        waveCombatEscalated: boolean
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        const targetWave = BattleWave.getWaveForUnit(target);
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-combat-escalation-decision',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: unit?.unitTypeName ?? wave.unitName,
+            unitLifeId: unit?.lifeId ?? -1,
+            targetTeam: target?.team ?? -1,
+            targetWaveId: targetWave?.id ?? -1,
+            targetLaneId: targetWave?.laneId ?? -1,
+            targetFamilyName: targetWave
+                ? UnitFamily[targetWave.family] ??
+                    String(targetWave.family)
+                : '',
+            targetLifeId: target?.lifeId ?? -1,
+            aggressiveForward: aggressiveForwardBefore,
+            waveForwardBefore,
+            sameLaneWaveEngagement,
+            soloAggressiveCombat,
+            canEscalateWaveCombat,
+            initialForwardCombatDelayed,
+            waveCombatEscalated,
+        });
+    }
+
     private recordWaveTargetAssignment(
         wave: BattleWave,
         unit: Unit | null,
@@ -1630,7 +1758,108 @@ export class GameManager extends Component {
             unitName: wave.unitName,
             familyName: UnitFamily[wave.family] ?? String(wave.family),
             targetWaveId: -1,
-            targetSource: 'scanner-confirmed-no-target',
+            targetSource: 'wave-confirmed-no-target',
+            regroupLaneId: wave.laneId,
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            freeHuntForwardOrigin:
+                wave.getFreeHuntForwardOrigin(),
+            forwardRecoveryResumedUnitCount:
+                wave.getLastForwardRecoveryResumedUnitCount(),
+            forwardRecoveryRetainedBusyUnitCount:
+                wave.getLastForwardRecoveryRetainedBusyUnitCount(),
+        });
+    }
+
+    private recordWaveForwardRecoveryBlocked(
+        wave: BattleWave,
+        blocker: {
+            reason: string;
+            unit: Unit | null;
+        }
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-forward-recovery-blocked',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: UnitFamily[wave.family] ?? String(wave.family),
+            recoveryBlockReason: blocker.reason,
+            blockingUnitLifeId: blocker.unit?.lifeId ?? -1,
+            blockingUnitName: blocker.unit?.unitTypeName ?? '',
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode(),
+        });
+    }
+
+    public recordUnitIdleWithoutOrder(unit: Unit | null) {
+        if (!this.enableBattleTelemetry) return;
+        if (!unit) return;
+
+        const wave = BattleWave.getWaveForUnit(unit);
+        if (!wave) return;
+
+        const targetWave = wave.getTargetWave();
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'unit-idle-without-order',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: unit.unitTypeName,
+            familyName:
+                UnitFamily[wave.family] ?? String(wave.family),
+            unitLifeId: unit.lifeId,
+            targetWaveId: targetWave?.id ?? -1,
+            targetTeam: targetWave?.team ?? -1,
+            targetLaneId: targetWave?.laneId ?? -1,
+            reason: 'free-hunt-no-target-no-continuity',
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode(),
+            unitForward: unit.onForward,
+            unitBusy: unit.onBusy,
+            unitHasValidTarget: unit.hasValidEnemyTarget(),
+            unitFreeHuntContinuityActive:
+                unit.isFreeHuntContinuityActive(),
+            freeHuntForwardOrigin:
+                wave.getFreeHuntForwardOrigin(),
+        });
+    }
+
+    private recordWaveTargetCleared(
+        wave: BattleWave,
+        target: {
+            id: number;
+            team: number;
+            laneId: number;
+            family: UnitFamily;
+        }
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-target-cleared',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: UnitFamily[wave.family] ?? String(wave.family),
+            targetWaveId: target.id,
+            targetTeam: target.team,
+            targetLaneId: target.laneId,
+            targetFamilyName:
+                UnitFamily[target.family] ?? String(target.family),
+            targetSource: 'target-wave-dead',
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode(),
         });
     }
 
@@ -1640,7 +1869,8 @@ export class GameManager extends Component {
         source: string,
         reason: string,
         targetWaveBefore: BattleWave | null,
-        observedEnemyCount: number = 0
+        observedEnemyCount: number = 0,
+        searchSameLaneOnly: boolean = false
     ) {
         if (!this.enableBattleTelemetry) return;
         if (!this.battleTelemetry.isEnabled()) return;
@@ -1695,6 +1925,7 @@ export class GameManager extends Component {
             candidateX: observedPosition?.x ?? 0,
             candidateZ: observedPosition?.z ?? 0,
             observedEnemyCount,
+            searchSameLaneOnly,
         });
     }
 
@@ -1711,10 +1942,14 @@ export class GameManager extends Component {
         ) {
             return false;
         }
-        const unitLane =
-            this.getCurrentLaneIdForUnit(unit);
-        const enemyLane =
-            this.getCurrentLaneIdForUnit(enemy);
+        // Wave lane is the strategic authority. It follows the active
+        // scanner and is mirrored to every member, so an individual unit
+        // drifting sideways during combat must not redefine this skirmish.
+        const unitLane = wave.laneId;
+        const enemyWave = BattleWave.getWaveForUnit(enemy);
+        const enemyLane = enemyWave
+            ? enemyWave.laneId
+            : -1;
 
         if (unitLane < 0 || enemyLane < 0) return false;
 
@@ -1783,6 +2018,27 @@ export class GameManager extends Component {
             !unit.onForward &&
             !unit.onBusy &&
             !unit.hasValidEnemyTarget();
+    }
+
+    public getForwardModeAfterLocalCombat(
+        unit: Unit | null
+    ): boolean | null {
+        if (!unit) return null;
+
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return null;
+        if (wave.isDead()) return null;
+        if (!wave.isForwardMode()) return null;
+
+        if (!unit.isSteady &&
+            !unit.onBusy &&
+            !unit.hasValidEnemyTarget()) {
+            return wave.isAggressiveForwardMode();
+        }
+
+        return null;
     }
 
     private shouldDelayInitialForwardCombat(
@@ -1872,6 +2128,26 @@ export class GameManager extends Component {
             BattleWave.getWaveForUnit(unit);
 
         return wave ? wave.getTargetWave() : null;
+    }
+
+    public hasWaveTargetClearSearchPending(
+        unit: Unit | null
+    ) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        return !!wave &&
+            wave.hasImmediateTargetSearchPending();
+    }
+
+    public isWaveAwaitingForwardRecoveryAfterTargetClear(
+        unit: Unit | null
+    ) {
+        const wave =
+            BattleWave.getWaveForUnit(unit);
+
+        return !!wave &&
+            wave.isAwaitingForwardRecoveryAfterTargetClear();
     }
 
     public hasWaveHuntScannerConfirmedNoTarget(
@@ -1977,7 +2253,9 @@ export class GameManager extends Component {
                 continue;
             }
 
-            scanner.forceHuntScannerTargetSearch();
+            const targetFound =
+                scanner.forceHuntScannerSameLaneTargetSearch();
+            wave.resolveImmediateTargetClearSearch(targetFound);
         }
     }
 
@@ -2162,7 +2440,9 @@ export class GameManager extends Component {
                 targetLane
             );
 
-        if (laneDistance > 1) {
+        // A same-lane target may start local combat, but it must not make
+        // Normal Forward release into Free Hunt through scanner passing.
+        if (laneDistance !== 1) {
             return false;
         }
 
@@ -2322,6 +2602,17 @@ export class GameManager extends Component {
 
             if (resumed) {
                 this.recordWaveForwardResume(wave);
+                continue;
+            }
+
+            const blocker =
+                wave.consumeForwardRecoveryBlockTelemetry();
+
+            if (blocker) {
+                this.recordWaveForwardRecoveryBlocked(
+                    wave,
+                    blocker
+                );
             }
         }
     }
@@ -2604,6 +2895,24 @@ export class GameManager extends Component {
         }
 
         this.unlockHeroForward(team, hero!, laneSelection.laneId);
+    }
+
+    private processWaveTargetClearTelemetry() {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+                continue;
+            }
+
+            wave.getTargetWave();
+
+            const clearedTarget = wave.consumeClearedTargetTelemetry();
+
+            if (clearedTarget) {
+                this.recordWaveTargetCleared(wave, clearedTarget);
+            }
+        }
     }
 
     private unlockHeroForward(
@@ -3003,6 +3312,13 @@ export class GameManager extends Component {
         if (!this.enableBattleWinnerCheck) return;
         if (this.hasBattleWinner()) return;
         if (this.combatResolutionDepth > 0) {
+            // Combat can resolve more than one terminal event in a single
+            // damage batch. Preserve the first one so a later death cannot
+            // reverse an already-decided winner before the batch completes.
+            if (this.pendingBattleWinner) {
+                return;
+            }
+
             this.pendingBattleWinner = {
                 winnerTeam,
                 loserTeam,
@@ -5044,7 +5360,6 @@ export class GameManager extends Component {
 
         if (!unit) return;
 
-        unit.laneId = laneId;
         unit.aggressiveForward = aggressiveForward;
 
         wave.addUnit(unit);
@@ -5839,8 +6154,6 @@ export class GameManager extends Component {
             );
             previousWave.releaseReferences();
         }
-
-        hero.laneId = laneId;
 
         const wave = new BattleWave(
             this.nextWaveId++,

@@ -250,6 +250,10 @@ export interface BattleTelemetryDiagnosticEvent {
     targetSearchRangeMultiplier?: number;
     previousTargetWaveId?: number;
     targetSource?: string;
+    regroupLaneId?: number;
+    recoveryBlockReason?: string;
+    blockingUnitLifeId?: number;
+    blockingUnitName?: string;
     heroSupportUnitsPerLane?: number[];
     heroSelectedLaneSupportUnits?: number;
     heroBestLaneSupportUnits?: number;
@@ -265,6 +269,19 @@ export interface BattleTelemetryDiagnosticEvent {
     forwardDirZ?: number;
     moveX?: number;
     moveZ?: number;
+    waveForwardBefore?: boolean;
+    unitForward?: boolean;
+    unitBusy?: boolean;
+    unitHasValidTarget?: boolean;
+    unitFreeHuntContinuityActive?: boolean;
+    freeHuntForwardOrigin?: 'normal' | 'aggressive';
+    forwardRecoveryResumedUnitCount?: number;
+    forwardRecoveryRetainedBusyUnitCount?: number;
+    sameLaneWaveEngagement?: boolean;
+    soloAggressiveCombat?: boolean;
+    canEscalateWaveCombat?: boolean;
+    initialForwardCombatDelayed?: boolean;
+    waveCombatEscalated?: boolean;
 }
 
 export interface BattleTelemetryScannerTrace {
@@ -296,6 +313,7 @@ export interface BattleTelemetryScannerTrace {
     candidateX: number;
     candidateZ: number;
     observedEnemyCount: number;
+    searchSameLaneOnly?: boolean;
 }
 
 export interface BattleTelemetryFramePerformance {

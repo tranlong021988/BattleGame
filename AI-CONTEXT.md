@@ -1,6 +1,6 @@
 # BattleGame — AI Context / Handoff
 
-Updated: 2026-09-04
+Updated: 2026-09-07
 
 ## Read this before modifying gameplay
 
@@ -133,13 +133,87 @@ The latest run contains seven main entry states with a CP or maxAlive deficit bu
 
 ## Source/worktree safety
 
-- Relevant approved gameplay/config work includes `assets/scripts/Unit.ts`, `GameManager.ts`, and `BattleTelemetry.ts` for free-hunt continuity, own-side ranged kiting, and kiting telemetry; `assets/scripts/LevelSettings.ts` for Side player-card eligibility and Side cooldown settlement; and `assets/Battle.scene` for the Archer/Monk 1.5x default attack ranges. Preserve unrelated dirty changes and Cocos-generated artifacts.
+- Relevant approved gameplay/config work includes `assets/scripts/BattleWave.ts`, `Unit.ts`, `GameManager.ts`, and `BattleTelemetry.ts` for scanner-owned wave targeting, target-clear recovery, local-combat forward recovery, free-hunt continuity, own-side ranged kiting, and telemetry; `assets/scripts/LevelSettings.ts` for Side player-card eligibility and Side cooldown settlement; and `assets/Battle.scene` for the Archer/Monk 1.5x default attack ranges. Preserve unrelated dirty changes and Cocos-generated artifacts.
 - `AI-CONTEXT.md` itself is intentionally updated by this handoff.
 - `library/`, `profiles/`, and `temp/` are live Cocos cache/log artifacts. Never clean, revert, or delete them unless explicitly asked and the Editor is closed.
 - On 2026-09-04, `.git/index.lock` was a zero-byte file and no Git process was running; it was removed after verification. Before deleting any future lock, repeat both checks. Do not remove a live lock.
 
-## Current status / next action
+## Current active wave-AI handoff — 2026-09-07
 
-No rebalance is pending. Side-card cooldown is verified and should not be revisited unless a new telemetry regression appears. The remaining unfinished verification is ranged movement at normal time scale: run a fresh batch with ranged units active and inspect `config.rangedKitePolicy` plus `diagnostics.events[type="ranged-kite"]`. Do not declare the visual formation issue fixed from aggregate win rate. Do not change the 30-frame target-search interval without a direct design request; it is the configured runtime cadence and is also the likely source of any residual retreat overshoot.
+This is active work. It takes precedence over older next-action notes where they overlap.
+
+### Exact behavioral contract
+
+1. **Scanner owns strategic targets.** Units must not independently scan the map for a strategic target. `laneId` is the strategic lane of its wave, owned by the scanner; it is not an individual unit combat lane.
+2. **Same lane:** attack-range contact creates local combat. Scanner crossing in the same lane must not release a wave into Free Hunt. A single local contact must not immediately pull the whole wave into Free Hunt; this is intentional, so the wave does not collapse onto one leading enemy.
+3. **Adjacent lane:** in Normal Forward, the strategic release condition is this scanner passing an enemy scanner in an adjacent lane. The selected strategic target is that adjacent enemy wave. Diagonal travel toward members of that selected target wave is valid. An arbitrary adjacent enemy is not sufficient to alter wave state or make the wave run diagonally.
+4. **Empty own lane:** the wave keeps moving straight. The adjacent-scanner-passed condition can still release it to Free Hunt.
+5. **Local combat is universal:** enemies entering attack range may fight locally. During Aggressive Forward, this applies only to contact units; uninvolved members continue forward. A survivor finishing local combat rejoins the owning wave's current normal/aggressive Forward mode.
+6. **Ranged retaliation:** a ranged-hit unit pursues its actual attacker, not another globally nearer enemy. Contact with another enemy during that pursuit may start ordinary local combat.
+7. **After target-wave death:** the wave must not automatically Free Hunt another wave. It performs one immediate **same-lane-only** scanner search. A same-lane target keeps Free Hunt active; no same-lane target triggers regroup and restoration of the prior Forward mode. Regroup starts from the last eliminated target wave's lane, before dynamic scanner-lane calculation.
+8. **Post-combat deploy delay:** `maxUnitPerRow` delay is allowed once after the first combat while the wave is full. Do not replay it after casualties reduce the wave.
+
+### Issue that produced the latest fix
+
+**Verified pre-change recovery fault:** Forward recovery waited for every surviving unit to be idle and targetless. One unit in local combat could leave the rest of its wave without a valid Forward order. The scanner's transient no-target result could also disappear before recovery consumed it.
+
+**Implemented direction:** target-clear resolution is retained at wave level. Only locally busy units stay in local combat; other available units recover into Forward after the one same-lane search resolves no target. This preserves local combat without allowing it to stall the wave.
+
+### Current implementation map
+
+- `assets/scripts/BattleWave.ts`
+  - Holds target-clear state: `awaitingForwardRecoveryAfterTargetClear`, `immediateTargetSearchPending`, `targetClearSameLaneSearchResolved`, and the last eliminated target lane.
+  - On target death, records the target lane and requests the forced search.
+  - `tryResumeForward()` requires resolved wave-level search, restores `freeHuntForwardOrigin`, and starts only non-busy units without a valid target.
+  - Records resumed and retained-busy counts.
+- `assets/scripts/GameManager.ts`
+  - Runs the forced same-lane search in `processWaveHuntScannerRefreshes()`.
+  - Applies the prior target lane in `refreshLaneBeforeWaveForward()`.
+  - `getForwardModeAfterLocalCombat(unit)` lets a unit rejoin the wave's existing Forward mode.
+- `assets/scripts/Unit.ts`
+  - `forceHuntScannerSameLaneTargetSearch()` restricts the forced search to scanner lane.
+  - Generic strategic search is suppressed while target-clear resolution is pending, preventing adjacent target selection in that window.
+  - `clearEnemy()` returns a finished local-combat unit to the current Forward mode if the wave already resumed.
+- `assets/scripts/BattleTelemetry.ts`
+  - Records target-clear/recovery evidence: Free Hunt origin, resumed/retained-busy counts, unit Forward/busy state, and combat-escalation data.
+
+### Post-change evidence
+
+**Source check:** `git diff --check` for relevant source/handoff files had no whitespace errors. TypeScript compilation was not run because this checkout does not provide `tsc`; do not call this compiled unless a later Codex runs a project compiler/build.
+
+**Runtime batch:** 20 files from `2026-09-06 20:05:21` through `20:12:46`, levels 1–20; all ended in bot/team-0 victory. This verifies the target-clear path in that batch, not every possible visual movement outcome.
+
+- 217 `hunt-scanner-target-wave-cleared` traces used `searchSameLaneOnly: true`.
+- 103 replacement target selections after target death were all same-lane (lane distance 0).
+- 114 searches found no same-lane target; every one emitted `wave-forward-resumed` in the same frame.
+- 78 recoveries returned to Normal Forward and 36 returned to Aggressive Forward. No origin/mode mismatch was recorded.
+- 37 recoveries retained 1–3 locally busy units while 1–6 other units resumed Forward. This is the intended local-combat isolation.
+- 79 recovery-block records were all expected one-frame `target-clear-search-pending`; no post-fix busy-unit recovery block was recorded.
+- 102 Normal Forward `target-passed-release` events were adjacent only (lane distance 1). The batch contains no same-lane scanner-cross release and no lane-distance-2 release.
+- 60 `unit-idle-without-order` diagnostics were transient: 56 received `wave-target-assigned` in the same or a later frame (latest observed 45 frames later); 4 entered target-clear handling within one frame. None stayed without a same/later wave order until battle end. This is not evidence of persistent idle deadlock. A visible pause up to 45 frames still needs visual testing if reported again.
+
+### Do not regress these rules
+
+- Do not restore generic adjacent search during the forced target-clear search.
+- Do not make individual units independently choose strategic targets.
+- Do not require all units to be idle before Forward resumes.
+- Do not reset Aggressive Forward to Normal after Free Hunt; preserve `freeHuntForwardOrigin`.
+- Do not treat all diagonal travel as wrong. It is valid only toward an already selected adjacent target wave from a valid scanner-passed release. It is an issue if target-clear selects an adjacent target without the allowed condition, or no same-lane target exists but the wave does not regroup and resume Forward.
+
+### Current open verification / next action
+
+No gameplay change is pending from this handoff. Inspect the next user-provided telemetry batch before modifying code.
+
+If a wave keeps moving diagonally after eliminating a target wave, diagnose in this order:
+
+1. Identify the dying target wave and lane.
+2. Inspect the next `hunt-scanner-target-wave-cleared`: it must have `searchSameLaneOnly: true`.
+3. If replacement exists, confirm same lane. If none exists, confirm immediate `wave-forward-resumed` and mode equal to `freeHuntForwardOrigin`.
+4. Check whether any diagonal travel is toward an already selected adjacent target wave from valid scanner-passed release. That is valid; do not label it target-clear failure.
+5. Only then inspect local-combat/ranged-retaliation events. Those are tactical exceptions, not scanner-owned strategic selection.
+
+If a unit appears idle with no blocker, first distinguish a transient `unit-idle-without-order` diagnostic from a persistent no-order state. Persistent requires telemetry showing no target assignment, target-clear processing, or Forward resume for that unit's wave after the diagnostic. Do not diagnose it merely because another unit is in local combat.
+
+The separate card-on/card-off experiment remains controlled work: record `Enable Battle Card Effects` explicitly for every batch. Do not claim a win-rate difference is causal unless the compared runs are otherwise comparable. Normal-time-scale visual verification for own-side ranged kiting remains open; existing telemetry proves movement intent, not final RVO/formation appearance.
 
 The user plans to continue testing elsewhere. The most valuable next artifact is a controlled paired set: start both modes from the same save/progression snapshot and seed, change only `Enable Battle Card Effects`, preserve card purchase/upgrade schedules, verify `config.cardEffectsEnabled` and `cardEvents`, then report normal/boss results, retry count, and duration separately. Run 5–10 pairs before considering a card rebalance.

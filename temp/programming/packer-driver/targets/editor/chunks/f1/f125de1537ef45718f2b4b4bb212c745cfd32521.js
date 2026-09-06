@@ -54,6 +54,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.aggressiveForwardMode = false;
+          this.freeHuntForwardOrigin = 'normal';
           this.aggressiveAdjacentBoundaryObserved = false;
           this.aggressiveOwnLaneBlockObserved = false;
           this.initialForwardCombatGateActive = true;
@@ -62,7 +63,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           // in Free Hunt the frontmost alive unit takes the same captain role.
           this.scannerUnit = null;
           this.targetWave = null;
+          this.regroupLaneAfterTargetClear = -1;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          // This is a wave-level result from the one scanner-only, same-lane scan
+          // after its strategic target wave dies. It must not be invalidated by an
+          // unrelated local combat on that scanner.
+          this.targetClearSameLaneSearchResolved = false;
+          this.forwardRecoveryBlockTelemetryPending = false;
+          this.clearedTargetTelemetry = null;
           this.immediateTargetSearchPending = false;
+          this.lastForwardRecoveryResumedUnitCount = 0;
+          this.lastForwardRecoveryRetainedBusyUnitCount = 0;
           this.representativeUnit = null;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
@@ -83,6 +94,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           BattleWave.unitWaveMap.set(unit, this.id);
           BattleWave.unitWaveObjectMap.set(unit, this);
           unit.setWaveRuntimeId(this.id);
+          unit.laneId = this.laneId;
 
           if (this.units.indexOf(unit) < 0) {
             if (this.units.length <= 0) {
@@ -483,6 +495,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
         }
 
+        applyDefeatedTargetLaneForRegroup() {
+          if (this.regroupLaneAfterTargetClear < 0) {
+            return false;
+          }
+
+          const laneId = this.regroupLaneAfterTargetClear;
+          this.regroupLaneAfterTargetClear = -1;
+          this.setLaneId(laneId);
+          return true;
+        }
+
         releaseForwardToFreeHunt(searchRange = 0) {
           if (this.released) return;
 
@@ -490,8 +513,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
+          if (!this.freeHuntActive) {
+            this.freeHuntForwardOrigin = this.aggressiveForwardMode ? 'aggressive' : 'normal';
+          }
+
           this.forwardModeActive = false;
           this.freeHuntActive = true;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          this.targetClearSameLaneSearchResolved = false;
           this.aggressiveForwardMode = false;
           this.aggressiveAdjacentBoundaryObserved = false;
           this.aggressiveOwnLaneBlockObserved = false;
@@ -510,6 +539,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         enterCombatMode() {
           if (this.released) return;
           if (this.freeHuntActive) return;
+          this.freeHuntForwardOrigin = this.aggressiveForwardMode ? 'aggressive' : 'normal';
           this.forwardModeActive = false;
           this.freeHuntActive = true;
           this.aggressiveForwardMode = false;
@@ -532,7 +562,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           let aliveCount = 0;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
-          this.initialForwardCombatGateActive = false;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          this.targetClearSameLaneSearchResolved = false;
           this.scannerUnit = null;
           this.clearTargetWave();
 
@@ -556,6 +587,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         isAggressiveForwardMode() {
           return !this.released && this.aggressiveForwardMode;
+        }
+
+        getFreeHuntForwardOrigin() {
+          return this.freeHuntForwardOrigin;
         }
 
         observeAggressiveAdjacentBoundary() {
@@ -606,18 +641,112 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         getTargetWave() {
           if (this.targetWave && (this.targetWave.released || this.targetWave.isDead())) {
-            // The current strategic order has genuinely ended. Let the one
+            const defeatedTargetLane = this.targetWave.laneId;
+            this.clearedTargetTelemetry = {
+              id: this.targetWave.id,
+              team: this.targetWave.team,
+              laneId: defeatedTargetLane,
+              family: this.targetWave.family
+            };
+
+            if (defeatedTargetLane >= 0) {
+              this.regroupLaneAfterTargetClear = defeatedTargetLane;
+            }
+
+            this.awaitingForwardRecoveryAfterTargetClear = true;
+            this.targetClearSameLaneSearchResolved = false;
+            this.forwardRecoveryBlockTelemetryPending = true; // The current strategic order has genuinely ended. Let the one
             // scanner search once on the next safe GameManager pass instead
             // of waiting for its normal interval.
+
             this.clearTargetWave(true);
           }
 
           return this.targetWave;
         }
 
+        consumeClearedTargetTelemetry() {
+          const clearedTarget = this.clearedTargetTelemetry;
+          this.clearedTargetTelemetry = null;
+          return clearedTarget;
+        }
+
         hasImmediateTargetSearchPending() {
           this.getTargetWave();
           return this.immediateTargetSearchPending;
+        }
+
+        isAwaitingForwardRecoveryAfterTargetClear() {
+          return !this.released && this.awaitingForwardRecoveryAfterTargetClear;
+        }
+
+        resolveImmediateTargetClearSearch(targetFound) {
+          if (!this.isAwaitingForwardRecoveryAfterTargetClear()) {
+            return;
+          } // A found target clears the waiting state through
+          // trySetTargetWaveFromScanner(). Only the no-target result needs to
+          // survive on the wave for forward recovery.
+
+
+          this.targetClearSameLaneSearchResolved = !targetFound;
+        }
+
+        getLastForwardRecoveryResumedUnitCount() {
+          return this.lastForwardRecoveryResumedUnitCount;
+        }
+
+        getLastForwardRecoveryRetainedBusyUnitCount() {
+          return this.lastForwardRecoveryRetainedBusyUnitCount;
+        }
+
+        consumeForwardRecoveryBlockTelemetry() {
+          if (!this.forwardRecoveryBlockTelemetryPending) {
+            return null;
+          }
+
+          if (!this.isAwaitingForwardRecoveryAfterTargetClear()) {
+            this.forwardRecoveryBlockTelemetryPending = false;
+            return null;
+          }
+
+          if (this.immediateTargetSearchPending) {
+            this.forwardRecoveryBlockTelemetryPending = false;
+            return {
+              reason: 'target-clear-search-pending',
+              unit: null
+            };
+          }
+
+          for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+            if (!this.isUnitAlive(unit)) continue;
+
+            if (unit.onBusy) {
+              this.forwardRecoveryBlockTelemetryPending = false;
+              return {
+                reason: 'unit-busy',
+                unit
+              };
+            }
+
+            if (unit.hasValidEnemyTarget()) {
+              this.forwardRecoveryBlockTelemetryPending = false;
+              return {
+                reason: 'unit-has-valid-target',
+                unit
+              };
+            }
+          }
+
+          if (!this.targetClearSameLaneSearchResolved) {
+            this.forwardRecoveryBlockTelemetryPending = false;
+            return {
+              reason: 'target-clear-search-unresolved',
+              unit: this.getScanner()
+            };
+          }
+
+          return null;
         }
 
         consumeImmediateTargetSearch() {
@@ -648,6 +777,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (this.targetWave === nextTargetWave) {
             return true;
+          }
+
+          if (this.awaitingForwardRecoveryAfterTargetClear && nextTargetWave.laneId !== this.laneId) {
+            return false;
           } // Scanner search establishes the initial order only. A live order is
           // replaced exclusively by a real local engagement.
 
@@ -655,6 +788,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.getTargetWave()) return false;
           this.targetWave = nextTargetWave;
           this.immediateTargetSearchPending = false;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          this.targetClearSameLaneSearchResolved = false;
 
           if (this.freeHuntActive) {
             this.clearIdleHuntTargets();
@@ -675,12 +810,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (nextTargetWave.released || nextTargetWave.isDead()) {
             return false;
+          }
+
+          if (this.awaitingForwardRecoveryAfterTargetClear && nextTargetWave.laneId !== this.laneId) {
+            return false;
           } // A real engagement is a passive order change: busy units keep their
           // local combat, while free allies begin hunting this enemy wave.
 
 
           this.targetWave = nextTargetWave;
           this.immediateTargetSearchPending = false;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          this.targetClearSameLaneSearchResolved = false;
 
           if (this.freeHuntActive) {
             this.clearIdleHuntTargets();
@@ -720,18 +861,29 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.targetWave) return false;
           if (this.immediateTargetSearchPending) return false;
           let aliveCount = 0;
+          let resumableUnitCount = 0;
+          let retainedBusyUnitCount = 0;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
             aliveCount++;
-            if (u.onBusy) return false;
-            if (u.hasValidEnemyTarget()) return false;
+
+            if (u.onBusy || u.hasValidEnemyTarget()) {
+              retainedBusyUnitCount++;
+              continue;
+            }
+
+            resumableUnitCount++;
           }
 
-          if (aliveCount <= 0) return false;
+          if (aliveCount <= 0) return false; // A local fight belongs only to the units in it. The rest of the wave
+          // must be allowed to regroup and advance after the scanner has found
+          // no same-lane strategic target.
 
-          if (!this.hasHuntScannerConfirmedNoTarget()) {
+          if (resumableUnitCount <= 0) return false;
+
+          if (!this.targetClearSameLaneSearchResolved) {
             return false;
           }
 
@@ -741,12 +893,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.forwardModeActive = true;
           this.freeHuntActive = false;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          this.targetClearSameLaneSearchResolved = false;
           this.initialForwardCombatGateActive = false;
           this.scannerUnit = null;
+          this.aggressiveForwardMode = this.freeHuntForwardOrigin === 'aggressive';
+          this.lastForwardRecoveryResumedUnitCount = resumableUnitCount;
+          this.lastForwardRecoveryRetainedBusyUnitCount = retainedBusyUnitCount;
 
           for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];
             if (!this.isUnitAlive(u)) continue;
+            if (u.onBusy || u.hasValidEnemyTarget()) continue;
             u.enterWaveForwardMode(this.aggressiveForwardMode, true);
           }
 
@@ -810,6 +968,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.forwardModeActive = false;
           this.freeHuntActive = false;
           this.aggressiveForwardMode = false;
+          this.targetClearSameLaneSearchResolved = false;
           this.aggressiveAdjacentBoundaryObserved = false;
           this.aggressiveOwnLaneBlockObserved = false;
           this.initialForwardCombatGateActive = false;
@@ -900,6 +1059,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         clearTargetWave(requestImmediateSearch = false) {
           this.targetWave = null;
+          this.targetClearSameLaneSearchResolved = false;
           this.immediateTargetSearchPending = requestImmediateSearch && !this.released && this.freeHuntActive;
         }
 
