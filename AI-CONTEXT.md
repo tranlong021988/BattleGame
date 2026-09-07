@@ -1,6 +1,6 @@
 # BattleGame — AI Context / Handoff
 
-Updated: 2026-09-07
+Updated: 2026-09-08
 
 ## Read this before modifying gameplay
 
@@ -139,9 +139,142 @@ The latest run contains seven main entry states with a CP or maxAlive deficit bu
 - `library/`, `profiles/`, and `temp/` are live Cocos cache/log artifacts. Never clean, revert, or delete them unless explicitly asked and the Editor is closed.
 - On 2026-09-04, `.git/index.lock` was a zero-byte file and no Git process was running; it was removed after verification. Before deleting any future lock, repeat both checks. Do not remove a live lock.
 
-## Current active wave-AI handoff — 2026-09-07
+## Current active wave-AI handoff — 2026-09-08
 
 This is active work. It takes precedence over older next-action notes where they overlap.
+
+### Latest override — busy scanner retains Free Hunt target (2026-09-08)
+
+This section supersedes older wording that a busy scanner delays target-clear
+resolution or that all Free Hunt continuity must be cancelled before the
+target-clear scanner pass.
+
+1. A scanner with `onBusy: true` and a valid enemy target has an active
+   strategic target wave. When its previous `targetWave` dies, that valid
+   target's live enemy wave becomes the wave's new `targetWave` immediately.
+   The wave does not wait for a scanner search and non-busy members continue
+   Free Hunt toward that target wave.
+2. When every surviving unit is idle (not `onBusy` and without a valid
+   target) after its `targetWave` dies, the wave does not run a replacement
+   scanner search. It clears Free Hunt, regroups, and restores its prior
+   Normal/Aggressive Forward mode. This is the intended visual regroup step.
+3. Only target-clear states that still retain a local combat or a valid unit
+   target use the existing one-pass, same-lane target-clear search / Forward
+   recovery path.
+4. New telemetry is required in fresh reports:
+   - `wave-target-clear-outcome` with `targetSource` one of
+     `retained-busy-scanner-target`, `replacement-target-assigned`, or
+     `forward-resumed-after-no-target`, plus
+     `forward-regroup-all-units-idle` for the no-search regroup path;
+   - `aggressive-scanner-pass-release` only after an Aggressive same-lane
+     scanner-pass has actually released the wave.
+5. Source-only verification is complete for this override. Runtime behavior
+   remains unverified until a fresh telemetry batch includes these events.
+
+### Latest 95-report wave-AI audit — do not retune before resolving target churn (2026-09-08)
+
+**Input batch.** 95 runtime reports supplied by the user, from
+`battle-telemetry-2026-09-07T18-54-38-730Z.json` through
+`battle-telemetry-2026-09-07T19-40-03-691Z.json`. Read
+`diagnostics.events` and `diagnostics.scannerTraces`; the similarly named
+top-level arrays do not exist.
+
+**Source changes already present and not yet committed.**
+
+- `BattleWave.getTargetWave()` now preserves a live valid target owned by a
+  busy scanner when the previous target wave dies. It emits
+  `retained-busy-scanner-target`.
+- If every surviving unit has neither `onBusy` nor a valid enemy target, that
+  method clears Free Hunt continuity, records
+  `forward-regroup-all-units-idle`, and marks the wave ready to resume its
+  stored Normal/Aggressive Forward origin without a replacement scan.
+- `trySetTargetWaveFromScanner()`,
+  `trySetTargetWaveFromEngagement()`, and `tryResumeForward()` publish one
+  target-clear outcome for later telemetry consumption.
+- `GameManager.recordWaveTargetClearOutcome()` writes the new
+  `wave-target-clear-outcome` event. Aggressive scanner-pass release telemetry
+  is now emitted only when the release call actually succeeds.
+- Static verification previously completed: `git diff --check` was clean for
+  the three intentional files and the Cocos TypeScript check covering
+  `BattleWave.ts` and `GameManager.ts` passed. This is not runtime proof.
+
+**Batch results that are directly in the telemetry.**
+
+- 1,422 `wave-forward-resumed`: 1,287 normal-origin and 135
+  aggressive-origin. There are **zero** origin/mode mismatches.
+- 675 `forward-regroup-all-units-idle` outcomes. 666 have a
+  `wave-forward-resumed` event in the same frame. Nine do not: eight resume
+  12–166 frames later and one battle ends 17 frames later without a resume
+  event. Treat this as a timing/observability concern, not a proven permanent
+  idle bug, until per-wave state tracing explains the delay.
+- 748 `wave-forward-recovery-blocked` events are all
+  `target-clear-search-pending`. 735 later receive a target assignment or
+  Forward resume. The remainder must be traced alongside wave death/battle end
+  before calling them deadlocks.
+- 7,101 `unit-idle-without-order` events exist. 6,980 have a later wave-level
+  assignment, target-clear outcome, or Forward resume. This diagnostic alone
+  remains insufficient evidence of a persistent idle bug.
+
+**Confirmed strategic-target churn; no gameplay change is authorized yet.**
+
+- The batch logs 38,477 successful `wave-target-assigned` events. A wave
+  changed to a different target wave 36,003 times; 23,246 changes occur within
+  10 frames and 3,766 in the same frame. The rapid changes are all
+  `targetSource: engagement`.
+- Example: in `battle-telemetry-2026-09-07T18-54-38-730Z.json`, team-0 wave-5
+  changes target `9 -> 12` at frame 1288 and `12 -> 9` at frame 1292.
+- The source explains the mechanism: every eligible local engagement reaches
+  `GameManager.trySetWaveTargetFromEngagement()`, and
+  `BattleWave.trySetTargetWaveFromEngagement()` overwrites a live
+  `targetWave`. When Free Hunt is active it clears idle allies' old targets and
+  primes them toward the newly assigned wave. This can visibly redirect a wave
+  repeatedly when several enemy waves contact it.
+- Classification: this is a **proven current behavior and a design/behavior
+  concern**, not yet a declared defect. Do not debounce, freeze, or otherwise
+  alter it without the user's explicit target-selection policy. The next Codex
+  must first ask/confirm whether a live target should remain authoritative
+  until dead, or whether only scanner/frontline engagement may replace it.
+
+**Known telemetry-only defect.**
+
+- `searchForwardWaveTarget()` calls
+  `scanner.findForwardSearchTarget(true)` for Aggressive Forward, so source
+  uses same-lane-only search. However, all 5,150 `forward-aggressive` scanner
+  traces in this batch report `searchSameLaneOnly: false`.
+- Cause in source: `recordWaveScannerTrace()` defaults the final
+  `searchSameLaneOnly` parameter to `false`, and the Aggressive call site does
+  not pass `true`. Fixing this is telemetry work, not evidence of gameplay
+  failure. The user already classified this category as a telemetry gap.
+
+**Next diagnostic / implementation sequence.**
+
+1. Do not change target churn until the user selects its replacement rule.
+2. If asked to implement it, make the smallest change in
+   `BattleWave.trySetTargetWaveFromEngagement()` or its caller; then add a
+   focused telemetry field that states why a live target was retained or
+   replaced. Do not weaken local combat itself.
+3. Independently fix the Aggressive trace boolean by passing `true` to
+   `recordWaveScannerTrace()` at the Aggressive call site; verify a new report
+   has `forward-aggressive.searchSameLaneOnly: true`.
+4. For the nine delayed all-idle resumes, add state-transition telemetry before
+   changing recovery logic: frame, `freeHuntActive`, `targetWave`, immediate
+   search flag, resolved flag, alive/resumable/busy counts, and whether the
+   wave is registered in `GameManager.waves`. Then reproduce at normal time
+   scale.
+5. Re-run `git diff --check` and the focused Cocos TypeScript command after
+   each source edit; visual/RVO behavior still needs a fresh runtime batch.
+
+**Git / working-tree safety at handoff.**
+
+- Read-only Git commands require
+  `git -c safe.directory=F:/Github/BattleGame ...` in this Windows checkout.
+- At this audit, `.git/index.lock` was absent. A `git` process was present, so
+  no lock cleanup was attempted. Before any future deletion, verify both that
+  the exact lock path exists and that no Git process is running.
+- Preserve unrelated Cocos-generated dirt under `library/`, `profiles/`, and
+  `temp/`. The intentional wave-AI edits are `AI-CONTEXT.md`,
+  `assets/scripts/BattleWave.ts`, and `assets/scripts/GameManager.ts`; they
+  are uncommitted.
 
 ### Latest implementation override — Forward release threshold and scanner pass
 

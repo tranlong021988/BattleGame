@@ -1904,6 +1904,47 @@ export class GameManager extends Component {
         });
     }
 
+    private recordWaveTargetClearOutcome(
+        wave: BattleWave,
+        outcome: {
+            reason: string;
+            scanner: Unit | null;
+            target: Unit | null;
+        }
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        const targetWave = BattleWave.getWaveForUnit(
+            outcome.target
+        );
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-target-clear-outcome',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName:
+                outcome.scanner?.unitTypeName ?? wave.unitName,
+            familyName: UnitFamily[wave.family] ?? String(wave.family),
+            unitLifeId: outcome.scanner?.lifeId ?? -1,
+            targetWaveId: targetWave?.id ?? -1,
+            targetTeam: targetWave?.team ?? -1,
+            targetLaneId: targetWave?.laneId ?? -1,
+            targetFamilyName: targetWave
+                ? UnitFamily[targetWave.family] ??
+                    String(targetWave.family)
+                : '',
+            targetLifeId: outcome.target?.lifeId ?? -1,
+            targetSource: outcome.reason,
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode(),
+            freeHuntForwardOrigin:
+                wave.getFreeHuntForwardOrigin(),
+        });
+    }
+
     public recordWaveScannerTrace(
         scanner: Unit | null,
         observedUnit: Unit | null,
@@ -2430,8 +2471,19 @@ export class GameManager extends Component {
             const targetWaveBefore = wave.getTargetWave();
             const target = scanner.findForwardSearchTarget(true);
 
-            if (target) {
-                this.onWaveForwardTargetFound(scanner, target);
+            const released = target
+                ? this.onWaveForwardTargetFound(scanner, target)
+                : false;
+
+            if (released) {
+                this.recordAggressiveForwardEvent(
+                    'aggressive-scanner-pass-release',
+                    wave,
+                    scanner,
+                    target,
+                    0,
+                    'same-lane-scanner-passed-target'
+                );
             }
 
             const adjacentRearGuard =
@@ -3040,6 +3092,16 @@ export class GameManager extends Component {
 
             if (clearedTarget) {
                 this.recordWaveTargetCleared(wave, clearedTarget);
+            }
+
+            const targetClearOutcome =
+                wave.consumeTargetClearOutcomeTelemetry();
+
+            if (targetClearOutcome) {
+                this.recordWaveTargetClearOutcome(
+                    wave,
+                    targetClearOutcome
+                );
             }
         }
     }

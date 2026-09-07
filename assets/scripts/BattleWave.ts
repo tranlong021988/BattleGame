@@ -56,6 +56,11 @@ export class BattleWave {
         laneId: number;
         family: UnitFamily;
     } | null = null;
+    private targetClearOutcomeTelemetry: {
+        reason: string;
+        scanner: Unit | null;
+        target: Unit | null;
+    } | null = null;
     private immediateTargetSearchPending = false;
     private lastForwardRecoveryResumedUnitCount = 0;
     private lastForwardRecoveryRetainedBusyUnitCount = 0;
@@ -833,14 +838,85 @@ export class BattleWave {
             this.targetWave &&
             (this.targetWave.released || this.targetWave.isDead())
         ) {
-            const defeatedTargetLane = this.targetWave.laneId;
+            const defeatedTarget = this.targetWave;
+            const defeatedTargetLane = defeatedTarget.laneId;
 
             this.clearedTargetTelemetry = {
-                id: this.targetWave.id,
-                team: this.targetWave.team,
+                id: defeatedTarget.id,
+                team: defeatedTarget.team,
                 laneId: defeatedTargetLane,
-                family: this.targetWave.family,
+                family: defeatedTarget.family,
             };
+
+            // A busy scanner already owns a live local target. Keep that
+            // target's wave as the strategic order instead of clearing the
+            // wave and making its free allies wait for another scan.
+            const scanner = this.getScanner();
+            const scannerTarget = scanner?.onBusy
+                ? scanner.getValidEnemyTarget()
+                : null;
+            const scannerTargetWave =
+                BattleWave.getWaveForUnit(scannerTarget);
+
+            if (
+                scanner &&
+                scannerTarget &&
+                scannerTargetWave &&
+                scannerTargetWave !== this &&
+                scannerTargetWave.team !== this.team &&
+                !scannerTargetWave.released &&
+                !scannerTargetWave.isDead()
+            ) {
+                this.targetWave = scannerTargetWave;
+                this.immediateTargetSearchPending = false;
+                this.awaitingForwardRecoveryAfterTargetClear = false;
+                this.targetClearSameLaneSearchResolved = false;
+                this.forwardRecoveryBlockTelemetryPending = false;
+                this.targetClearOutcomeTelemetry = {
+                    reason: 'retained-busy-scanner-target',
+                    scanner,
+                    target: scannerTarget,
+                };
+
+                if (this.freeHuntActive) {
+                    this.clearIdleHuntTargets();
+                    this.primeTargetWaveHuntTargets();
+                }
+
+                return this.targetWave;
+            }
+
+            let allUnitsIdle = true;
+
+            for (let i = 0; i < this.units.length; i++) {
+                const unit = this.units[i];
+
+                if (!this.isUnitAlive(unit)) continue;
+
+                if (unit.onBusy || unit.hasValidEnemyTarget()) {
+                    allUnitsIdle = false;
+                    break;
+                }
+            }
+
+            // With no local combat or live unit target left, regrouping is
+            // the next strategic order. Do not let the scanner chain Free
+            // Hunt into another nearby wave.
+            if (allUnitsIdle) {
+                this.clearTargetWave();
+                this.clearAllFreeHuntContinuity();
+                this.clearIdleHuntTargets();
+                this.awaitingForwardRecoveryAfterTargetClear = true;
+                this.targetClearSameLaneSearchResolved = true;
+                this.forwardRecoveryBlockTelemetryPending = false;
+                this.targetClearOutcomeTelemetry = {
+                    reason: 'forward-regroup-all-units-idle',
+                    scanner,
+                    target: null,
+                };
+
+                return this.targetWave;
+            }
 
             if (defeatedTargetLane >= 0) {
                 this.regroupLaneAfterTargetClear = defeatedTargetLane;
@@ -866,6 +942,13 @@ export class BattleWave {
         this.clearedTargetTelemetry = null;
 
         return clearedTarget;
+    }
+
+    consumeTargetClearOutcomeTelemetry() {
+        const outcome = this.targetClearOutcomeTelemetry;
+        this.targetClearOutcomeTelemetry = null;
+
+        return outcome;
     }
 
     hasImmediateTargetSearchPending() {
@@ -1001,10 +1084,21 @@ export class BattleWave {
         // replaced exclusively by a real local engagement.
         if (this.getTargetWave()) return false;
 
+        const wasAwaitingTargetClear =
+            this.awaitingForwardRecoveryAfterTargetClear;
+
         this.targetWave = nextTargetWave;
         this.immediateTargetSearchPending = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
         this.targetClearSameLaneSearchResolved = false;
+
+        if (wasAwaitingTargetClear) {
+            this.targetClearOutcomeTelemetry = {
+                reason: 'replacement-target-assigned',
+                scanner,
+                target,
+            };
+        }
 
         if (this.freeHuntActive) {
             this.clearIdleHuntTargets();
@@ -1045,10 +1139,21 @@ export class BattleWave {
 
         // A real engagement is a passive order change: busy units keep their
         // local combat, while free allies begin hunting this enemy wave.
+        const wasAwaitingTargetClear =
+            this.awaitingForwardRecoveryAfterTargetClear;
+
         this.targetWave = nextTargetWave;
         this.immediateTargetSearchPending = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
         this.targetClearSameLaneSearchResolved = false;
+
+        if (wasAwaitingTargetClear) {
+            this.targetClearOutcomeTelemetry = {
+                reason: 'replacement-target-assigned',
+                scanner: this.getScanner(),
+                target,
+            };
+        }
 
         if (this.freeHuntActive) {
             this.clearIdleHuntTargets();
@@ -1143,6 +1248,13 @@ export class BattleWave {
         this.lastForwardRecoveryResumedUnitCount = resumableUnitCount;
         this.lastForwardRecoveryRetainedBusyUnitCount =
             retainedBusyUnitCount;
+        if (!this.targetClearOutcomeTelemetry) {
+            this.targetClearOutcomeTelemetry = {
+                reason: 'forward-resumed-after-no-target',
+                scanner: this.getScanner(),
+                target: null,
+            };
+        }
 
         for (let i = 0; i < this.units.length; i++) {
             const u = this.units[i];

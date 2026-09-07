@@ -356,6 +356,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.freeHuntContinuityActive;
         }
 
+        clearWaveHuntContinuity() {
+          this.clearFreeHuntContinuity();
+        }
+
         resetIdleWithoutOrderTelemetry() {
           this.idleWithoutOrderTelemetryReported = false;
         }
@@ -539,7 +543,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return true;
         }
 
-        findForwardSearchTarget() {
+        findForwardSearchTarget(sameLaneOnly = false) {
           if (!this.agent) return null;
           if (this.laneId < 0) return null;
           const enemies = this.getNearbyEnemyList(this.targetSearchRange);
@@ -551,7 +555,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             const enemy = enemies[i];
             if (!this.isValidEnemy(enemy)) continue;
 
-            if (!this.isForwardSearchCandidate(enemy)) {
+            if (!this.isForwardSearchCandidate(enemy, sameLaneOnly)) {
               continue;
             }
 
@@ -569,7 +573,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return best;
         }
 
-        isForwardSearchCandidate(enemy) {
+        isForwardSearchCandidate(enemy, sameLaneOnly) {
           if (this.laneId < 0 || enemy.laneId < 0) {
             return false;
           }
@@ -579,10 +583,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           const ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
           const enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
-          const laneDistance = Math.abs(ownLane - enemyLane); // Normal Forward only releases through a passed scanner in an
-          // adjacent lane. Same-lane contact is handled by local combat.
+          const laneDistance = Math.abs(ownLane - enemyLane);
 
-          if (laneDistance !== 1) {
+          if (sameLaneOnly ? laneDistance !== 0 : laneDistance > 1) {
             return false;
           }
 
