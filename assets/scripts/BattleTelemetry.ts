@@ -279,6 +279,7 @@ export interface BattleTelemetryDiagnosticEvent {
     forwardRecoveryRetainedBusyUnitCount?: number;
     sameLaneWaveEngagement?: boolean;
     soloAggressiveCombat?: boolean;
+    aggressiveFrontlineEngagement?: boolean;
     canEscalateWaveCombat?: boolean;
     initialForwardCombatDelayed?: boolean;
     waveCombatEscalated?: boolean;

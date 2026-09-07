@@ -434,6 +434,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.heroForwardUnlocked = [false, false];
 
           this.refreshLaneBeforeWaveForward = wave => {
+            if (wave.applyDefeatedTargetLaneForRegroup()) {
+              return;
+            }
+
             this.refreshDynamicLaneForWave(wave, true);
           };
 
@@ -450,9 +454,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.waveBannerTeamBColorParams = [0, 0, 0, 0];
           this.waveBannerRendererCache = new WeakMap();
           this.waveBannerIconParamCache = new WeakMap();
+          this.waveBannerAggressiveTintCache = new WeakMap();
           this.waveBannerHealthBarCache = new WeakMap();
           this.fallbackTeamABannerColor = new Color(0, 70, 255, 255);
           this.fallbackTeamBBannerColor = new Color(255, 0, 0, 255);
+          this.normalWaveBannerTintParams = [1, 1, 1, 1];
+          this.aggressiveWaveBannerTintParams = [1, 0.6795424696, 0, 1];
           this.battleTelemetry = new (_crd && BattleTelemetry === void 0 ? (_reportPossibleCrUseOfBattleTelemetry({
             error: Error()
           }), BattleTelemetry) : BattleTelemetry)();
@@ -832,6 +839,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.processDynamicWaveLanes();
+          this.processWaveTargetClearTelemetry();
           this.processWaveHuntScannerRefreshes();
           this.processWaveForwardSearches();
           this.processWaveForwardRecoveries();
@@ -1200,17 +1208,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return;
           if (wave.isDead()) return;
-          var soloAggressiveCombat = this.shouldUseSoloAggressiveCombat(wave, unit, enemy);
-          var canEscalateWaveCombat = !soloAggressiveCombat && this.canEscalateWaveCombatFromEngagement(wave, enemy);
+          var aggressiveFrontlineEngagement = this.isAggressiveFrontlineEngagement(wave, unit, enemy);
+          var soloAggressiveCombat = this.shouldUseSoloAggressiveCombat(wave, unit, enemy, aggressiveFrontlineEngagement);
+          var waveForwardBefore = wave.isForwardMode();
+          var aggressiveForwardBefore = wave.isAggressiveForwardMode();
+          var sameLaneWaveEngagement = this.isSameLaneWaveEngagement(wave, enemy);
+          var canEscalateWaveCombat = !soloAggressiveCombat && (!wave.isForwardMode() || !wave.isAggressiveForwardMode() || sameLaneWaveEngagement && aggressiveFrontlineEngagement) && this.canEscalateWaveCombatFromEngagement(wave, enemy);
+          var initialForwardCombatDelayed = canEscalateWaveCombat && this.shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate);
+          var waveCombatEscalated = canEscalateWaveCombat && !initialForwardCombatDelayed && waveForwardBefore;
 
-          if (canEscalateWaveCombat) {
+          if (canEscalateWaveCombat && (!waveForwardBefore || !initialForwardCombatDelayed)) {
             this.trySetWaveTargetFromEngagement(wave, unit, enemy);
           }
 
-          if (canEscalateWaveCombat && !this.shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate)) {
+          if (canEscalateWaveCombat && !initialForwardCombatDelayed) {
             wave.enterCombatMode();
           }
 
+          this.recordWaveCombatEscalationDecision(wave, unit, enemy, aggressiveForwardBefore, waveForwardBefore, sameLaneWaveEngagement, soloAggressiveCombat, aggressiveFrontlineEngagement, canEscalateWaveCombat, initialForwardCombatDelayed, waveCombatEscalated);
           var enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(enemy);
@@ -1219,9 +1234,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          if (!this.shouldUseSoloAggressiveCombat(enemyWave, enemy, unit) && this.canEscalateWaveCombatFromEngagement(enemyWave, unit) && !this.shouldDelayInitialForwardCombat(enemyWave, enemy, unit, useInitialForwardGate)) {
+          var enemyAggressiveFrontlineEngagement = this.isAggressiveFrontlineEngagement(enemyWave, enemy, unit);
+          var enemySoloAggressiveCombat = this.shouldUseSoloAggressiveCombat(enemyWave, enemy, unit, enemyAggressiveFrontlineEngagement);
+          var enemyWaveForwardBefore = enemyWave.isForwardMode();
+          var enemyAggressiveForwardBefore = enemyWave.isAggressiveForwardMode();
+          var enemySameLaneWaveEngagement = this.isSameLaneWaveEngagement(enemyWave, unit);
+          var enemyCanEscalateWaveCombat = !enemySoloAggressiveCombat && (!enemyWave.isForwardMode() || !enemyWave.isAggressiveForwardMode() || enemySameLaneWaveEngagement && enemyAggressiveFrontlineEngagement) && this.canEscalateWaveCombatFromEngagement(enemyWave, unit);
+          var enemyInitialForwardCombatDelayed = enemyCanEscalateWaveCombat && this.shouldDelayInitialForwardCombat(enemyWave, enemy, unit, useInitialForwardGate);
+          var enemyWaveCombatEscalated = enemyCanEscalateWaveCombat && !enemyInitialForwardCombatDelayed && enemyWaveForwardBefore;
+
+          if (enemyCanEscalateWaveCombat && (!enemyWaveForwardBefore || !enemyInitialForwardCombatDelayed)) {
+            this.trySetWaveTargetFromEngagement(enemyWave, enemy, unit);
+          }
+
+          if (enemyCanEscalateWaveCombat && !enemyInitialForwardCombatDelayed) {
             enemyWave.enterCombatMode();
           }
+
+          this.recordWaveCombatEscalationDecision(enemyWave, enemy, unit, enemyAggressiveForwardBefore, enemyWaveForwardBefore, enemySameLaneWaveEngagement, enemySoloAggressiveCombat, enemyAggressiveFrontlineEngagement, enemyCanEscalateWaveCombat, enemyInitialForwardCombatDelayed, enemyWaveCombatEscalated);
         }
 
         shouldUseSoloAggressiveSkirmish(unit, enemy) {
@@ -1267,8 +1297,55 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return Math.abs(this.clampLaneId(wave.laneId) - this.clampLaneId(targetWave.laneId)) <= 1;
         }
 
+        isSameLaneWaveEngagement(wave, target) {
+          var targetWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(target);
+          if (!targetWave) return false;
+
+          if (wave.laneId < 0 || targetWave.laneId < 0) {
+            return false;
+          }
+
+          return this.clampLaneId(wave.laneId) === this.clampLaneId(targetWave.laneId);
+        }
+
+        recordWaveCombatEscalationDecision(wave, unit, target, aggressiveForwardBefore, waveForwardBefore, sameLaneWaveEngagement, soloAggressiveCombat, aggressiveFrontlineEngagement, canEscalateWaveCombat, initialForwardCombatDelayed, waveCombatEscalated) {
+          var _unit$unitTypeName, _unit$lifeId, _target$team, _targetWave$id, _targetWave$laneId, _targetWave$family, _target$lifeId;
+
+          if (!this.enableBattleTelemetry) return;
+          var targetWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(target);
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-combat-escalation-decision',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: (_unit$unitTypeName = unit == null ? void 0 : unit.unitTypeName) != null ? _unit$unitTypeName : wave.unitName,
+            unitLifeId: (_unit$lifeId = unit == null ? void 0 : unit.lifeId) != null ? _unit$lifeId : -1,
+            targetTeam: (_target$team = target == null ? void 0 : target.team) != null ? _target$team : -1,
+            targetWaveId: (_targetWave$id = targetWave == null ? void 0 : targetWave.id) != null ? _targetWave$id : -1,
+            targetLaneId: (_targetWave$laneId = targetWave == null ? void 0 : targetWave.laneId) != null ? _targetWave$laneId : -1,
+            targetFamilyName: targetWave ? (_targetWave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[targetWave.family]) != null ? _targetWave$family : String(targetWave.family) : '',
+            targetLifeId: (_target$lifeId = target == null ? void 0 : target.lifeId) != null ? _target$lifeId : -1,
+            aggressiveForward: aggressiveForwardBefore,
+            waveForwardBefore,
+            sameLaneWaveEngagement,
+            soloAggressiveCombat,
+            aggressiveFrontlineEngagement,
+            canEscalateWaveCombat,
+            initialForwardCombatDelayed,
+            waveCombatEscalated
+          });
+        }
+
         recordWaveTargetAssignment(wave, unit, target, previousTargetWaveId, source, assigned) {
-          var _unit$unitTypeName, _wave$family, _targetWave$family;
+          var _unit$unitTypeName2, _wave$family, _targetWave$family2;
 
           if (!this.enableBattleTelemetry || !assigned) return;
           var targetWave = wave.getTargetWave();
@@ -1284,16 +1361,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             team: wave.team,
             waveId: wave.id,
             laneId: wave.laneId,
-            unitName: (_unit$unitTypeName = unit == null ? void 0 : unit.unitTypeName) != null ? _unit$unitTypeName : wave.unitName,
+            unitName: (_unit$unitTypeName2 = unit == null ? void 0 : unit.unitTypeName) != null ? _unit$unitTypeName2 : wave.unitName,
             familyName: (_wave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
             }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family : String(wave.family),
             targetWaveId: targetWave.id,
             targetTeam: targetWave.team,
             targetLaneId: targetWave.laneId,
-            targetFamilyName: (_targetWave$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            targetFamilyName: (_targetWave$family2 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily)[targetWave.family]) != null ? _targetWave$family : String(targetWave.family),
+            }), UnitFamily) : UnitFamily)[targetWave.family]) != null ? _targetWave$family2 : String(targetWave.family),
             previousTargetWaveId,
             targetSource: source
           });
@@ -1315,15 +1392,110 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               error: Error()
             }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family2 : String(wave.family),
             targetWaveId: -1,
-            targetSource: 'scanner-confirmed-no-target'
+            targetSource: 'wave-confirmed-no-target',
+            regroupLaneId: wave.laneId,
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
+            forwardRecoveryResumedUnitCount: wave.getLastForwardRecoveryResumedUnitCount(),
+            forwardRecoveryRetainedBusyUnitCount: wave.getLastForwardRecoveryRetainedBusyUnitCount()
           });
         }
 
-        recordWaveScannerTrace(scanner, observedUnit, source, reason, targetWaveBefore, observedEnemyCount) {
+        recordWaveForwardRecoveryBlocked(wave, blocker) {
+          var _wave$family3, _blocker$unit$lifeId, _blocker$unit, _blocker$unit$unitTyp, _blocker$unit2;
+
+          if (!this.enableBattleTelemetry) return;
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-forward-recovery-blocked',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: (_wave$family3 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family3 : String(wave.family),
+            recoveryBlockReason: blocker.reason,
+            blockingUnitLifeId: (_blocker$unit$lifeId = (_blocker$unit = blocker.unit) == null ? void 0 : _blocker$unit.lifeId) != null ? _blocker$unit$lifeId : -1,
+            blockingUnitName: (_blocker$unit$unitTyp = (_blocker$unit2 = blocker.unit) == null ? void 0 : _blocker$unit2.unitTypeName) != null ? _blocker$unit$unitTyp : '',
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode()
+          });
+        }
+
+        recordUnitIdleWithoutOrder(unit) {
+          var _wave$family4, _targetWave$id2, _targetWave$team, _targetWave$laneId2;
+
+          if (!this.enableBattleTelemetry) return;
+          if (!unit) return;
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return;
+          var targetWave = wave.getTargetWave();
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'unit-idle-without-order',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: unit.unitTypeName,
+            familyName: (_wave$family4 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family4 : String(wave.family),
+            unitLifeId: unit.lifeId,
+            targetWaveId: (_targetWave$id2 = targetWave == null ? void 0 : targetWave.id) != null ? _targetWave$id2 : -1,
+            targetTeam: (_targetWave$team = targetWave == null ? void 0 : targetWave.team) != null ? _targetWave$team : -1,
+            targetLaneId: (_targetWave$laneId2 = targetWave == null ? void 0 : targetWave.laneId) != null ? _targetWave$laneId2 : -1,
+            reason: 'free-hunt-no-target-no-continuity',
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode(),
+            unitForward: unit.onForward,
+            unitBusy: unit.onBusy,
+            unitHasValidTarget: unit.hasValidEnemyTarget(),
+            unitFreeHuntContinuityActive: unit.isFreeHuntContinuityActive(),
+            freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin()
+          });
+        }
+
+        recordWaveTargetCleared(wave, target) {
+          var _wave$family5, _target$family;
+
+          if (!this.enableBattleTelemetry) return;
+          this.battleTelemetry.recordDiagnosticEvent({
+            type: 'wave-target-cleared',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: wave.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            unitName: wave.unitName,
+            familyName: (_wave$family5 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family5 : String(wave.family),
+            targetWaveId: target.id,
+            targetTeam: target.team,
+            targetLaneId: target.laneId,
+            targetFamilyName: (_target$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+              error: Error()
+            }), UnitFamily) : UnitFamily)[target.family]) != null ? _target$family : String(target.family),
+            targetSource: 'target-wave-dead',
+            aggressiveForward: wave.isAggressiveForwardMode(),
+            waveForwardBefore: wave.isForwardMode()
+          });
+        }
+
+        recordWaveScannerTrace(scanner, observedUnit, source, reason, targetWaveBefore, observedEnemyCount, searchSameLaneOnly) {
           var _ref2, _getWaveForUnit, _ref3, _scanner$agent, _prefVelocity$x, _prefVelocity$z, _targetWaveBefore$id, _targetWaveBefore$lan, _targetWaveAfter$id, _targetWaveAfter$lane, _observedWave$id, _observedWave$laneId, _observed$unitTypeNam, _observed$lifeId, _observedPosition$x, _observedPosition$z;
 
           if (observedEnemyCount === void 0) {
             observedEnemyCount = 0;
+          }
+
+          if (searchSameLaneOnly === void 0) {
+            searchSameLaneOnly = false;
           }
 
           if (!this.enableBattleTelemetry) return;
@@ -1369,20 +1541,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             candidateLifeId: (_observed$lifeId = observed == null ? void 0 : observed.lifeId) != null ? _observed$lifeId : -1,
             candidateX: (_observedPosition$x = observedPosition == null ? void 0 : observedPosition.x) != null ? _observedPosition$x : 0,
             candidateZ: (_observedPosition$z = observedPosition == null ? void 0 : observedPosition.z) != null ? _observedPosition$z : 0,
-            observedEnemyCount
+            observedEnemyCount,
+            searchSameLaneOnly
           });
         }
 
-        shouldUseSoloAggressiveCombat(wave, unit, enemy) {
+        shouldUseSoloAggressiveCombat(wave, unit, enemy, aggressiveFrontlineEngagement) {
+          if (aggressiveFrontlineEngagement === void 0) {
+            aggressiveFrontlineEngagement = this.isAggressiveFrontlineEngagement(wave, unit, enemy);
+          }
+
           if (!wave.isAggressiveForwardMode()) return false;
-          if (!unit || !enemy) return false;
+          if (!unit || !enemy) return false; // A rear contact is a backstab: only the contacted unit may fight.
+          // A whole aggressive wave may turn into Free Hunt only when its
+          // contact unit is on or ahead of the current scanner along forward.
+
+          if (!aggressiveFrontlineEngagement) {
+            return true;
+          }
 
           if (!unit.onForward && !unit.isSoloAggressiveSkirmishActive()) {
             return false;
-          }
+          } // Wave lane is the strategic authority. It follows the active
+          // scanner and is mirrored to every member, so an individual unit
+          // drifting sideways during combat must not redefine this skirmish.
 
-          var unitLane = this.getCurrentLaneIdForUnit(unit);
-          var enemyLane = this.getCurrentLaneIdForUnit(enemy);
+
+          var unitLane = wave.laneId;
+          var enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(enemy);
+          var enemyLane = enemyWave ? enemyWave.laneId : -1;
           if (unitLane < 0 || enemyLane < 0) return false;
 
           if (unitLane !== enemyLane) {
@@ -1390,6 +1579,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.isEnemyOutsideUnitAttackRange(unit, enemy);
+        }
+
+        isAggressiveFrontlineEngagement(wave, unit, enemy) {
+          if (enemy === void 0) {
+            enemy = null;
+          }
+
+          if (!wave.isAggressiveForwardMode()) return false;
+          if (!(unit != null && unit.agent)) return false;
+          var scanner = wave.getScanner(true); // The contact unit leaves Forward before this callback. When it was
+          // the final forward unit, no scanner remains; classify that contact
+          // from its target direction instead of making the threshold
+          // unreachable for a fully engaged wave.
+
+          if (!(scanner != null && scanner.agent)) {
+            return !!enemy && !unit.hasPassedForwardTarget(enemy);
+          }
+
+          var dx = unit.agent.pos.x - scanner.agent.pos.x;
+          var dz = unit.agent.pos.z - scanner.agent.pos.z;
+          var forwardProgress = dx * scanner.forwardDir.x + dz * scanner.forwardDir.z; // Progress zero is the scanner's forward line, so a unit abreast of
+          // it counts as a frontline contact rather than a rear ambush.
+
+          return forwardProgress >= 0;
         }
 
         isEnemyOutsideUnitAttackRange(unit, enemy) {
@@ -1425,21 +1638,56 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           return unit.isSoloAggressiveSkirmishActive() && !unit.onForward && !unit.onBusy && !unit.hasValidEnemyTarget();
         }
 
+        getForwardModeAfterLocalCombat(unit) {
+          if (!unit) return null;
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          if (!wave) return null;
+          if (wave.isDead()) return null;
+          if (!wave.isForwardMode()) return null;
+
+          if (!unit.isSteady && !unit.onBusy && !unit.hasValidEnemyTarget()) {
+            return wave.isAggressiveForwardMode();
+          }
+
+          return null;
+        }
+
         shouldDelayInitialForwardCombat(wave, unit, enemy, useInitialForwardGate) {
           if (!useInitialForwardGate) return false;
           if (!wave.isInitialForwardCombatGateActive()) return false;
           if (!unit || !enemy) return false;
-          if (!unit.onForward) return false;
-          if (unit.laneId < 0 || enemy.laneId < 0) return false;
-
-          if (this.clampLaneId(unit.laneId) !== this.clampLaneId(enemy.laneId)) {
-            return false;
-          }
-
           var aliveCount = wave.getRuntimeAliveCount(this.frame);
           var threshold = Math.min(aliveCount, wave.getInitialForwardCombatReleaseThreshold());
           if (threshold <= 1) return false;
-          return wave.getEngagedCountIncluding(unit) < threshold;
+          var engagedCount = wave.isAggressiveForwardMode() ? this.getAggressiveFrontlineEngagedCount(wave, unit, enemy) : wave.getEngagedCountIncluding(unit);
+          return engagedCount < threshold;
+        }
+
+        getAggressiveFrontlineEngagedCount(wave, pendingUnit, pendingEnemy) {
+          var count = 0;
+
+          for (var i = 0; i < wave.units.length; i++) {
+            var unit = wave.units[i];
+            var isPending = unit === pendingUnit;
+            if (!(unit != null && unit.props) || unit.props.isDead()) continue;
+            if (!isPending && !unit.onBusy) continue;
+            var enemy = isPending ? pendingEnemy : unit.getValidEnemyTarget();
+            if (!enemy) continue;
+
+            if (!this.isSameLaneWaveEngagement(wave, enemy)) {
+              continue;
+            }
+
+            if (!this.isAggressiveFrontlineEngagement(wave, unit, enemy)) {
+              continue;
+            }
+
+            count++;
+          }
+
+          return count;
         }
 
         onWaveForwardTargetFound(unit, target) {
@@ -1489,6 +1737,20 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           return wave ? wave.getTargetWave() : null;
+        }
+
+        hasWaveTargetClearSearchPending(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          return !!wave && wave.hasImmediateTargetSearchPending();
+        }
+
+        isWaveAwaitingForwardRecoveryAfterTargetClear(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          return !!wave && wave.isAwaitingForwardRecoveryAfterTargetClear();
         }
 
         hasWaveHuntScannerConfirmedNoTarget(unit) {
@@ -1561,7 +1823,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
-            scanner.forceHuntScannerTargetSearch();
+            var targetFound = scanner.forceHuntScannerSameLaneTargetSearch();
+            wave.resolveImmediateTargetClearSearch(targetFound);
           }
         }
 
@@ -1598,6 +1861,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             var _targetWaveBefore = wave.getTargetWave();
 
+            var _target = scanner.findForwardSearchTarget(true);
+
+            if (_target) {
+              this.onWaveForwardTargetFound(scanner, _target);
+            }
+
             var adjacentRearGuard = this.findDeepestAdjacentEnemyWaveScanner(wave, scanner);
 
             if (adjacentRearGuard) {
@@ -1607,7 +1876,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             var enemiesAhead = this.countEnemiesAheadInSameLane(scanner);
-            this.recordWaveScannerTrace(scanner, adjacentRearGuard, 'forward-aggressive', enemiesAhead > 0 ? 'own-lane-blocked' : adjacentRearGuard ? 'lane-clear-adjacent-flank' : 'lane-clear', _targetWaveBefore, enemiesAhead + (adjacentRearGuard ? 1 : 0));
+            this.recordWaveScannerTrace(scanner, _target != null ? _target : adjacentRearGuard, 'forward-aggressive', _target ? 'target-passed-release' : enemiesAhead > 0 ? 'own-lane-blocked' : adjacentRearGuard ? 'lane-clear-adjacent-flank' : 'lane-clear', _targetWaveBefore, (_target ? 1 : 0) + enemiesAhead + (adjacentRearGuard ? 1 : 0));
+            if (_target) return;
 
             if (enemiesAhead > 0) {
               if (wave.observeAggressiveOwnLaneBlock()) {
@@ -1717,7 +1987,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         recordAggressiveForwardEvent(type, wave, scanner, boundary, enemiesAhead, reason) {
-          var _wave$family3;
+          var _wave$family6;
 
           if (!this.enableBattleTelemetry) return;
           var boundaryWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
@@ -1731,9 +2001,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             waveId: wave.id,
             laneId: wave.laneId,
             unitName: wave.unitName,
-            familyName: (_wave$family3 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            familyName: (_wave$family6 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family3 : String(wave.family),
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family6 : String(wave.family),
             reason,
             boundaryWaveId: boundaryWave ? boundaryWave.id : -1,
             boundaryLaneId: boundaryWave ? boundaryWave.laneId : -1,
@@ -1756,6 +2026,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
             if (resumed) {
               this.recordWaveForwardResume(wave);
+              continue;
+            }
+
+            var blocker = wave.consumeForwardRecoveryBlockTelemetry();
+
+            if (blocker) {
+              this.recordWaveForwardRecoveryBlocked(wave, blocker);
             }
           }
         }
@@ -1779,6 +2056,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             }
 
             wave.refreshWaveBanner();
+            this.updateWaveBannerDebugTint(wave);
             this.updateWaveBannerHealthBar(wave);
           }
         }
@@ -1912,6 +2190,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (!wave) return;
           if (wave.isDeadRuntime(this.frame)) return;
+          if (wave.hasAggressiveForwardLaneLock()) return;
           if (wave.hasBackToLaneUnits()) return;
           var interval = wave.getTargetSearchIntervalFrames();
           var offset = wave.id + Math.floor(interval / 2); // Lane is strategic metadata only. Stagger updates by wave
@@ -1968,6 +2247,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           this.unlockHeroForward(team, hero, laneSelection.laneId);
+        }
+
+        processWaveTargetClearTelemetry() {
+          for (var i = 0; i < this.waves.length; i++) {
+            var wave = this.waves[i];
+
+            if (!wave || wave.isDeadRuntime(this.frame)) {
+              continue;
+            }
+
+            wave.getTargetWave();
+            var clearedTarget = wave.consumeClearedTargetTelemetry();
+
+            if (clearedTarget) {
+              this.recordWaveTargetCleared(wave, clearedTarget);
+            }
+          }
         }
 
         unlockHeroForward(team, hero, laneId) {
@@ -2148,7 +2444,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         createBattleTelemetryWaveSnapshot(wave) {
-          var _wave$family4;
+          var _wave$family7;
 
           var busyCount = 0;
           var targetCount = 0;
@@ -2175,9 +2471,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             laneId: wave.laneId,
             unitName: wave.unitName,
             family: wave.family,
-            familyName: (_wave$family4 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
+            familyName: (_wave$family7 = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
-            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family4 : String(wave.family),
+            }), UnitFamily) : UnitFamily)[wave.family]) != null ? _wave$family7 : String(wave.family),
             tier: wave.tier,
             totalCount: wave.totalCount,
             aliveCount: wave.getRuntimeAliveCount(this.frame),
@@ -2258,6 +2554,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (this.hasBattleWinner()) return;
 
           if (this.combatResolutionDepth > 0) {
+            // Combat can resolve more than one terminal event in a single
+            // damage batch. Preserve the first one so a later death cannot
+            // reverse an already-decided winner before the batch completes.
+            if (this.pendingBattleWinner) {
+              return;
+            }
+
             this.pendingBattleWinner = {
               winnerTeam,
               loserTeam,
@@ -3179,10 +3482,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var node = this.acquireWaveBanner(prefab);
           if (!node) return;
           this.applyWaveBannerAppearance(node, wave.team, entry ? entry.waveBannerIconId : 0);
+          this.updateWaveBannerDebugTint(wave);
           wave.setWaveBanner(node, bannerNode => {
             this.recycleWaveBanner(prefab, bannerNode);
           }, bannerNode => {
             this.applyWaveBannerAppearance(bannerNode, wave.team, entry ? entry.waveBannerIconId : 0);
+            this.updateWaveBannerDebugTint(wave);
             this.updateWaveBannerHealthBar(wave);
           });
           wave.setWaveBannerVisible(this.waveBannerVisibleByCamera);
@@ -3190,6 +3495,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         applyWaveBannerAppearance(node, team, iconId) {
+          this.waveBannerAggressiveTintCache.delete(node);
           var params = this.getWaveBannerColorParams(team);
           var iconParams = this.getWaveBannerIconParams(node, iconId);
           var sharedMaterial = this.getWaveBannerMaterial();
@@ -3207,6 +3513,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             renderer.setInstancedAttribute('a_billboard_bg_color', params);
             renderer.setInstancedAttribute('a_billboard_icon_id', iconParams);
           }
+        }
+
+        updateWaveBannerDebugTint(wave) {
+          if (!wave) return;
+          var node = wave.getWaveBannerNode();
+          if (!node) return;
+          var aggressive = wave.isForwardMode() && wave.isAggressiveForwardMode();
+
+          if (this.waveBannerAggressiveTintCache.get(node) === aggressive) {
+            return;
+          }
+
+          var tint = aggressive ? this.aggressiveWaveBannerTintParams : this.normalWaveBannerTintParams;
+          var renderers = this.getWaveBannerRenderers(node);
+
+          for (var i = 0; i < renderers.length; i++) {
+            renderers[i].setInstancedAttribute('a_billboard_tint_color', tint);
+          }
+
+          this.waveBannerAggressiveTintCache.set(node, aggressive);
         }
 
         getWaveBannerIconParams(node, iconId) {
@@ -3463,7 +3789,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (!unit) return;
-          unit.laneId = laneId;
           unit.aggressiveForward = aggressiveForward;
           wave.addUnit(unit);
 
@@ -3981,7 +4306,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             previousWave.releaseReferences();
           }
 
-          hero.laneId = laneId;
           var wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave)(this.nextWaveId++, team, unitTypeName, family, tier, 1, laneId);

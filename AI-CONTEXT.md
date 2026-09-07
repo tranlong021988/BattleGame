@@ -134,6 +134,7 @@ The latest run contains seven main entry states with a CP or maxAlive deficit bu
 ## Source/worktree safety
 
 - Relevant approved gameplay/config work includes `assets/scripts/BattleWave.ts`, `Unit.ts`, `GameManager.ts`, and `BattleTelemetry.ts` for scanner-owned wave targeting, target-clear recovery, local-combat forward recovery, free-hunt continuity, own-side ranged kiting, and telemetry; `assets/scripts/LevelSettings.ts` for Side player-card eligibility and Side cooldown settlement; and `assets/Battle.scene` for the Archer/Monk 1.5x default attack ranges. Preserve unrelated dirty changes and Cocos-generated artifacts.
+- Wave-banner debug tint is runtime-only in `GameManager`: Normal Forward is white; Aggressive Forward is gold (`255, 215, 0`). It is supplied through the per-renderer `a_billboard_tint_color` attribute, so the Wave Banner Material stays instanced and preserves each banner's `a_billboard_icon_id`. Free Hunt and local-combat states revert to white.
 - `AI-CONTEXT.md` itself is intentionally updated by this handoff.
 - `library/`, `profiles/`, and `temp/` are live Cocos cache/log artifacts. Never clean, revert, or delete them unless explicitly asked and the Editor is closed.
 - On 2026-09-04, `.git/index.lock` was a zero-byte file and no Git process was running; it was removed after verification. Before deleting any future lock, repeat both checks. Do not remove a live lock.
@@ -142,6 +143,101 @@ The latest run contains seven main entry states with a CP or maxAlive deficit bu
 
 This is active work. It takes precedence over older next-action notes where they overlap.
 
+### Latest implementation override — Forward release threshold and scanner pass
+
+This section is the newest source-of-truth for Forward/Aggressive Forward.
+It supersedes conflicting statements later in this handoff, especially the
+older claims that same-lane scanner passing never releases a wave or that a
+single same-lane local combat owns `targetWave`.
+
+#### Confirmed implementation contract
+
+1. **Normal Forward has two independent Free Hunt releases.**
+   - On the scanner interval, its scanner may select a passed enemy within
+     its runtime `targetSearchRange` from the same lane **or one adjacent
+     lane (`laneDistance <= 1`)**.  “Passed” is the scanner's forward-axis
+     comparison in `Unit.hasPassedTargetAlongForward`.  The selected unit's
+     wave becomes `targetWave`, then the whole wave enters Free Hunt.
+   - On local engagements, it enters Free Hunt only when the initial
+     threshold is met: `min(runtimeAliveCount, maxUnitPerRow)`.  The scene's
+     spawned entries currently use `maxUnitPerRow = 8`.  This count is the
+     historical `BattleWave.getEngagedCountIncluding` count of all alive
+     members with `onBusy`; it deliberately does **not** filter by lane.
+
+2. **Normal local combat below the threshold is local only.**  The contact
+   unit fights, but it neither assigns `targetWave` nor switches the whole
+   wave to Free Hunt.  The event that reaches the threshold assigns the
+   opposing wave of that event as `targetWave`, then releases the wave.
+   This means simultaneous contacts with more than one eligible enemy wave
+   resolve to the wave involved in the threshold-crossing event.
+
+3. **Aggressive Forward has the same two release families, with lane-lock
+   restrictions.**
+   - Scanner-pass release searches **same lane only** and still requires a
+     passed enemy within the scanner's runtime range.  It has no adjacent
+     scanner-pass release.
+   - Engagement-threshold release counts only alive busy members whose
+     current target belongs to the wave's same lane and whose contact is at
+     or ahead of the active scanner.  A rear contact remains local and is
+     excluded from this count.  If the contact unit was the final Forward
+     unit and no eligible scanner remains after it begins combat, its target
+     direction is used: a target already behind that unit is rear/local;
+     otherwise it can be treated as frontline.  This avoids making the full
+     threshold unreachable simply because all members are busy.
+
+4. **Aggressive lane authority is unchanged.**  Its scanner-pass search is
+   same-lane-only; dynamic lane migration remains disabled while the
+   aggressive lane lock applies; after Free Hunt it regroups to the stored
+   aggressive-origin lane before resuming Aggressive Forward.  Adjacent-lane
+   contact may remain local but cannot itself satisfy the Aggressive
+   threshold-release gate.
+
+#### Implementation map (latest changes)
+
+- `assets/scripts/Unit.ts`
+  - `findForwardSearchTarget(sameLaneOnly = false)` now accepts a narrow
+    same-lane mode for Aggressive.
+  - Normal mode accepts passed candidates at lane distance 0 or 1; the
+    existing nearby-enemy query and `targetSearchRange` remain the range
+    authority.
+- `assets/scripts/GameManager.ts`
+  - `searchForwardWaveTarget()` calls the same-lane scanner search for
+    Aggressive and uses the existing `onWaveForwardTargetFound()` path to
+    assign `targetWave` and enter Free Hunt.
+  - `shouldReleaseNormalForwardTarget()` now accepts passed same-lane as
+    well as adjacent-lane candidates.
+  - `onWaveCombatStarted()` delays `targetWave` assignment until the
+    threshold release actually occurs while a wave is in Forward.
+  - `shouldDelayInitialForwardCombat()` retains the historical all-`onBusy`
+    count for Normal; `getAggressiveFrontlineEngagedCount()` supplies the
+    constrained Aggressive count.
+
+#### Required next verification
+
+No new telemetry has been produced after this override.  Treat runtime
+behavior as unverified until a fresh batch is inspected.  Specifically
+check:
+
+1. Normal same-lane scanner-pass release is recorded as
+   `forward-normal` / `target-passed-release`, with scanner-target lane
+   distance 0 or 1 and distance within the configured runtime range.
+2. Before the threshold, local contacts must not emit a wave-target
+   assignment or `waveCombatEscalated: true`; the threshold-crossing event
+   must emit both.
+3. For Aggressive, a rear same-lane contact must remain local; an
+   adjacent-lane contact must not produce an Aggressive scanner release; a
+   passed same-lane scanner target may release.
+4. After Aggressive Free Hunt clears its target, verify regroup/resume lane
+   equals the aggressive origin lane, not the defeated target lane.
+
+#### Static verification status
+
+`node --check assets/scripts/GameManager.ts` and
+`node --check assets/scripts/Unit.ts` both exited 0; `git diff --check` for
+those files was clean.  This checkout has no local/global `tsc` and no
+`CocosCreator` command on PATH, so no project compilation or live battle
+test was run for this change.
+
 ### Exact behavioral contract
 
 1. **Scanner owns strategic targets.** Units must not independently scan the map for a strategic target. `laneId` is the strategic lane of its wave, owned by the scanner; it is not an individual unit combat lane.
@@ -149,9 +245,11 @@ This is active work. It takes precedence over older next-action notes where they
 3. **Adjacent lane:** in Normal Forward, the strategic release condition is this scanner passing an enemy scanner in an adjacent lane. The selected strategic target is that adjacent enemy wave. Diagonal travel toward members of that selected target wave is valid. An arbitrary adjacent enemy is not sufficient to alter wave state or make the wave run diagonally.
 4. **Empty own lane:** the wave keeps moving straight. The adjacent-scanner-passed condition can still release it to Free Hunt.
 5. **Local combat is universal:** enemies entering attack range may fight locally. During Aggressive Forward, this applies only to contact units; uninvolved members continue forward. A survivor finishing local combat rejoins the owning wave's current normal/aggressive Forward mode.
-6. **Ranged retaliation:** a ranged-hit unit pursues its actual attacker, not another globally nearer enemy. Contact with another enemy during that pursuit may start ordinary local combat.
-7. **After target-wave death:** the wave must not automatically Free Hunt another wave. It performs one immediate **same-lane-only** scanner search. A same-lane target keeps Free Hunt active; no same-lane target triggers regroup and restoration of the prior Forward mode. Regroup starts from the last eliminated target wave's lane, before dynamic scanner-lane calculation.
-8. **Post-combat deploy delay:** `maxUnitPerRow` delay is allowed once after the first combat while the wave is full. Do not replay it after casualties reduce the wave.
+6. **Aggressive Forward escalation gate:** an Aggressive wave may turn into Free Hunt from local combat only when the contacting unit is on or ahead of the current scanner along the scanner's forward axis (`dot(unitPos - scannerPos, scannerForward) >= 0`). A unit behind the scanner is a rear ambush: it remains in local combat and must not turn the wave or assign a wave-level Free Hunt target. A unit abreast of the scanner counts as frontline. If no valid scanner reference exists, fail closed to local combat.
+7. **Aggressive lane lock:** an Aggressive wave's spawn lane remains its strategic lane through Aggressive Forward and Free Hunt with aggressive origin. Dynamic scanner-lane migration is disabled for it. After eliminating an adjacent target wave, it regroups to this original lane — never the defeated target's lane — then resumes Aggressive Forward.
+8. **Ranged retaliation:** a ranged-hit unit pursues its actual attacker, not another globally nearer enemy. Contact with another enemy during that pursuit may start ordinary local combat.
+9. **After target-wave death:** the wave must not automatically Free Hunt another wave. It performs one immediate scanner search that is both **same-lane-only** and bounded by the scanner's runtime `targetSearchRange`. “Immediate” bypasses only the normal search interval; it does not bypass range. A same-lane target within range keeps Free Hunt active; otherwise the wave regroups and restores the prior Forward mode. Normal waves regroup from the last eliminated target wave's lane; an Aggressive-origin wave regroups from its locked origin lane, before dynamic scanner-lane calculation.
+10. **Post-combat deploy delay:** `maxUnitPerRow` delay is allowed once after the first combat while the wave is full. Do not replay it after casualties reduce the wave.
 
 ### Issue that produced the latest fix
 
@@ -170,9 +268,11 @@ This is active work. It takes precedence over older next-action notes where they
   - Runs the forced same-lane search in `processWaveHuntScannerRefreshes()`.
   - Applies the prior target lane in `refreshLaneBeforeWaveForward()`.
   - `getForwardModeAfterLocalCombat(unit)` lets a unit rejoin the wave's existing Forward mode.
+  - Aggressive combat escalation now checks the contact unit's forward projection against the active scanner. The `wave-combat-escalation-decision` telemetry records `aggressiveFrontlineEngagement` for this gate. When both sides can escalate from a local engagement, both receive the opposing wave as `targetWave` before entering combat mode; neither side must wait for its scanner interval to obtain a hunt target. The passive unit may not yet have updated to `onBusy`, so engagement assignment accepts the pair once either contact unit is busy.
 - `assets/scripts/Unit.ts`
   - `forceHuntScannerSameLaneTargetSearch()` restricts the forced search to scanner lane.
   - Generic strategic search is suppressed while target-clear resolution is pending, preventing adjacent target selection in that window.
+  - Target-clear also cancels every member's Free Hunt continuity vector before the forced scan. A busy scanner can therefore delay the scan without letting free allies continue along the old diagonal hunt direction.
   - `clearEnemy()` returns a finished local-combat unit to the current Forward mode if the wave already resumed.
 - `assets/scripts/BattleTelemetry.ts`
   - Records target-clear/recovery evidence: Free Hunt origin, resumed/retained-busy counts, unit Forward/busy state, and combat-escalation data.
@@ -211,6 +311,8 @@ If a wave keeps moving diagonally after eliminating a target wave, diagnose in t
 3. If replacement exists, confirm same lane. If none exists, confirm immediate `wave-forward-resumed` and mode equal to `freeHuntForwardOrigin`.
 4. Check whether any diagonal travel is toward an already selected adjacent target wave from valid scanner-passed release. That is valid; do not label it target-clear failure.
 5. Only then inspect local-combat/ranged-retaliation events. Those are tactical exceptions, not scanner-owned strategic selection.
+
+For an Aggressive Forward flank/backstab audit, inspect `wave-combat-escalation-decision` for the Aggressive wave. A rear contact must report `aggressiveFrontlineEngagement: false`, `soloAggressiveCombat: true`, and `waveCombatEscalated: false`; the wave must remain Aggressive Forward while that unit fights locally. A frontline same-lane contact must report `aggressiveFrontlineEngagement: true` and `waveCombatEscalated: true`; both escalating waves must receive each other as `targetWave` before entering combat mode. In the specific “B scanner crosses into A lane” scenario, scanner lane migration alone must produce no A escalation; only a later frontline contact may do so.
 
 If a unit appears idle with no blocker, first distinguish a transient `unit-idle-without-order` diagnostic from a persistent no-order state. Persistent requires telemetry showing no target assignment, target-clear processing, or Forward resume for that unit's wave after the diagnostic. Do not diagnose it merely because another unit is in local combat.
 

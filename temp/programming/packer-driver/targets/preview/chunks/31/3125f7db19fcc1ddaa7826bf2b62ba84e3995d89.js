@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, NEAREST_QUERY_ASSIGN_IF_EMPTY, NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION, UNIT_FAMILY_ARCHER, UNIT_FAMILY_MONK, RANGED_DANGER_RANGE_RATIO, RANGED_SAFE_MIN_RANGE_RATIO, RANGED_COMBAT_MOVE_SPEED_RATIO, RANGED_YIELD_LOOK_BEHIND, RANGED_YIELD_SIDE_RANGE, RANGED_YIELD_SIDE_SPEED_RATIO, RANGED_YIELD_BACK_SPEED_RATIO, Unit;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Node, Vec3, UnitProps, GameManager, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _descriptor21, _descriptor22, _descriptor23, _descriptor24, _class3, _crd, ccclass, property, FORWARD_LOOK_DOT_THRESHOLD, UNIT_FAMILY_ARCHER, UNIT_FAMILY_MONK, RANGED_DANGER_RANGE_RATIO, RANGED_SAFE_MIN_RANGE_RATIO, RANGED_COMBAT_MOVE_SPEED_RATIO, RANGED_YIELD_LOOK_BEHIND, RANGED_YIELD_SIDE_RANGE, RANGED_YIELD_SIDE_SPEED_RATIO, RANGED_YIELD_BACK_SPEED_RATIO, Unit;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -49,8 +49,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         property
       } = _decorator);
       FORWARD_LOOK_DOT_THRESHOLD = 0.98;
-      NEAREST_QUERY_ASSIGN_IF_EMPTY = 0;
-      NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION = 2;
       UNIT_FAMILY_ARCHER = 2;
       UNIT_FAMILY_MONK = 6;
       RANGED_DANGER_RANGE_RATIO = 0.5;
@@ -170,6 +168,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             x: 0,
             z: 0
           };
+          this.idleWithoutOrderTelemetryReported = false;
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
@@ -178,17 +177,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.rangedKiteActive = false;
           this.rangedKiteTelemetryTargetLifeId = -1;
           this.rangedCombatDecisionTargetLifeId = -1;
-          this.nearestEnemyQueryToken = 0;
-          this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
-
-          this.onNearestEnemyQueryResult = (target, token) => {
-            if (token !== this.nearestEnemyQueryToken) {
-              return;
-            }
-
-            var validTarget = this.isValidEnemyWithinRange(target, this.targetSearchRange) ? target : null;
-            this.applyNearestEnemyQueryResult(validTarget, this.nearestEnemyQueryMode);
-          };
         }
 
         onLoad() {
@@ -217,6 +205,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setEnemyTarget(null);
           this.onBusy = false;
           this.clearFreeHuntContinuity();
+          this.resetIdleWithoutOrderTelemetry();
           this.soloAggressiveSkirmishActive = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
@@ -367,6 +356,28 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.freeHuntContinuityActive && !this.onBusy && !this.onForward && !this.hasValidEnemyTarget();
         }
 
+        isFreeHuntContinuityActive() {
+          return this.freeHuntContinuityActive;
+        }
+
+        clearWaveHuntContinuity() {
+          this.clearFreeHuntContinuity();
+        }
+
+        resetIdleWithoutOrderTelemetry() {
+          this.idleWithoutOrderTelemetryReported = false;
+        }
+
+        recordIdleWithoutOrderTelemetry() {
+          var _instance;
+
+          if (this.idleWithoutOrderTelemetryReported) return;
+          this.idleWithoutOrderTelemetryReported = true;
+          (_instance = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) == null || _instance.recordUnitIdleWithoutOrder(this);
+        }
+
         zeroAgentVelocity() {
           if (!this.agent) return;
 
@@ -424,7 +435,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         invalidateNearestQueryResults() {
-          this.nearestEnemyQueryToken++;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false;
         }
@@ -495,24 +505,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.targetSearchConfirmedNoTarget = !target && !this.hasValidEnemyTarget();
         }
 
-        applyNearestEnemyQueryResult(target, mode) {
-          this.completeTargetSearch(target);
-
-          if (mode === NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION) {
-            if (target && !target.onBusy) {
-              this.setEnemyTarget(target);
-            } else if (!this.hasValidEnemyTarget()) {
-              this.setEnemyTarget(target);
-            }
-
-            return;
-          }
-
-          if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(target);
-          }
-        }
-
         clearCachedTargets() {
           this.setCachedNearestInRangeTarget(null);
         }
@@ -555,7 +547,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return true;
         }
 
-        findForwardSearchTarget() {
+        findForwardSearchTarget(sameLaneOnly) {
+          if (sameLaneOnly === void 0) {
+            sameLaneOnly = false;
+          }
+
           if (!this.agent) return null;
           if (this.laneId < 0) return null;
           var enemies = this.getNearbyEnemyList(this.targetSearchRange);
@@ -567,7 +563,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var enemy = enemies[i];
             if (!this.isValidEnemy(enemy)) continue;
 
-            if (!this.isForwardSearchCandidate(enemy)) {
+            if (!this.isForwardSearchCandidate(enemy, sameLaneOnly)) {
               continue;
             }
 
@@ -585,7 +581,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return best;
         }
 
-        isForwardSearchCandidate(enemy) {
+        isForwardSearchCandidate(enemy, sameLaneOnly) {
           if (this.laneId < 0 || enemy.laneId < 0) {
             return false;
           }
@@ -597,7 +593,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
           var laneDistance = Math.abs(ownLane - enemyLane);
 
-          if (laneDistance > 1) {
+          if (sameLaneOnly ? laneDistance !== 0 : laneDistance > 1) {
             return false;
           }
 
@@ -634,21 +630,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           var wasBackToLane = this.backToLaneActive;
           var soloAggressive = gm ? gm.shouldUseSoloAggressiveSkirmish(this, attacker) : false;
-          var chaseTarget = this.getPreferredRetaliationChaseTarget(attacker);
-          var chaseAttacker = chaseTarget === attacker; // Ignore older worker results after this damage reaction chooses
-          // a fresh chase target.
-
-          this.nearestEnemyQueryToken++;
-          this.nearestEnemyQueryMode = NEAREST_QUERY_ASSIGN_IF_EMPTY;
           this.targetSearchPending = false;
-          this.targetSearchConfirmedNoTarget = false;
+          this.targetSearchConfirmedNoTarget = false; // Damage reaction keeps the actual attacker as the pursuit target.
+          // A different enemy can replace it only through the normal local
+          // attack-range combat check in update().
 
-          if (chaseAttacker) {
-            this.setRetaliationTarget(attacker);
-          } else {
-            this.setEnemyTarget(chaseTarget);
-          }
-
+          this.setRetaliationTarget(attacker);
           this.setCachedNearestInRangeTarget(null);
           this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
 
@@ -662,20 +649,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return true;
-        }
-
-        getPreferredRetaliationChaseTarget(attacker) {
-          if (this.isValidEnemyWithinAttackRange(attacker)) {
-            return attacker;
-          }
-
-          var nearest = this.findNearestEnemy();
-
-          if (nearest && nearest !== attacker && !nearest.onBusy) {
-            return nearest;
-          }
-
-          return attacker;
         }
 
         setForwardDir(x, z) {
@@ -732,8 +705,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         clearEnemy() {
+          var _instance2;
+
           this.setEnemyTarget(null);
-          this.onBusy = false; // Keep the last free-hunt intent while the scanner waits for the
+          this.onBusy = false; // A local combat does not own the wave's order. If the wave has
+          // already recovered into either forward mode, this survivor returns
+          // to that mode when its local target disappears.
+
+          var forwardAggressive = (_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) == null ? void 0 : _instance2.getForwardModeAfterLocalCombat(this);
+
+          if (forwardAggressive !== null && forwardAggressive !== undefined) {
+            this.enterWaveForwardMode(forwardAggressive);
+            return;
+          } // Keep the last free-hunt intent while the scanner waits for the
           // next wave order. Movement modes that must stop or redirect
           // (steady, forward, and back-to-lane) clear it explicitly.
           // A wave can retain a live strategic target while this unit's local
@@ -742,6 +728,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           // the no-target branch below and remains stopped until an enemy comes
           // back within range. On the next update it follows the wave scanner,
           // or preserves its last travel direction while the scanner searches.
+
 
           if (this.shouldResumeWaveHuntContinuity()) {
             this.beginFreeHuntContinuity();
@@ -758,15 +745,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         shouldResumeWaveHuntContinuity() {
-          var _instance;
+          var _instance3;
 
           if (!this.agent) return false;
           if (this.isSteady) return false;
           if (this.onForward) return false;
           if (this.backToLaneActive) return false;
-          return !!((_instance = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          return !!((_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance.getWaveTargetForUnit(this));
+          }), GameManager) : GameManager).instance) != null && _instance3.getWaveTargetForUnit(this));
         }
 
         haltForBattleEnd() {
@@ -842,6 +829,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         enterWaveCombatMode() {
+          this.resetIdleWithoutOrderTelemetry();
           this.onForward = false;
           this.aggressiveForward = false;
           this.soloAggressiveSkirmishActive = false;
@@ -866,6 +854,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             searchRange = 0;
           }
 
+          this.resetIdleWithoutOrderTelemetry();
           this.onForward = false;
           this.aggressiveForward = false;
           this.soloAggressiveSkirmishActive = false;
@@ -898,6 +887,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             useBackToLanePhase = false;
           }
 
+          this.resetIdleWithoutOrderTelemetry();
           if (this.isSteady) return;
 
           if (useBackToLanePhase && this.startBackToLanePhase(aggressiveForward)) {
@@ -926,13 +916,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update(deltaTime) {
-          var _instance2, _instance4;
+          var _instance4, _instance6;
 
           if (!this.sim || !this.agent) return;
 
-          if ((_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance4 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance2.isBattleCombatLocked()) {
+          }), GameManager) : GameManager).instance) != null && _instance4.isBattleCombatLocked()) {
             this.haltForBattleEnd();
             this.sync(deltaTime, false);
             return;
@@ -950,11 +940,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (this.props && this.props.isDead()) {
             if (this.isHero) {
-              var _instance3;
+              var _instance5;
 
-              (_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              (_instance5 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                 error: Error()
-              }), GameManager) : GameManager).instance) == null || _instance3.resolveHeroDefeat(this);
+              }), GameManager) : GameManager).instance) == null || _instance5.resolveHeroDefeat(this);
             }
 
             this.setEnemyTarget(null);
@@ -969,9 +959,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          if ((_instance4 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance6 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance4.resolveUnitReachedEnemyHeroLine(this)) {
+          }), GameManager) : GameManager).instance) != null && _instance6.resolveUnitReachedEnemyHeroLine(this)) {
             this.setAgentStopped();
             this.sync(deltaTime, false);
             return;
@@ -1067,20 +1057,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             error: Error()
           }), GameManager) : GameManager).instance;
           var isHuntScanner = !!gm && gm.isWaveHuntScanner(this);
-          var targetWave = gm ? gm.getWaveTargetForUnit(this) : null; // Local retaliation remains free to react to the attacker. Strategic
-          // free-hunt searching is scanner-only; allies borrow the assigned
-          // enemy wave instead of independently fanning out.
-
-          this.refreshRetaliationTargetIfNeeded(); // A live wave order never keeps an idle scanner chasing a stale or
-          // out-of-range individual target. Busy local combat is deliberately
-          // preserved. Missing a scan does not cancel the strategic target
-          // wave; only its destruction or a real engagement can replace it.
+          var targetWave = gm ? gm.getWaveTargetForUnit(this) : null;
+          var targetWaveClearSearchPending = !!gm && gm.hasWaveTargetClearSearchPending(this);
+          var awaitingForwardRecoveryAfterTargetClear = !!gm && gm.isWaveAwaitingForwardRecoveryAfterTargetClear(this); // A live wave order never keeps an idle scanner chasing a stale or
+          // out-of-range assigned-wave target. Retaliation is an intentional
+          // individual pursuit and is preserved until local combat replaces it.
 
           if (isHuntScanner && targetWave && !this.onBusy) {
             var currentTarget = this.getValidEnemyTarget();
             var isTargetInAssignedWave = !!currentTarget && currentTarget.waveRuntimeId === targetWave.id;
+            var isRetaliatingAgainstCurrentTarget = !!currentTarget && currentTarget === this.retaliationTarget && currentTarget.lifeId === this.retaliationTargetLifeId;
 
-            if (!isTargetInAssignedWave || !this.isValidEnemyWithinRange(currentTarget, this.targetSearchRange)) {
+            if (!isRetaliatingAgainstCurrentTarget && (!isTargetInAssignedWave || !this.isValidEnemyWithinRange(currentTarget, this.targetSearchRange))) {
               this.setEnemyTarget(null);
             }
           }
@@ -1089,7 +1077,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             var sharedTarget = isHuntScanner && !targetWave ? null : this.getSharedWaveTarget();
             this.setEnemyTarget(sharedTarget);
 
-            if (!this.hasValidEnemyTarget() && isHuntScanner) {
+            if (!this.hasValidEnemyTarget() && isHuntScanner && !targetWaveClearSearchPending && !awaitingForwardRecoveryAfterTargetClear) {
               this.refreshHuntScannerTarget(targetWave ? targetWave.id : -1);
             }
           }
@@ -1097,6 +1085,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var enemy = this.getValidEnemyTarget();
 
           if (enemy && enemy.agent) {
+            this.resetIdleWithoutOrderTelemetry();
             var dx = enemy.agent.pos.x - this.agent.pos.x;
             var dz = enemy.agent.pos.z - this.agent.pos.z;
             var dist = Math.sqrt(dx * dx + dz * dz);
@@ -1110,9 +1099,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.sync(deltaTime, false);
           } else {
             if (this.continueFreeHuntContinuity(deltaTime)) {
+              this.resetIdleWithoutOrderTelemetry();
               return;
             }
 
+            this.recordIdleWithoutOrderTelemetry();
             this.setAgentStopped();
             this.sync(deltaTime, true);
           }
@@ -1231,7 +1222,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.refreshHuntScannerTarget(-1, true, 'hunt-scanner-forced');
         }
 
-        refreshHuntScannerTarget(targetWaveId, force, telemetrySource) {
+        forceHuntScannerSameLaneTargetSearch() {
+          return this.refreshHuntScannerTarget(-1, true, 'hunt-scanner-target-wave-cleared', true);
+        }
+
+        refreshHuntScannerTarget(targetWaveId, force, telemetrySource, sameLaneOnly) {
           if (force === void 0) {
             force = false;
           }
@@ -1240,11 +1235,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             telemetrySource = 'hunt-scanner';
           }
 
+          if (sameLaneOnly === void 0) {
+            sameLaneOnly = false;
+          }
+
           if (!force && !this.shouldRunTargetSearch()) {
             return false;
           }
 
-          var target = targetWaveId >= 0 ? this.findNearestEnemyInWave(targetWaveId) : this.findNearestEnemyInFreeHuntSearchLanes();
+          var target = targetWaveId >= 0 ? this.findNearestEnemyInWave(targetWaveId) : this.findNearestEnemyInFreeHuntSearchLanes(sameLaneOnly);
           this.completeTargetSearch(target);
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -1252,44 +1251,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var targetWaveBefore = gm ? gm.getWaveTargetForUnit(this) : null;
 
           if (!target) {
-            gm == null || gm.recordWaveScannerTrace(this, null, telemetrySource, force ? 'no-target-after-target-wave-death' : targetWaveId >= 0 ? 'no-target-in-target-wave' : 'no-target-in-search-lanes', targetWaveBefore, 0);
+            gm == null || gm.recordWaveScannerTrace(this, null, telemetrySource, force ? 'no-target-after-target-wave-death' : targetWaveId >= 0 ? 'no-target-in-target-wave' : 'no-target-in-search-lanes', targetWaveBefore, 0, sameLaneOnly);
             return false;
           }
 
           var accepted = !!gm && gm.onWaveHuntScannerTargetFound(this, target);
-          gm == null || gm.recordWaveScannerTrace(this, target, telemetrySource, accepted ? force ? 'target-confirmed-after-target-wave-death' : 'target-confirmed' : 'target-rejected', targetWaveBefore, 1);
+          gm == null || gm.recordWaveScannerTrace(this, target, telemetrySource, accepted ? force ? 'target-confirmed-after-target-wave-death' : 'target-confirmed' : 'target-rejected', targetWaveBefore, 1, sameLaneOnly);
 
           if (!accepted) {
             return false;
           }
 
           this.setWaveSearchTarget(target);
-          return true;
-        }
-
-        requestNearestEnemyTarget(mode) {
-          var queryToken = ++this.nearestEnemyQueryToken;
-          this.nearestEnemyQueryMode = mode;
-          this.targetSearchPending = true;
-          this.targetSearchConfirmedNoTarget = false;
-          var queued = this.queueNearestEnemyQuery(this.targetSearchRange, this.onNearestEnemyQueryResult, queryToken);
-          if (queued) return;
-          var target = this.findNearestEnemy();
-          this.applyNearestEnemyQueryResult(target, mode);
-        }
-
-        refreshRetaliationTargetIfNeeded() {
-          if (!this.shouldRunTargetSearch()) {
-            return false;
-          }
-
-          var target = this.getValidEnemyTarget();
-
-          if (!target || target !== this.retaliationTarget || target.lifeId !== this.retaliationTargetLifeId) {
-            return false;
-          }
-
-          this.requestNearestEnemyTarget(NEAREST_QUERY_PREFER_NON_BUSY_OVER_RETALIATION);
           return true;
         }
 
@@ -1325,11 +1298,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.setAgentLocked(true);
 
               if (!wasBusy) {
-                var _instance5;
+                var _instance7;
 
-                (_instance5 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+                (_instance7 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                   error: Error()
-                }), GameManager) : GameManager).instance) == null || _instance5.onWaveCombatStarted(this, target, false);
+                }), GameManager) : GameManager).instance) == null || _instance7.onWaveCombatStarted(this, target, false);
               }
 
               this.setAgentStopped();
@@ -1484,19 +1457,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
         }
 
-        queueNearestEnemyQuery(radius, callback, callbackToken) {
-          if (!this.agent) return false;
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-
-          if (!gm || !gm.spatialGrid) {
-            return false;
-          }
-
-          return gm.spatialGrid.requestNearestEnemy(this, this.team, this.agent.pos.x, this.agent.pos.z, radius, callback, callbackToken);
-        }
-
         findNearestEnemyInAttackRange() {
           if (!this.agent) return null;
           var enemies = this.getNearbyEnemyList(this.getAttackRangeSearchRadius());
@@ -1506,11 +1466,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
             if (!this.isValidEnemy(e)) continue;
-
-            if (this.shouldIgnoreAttackRangeTargetDuringAggressiveForward(e)) {
-              continue;
-            }
-
             var dx = e.agent.pos.x - this.agent.pos.x;
             var dz = e.agent.pos.z - this.agent.pos.z;
             var d = dx * dx + dz * dz;
@@ -1524,19 +1479,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           return best;
-        }
-
-        findNearestEnemy() {
-          if (!this.agent) return null;
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-
-          if (gm && gm.spatialGrid) {
-            return gm.spatialGrid.findNearestEnemy(this.team, this.agent.pos.x, this.agent.pos.z, this.targetSearchRange);
-          }
-
-          return this.findNearestEnemyFallback();
         }
 
         findNearestEnemyInWave(targetWaveId) {
@@ -1570,7 +1512,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
          */
 
 
-        findNearestEnemyInFreeHuntSearchLanes() {
+        findNearestEnemyInFreeHuntSearchLanes(sameLaneOnly) {
+          if (sameLaneOnly === void 0) {
+            sameLaneOnly = false;
+          }
+
           if (!this.agent || this.laneId < 0) return null;
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -1586,7 +1532,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (!this.isValidEnemy(enemy)) continue;
             if (enemy.laneId < 0) continue;
             var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
-            if (Math.abs(ownLane - enemyLane) > 1) continue;
+
+            if (sameLaneOnly ? enemyLane !== ownLane : Math.abs(ownLane - enemyLane) > 1) {
+              continue;
+            }
+
             var dx = enemy.agent.pos.x - this.agent.pos.x;
             var dz = enemy.agent.pos.z - this.agent.pos.z;
             var distSq = dx * dx + dz * dz;
@@ -1595,30 +1545,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (distSq < bestDistSq) {
               bestDistSq = distSq;
               best = enemy;
-            }
-          }
-
-          return best;
-        }
-
-        findNearestEnemyFallback() {
-          if (!this.agent) return null;
-          var searchRangeSq = this.targetSearchRange * this.targetSearchRange;
-          var enemies = this.getEnemyList();
-          var best = null;
-          var bestDistSq = Infinity;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var e = enemies[i];
-            if (!this.isValidEnemy(e)) continue;
-            var dx = e.agent.pos.x - this.agent.pos.x;
-            var dz = e.agent.pos.z - this.agent.pos.z;
-            var d = dx * dx + dz * dz;
-            if (d > searchRangeSq) continue;
-
-            if (d < bestDistSq) {
-              bestDistSq = d;
-              best = e;
             }
           }
 
@@ -1658,27 +1584,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (!this.agent) return false;
           if (!this.isValidEnemy(e, lifeId)) return false;
-
-          if (this.shouldIgnoreAttackRangeTargetDuringAggressiveForward(e)) {
-            return false;
-          }
-
           var dx = e.agent.pos.x - this.agent.pos.x;
           var dz = e.agent.pos.z - this.agent.pos.z;
           var effectiveRange = this.getEffectiveAttackRangeAgainst(e);
           return dx * dx + dz * dz <= effectiveRange * effectiveRange;
-        }
-
-        shouldIgnoreAttackRangeTargetDuringAggressiveForward(enemy) {
-          if (!this.onForward) return false;
-          if (!this.aggressiveForward) return false;
-          if (this.laneId < 0 || enemy.laneId < 0) return false;
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          var ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
-          var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
-          return ownLane !== enemyLane;
         }
 
         getEffectiveAttackRangeAgainst(enemy) {
@@ -1873,16 +1782,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         recordRangedKiteTelemetry(target, targetDistance) {
-          var _instance6;
+          var _instance8;
 
           if (this.rangedKiteTelemetryTargetLifeId === target.lifeId) {
             return;
           }
 
           this.rangedKiteTelemetryTargetLifeId = target.lifeId;
-          (_instance6 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          (_instance8 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) == null || _instance6.recordBattleTelemetryRangedKite(this, target, 'started', targetDistance, this.rangedCombatMoveX, this.rangedCombatMoveZ);
+          }), GameManager) : GameManager).instance) == null || _instance8.recordBattleTelemetryRangedKite(this, target, 'started', targetDistance, this.rangedCombatMoveX, this.rangedCombatMoveZ);
         }
 
         setRangedCombatMoveToward(targetDx, targetDz) {

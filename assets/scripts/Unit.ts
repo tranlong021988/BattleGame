@@ -342,6 +342,10 @@ export class Unit extends Component {
         return this.freeHuntContinuityActive;
     }
 
+    public clearWaveHuntContinuity() {
+        this.clearFreeHuntContinuity();
+    }
+
     private resetIdleWithoutOrderTelemetry() {
         this.idleWithoutOrderTelemetryReported = false;
     }
@@ -545,7 +549,9 @@ export class Unit extends Component {
         return true;
     }
 
-    public findForwardSearchTarget(): Unit | null {
+    public findForwardSearchTarget(
+        sameLaneOnly: boolean = false
+    ): Unit | null {
         if (!this.agent) return null;
 
         if (this.laneId < 0) return null;
@@ -567,7 +573,8 @@ export class Unit extends Component {
             if (!this.isValidEnemy(enemy)) continue;
             if (
                 !this.isForwardSearchCandidate(
-                    enemy
+                    enemy,
+                    sameLaneOnly
                 )
             ) {
                 continue;
@@ -591,7 +598,8 @@ export class Unit extends Component {
     }
 
     private isForwardSearchCandidate(
-        enemy: Unit
+        enemy: Unit,
+        sameLaneOnly: boolean
     ) {
         if (this.laneId < 0 || enemy.laneId < 0) {
             return false;
@@ -607,9 +615,7 @@ export class Unit extends Component {
         const laneDistance =
             Math.abs(ownLane - enemyLane);
 
-        // Normal Forward only releases through a passed scanner in an
-        // adjacent lane. Same-lane contact is handled by local combat.
-        if (laneDistance !== 1) {
+        if (sameLaneOnly ? laneDistance !== 0 : laneDistance > 1) {
             return false;
         }
 

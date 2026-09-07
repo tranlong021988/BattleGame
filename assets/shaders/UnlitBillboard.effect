@@ -48,7 +48,7 @@ CCEffect %{
           linear: true
           editor:
             type: color
-            tooltip: Shared material tint. Kept as a material property so icon visibility does not depend on a custom instanced tint attribute.
+            tooltip: Shared material tint fallback. Wave banners may override it per renderer with a billboard tint attribute.
         backgroundColor:
           value: [0, 0, 0, 0]
           linear: true
@@ -77,6 +77,7 @@ CCProgram billboard-vs %{
   #if USE_INSTANCING
     in vec4 a_billboard_bg_color;
     in vec4 a_billboard_icon_id;
+    in vec4 a_billboard_tint_color;
   #endif
 
   uniform Constant {
@@ -115,15 +116,18 @@ CCProgram billboard-vs %{
       vec2(0.5, 0.5) +
       tilingOffset.zw;
 
-    v_tint = tintColor;
-
     #if USE_INSTANCING
       vec4 instancedBackground = a_billboard_bg_color;
+      vec4 instancedTint = a_billboard_tint_color;
+      v_tint = instancedTint.a > 0.001
+        ? instancedTint
+        : tintColor;
       v_background = instancedBackground.a > 0.001
         ? instancedBackground
         : backgroundColor;
       v_iconId = max(0.0, a_billboard_icon_id.x);
     #else
+      v_tint = tintColor;
       v_background = backgroundColor;
       v_iconId = max(0.0, iconId);
     #endif

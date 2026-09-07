@@ -32,6 +32,9 @@ export class BattleWave {
     private aggressiveForwardMode = false;
     private freeHuntForwardOrigin: 'normal' | 'aggressive' =
         'normal';
+    // Aggressive Forward owns its spawn lane even while Free Hunt pulls
+    // individual members into an adjacent lane.
+    private aggressiveForwardOriginLaneId = -1;
     private aggressiveAdjacentBoundaryObserved = false;
     private aggressiveOwnLaneBlockObserved = false;
     private initialForwardCombatGateActive = true;
@@ -104,6 +107,8 @@ export class BattleWave {
 
             if (unit.aggressiveForward) {
                 this.aggressiveForwardMode = true;
+                this.aggressiveForwardOriginLaneId =
+                    this.laneId;
             }
 
             if (unit.props) {
@@ -525,6 +530,13 @@ export class BattleWave {
             this.aggressiveForwardMode;
     }
 
+    hasAggressiveForwardLaneLock() {
+        return !this.released &&
+            this.aggressiveForwardOriginLaneId >= 0 &&
+            (this.aggressiveForwardMode ||
+                this.freeHuntForwardOrigin === 'aggressive');
+    }
+
     isInitialForwardCombatGateActive() {
         return !this.released &&
             this.initialForwardCombatGateActive &&
@@ -621,6 +633,12 @@ export class BattleWave {
     }
 
     public applyDefeatedTargetLaneForRegroup() {
+        if (this.hasAggressiveForwardLaneLock()) {
+            this.regroupLaneAfterTargetClear = -1;
+            this.setLaneId(this.aggressiveForwardOriginLaneId);
+            return true;
+        }
+
         if (this.regroupLaneAfterTargetClear < 0) {
             return false;
         }
@@ -836,6 +854,8 @@ export class BattleWave {
             // scanner search once on the next safe GameManager pass instead
             // of waiting for its normal interval.
             this.clearTargetWave(true);
+            this.clearAllFreeHuntContinuity();
+            this.clearIdleHuntTargets();
         }
 
         return this.targetWave;
@@ -1000,7 +1020,11 @@ export class BattleWave {
     ) {
         if (!unit || !target || this.released) return false;
         if (!this.isUnitAlive(unit)) return false;
-        if (!unit.onBusy) return false;
+
+        // The collision callback is raised by whichever unit updates first.
+        // Its counterpart may not have run yet, so accept the passive side
+        // when the other unit has already entered this same engagement.
+        if (!unit.onBusy && !target.onBusy) return false;
 
         const nextTargetWave =
             BattleWave.getWaveForUnit(target);
@@ -1199,6 +1223,7 @@ export class BattleWave {
         this.forwardModeActive = false;
         this.freeHuntActive = false;
         this.aggressiveForwardMode = false;
+        this.aggressiveForwardOriginLaneId = -1;
         this.targetClearSameLaneSearchResolved = false;
         this.aggressiveAdjacentBoundaryObserved = false;
         this.aggressiveOwnLaneBlockObserved = false;
@@ -1335,6 +1360,16 @@ export class BattleWave {
             if (unit.onBusy) continue;
 
             unit.clearEnemy();
+        }
+    }
+
+    private clearAllFreeHuntContinuity() {
+        for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+
+            if (!this.isUnitAlive(unit)) continue;
+
+            unit.clearWaveHuntContinuity();
         }
     }
 
