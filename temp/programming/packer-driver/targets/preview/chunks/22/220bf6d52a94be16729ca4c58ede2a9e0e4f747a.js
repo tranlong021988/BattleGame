@@ -132,6 +132,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.droppedDiagnosticEventCount = 0;
           this.overwrittenScannerTraceCount = 0;
           this.scannerTraceWriteIndex = 0;
+          this.targetWaveTransitionCounts = new Map();
+          this.targetWaveTransitionLastFrames = new Map();
+          this.targetWaveTransitionRecordedWaves = new Set();
+          this.targetWaveTransitionStats = {
+            total: 0,
+            engagement: 0,
+            forwardScanner: 0,
+            huntScanner: 0,
+            sameFrameChanges: 0,
+            changesWithinTenFrames: 0,
+            aggressiveOffLaneAssignments: 0,
+            maxTransitionsPerWave: 0
+          };
           this.nextSpawnId = 1;
         }
 
@@ -149,6 +162,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.framePerformance = null;
           this.diagnosticEvents.length = 0;
           this.scannerTraces.length = 0;
+          this.targetWaveTransitionCounts.clear();
+          this.targetWaveTransitionLastFrames.clear();
+          this.targetWaveTransitionRecordedWaves.clear();
+          this.targetWaveTransitionStats = {
+            total: 0,
+            engagement: 0,
+            forwardScanner: 0,
+            huntScanner: 0,
+            sameFrameChanges: 0,
+            changesWithinTenFrames: 0,
+            aggressiveOffLaneAssignments: 0,
+            maxTransitionsPerWave: 0
+          };
           this.cardEvents.length = 0;
           this.waveSpawnFrameById.clear();
           this.waveSpawnTimeById.clear();
@@ -334,6 +360,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.isEnabled()) return;
           if (!event) return;
           this.pushDiagnosticEvent(event);
+        }
+
+        recordTargetWaveTransition(event) {
+          var _event$waveId, _this$targetWaveTrans;
+
+          if (!this.isEnabled()) return;
+          if (!event) return;
+          var waveId = Math.max(0, Math.floor((_event$waveId = event.waveId) != null ? _event$waveId : 0));
+          var previousFrame = this.targetWaveTransitionLastFrames.get(waveId);
+          var transitionCount = ((_this$targetWaveTrans = this.targetWaveTransitionCounts.get(waveId)) != null ? _this$targetWaveTrans : 0) + 1;
+          this.targetWaveTransitionCounts.set(waveId, transitionCount);
+          this.targetWaveTransitionLastFrames.set(waveId, event.frame);
+          this.targetWaveTransitionStats.total++;
+          this.targetWaveTransitionStats.maxTransitionsPerWave = Math.max(this.targetWaveTransitionStats.maxTransitionsPerWave, transitionCount);
+
+          if (event.targetSource === 'engagement') {
+            this.targetWaveTransitionStats.engagement++;
+          } else if (event.targetSource === 'forward-scanner') {
+            this.targetWaveTransitionStats.forwardScanner++;
+          } else if (event.targetSource === 'hunt-scanner') {
+            this.targetWaveTransitionStats.huntScanner++;
+          }
+
+          if (previousFrame !== undefined) {
+            var frameDelta = event.frame - previousFrame;
+
+            if (frameDelta === 0) {
+              this.targetWaveTransitionStats.sameFrameChanges++;
+            }
+
+            if (frameDelta >= 0 && frameDelta < 10) {
+              this.targetWaveTransitionStats.changesWithinTenFrames++;
+            }
+          }
+
+          if (event.aggressiveForward && event.laneId !== undefined && event.targetLaneId !== undefined && event.laneId !== event.targetLaneId) {
+            this.targetWaveTransitionStats.aggressiveOffLaneAssignments++;
+          }
+
+          if (event.targetSource !== 'engagement' || !this.targetWaveTransitionRecordedWaves.has(waveId)) {
+            this.targetWaveTransitionRecordedWaves.add(waveId);
+            this.pushDiagnosticEvent(event);
+          }
         }
 
         recordScannerTrace(trace) {
@@ -669,6 +738,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
                 firstHeroDamageByFrameTeam: this.firstHeroDamageByFrameTeam.slice()
               },
               performance: this.framePerformance,
+              targetWaveTransitions: _extends({}, this.targetWaveTransitionStats),
               snapshots: this.snapshots.slice(),
               finalSnapshot: this.finalSnapshot,
               events: this.diagnosticEvents.slice(),

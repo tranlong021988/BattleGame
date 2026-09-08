@@ -1906,7 +1906,7 @@
     },
     "useWorkerRVO": true,
     "targetFrameRate": 60,
-    "battleTimeScale": 1,
+    "battleTimeScale": 2,
     "resetBattleTimeScaleOnDestroy": true,
     "showCocosProfilerStats": false,
     "allowProfilerStatsQueryParam": true,
@@ -8593,7 +8593,7 @@
     ],
     "value": {
       "__type__": "cc.Vec3",
-      "x": -15.848,
+      "x": -16.548,
       "y": 0,
       "z": -20.3
     }

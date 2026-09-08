@@ -143,7 +143,75 @@ The latest run contains seven main entry states with a CP or maxAlive deficit bu
 
 This is active work. It takes precedence over older next-action notes where they overlap.
 
-### Latest override — busy scanner retains Free Hunt target (2026-09-08)
+### Authoritative override — multi-target Free Hunt and isolated ranged pursuit (2026-09-08)
+
+This section is the current source of truth for wave targeting. It supersedes
+all older sections below that describe a single strategic `targetWave`, a busy
+scanner retaining/replacing a dead target, or a scanner search after a target
+wave is eliminated.
+
+#### Design intent and implemented behavior
+
+1. Free Hunt owns a strategic **set of target waves** (`targetWaves`). The old
+   `targetWave` field remains only as the compatibility/primary view of that
+   set; it must not be treated as the complete target state.
+2. Real unit combat can add the enemy unit's wave to that set. Adding a target
+   does not redirect units that are already busy: they keep fighting their
+   current unit target. Idle command members borrow the nearest living command
+   member from any wave in the target set, bounded by their runtime search
+   range.
+3. A target wave is removed independently when it has no living command
+   members. Free Hunt continues while at least one target remains. When the set
+   becomes empty, there is no replacement search: the wave regroups and then
+   resumes its stored Normal/Aggressive Forward origin.
+4. Regroup lane is asymmetric by design:
+   - Aggressive Forward returns to its original spawn lane and never adopts a
+     target wave's lane.
+   - Normal Forward adopts the lane of the last target removed from the set.
+5. While Forward, the scanner does not run generic enemy-unit or target-wave
+   search. At `targetSearchInterval` it only evaluates whether it has passed an
+   enemy wave scanner within runtime `targetSearchRange`:
+   - Normal Forward accepts same or adjacent lane (`laneDistance <= 1`).
+   - Aggressive Forward accepts only its locked original lane.
+6. Aggressive engagement expansion remains locked to contacts in its original
+   lane and in front of its scanner. Rear/flank contacts remain local combat
+   and do not redirect the whole Aggressive wave.
+
+#### Ranged retaliation isolation
+
+If a unit retaliates/chases a ranged attacker whose wave is not already in the
+parent wave's target set, it enters `isolatedRangedPursuit`. This is behavioral
+isolation, not a newly allocated `BattleWave`:
+
+- the isolated unit is excluded from parent scanner selection, engagement
+  thresholds, lane propagation, regroup/mode commands, representative target
+  selection, and target-set expansion;
+- combat involving it cannot escalate either whole wave;
+- when its pursuit target ends, it rejoins the parent's current order; if the
+  parent is Forward, it first returns to the parent's lane.
+
+This isolation prevents a ranged shot at one member from pulling its parent
+wave into a new strategic Free Hunt target.
+
+#### Telemetry and verification state
+
+- Wave snapshots/events now include `targetWaveIds`, `targetWaveCount`, and
+  `isolatedRangedPursuitCount` where applicable.
+- Target-clear events are queued per removed target and include the remaining
+  target count and whether the target was physically dead or strategically
+  exhausted because it had no command members.
+- Forward scanner traces expose the full target set. New isolated pursuit
+  start/end diagnostics distinguish ranged retaliation from wave-level target
+  selection.
+- TypeScript source validation passes with the Cocos Creator 3.8.8 bundled
+  compiler (`--target ES2017 --module ESNext --skipLibCheck`). `git diff
+  --check` also passes apart from ordinary CRLF warnings.
+- Runtime behavior is still pending a fresh Cocos playtest/telemetry batch.
+  The next audit must verify target-set expansion/pruning, zero scanner search
+  after the set empties, Normal/Aggressive regroup lanes, and isolated pursuit
+  rejoin behavior before declaring the gameplay change complete.
+
+### Superseded override — busy scanner retains Free Hunt target (2026-09-08)
 
 This section supersedes older wording that a busy scanner delays target-clear
 resolution or that all Free Hunt continuity must be cancelled before the
@@ -433,7 +501,7 @@ test was run for this change.
 - Do not reset Aggressive Forward to Normal after Free Hunt; preserve `freeHuntForwardOrigin`.
 - Do not treat all diagonal travel as wrong. It is valid only toward an already selected adjacent target wave from a valid scanner-passed release. It is an issue if target-clear selects an adjacent target without the allowed condition, or no same-lane target exists but the wave does not regroup and resume Forward.
 
-### Current open verification / next action
+### Superseded verification / next action
 
 No gameplay change is pending from this handoff. Inspect the next user-provided telemetry batch before modifying code.
 

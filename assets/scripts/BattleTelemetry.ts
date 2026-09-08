@@ -142,6 +142,9 @@ export interface BattleTelemetryWaveSnapshot {
     forwardMode: boolean;
     aggressiveForward: boolean;
     targetWaveId: number;
+    targetWaveIds?: number[];
+    targetWaveCount?: number;
+    isolatedRangedPursuitCount?: number;
     scannerUnitName: string;
     scannerLifeId: number;
     scannerBusy: boolean;
@@ -223,6 +226,8 @@ export interface BattleTelemetryDiagnosticEvent {
     intendedUnitName?: string;
     intendedFamilyName?: string;
     targetWaveId?: number;
+    targetWaveIds?: number[];
+    targetWaveCount?: number;
     targetTeam?: number;
     targetLaneId?: number;
     targetFamilyName?: string;
@@ -283,6 +288,33 @@ export interface BattleTelemetryDiagnosticEvent {
     canEscalateWaveCombat?: boolean;
     initialForwardCombatDelayed?: boolean;
     waveCombatEscalated?: boolean;
+    idleEpisodeStartFrame?: number;
+    idleEpisodeDurationFrames?: number;
+    idleEpisodeUnitCount?: number;
+    frameDeltaMs?: number;
+    managerUpdateMs?: number;
+    aliveUnitCount?: number;
+    aliveWaveCount?: number;
+    scannerSearchCount?: number;
+    combatEscalationCount?: number;
+    targetClearOriginLaneId?: number;
+    targetClearOriginWaveId?: number;
+    targetClearFrame?: number;
+    targetClearOffLaneReplacement?: boolean;
+    isolatedRangedPursuit?: boolean;
+    waveRegistered?: boolean;
+    targetWavePhysicallyDead?: boolean;
+}
+
+export interface BattleTelemetryTargetWaveTransitionStats {
+    total: number;
+    engagement: number;
+    forwardScanner: number;
+    huntScanner: number;
+    sameFrameChanges: number;
+    changesWithinTenFrames: number;
+    aggressiveOffLaneAssignments: number;
+    maxTransitionsPerWave: number;
 }
 
 export interface BattleTelemetryScannerTrace {
@@ -307,6 +339,8 @@ export interface BattleTelemetryScannerTrace {
     targetLaneIdBefore: number;
     targetWaveIdAfter: number;
     targetLaneIdAfter: number;
+    targetWaveIdsAfter?: number[];
+    targetWaveCountAfter?: number;
     candidateWaveId: number;
     candidateLaneId: number;
     candidateUnitName: string;
@@ -455,6 +489,19 @@ export class BattleTelemetry {
     private droppedDiagnosticEventCount = 0;
     private overwrittenScannerTraceCount = 0;
     private scannerTraceWriteIndex = 0;
+    private readonly targetWaveTransitionCounts = new Map<number, number>();
+    private readonly targetWaveTransitionLastFrames = new Map<number, number>();
+    private readonly targetWaveTransitionRecordedWaves = new Set<number>();
+    private targetWaveTransitionStats: BattleTelemetryTargetWaveTransitionStats = {
+        total: 0,
+        engagement: 0,
+        forwardScanner: 0,
+        huntScanner: 0,
+        sameFrameChanges: 0,
+        changesWithinTenFrames: 0,
+        aggressiveOffLaneAssignments: 0,
+        maxTransitionsPerWave: 0,
+    };
     private nextSpawnId = 1;
 
     reset(enabled: boolean, config: BattleTelemetryStartConfig) {
@@ -471,6 +518,19 @@ export class BattleTelemetry {
         this.framePerformance = null;
         this.diagnosticEvents.length = 0;
         this.scannerTraces.length = 0;
+        this.targetWaveTransitionCounts.clear();
+        this.targetWaveTransitionLastFrames.clear();
+        this.targetWaveTransitionRecordedWaves.clear();
+        this.targetWaveTransitionStats = {
+            total: 0,
+            engagement: 0,
+            forwardScanner: 0,
+            huntScanner: 0,
+            sameFrameChanges: 0,
+            changesWithinTenFrames: 0,
+            aggressiveOffLaneAssignments: 0,
+            maxTransitionsPerWave: 0,
+        };
         this.cardEvents.length = 0;
         this.waveSpawnFrameById.clear();
         this.waveSpawnTimeById.clear();
@@ -769,6 +829,64 @@ export class BattleTelemetry {
         if (!event) return;
 
         this.pushDiagnosticEvent(event);
+    }
+
+    recordTargetWaveTransition(
+        event: BattleTelemetryDiagnosticEvent
+    ) {
+        if (!this.isEnabled()) return;
+        if (!event) return;
+
+        const waveId = Math.max(0, Math.floor(event.waveId ?? 0));
+        const previousFrame =
+            this.targetWaveTransitionLastFrames.get(waveId);
+        const transitionCount =
+            (this.targetWaveTransitionCounts.get(waveId) ?? 0) + 1;
+
+        this.targetWaveTransitionCounts.set(waveId, transitionCount);
+        this.targetWaveTransitionLastFrames.set(waveId, event.frame);
+        this.targetWaveTransitionStats.total++;
+        this.targetWaveTransitionStats.maxTransitionsPerWave = Math.max(
+            this.targetWaveTransitionStats.maxTransitionsPerWave,
+            transitionCount
+        );
+
+        if (event.targetSource === 'engagement') {
+            this.targetWaveTransitionStats.engagement++;
+        } else if (event.targetSource === 'forward-scanner') {
+            this.targetWaveTransitionStats.forwardScanner++;
+        } else if (event.targetSource === 'hunt-scanner') {
+            this.targetWaveTransitionStats.huntScanner++;
+        }
+
+        if (previousFrame !== undefined) {
+            const frameDelta = event.frame - previousFrame;
+
+            if (frameDelta === 0) {
+                this.targetWaveTransitionStats.sameFrameChanges++;
+            }
+
+            if (frameDelta >= 0 && frameDelta < 10) {
+                this.targetWaveTransitionStats.changesWithinTenFrames++;
+            }
+        }
+
+        if (
+            event.aggressiveForward &&
+            event.laneId !== undefined &&
+            event.targetLaneId !== undefined &&
+            event.laneId !== event.targetLaneId
+        ) {
+            this.targetWaveTransitionStats.aggressiveOffLaneAssignments++;
+        }
+
+        if (
+            event.targetSource !== 'engagement' ||
+            !this.targetWaveTransitionRecordedWaves.has(waveId)
+        ) {
+            this.targetWaveTransitionRecordedWaves.add(waveId);
+            this.pushDiagnosticEvent(event);
+        }
     }
 
     recordScannerTrace(trace: BattleTelemetryScannerTrace) {
@@ -1307,6 +1425,9 @@ export class BattleTelemetry {
                         this.firstHeroDamageByFrameTeam.slice(),
                 },
                 performance: this.framePerformance,
+                targetWaveTransitions: {
+                    ...this.targetWaveTransitionStats,
+                },
                 snapshots: this.snapshots.slice(),
                 finalSnapshot: this.finalSnapshot,
                 events: this.diagnosticEvents.slice(),

@@ -113,6 +113,9 @@ export class Unit extends Component {
     private freeHuntContinuityDir = { x: 0, z: 0 };
     private idleWithoutOrderTelemetryReported = false;
     private soloAggressiveSkirmishActive = false;
+    // A ranged retaliation outside the parent's strategic target set behaves
+    // as a one-member detachment until that local pursuit ends.
+    private isolatedRangedPursuit = false;
     private backToLaneActive = false;
     private backToLaneForwardAggressive = false;
     private rangedCombatMoveX = 0;
@@ -157,6 +160,7 @@ export class Unit extends Component {
         this.clearFreeHuntContinuity();
         this.resetIdleWithoutOrderTelemetry();
         this.soloAggressiveSkirmishActive = false;
+        this.isolatedRangedPursuit = false;
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
         this.resetRangedCombatMovement();
@@ -457,6 +461,10 @@ export class Unit extends Component {
         return this.soloAggressiveSkirmishActive;
     }
 
+    public isIsolatedRangedPursuit() {
+        return this.isolatedRangedPursuit;
+    }
+
     public isBackToLaneActive() {
         return this.backToLaneActive;
     }
@@ -489,13 +497,6 @@ export class Unit extends Component {
     private setCachedNearestInRangeTarget(target: Unit | null) {
         this.cachedNearestInRange = target;
         this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
-    }
-
-    private completeTargetSearch(target: Unit | null) {
-        this.targetSearchPending = false;
-        this.targetSearchConfirmedNoTarget =
-            !target &&
-            !this.hasValidEnemyTarget();
     }
 
     private clearCachedTargets() {
@@ -549,79 +550,6 @@ export class Unit extends Component {
         return true;
     }
 
-    public findForwardSearchTarget(
-        sameLaneOnly: boolean = false
-    ): Unit | null {
-        if (!this.agent) return null;
-
-        if (this.laneId < 0) return null;
-
-        const enemies =
-            this.getNearbyEnemyList(
-                this.targetSearchRange
-            );
-        const maxRangeSq =
-            this.targetSearchRange *
-            this.targetSearchRange;
-
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const enemy = enemies[i];
-
-            if (!this.isValidEnemy(enemy)) continue;
-            if (
-                !this.isForwardSearchCandidate(
-                    enemy,
-                    sameLaneOnly
-                )
-            ) {
-                continue;
-            }
-
-            const dx =
-                enemy.agent!.pos.x - this.agent.pos.x;
-            const dz =
-                enemy.agent!.pos.z - this.agent.pos.z;
-            const distanceSq = dx * dx + dz * dz;
-
-            if (distanceSq > maxRangeSq) continue;
-
-            if (distanceSq < bestDistSq) {
-                bestDistSq = distanceSq;
-                best = enemy;
-            }
-        }
-
-        return best;
-    }
-
-    private isForwardSearchCandidate(
-        enemy: Unit,
-        sameLaneOnly: boolean
-    ) {
-        if (this.laneId < 0 || enemy.laneId < 0) {
-            return false;
-        }
-
-        const gm = GameManager.instance;
-        const ownLane = gm
-            ? gm.clampLaneId(this.laneId)
-            : this.laneId;
-        const enemyLane = gm
-            ? gm.clampLaneId(enemy.laneId)
-            : enemy.laneId;
-        const laneDistance =
-            Math.abs(ownLane - enemyLane);
-
-        if (sameLaneOnly ? laneDistance !== 0 : laneDistance > 1) {
-            return false;
-        }
-
-        return this.hasPassedTargetAlongForward(enemy);
-    }
-
     public hasReachedEnemyHeroLine() {
         const gm = GameManager.instance;
 
@@ -669,6 +597,13 @@ export class Unit extends Component {
                     attacker
                 )
                 : false;
+        const isolateRangedPursuit =
+            gm
+                ? gm.shouldStartIsolatedRangedPursuit(
+                    this,
+                    attacker
+                )
+                : false;
 
         this.targetSearchPending = false;
         this.targetSearchConfirmedNoTarget = false;
@@ -682,6 +617,15 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive =
             this.soloAggressiveSkirmishActive ||
             soloAggressive;
+
+        if (isolateRangedPursuit) {
+            this.isolatedRangedPursuit = true;
+            gm?.recordIsolatedRangedPursuit(
+                'isolated-ranged-pursuit-started',
+                this,
+                attacker
+            );
+        }
 
         if (this.onForward || wasBackToLane) {
             this.onForward = false;
@@ -721,6 +665,7 @@ export class Unit extends Component {
         }
 
         this.soloAggressiveSkirmishActive = false;
+        this.isolatedRangedPursuit = false;
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
         this.resetRangedCombatMovement();
@@ -750,8 +695,23 @@ export class Unit extends Component {
     }
 
     clearEnemy() {
+        const wasIsolatedRangedPursuit =
+            this.isolatedRangedPursuit;
+        const previousTarget = this.getValidEnemyTarget();
         this.setEnemyTarget(null);
         this.onBusy = false;
+
+        if (wasIsolatedRangedPursuit) {
+            this.isolatedRangedPursuit = false;
+            if (
+                GameManager.instance?.finishIsolatedRangedPursuit(
+                    this,
+                    previousTarget
+                )
+            ) {
+                return;
+            }
+        }
 
         // A local combat does not own the wave's order. If the wave has
         // already recovered into either forward mode, this survivor returns
@@ -806,6 +766,7 @@ export class Unit extends Component {
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
         this.soloAggressiveSkirmishActive = false;
+        this.isolatedRangedPursuit = false;
         this.resetRangedCombatMovement();
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -999,6 +960,7 @@ export class Unit extends Component {
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.isolatedRangedPursuit = false;
             this.backToLaneActive = false;
             this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
@@ -1138,63 +1100,10 @@ export class Unit extends Component {
 
         this.setAgentOnForward(0);
 
-        const gm = GameManager.instance;
-        const isHuntScanner =
-            !!gm && gm.isWaveHuntScanner(this);
-        const targetWave = gm
-            ? gm.getWaveTargetForUnit(this)
-            : null;
-        const targetWaveClearSearchPending =
-            !!gm && gm.hasWaveTargetClearSearchPending(this);
-        const awaitingForwardRecoveryAfterTargetClear =
-            !!gm &&
-            gm.isWaveAwaitingForwardRecoveryAfterTargetClear(
-                this
-            );
-
-        // A live wave order never keeps an idle scanner chasing a stale or
-        // out-of-range assigned-wave target. Retaliation is an intentional
-        // individual pursuit and is preserved until local combat replaces it.
-        if (isHuntScanner && targetWave && !this.onBusy) {
-            const currentTarget = this.getValidEnemyTarget();
-            const isTargetInAssignedWave =
-                !!currentTarget &&
-                currentTarget.waveRuntimeId === targetWave.id;
-            const isRetaliatingAgainstCurrentTarget =
-                !!currentTarget &&
-                currentTarget === this.retaliationTarget &&
-                currentTarget.lifeId === this.retaliationTargetLifeId;
-
-            if (
-                !isRetaliatingAgainstCurrentTarget &&
-                (!isTargetInAssignedWave ||
-                    !this.isValidEnemyWithinRange(
-                        currentTarget,
-                        this.targetSearchRange
-                    ))
-            ) {
-                this.setEnemyTarget(null);
-            }
-        }
-
         if (!this.hasValidEnemyTarget()) {
-            const sharedTarget =
-                isHuntScanner && !targetWave
-                    ? null
-                    : this.getSharedWaveTarget();
-
-            this.setEnemyTarget(sharedTarget);
-
-            if (
-                !this.hasValidEnemyTarget() &&
-                isHuntScanner &&
-                !targetWaveClearSearchPending &&
-                !awaitingForwardRecoveryAfterTargetClear
-            ) {
-                this.refreshHuntScannerTarget(
-                    targetWave ? targetWave.id : -1
-                );
-            }
+            this.setEnemyTarget(
+                this.getSharedWaveTarget()
+            );
         }
 
         const enemy = this.getValidEnemyTarget();
@@ -1387,93 +1296,6 @@ export class Unit extends Component {
         )
             ? this.cachedNearestInRange
             : null;
-    }
-
-    public forceHuntScannerTargetSearch() {
-        return this.refreshHuntScannerTarget(
-            -1,
-            true,
-            'hunt-scanner-forced'
-        );
-    }
-
-    public forceHuntScannerSameLaneTargetSearch() {
-        return this.refreshHuntScannerTarget(
-            -1,
-            true,
-            'hunt-scanner-target-wave-cleared',
-            true
-        );
-    }
-
-    private refreshHuntScannerTarget(
-        targetWaveId: number,
-        force: boolean = false,
-        telemetrySource: string = 'hunt-scanner',
-        sameLaneOnly: boolean = false
-    ) {
-        if (!force && !this.shouldRunTargetSearch()) {
-            return false;
-        }
-
-        const target = targetWaveId >= 0
-            ? this.findNearestEnemyInWave(targetWaveId)
-            : this.findNearestEnemyInFreeHuntSearchLanes(
-                sameLaneOnly
-            );
-
-        this.completeTargetSearch(target);
-
-        const gm = GameManager.instance;
-        const targetWaveBefore = gm
-            ? gm.getWaveTargetForUnit(this)
-            : null;
-
-        if (!target) {
-            gm?.recordWaveScannerTrace(
-                this,
-                null,
-                telemetrySource,
-                force
-                    ? 'no-target-after-target-wave-death'
-                    : targetWaveId >= 0
-                        ? 'no-target-in-target-wave'
-                        : 'no-target-in-search-lanes',
-                targetWaveBefore,
-                0,
-                sameLaneOnly
-            );
-            return false;
-        }
-
-        const accepted =
-            !!gm &&
-            gm.onWaveHuntScannerTargetFound(
-                this,
-                target
-            );
-
-        gm?.recordWaveScannerTrace(
-            this,
-            target,
-            telemetrySource,
-            accepted
-                ? force
-                    ? 'target-confirmed-after-target-wave-death'
-                    : 'target-confirmed'
-                : 'target-rejected',
-            targetWaveBefore,
-            1,
-            sameLaneOnly
-        );
-
-        if (!accepted) {
-            return false;
-        }
-
-        this.setWaveSearchTarget(target);
-
-        return true;
     }
 
     private updateForwardPrefVelocity() {
@@ -1770,95 +1592,6 @@ export class Unit extends Component {
             if (d < bestDistSq) {
                 bestDistSq = d;
                 best = e;
-            }
-        }
-
-        return best;
-    }
-
-    private findNearestEnemyInWave(
-        targetWaveId: number
-    ): Unit | null {
-        if (!this.agent || targetWaveId < 0) return null;
-
-        const enemies = this.getNearbyEnemyList(
-            this.targetSearchRange
-        );
-        const searchRangeSq =
-            this.targetSearchRange * this.targetSearchRange;
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const enemy = enemies[i];
-
-            if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.waveRuntimeId !== targetWaveId) continue;
-
-            const dx = enemy.agent!.pos.x - this.agent.pos.x;
-            const dz = enemy.agent!.pos.z - this.agent.pos.z;
-            const distSq = dx * dx + dz * dz;
-
-            if (distSq > searchRangeSq) continue;
-
-            if (distSq < bestDistSq) {
-                bestDistSq = distSq;
-                best = enemy;
-            }
-        }
-
-        return best;
-    }
-
-    /**
-     * A hunt scanner starts a new wave target only from its own lane or an
-     * adjacent lane. Once a target wave is established, engagement handling
-     * may still replace it with the wave that actually engaged this wave.
-     */
-    private findNearestEnemyInFreeHuntSearchLanes(
-        sameLaneOnly: boolean = false
-    ): Unit | null {
-        if (!this.agent || this.laneId < 0) return null;
-
-        const gm = GameManager.instance;
-        const ownLane = gm
-            ? gm.clampLaneId(this.laneId)
-            : this.laneId;
-        const enemies = this.getNearbyEnemyList(
-            this.targetSearchRange
-        );
-        const searchRangeSq =
-            this.targetSearchRange * this.targetSearchRange;
-        let best: Unit | null = null;
-        let bestDistSq = Infinity;
-
-        for (let i = 0; i < enemies.length; i++) {
-            const enemy = enemies[i];
-
-            if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.laneId < 0) continue;
-
-            const enemyLane = gm
-                ? gm.clampLaneId(enemy.laneId)
-                : enemy.laneId;
-
-            if (
-                sameLaneOnly
-                    ? enemyLane !== ownLane
-                    : Math.abs(ownLane - enemyLane) > 1
-            ) {
-                continue;
-            }
-
-            const dx = enemy.agent!.pos.x - this.agent.pos.x;
-            const dz = enemy.agent!.pos.z - this.agent.pos.z;
-            const distSq = dx * dx + dz * dz;
-
-            if (distSq > searchRangeSq) continue;
-
-            if (distSq < bestDistSq) {
-                bestDistSq = distSq;
-                best = enemy;
             }
         }
 
