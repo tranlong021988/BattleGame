@@ -170,6 +170,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           };
           this.idleWithoutOrderTelemetryReported = false;
           this.soloAggressiveSkirmishActive = false;
+          // A ranged retaliation outside the parent's strategic target set behaves
+          // as a one-member detachment until that local pursuit ends.
+          this.isolatedRangedPursuit = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
           this.rangedCombatMoveX = 0;
@@ -207,6 +210,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.clearFreeHuntContinuity();
           this.resetIdleWithoutOrderTelemetry();
           this.soloAggressiveSkirmishActive = false;
+          this.isolatedRangedPursuit = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
           this.resetRangedCombatMovement();
@@ -474,8 +478,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.soloAggressiveSkirmishActive;
         }
 
+        isIsolatedRangedPursuit() {
+          return this.isolatedRangedPursuit;
+        }
+
         isBackToLaneActive() {
           return this.backToLaneActive;
+        }
+
+        beginBackToLanePhase(aggressiveForward) {
+          if (this.backToLaneActive) return true;
+          return this.startBackToLanePhase(aggressiveForward);
         }
 
         isRangedCombatUnit() {
@@ -498,11 +511,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         setCachedNearestInRangeTarget(target) {
           this.cachedNearestInRange = target;
           this.cachedNearestInRangeLifeId = target ? target.lifeId : -1;
-        }
-
-        completeTargetSearch(target) {
-          this.targetSearchPending = false;
-          this.targetSearchConfirmedNoTarget = !target && !this.hasValidEnemyTarget();
         }
 
         clearCachedTargets() {
@@ -547,59 +555,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return true;
         }
 
-        findForwardSearchTarget(sameLaneOnly) {
-          if (sameLaneOnly === void 0) {
-            sameLaneOnly = false;
-          }
-
-          if (!this.agent) return null;
-          if (this.laneId < 0) return null;
-          var enemies = this.getNearbyEnemyList(this.targetSearchRange);
-          var maxRangeSq = this.targetSearchRange * this.targetSearchRange;
-          var best = null;
-          var bestDistSq = Infinity;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var enemy = enemies[i];
-            if (!this.isValidEnemy(enemy)) continue;
-
-            if (!this.isForwardSearchCandidate(enemy, sameLaneOnly)) {
-              continue;
-            }
-
-            var dx = enemy.agent.pos.x - this.agent.pos.x;
-            var dz = enemy.agent.pos.z - this.agent.pos.z;
-            var distanceSq = dx * dx + dz * dz;
-            if (distanceSq > maxRangeSq) continue;
-
-            if (distanceSq < bestDistSq) {
-              bestDistSq = distanceSq;
-              best = enemy;
-            }
-          }
-
-          return best;
-        }
-
-        isForwardSearchCandidate(enemy, sameLaneOnly) {
-          if (this.laneId < 0 || enemy.laneId < 0) {
-            return false;
-          }
-
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          var ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
-          var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
-          var laneDistance = Math.abs(ownLane - enemyLane);
-
-          if (sameLaneOnly ? laneDistance !== 0 : laneDistance > 1) {
-            return false;
-          }
-
-          return this.hasPassedTargetAlongForward(enemy);
-        }
-
         hasReachedEnemyHeroLine() {
           var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -630,6 +585,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
           var wasBackToLane = this.backToLaneActive;
           var soloAggressive = gm ? gm.shouldUseSoloAggressiveSkirmish(this, attacker) : false;
+          var isolateRangedPursuit = gm ? gm.shouldStartIsolatedRangedPursuit(this, attacker) : false;
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false; // Damage reaction keeps the actual attacker as the pursuit target.
           // A different enemy can replace it only through the normal local
@@ -639,9 +595,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setCachedNearestInRangeTarget(null);
           this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
 
+          if (isolateRangedPursuit) {
+            this.isolatedRangedPursuit = true;
+            gm == null || gm.recordIsolatedRangedPursuit('isolated-ranged-pursuit-started', this, attacker);
+          }
+
           if (this.onForward || wasBackToLane) {
             this.onForward = false;
-            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setAgentLocked(false);
             this.setAgentStopped();
@@ -677,6 +637,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.soloAggressiveSkirmishActive = false;
+          this.isolatedRangedPursuit = false;
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
           this.resetRangedCombatMovement();
@@ -705,19 +666,50 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         clearEnemy() {
-          var _instance2;
+          var _instance3;
 
+          var wasIsolatedRangedPursuit = this.isolatedRangedPursuit;
+          var previousTarget = this.getValidEnemyTarget();
           this.setEnemyTarget(null);
-          this.onBusy = false; // A local combat does not own the wave's order. If the wave has
+          this.onBusy = false;
+
+          if (wasIsolatedRangedPursuit) {
+            var _instance2;
+
+            this.isolatedRangedPursuit = false;
+
+            if ((_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              error: Error()
+            }), GameManager) : GameManager).instance) != null && _instance2.finishIsolatedRangedPursuit(this, previousTarget)) {
+              return;
+            }
+          } // Local combat only pauses regrouping. Once that target is gone, the
+          // unit must finish returning to its lane before it may advance again.
+
+
+          if (this.backToLaneActive) {
+            this.invalidateNearestQueryResults();
+            this.clearCachedTargets();
+            this.resetRangedCombatMovement();
+
+            if (this.agent) {
+              this.setAgentOnForward(0);
+              this.setAgentLocked(false);
+              this.setAgentStopped();
+            }
+
+            return;
+          } // A local combat does not own the wave's order. If the wave has
           // already recovered into either forward mode, this survivor returns
           // to that mode when its local target disappears.
 
-          var forwardAggressive = (_instance2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+
+          var forwardAggressive = (_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) == null ? void 0 : _instance2.getForwardModeAfterLocalCombat(this);
+          }), GameManager) : GameManager).instance) == null ? void 0 : _instance3.getForwardModeAfterLocalCombat(this);
 
           if (forwardAggressive !== null && forwardAggressive !== undefined) {
-            this.enterWaveForwardMode(forwardAggressive);
+            this.enterWaveForwardMode(forwardAggressive, true);
             return;
           } // Keep the last free-hunt intent while the scanner waits for the
           // next wave order. Movement modes that must stop or redirect
@@ -745,15 +737,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         shouldResumeWaveHuntContinuity() {
-          var _instance3;
+          var _instance4;
 
           if (!this.agent) return false;
           if (this.isSteady) return false;
           if (this.onForward) return false;
           if (this.backToLaneActive) return false;
-          return !!((_instance3 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          return !!((_instance4 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance3.getWaveTargetForUnit(this));
+          }), GameManager) : GameManager).instance) != null && _instance4.getWaveTargetForUnit(this));
         }
 
         haltForBattleEnd() {
@@ -764,6 +756,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.backToLaneActive = false;
           this.backToLaneForwardAggressive = false;
           this.soloAggressiveSkirmishActive = false;
+          this.isolatedRangedPursuit = false;
           this.resetRangedCombatMovement();
           this.invalidateNearestQueryResults();
           this.clearCachedTargets();
@@ -916,13 +909,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update(deltaTime) {
-          var _instance4, _instance6;
+          var _instance5, _instance7;
 
           if (!this.sim || !this.agent) return;
 
-          if ((_instance4 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance5 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance4.isBattleCombatLocked()) {
+          }), GameManager) : GameManager).instance) != null && _instance5.isBattleCombatLocked()) {
             this.haltForBattleEnd();
             this.sync(deltaTime, false);
             return;
@@ -932,24 +925,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.frameCounter++;
 
           if (this.props && this.shouldRunTargetSearch()) {
-            var _gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
               error: Error()
             }), GameManager) : GameManager).instance;
-            this.props.refreshHealthBarVisibility(_gm ? _gm.shouldShowUnitHealthBars() : false);
+            this.props.refreshHealthBarVisibility(gm ? gm.shouldShowUnitHealthBars() : false);
           }
 
           if (this.props && this.props.isDead()) {
             if (this.isHero) {
-              var _instance5;
+              var _instance6;
 
-              (_instance5 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              (_instance6 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                 error: Error()
-              }), GameManager) : GameManager).instance) == null || _instance5.resolveHeroDefeat(this);
+              }), GameManager) : GameManager).instance) == null || _instance6.resolveHeroDefeat(this);
             }
 
             this.setEnemyTarget(null);
             this.onBusy = false;
             this.onForward = false;
+            this.isolatedRangedPursuit = false;
             this.backToLaneActive = false;
             this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
@@ -959,9 +953,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          if ((_instance6 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance7 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance6.resolveUnitReachedEnemyHeroLine(this)) {
+          }), GameManager) : GameManager).instance) != null && _instance7.resolveUnitReachedEnemyHeroLine(this)) {
             this.setAgentStopped();
             this.sync(deltaTime, false);
             return;
@@ -975,7 +969,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentLocked(true);
             this.setAgentStopped();
             this.onForward = false;
-            this.backToLaneActive = false;
             this.setAgentOnForward(0);
           }
 
@@ -1004,20 +997,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           var nearestInRange = this.getNearestEnemyInAttackRangeThrottled();
 
           if (nearestInRange) {
-            var _gm2 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            var _gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
               error: Error()
             }), GameManager) : GameManager).instance;
-            var soloAggressive = _gm2 ? _gm2.shouldUseSoloAggressiveSkirmish(this, nearestInRange) : false;
+            var soloAggressive = _gm ? _gm.shouldUseSoloAggressiveSkirmish(this, nearestInRange) : false;
             this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
             this.onForward = false;
-            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setEnemyTarget(nearestInRange);
             this.onBusy = true;
             this.setAgentLocked(true);
 
-            if (_gm2) {
-              _gm2.onWaveCombatStarted(this, nearestInRange);
+            if (_gm) {
+              _gm.onWaveCombatStarted(this, nearestInRange);
             }
 
             this.setCachedNearestInRangeTarget(null);
@@ -1053,33 +1045,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           this.setAgentOnForward(0);
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          var isHuntScanner = !!gm && gm.isWaveHuntScanner(this);
-          var targetWave = gm ? gm.getWaveTargetForUnit(this) : null;
-          var targetWaveClearSearchPending = !!gm && gm.hasWaveTargetClearSearchPending(this);
-          var awaitingForwardRecoveryAfterTargetClear = !!gm && gm.isWaveAwaitingForwardRecoveryAfterTargetClear(this); // A live wave order never keeps an idle scanner chasing a stale or
-          // out-of-range assigned-wave target. Retaliation is an intentional
-          // individual pursuit and is preserved until local combat replaces it.
-
-          if (isHuntScanner && targetWave && !this.onBusy) {
-            var currentTarget = this.getValidEnemyTarget();
-            var isTargetInAssignedWave = !!currentTarget && currentTarget.waveRuntimeId === targetWave.id;
-            var isRetaliatingAgainstCurrentTarget = !!currentTarget && currentTarget === this.retaliationTarget && currentTarget.lifeId === this.retaliationTargetLifeId;
-
-            if (!isRetaliatingAgainstCurrentTarget && (!isTargetInAssignedWave || !this.isValidEnemyWithinRange(currentTarget, this.targetSearchRange))) {
-              this.setEnemyTarget(null);
-            }
-          }
 
           if (!this.hasValidEnemyTarget()) {
-            var sharedTarget = isHuntScanner && !targetWave ? null : this.getSharedWaveTarget();
-            this.setEnemyTarget(sharedTarget);
-
-            if (!this.hasValidEnemyTarget() && isHuntScanner && !targetWaveClearSearchPending && !awaitingForwardRecoveryAfterTargetClear) {
-              this.refreshHuntScannerTarget(targetWave ? targetWave.id : -1);
-            }
+            this.setEnemyTarget(this.getSharedWaveTarget());
           }
 
           var enemy = this.getValidEnemyTarget();
@@ -1168,15 +1136,23 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }), GameManager) : GameManager).instance;
 
           if (!gm || this.laneId < 0) {
-            this.enterWaveForwardMode(this.backToLaneForwardAggressive);
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
             return true;
           }
 
           var dir = gm.getDirectionToLaneArea(this.laneId, this.agent.pos.x);
 
           if (dir === 0) {
-            var aggressiveForward = this.backToLaneForwardAggressive;
-            this.enterWaveForwardMode(aggressiveForward);
+            // Reaching the lane completes only the regroup phase. BattleWave
+            // releases all ready members into Forward together.
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            this.onForward = false;
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
             return true;
           }
 
@@ -1218,54 +1194,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.isValidEnemyWithinAttackRange(this.cachedNearestInRange, this.cachedNearestInRangeLifeId) ? this.cachedNearestInRange : null;
         }
 
-        forceHuntScannerTargetSearch() {
-          return this.refreshHuntScannerTarget(-1, true, 'hunt-scanner-forced');
-        }
-
-        forceHuntScannerSameLaneTargetSearch() {
-          return this.refreshHuntScannerTarget(-1, true, 'hunt-scanner-target-wave-cleared', true);
-        }
-
-        refreshHuntScannerTarget(targetWaveId, force, telemetrySource, sameLaneOnly) {
-          if (force === void 0) {
-            force = false;
-          }
-
-          if (telemetrySource === void 0) {
-            telemetrySource = 'hunt-scanner';
-          }
-
-          if (sameLaneOnly === void 0) {
-            sameLaneOnly = false;
-          }
-
-          if (!force && !this.shouldRunTargetSearch()) {
-            return false;
-          }
-
-          var target = targetWaveId >= 0 ? this.findNearestEnemyInWave(targetWaveId) : this.findNearestEnemyInFreeHuntSearchLanes(sameLaneOnly);
-          this.completeTargetSearch(target);
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          var targetWaveBefore = gm ? gm.getWaveTargetForUnit(this) : null;
-
-          if (!target) {
-            gm == null || gm.recordWaveScannerTrace(this, null, telemetrySource, force ? 'no-target-after-target-wave-death' : targetWaveId >= 0 ? 'no-target-in-target-wave' : 'no-target-in-search-lanes', targetWaveBefore, 0, sameLaneOnly);
-            return false;
-          }
-
-          var accepted = !!gm && gm.onWaveHuntScannerTargetFound(this, target);
-          gm == null || gm.recordWaveScannerTrace(this, target, telemetrySource, accepted ? force ? 'target-confirmed-after-target-wave-death' : 'target-confirmed' : 'target-rejected', targetWaveBefore, 1, sameLaneOnly);
-
-          if (!accepted) {
-            return false;
-          }
-
-          this.setWaveSearchTarget(target);
-          return true;
-        }
-
         updateForwardPrefVelocity() {
           if (!this.agent) return;
           this.setAgentPrefVelocity(this.forwardDir.x * this.agent.maxSpeed, this.forwardDir.z * this.agent.maxSpeed);
@@ -1298,11 +1226,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.setAgentLocked(true);
 
               if (!wasBusy) {
-                var _instance7;
+                var _instance8;
 
-                (_instance7 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+                (_instance8 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                   error: Error()
-                }), GameManager) : GameManager).instance) == null || _instance7.onWaveCombatStarted(this, target, false);
+                }), GameManager) : GameManager).instance) == null || _instance8.onWaveCombatStarted(this, target, false);
               }
 
               this.setAgentStopped();
@@ -1452,9 +1380,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         clearInvalidEnemy() {
-          if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(null);
+          if (this.hasValidEnemyTarget()) return; // Isolated pursuit owns a lifecycle. Clearing its dead target through
+          // the generic path would leave the unit detached with no next order.
+
+          if (this.isolatedRangedPursuit) {
+            this.clearEnemy();
+            return;
           }
+
+          this.setEnemyTarget(null);
         }
 
         findNearestEnemyInAttackRange() {
@@ -1475,76 +1409,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             if (d < bestDistSq) {
               bestDistSq = d;
               best = e;
-            }
-          }
-
-          return best;
-        }
-
-        findNearestEnemyInWave(targetWaveId) {
-          if (!this.agent || targetWaveId < 0) return null;
-          var enemies = this.getNearbyEnemyList(this.targetSearchRange);
-          var searchRangeSq = this.targetSearchRange * this.targetSearchRange;
-          var best = null;
-          var bestDistSq = Infinity;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var enemy = enemies[i];
-            if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.waveRuntimeId !== targetWaveId) continue;
-            var dx = enemy.agent.pos.x - this.agent.pos.x;
-            var dz = enemy.agent.pos.z - this.agent.pos.z;
-            var distSq = dx * dx + dz * dz;
-            if (distSq > searchRangeSq) continue;
-
-            if (distSq < bestDistSq) {
-              bestDistSq = distSq;
-              best = enemy;
-            }
-          }
-
-          return best;
-        }
-        /**
-         * A hunt scanner starts a new wave target only from its own lane or an
-         * adjacent lane. Once a target wave is established, engagement handling
-         * may still replace it with the wave that actually engaged this wave.
-         */
-
-
-        findNearestEnemyInFreeHuntSearchLanes(sameLaneOnly) {
-          if (sameLaneOnly === void 0) {
-            sameLaneOnly = false;
-          }
-
-          if (!this.agent || this.laneId < 0) return null;
-          var gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
-            error: Error()
-          }), GameManager) : GameManager).instance;
-          var ownLane = gm ? gm.clampLaneId(this.laneId) : this.laneId;
-          var enemies = this.getNearbyEnemyList(this.targetSearchRange);
-          var searchRangeSq = this.targetSearchRange * this.targetSearchRange;
-          var best = null;
-          var bestDistSq = Infinity;
-
-          for (var i = 0; i < enemies.length; i++) {
-            var enemy = enemies[i];
-            if (!this.isValidEnemy(enemy)) continue;
-            if (enemy.laneId < 0) continue;
-            var enemyLane = gm ? gm.clampLaneId(enemy.laneId) : enemy.laneId;
-
-            if (sameLaneOnly ? enemyLane !== ownLane : Math.abs(ownLane - enemyLane) > 1) {
-              continue;
-            }
-
-            var dx = enemy.agent.pos.x - this.agent.pos.x;
-            var dz = enemy.agent.pos.z - this.agent.pos.z;
-            var distSq = dx * dx + dz * dz;
-            if (distSq > searchRangeSq) continue;
-
-            if (distSq < bestDistSq) {
-              bestDistSq = distSq;
-              best = enemy;
             }
           }
 
@@ -1782,16 +1646,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         recordRangedKiteTelemetry(target, targetDistance) {
-          var _instance8;
+          var _instance9;
 
           if (this.rangedKiteTelemetryTargetLifeId === target.lifeId) {
             return;
           }
 
           this.rangedKiteTelemetryTargetLifeId = target.lifeId;
-          (_instance8 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          (_instance9 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) == null || _instance8.recordBattleTelemetryRangedKite(this, target, 'started', targetDistance, this.rangedCombatMoveX, this.rangedCombatMoveZ);
+          }), GameManager) : GameManager).instance) == null || _instance9.recordBattleTelemetryRangedKite(this, target, 'started', targetDistance, this.rangedCombatMoveX, this.rangedCombatMoveZ);
         }
 
         setRangedCombatMoveToward(targetDx, targetDz) {

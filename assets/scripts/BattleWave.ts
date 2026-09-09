@@ -47,6 +47,7 @@ export class BattleWave {
     private targetWaves: BattleWave[] = [];
     private regroupLaneAfterTargetClear = -1;
     private awaitingForwardRecoveryAfterTargetClear = false;
+    private forwardRecoveryLanePrepared = false;
     // Legacy recovery-readiness flag retained for telemetry compatibility.
     // It becomes true immediately when the strategic target set is empty;
     // target death no longer schedules another scanner search.
@@ -99,6 +100,13 @@ export class BattleWave {
         if (!unit) return;
         if (this.released) return;
 
+        const previousWave =
+            BattleWave.unitWaveObjectMap.get(unit);
+
+        if (previousWave && previousWave !== this) {
+            previousWave.detachReusedUnitReference(unit);
+        }
+
         BattleWave.unitWaveMap.set(unit, this.id);
         BattleWave.unitWaveObjectMap.set(unit, this);
         unit.setWaveRuntimeId(this.id);
@@ -132,6 +140,25 @@ export class BattleWave {
             this.units.push(unit);
             this.runtimeHealthFrame = -1;
         }
+    }
+
+    private detachReusedUnitReference(unit: Unit) {
+        const index = this.units.indexOf(unit);
+
+        if (index >= 0) {
+            this.units.splice(index, 1);
+        }
+
+        if (this.scannerUnit === unit) {
+            this.scannerUnit = null;
+        }
+
+        if (this.representativeUnit === unit) {
+            this.representativeUnit = null;
+        }
+
+        this.runtimeStateFrame = -1;
+        this.runtimeHealthFrame = -1;
     }
 
     getAliveCount() {
@@ -556,49 +583,6 @@ export class BattleWave {
             !this.freeHuntActive;
     }
 
-    getEngagedCountIncluding(
-        pendingUnit: Unit | null = null,
-        pendingTarget: Unit | null = null
-    ) {
-        if (this.released) return 0;
-
-        let count = 0;
-        let hasPending = false;
-
-        for (let i = 0; i < this.units.length; i++) {
-            const u = this.units[i];
-
-            if (!this.isCommandUnit(u)) continue;
-
-            if (u === pendingUnit) {
-                hasPending = true;
-            }
-
-            const engagedTarget = u.onBusy
-                ? u.getValidEnemyTarget()
-                : null;
-
-            if (
-                engagedTarget &&
-                !engagedTarget.isIsolatedRangedPursuit()
-            ) {
-                count++;
-            }
-        }
-
-        if (
-            pendingUnit &&
-            hasPending &&
-            !pendingUnit.onBusy &&
-            pendingTarget &&
-            !pendingTarget.isIsolatedRangedPursuit()
-        ) {
-            count++;
-        }
-
-        return count;
-    }
-
     isCommandUnit(unit: Unit | null) {
         return this.isUnitAlive(unit) &&
             !unit!.isIsolatedRangedPursuit();
@@ -618,11 +602,14 @@ export class BattleWave {
         let best: Unit | null = null;
         let bestDistSq = Infinity;
 
+        // Search range is an admission rule for adding a strategic wave.
+        // Once admitted, Free Hunt must keep navigating toward that wave
+        // until it is eliminated; applying the range again strands idle
+        // members whenever the target temporarily moves farther away.
         for (let i = 0; i < this.targetWaves.length; i++) {
             const candidate = this.targetWaves[i].getClosestAliveUnitTo(
                 requester.agent.pos.x,
-                requester.agent.pos.z,
-                requester.targetSearchRange
+                requester.agent.pos.z
             );
 
             if (!candidate?.agent) continue;
@@ -638,6 +625,11 @@ export class BattleWave {
         }
 
         return best;
+    }
+
+    getTargetWaveLaneIds() {
+        this.refreshTargetWaves();
+        return this.targetWaves.map((wave) => wave.laneId);
     }
 
     getTelemetryTargetState() {
@@ -762,6 +754,7 @@ export class BattleWave {
         this.forwardModeActive = false;
         this.freeHuntActive = true;
         this.awaitingForwardRecoveryAfterTargetClear = false;
+        this.forwardRecoveryLanePrepared = false;
         this.targetClearSameLaneSearchResolved = false;
         this.aggressiveForwardMode = false;
         this.aggressiveAdjacentBoundaryObserved = false;
@@ -819,7 +812,9 @@ export class BattleWave {
         this.forwardModeActive = true;
         this.freeHuntActive = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
+        this.forwardRecoveryLanePrepared = false;
         this.targetClearSameLaneSearchResolved = false;
+        this.initialForwardCombatGateActive = true;
         this.scannerUnit = null;
         this.clearTargetWave();
 
@@ -845,6 +840,11 @@ export class BattleWave {
     isForwardMode() {
         return !this.released &&
             this.forwardModeActive;
+    }
+
+    isFreeHuntMode() {
+        return !this.released &&
+            this.freeHuntActive;
     }
 
     isAggressiveForwardMode() {
@@ -1089,6 +1089,7 @@ export class BattleWave {
         this.targetWave = this.targetWaves[0] ?? null;
         this.immediateTargetSearchPending = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
+        this.forwardRecoveryLanePrepared = false;
         this.targetClearSameLaneSearchResolved = false;
 
         if (this.freeHuntActive) {
@@ -1139,6 +1140,7 @@ export class BattleWave {
         this.targetWave = this.targetWaves[0] ?? null;
         this.immediateTargetSearchPending = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
+        this.forwardRecoveryLanePrepared = false;
         this.targetClearSameLaneSearchResolved = false;
 
         if (this.freeHuntActive) {
@@ -1212,32 +1214,54 @@ export class BattleWave {
             this.forwardModeActive = true;
             this.freeHuntActive = false;
             this.awaitingForwardRecoveryAfterTargetClear = false;
+            this.forwardRecoveryLanePrepared = false;
+            this.initialForwardCombatGateActive = true;
             this.aggressiveForwardMode =
                 this.freeHuntForwardOrigin === 'aggressive';
             return true;
         }
 
-        // A local fight belongs only to the units in it. The rest of the wave
-        // may regroup and advance as soon as the strategic target set is empty.
+        // A local fight belongs only to the units in it. Idle command members
+        // must physically finish regrouping before the wave becomes Forward.
         if (resumableUnitCount <= 0) return false;
 
         if (!this.targetClearSameLaneSearchResolved) {
             return false;
         }
 
-        if (beforeResume) {
-            beforeResume(this);
+        if (!this.forwardRecoveryLanePrepared) {
+            if (beforeResume) beforeResume(this);
+            this.forwardRecoveryLanePrepared = true;
         }
+
+        const forwardAggressive =
+            this.freeHuntForwardOrigin === 'aggressive';
+        let regroupingUnitCount = 0;
+
+        for (let i = 0; i < this.units.length; i++) {
+            const u = this.units[i];
+
+            if (!this.isCommandUnit(u)) continue;
+            if (u.onBusy || u.hasValidEnemyTarget()) continue;
+
+            if (u.beginBackToLanePhase(forwardAggressive)) {
+                regroupingUnitCount++;
+            }
+        }
+
+        if (regroupingUnitCount > 0) return false;
 
         this.forwardModeActive = true;
         this.freeHuntActive = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
+        this.forwardRecoveryLanePrepared = false;
         this.targetClearSameLaneSearchResolved = false;
         this.forwardRecoveryDeferredTelemetryPending = false;
-        this.initialForwardCombatGateActive = false;
+        // Every newly resumed Forward phase must earn a strategic escalation
+        // again. Otherwise the half-wave gate only protects the spawn phase.
+        this.initialForwardCombatGateActive = true;
         this.scannerUnit = null;
-        this.aggressiveForwardMode =
-            this.freeHuntForwardOrigin === 'aggressive';
+        this.aggressiveForwardMode = forwardAggressive;
         this.lastForwardRecoveryResumedUnitCount = resumableUnitCount;
         this.lastForwardRecoveryRetainedBusyUnitCount =
             retainedBusyUnitCount;
@@ -1256,8 +1280,7 @@ export class BattleWave {
             if (u.onBusy || u.hasValidEnemyTarget()) continue;
 
             u.enterWaveForwardMode(
-                this.aggressiveForwardMode,
-                true
+                this.aggressiveForwardMode
             );
         }
 
@@ -1384,14 +1407,10 @@ export class BattleWave {
 
     private getClosestAliveUnitTo(
         x: number,
-        z: number,
-        maxRange: number = Infinity
+        z: number
     ): Unit | null {
         let best: Unit | null = null;
         let bestDistSq = Infinity;
-        const maxRangeSq = Number.isFinite(maxRange)
-            ? Math.max(0, maxRange) * Math.max(0, maxRange)
-            : Infinity;
 
         for (let i = 0; i < this.units.length; i++) {
             const unit = this.units[i];
@@ -1401,8 +1420,6 @@ export class BattleWave {
             const dx = unit.agent!.pos.x - x;
             const dz = unit.agent!.pos.z - z;
             const distSq = dx * dx + dz * dz;
-
-            if (distSq > maxRangeSq) continue;
 
             if (distSq < bestDistSq) {
                 bestDistSq = distSq;
@@ -1476,6 +1493,7 @@ export class BattleWave {
 
         this.immediateTargetSearchPending = false;
         this.awaitingForwardRecoveryAfterTargetClear = true;
+        this.forwardRecoveryLanePrepared = false;
         this.targetClearSameLaneSearchResolved = true;
         this.forwardRecoveryBlockTelemetryPending = false;
         this.forwardRecoveryDeferredTelemetryPending = true;

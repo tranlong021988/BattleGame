@@ -105,6 +105,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.heroDefeatContext = null;
           this.framePerformance = null;
           this.diagnosticEvents = [];
+          this.targetWaveLifecycleEvents = [];
           this.scannerTraces = [];
           this.cardEvents = [];
           this.waveSpawnFrameById = new Map();
@@ -132,7 +133,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.scannerTraceWriteIndex = 0;
           this.targetWaveTransitionCounts = new Map();
           this.targetWaveTransitionLastFrames = new Map();
-          this.targetWaveTransitionRecordedWaves = new Set();
           this.targetWaveTransitionStats = {
             total: 0,
             engagement: 0,
@@ -159,10 +159,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.heroDefeatContext = null;
           this.framePerformance = null;
           this.diagnosticEvents.length = 0;
+          this.targetWaveLifecycleEvents.length = 0;
           this.scannerTraces.length = 0;
           this.targetWaveTransitionCounts.clear();
           this.targetWaveTransitionLastFrames.clear();
-          this.targetWaveTransitionRecordedWaves.clear();
           this.targetWaveTransitionStats = {
             total: 0,
             engagement: 0,
@@ -236,6 +236,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             error: Error()
           }), unitFamilyToName) : unitFamilyToName)(family);
           const info = {
+            spawnId: this.nextSpawnId++,
             key,
             team,
             name: unitName,
@@ -358,6 +359,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.pushDiagnosticEvent(event);
         }
 
+        recordTargetWaveLifecycleEvent(event) {
+          if (!this.isEnabled()) return;
+          if (!event) return; // This timeline must remain complete even when the general diagnostic
+          // event budget is exhausted; it reconstructs target-set and recovery
+          // behavior without relying on sparse snapshots.
+
+          this.targetWaveLifecycleEvents.push(event);
+          this.pushDiagnosticEvent(event);
+        }
+
         recordTargetWaveTransition(event) {
           var _event$waveId, _this$targetWaveTrans;
 
@@ -393,12 +404,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (event.aggressiveForward && event.laneId !== undefined && event.targetLaneId !== undefined && event.laneId !== event.targetLaneId) {
             this.targetWaveTransitionStats.aggressiveOffLaneAssignments++;
-          }
+          } // Keep every strategic target-set addition. Dropping later engagement
+          // additions makes multi-target Free Hunt impossible to reconstruct.
 
-          if (event.targetSource !== 'engagement' || !this.targetWaveTransitionRecordedWaves.has(waveId)) {
-            this.targetWaveTransitionRecordedWaves.add(waveId);
-            this.pushDiagnosticEvent(event);
-          }
+
+          this.recordTargetWaveLifecycleEvent(event);
         }
 
         recordScannerTrace(trace) {
@@ -581,6 +591,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         recordKill(killer, victim, isCounterKill, frame = -1, time = 0) {
+          var _killer$lifeId, _victim$lifeId;
+
           if (!this.isEnabled()) return;
           if (!killer || !victim) return;
           if (!killer.props || !victim.props) return;
@@ -606,11 +618,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             team: this.clampTeam(killer.team),
             waveId: this.getUnitWaveId(killer),
             unitName: killer.unitTypeName || 'unknown',
+            unitLifeId: (_killer$lifeId = killer.lifeId) != null ? _killer$lifeId : -1,
+            unitSpawnId: this.getSpawnId(killer),
             familyName: killerStats.familyName,
             isCounter: isCounterKill,
             victimTeam: this.clampTeam(victim.team),
             victimWaveId: this.getUnitWaveId(victim),
             victimUnitName: victim.unitTypeName || 'unknown',
+            targetLifeId: (_victim$lifeId = victim.lifeId) != null ? _victim$lifeId : -1,
+            targetSpawnId: this.getSpawnId(victim),
             victimFamilyName: victimStats.familyName
           });
         }
@@ -711,6 +727,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               performance: this.framePerformance,
               targetWaveTransitions: { ...this.targetWaveTransitionStats
               },
+              targetWaveLifecycleEvents: this.targetWaveLifecycleEvents.slice(),
               snapshots: this.snapshots.slice(),
               finalSnapshot: this.finalSnapshot,
               events: this.diagnosticEvents.slice(),
@@ -932,6 +949,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!unit) return -1;
           if (!Number.isFinite(unit.waveRuntimeId)) return -1;
           return Math.floor(unit.waveRuntimeId);
+        }
+
+        getSpawnId(unit) {
+          var _this$spawnInfoByUnit, _this$spawnInfoByUnit2;
+
+          if (!unit) return -1;
+          return (_this$spawnInfoByUnit = (_this$spawnInfoByUnit2 = this.spawnInfoByUnit.get(unit)) == null ? void 0 : _this$spawnInfoByUnit2.spawnId) != null ? _this$spawnInfoByUnit : -1;
         }
 
         pushDiagnosticEvent(event) {

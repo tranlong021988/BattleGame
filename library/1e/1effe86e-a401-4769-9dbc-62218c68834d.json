@@ -1919,7 +1919,7 @@
     "battleTelemetryReloadDelaySeconds": 2,
     "logBattleTelemetryOnEnd": true,
     "battleTelemetryFilePrefix": "battle-telemetry",
-    "battleTelemetrySnapshotIntervalFrames": 60,
+    "battleTelemetrySnapshotIntervalFrames": 30,
     "battleTelemetryMaxSnapshots": 240,
     "battleTelemetryMaxDiagnosticEvents": 3000,
     "battleTelemetryMaxScannerTraces": 6000,

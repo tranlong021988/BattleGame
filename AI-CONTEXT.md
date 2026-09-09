@@ -520,3 +520,162 @@ If a unit appears idle with no blocker, first distinguish a transient `unit-idle
 The separate card-on/card-off experiment remains controlled work: record `Enable Battle Card Effects` explicitly for every batch. Do not claim a win-rate difference is causal unless the compared runs are otherwise comparable. Normal-time-scale visual verification for own-side ranged kiting remains open; existing telemetry proves movement intent, not final RVO/formation appearance.
 
 The user plans to continue testing elsewhere. The most valuable next artifact is a controlled paired set: start both modes from the same save/progression snapshot and seed, change only `Enable Battle Card Effects`, preserve card purchase/upgrade schedules, verify `config.cardEffectsEnabled` and `cardEvents`, then report normal/boss results, retry count, and duration separately. Run 5–10 pairs before considering a card rebalance.
+
+### 2026-09-09 authoritative override — persistent multi-target Free Hunt
+
+This section supersedes every older statement that target death starts a new
+scanner search, that a Free Hunt target is replaced rather than accumulated,
+or that `targetSearchRange` limits pursuit of an already approved target wave.
+
+#### Current gameplay contract
+
+1. A wave owns a strategic `targetWaves` set. `targetWave` is only the
+   compatibility primary (the first live member); it is not the full order.
+2. While Forward, units do not independently search for strategic waves.
+   Strategic admission occurs only through an eligible scanner-pass release
+   or through the approved engagement/escalation rules.
+3. Real eligible combat with another wave adds that wave to `targetWaves`.
+   Busy members keep their current local enemy; idle members may redistribute
+   across all live units belonging to the approved target set.
+4. `targetSearchRange` constrains scanner-pass admission. It does not constrain
+   navigation after a wave is already in `targetWaves`. Idle Free Hunt members
+   select the closest live command unit from the approved set even when it has
+   moved outside their personal search range. This closes the confirmed state
+   where a live strategic target remained but the wave stood idle.
+5. When one target wave dies, Free Hunt continues if another approved target
+   wave remains. When the complete set becomes empty, there is no replacement
+   search: regroup is mandatory, followed by the prior Forward mode.
+6. Normal-origin regroup uses the lane of the last target wave removed from
+   the set. Aggressive-origin regroup uses its immutable spawn/origin lane.
+7. Aggressive-origin admission remains lane locked: scanner pass is same-lane
+   only, and engagement expansion requires a same-lane frontline contact.
+   Dynamic lane migration remains disabled while its lane lock applies.
+8. A unit retaliating against a ranged attacker outside its parent's approved
+   target set is an isolated one-unit pursuit. It is excluded from scanner,
+   command-count, target-set expansion, and parent-wave lane authority until
+   that pursuit ends.
+9. The initial Forward escalation threshold is `ceil(commandAliveCount / 2)`.
+   Normal counts eligible busy command members regardless of lane (subject to
+   the existing lane-distance admission guard). Aggressive counts only
+   same-lane frontline engagements; rear attacks stay local.
+
+#### 2026-09-09 implementation and telemetry changes
+
+- `BattleWave.findSharedTargetForUnit()` no longer reapplies personal search
+  range to an already approved strategic target set.
+- Every successful addition to `targetWaves` is exported. The old diagnostic
+  suppression that retained only the first engagement assignment per wave was
+  removed. Assignment events include the previous and resulting target sets.
+  Target assignment, target removal, regroup/recovery, and Forward-resume
+  events are also copied to `diagnostics.targetWaveLifecycleEvents`. This
+  dedicated timeline is not truncated when the general diagnostic event budget
+  fills, so post-match analysis can reconstruct the complete target lifecycle.
+- Diagnostic snapshots now run every 30 frames in `Battle.scene`, matching the
+  configured unit search interval. Each live unit records position, physical
+  lane, commanded lane, combat/Forward/regroup/continuity/isolation state, and
+  current target wave. Wave snapshots also record scanner position/physical
+  lane, target-wave lanes, Free Hunt origin, command count, and maximum
+  non-isolated displacement from the commanded lane.
+- Idle telemetry now distinguishes an unresolved live strategic target from
+  the expected brief target-empty recovery window.
+
+#### Verification status
+
+- Cocos TypeScript compilation passed with Creator 3.8.8's bundled compiler.
+- `git diff --check` has no whitespace errors; CRLF conversion notices are
+  environment warnings.
+- No new runtime replay has been produced after this override. A full batch is
+  not required before further development: one short targeted battle is enough
+  to confirm exported fields and visible movement, because the report now
+  contains the evidence needed to diagnose a failure without repeated blind
+  batch cycles.
+
+### 2026-09-09 08:40–08:47 regression batch (31 battles)
+
+The first runtime batch after the persistent-target change passed the target
+lifecycle checks: 1,298 target additions contained no duplicate additions, no
+lane-distance-2 strategic admissions, no Aggressive off-lane admissions, and
+no assignment while waiting to regroup. None of 249 Forward resumes retained a
+live strategic target. There were 205 idle episodes, all at most one frame;
+the previous 30–236-frame unresolved-target idle failure did not recur.
+
+The new unit snapshots exposed a separate pooling problem. A wave's historical
+`units` array could retain a `Unit` object after the pool reused that object for
+a newer wave. Snapshot aggregation used global liveness instead of current
+wave ownership, producing impossible records such as two command members but
+four busy members and false whole-wave lane displacement. More importantly,
+the Aggressive frontline threshold loop had the same missing ownership filter,
+so a recycled unit from another wave could make Aggressive enter Free Hunt too
+early.
+
+The fix now detaches a reused Unit reference from its previous wave in
+`BattleWave.addUnit()`, independently guards the Aggressive threshold with
+`wave.isCommandUnit(unit)`, and filters snapshots by
+`BattleWave.getWaveForUnit(unit) === wave`. Snapshots expose
+`staleUnitReferenceCount`; it should remain zero in subsequent reports. Cocos
+TypeScript compilation, scoped diff checking, and static ownership invariants
+passed after this fix. The 31-report batch predates the ownership fix, so its
+per-unit lane-displacement aggregates must not be used as behavioral evidence;
+its lifecycle and idle events remain usable because those paths resolve the
+current wave through the ownership map.
+
+### 2026-09-09 cross-lane ranged isolation and recurring Forward gate
+
+This section is the latest authoritative behavior/telemetry update.
+
+#### Verified pre-change fault from the 09:09–09:38 batch
+
+- 116 reports contained 60 Normal Forward cross-lane ranged contacts that
+  escalated to a strategic wave target; 58 involved non-hero units.
+- The combat callback handled the firing wave and the hit wave symmetrically
+  before damage reaction marked the victim as an isolated ranged pursuer.
+  Therefore one ranged shot from a neighbouring lane could add both parent
+  waves to each other's target sets and pull idle members into Free Hunt.
+- The half-wave Forward gate was disabled when a wave first entered combat and
+  was not re-enabled after target-set exhaustion and Forward recovery. It only
+  protected the initial spawn phase, not later Forward phases.
+
+#### Implemented behavior
+
+1. A ranged attack whose attacker wave and target wave have different
+   strategic lanes is local combat. If the opposing wave is not already in a
+   wave's approved target set, this attack cannot add it or make that parent
+   wave enter Free Hunt. The rule is applied independently to attacker and
+   defender, so neither parent wave is pulled across lane by the shot.
+2. Cross-lane ranged attacker/target pairs are excluded when engaged targets
+   are swept into the strategic multi-target set and when Normal Forward's
+   engagement count is calculated.
+3. The hit non-hero unit still uses isolated ranged pursuit after damage. It is
+   excluded from its parent's scanner, command count, target expansion, and
+   lane authority until that local pursuit ends. If the hit unit was the
+   scanner, the wave selects another eligible command member.
+4. `ceil(commandAliveCount / 2)` is re-armed whenever a wave resumes or is
+   forced into a new Forward phase. Each new Forward phase must cross the gate
+   before local combat can escalate the whole wave. Aggressive counting remains
+   restricted to same-lane frontline contacts.
+
+#### Telemetry added for the next report
+
+- `wave-combat-escalation-decision` now records
+  `crossLaneRangedAttack`, `strategicEscalationBlocked`,
+  `strategicEngagementBlockedReason`, `engagementRole`,
+  `strategicEngagedCount`, and `strategicEngagementThreshold`.
+- Unit snapshots, scanner traces, isolated-pursuit events, combat decisions,
+  and kill events now include telemetry-owned monotonic spawn IDs. These IDs
+  distinguish pooled unit incarnations even when `lifeId` repeats. Kill events
+  now identify both killer and victim incarnations.
+
+#### Verification status and next acceptance checks
+
+- Creator 3.8.8 bundled TypeScript compiler passed with `--skipLibCheck`,
+  ES2016 target, and ESNext modules. Unfiltered project compilation still
+  reports pre-existing Cocos declaration errors unrelated to these files.
+- `git diff --check` found no whitespace errors. No post-change runtime battle
+  has been captured yet.
+- In the next targeted report, cross-lane ranged contacts outside an existing
+  target set must record blocked decisions for both `attacker` and `defender`,
+  with no corresponding target-set addition. A later damage reaction may emit
+  `isolated-ranged-pursuit-started` for the hit unit using the same spawn ID.
+- After every `wave-forward-resumed`, the next engagement escalation must show
+  `strategicEngagedCount >= strategicEngagementThreshold`; scanner-pass release
+  remains a separate valid rule and does not use this threshold.

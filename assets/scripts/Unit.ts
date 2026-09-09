@@ -469,6 +469,16 @@ export class Unit extends Component {
         return this.backToLaneActive;
     }
 
+    public beginBackToLanePhase(
+        aggressiveForward: boolean
+    ) {
+        if (this.backToLaneActive) return true;
+
+        return this.startBackToLanePhase(
+            aggressiveForward
+        );
+    }
+
     public isRangedCombatUnit() {
         if (!this.props) return false;
 
@@ -629,7 +639,6 @@ export class Unit extends Component {
 
         if (this.onForward || wasBackToLane) {
             this.onForward = false;
-            this.backToLaneActive = false;
             this.setAgentOnForward(0);
             this.setAgentLocked(false);
             this.setAgentStopped();
@@ -713,6 +722,21 @@ export class Unit extends Component {
             }
         }
 
+        // Local combat only pauses regrouping. Once that target is gone, the
+        // unit must finish returning to its lane before it may advance again.
+        if (this.backToLaneActive) {
+            this.invalidateNearestQueryResults();
+            this.clearCachedTargets();
+            this.resetRangedCombatMovement();
+
+            if (this.agent) {
+                this.setAgentOnForward(0);
+                this.setAgentLocked(false);
+                this.setAgentStopped();
+            }
+            return;
+        }
+
         // A local combat does not own the wave's order. If the wave has
         // already recovered into either forward mode, this survivor returns
         // to that mode when its local target disappears.
@@ -721,7 +745,10 @@ export class Unit extends Component {
 
         if (forwardAggressive !== null &&
             forwardAggressive !== undefined) {
-            this.enterWaveForwardMode(forwardAggressive);
+            this.enterWaveForwardMode(
+                forwardAggressive,
+                true
+            );
             return;
         }
 
@@ -988,7 +1015,6 @@ export class Unit extends Component {
             this.setAgentLocked(true);
             this.setAgentStopped();
             this.onForward = false;
-            this.backToLaneActive = false;
             this.setAgentOnForward(0);
         }
 
@@ -1046,7 +1072,6 @@ export class Unit extends Component {
                 soloAggressive;
 
             this.onForward = false;
-            this.backToLaneActive = false;
             this.setAgentOnForward(0);
 
             this.setEnemyTarget(nearestInRange);
@@ -1216,9 +1241,10 @@ export class Unit extends Component {
         const gm = GameManager.instance;
 
         if (!gm || this.laneId < 0) {
-            this.enterWaveForwardMode(
-                this.backToLaneForwardAggressive
-            );
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
             return true;
         }
 
@@ -1229,12 +1255,13 @@ export class Unit extends Component {
             );
 
         if (dir === 0) {
-            const aggressiveForward =
-                this.backToLaneForwardAggressive;
-
-            this.enterWaveForwardMode(
-                aggressiveForward
-            );
+            // Reaching the lane completes only the regroup phase. BattleWave
+            // releases all ready members into Forward together.
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            this.onForward = false;
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
             return true;
         }
 
@@ -1561,9 +1588,16 @@ export class Unit extends Component {
     }
 
     private clearInvalidEnemy() {
-        if (!this.hasValidEnemyTarget()) {
-            this.setEnemyTarget(null);
+        if (this.hasValidEnemyTarget()) return;
+
+        // Isolated pursuit owns a lifecycle. Clearing its dead target through
+        // the generic path would leave the unit detached with no next order.
+        if (this.isolatedRangedPursuit) {
+            this.clearEnemy();
+            return;
         }
+
+        this.setEnemyTarget(null);
     }
 
     private findNearestEnemyInAttackRange(): Unit | null {

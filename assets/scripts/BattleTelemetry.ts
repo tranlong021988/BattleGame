@@ -141,15 +141,46 @@ export interface BattleTelemetryWaveSnapshot {
     healthRatio: number;
     forwardMode: boolean;
     aggressiveForward: boolean;
+    freeHuntActive?: boolean;
+    freeHuntForwardOrigin?: 'normal' | 'aggressive';
     targetWaveId: number;
     targetWaveIds?: number[];
+    targetWaveLaneIds?: number[];
     targetWaveCount?: number;
     isolatedRangedPursuitCount?: number;
+    commandAliveCount?: number;
+    staleUnitReferenceCount?: number;
     scannerUnitName: string;
+    scannerSpawnId?: number;
     scannerLifeId: number;
     scannerBusy: boolean;
     scannerForward: boolean;
     scannerConfirmedNoTarget: boolean;
+    scannerX?: number;
+    scannerZ?: number;
+    scannerPhysicalLaneId?: number;
+    maxPhysicalLaneDistance?: number;
+    units?: BattleTelemetryWaveUnitSnapshot[];
+}
+
+export interface BattleTelemetryWaveUnitSnapshot {
+    spawnId: number;
+    lifeId: number;
+    unitName: string;
+    x: number;
+    z: number;
+    laneId: number;
+    physicalLaneId: number;
+    waveLaneDistance: number;
+    busy: boolean;
+    forward: boolean;
+    backToLane: boolean;
+    freeHuntContinuity: boolean;
+    isolatedRangedPursuit: boolean;
+    targetLifeId: number;
+    targetSpawnId: number;
+    targetWaveId: number;
+    targetLaneId: number;
 }
 
 export interface BattleTelemetryTeamSnapshot {
@@ -228,6 +259,8 @@ export interface BattleTelemetryDiagnosticEvent {
     targetWaveId?: number;
     targetWaveIds?: number[];
     targetWaveCount?: number;
+    previousTargetWaveIds?: number[];
+    targetSetChanged?: boolean;
     targetTeam?: number;
     targetLaneId?: number;
     targetFamilyName?: string;
@@ -264,7 +297,9 @@ export interface BattleTelemetryDiagnosticEvent {
     heroBestLaneSupportUnits?: number;
     heroLaneSelectionMatchesBest?: boolean;
     unitLifeId?: number;
+    unitSpawnId?: number;
     targetLifeId?: number;
+    targetSpawnId?: number;
     unitX?: number;
     unitZ?: number;
     targetX?: number;
@@ -288,6 +323,12 @@ export interface BattleTelemetryDiagnosticEvent {
     canEscalateWaveCombat?: boolean;
     initialForwardCombatDelayed?: boolean;
     waveCombatEscalated?: boolean;
+    crossLaneRangedAttack?: boolean;
+    strategicEscalationBlocked?: boolean;
+    strategicEngagementBlockedReason?: string;
+    engagementRole?: 'attacker' | 'defender';
+    strategicEngagedCount?: number;
+    strategicEngagementThreshold?: number;
     idleEpisodeStartFrame?: number;
     idleEpisodeDurationFrames?: number;
     idleEpisodeUnitCount?: number;
@@ -326,6 +367,7 @@ export interface BattleTelemetryScannerTrace {
     waveId: number;
     laneId: number;
     scannerUnitName: string;
+    scannerSpawnId?: number;
     scannerLifeId: number;
     scannerX: number;
     scannerZ: number;
@@ -344,6 +386,7 @@ export interface BattleTelemetryScannerTrace {
     candidateWaveId: number;
     candidateLaneId: number;
     candidateUnitName: string;
+    candidateSpawnId?: number;
     candidateLifeId: number;
     candidateX: number;
     candidateZ: number;
@@ -367,6 +410,7 @@ export interface BattleTelemetryFramePerformance {
 }
 
 interface UnitSpawnInfo {
+    spawnId: number;
     key: string;
     team: number;
     name: string;
@@ -461,6 +505,7 @@ export class BattleTelemetry {
     private heroDefeatContext: BattleTelemetryHeroDefeatContext | null = null;
     private framePerformance: BattleTelemetryFramePerformance | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
+    private targetWaveLifecycleEvents: BattleTelemetryDiagnosticEvent[] = [];
     private scannerTraces: BattleTelemetryScannerTrace[] = [];
     private cardEvents: BattleTelemetryCardEvent[] = [];
     private waveSpawnFrameById: Map<number, number> = new Map();
@@ -491,7 +536,6 @@ export class BattleTelemetry {
     private scannerTraceWriteIndex = 0;
     private readonly targetWaveTransitionCounts = new Map<number, number>();
     private readonly targetWaveTransitionLastFrames = new Map<number, number>();
-    private readonly targetWaveTransitionRecordedWaves = new Set<number>();
     private targetWaveTransitionStats: BattleTelemetryTargetWaveTransitionStats = {
         total: 0,
         engagement: 0,
@@ -517,10 +561,10 @@ export class BattleTelemetry {
         this.heroDefeatContext = null;
         this.framePerformance = null;
         this.diagnosticEvents.length = 0;
+        this.targetWaveLifecycleEvents.length = 0;
         this.scannerTraces.length = 0;
         this.targetWaveTransitionCounts.clear();
         this.targetWaveTransitionLastFrames.clear();
-        this.targetWaveTransitionRecordedWaves.clear();
         this.targetWaveTransitionStats = {
             total: 0,
             engagement: 0,
@@ -620,6 +664,7 @@ export class BattleTelemetry {
         );
         const familyName = unitFamilyToName(family);
         const info: UnitSpawnInfo = {
+            spawnId: this.nextSpawnId++,
             key,
             team,
             name: unitName,
@@ -831,6 +876,19 @@ export class BattleTelemetry {
         this.pushDiagnosticEvent(event);
     }
 
+    recordTargetWaveLifecycleEvent(
+        event: BattleTelemetryDiagnosticEvent
+    ) {
+        if (!this.isEnabled()) return;
+        if (!event) return;
+
+        // This timeline must remain complete even when the general diagnostic
+        // event budget is exhausted; it reconstructs target-set and recovery
+        // behavior without relying on sparse snapshots.
+        this.targetWaveLifecycleEvents.push(event);
+        this.pushDiagnosticEvent(event);
+    }
+
     recordTargetWaveTransition(
         event: BattleTelemetryDiagnosticEvent
     ) {
@@ -880,13 +938,9 @@ export class BattleTelemetry {
             this.targetWaveTransitionStats.aggressiveOffLaneAssignments++;
         }
 
-        if (
-            event.targetSource !== 'engagement' ||
-            !this.targetWaveTransitionRecordedWaves.has(waveId)
-        ) {
-            this.targetWaveTransitionRecordedWaves.add(waveId);
-            this.pushDiagnosticEvent(event);
-        }
+        // Keep every strategic target-set addition. Dropping later engagement
+        // additions makes multi-target Free Hunt impossible to reconstruct.
+        this.recordTargetWaveLifecycleEvent(event);
     }
 
     recordScannerTrace(trace: BattleTelemetryScannerTrace) {
@@ -1228,11 +1282,15 @@ export class BattleTelemetry {
             team: this.clampTeam(killer.team),
             waveId: this.getUnitWaveId(killer),
             unitName: killer.unitTypeName || 'unknown',
+            unitLifeId: killer.lifeId ?? -1,
+            unitSpawnId: this.getSpawnId(killer),
             familyName: killerStats.familyName,
             isCounter: isCounterKill,
             victimTeam: this.clampTeam(victim.team),
             victimWaveId: this.getUnitWaveId(victim),
             victimUnitName: victim.unitTypeName || 'unknown',
+            targetLifeId: victim.lifeId ?? -1,
+            targetSpawnId: this.getSpawnId(victim),
             victimFamilyName: victimStats.familyName,
         });
     }
@@ -1428,6 +1486,8 @@ export class BattleTelemetry {
                 targetWaveTransitions: {
                     ...this.targetWaveTransitionStats,
                 },
+                targetWaveLifecycleEvents:
+                    this.targetWaveLifecycleEvents.slice(),
                 snapshots: this.snapshots.slice(),
                 finalSnapshot: this.finalSnapshot,
                 events: this.diagnosticEvents.slice(),
@@ -1896,6 +1956,12 @@ export class BattleTelemetry {
         if (!Number.isFinite(unit.waveRuntimeId)) return -1;
 
         return Math.floor(unit.waveRuntimeId);
+    }
+
+    getSpawnId(unit: object | null | undefined) {
+        if (!unit) return -1;
+
+        return this.spawnInfoByUnit.get(unit)?.spawnId ?? -1;
     }
 
     private pushDiagnosticEvent(
