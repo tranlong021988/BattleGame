@@ -324,6 +324,22 @@ export class LevelSettings extends Component
     maxSpawnIntervalMaxLevel = 3.7;
 
     @property({
+        min: 0,
+        max: 1,
+        displayName: 'Easy Dangerous Threat Progress',
+        tooltip: 'Enemy progress from its spawn toward this team hero required before the AI prioritizes it as dangerous at the first campaign level.',
+    })
+    dangerousThreatProgressMinLevel = 0.75;
+
+    @property({
+        min: 0,
+        max: 1,
+        displayName: 'Hard Dangerous Threat Progress',
+        tooltip: 'Enemy progress from its spawn toward this team hero required before the AI prioritizes it as dangerous at the final campaign level. Lower values make the AI respond earlier.',
+    })
+    dangerousThreatProgressMaxLevel = 0.75;
+
+    @property({
         tooltip: 'Apply Max Alive Waves curve. Higher levels allow the enemy to keep more waves active.'
     })
     allowMaxWave = true;
@@ -648,6 +664,14 @@ export class LevelSettings extends Component
                     t
                 );
             }
+
+            brain.dangerousThreatProgress = this.clamp01(
+                this.lerp(
+                    this.dangerousThreatProgressMinLevel,
+                    this.dangerousThreatProgressMaxLevel,
+                    t
+                )
+            );
 
             if (this.allowMaxWave) {
                 brain.maxAliveWaves = this.getLevelMaxAlive(

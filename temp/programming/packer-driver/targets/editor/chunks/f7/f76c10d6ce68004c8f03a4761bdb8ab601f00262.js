@@ -1,7 +1,7 @@
 System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__unresolved_3"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Enum, GameManager, BattlefieldEvaluator, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _crd, ccclass, property, BattleArmyBrainTestUnit, BattleArmyBrain;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Component, Enum, GameManager, BattlefieldEvaluator, UnitFamily, unitFamilyToName, _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _class, _class2, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _descriptor17, _descriptor18, _descriptor19, _descriptor20, _crd, ccclass, property, BattleArmyBrainTestUnit, BattleArmyBrain;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -95,10 +95,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec7 = property({
         tooltip: 'If an ally wave covering the target drops below this health ratio, BattleArmyBrain may reinforce even when coverage exists.'
       }), _dec8 = property({
-        tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
+        min: 0,
+        max: 1,
+        tooltip: 'Progress from the enemy spawn toward this team hero at which an enemy wave is treated as a dangerous defensive threat.'
       }), _dec9 = property({
-        tooltip: 'Anti-spam cap for Archer/Monk support waves near one target lane. Frontline power, not this value, is the main ranged support gate.'
+        tooltip: 'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.'
       }), _dec10 = property({
+        tooltip: 'Anti-spam cap for Archer/Monk support waves near one target lane. Frontline power, not this value, is the main ranged support gate.'
+      }), _dec11 = property({
         min: 1,
         tooltip: 'Maximum consecutive melee waves this brain may spawn into the same lane. Ranged waves use their own support rules.'
       }), _dec(_class = (_class2 = class BattleArmyBrain extends Component {
@@ -131,17 +135,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           _initializerDefineProperty(this, "rescueAllyAliveRatio", _descriptor13, this);
 
-          _initializerDefineProperty(this, "laneAllyAheadLimit", _descriptor14, this);
+          _initializerDefineProperty(this, "dangerousThreatProgress", _descriptor14, this);
 
-          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor15, this);
+          _initializerDefineProperty(this, "laneAllyAheadLimit", _descriptor15, this);
 
-          _initializerDefineProperty(this, "maxRangedSupportWavesPerLane", _descriptor16, this);
+          _initializerDefineProperty(this, "spawnOpeningWaveIfNoEnemyWave", _descriptor16, this);
 
-          _initializerDefineProperty(this, "maxConsecutiveMeleeWavesPerLane", _descriptor17, this);
+          _initializerDefineProperty(this, "maxRangedSupportWavesPerLane", _descriptor17, this);
 
-          _initializerDefineProperty(this, "enableStateLog", _descriptor18, this);
+          _initializerDefineProperty(this, "maxConsecutiveMeleeWavesPerLane", _descriptor18, this);
 
-          _initializerDefineProperty(this, "enableDebugLog", _descriptor19, this);
+          _initializerDefineProperty(this, "enableStateLog", _descriptor19, this);
+
+          _initializerDefineProperty(this, "enableDebugLog", _descriptor20, this);
 
           this.timer = 0;
           this.nextInterval = 3;
@@ -264,6 +270,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.currentDeliberateMistake = false;
           this.evaluator.coverageTargetRatio = Math.max(0, this.coverageTargetRatio);
           this.evaluator.rescueAllyAliveRatio = this.clamp01(this.rescueAllyAliveRatio);
+          this.evaluator.dangerousThreatProgress = this.clamp01(this.dangerousThreatProgress);
           this.evaluator.laneAllyAheadLimit = Math.max(0, Math.floor(this.laneAllyAheadLimit));
           this.evaluator.rebuild(gameManager, this.team);
           const forceSynchronizedOpening = this.telemetryBatchQueryActive && !this.hasSpawnedWave && this.spawnOpeningWaveIfNoEnemyWave;
@@ -704,42 +711,49 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         initializer: function () {
           return 0.35;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "laneAllyAheadLimit", [_dec8], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class2.prototype, "dangerousThreatProgress", [_dec8], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function () {
+          return 0.75;
+        }
+      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "laneAllyAheadLimit", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor15 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "spawnOpeningWaveIfNoEnemyWave", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return true;
         }
-      }), _descriptor16 = _applyDecoratedDescriptor(_class2.prototype, "maxRangedSupportWavesPerLane", [_dec9], {
+      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "maxRangedSupportWavesPerLane", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor17 = _applyDecoratedDescriptor(_class2.prototype, "maxConsecutiveMeleeWavesPerLane", [_dec10], {
+      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "maxConsecutiveMeleeWavesPerLane", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return 2;
         }
-      }), _descriptor18 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
+      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "enableStateLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function () {
           return false;
         }
-      }), _descriptor19 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
+      }), _descriptor20 = _applyDecoratedDescriptor(_class2.prototype, "enableDebugLog", [property], {
         configurable: true,
         enumerable: true,
         writable: true,

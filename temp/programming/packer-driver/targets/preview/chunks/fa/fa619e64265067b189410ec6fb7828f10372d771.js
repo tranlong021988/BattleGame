@@ -72,9 +72,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           // primary (the first live entry), while the collection is authoritative.
           this.targetWave = null;
           this.targetWaves = [];
+          this.targetLifecyclePending = false;
+          this.targetLifecyclePendingFrame = -1;
+          this.targetLifecyclePendingTargetWaveId = -1;
+          this.targetLifecyclePendingEventCount = 0;
+          this.targetLifecyclePendingReason = '';
           this.regroupLaneAfterTargetClear = -1;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
+          // Recovery is a single transaction. Once an idle command member reaches
+          // the regroup lane, later scanner ticks must not enroll it again.
+          this.forwardRecoveryReadyUnitLifeIds = new Set();
           // Legacy recovery-readiness flag retained for telemetry compatibility.
           // It becomes true immediately when the strategic target set is empty;
           // target death no longer schedules another scanner search.
@@ -86,6 +94,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.immediateTargetSearchPending = false;
           this.lastForwardRecoveryResumedUnitCount = 0;
           this.lastForwardRecoveryRetainedBusyUnitCount = 0;
+          this.lastForwardRecoveryRetainedBusyUnitLifeIds = [];
+          this.lastRegroupMeleeCancelledUnitLifeIds = [];
           this.representativeUnit = null;
           this.waveBannerNode = null;
           this.waveBannerRecycle = null;
@@ -494,7 +504,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         findSharedTargetForUnit(requester) {
           if (this.released) return null;
           if (!this.isCommandUnit(requester)) return null;
-          this.refreshTargetWaves();
           if (this.targetWaves.length <= 0) return null;
           if (!requester.agent) return null;
           var best = null;
@@ -520,7 +529,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getTargetWaveLaneIds() {
-          this.refreshTargetWaves();
           return this.targetWaves.map(wave => wave.laneId);
         }
 
@@ -590,6 +598,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           for (var i = 0; i < this.units.length; i++) {
             var u = this.units[i];
+
+            if (u.isReturningToWaveAfterIsolatedRangedPursuit()) {
+              u.updateIsolatedRangedPursuitReturnLane(laneId);
+              continue;
+            }
+
             if (!this.isCommandUnit(u)) continue;
             u.laneId = laneId;
           }
@@ -619,7 +633,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (this.released) return;
 
-          if (this.freeHuntActive && searchRange <= 0) {
+          if (this.freeHuntActive && searchRange <= 0 && !this.awaitingForwardRecoveryAfterTargetClear) {
             return;
           }
 
@@ -631,6 +645,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = true;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
+          this.clearForwardRecoveryReadyUnits();
           this.targetClearSameLaneSearchResolved = false;
           this.aggressiveForwardMode = false;
           this.aggressiveAdjacentBoundaryObserved = false;
@@ -675,6 +690,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.freeHuntActive = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
+          this.clearForwardRecoveryReadyUnits();
           this.targetClearSameLaneSearchResolved = false;
           this.initialForwardCombatGateActive = true;
           this.scannerUnit = null;
@@ -760,29 +776,68 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getTargetWave() {
-          this.refreshTargetWaves();
           return this.targetWave;
         }
 
         getTargetWaves() {
-          this.refreshTargetWaves();
           return this.targetWaves.slice();
         }
 
         getTargetWaveIds() {
-          this.refreshTargetWaves();
           return this.targetWaves.map(wave => wave.id);
         }
 
         getTargetWaveCount() {
-          this.refreshTargetWaves();
           return this.targetWaves.length;
         }
 
         hasEngagedTargetWave(targetWave) {
           if (!targetWave) return false;
-          this.refreshTargetWaves();
           return this.targetWaves.indexOf(targetWave) >= 0;
+        }
+
+        referencesTargetWave(targetWave) {
+          return !!targetWave && this.targetWaves.indexOf(targetWave) >= 0;
+        }
+
+        markTargetLifecyclePending(frame, targetWave, reason) {
+          if (this.released) return false;
+          if (!this.referencesTargetWave(targetWave)) return false;
+
+          if (!this.targetLifecyclePending) {
+            this.targetLifecyclePending = true;
+            this.targetLifecyclePendingFrame = frame;
+            this.targetLifecyclePendingTargetWaveId = targetWave ? targetWave.id : -1;
+            this.targetLifecyclePendingEventCount = 1;
+            this.targetLifecyclePendingReason = reason;
+            return true;
+          }
+
+          this.targetLifecyclePendingEventCount++;
+          return false;
+        }
+
+        processPendingTargetLifecycle() {
+          if (!this.targetLifecyclePending) return null;
+          var pendingFrame = this.targetLifecyclePendingFrame;
+          var pendingTargetWaveId = this.targetLifecyclePendingTargetWaveId;
+          var targetWaveCountBefore = this.targetWaves.length;
+          var pendingEventCount = this.targetLifecyclePendingEventCount;
+          var pendingReason = this.targetLifecyclePendingReason;
+          this.targetLifecyclePending = false;
+          this.targetLifecyclePendingFrame = -1;
+          this.targetLifecyclePendingTargetWaveId = -1;
+          this.targetLifecyclePendingEventCount = 0;
+          this.targetLifecyclePendingReason = '';
+          this.refreshTargetWaves();
+          return {
+            pendingFrame,
+            pendingTargetWaveId,
+            pendingEventCount,
+            pendingReason,
+            targetWaveCountBefore,
+            targetWaveCountAfter: this.targetWaves.length
+          };
         }
 
         consumeClearedTargetTelemetry() {
@@ -807,6 +862,55 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         getLastForwardRecoveryRetainedBusyUnitCount() {
           return this.lastForwardRecoveryRetainedBusyUnitCount;
+        }
+
+        getLastForwardRecoveryRetainedBusyUnitLifeIds() {
+          return this.lastForwardRecoveryRetainedBusyUnitLifeIds.slice();
+        }
+
+        getLastRegroupMeleeCancelledUnitLifeIds() {
+          return this.lastRegroupMeleeCancelledUnitLifeIds.slice();
+        }
+
+        tryReengageFromRecoveryMeleeAttack(unit, attacker) {
+          if (!unit || !attacker || this.released) return false;
+          if (!this.awaitingForwardRecoveryAfterTargetClear) return false;
+          if (!this.isCommandUnit(unit)) return false;
+          if (attacker.isRangedCombatUnit()) return false;
+          var attackerWave = BattleWave.getWaveForUnit(attacker);
+          if (!attackerWave || attackerWave === this) return false;
+          if (attackerWave.team === this.team) return false;
+
+          if (attackerWave.released || attackerWave.getCommandAliveCount() <= 0) {
+            return false;
+          }
+
+          this.targetWaves.push(attackerWave);
+          this.targetWave = attackerWave;
+          this.immediateTargetSearchPending = false;
+          this.awaitingForwardRecoveryAfterTargetClear = false;
+          this.forwardRecoveryLanePrepared = false;
+          this.clearForwardRecoveryReadyUnits();
+          this.targetClearSameLaneSearchResolved = false;
+          this.targetClearOutcomeTelemetry = {
+            reason: 'regroup-melee-reengagement',
+            scanner: this.getScanner(),
+            target: attacker
+          };
+          this.lastRegroupMeleeCancelledUnitLifeIds = [];
+
+          for (var i = 0; i < this.units.length; i++) {
+            var member = this.units[i];
+            if (!this.isCommandUnit(member)) continue;
+
+            if (member.cancelBackToLanePhase()) {
+              this.lastRegroupMeleeCancelledUnitLifeIds.push(member.lifeId);
+            }
+          }
+
+          this.clearIdleHuntTargets();
+          this.primeTargetWaveHuntTargets();
+          return true;
         }
 
         consumeForwardRecoveryBlockTelemetry() {
@@ -895,12 +999,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             targetClearSameLaneSearchResolved: this.targetClearSameLaneSearchResolved,
             aliveCount,
             resumableUnitCount,
-            busyUnitCount
+            busyUnitCount,
+            forwardRecoveryReadyUnitCount: this.getForwardRecoveryReadyUnitCount(),
+            forwardRecoveryRegroupingUnitCount: this.getForwardRecoveryRegroupingUnitCount()
           };
         }
 
-        trySetTargetWaveFromScanner(scanner, target) {
+        trySetTargetWaveFromScanner(scanner, target, allowRecoveryContinuation) {
           var _this$targetWaves$;
+
+          if (allowRecoveryContinuation === void 0) {
+            allowRecoveryContinuation = false;
+          }
 
           if (!scanner || !target || this.released) return false;
           if (!this.isCurrentScanner(scanner)) return false;
@@ -915,11 +1025,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           if (this.hasEngagedTargetWave(nextTargetWave)) {
             return true;
-          } // Once a target set is exhausted, regroup is mandatory. A scanner
-          // cannot chain a new strategic order out of that recovery phase.
+          } // Once a target set is exhausted, regroup is mandatory. The sole
+          // exception is the scanner-pass check at the exact recovery-to-order
+          // boundary, before any member has been put into Forward.
 
 
-          if (this.awaitingForwardRecoveryAfterTargetClear) {
+          if (this.awaitingForwardRecoveryAfterTargetClear && !allowRecoveryContinuation) {
             return false;
           }
 
@@ -1005,19 +1116,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return best;
         }
 
-        tryResumeForward(beforeResume) {
+        tryResumeForward(beforeResume, beforeForward) {
           if (beforeResume === void 0) {
             beforeResume = null;
           }
 
+          if (beforeForward === void 0) {
+            beforeForward = null;
+          }
+
           if (this.released) return false;
           if (!this.freeHuntActive) return false;
+          if (!this.awaitingForwardRecoveryAfterTargetClear) return false;
           this.getTargetWave();
           if (this.getTargetWaveCount() > 0) return false;
           if (this.immediateTargetSearchPending) return false;
           var aliveCount = 0;
           var resumableUnitCount = 0;
           var retainedBusyUnitCount = 0;
+          var retainedBusyUnitLifeIds = [];
 
           for (var i = 0; i < this.units.length; i++) {
             var u = this.units[i];
@@ -1026,6 +1143,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
             if (u.onBusy || u.hasValidEnemyTarget()) {
               retainedBusyUnitCount++;
+              retainedBusyUnitLifeIds.push(u.lifeId);
               continue;
             }
 
@@ -1040,8 +1158,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.initialForwardCombatGateActive = true;
             this.aggressiveForwardMode = this.freeHuntForwardOrigin === 'aggressive';
             return true;
-          } // A local fight belongs only to the units in it. Idle command members
-          // must physically finish regrouping before the wave becomes Forward.
+          } // Recovery is synchronized: idle command members return to the lane,
+          // then wait there until no command member remains in local combat or
+          // outside the regroup lane. A melee attack can still cancel this
+          // state through tryReengageFromRecoveryMeleeAttack().
 
 
           if (resumableUnitCount <= 0) return false;
@@ -1063,16 +1183,41 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             if (!this.isCommandUnit(_u)) continue;
             if (_u.onBusy || _u.hasValidEnemyTarget()) continue;
 
+            if (_u.isBackToLaneActive()) {
+              regroupingUnitCount++;
+              continue;
+            }
+
+            if (_u.hasCompletedBackToLaneRecovery()) {
+              this.forwardRecoveryReadyUnitLifeIds.add(_u.lifeId);
+              continue;
+            }
+
             if (_u.beginBackToLanePhase(forwardAggressive)) {
               regroupingUnitCount++;
+            } else {
+              // This member was already inside the regroup lane when the
+              // recovery interval ran, so it waits for the full wave.
+              this.forwardRecoveryReadyUnitLifeIds.add(_u.lifeId);
             }
           }
 
-          if (regroupingUnitCount > 0) return false;
+          if (retainedBusyUnitCount > 0 || regroupingUnitCount > 0) {
+            return false;
+          } // Recovery can continue directly into Free Hunt when the scanner has
+          // already passed an eligible enemy scanner. This runs before any
+          // command member receives a Forward order.
+
+
+          if (beforeForward != null && beforeForward(this)) {
+            return true;
+          }
+
           this.forwardModeActive = true;
           this.freeHuntActive = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
+          this.clearForwardRecoveryReadyUnits();
           this.targetClearSameLaneSearchResolved = false;
           this.forwardRecoveryDeferredTelemetryPending = false; // Every newly resumed Forward phase must earn a strategic escalation
           // again. Otherwise the half-wave gate only protects the spawn phase.
@@ -1082,6 +1227,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.aggressiveForwardMode = forwardAggressive;
           this.lastForwardRecoveryResumedUnitCount = resumableUnitCount;
           this.lastForwardRecoveryRetainedBusyUnitCount = retainedBusyUnitCount;
+          this.lastForwardRecoveryRetainedBusyUnitLifeIds = retainedBusyUnitLifeIds;
 
           if (!this.targetClearOutcomeTelemetry) {
             this.targetClearOutcomeTelemetry = {
@@ -1191,7 +1337,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         primeTargetWaveHuntTargets() {
-          this.refreshTargetWaves();
           if (this.targetWaves.length <= 0) return;
 
           for (var i = 0; i < this.units.length; i++) {
@@ -1284,15 +1429,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = true;
           this.forwardRecoveryLanePrepared = false;
+          this.clearForwardRecoveryReadyUnits();
           this.targetClearSameLaneSearchResolved = true;
           this.forwardRecoveryBlockTelemetryPending = false;
           this.forwardRecoveryDeferredTelemetryPending = true;
-          this.regroupLaneAfterTargetClear = this.hasAggressiveForwardLaneLock() ? this.aggressiveForwardOriginLaneId : lastRemovedLane;
+          this.regroupLaneAfterTargetClear = this.hasAggressiveForwardLaneLock() ? this.aggressiveForwardOriginLaneId : lastRemovedLane; // Choose the recovery lane before any command member starts moving.
+          // Delaying this until the wave-level Forward handoff lets early
+          // members regroup toward the stale pre-combat lane.
+
+          this.applyDefeatedTargetLaneForRegroup();
           this.targetClearOutcomeTelemetry = {
             reason: 'target-set-empty-regroup',
             scanner: this.getScanner(),
             target: null
           };
+
+          for (var _i4 = 0; _i4 < this.units.length; _i4++) {
+            var unit = this.units[_i4];
+            if (!this.isCommandUnit(unit)) continue;
+            unit.resetBackToLaneRecoveryCompletion();
+          }
+
           this.clearAllFreeHuntContinuity();
           this.clearIdleHuntTargets();
         }
@@ -1325,8 +1482,46 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           this.targetWaves.length = 0;
           this.targetWave = null;
+          this.targetLifecyclePending = false;
+          this.targetLifecyclePendingFrame = -1;
+          this.targetLifecyclePendingTargetWaveId = -1;
+          this.targetLifecyclePendingEventCount = 0;
+          this.targetLifecyclePendingReason = '';
           this.targetClearSameLaneSearchResolved = false;
           this.immediateTargetSearchPending = false;
+        }
+
+        clearForwardRecoveryReadyUnits() {
+          this.forwardRecoveryReadyUnitLifeIds.clear();
+        }
+
+        getForwardRecoveryReadyUnitCount() {
+          var count = 0;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var unit = this.units[i];
+            if (!this.isCommandUnit(unit)) continue;
+            if (unit.onBusy || unit.hasValidEnemyTarget()) continue;
+
+            if (this.forwardRecoveryReadyUnitLifeIds.has(unit.lifeId)) {
+              count++;
+            }
+          }
+
+          return count;
+        }
+
+        getForwardRecoveryRegroupingUnitCount() {
+          var count = 0;
+
+          for (var i = 0; i < this.units.length; i++) {
+            var unit = this.units[i];
+            if (!this.isCommandUnit(unit)) continue;
+            if (unit.onBusy || unit.hasValidEnemyTarget()) continue;
+            if (unit.isBackToLaneActive()) count++;
+          }
+
+          return count;
         }
 
         clearIdleHuntTargets() {
@@ -1371,8 +1566,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           var best = null;
           var bestDistance = Infinity;
 
-          for (var _i4 = 0; _i4 < this.units.length; _i4++) {
-            var _u3 = this.units[_i4];
+          for (var _i5 = 0; _i5 < this.units.length; _i5++) {
+            var _u3 = this.units[_i5];
             if (_u3 === excludedUnit) continue;
             if (!this.isCommandUnit(_u3)) continue;
             var distance = (_u3.agent.pos.x - averageX) * (_u3.agent.pos.x - averageX) + (_u3.agent.pos.z - averageZ) * (_u3.agent.pos.z - averageZ);

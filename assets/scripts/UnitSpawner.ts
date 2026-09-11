@@ -58,11 +58,13 @@ export class UnitSpawner extends Component {
 
         if (pool.length > 0) {
             const node = pool.pop()!;
-            node.active = true;
+            node.active = false;
             return node;
         }
 
-        return instantiate(prefab);
+        const node = instantiate(prefab);
+        node.active = false;
+        return node;
     }
 
     spawnUnit(
@@ -92,7 +94,6 @@ export class UnitSpawner extends Component {
 
         node.setWorldPosition(pos);
         node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
-        node.active = true;
 
         const unit = node.getComponent(Unit)!;
         const props = node.getComponent(UnitProps)!;
@@ -125,6 +126,8 @@ export class UnitSpawner extends Component {
             );
             behavior.resetForSpawn();
         }
+
+        node.active = true;
 
         return unit;
     }

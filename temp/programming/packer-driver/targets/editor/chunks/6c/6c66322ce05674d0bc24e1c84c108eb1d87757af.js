@@ -96,11 +96,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (pool.length > 0) {
             const node = pool.pop();
-            node.active = true;
+            node.active = false;
             return node;
           }
 
-          return instantiate(prefab);
+          const node = instantiate(prefab);
+          node.active = false;
+          return node;
         }
 
         spawnUnit(prefab, unitTypeName, family, tier, pos, team, parent, maxSpeed, canBePush, canBePassedThroughByForwardAlly, attackRange, attackIntervalMin, attackIntervalMax, health, damage, damageRadius, defense) {
@@ -112,7 +114,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           node.setWorldPosition(pos);
           node.setRotationFromEuler(0, team === 0 ? 0 : 180, 0);
-          node.active = true;
           const unit = node.getComponent(_crd && Unit === void 0 ? (_reportPossibleCrUseOfUnit({
             error: Error()
           }), Unit) : Unit);
@@ -143,6 +144,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             behavior.resetForSpawn();
           }
 
+          node.active = true;
           return unit;
         }
 

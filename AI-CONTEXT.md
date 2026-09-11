@@ -679,3 +679,134 @@ This section is the latest authoritative behavior/telemetry update.
 - After every `wave-forward-resumed`, the next engagement escalation must show
   `strategicEngagedCount >= strategicEngagementThreshold`; scanner-pass release
   remains a separate valid rule and does not use this threshold.
+
+## Current takeover handoff — 2026-09-11
+
+Read this section first for the active combat work. It supplements the
+historical notes above; where they disagree, this section and the user's most
+recent explicit decision win.
+
+### Non-negotiable working rule
+
+Do **not** patch a visible symptom before reconstructing its cause from code
+and telemetry context. In particular, a repeated movement order may be the
+consequence of valid local combat blocking a return, and `targetWaveCount: 0`
+may be a later symptom rather than the cause. State what is directly proven,
+what is inferred, and what telemetry is missing before proposing a behavior
+change.
+
+### Current wave behavior contract
+
+- A Free Hunt wave owns a set of enemy target waves. Its target set becoming
+  empty starts recovery; it must not generically search for another target at
+  that point.
+- Normal Forward recovers to the lane of the last eliminated target wave.
+  Aggressive Forward recovers to its original lane and must not adopt another
+  lane after combat.
+- A cross-lane ranged hit on a non-hero creates a one-unit isolated pursuit.
+  The parent wave must not enter Free Hunt because of that shot. The detached
+  unit is not a command member until it has returned to the parent wave's
+  **current** lane; that lane may change while the unit returns. Local combat
+  can interrupt the return.
+- A melee attack during regroup/recovery can re-engage the parent wave into
+  Free Hunt. The ranged cross-lane isolation exception remains local.
+- The enemy-line rule is deliberate: any unit crossing the enemy hero line
+  ends the battle immediately. Do not change it to a scanner-only or wave-only
+  rule.
+
+### Implemented source changes that need preservation
+
+These files are modified in the current dirty worktree. They include prior
+work; do not assume the whole diff belongs to the latest task.
+
+1. `UnitSpawner.ts`: a pooled node stays inactive while its Unit/RVO state is
+   reset, then is activated immediately before return. This prevents enable-
+   time logic from observing a partially reset pooled object.
+2. `Unit.ts` + `GameManager.ts`: an isolated ranged pursuer that is already
+   returning to its wave does not receive a new return command every frame
+   from `clearInvalidEnemy()`. If it loses a newly entered local-combat target,
+   it does receive one fresh return command. Telemetry exposes return command
+   attempts, repeats, local-combat interruptions, and movement intent.
+3. `BattleTelemetry.ts` + `GameManager.ts`: terminal line-reach telemetry is
+   implemented. `lineReachedContext` records the winning unit/wave/lane,
+   current movement and target state, isolation state, and alive unit/wave
+   counts in the physical lane. It is recorded before battle resolution and is
+   outside the bounded diagnostic-event buffer.
+4. `Unit.ts` + `GameManager.ts` + `BattleTelemetry.ts`: snapshots expose a
+   regroup destination lane and actual horizontal distance remaining to that
+   lane's core. Use these fields to distinguish an unreached lane core from a
+   truly idle/stuck unit.
+5. `BattleArmyBrain.ts`: `dangerousThreatProgress` is now an Inspector
+   property in `[0,1]`, copied to `BattlefieldEvaluator` at a normal brain
+   tick. Lower values classify a wave as dangerous earlier; this changes
+   threat scoring, not the tick cadence.
+6. `LevelSettings.ts`: `dangerousThreatProgressMinLevel` and
+   `dangerousThreatProgressMaxLevel` are Inspector properties in `[0,1]` and
+   are interpolated across campaign levels into `BattleArmyBrain`.
+
+Static verification performed after these edits:
+
+- Scoped `git diff --check` passed, with CRLF notices only.
+- No full Cocos runtime replay or compiler pass was run for the most recent
+  telemetry/Inspector additions. Treat runtime behavior as awaiting a live
+  Cocos check.
+
+### Latest report analysis: 2026-09-11 10:13–11:11 (115 reports)
+
+Directly measured results:
+
+- Team 0 won 80/115 reports. End reasons: enemy hero killed 38, player hero
+  killed 23, boss hero killed 18, player reached hero line 24, enemy reached
+  hero line 12.
+- There are 36 line-reach endings and all 36 contain `lineReachedContext`.
+- Only 7/36 line reaches had zero enemy non-hero units in the terminal unit's
+  physical lane. Therefore empty-lane defense is not the sole cause of the
+  current line-reach rate.
+- Of 16 terminal units with a non-empty wave target set, 14 had a resolvable
+  live unit target in `finalSnapshot`. All 14 targets were Archer/Monk units
+  positioned beyond the defender's hero line, in the defender's backfield.
+  Each terminal melee unit was just across the line while pursuing that target.
+  Twelve of these 14 have a matching `ranged-kite` event for that exact pair.
+- Eleven terminal units had `isolatedRangedPursuit: true`; all eleven had an
+  Archer as their current target. Seven were physically in a lane different
+  from their parent wave lane.
+
+Interpretation boundary: the evidence proves that terminal chases often occur
+with a ranged defender already in its own backfield. It does not by itself
+prove whether that is an unwanted kiting rule, a desired consequence of the
+line-reach rule, or a spatial/RVO defect. Do not use the planned army-response
+feature below as a substitute fix for this separate chase/kiting mechanism.
+
+Telemetry completeness:
+
+- `lineReachedContext` is complete for all 36 line endings in this batch.
+- Five reports overflowed the bounded diagnostic-event buffer (545 dropped
+  events total); their detailed event timelines are incomplete. Do not use a
+  missing event in those five reports as proof that an action did not occur.
+- No `aggressiveOffLaneAssignments` were recorded. This validates that one
+  telemetry invariant, not every possible visible lane-motion issue.
+
+### Pending design decision — do not implement without explicit approval
+
+The user approved exposing `dangerousThreatProgress`, but has **not yet
+authorized** a behavior rewrite for defensive spawning.
+
+The discussed design is intentionally tick-based: at a normal
+`BattleArmyBrain` tick, when an enemy Aggressive Forward wave has advanced
+into a lane with no friendly blocking wave, select that threat as the response
+target before applying `decisionAccuracy` among unit choices. It must not wake
+the brain outside its regular tick and must preserve normal gold/max-wave
+constraints. The aim is an intentional defensive spawn attempt, not a 100%
+intercept guarantee. Before implementation, define tie-breaking if several
+lanes qualify and record an explicit telemetry reason for no response
+(wave-cap, unaffordable, no eligible entry, or lower-priority choice).
+
+### Worktree and Git safety
+
+- The worktree is intentionally dirty in gameplay sources, `assets/Battle.scene`,
+  and Cocos-generated `library/` / `temp/` artifacts. Preserve unrelated
+  changes; never reset, clean, or delete generated files merely to make Git
+  status clean.
+- Checked on 2026-09-11: `.git/index.lock` was absent. No lock was removed.
+- `git status` emits a permission warning for the user's global Git ignore
+  file. This is not an index lock and did not prevent reading status.

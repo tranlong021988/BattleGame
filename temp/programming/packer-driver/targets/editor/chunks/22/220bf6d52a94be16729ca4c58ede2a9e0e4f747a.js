@@ -103,6 +103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.snapshots = [];
           this.finalSnapshot = null;
           this.heroDefeatContext = null;
+          this.lineReachedContext = null;
           this.framePerformance = null;
           this.diagnosticEvents = [];
           this.targetWaveLifecycleEvents = [];
@@ -157,6 +158,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.snapshots.length = 0;
           this.finalSnapshot = null;
           this.heroDefeatContext = null;
+          this.lineReachedContext = null;
           this.framePerformance = null;
           this.diagnosticEvents.length = 0;
           this.targetWaveLifecycleEvents.length = 0;
@@ -345,6 +347,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.heroDefeatContext = { ...context,
             lastHeroDamage: this.lastHeroDamageByVictimTeam[victimTeam] ? { ...this.lastHeroDamageByVictimTeam[victimTeam]
             } : undefined
+          };
+        }
+
+        recordLineReachedContext(context) {
+          if (!this.isEnabled()) return;
+          if (!context) return;
+          this.lineReachedContext = { ...context,
+            targetWaveIds: context.targetWaveIds.slice()
           };
         }
 
@@ -734,6 +744,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               scannerTraces: this.getScannerTracesChronological()
             },
             heroDefeatContext: this.heroDefeatContext ? { ...this.heroDefeatContext
+            } : null,
+            lineReachedContext: this.lineReachedContext ? { ...this.lineReachedContext,
+              targetWaveIds: this.lineReachedContext.targetWaveIds.slice()
             } : null,
             unitTypes
           };

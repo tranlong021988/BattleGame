@@ -414,15 +414,13 @@ export class GameManager extends Component {
     private heroForwardUnlocked = [false, false];
     private readonly refreshLaneBeforeWaveForward =
         (wave: BattleWave) => {
-            if (wave.applyDefeatedTargetLaneForRegroup()) {
-                return;
-            }
-
-            this.refreshDynamicLaneForWave(
-                wave,
-                true
-            );
+            // A normal wave owns the lane of its last defeated target; an
+            // aggressive wave restores its origin lane. Never replace that
+            // strategic choice with the scanner's temporary combat position.
+            wave.applyDefeatedTargetLaneForRegroup();
         };
+    private forwardScannerSearchFrame: WeakMap<BattleWave, number> =
+        new WeakMap();
     private waveBannerPools: Map<Prefab, Node[]> = new Map();
     private registeredCinematicController: Component | null = null;
     private registeredTopDownCameraDragNode: Node | null = null;
@@ -1377,6 +1375,8 @@ export class GameManager extends Component {
         if (this.hasBattleWinner()) return false;
         if (!this.hasUnitReachedEnemyHeroLine(unit)) return false;
 
+        this.recordUnitReachedEnemyHeroLineContext(unit);
+
         const losingTeam = unit.team === 0 ? 1 : 0;
 
         this.resolveBattleWinner(
@@ -1388,6 +1388,97 @@ export class GameManager extends Component {
         );
 
         return true;
+    }
+
+    private recordUnitReachedEnemyHeroLineContext(unit: Unit) {
+        if (!this.enableBattleTelemetry) return;
+        if (!this.battleTelemetry.isEnabled()) return;
+
+        const wave = BattleWave.getWaveForUnit(unit);
+        const target = unit.getValidEnemyTarget();
+        const targetWave = BattleWave.getWaveForUnit(target);
+        const physicalLaneId = this.getCurrentLaneIdForUnit(unit);
+        const defendingTeam = unit.team === 0 ? 1 : 0;
+        const unitPosition = unit.agent
+            ? unit.agent.pos
+            : unit.node.worldPosition;
+        const heroLineZ = this.heroLineZ[defendingTeam];
+        const forwardZ = unit.forwardDir.z;
+        let laneOwnNonHeroAlive = 0;
+        let laneEnemyNonHeroAlive = 0;
+        const laneOwnWaveIds = new Set<number>();
+        const laneEnemyWaveIds = new Set<number>();
+
+        const countLaneUnits = (units: Unit[]) => {
+            for (let i = 0; i < units.length; i++) {
+                const laneUnit = units[i];
+
+                if (!this.isAliveUnit(laneUnit)) continue;
+                if (laneUnit.isHero) continue;
+                if (
+                    physicalLaneId < 0 ||
+                    this.getCurrentLaneIdForUnit(laneUnit) !==
+                        physicalLaneId
+                ) {
+                    continue;
+                }
+
+                const laneWave = BattleWave.getWaveForUnit(laneUnit);
+
+                if (laneUnit.team === unit.team) {
+                    laneOwnNonHeroAlive++;
+
+                    if (laneWave) laneOwnWaveIds.add(laneWave.id);
+                } else {
+                    laneEnemyNonHeroAlive++;
+
+                    if (laneWave) laneEnemyWaveIds.add(laneWave.id);
+                }
+            }
+        };
+
+        countLaneUnits(this.teamA);
+        countLaneUnits(this.teamB);
+
+        this.battleTelemetry.recordLineReachedContext({
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: wave?.id ?? -1,
+            waveLaneId: wave?.laneId ?? -1,
+            unitName: unit.unitTypeName,
+            unitLifeId: unit.lifeId,
+            unitSpawnId: this.battleTelemetry.getSpawnId(unit),
+            unitX: unitPosition.x,
+            unitZ: unitPosition.z,
+            heroLineZ,
+            distancePastHeroLine: Number.isFinite(heroLineZ)
+                ? (unitPosition.z - heroLineZ) * forwardZ
+                : 0,
+            unitPhysicalLaneId: physicalLaneId,
+            unitBusy: unit.onBusy,
+            unitForward: unit.onForward,
+            unitBackToLane: unit.isBackToLaneActive(),
+            isolatedRangedPursuit: unit.isIsolatedRangedPursuit(),
+            isolatedRangedPursuitReturningToWave:
+                unit.isReturningToWaveAfterIsolatedRangedPursuit(),
+            aggressiveForward:
+                wave?.hasAggressiveForwardLaneLock() ?? false,
+            waveForward: wave?.isForwardMode() ?? false,
+            awaitingForwardRecovery:
+                wave?.isAwaitingForwardRecoveryAfterTargetClear() ?? false,
+            freeHuntForwardOrigin:
+                wave?.getFreeHuntForwardOrigin() ?? '',
+            targetWaveIds: wave?.getTargetWaveIds() ?? [],
+            targetWaveCount: wave?.getTargetWaveCount() ?? 0,
+            targetWaveId: targetWave?.id ?? -1,
+            targetLaneId: targetWave?.laneId ?? -1,
+            targetUnitName: target?.unitTypeName ?? '',
+            laneOwnNonHeroAlive,
+            laneEnemyNonHeroAlive,
+            laneOwnWaveCount: laneOwnWaveIds.size,
+            laneEnemyWaveCount: laneEnemyWaveIds.size,
+        });
     }
 
     public resolveHeroDefeat(hero: Unit) {
@@ -1777,27 +1868,120 @@ export class GameManager extends Component {
         const wave = BattleWave.getWaveForUnit(unit);
         if (!wave || wave.isDead()) return false;
 
-        unit.laneId = wave.laneId;
-        this.recordIsolatedRangedPursuit(
-            'isolated-ranged-pursuit-ended',
-            unit,
-            previousTarget
-        );
+        const wasReturningToWave =
+            unit.isReturningToWaveAfterIsolatedRangedPursuit();
 
-        if (wave.isAwaitingForwardRecoveryAfterTargetClear()) {
-            unit.beginBackToLanePhase(
-                wave.hasAggressiveForwardLaneLock()
+        // clearInvalidEnemy() runs every frame while a detached unit has no
+        // target. Once the return phase is already active, that polling must
+        // not restart its movement command. A completed local combat still
+        // supplies previousTarget and needs one fresh return command.
+        if (wasReturningToWave && !previousTarget) {
+            if (!unit.hasReachedCurrentWaveLaneAfterIsolatedRangedPursuit()) {
+                return true;
+            }
+
+            this.completeIsolatedRangedPursuitReturnToWaveLane(
+                unit,
+                wave.laneId
             );
             return true;
         }
 
-        if (!wave.isForwardMode()) return false;
+        unit.recordIsolatedRangedPursuitReturnCommand(
+            previousTarget
+                ? 'combat-target-ended'
+                : wasReturningToWave
+                    ? 'no-target-while-returning'
+                    : 'no-target-before-return',
+            wasReturningToWave
+        );
+        const returningToWaveLane =
+            unit.beginIsolatedRangedPursuitReturnToWaveLane(
+                wave.hasAggressiveForwardLaneLock()
+            );
 
-        unit.enterWaveForwardMode(
-            wave.isAggressiveForwardMode(),
-            true
+        if (!wasReturningToWave) {
+            this.recordIsolatedRangedPursuit(
+                'isolated-ranged-pursuit-combat-ended-returning-to-wave-lane',
+                unit,
+                previousTarget
+            );
+        }
+
+        if (returningToWaveLane) {
+            return true;
+        }
+
+        if (!unit.hasReachedCurrentWaveLaneAfterIsolatedRangedPursuit()) {
+            return true;
+        }
+
+        // The local combat can end after the unit has already returned to the
+        // parent lane. Complete the rejoin immediately in that case; it is
+        // still not a command member until this call clears the isolation.
+        this.completeIsolatedRangedPursuitReturnToWaveLane(
+            unit,
+            wave.laneId
         );
         return true;
+    }
+
+    public completeIsolatedRangedPursuitReturnToWaveLane(
+        unit: Unit | null,
+        arrivedLaneId: number
+    ) {
+        if (!unit) return false;
+
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        if (!wave || wave.isDead()) {
+            unit.completeIsolatedRangedPursuitReturnToWaveLane(
+                arrivedLaneId
+            );
+            return false;
+        }
+
+        const currentWaveLaneId = wave.laneId;
+        unit.completeIsolatedRangedPursuitReturnToWaveLane(
+            currentWaveLaneId >= 0
+                ? currentWaveLaneId
+                : arrivedLaneId
+        );
+        this.notifyWaveCommandMembershipChanged(unit);
+        this.recordIsolatedRangedPursuit(
+            'isolated-ranged-pursuit-ended',
+            unit,
+            null
+        );
+
+        if (wave.isAwaitingForwardRecoveryAfterTargetClear()) {
+            this.tryResumeWaveForwardFromRegroupCompletion(unit);
+            return true;
+        }
+
+        if (wave.isForwardMode()) {
+            unit.enterWaveForwardMode(
+                wave.isAggressiveForwardMode()
+            );
+            return true;
+        }
+
+        if (wave.isFreeHuntMode()) {
+            unit.enterWaveFreeHuntMode();
+            unit.primeWaveHuntTarget(
+                wave.findSharedTargetForUnit(unit)
+            );
+        }
+
+        return true;
+    }
+
+    public getAssignedWaveLaneForUnit(unit: Unit | null) {
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        return wave && !wave.isDead()
+            ? wave.laneId
+            : -1;
     }
 
     public recordIsolatedRangedPursuit(
@@ -1809,6 +1993,14 @@ export class GameManager extends Component {
 
         const wave = BattleWave.getWaveForUnit(unit);
         const targetWave = BattleWave.getWaveForUnit(target);
+        const physicalLaneId = this.getCurrentLaneIdForUnit(unit);
+        const waveLaneDistance = wave && wave.laneId >= 0 &&
+            physicalLaneId >= 0
+            ? Math.abs(
+                this.clampLaneId(wave.laneId) -
+                this.clampLaneId(physicalLaneId)
+            )
+            : -1;
 
         this.battleTelemetry.recordDiagnosticEvent({
             type,
@@ -1817,6 +2009,8 @@ export class GameManager extends Component {
             team: unit.team,
             waveId: wave?.id ?? -1,
             laneId: unit.laneId,
+            unitPhysicalLaneId: physicalLaneId,
+            waveLaneDistance,
             unitName: unit.unitTypeName,
             unitLifeId: unit.lifeId,
             unitSpawnId: this.battleTelemetry.getSpawnId(unit),
@@ -1825,17 +2019,142 @@ export class GameManager extends Component {
             targetLaneId: targetWave?.laneId ?? -1,
             targetLifeId: target?.lifeId ?? -1,
             targetSpawnId: this.battleTelemetry.getSpawnId(target),
-            isolatedRangedPursuit: true,
+            isolatedRangedPursuit:
+                unit.isIsolatedRangedPursuit(),
+            isolatedRangedPursuitReturningToWave:
+                unit.isReturningToWaveAfterIsolatedRangedPursuit(),
+            movementIntent: unit.getTelemetryMovementIntent(),
+            isolatedRangedPursuitReturnCommandAttemptCount:
+                unit.getIsolatedRangedPursuitReturnCommandAttemptCount(),
+            isolatedRangedPursuitReturnRepeatedCommandCount:
+                unit.getIsolatedRangedPursuitReturnRepeatedCommandCount(),
+            isolatedRangedPursuitReturnLocalCombatCount:
+                unit.getIsolatedRangedPursuitReturnLocalCombatCount(),
+            isolatedRangedPursuitLastReturnCommandCause:
+                unit.getIsolatedRangedPursuitLastReturnCommandCause(),
             targetWaveCount: wave?.getTargetWaveCount() ?? 0,
             targetWaveIds: wave?.getTargetWaveIds() ?? [],
         });
+    }
+
+    public recordWaveRegroupTransition(
+        type: string,
+        unit: Unit | null,
+        attacker: Unit | null = null
+    ) {
+        if (!this.enableBattleTelemetry || !unit) return;
+
+        const wave = BattleWave.getWaveForUnit(unit);
+        if (!wave) return;
+
+        const attackerWave = BattleWave.getWaveForUnit(attacker);
+        const unitPosition = unit.agent
+            ? unit.agent.pos
+            : unit.node.worldPosition;
+        const attackerPosition = attacker?.agent
+            ? attacker.agent.pos
+            : attacker?.node.worldPosition;
+
+        this.battleTelemetry.recordDiagnosticEvent({
+            type,
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            regroupLaneId: unit.laneId,
+            unitName: unit.unitTypeName,
+            unitLifeId: unit.lifeId,
+            unitSpawnId: this.battleTelemetry.getSpawnId(unit),
+            unitX: unitPosition.x,
+            unitZ: unitPosition.z,
+            unitBusy: unit.onBusy,
+            unitForward: unit.onForward,
+            unitBackToLane: unit.isBackToLaneActive(),
+            forwardRecoveryReadyUnitCount:
+                wave.getForwardRecoveryReadyUnitCount(),
+            forwardRecoveryRegroupingUnitCount:
+                wave.getForwardRecoveryRegroupingUnitCount(),
+            aggressiveForward: wave.hasAggressiveForwardLaneLock(),
+            freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
+            targetWaveId: attackerWave?.id ?? -1,
+            targetTeam: attacker?.team ?? -1,
+            targetLaneId: attackerWave?.laneId ?? -1,
+            targetLifeId: attacker?.lifeId ?? -1,
+            targetSpawnId: this.battleTelemetry.getSpawnId(attacker),
+            targetX: attackerPosition?.x ?? -1,
+            targetZ: attackerPosition?.z ?? -1,
+        });
+    }
+
+    public tryReengageWaveFromRegroupMeleeAttack(
+        unit: Unit | null,
+        attacker: Unit | null
+    ) {
+        if (!unit || !attacker) return false;
+
+        const wave = BattleWave.getWaveForUnit(unit);
+        const attackerWave = BattleWave.getWaveForUnit(attacker);
+        const reengaged = !!wave?.tryReengageFromRecoveryMeleeAttack(
+            unit,
+            attacker
+        );
+
+        if (this.enableBattleTelemetry && wave) {
+            this.battleTelemetry.recordDiagnosticEvent({
+                type: 'wave-regroup-attack-response',
+                frame: this.frame,
+                time: this.battleElapsedTime,
+                team: unit.team,
+                waveId: wave.id,
+                laneId: wave.laneId,
+                regroupLaneId: unit.laneId,
+                unitName: unit.unitTypeName,
+                unitLifeId: unit.lifeId,
+                unitSpawnId: this.battleTelemetry.getSpawnId(unit),
+                targetWaveId: attackerWave?.id ?? -1,
+                targetTeam: attacker.team,
+                targetLaneId: attackerWave?.laneId ?? -1,
+                targetLifeId: attacker.lifeId,
+                targetSpawnId: this.battleTelemetry.getSpawnId(attacker),
+                aggressiveForward: wave.hasAggressiveForwardLaneLock(),
+                freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
+                unitForward: unit.onForward,
+                unitBackToLane: unit.isBackToLaneActive(),
+                forwardRecoveryReadyUnitCount:
+                    wave.getForwardRecoveryReadyUnitCount(),
+                forwardRecoveryRegroupingUnitCount:
+                    wave.getForwardRecoveryRegroupingUnitCount(),
+                regroupMeleeReengaged: reengaged,
+                regroupInterruptReason: reengaged
+                    ? 'melee-target-wave-added'
+                    : attacker.isRangedCombatUnit()
+                        ? 'ranged-attacker-kept-local'
+                        : !wave.isAwaitingForwardRecoveryAfterTargetClear()
+                            ? 'recovery-already-cancelled'
+                        : 'melee-reengagement-not-eligible',
+                targetWaveIds: wave.getTargetWaveIds(),
+                targetWaveCount: wave.getTargetWaveCount(),
+                regroupCancelledUnitLifeIds:
+                    wave.getLastRegroupMeleeCancelledUnitLifeIds(),
+            });
+        }
+
+        return reengaged;
+    }
+
+    public isUnitAwaitingForwardRecovery(unit: Unit | null) {
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        return !!wave?.isAwaitingForwardRecoveryAfterTargetClear();
     }
 
     private trySetWaveTargetFromScanner(
         wave: BattleWave,
         scanner: Unit | null,
         target: Unit | null,
-        source: string
+        source: string,
+        allowRecoveryContinuation: boolean = false
     ) {
         if (!wave || !scanner || !target) return false;
 
@@ -1847,7 +2166,8 @@ export class GameManager extends Component {
             wave.hasEngagedTargetWave(candidateWave);
         const assigned = wave.trySetTargetWaveFromScanner(
             scanner,
-            target
+            target,
+            allowRecoveryContinuation
         );
 
         this.recordWaveTargetAssignment(
@@ -2133,7 +2453,10 @@ export class GameManager extends Component {
         });
     }
 
-    private recordWaveForwardResume(wave: BattleWave) {
+    private recordWaveForwardResume(
+        wave: BattleWave,
+        source = 'target-set-empty'
+    ) {
         if (!this.enableBattleTelemetry) return;
 
         this.closeWaveIdleEpisode(wave, 'forward-resumed');
@@ -2147,7 +2470,7 @@ export class GameManager extends Component {
             unitName: wave.unitName,
             familyName: UnitFamily[wave.family] ?? String(wave.family),
             targetWaveId: -1,
-            targetSource: 'target-set-empty',
+            targetSource: source,
             regroupLaneId: wave.laneId,
             aggressiveForward: wave.hasAggressiveForwardLaneLock(),
             freeHuntForwardOrigin:
@@ -2156,6 +2479,8 @@ export class GameManager extends Component {
                 wave.getLastForwardRecoveryResumedUnitCount(),
             forwardRecoveryRetainedBusyUnitCount:
                 wave.getLastForwardRecoveryRetainedBusyUnitCount(),
+            forwardRecoveryRetainedBusyUnitLifeIds:
+                wave.getLastForwardRecoveryRetainedBusyUnitLifeIds(),
         });
     }
 
@@ -2195,6 +2520,8 @@ export class GameManager extends Component {
             aliveCount: number;
             resumableUnitCount: number;
             busyUnitCount: number;
+            forwardRecoveryReadyUnitCount: number;
+            forwardRecoveryRegroupingUnitCount: number;
         }
     ) {
         if (!this.enableBattleTelemetry) return;
@@ -2822,7 +3149,9 @@ export class GameManager extends Component {
 
     public onWaveForwardTargetFound(
         unit: Unit | null,
-        target: Unit | null
+        target: Unit | null,
+        source = 'forward-scanner',
+        allowRecoveryContinuation: boolean = false
     ) {
         if (!unit || !target) return false;
 
@@ -2836,7 +3165,8 @@ export class GameManager extends Component {
             wave,
             unit,
             target,
-            'forward-scanner'
+            source,
+            allowRecoveryContinuation
         )) {
             return false;
         }
@@ -2884,12 +3214,8 @@ export class GameManager extends Component {
     }
 
     private processDynamicWaveLanes() {
-        for (let i = 0; i < this.waves.length; i++) {
-            const wave = this.waves[i];
-
-            this.refreshDynamicLaneForWave(wave);
-        }
-
+        // Command-wave lanes are assigned at spawn and after target-set
+        // recovery. Only hero waves continue to follow their physical lane.
         this.refreshDynamicLaneForWave(
             this.teamAHeroWave
         );
@@ -2907,11 +3233,17 @@ export class GameManager extends Component {
     }
 
     private searchForwardWaveTarget(
-        wave: BattleWave | null
+        wave: BattleWave | null,
+        forceScannerPassCheck: boolean = false
     ) {
         if (!wave) return;
         if (!wave.isForwardMode()) return;
         if (wave.isDeadRuntime(this.frame)) return;
+        if (this.forwardScannerSearchFrame.get(wave) === this.frame) {
+            return;
+        }
+
+        this.forwardScannerSearchFrame.set(wave, this.frame);
 
         let scanner =
             wave.getScanner();
@@ -2944,6 +3276,7 @@ export class GameManager extends Component {
 
         if (aggressiveForward) {
             if (
+                !forceScannerPassCheck &&
                 !this.shouldRunFrameInterval(
                     wave.getTargetSearchIntervalFrames(),
                     wave.id
@@ -3007,7 +3340,9 @@ export class GameManager extends Component {
             this.recordWaveScannerTrace(
                 scanner,
                 target ?? adjacentRearGuard,
-                'forward-aggressive',
+                forceScannerPassCheck
+                    ? 'forward-aggressive-recovery-resume'
+                    : 'forward-aggressive',
                 target
                     ? 'target-passed-release'
                     : enemiesAhead > 0
@@ -3050,6 +3385,7 @@ export class GameManager extends Component {
         }
 
         if (
+            !forceScannerPassCheck &&
             !this.shouldRunFrameInterval(
                 wave.getTargetSearchIntervalFrames(),
                 wave.id
@@ -3082,7 +3418,9 @@ export class GameManager extends Component {
         this.recordWaveScannerTrace(
             scanner,
             target,
-            'forward-normal',
+            forceScannerPassCheck
+                ? 'forward-normal-recovery-resume'
+                : 'forward-normal',
             target
                 ? releasesTarget
                     ? 'target-passed-release'
@@ -3091,6 +3429,124 @@ export class GameManager extends Component {
             targetWaveBefore,
             target ? 1 : 0
         );
+    }
+
+    public tryResumeWaveForwardFromRegroupCompletion(
+        unit: Unit | null
+    ) {
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        if (!wave || wave.isDeadRuntime(this.frame)) return false;
+        if (!wave.isAwaitingForwardRecoveryAfterTargetClear()) {
+            return false;
+        }
+
+        return this.tryFinishWaveForwardRecovery(wave) !== 'blocked';
+    }
+
+    public tryResumeWaveForwardFromLocalCombatEnd(
+        unit: Unit | null
+    ) {
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        if (!unit || !wave || wave.isDeadRuntime(this.frame)) return false;
+        if (!wave.isAwaitingForwardRecoveryAfterTargetClear()) {
+            return false;
+        }
+
+        const recoveryResult = this.tryFinishWaveForwardRecovery(
+            wave,
+            'local-combat-ended'
+        );
+
+        if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordDiagnosticEvent({
+                type: 'wave-recovery-local-combat-ended',
+                frame: this.frame,
+                time: this.battleElapsedTime,
+                team: unit.team,
+                waveId: wave.id,
+                laneId: wave.laneId,
+                regroupLaneId: unit.laneId,
+                unitName: unit.unitTypeName,
+                unitLifeId: unit.lifeId,
+                unitSpawnId: this.battleTelemetry.getSpawnId(unit),
+                unitBusy: unit.onBusy,
+                unitBackToLane: unit.isBackToLaneActive(),
+                aggressiveForward: wave.hasAggressiveForwardLaneLock(),
+                freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
+                recoveryBlockReason: recoveryResult === 'forward'
+                    ? 'local-combat-ended-forward-resumed'
+                    : recoveryResult === 'free-hunt'
+                        ? 'local-combat-ended-free-hunt-continued'
+                        : 'local-combat-ended-recovery-still-blocked',
+                forwardRecoveryReadyUnitCount:
+                    wave.getForwardRecoveryReadyUnitCount(),
+                forwardRecoveryRegroupingUnitCount:
+                    wave.getForwardRecoveryRegroupingUnitCount(),
+            });
+        }
+
+        return recoveryResult !== 'blocked';
+    }
+
+    private tryFinishWaveForwardRecovery(
+        wave: BattleWave,
+        forwardResumeSource = 'target-set-empty'
+    ): 'blocked' | 'forward' | 'free-hunt' {
+        const completed = wave.tryResumeForward(
+            this.refreshLaneBeforeWaveForward,
+            (readyWave) =>
+                this.tryContinueRecoveryFreeHuntBeforeForward(readyWave)
+        );
+
+        if (!completed) return 'blocked';
+        if (!wave.isForwardMode()) return 'free-hunt';
+
+        this.recordWaveForwardResume(wave, forwardResumeSource);
+        // Safety net for a scanner pass that occurs after the pre-forward
+        // check but before the next ordinary scanner interval.
+        this.searchForwardWaveTarget(wave, true);
+        return 'forward';
+    }
+
+    private tryContinueRecoveryFreeHuntBeforeForward(
+        wave: BattleWave
+    ) {
+        const scanner = wave.getScanner(true);
+
+        if (!scanner) return false;
+
+        const sameLaneOnly = wave.hasAggressiveForwardLaneLock();
+        const targetWaveBefore = wave.getTargetWave();
+        const target = this.findPassedEnemyWaveScanner(
+            wave,
+            scanner,
+            sameLaneOnly
+        );
+        const released = target
+            ? this.onWaveForwardTargetFound(
+                scanner,
+                target,
+                'recovery-pre-forward-scanner-pass',
+                true
+            )
+            : false;
+
+        this.recordWaveScannerTrace(
+            scanner,
+            target,
+            sameLaneOnly
+                ? 'recovery-pre-forward-aggressive'
+                : 'recovery-pre-forward-normal',
+            released
+                ? 'target-passed-release'
+                : 'no-forward-target',
+            targetWaveBefore,
+            target ? 1 : 0
+        );
+
+        return released;
     }
 
     private findPassedEnemyWaveScanner(
@@ -3289,26 +3745,21 @@ export class GameManager extends Component {
                 continue;
             }
 
-            wave.refreshInitialForwardCombatGate();
             if (
-                wave.isAwaitingForwardRecoveryAfterTargetClear() &&
                 !this.shouldRunFrameInterval(
-                    Math.min(
-                        5,
-                        wave.getTargetSearchIntervalFrames()
-                    ),
+                    wave.getTargetSearchIntervalFrames(),
                     wave.id
                 )
             ) {
                 continue;
             }
 
-            const resumed = wave.tryResumeForward(
-                this.refreshLaneBeforeWaveForward
-            );
+            wave.refreshInitialForwardCombatGate();
 
-            if (resumed) {
-                this.recordWaveForwardResume(wave);
+            const recoveryResult =
+                this.tryFinishWaveForwardRecovery(wave);
+
+            if (recoveryResult !== 'blocked') {
                 continue;
             }
 
@@ -3528,8 +3979,7 @@ export class GameManager extends Component {
     }
 
     private refreshDynamicLaneForWave(
-        wave: BattleWave | null,
-        force: boolean = false
+        wave: BattleWave | null
     ) {
         if (!wave) return;
         if (wave.isDeadRuntime(this.frame)) return;
@@ -3543,18 +3993,13 @@ export class GameManager extends Component {
 
         // Lane is strategic metadata only. Stagger updates by wave
         // and away from forward scans for the same wave.
-        if (
-            !force &&
-            !this.shouldRunFrameInterval(
-                interval,
-                offset
-            )
-        ) {
+        if (!this.shouldRunFrameInterval(interval, offset)) {
             return;
         }
 
-        // A wave's lane follows its active scanner, never a majority of
-        // members temporarily spread across lanes by combat or regrouping.
+        // This path is reserved for hero waves. Command waves keep their
+        // assigned lane so a scanner's temporary lateral position cannot
+        // expand scanner-pass checks beyond the same/adjacent lane rules.
         const scanner = wave.getScanner();
         if (!scanner) return;
 
@@ -3631,7 +4076,45 @@ export class GameManager extends Component {
                 continue;
             }
 
-            wave.getTargetWave();
+            const interval = wave.getTargetSearchIntervalFrames();
+
+            if (
+                !this.shouldRunFrameInterval(
+                    interval,
+                    wave.id
+                )
+            ) {
+                continue;
+            }
+
+            const pending = wave.processPendingTargetLifecycle();
+
+            if (pending && this.enableBattleTelemetry) {
+                this.battleTelemetry.recordTargetWaveLifecycleEvent({
+                    type: 'wave-target-lifecycle-pending-processed',
+                    frame: this.frame,
+                    time: this.battleElapsedTime,
+                    team: wave.team,
+                    waveId: wave.id,
+                    laneId: wave.laneId,
+                    unitName: wave.unitName,
+                    familyName:
+                        UnitFamily[wave.family] ?? String(wave.family),
+                    reason: pending.pendingReason,
+                    strategicIntervalFrames: interval,
+                    strategicPendingFrame: pending.pendingFrame,
+                    strategicPendingDelayFrames:
+                        Math.max(0, this.frame - pending.pendingFrame),
+                    strategicPendingTargetWaveId:
+                        pending.pendingTargetWaveId,
+                    strategicPendingEventCount:
+                        pending.pendingEventCount,
+                    targetWaveCountBefore:
+                        pending.targetWaveCountBefore,
+                    targetWaveCountAfter:
+                        pending.targetWaveCountAfter,
+                });
+            }
 
             let clearedTarget = wave.consumeClearedTargetTelemetry();
 
@@ -3963,10 +4446,25 @@ export class GameManager extends Component {
                 busy: unit.onBusy,
                 forward: unit.onForward,
                 backToLane: unit.isBackToLaneActive(),
+                regroupDestinationLaneId:
+                    unit.getTelemetryRegroupDestinationLaneId(),
+                regroupLaneCoreDistanceX:
+                    unit.getTelemetryRegroupLaneCoreDistanceX(),
                 freeHuntContinuity:
                     unit.isFreeHuntContinuityActive(),
                 isolatedRangedPursuit:
                     unit.isIsolatedRangedPursuit(),
+                isolatedRangedPursuitReturningToWave:
+                    unit.isReturningToWaveAfterIsolatedRangedPursuit(),
+                movementIntent: unit.getTelemetryMovementIntent(),
+                isolatedRangedPursuitReturnCommandAttemptCount:
+                    unit.getIsolatedRangedPursuitReturnCommandAttemptCount(),
+                isolatedRangedPursuitReturnRepeatedCommandCount:
+                    unit.getIsolatedRangedPursuitReturnRepeatedCommandCount(),
+                isolatedRangedPursuitReturnLocalCombatCount:
+                    unit.getIsolatedRangedPursuitReturnLocalCombatCount(),
+                isolatedRangedPursuitLastReturnCommandCause:
+                    unit.getIsolatedRangedPursuitLastReturnCommandCause(),
                 targetLifeId: target?.lifeId ?? -1,
                 targetSpawnId:
                     this.battleTelemetry.getSpawnId(target),
@@ -5136,6 +5634,13 @@ export class GameManager extends Component {
             wave.invalidateRuntimeState();
             wave.handleUnitWillDespawn(unit);
             this.updateWaveBannerHealthBar(wave);
+
+            if (wave.getCommandAliveCount() <= 0) {
+                this.markTargetLifecyclePendingForWave(
+                    wave,
+                    'target-command-members-exhausted-by-despawn'
+                );
+            }
         }
 
         const anyController = this.cinematicController as any;
@@ -5145,6 +5650,62 @@ export class GameManager extends Component {
             typeof anyController.onUnitWillDespawn === 'function'
         ) {
             anyController.onUnitWillDespawn(unit);
+        }
+    }
+
+    private markTargetLifecyclePendingForWave(
+        targetWave: BattleWave,
+        reason: string
+    ) {
+        for (let i = 0; i < this.waves.length; i++) {
+            const wave = this.waves[i];
+
+            if (!wave || wave === targetWave) continue;
+
+            const marked = wave.markTargetLifecyclePending(
+                this.frame,
+                targetWave,
+                reason
+            );
+
+            if (!marked || !this.enableBattleTelemetry) continue;
+
+            this.battleTelemetry.recordTargetWaveLifecycleEvent({
+                type: 'wave-target-lifecycle-pending',
+                frame: this.frame,
+                time: this.battleElapsedTime,
+                team: wave.team,
+                waveId: wave.id,
+                laneId: wave.laneId,
+                unitName: wave.unitName,
+                familyName:
+                    UnitFamily[wave.family] ?? String(wave.family),
+                targetWaveId: targetWave.id,
+                targetLaneId: targetWave.laneId,
+                reason,
+                strategicIntervalFrames:
+                    wave.getTargetSearchIntervalFrames(),
+                strategicPendingFrame: this.frame,
+                strategicPendingTargetWaveId: targetWave.id,
+                targetWaveCountBefore: wave.getTargetWaveCount(),
+            });
+        }
+    }
+
+    public notifyWaveCommandMembershipChanged(
+        unit: Unit | null
+    ) {
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        if (!wave) return;
+
+        wave.invalidateRuntimeState();
+
+        if (wave.getCommandAliveCount() <= 0) {
+            this.markTargetLifecyclePendingForWave(
+                wave,
+                'target-command-members-exhausted-by-isolation'
+            );
         }
     }
 

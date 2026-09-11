@@ -175,8 +175,16 @@ export interface BattleTelemetryWaveUnitSnapshot {
     busy: boolean;
     forward: boolean;
     backToLane: boolean;
+    regroupDestinationLaneId?: number;
+    regroupLaneCoreDistanceX?: number;
     freeHuntContinuity: boolean;
     isolatedRangedPursuit: boolean;
+    isolatedRangedPursuitReturningToWave?: boolean;
+    movementIntent?: string;
+    isolatedRangedPursuitReturnCommandAttemptCount?: number;
+    isolatedRangedPursuitReturnRepeatedCommandCount?: number;
+    isolatedRangedPursuitReturnLocalCombatCount?: number;
+    isolatedRangedPursuitLastReturnCommandCause?: string;
     targetLifeId: number;
     targetSpawnId: number;
     targetWaveId: number;
@@ -302,6 +310,8 @@ export interface BattleTelemetryDiagnosticEvent {
     targetSpawnId?: number;
     unitX?: number;
     unitZ?: number;
+    unitPhysicalLaneId?: number;
+    waveLaneDistance?: number;
     targetX?: number;
     targetZ?: number;
     targetDistance?: number;
@@ -317,6 +327,13 @@ export interface BattleTelemetryDiagnosticEvent {
     freeHuntForwardOrigin?: 'normal' | 'aggressive';
     forwardRecoveryResumedUnitCount?: number;
     forwardRecoveryRetainedBusyUnitCount?: number;
+    forwardRecoveryRetainedBusyUnitLifeIds?: number[];
+    forwardRecoveryReadyUnitCount?: number;
+    forwardRecoveryRegroupingUnitCount?: number;
+    unitBackToLane?: boolean;
+    regroupMeleeReengaged?: boolean;
+    regroupInterruptReason?: string;
+    regroupCancelledUnitLifeIds?: number[];
     sameLaneWaveEngagement?: boolean;
     soloAggressiveCombat?: boolean;
     aggressiveFrontlineEngagement?: boolean;
@@ -343,8 +360,55 @@ export interface BattleTelemetryDiagnosticEvent {
     targetClearFrame?: number;
     targetClearOffLaneReplacement?: boolean;
     isolatedRangedPursuit?: boolean;
+    isolatedRangedPursuitReturningToWave?: boolean;
+    movementIntent?: string;
+    isolatedRangedPursuitReturnCommandAttemptCount?: number;
+    isolatedRangedPursuitReturnRepeatedCommandCount?: number;
+    isolatedRangedPursuitReturnLocalCombatCount?: number;
+    isolatedRangedPursuitLastReturnCommandCause?: string;
     waveRegistered?: boolean;
     targetWavePhysicallyDead?: boolean;
+    strategicIntervalFrames?: number;
+    strategicPendingFrame?: number;
+    strategicPendingDelayFrames?: number;
+    strategicPendingTargetWaveId?: number;
+    strategicPendingEventCount?: number;
+    targetWaveCountBefore?: number;
+    targetWaveCountAfter?: number;
+}
+
+export interface BattleTelemetryLineReachedContext {
+    frame: number;
+    time: number;
+    team: number;
+    waveId: number;
+    waveLaneId: number;
+    unitName: string;
+    unitLifeId: number;
+    unitSpawnId: number;
+    unitX: number;
+    unitZ: number;
+    heroLineZ: number;
+    distancePastHeroLine: number;
+    unitPhysicalLaneId: number;
+    unitBusy: boolean;
+    unitForward: boolean;
+    unitBackToLane: boolean;
+    isolatedRangedPursuit: boolean;
+    isolatedRangedPursuitReturningToWave: boolean;
+    aggressiveForward: boolean;
+    waveForward: boolean;
+    awaitingForwardRecovery: boolean;
+    freeHuntForwardOrigin: string;
+    targetWaveIds: number[];
+    targetWaveCount: number;
+    targetWaveId: number;
+    targetLaneId: number;
+    targetUnitName: string;
+    laneOwnNonHeroAlive: number;
+    laneEnemyNonHeroAlive: number;
+    laneOwnWaveCount: number;
+    laneEnemyWaveCount: number;
 }
 
 export interface BattleTelemetryTargetWaveTransitionStats {
@@ -503,6 +567,7 @@ export class BattleTelemetry {
     private snapshots: BattleTelemetryBattleSnapshot[] = [];
     private finalSnapshot: BattleTelemetryBattleSnapshot | null = null;
     private heroDefeatContext: BattleTelemetryHeroDefeatContext | null = null;
+    private lineReachedContext: BattleTelemetryLineReachedContext | null = null;
     private framePerformance: BattleTelemetryFramePerformance | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
     private targetWaveLifecycleEvents: BattleTelemetryDiagnosticEvent[] = [];
@@ -559,6 +624,7 @@ export class BattleTelemetry {
         this.snapshots.length = 0;
         this.finalSnapshot = null;
         this.heroDefeatContext = null;
+        this.lineReachedContext = null;
         this.framePerformance = null;
         this.diagnosticEvents.length = 0;
         this.targetWaveLifecycleEvents.length = 0;
@@ -856,6 +922,18 @@ export class BattleTelemetry {
                         ...this.lastHeroDamageByVictimTeam[victimTeam]!,
                     }
                     : undefined,
+        };
+    }
+
+    recordLineReachedContext(
+        context: BattleTelemetryLineReachedContext
+    ) {
+        if (!this.isEnabled()) return;
+        if (!context) return;
+
+        this.lineReachedContext = {
+            ...context,
+            targetWaveIds: context.targetWaveIds.slice(),
         };
     }
 
@@ -1496,6 +1574,13 @@ export class BattleTelemetry {
             },
             heroDefeatContext: this.heroDefeatContext
                 ? { ...this.heroDefeatContext }
+                : null,
+            lineReachedContext: this.lineReachedContext
+                ? {
+                    ...this.lineReachedContext,
+                    targetWaveIds:
+                        this.lineReachedContext.targetWaveIds.slice(),
+                }
                 : null,
             unitTypes,
         };

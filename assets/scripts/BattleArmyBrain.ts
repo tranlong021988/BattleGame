@@ -83,6 +83,14 @@ export class BattleArmyBrain extends Component {
     rescueAllyAliveRatio = 0.35;
 
     @property({
+        min: 0,
+        max: 1,
+        tooltip:
+            'Progress from the enemy spawn toward this team hero at which an enemy wave is treated as a dangerous defensive threat.',
+    })
+    dangerousThreatProgress = 0.75;
+
+    @property({
         tooltip:
             'Do not add more direct-lane response waves when this many useful ally waves already stand between spawn and target, unless rescue/danger rules apply.',
     })
@@ -270,6 +278,8 @@ export class BattleArmyBrain extends Component {
             Math.max(0, this.coverageTargetRatio);
         this.evaluator.rescueAllyAliveRatio =
             this.clamp01(this.rescueAllyAliveRatio);
+        this.evaluator.dangerousThreatProgress =
+            this.clamp01(this.dangerousThreatProgress);
         this.evaluator.laneAllyAheadLimit =
             Math.max(
                 0,

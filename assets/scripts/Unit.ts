@@ -116,8 +116,17 @@ export class Unit extends Component {
     // A ranged retaliation outside the parent's strategic target set behaves
     // as a one-member detachment until that local pursuit ends.
     private isolatedRangedPursuit = false;
+    // The detachment remains isolated while it returns to its parent wave's
+    // current lane. It only becomes a command member after arriving there.
+    private isolatedRangedPursuitReturningToWave = false;
+    private isolatedRangedPursuitReturnLaneId = -1;
+    private isolatedRangedPursuitReturnCommandAttemptCount = 0;
+    private isolatedRangedPursuitReturnRepeatedCommandCount = 0;
+    private isolatedRangedPursuitReturnLocalCombatCount = 0;
+    private isolatedRangedPursuitLastReturnCommandCause = '';
     private backToLaneActive = false;
     private backToLaneForwardAggressive = false;
+    private backToLaneRecoveryCompleted = false;
     private rangedCombatMoveX = 0;
     private rangedCombatMoveZ = 0;
     private rangedKiteActive = false;
@@ -161,8 +170,12 @@ export class Unit extends Component {
         this.resetIdleWithoutOrderTelemetry();
         this.soloAggressiveSkirmishActive = false;
         this.isolatedRangedPursuit = false;
+        this.isolatedRangedPursuitReturningToWave = false;
+        this.isolatedRangedPursuitReturnLaneId = -1;
+        this.resetIsolatedRangedPursuitReturnTelemetry();
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
+        this.backToLaneRecoveryCompleted = false;
         this.resetRangedCombatMovement();
 
         this.onForward = !this.isSteady;
@@ -465,8 +478,156 @@ export class Unit extends Component {
         return this.isolatedRangedPursuit;
     }
 
+    public isReturningToWaveAfterIsolatedRangedPursuit() {
+        return this.isolatedRangedPursuit &&
+            this.isolatedRangedPursuitReturningToWave;
+    }
+
+    public getTelemetryMovementIntent() {
+        if (this.onBusy) return 'local-combat';
+        if (this.isReturningToWaveAfterIsolatedRangedPursuit()) {
+            return 'isolated-return';
+        }
+        if (this.backToLaneActive) return 'regroup';
+        if (this.freeHuntContinuityActive) return 'free-hunt';
+        if (this.onForward) return 'forward';
+        return 'idle';
+    }
+
+    public recordIsolatedRangedPursuitReturnCommand(
+        cause: string,
+        wasAlreadyReturning: boolean
+    ) {
+        if (!this.isolatedRangedPursuit) return;
+
+        this.isolatedRangedPursuitReturnCommandAttemptCount++;
+        if (wasAlreadyReturning) {
+            this.isolatedRangedPursuitReturnRepeatedCommandCount++;
+        }
+        this.isolatedRangedPursuitLastReturnCommandCause = cause;
+    }
+
+    public recordIsolatedRangedPursuitReturnLocalCombat() {
+        if (!this.isReturningToWaveAfterIsolatedRangedPursuit()) {
+            return;
+        }
+
+        this.isolatedRangedPursuitReturnLocalCombatCount++;
+    }
+
+    public getIsolatedRangedPursuitReturnCommandAttemptCount() {
+        return this.isolatedRangedPursuitReturnCommandAttemptCount;
+    }
+
+    public getIsolatedRangedPursuitReturnRepeatedCommandCount() {
+        return this.isolatedRangedPursuitReturnRepeatedCommandCount;
+    }
+
+    public getIsolatedRangedPursuitReturnLocalCombatCount() {
+        return this.isolatedRangedPursuitReturnLocalCombatCount;
+    }
+
+    public getIsolatedRangedPursuitLastReturnCommandCause() {
+        return this.isolatedRangedPursuitLastReturnCommandCause;
+    }
+
+    private resetIsolatedRangedPursuitReturnTelemetry() {
+        this.isolatedRangedPursuitReturnCommandAttemptCount = 0;
+        this.isolatedRangedPursuitReturnRepeatedCommandCount = 0;
+        this.isolatedRangedPursuitReturnLocalCombatCount = 0;
+        this.isolatedRangedPursuitLastReturnCommandCause = '';
+    }
+
+    public beginIsolatedRangedPursuitReturnToWaveLane(
+        aggressiveForward: boolean
+    ) {
+        if (!this.isolatedRangedPursuit) return false;
+
+        this.isolatedRangedPursuitReturningToWave = true;
+        this.backToLaneRecoveryCompleted = false;
+
+        const parentWaveLaneId =
+            GameManager.instance?.getAssignedWaveLaneForUnit(this) ?? -1;
+
+        if (parentWaveLaneId >= 0) {
+            this.isolatedRangedPursuitReturnLaneId = parentWaveLaneId;
+        }
+
+        return this.startBackToLanePhase(aggressiveForward);
+    }
+
+    public updateIsolatedRangedPursuitReturnLane(
+        laneId: number
+    ) {
+        if (!this.isReturningToWaveAfterIsolatedRangedPursuit()) return;
+        if (laneId < 0) return;
+
+        this.isolatedRangedPursuitReturnLaneId = laneId;
+    }
+
+    public hasReachedCurrentWaveLaneAfterIsolatedRangedPursuit() {
+        if (!this.agent) return false;
+
+        const gm = GameManager.instance;
+        if (!gm) return false;
+
+        const targetLaneId = this.getBackToLaneDestinationLaneId();
+
+        return targetLaneId >= 0 &&
+            gm.getDirectionToLaneArea(
+                targetLaneId,
+                this.agent.pos.x
+            ) === 0;
+    }
+
+    public completeIsolatedRangedPursuitReturnToWaveLane(
+        laneId: number
+    ) {
+        this.laneId = laneId;
+        this.isolatedRangedPursuitReturningToWave = false;
+        this.isolatedRangedPursuitReturnLaneId = -1;
+        this.isolatedRangedPursuit = false;
+        this.backToLaneActive = false;
+        this.backToLaneForwardAggressive = false;
+        this.backToLaneRecoveryCompleted = false;
+    }
+
     public isBackToLaneActive() {
         return this.backToLaneActive;
+    }
+
+    public getTelemetryRegroupDestinationLaneId() {
+        if (!this.backToLaneActive) return -1;
+
+        return this.getBackToLaneDestinationLaneId();
+    }
+
+    public getTelemetryRegroupLaneCoreDistanceX() {
+        if (!this.backToLaneActive || !this.agent) return -1;
+
+        const gm = GameManager.instance;
+        const targetLaneId = this.getBackToLaneDestinationLaneId();
+
+        if (!gm || targetLaneId < 0) return -1;
+
+        const laneWidth = gm.getLaneWidth();
+
+        if (laneWidth <= 0) return -1;
+
+        const coreHalfWidth = laneWidth * 0.25;
+        const distanceFromCenter = Math.abs(
+            this.agent.pos.x - gm.getLaneCenterX(targetLaneId)
+        );
+
+        return Math.max(0, distanceFromCenter - coreHalfWidth);
+    }
+
+    public resetBackToLaneRecoveryCompletion() {
+        this.backToLaneRecoveryCompleted = false;
+    }
+
+    public hasCompletedBackToLaneRecovery() {
+        return this.backToLaneRecoveryCompleted;
     }
 
     public beginBackToLanePhase(
@@ -474,9 +635,34 @@ export class Unit extends Component {
     ) {
         if (this.backToLaneActive) return true;
 
-        return this.startBackToLanePhase(
+        const started = this.startBackToLanePhase(
             aggressiveForward
         );
+
+        if (started) {
+            GameManager.instance?.recordWaveRegroupTransition(
+                'unit-regroup-started',
+                this
+            );
+        }
+
+        return started;
+    }
+
+    public cancelBackToLanePhase() {
+        if (!this.backToLaneActive) return false;
+
+        this.backToLaneActive = false;
+        this.backToLaneForwardAggressive = false;
+        this.backToLaneRecoveryCompleted = false;
+
+        if (this.agent) {
+            this.setAgentOnForward(0);
+            this.setAgentLocked(false);
+            this.setAgentStopped();
+        }
+
+        return true;
     }
 
     public isRangedCombatUnit() {
@@ -581,8 +767,29 @@ export class Unit extends Component {
     }
 
     public reactToAttacker(attacker: Unit | null) {
-        if (this.onBusy) return false;
         if (!this.isValidEnemy(attacker)) return false;
+
+        const gm = GameManager.instance;
+        const isolateRangedPursuit =
+            gm
+                ? gm.shouldStartIsolatedRangedPursuit(
+                    this,
+                    attacker
+                )
+                : false;
+        // A melee hit must be able to interrupt synchronized recovery even
+        // when this particular member is still busy in local combat. Outside
+        // of that recovery state, busy units retain their existing behavior.
+        const regroupMeleeReengaged =
+            !isolateRangedPursuit &&
+            !this.isolatedRangedPursuit &&
+            !!gm?.isUnitAwaitingForwardRecovery(this) &&
+            !!gm?.tryReengageWaveFromRegroupMeleeAttack(
+                this,
+                attacker
+            );
+
+        if (this.onBusy) return regroupMeleeReengaged;
 
         const currentTarget =
             this.getValidEnemyTarget();
@@ -597,9 +804,7 @@ export class Unit extends Component {
             return false;
         }
 
-        const gm = GameManager.instance;
-        const wasBackToLane =
-            this.backToLaneActive;
+        const wasBackToLane = this.backToLaneActive;
         const soloAggressive =
             gm
                 ? gm.shouldUseSoloAggressiveSkirmish(
@@ -607,13 +812,10 @@ export class Unit extends Component {
                     attacker
                 )
                 : false;
-        const isolateRangedPursuit =
-            gm
-                ? gm.shouldStartIsolatedRangedPursuit(
-                    this,
-                    attacker
-                )
-                : false;
+        // A ranged hit outside the parent's strategic target set isolates this
+        // member before wave recovery can react. Any other melee hit during
+        // recovery re-engages the whole command wave, whether this member is
+        // regrouping or already Forward.
 
         this.targetSearchPending = false;
         this.targetSearchConfirmedNoTarget = false;
@@ -630,11 +832,41 @@ export class Unit extends Component {
 
         if (isolateRangedPursuit) {
             this.isolatedRangedPursuit = true;
+            this.isolatedRangedPursuitReturningToWave = false;
+            this.isolatedRangedPursuitReturnLaneId = -1;
+            this.resetIsolatedRangedPursuitReturnTelemetry();
+            gm?.notifyWaveCommandMembershipChanged(this);
+            if (this.cancelBackToLanePhase()) {
+                gm?.recordWaveRegroupTransition(
+                    'unit-regroup-cancelled-for-isolated-ranged',
+                    this,
+                    attacker
+                );
+            }
             gm?.recordIsolatedRangedPursuit(
                 'isolated-ranged-pursuit-started',
                 this,
                 attacker
             );
+        }
+
+        if (regroupMeleeReengaged) {
+            this.cancelBackToLanePhase();
+        } else if (wasBackToLane) {
+            gm?.recordWaveRegroupTransition(
+                'unit-regroup-local-combat-retained',
+                this,
+                attacker
+            );
+
+            if (this.isReturningToWaveAfterIsolatedRangedPursuit()) {
+                this.recordIsolatedRangedPursuitReturnLocalCombat();
+                gm?.recordIsolatedRangedPursuit(
+                    'isolated-ranged-pursuit-return-local-combat',
+                    this,
+                    attacker
+                );
+            }
         }
 
         if (this.onForward || wasBackToLane) {
@@ -675,8 +907,12 @@ export class Unit extends Component {
 
         this.soloAggressiveSkirmishActive = false;
         this.isolatedRangedPursuit = false;
+        this.isolatedRangedPursuitReturningToWave = false;
+        this.isolatedRangedPursuitReturnLaneId = -1;
+        this.resetIsolatedRangedPursuitReturnTelemetry();
         this.backToLaneActive = false;
         this.backToLaneForwardAggressive = false;
+        this.backToLaneRecoveryCompleted = false;
         this.resetRangedCombatMovement();
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -706,12 +942,12 @@ export class Unit extends Component {
     clearEnemy() {
         const wasIsolatedRangedPursuit =
             this.isolatedRangedPursuit;
+        const wasBusy = this.onBusy;
         const previousTarget = this.getValidEnemyTarget();
         this.setEnemyTarget(null);
         this.onBusy = false;
 
         if (wasIsolatedRangedPursuit) {
-            this.isolatedRangedPursuit = false;
             if (
                 GameManager.instance?.finishIsolatedRangedPursuit(
                     this,
@@ -720,6 +956,14 @@ export class Unit extends Component {
             ) {
                 return;
             }
+        }
+
+        // A local combat may have been the final blocker for a synchronized
+        // recovery. Notify the wave once at this state transition so it can
+        // resume immediately instead of waiting for the next scanner tick.
+        // The manager ignores units whose wave is not in recovery.
+        if (wasBusy || previousTarget) {
+            GameManager.instance?.tryResumeWaveForwardFromLocalCombatEnd(this);
         }
 
         // Local combat only pauses regrouping. Once that target is gone, the
@@ -794,6 +1038,9 @@ export class Unit extends Component {
         this.backToLaneForwardAggressive = false;
         this.soloAggressiveSkirmishActive = false;
         this.isolatedRangedPursuit = false;
+        this.isolatedRangedPursuitReturningToWave = false;
+        this.isolatedRangedPursuitReturnLaneId = -1;
+        this.resetIsolatedRangedPursuitReturnTelemetry();
         this.resetRangedCombatMovement();
         this.invalidateNearestQueryResults();
         this.clearCachedTargets();
@@ -988,6 +1235,9 @@ export class Unit extends Component {
             this.onBusy = false;
             this.onForward = false;
             this.isolatedRangedPursuit = false;
+            this.isolatedRangedPursuitReturningToWave = false;
+            this.isolatedRangedPursuitReturnLaneId = -1;
+            this.resetIsolatedRangedPursuitReturnTelemetry();
             this.backToLaneActive = false;
             this.resetRangedCombatMovement();
             this.setAgentOnForward(0);
@@ -1104,7 +1354,9 @@ export class Unit extends Component {
             return;
         }
 
-        this.tryResumeSoloForwardAfterAggressiveSkirmish();
+        if (this.shouldRunTargetSearch()) {
+            this.tryResumeSoloForwardAfterAggressiveSkirmish();
+        }
 
         if (this.updateBackToLanePhase(deltaTime)) {
             return;
@@ -1125,7 +1377,10 @@ export class Unit extends Component {
 
         this.setAgentOnForward(0);
 
-        if (!this.hasValidEnemyTarget()) {
+        if (
+            !this.hasValidEnemyTarget() &&
+            this.shouldRunTargetSearch()
+        ) {
             this.setEnemyTarget(
                 this.getSharedWaveTarget()
             );
@@ -1188,15 +1443,18 @@ export class Unit extends Component {
         aggressiveForward: boolean
     ) {
         if (!this.agent) return false;
-        if (this.laneId < 0) return false;
 
         const gm = GameManager.instance;
 
         if (!gm) return false;
 
+        const targetLaneId = this.getBackToLaneDestinationLaneId();
+
+        if (targetLaneId < 0) return false;
+
         const dir =
             gm.getDirectionToLaneArea(
-                this.laneId,
+                targetLaneId,
                 this.agent.pos.x
             );
 
@@ -1227,6 +1485,16 @@ export class Unit extends Component {
         return true;
     }
 
+    private getBackToLaneDestinationLaneId() {
+        if (this.isReturningToWaveAfterIsolatedRangedPursuit()) {
+            if (this.isolatedRangedPursuitReturnLaneId >= 0) {
+                return this.isolatedRangedPursuitReturnLaneId;
+            }
+        }
+
+        return this.laneId;
+    }
+
     private updateBackToLanePhase(
         deltaTime: number
     ) {
@@ -1240,7 +1508,17 @@ export class Unit extends Component {
 
         const gm = GameManager.instance;
 
-        if (!gm || this.laneId < 0) {
+        if (!gm) {
+            this.backToLaneActive = false;
+            this.backToLaneForwardAggressive = false;
+            this.setAgentOnForward(0);
+            this.setAgentStopped();
+            return true;
+        }
+
+        const targetLaneId = this.getBackToLaneDestinationLaneId();
+
+        if (targetLaneId < 0) {
             this.backToLaneActive = false;
             this.backToLaneForwardAggressive = false;
             this.setAgentOnForward(0);
@@ -1250,18 +1528,39 @@ export class Unit extends Component {
 
         const dir =
             gm.getDirectionToLaneArea(
-                this.laneId,
+                targetLaneId,
                 this.agent.pos.x
             );
 
         if (dir === 0) {
-            // Reaching the lane completes only the regroup phase. BattleWave
-            // releases all ready members into Forward together.
+            if (this.isReturningToWaveAfterIsolatedRangedPursuit()) {
+                this.backToLaneActive = false;
+                this.backToLaneForwardAggressive = false;
+                this.onForward = false;
+                this.setAgentOnForward(0);
+                this.setAgentStopped();
+                gm.completeIsolatedRangedPursuitReturnToWaveLane(
+                    this,
+                    targetLaneId
+                );
+                return true;
+            }
+
+            // Reaching the lane completes this member's regroup phase. The
+            // parent wave is then notified once, so the final ready member
+            // can release synchronized recovery without an empty wait for the
+            // next scanner interval.
             this.backToLaneActive = false;
             this.backToLaneForwardAggressive = false;
+            this.backToLaneRecoveryCompleted = true;
             this.onForward = false;
             this.setAgentOnForward(0);
             this.setAgentStopped();
+            gm.recordWaveRegroupTransition(
+                'unit-regroup-completed',
+                this
+            );
+            gm.tryResumeWaveForwardFromRegroupCompletion(this);
             return true;
         }
 
