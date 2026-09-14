@@ -411,6 +411,38 @@ export interface BattleTelemetryLineReachedContext {
     laneEnemyWaveCount: number;
 }
 
+export interface BattleTelemetryBreakthroughCashout {
+    id: number;
+    frame: number;
+    time: number;
+    team: number;
+    waveId: number;
+    laneId: number;
+    scannerUnitName: string;
+    scannerSpawnId: number;
+    scannerLifeId: number;
+    originalCombatPointCost: number;
+    aliveUnitCount: number;
+    initialUnitCount: number;
+    rewardMultiplier: number;
+    rewardCombatPoint: number;
+    combatPointBeforeReward: number;
+    combatPointAfterReward: number;
+    laneBreakthroughSequence: number;
+    previousBreakthroughIdInLane?: number;
+    attackingNonHeroAlive: number;
+    attackingWaveCount: number;
+    defendingNonHeroAlive: number;
+    defendingWaveCount: number;
+    nextBudgetedSpawnWaveId?: number;
+    nextBudgetedSpawnLaneId?: number;
+    nextBudgetedSpawnUnitName?: string;
+    nextBudgetedSpawnCost?: number;
+    nextBudgetedSpawnFrame?: number;
+    nextBudgetedSpawnTime?: number;
+    cashoutMadeSpawnAffordableAtCashoutTime?: boolean;
+}
+
 export interface BattleTelemetryTargetWaveTransitionStats {
     total: number;
     engagement: number;
@@ -568,6 +600,7 @@ export class BattleTelemetry {
     private finalSnapshot: BattleTelemetryBattleSnapshot | null = null;
     private heroDefeatContext: BattleTelemetryHeroDefeatContext | null = null;
     private lineReachedContext: BattleTelemetryLineReachedContext | null = null;
+    private breakthroughCashouts: BattleTelemetryBreakthroughCashout[] = [];
     private framePerformance: BattleTelemetryFramePerformance | null = null;
     private diagnosticEvents: BattleTelemetryDiagnosticEvent[] = [];
     private targetWaveLifecycleEvents: BattleTelemetryDiagnosticEvent[] = [];
@@ -625,6 +658,7 @@ export class BattleTelemetry {
         this.finalSnapshot = null;
         this.heroDefeatContext = null;
         this.lineReachedContext = null;
+        this.breakthroughCashouts.length = 0;
         this.framePerformance = null;
         this.diagnosticEvents.length = 0;
         this.targetWaveLifecycleEvents.length = 0;
@@ -935,6 +969,47 @@ export class BattleTelemetry {
             ...context,
             targetWaveIds: context.targetWaveIds.slice(),
         };
+    }
+
+    recordBreakthroughCashout(
+        cashout: BattleTelemetryBreakthroughCashout
+    ) {
+        if (!this.isEnabled()) return;
+        if (!cashout) return;
+
+        this.breakthroughCashouts.push({ ...cashout });
+    }
+
+    linkBreakthroughCashoutToNextBudgetedSpawn(
+        cashoutId: number,
+        spawn: {
+            waveId: number;
+            laneId: number;
+            unitName: string;
+            cost: number;
+            frame: number;
+            time: number;
+            madeAffordableAtCashoutTime: boolean;
+        }
+    ) {
+        if (!this.isEnabled()) return;
+
+        for (let i = 0; i < this.breakthroughCashouts.length; i++) {
+            const cashout = this.breakthroughCashouts[i];
+
+            if (cashout.id !== cashoutId) continue;
+            if (cashout.nextBudgetedSpawnWaveId !== undefined) return;
+
+            cashout.nextBudgetedSpawnWaveId = spawn.waveId;
+            cashout.nextBudgetedSpawnLaneId = spawn.laneId;
+            cashout.nextBudgetedSpawnUnitName = spawn.unitName;
+            cashout.nextBudgetedSpawnCost = spawn.cost;
+            cashout.nextBudgetedSpawnFrame = spawn.frame;
+            cashout.nextBudgetedSpawnTime = spawn.time;
+            cashout.cashoutMadeSpawnAffordableAtCashoutTime =
+                spawn.madeAffordableAtCashoutTime;
+            return;
+        }
     }
 
     setFramePerformance(
@@ -1582,6 +1657,8 @@ export class BattleTelemetry {
                         this.lineReachedContext.targetWaveIds.slice(),
                 }
                 : null,
+            breakthroughCashouts:
+                this.breakthroughCashouts.map(cashout => ({ ...cashout })),
             unitTypes,
         };
     }

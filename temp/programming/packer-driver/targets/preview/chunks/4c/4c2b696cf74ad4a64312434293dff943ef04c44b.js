@@ -63,6 +63,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
     _reporterNs.report("BattleTelemetry", "./BattleTelemetry", _context.meta, extras);
   }
 
+  function _reportPossibleCrUseOfBattleTelemetryBreakthroughCashout(extras) {
+    _reporterNs.report("BattleTelemetryBreakthroughCashout", "./BattleTelemetry", _context.meta, extras);
+  }
+
   function _reportPossibleCrUseOfBattleTelemetryCounterRuleSnapshot(extras) {
     _reporterNs.report("BattleTelemetryCounterRuleSnapshot", "./BattleTelemetry", _context.meta, extras);
   }
@@ -486,6 +490,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.telemetryCombatEscalationSignatureByWave = new Map();
           this.telemetryIdleEpisodes = new Map();
           this.telemetryTargetClearRecoveryWindows = new Map();
+          this.breakthroughCashoutWaveIds = new Set();
+          this.breakthroughLaneSequences = new Map();
+          this.lastBreakthroughIdByLane = new Map();
+          this.pendingBreakthroughSpawnLinks = [];
           this.battleCardRuntime = null;
           this.battleRuntimeActive = false;
           this.rvoStepAccumulatedDelta = 0;
@@ -532,6 +540,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           this.telemetryCombatEscalationSignatureByWave.clear();
           this.telemetryIdleEpisodes.clear();
           this.telemetryTargetClearRecoveryWindows.clear();
+          this.breakthroughCashoutWaveIds.clear();
+          this.breakthroughLaneSequences.clear();
+          this.lastBreakthroughIdByLane.clear();
+          this.pendingBreakthroughSpawnLinks.length = 0;
           this.resetCombatPoint();
           this.createSimulator();
           this.buildPrefabMaps();
@@ -1134,11 +1146,132 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         resolveUnitReachedEnemyHeroLine(unit) {
           if (!this.battleRuntimeActive) return false;
           if (this.hasBattleWinner()) return false;
+          if (!unit || unit.isHero) return false;
           if (!this.hasUnitReachedEnemyHeroLine(unit)) return false;
-          this.recordUnitReachedEnemyHeroLineContext(unit);
-          var losingTeam = unit.team === 0 ? 1 : 0;
-          this.resolveBattleWinner(unit.team, losingTeam, unit.team === 1 ? 'enemy-reached-hero-line' : 'player-reached-hero-line');
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit); // A breakthrough belongs to a command, not to an arbitrary straggler.
+          // The front scanner is the sole unit allowed to cash out its wave.
+
+          if (!wave || wave.isDead()) return false;
+          if (wave.getScanner() !== unit) return false;
+          if (this.breakthroughCashoutWaveIds.has(wave.id)) return true;
+          this.breakthroughCashoutWaveIds.add(wave.id);
+          this.cashOutWaveAtEnemyHeroLine(wave, unit);
           return true;
+        }
+
+        cashOutWaveAtEnemyHeroLine(wave, scanner) {
+          var aliveUnitCount = wave.getAliveCount();
+          if (aliveUnitCount <= 0) return;
+          var physicalLaneId = this.getCurrentLaneIdForUnit(scanner);
+          var laneId = physicalLaneId >= 0 ? physicalLaneId : wave.laneId;
+          var laneState = this.getBreakthroughLaneState(scanner.team, laneId);
+          var originalCombatPointCost = Math.max(0, wave.originalCombatPointCost);
+          var rewardMultiplier = aliveUnitCount >= wave.totalCount ? 2 : 1;
+          var rewardCombatPoint = originalCombatPointCost * rewardMultiplier;
+          var combatPointBeforeReward = this.combatPoint[scanner.team] || 0;
+          var combatPointAfterReward = combatPointBeforeReward + rewardCombatPoint;
+          var laneKey = scanner.team + ":" + laneId;
+          var laneBreakthroughSequence = (this.breakthroughLaneSequences.get(laneKey) || 0) + 1;
+          var previousBreakthroughIdInLane = this.lastBreakthroughIdByLane.get(laneKey);
+          var cashout = {
+            id: wave.id,
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: scanner.team,
+            waveId: wave.id,
+            laneId,
+            scannerUnitName: scanner.unitTypeName,
+            scannerSpawnId: this.battleTelemetry.getSpawnId(scanner),
+            scannerLifeId: scanner.lifeId,
+            originalCombatPointCost,
+            aliveUnitCount,
+            initialUnitCount: wave.totalCount,
+            rewardMultiplier,
+            rewardCombatPoint,
+            combatPointBeforeReward,
+            combatPointAfterReward,
+            laneBreakthroughSequence,
+            previousBreakthroughIdInLane,
+            attackingNonHeroAlive: laneState.attackingNonHeroAlive,
+            attackingWaveCount: laneState.attackingWaveCount,
+            defendingNonHeroAlive: laneState.defendingNonHeroAlive,
+            defendingWaveCount: laneState.defendingWaveCount
+          };
+
+          if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordBreakthroughCashout(cashout);
+          }
+
+          this.breakthroughLaneSequences.set(laneKey, laneBreakthroughSequence);
+          this.lastBreakthroughIdByLane.set(laneKey, wave.id);
+          this.addCombatPoint(scanner.team, rewardCombatPoint);
+
+          if (this.enableBattleTelemetry) {
+            this.pendingBreakthroughSpawnLinks.push({
+              cashoutId: wave.id,
+              team: scanner.team,
+              combatPointBeforeReward,
+              combatPointAfterReward
+            });
+          }
+
+          var members = wave.units.slice();
+
+          for (var i = 0; i < members.length; i++) {
+            var member = members[i];
+            if (!this.isAliveUnit(member)) continue;
+            if ((_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+              error: Error()
+            }), BattleWave) : BattleWave).getWaveForUnit(member) !== wave) continue;
+            this.despawnUnitForBreakthroughCashout(member);
+          }
+
+          wave.invalidateRuntimeState();
+          this.markTargetLifecyclePendingForWave(wave, 'target-wave-cashed-out-at-enemy-hero-line');
+          this.requestSpatialGridRebuild();
+          this.requestBattleStatsUIRefresh();
+        }
+
+        getBreakthroughLaneState(attackingTeam, laneId) {
+          var attackingNonHeroAlive = 0;
+          var defendingNonHeroAlive = 0;
+          var attackingWaveIds = new Set();
+          var defendingWaveIds = new Set();
+
+          var collect = units => {
+            for (var i = 0; i < units.length; i++) {
+              var laneUnit = units[i];
+              if (!this.isAliveUnit(laneUnit)) continue;
+              if (laneUnit.isHero) continue;
+
+              if (laneId >= 0 && this.getCurrentLaneIdForUnit(laneUnit) !== laneId) {
+                continue;
+              }
+
+              var laneWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+                error: Error()
+              }), BattleWave) : BattleWave).getWaveForUnit(laneUnit);
+
+              if (laneUnit.team === attackingTeam) {
+                attackingNonHeroAlive++;
+                if (laneWave) attackingWaveIds.add(laneWave.id);
+              } else {
+                defendingNonHeroAlive++;
+                if (laneWave) defendingWaveIds.add(laneWave.id);
+              }
+            }
+          };
+
+          collect(this.teamA);
+          collect(this.teamB);
+          return {
+            attackingNonHeroAlive,
+            attackingWaveCount: attackingWaveIds.size,
+            defendingNonHeroAlive,
+            defendingWaveCount: defendingWaveIds.size
+          };
         }
 
         recordUnitReachedEnemyHeroLineContext(unit) {
@@ -1376,7 +1509,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var enemyWaveForwardBefore = enemyWave.isForwardMode();
           var enemyAggressiveForwardBefore = enemyWave.isAggressiveForwardMode();
           var enemySameLaneWaveEngagement = this.isSameLaneWaveEngagement(enemyWave, unit);
-          var enemyStrategicEscalationBlocked = crossLaneRangedAttack && !enemyWave.hasEngagedTargetWave(wave);
+          var enemyStrategicEscalationBlocked = crossLaneRangedAttack && !enemyWave.hasEngagedTargetWave(wave) || this.isRemoteRangedAttackAgainstMelee(unit, enemy);
           var enemyCanEscalateWaveCombat = !enemyStrategicEscalationBlocked && !enemySoloAggressiveCombat && (!enemyWave.hasAggressiveForwardLaneLock() || enemySameLaneWaveEngagement && enemyAggressiveFrontlineEngagement) && this.canEscalateWaveCombatFromEngagement(enemyWave, unit);
           var enemyStrategicEngagedCount = enemyCanEscalateWaveCombat ? this.getForwardStrategicEngagedCount(enemyWave, enemy, unit, enemyAggressiveForwardBefore) : 0;
           var enemyStrategicEngagementThreshold = Math.ceil(enemyWave.getCommandAliveCount() / 2);
@@ -1760,6 +1893,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return this.clampLaneId(attackerWave.laneId) !== this.clampLaneId(targetWave.laneId);
+        }
+
+        isRemoteRangedAttackAgainstMelee(attacker, target) {
+          if (!attacker || !target) return false;
+          if (!attacker.isRangedCombatUnit()) return false;
+          if (target.isRangedCombatUnit()) return false;
+          return !target.isEnemyWithinAttackRange(attacker);
         }
 
         recordWaveCombatEscalationDecision(wave, unit, target, aggressiveForwardBefore, waveForwardBefore, sameLaneWaveEngagement, soloAggressiveCombat, aggressiveFrontlineEngagement, canEscalateWaveCombat, initialForwardCombatDelayed, waveCombatEscalated, crossLaneRangedAttack, strategicEscalationBlocked, engagementRole, strategicEngagedCount, strategicEngagementThreshold) {
@@ -4364,7 +4504,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var laneId = this.resolveSpawnLaneId(requestedLaneId);
           var wave = new (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
-          }), BattleWave) : BattleWave)(this.nextWaveId++, team, entry.name, entry.family, entry.tier, count, laneId);
+          }), BattleWave) : BattleWave)(this.nextWaveId++, team, entry.name, entry.family, entry.tier, count, laneId, cost);
           this.waves.push(wave);
 
           if (this.enableLaneSpawn) {
@@ -4398,10 +4538,38 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (this.enableBattleTelemetry) {
               this.battleTelemetry.recordCombatPointSpent(team, entry.name, entry.family, entry.tier, cost, wave.id, this.frame, this.battleElapsedTime);
             }
+
+            this.linkPendingBreakthroughCashoutsToSpawn(team, wave, entry, cost);
           }
 
           this.node.emit(BattleWaveSpawnedEvent, wave);
           return wave;
+        }
+
+        linkPendingBreakthroughCashoutsToSpawn(team, wave, entry, cost) {
+          if (!this.enableBattleTelemetry) return;
+          var remaining = [];
+
+          for (var i = 0; i < this.pendingBreakthroughSpawnLinks.length; i++) {
+            var pending = this.pendingBreakthroughSpawnLinks[i];
+
+            if (pending.team !== team) {
+              remaining.push(pending);
+              continue;
+            }
+
+            this.battleTelemetry.linkBreakthroughCashoutToNextBudgetedSpawn(pending.cashoutId, {
+              waveId: wave.id,
+              laneId: wave.laneId,
+              unitName: entry.name,
+              cost,
+              frame: this.frame,
+              time: this.battleElapsedTime,
+              madeAffordableAtCashoutTime: pending.combatPointBeforeReward + 0.0001 < cost && pending.combatPointAfterReward + 0.0001 >= cost
+            });
+          }
+
+          this.pendingBreakthroughSpawnLinks = remaining;
         }
 
         assignWaveBanner(wave, entry) {
@@ -4915,6 +5083,26 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.requestBattleStatsUIRefresh();
           return unit;
+        }
+
+        despawnUnitForBreakthroughCashout(unit) {
+          if (!unit || unit.isHero) return;
+          this.notifyUnitWillDespawn(unit);
+          var team = unit.team;
+          var units = team === 0 ? this.teamA : this.teamB;
+          var index = units.indexOf(unit);
+          if (index < 0) return;
+          units.splice(index, 1);
+          this.aliveCount[team] = Math.max(0, this.aliveCount[team] - 1);
+          var entry = this.getTeamEntry(team, unit.unitTypeName);
+
+          if (entry != null && entry.prefab && this.spawner) {
+            this.spawner.despawnUnit(unit, entry.prefab);
+            return;
+          }
+
+          this.removeUnitAgentFromSimulator(unit);
+          unit.resetForDespawn();
         }
 
         despawnUnit(unit) {

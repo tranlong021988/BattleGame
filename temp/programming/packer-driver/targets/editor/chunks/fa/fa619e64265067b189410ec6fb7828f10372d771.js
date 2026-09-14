@@ -32,7 +32,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       __checkObsolete__(['Node', 'Vec3']);
 
       _export("BattleWave", BattleWave = class BattleWave {
-        constructor(id, team, unitName, family, tier, totalCount, laneId = -1) {
+        constructor(id, team, unitName, family, tier, totalCount, laneId = -1, originalCombatPointCost = 0) {
           this.id = 0;
           this.team = 0;
           this.unitName = '';
@@ -41,6 +41,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }), UnitFamily) : UnitFamily).Spear;
           this.tier = 1;
           this.totalCount = 0;
+          // Snapshot at creation time. A breakthrough reward must not depend on a
+          // later database edit or on the wave's remaining unit count.
+          this.originalCombatPointCost = 0;
           this.units = [];
           this.laneId = -1;
           this.released = false;
@@ -104,6 +107,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.tier = Math.max(1, Math.min(3, Math.floor(tier)));
           this.totalCount = totalCount;
           this.laneId = laneId;
+          this.originalCombatPointCost = Math.max(0, Number.isFinite(originalCombatPointCost) ? originalCombatPointCost : 0);
         }
 
         addUnit(unit) {

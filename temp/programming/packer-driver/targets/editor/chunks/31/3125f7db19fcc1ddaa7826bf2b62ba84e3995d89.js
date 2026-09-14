@@ -663,6 +663,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           return this.isValidEnemyWithinAttackRange(this.getValidEnemyTarget());
         }
 
+        isEnemyWithinAttackRange(enemy) {
+          return this.isValidEnemyWithinAttackRange(enemy);
+        }
+
         consumeAttackRangeCardBudget(enemy) {
           const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
@@ -735,15 +739,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         reactToAttacker(attacker) {
-          if (!this.isValidEnemy(attacker)) return false;
+          if (!this.isValidEnemy(attacker)) return false; // A melee unit only reacts to a ranged opponent after that opponent
+          // has actually entered melee contact range. Remote ranged fire is
+          // damage support, not an order to chase or to alter the parent wave.
+
+          if (!this.isRangedCombatUnit() && attacker.isRangedCombatUnit() && !this.isEnemyWithinAttackRange(attacker)) {
+            return false;
+          }
+
           const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance;
-          const isolateRangedPursuit = gm ? gm.shouldStartIsolatedRangedPursuit(this, attacker) : false; // A melee hit must be able to interrupt synchronized recovery even
+          }), GameManager) : GameManager).instance; // A melee hit must be able to interrupt synchronized recovery even
           // when this particular member is still busy in local combat. Outside
           // of that recovery state, busy units retain their existing behavior.
 
-          const regroupMeleeReengaged = !isolateRangedPursuit && !this.isolatedRangedPursuit && !!(gm != null && gm.isUnitAwaitingForwardRecovery(this)) && !!(gm != null && gm.tryReengageWaveFromRegroupMeleeAttack(this, attacker));
+          const regroupMeleeReengaged = !this.isolatedRangedPursuit && !!(gm != null && gm.isUnitAwaitingForwardRecovery(this)) && !!(gm != null && gm.tryReengageWaveFromRegroupMeleeAttack(this, attacker));
           if (this.onBusy) return regroupMeleeReengaged;
           const currentTarget = this.getValidEnemyTarget();
 
@@ -752,10 +762,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           }
 
           const wasBackToLane = this.backToLaneActive;
-          const soloAggressive = gm ? gm.shouldUseSoloAggressiveSkirmish(this, attacker) : false; // A ranged hit outside the parent's strategic target set isolates this
-          // member before wave recovery can react. Any other melee hit during
-          // recovery re-engages the whole command wave, whether this member is
-          // regrouping or already Forward.
+          const soloAggressive = gm ? gm.shouldUseSoloAggressiveSkirmish(this, attacker) : false; // Only a local engagement can interrupt recovery. A remote ranged hit
+          // has already returned above and cannot create a pursuit detachment.
 
           this.targetSearchPending = false;
           this.targetSearchConfirmedNoTarget = false; // Damage reaction keeps the actual attacker as the pursuit target.
@@ -765,20 +773,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           this.setRetaliationTarget(attacker);
           this.setCachedNearestInRangeTarget(null);
           this.soloAggressiveSkirmishActive = this.soloAggressiveSkirmishActive || soloAggressive;
-
-          if (isolateRangedPursuit) {
-            this.isolatedRangedPursuit = true;
-            this.isolatedRangedPursuitReturningToWave = false;
-            this.isolatedRangedPursuitReturnLaneId = -1;
-            this.resetIsolatedRangedPursuitReturnTelemetry();
-            gm == null || gm.notifyWaveCommandMembershipChanged(this);
-
-            if (this.cancelBackToLanePhase()) {
-              gm == null || gm.recordWaveRegroupTransition('unit-regroup-cancelled-for-isolated-ranged', this, attacker);
-            }
-
-            gm == null || gm.recordIsolatedRangedPursuit('isolated-ranged-pursuit-started', this, attacker);
-          }
 
           if (regroupMeleeReengaged) {
             this.cancelBackToLanePhase();
@@ -1156,8 +1150,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if ((_instance10 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
           }), GameManager) : GameManager).instance) != null && _instance10.resolveUnitReachedEnemyHeroLine(this)) {
-            this.setAgentStopped();
-            this.sync(deltaTime, false);
+            // The scanner's whole wave has been returned to the pool. Do not
+            // issue movement or simulator commands to this recycled member.
             return;
           }
 

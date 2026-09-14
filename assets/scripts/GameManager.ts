@@ -35,6 +35,7 @@ import { CounterSettings } from './CounterSettings';
 import { UnitFamily } from './BattleTypes';
 import {
     BattleTelemetry,
+    BattleTelemetryBreakthroughCashout,
     BattleTelemetryCounterRuleSnapshot,
     BattleTelemetryUnitSnapshot,
     BattleTelemetryWaveUnitSnapshot,
@@ -493,6 +494,17 @@ export class GameManager extends Component {
             clearFrame: number;
         }
     > = new Map();
+    private readonly breakthroughCashoutWaveIds: Set<number> = new Set();
+    private readonly breakthroughLaneSequences: Map<string, number> =
+        new Map();
+    private readonly lastBreakthroughIdByLane: Map<string, number> =
+        new Map();
+    private pendingBreakthroughSpawnLinks: {
+        cashoutId: number;
+        team: number;
+        combatPointBeforeReward: number;
+        combatPointAfterReward: number;
+    }[] = [];
     private battleCardRuntime: BattleCardRuntime | null = null;
     private battleRuntimeActive = false;
     private rvoStepAccumulatedDelta = 0;
@@ -548,6 +560,10 @@ export class GameManager extends Component {
         this.telemetryCombatEscalationSignatureByWave.clear();
         this.telemetryIdleEpisodes.clear();
         this.telemetryTargetClearRecoveryWindows.clear();
+        this.breakthroughCashoutWaveIds.clear();
+        this.breakthroughLaneSequences.clear();
+        this.lastBreakthroughIdByLane.clear();
+        this.pendingBreakthroughSpawnLinks.length = 0;
 
         this.resetCombatPoint();
 
@@ -1373,21 +1389,153 @@ export class GameManager extends Component {
     public resolveUnitReachedEnemyHeroLine(unit: Unit) {
         if (!this.battleRuntimeActive) return false;
         if (this.hasBattleWinner()) return false;
+        if (!unit || unit.isHero) return false;
         if (!this.hasUnitReachedEnemyHeroLine(unit)) return false;
 
-        this.recordUnitReachedEnemyHeroLineContext(unit);
+        const wave = BattleWave.getWaveForUnit(unit);
 
-        const losingTeam = unit.team === 0 ? 1 : 0;
+        // A breakthrough belongs to a command, not to an arbitrary straggler.
+        // The front scanner is the sole unit allowed to cash out its wave.
+        if (!wave || wave.isDead()) return false;
+        if (wave.getScanner() !== unit) return false;
+        if (this.breakthroughCashoutWaveIds.has(wave.id)) return true;
 
-        this.resolveBattleWinner(
-            unit.team,
-            losingTeam,
-            unit.team === 1
-                ? 'enemy-reached-hero-line'
-                : 'player-reached-hero-line'
-        );
+        this.breakthroughCashoutWaveIds.add(wave.id);
+        this.cashOutWaveAtEnemyHeroLine(wave, unit);
 
         return true;
+    }
+
+    private cashOutWaveAtEnemyHeroLine(
+        wave: BattleWave,
+        scanner: Unit
+    ) {
+        const aliveUnitCount = wave.getAliveCount();
+
+        if (aliveUnitCount <= 0) return;
+
+        const physicalLaneId = this.getCurrentLaneIdForUnit(scanner);
+        const laneId = physicalLaneId >= 0 ? physicalLaneId : wave.laneId;
+        const laneState = this.getBreakthroughLaneState(scanner.team, laneId);
+        const originalCombatPointCost = Math.max(
+            0,
+            wave.originalCombatPointCost
+        );
+        const rewardMultiplier =
+            aliveUnitCount >= wave.totalCount ? 2 : 1;
+        const rewardCombatPoint =
+            originalCombatPointCost * rewardMultiplier;
+        const combatPointBeforeReward = this.combatPoint[scanner.team] || 0;
+        const combatPointAfterReward =
+            combatPointBeforeReward + rewardCombatPoint;
+        const laneKey = `${scanner.team}:${laneId}`;
+        const laneBreakthroughSequence =
+            (this.breakthroughLaneSequences.get(laneKey) || 0) + 1;
+        const previousBreakthroughIdInLane =
+            this.lastBreakthroughIdByLane.get(laneKey);
+        const cashout: BattleTelemetryBreakthroughCashout = {
+            id: wave.id,
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: scanner.team,
+            waveId: wave.id,
+            laneId,
+            scannerUnitName: scanner.unitTypeName,
+            scannerSpawnId: this.battleTelemetry.getSpawnId(scanner),
+            scannerLifeId: scanner.lifeId,
+            originalCombatPointCost,
+            aliveUnitCount,
+            initialUnitCount: wave.totalCount,
+            rewardMultiplier,
+            rewardCombatPoint,
+            combatPointBeforeReward,
+            combatPointAfterReward,
+            laneBreakthroughSequence,
+            previousBreakthroughIdInLane,
+            attackingNonHeroAlive: laneState.attackingNonHeroAlive,
+            attackingWaveCount: laneState.attackingWaveCount,
+            defendingNonHeroAlive: laneState.defendingNonHeroAlive,
+            defendingWaveCount: laneState.defendingWaveCount,
+        };
+
+        if (this.enableBattleTelemetry) {
+            this.battleTelemetry.recordBreakthroughCashout(cashout);
+        }
+
+        this.breakthroughLaneSequences.set(laneKey, laneBreakthroughSequence);
+        this.lastBreakthroughIdByLane.set(laneKey, wave.id);
+        this.addCombatPoint(scanner.team, rewardCombatPoint);
+        if (this.enableBattleTelemetry) {
+            this.pendingBreakthroughSpawnLinks.push({
+                cashoutId: wave.id,
+                team: scanner.team,
+                combatPointBeforeReward,
+                combatPointAfterReward,
+            });
+        }
+
+        const members = wave.units.slice();
+
+        for (let i = 0; i < members.length; i++) {
+            const member = members[i];
+
+            if (!this.isAliveUnit(member)) continue;
+            if (BattleWave.getWaveForUnit(member) !== wave) continue;
+
+            this.despawnUnitForBreakthroughCashout(member);
+        }
+
+        wave.invalidateRuntimeState();
+        this.markTargetLifecyclePendingForWave(
+            wave,
+            'target-wave-cashed-out-at-enemy-hero-line'
+        );
+        this.requestSpatialGridRebuild();
+        this.requestBattleStatsUIRefresh();
+    }
+
+    private getBreakthroughLaneState(
+        attackingTeam: number,
+        laneId: number
+    ) {
+        let attackingNonHeroAlive = 0;
+        let defendingNonHeroAlive = 0;
+        const attackingWaveIds = new Set<number>();
+        const defendingWaveIds = new Set<number>();
+        const collect = (units: Unit[]) => {
+            for (let i = 0; i < units.length; i++) {
+                const laneUnit = units[i];
+
+                if (!this.isAliveUnit(laneUnit)) continue;
+                if (laneUnit.isHero) continue;
+                if (
+                    laneId >= 0 &&
+                    this.getCurrentLaneIdForUnit(laneUnit) !== laneId
+                ) {
+                    continue;
+                }
+
+                const laneWave = BattleWave.getWaveForUnit(laneUnit);
+
+                if (laneUnit.team === attackingTeam) {
+                    attackingNonHeroAlive++;
+                    if (laneWave) attackingWaveIds.add(laneWave.id);
+                } else {
+                    defendingNonHeroAlive++;
+                    if (laneWave) defendingWaveIds.add(laneWave.id);
+                }
+            }
+        };
+
+        collect(this.teamA);
+        collect(this.teamB);
+
+        return {
+            attackingNonHeroAlive,
+            attackingWaveCount: attackingWaveIds.size,
+            defendingNonHeroAlive,
+            defendingWaveCount: defendingWaveIds.size,
+        };
     }
 
     private recordUnitReachedEnemyHeroLineContext(unit: Unit) {
@@ -1740,8 +1888,9 @@ export class GameManager extends Component {
         const enemySameLaneWaveEngagement =
             this.isSameLaneWaveEngagement(enemyWave, unit);
         const enemyStrategicEscalationBlocked =
-            crossLaneRangedAttack &&
-            !enemyWave.hasEngagedTargetWave(wave);
+            (crossLaneRangedAttack &&
+                !enemyWave.hasEngagedTargetWave(wave)) ||
+            this.isRemoteRangedAttackAgainstMelee(unit, enemy);
         const enemyCanEscalateWaveCombat =
             !enemyStrategicEscalationBlocked &&
             !enemySoloAggressiveCombat &&
@@ -2311,6 +2460,17 @@ export class GameManager extends Component {
 
         return this.clampLaneId(attackerWave.laneId) !==
             this.clampLaneId(targetWave.laneId);
+    }
+
+    private isRemoteRangedAttackAgainstMelee(
+        attacker: Unit | null,
+        target: Unit | null
+    ) {
+        if (!attacker || !target) return false;
+        if (!attacker.isRangedCombatUnit()) return false;
+        if (target.isRangedCombatUnit()) return false;
+
+        return !target.isEnemyWithinAttackRange(attacker);
     }
 
     private recordWaveCombatEscalationDecision(
@@ -6094,7 +6254,8 @@ export class GameManager extends Component {
             entry.family,
             entry.tier,
             count,
-            laneId
+            laneId,
+            cost
         );
 
         this.waves.push(wave);
@@ -6155,6 +6316,13 @@ export class GameManager extends Component {
                     this.battleElapsedTime
                 );
             }
+
+            this.linkPendingBreakthroughCashoutsToSpawn(
+                team,
+                wave,
+                entry,
+                cost
+            );
         }
 
         this.node.emit(
@@ -6163,6 +6331,47 @@ export class GameManager extends Component {
         );
 
         return wave;
+    }
+
+    private linkPendingBreakthroughCashoutsToSpawn(
+        team: number,
+        wave: BattleWave,
+        entry: UnitPrefabEntry,
+        cost: number
+    ) {
+        if (!this.enableBattleTelemetry) return;
+
+        const remaining: typeof this.pendingBreakthroughSpawnLinks = [];
+
+        for (
+            let i = 0;
+            i < this.pendingBreakthroughSpawnLinks.length;
+            i++
+        ) {
+            const pending = this.pendingBreakthroughSpawnLinks[i];
+
+            if (pending.team !== team) {
+                remaining.push(pending);
+                continue;
+            }
+
+            this.battleTelemetry.linkBreakthroughCashoutToNextBudgetedSpawn(
+                pending.cashoutId,
+                {
+                    waveId: wave.id,
+                    laneId: wave.laneId,
+                    unitName: entry.name,
+                    cost,
+                    frame: this.frame,
+                    time: this.battleElapsedTime,
+                    madeAffordableAtCashoutTime:
+                        pending.combatPointBeforeReward + 0.0001 < cost &&
+                        pending.combatPointAfterReward + 0.0001 >= cost,
+                }
+            );
+        }
+
+        this.pendingBreakthroughSpawnLinks = remaining;
     }
 
     private assignWaveBanner(
@@ -7097,6 +7306,31 @@ export class GameManager extends Component {
         this.requestBattleStatsUIRefresh();
 
         return unit;
+    }
+
+    private despawnUnitForBreakthroughCashout(unit: Unit) {
+        if (!unit || unit.isHero) return;
+
+        this.notifyUnitWillDespawn(unit);
+
+        const team = unit.team;
+        const units = team === 0 ? this.teamA : this.teamB;
+        const index = units.indexOf(unit);
+
+        if (index < 0) return;
+
+        units.splice(index, 1);
+        this.aliveCount[team] = Math.max(0, this.aliveCount[team] - 1);
+
+        const entry = this.getTeamEntry(team, unit.unitTypeName);
+
+        if (entry?.prefab && this.spawner) {
+            this.spawner.despawnUnit(unit, entry.prefab);
+            return;
+        }
+
+        this.removeUnitAgentFromSimulator(unit);
+        unit.resetForDespawn();
     }
 
     despawnUnit(unit: Unit) {

@@ -106,6 +106,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.finalSnapshot = null;
           this.heroDefeatContext = null;
           this.lineReachedContext = null;
+          this.breakthroughCashouts = [];
           this.framePerformance = null;
           this.diagnosticEvents = [];
           this.targetWaveLifecycleEvents = [];
@@ -161,6 +162,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.finalSnapshot = null;
           this.heroDefeatContext = null;
           this.lineReachedContext = null;
+          this.breakthroughCashouts.length = 0;
           this.framePerformance = null;
           this.diagnosticEvents.length = 0;
           this.targetWaveLifecycleEvents.length = 0;
@@ -361,6 +363,30 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lineReachedContext = _extends({}, context, {
             targetWaveIds: context.targetWaveIds.slice()
           });
+        }
+
+        recordBreakthroughCashout(cashout) {
+          if (!this.isEnabled()) return;
+          if (!cashout) return;
+          this.breakthroughCashouts.push(_extends({}, cashout));
+        }
+
+        linkBreakthroughCashoutToNextBudgetedSpawn(cashoutId, spawn) {
+          if (!this.isEnabled()) return;
+
+          for (var i = 0; i < this.breakthroughCashouts.length; i++) {
+            var cashout = this.breakthroughCashouts[i];
+            if (cashout.id !== cashoutId) continue;
+            if (cashout.nextBudgetedSpawnWaveId !== undefined) return;
+            cashout.nextBudgetedSpawnWaveId = spawn.waveId;
+            cashout.nextBudgetedSpawnLaneId = spawn.laneId;
+            cashout.nextBudgetedSpawnUnitName = spawn.unitName;
+            cashout.nextBudgetedSpawnCost = spawn.cost;
+            cashout.nextBudgetedSpawnFrame = spawn.frame;
+            cashout.nextBudgetedSpawnTime = spawn.time;
+            cashout.cashoutMadeSpawnAffordableAtCashoutTime = spawn.madeAffordableAtCashoutTime;
+            return;
+          }
         }
 
         setFramePerformance(performance) {
@@ -775,6 +801,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             lineReachedContext: this.lineReachedContext ? _extends({}, this.lineReachedContext, {
               targetWaveIds: this.lineReachedContext.targetWaveIds.slice()
             }) : null,
+            breakthroughCashouts: this.breakthroughCashouts.map(cashout => _extends({}, cashout)),
             unitTypes
           };
         }

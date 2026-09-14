@@ -15,6 +15,9 @@ export class BattleWave {
     tier = 1;
 
     totalCount = 0;
+    // Snapshot at creation time. A breakthrough reward must not depend on a
+    // later database edit or on the wave's remaining unit count.
+    originalCombatPointCost = 0;
     units: Unit[] = [];
 
     laneId = -1;
@@ -95,7 +98,8 @@ export class BattleWave {
         family: UnitFamily,
         tier: number,
         totalCount: number,
-        laneId: number = -1
+        laneId: number = -1,
+        originalCombatPointCost: number = 0
     ) {
         this.id = id;
         this.team = team;
@@ -104,6 +108,12 @@ export class BattleWave {
         this.tier = Math.max(1, Math.min(3, Math.floor(tier)));
         this.totalCount = totalCount;
         this.laneId = laneId;
+        this.originalCombatPointCost = Math.max(
+            0,
+            Number.isFinite(originalCombatPointCost)
+                ? originalCombatPointCost
+                : 0
+        );
     }
 
     addUnit(unit: Unit) {

@@ -1906,7 +1906,7 @@
     },
     "useWorkerRVO": true,
     "targetFrameRate": 60,
-    "battleTimeScale": 1,
+    "battleTimeScale": 2,
     "resetBattleTimeScaleOnDestroy": true,
     "showCocosProfilerStats": false,
     "allowProfilerStatsQueryParam": true,

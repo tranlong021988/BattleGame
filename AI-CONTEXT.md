@@ -810,3 +810,172 @@ lanes qualify and record an explicit telemetry reason for no response
 - Checked on 2026-09-11: `.git/index.lock` was absent. No lock was removed.
 - `git status` emits a permission warning for the user's global Git ignore
   file. This is not an index lock and did not prevent reading status.
+
+## Current takeover handoff — 2026-09-14
+
+Read this section first. It supersedes contradictory older notes in this file,
+especially any description of (1) melee units leaving their wave to chase a
+ranged attacker and (2) a unit reaching the enemy hero line ending the
+battle.
+
+### Working rule for investigation and fixes
+
+The user explicitly requires root-cause work: do not fix an observed symptom
+until code and telemetry establish the preceding state and event that caused
+it. State evidence separately from an inference. If the cause remains unclear,
+add narrowly scoped telemetry or ask the user about the desired rule; do not
+paper over it with a generic timeout, repeated-order suppression, or state
+reset.
+
+### Implemented battle rules (source-verified)
+
+#### 1. Remote ranged fire does not make melee chase or pull its parent wave
+
+- In `assets/scripts/Unit.ts`, a melee unit ignores a ranged attacker that is
+  outside its own attack range. Its `reactToAttacker` returns before changing
+  unit or wave intent.
+- Therefore a distant ranged hit does not add the attacker wave to the melee
+  wave's Free Hunt target set and does not cause cross-lane whole-wave chase.
+- The older isolated-ranged-pursuit fields/helpers still exist in source but
+  their active start path is disabled. Treat them as dead legacy code, not as
+  current gameplay; do not delete them without a focused, verified cleanup.
+
+#### 2. Reaching the enemy hero line is a breakthrough cash-out, not a win
+
+- `GameManager.resolveUnitReachedEnemyHeroLine` only cashes out an alive,
+  active, non-hero wave's current scanner after it has crossed the enemy line.
+  It no longer resolves a battle winner.
+- The whole scanner wave is removed through the pool-return path without
+  counting as combat deaths or incrementing death statistics.
+- Reward uses the wave's original entry CP cost:
+  - alive count equals the wave's initial/max count: `2 x original CP cost`;
+  - otherwise: `1 x original CP cost`.
+- The reward calls runtime `addCombatPoint` only. `initialCombatPoint` / the
+  level baseline are not changed. This is temporary CP for the current battle.
+- `BattleWave.originalCombatPointCost` is set when a normal spawn is created;
+  hero/default waves carry zero unless explicitly given a cost.
+
+#### 3. Removing a cash-out target follows the normal target-set lifecycle
+
+- A cash-out wave is marked pending for every wave that currently targets it.
+  Processing occurs on that target wave's configured target-search interval,
+  not every frame.
+- If other target waves remain, Free Hunt continues against them. If none
+  remain, the wave enters regroup/recovery and subsequently returns to Forward.
+- Regroup lane policy remains: Normal Forward uses the last removed target's
+  lane; Aggressive Forward uses its original lane and does not adopt a target
+  lane.
+- `freeHuntActive` can remain true while recovery is in progress and the target
+  set is empty; it is cleared when Forward actually resumes. A snapshot of
+  `freeHuntActive=true` plus zero targets is therefore not, by itself, evidence
+  of an endless hunt.
+
+#### 4. Recovery interruption currently has an intentional melee-defender path
+
+- At actual damage resolution, `UnitBehavior.finishDamagedEnemy` calls the
+  damaged unit's `reactToAttacker` while that unit is still alive.
+- If that damaged unit belongs to a wave awaiting recovery and the attacker is
+  a non-ranged unit from a valid enemy wave, its parent wave cancels recovery,
+  adds the attacker wave to its target set, cancels regroup orders for command
+  units, and primes Free Hunt.
+- This is event-driven by a real melee hit, not a per-frame target search.
+
+### Telemetry implemented for breakthrough/cash-out
+
+`BattleTelemetry.breakthroughCashouts` records one item per cash-out with:
+
+- time/frame, team, wave, physical lane, scanner identity;
+- original CP cost, alive/initial count, reward multiplier and CP reward;
+- CP immediately before and after reward;
+- lane-local breakthrough sequence and prior breakthrough id;
+- attacking and defending non-hero alive counts/wave counts at the moment;
+- the first later costed spawn of the same team, including its wave/lane/unit/
+  cost/time, and whether the reward made that *specific cost* affordable at
+  cash-out time.
+
+The spawn link is evidence of order and affordability, not proof that the CP
+reward caused that spawn. `lineReachedContext` remains in old telemetry shape
+but is no longer populated by the active breakthrough flow.
+
+### Latest bot telemetry audit (110 reports, source data inspected)
+
+The reviewed files cover the supplied 2026-09-14 intervals
+`09:42:35–09:57:06` and `10:22:27–10:44:55`.
+
+- Outcomes: 56 `enemy-hero-killed`, 33 `player-hero-killed`, and 21
+  `boss-hero-killed`; there was no `lineReachedContext` event.
+- There were 59 cash-outs totaling 4,974 CP. All 59 matched the implemented
+  one-or-two-times-original-cost formula; 13 were full-wave double rewards.
+- 56 of 59 cash-outs were linked to a later costed spawn by the telemetry
+  correlation rule. The remaining three had no such link before that battle
+  ended.
+- 25 of 59 cash-outs occurred with no defending non-hero unit in that lane.
+  The user has explicitly accepted this as intended gameplay: breaking through
+  an empty lane is a deliberate high-value opportunity. This observation is
+  only about these bot reports; it is not evidence about human play.
+- Among 49 targeter/cash-out relationships, 47 were processed before the
+  battle ended. 20 emptied their target set and began regroup; 15 later
+  recorded Forward resume; 29 continued because another target wave remained.
+  The target-removal processing delay was 1–30 frames (average about 14.7).
+  The two unprocessed records were from a battle ending one frame after the
+  cash-out.
+
+### Active investigation — recovery plus local combat
+
+Do not implement a fix for this section yet. The user ended work for the day
+and considers the current behavior not fully satisfactory.
+
+Verified observations:
+
+- In report `2026-09-14T10-30-39-645Z`, an Archer-vs-Archer local exchange
+  during recovery was recorded as `ranged-attacker-kept-local`. Keeping it
+  local follows the remote-ranged rule and is not evidence of a lost melee
+  re-engagement.
+- In report `2026-09-14T10-41-38-600Z`, an Archer recovery wave encountered a
+  Spear wave in the same lane. Telemetry records the local engagement, but does
+  not record the actual melee damage event required to prove that the Spear
+  struck the recovering Archer. It therefore does not establish a failure of
+  the existing melee-defender interruption rule.
+- There is a verified asymmetry in code: the *defender* of an actual melee hit
+  can re-engage its recovering parent wave through `reactToAttacker`; a
+  recovering unit that is the *attacker* can begin a local combat without its
+  parent target set necessarily being promoted, because engagement assignment
+  rejects a wave that is still awaiting Forward recovery.
+
+Open design question for the user and next Codex:
+
+> Should one confirmed melee damage event during recovery promote **both**
+> parent waves that are in recovery into the same Free Hunt engagement, or is
+> only the hit defender's parent wave meant to be promoted?
+
+Recommended next step, pending that answer: instrument an event at actual
+melee damage with attacker/defender role, both parent wave ids, each recovery
+state, target-set before/after, and whether regroup was cancelled. If the user
+approves two-sided promotion, implement it there (not on sight/contact),
+deduplicate the target insertion, and preserve the no-remote-ranged rule. This
+would be event-driven and avoids a per-frame scan. Do not infer a root cause
+from `freeHuntActive` alone while target count is zero during recovery.
+
+### Files most relevant to continue
+
+- `assets/scripts/GameManager.ts`: cash-out, runtime CP, target-lifecycle
+  processing, recovery orchestration, telemetry link to subsequent spawn.
+- `assets/scripts/BattleWave.ts`: target-set cleanup, recovery/regroup state,
+  original CP cost, target-lifecycle pending state.
+- `assets/scripts/Unit.ts`: remote-ranged ignore and hero-line transition.
+- `assets/scripts/UnitBehavior.ts`: authoritative point where an actual hit
+  invokes `reactToAttacker`.
+- `assets/scripts/BattleTelemetry.ts`: cash-out schema/export and correlation
+  fields.
+
+### Verification and worktree safety
+
+- No full TypeScript/Cocos compile has been completed after the cash-out work;
+  the next implementer should run an appropriate project compile/playtest
+  before treating the changes as release-ready.
+- The worktree remains intentionally dirty in gameplay source, scene data, and
+  Cocos-generated `library/` / `temp/` artifacts. Preserve unrelated changes;
+  do not reset, clean, or remove generated files merely to clean status.
+- No Git lock was removed in this handoff update. A fresh check on 2026-09-14
+  found `.git/index.lock` absent; the global Git ignore permission warning is
+  unrelated to an index lock.

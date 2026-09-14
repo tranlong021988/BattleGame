@@ -678,6 +678,10 @@ export class Unit extends Component {
         );
     }
 
+    public isEnemyWithinAttackRange(enemy: Unit | null) {
+        return this.isValidEnemyWithinAttackRange(enemy);
+    }
+
     public consumeAttackRangeCardBudget(enemy: Unit) {
         const gm = GameManager.instance;
 
@@ -769,19 +773,22 @@ export class Unit extends Component {
     public reactToAttacker(attacker: Unit | null) {
         if (!this.isValidEnemy(attacker)) return false;
 
+        // A melee unit only reacts to a ranged opponent after that opponent
+        // has actually entered melee contact range. Remote ranged fire is
+        // damage support, not an order to chase or to alter the parent wave.
+        if (
+            !this.isRangedCombatUnit() &&
+            attacker!.isRangedCombatUnit() &&
+            !this.isEnemyWithinAttackRange(attacker)
+        ) {
+            return false;
+        }
+
         const gm = GameManager.instance;
-        const isolateRangedPursuit =
-            gm
-                ? gm.shouldStartIsolatedRangedPursuit(
-                    this,
-                    attacker
-                )
-                : false;
         // A melee hit must be able to interrupt synchronized recovery even
         // when this particular member is still busy in local combat. Outside
         // of that recovery state, busy units retain their existing behavior.
         const regroupMeleeReengaged =
-            !isolateRangedPursuit &&
             !this.isolatedRangedPursuit &&
             !!gm?.isUnitAwaitingForwardRecovery(this) &&
             !!gm?.tryReengageWaveFromRegroupMeleeAttack(
@@ -812,10 +819,8 @@ export class Unit extends Component {
                     attacker
                 )
                 : false;
-        // A ranged hit outside the parent's strategic target set isolates this
-        // member before wave recovery can react. Any other melee hit during
-        // recovery re-engages the whole command wave, whether this member is
-        // regrouping or already Forward.
+        // Only a local engagement can interrupt recovery. A remote ranged hit
+        // has already returned above and cannot create a pursuit detachment.
 
         this.targetSearchPending = false;
         this.targetSearchConfirmedNoTarget = false;
@@ -829,26 +834,6 @@ export class Unit extends Component {
         this.soloAggressiveSkirmishActive =
             this.soloAggressiveSkirmishActive ||
             soloAggressive;
-
-        if (isolateRangedPursuit) {
-            this.isolatedRangedPursuit = true;
-            this.isolatedRangedPursuitReturningToWave = false;
-            this.isolatedRangedPursuitReturnLaneId = -1;
-            this.resetIsolatedRangedPursuitReturnTelemetry();
-            gm?.notifyWaveCommandMembershipChanged(this);
-            if (this.cancelBackToLanePhase()) {
-                gm?.recordWaveRegroupTransition(
-                    'unit-regroup-cancelled-for-isolated-ranged',
-                    this,
-                    attacker
-                );
-            }
-            gm?.recordIsolatedRangedPursuit(
-                'isolated-ranged-pursuit-started',
-                this,
-                attacker
-            );
-        }
 
         if (regroupMeleeReengaged) {
             this.cancelBackToLanePhase();
@@ -1252,8 +1237,8 @@ export class Unit extends Component {
                 this
             )
         ) {
-            this.setAgentStopped();
-            this.sync(deltaTime, false);
+            // The scanner's whole wave has been returned to the pool. Do not
+            // issue movement or simulator commands to this recycled member.
             return;
         }
 
