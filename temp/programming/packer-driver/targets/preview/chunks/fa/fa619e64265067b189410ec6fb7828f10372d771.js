@@ -880,21 +880,25 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return this.lastRegroupMeleeCancelledUnitLifeIds.slice();
         }
 
-        tryReengageFromRecoveryMeleeAttack(unit, attacker) {
-          if (!unit || !attacker || this.released) return false;
+        tryReengageFromRecoveryMeleeContact(unit, opposingUnit) {
+          var _this$targetWaves$;
+
+          if (!unit || !opposingUnit || this.released) return false;
           if (!this.awaitingForwardRecoveryAfterTargetClear) return false;
           if (!this.isCommandUnit(unit)) return false;
-          if (attacker.isRangedCombatUnit()) return false;
-          var attackerWave = BattleWave.getWaveForUnit(attacker);
-          if (!attackerWave || attackerWave === this) return false;
-          if (attackerWave.team === this.team) return false;
+          var opposingWave = BattleWave.getWaveForUnit(opposingUnit);
+          if (!opposingWave || opposingWave === this) return false;
+          if (opposingWave.team === this.team) return false;
 
-          if (attackerWave.released || attackerWave.getCommandAliveCount() <= 0) {
+          if (opposingWave.released || opposingWave.getCommandAliveCount() <= 0) {
             return false;
           }
 
-          this.targetWaves.push(attackerWave);
-          this.targetWave = attackerWave;
+          if (!this.hasEngagedTargetWave(opposingWave)) {
+            this.targetWaves.push(opposingWave);
+          }
+
+          this.targetWave = (_this$targetWaves$ = this.targetWaves[0]) != null ? _this$targetWaves$ : opposingWave;
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
@@ -903,7 +907,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.targetClearOutcomeTelemetry = {
             reason: 'regroup-melee-reengagement',
             scanner: this.getScanner(),
-            target: attacker
+            target: opposingUnit
           };
           this.lastRegroupMeleeCancelledUnitLifeIds = [];
 
@@ -1014,7 +1018,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         trySetTargetWaveFromScanner(scanner, target, allowRecoveryContinuation) {
-          var _this$targetWaves$;
+          var _this$targetWaves$2;
 
           if (allowRecoveryContinuation === void 0) {
             allowRecoveryContinuation = false;
@@ -1043,7 +1047,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.targetWaves.push(nextTargetWave);
-          this.targetWave = (_this$targetWaves$ = this.targetWaves[0]) != null ? _this$targetWaves$ : null;
+          this.targetWave = (_this$targetWaves$2 = this.targetWaves[0]) != null ? _this$targetWaves$2 : null;
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
@@ -1058,7 +1062,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         trySetTargetWaveFromEngagement(unit, target) {
-          var _this$targetWaves$2;
+          var _this$targetWaves$3;
 
           if (!unit || !target || this.released) return false;
           if (!this.isCommandUnit(unit)) return false;
@@ -1087,7 +1091,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
 
           this.targetWaves.push(nextTargetWave);
-          this.targetWave = (_this$targetWaves$2 = this.targetWaves[0]) != null ? _this$targetWaves$2 : null;
+          this.targetWave = (_this$targetWaves$3 = this.targetWaves[0]) != null ? _this$targetWaves$3 : null;
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
@@ -1169,7 +1173,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           } // Recovery is synchronized: idle command members return to the lane,
           // then wait there until no command member remains in local combat or
           // outside the regroup lane. A melee attack can still cancel this
-          // state through tryReengageFromRecoveryMeleeAttack().
+          // state through tryReengageFromRecoveryMeleeContact().
 
 
           if (resumableUnitCount <= 0) return false;

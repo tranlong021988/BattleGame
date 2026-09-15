@@ -1900,7 +1900,7 @@
     "battleCardDatabase": {
       "__id__": 45
     },
-    "enableBattleCardEffects": true,
+    "enableBattleCardEffects": false,
     "cinematicController": {
       "__id__": 144
     },
@@ -3763,7 +3763,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 110,
-    "damage": 46,
+    "damage": 52,
     "defense": 2,
     "combatPointCost": 74
   },
@@ -3795,8 +3795,8 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 160,
-    "damage": 45,
+    "health": 240,
+    "damage": 58,
     "defense": 7,
     "combatPointCost": 97
   },
@@ -3862,7 +3862,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 95,
-    "damage": 14,
+    "damage": 13,
     "defense": 3,
     "combatPointCost": 39
   },
@@ -3895,7 +3895,7 @@
     "attackIntervalMin": 2.1,
     "attackIntervalMax": 2.6,
     "health": 35,
-    "damage": 70,
+    "damage": 48,
     "defense": 0,
     "combatPointCost": 49
   },
@@ -3961,7 +3961,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 110,
-    "damage": 46,
+    "damage": 52,
     "defense": 2,
     "combatPointCost": 74
   },
@@ -3993,8 +3993,8 @@
     "damageRadius": 0,
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
-    "health": 160,
-    "damage": 45,
+    "health": 240,
+    "damage": 58,
     "defense": 7,
     "combatPointCost": 97
   },
@@ -4060,7 +4060,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 95,
-    "damage": 14,
+    "damage": 13,
     "defense": 3,
     "combatPointCost": 39
   },
@@ -4093,7 +4093,7 @@
     "attackIntervalMin": 2.1,
     "attackIntervalMax": 2.6,
     "health": 35,
-    "damage": 70,
+    "damage": 48,
     "defense": 0,
     "combatPointCost": 49
   },
@@ -9418,7 +9418,7 @@
     "maxSpawnIntervalMinLevel": 3,
     "minSpawnIntervalMaxLevel": 1,
     "maxSpawnIntervalMaxLevel": 1.5,
-    "dangerousThreatProgressMinLevel": 0.5,
+    "dangerousThreatProgressMinLevel": 0.7,
     "dangerousThreatProgressMaxLevel": 0.3,
     "allowMaxWave": true,
     "maxAliveWavesMin": 3,

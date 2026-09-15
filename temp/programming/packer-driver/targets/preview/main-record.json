@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 6847.0792,
+      "mTimestamp": 6858.0397,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 20032895.8078,
+      "mTimestamp": 10227833.6136,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -4582,7 +4582,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1789358776348,
+      "mTimestamp": 1789455596868,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -4712,7 +4712,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1789358776348,
+      "mTimestamp": 1789455596868,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -5548,7 +5548,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleWave.ts": {
       "mTimestamp": {
-        "mtime": 1789378392011.3042,
+        "mtime": 1789446760869.6409,
         "uuid": "2d08db82-1fa4-4c47-8a8f-1426426be8b7"
       },
       "chunkId": "fa619e64265067b189410ec6fb7828f10372d771",
@@ -7024,7 +7024,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/Unit.ts": {
       "mTimestamp": {
-        "mtime": 1789378624589.1555,
+        "mtime": 1789446768064.6216,
         "uuid": "6e964aa4-ad1e-45d9-8bd6-bc7e4df9e5ce"
       },
       "chunkId": "3125f7db19fcc1ddaa7826bf2b62ba84e3995d89",
@@ -8490,7 +8490,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/BattleTelemetry.ts": {
       "mTimestamp": {
-        "mtime": 1789378393276.3882,
+        "mtime": 1789465496092.1794,
         "uuid": "efefbddb-804d-4a8c-98da-68618b2263c6"
       },
       "chunkId": "220bf6d52a94be16729ca4c58ede2a9e0e4f747a",
@@ -8544,7 +8544,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1789378625179.735,
+        "mtime": 1789465496656.8772,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",

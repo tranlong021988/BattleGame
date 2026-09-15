@@ -979,3 +979,132 @@ from `freeHuntActive` alone while target count is zero during recovery.
 - No Git lock was removed in this handoff update. A fresh check on 2026-09-14
   found `.git/index.lock` absent; the global Git ignore permission warning is
   unrelated to an index lock.
+
+### Update — 2026-09-15: two-sided melee contact during recovery
+
+Implemented after explicit user approval. This replaces the one-sided
+recovery-interruption behavior described in the active-investigation section
+above.
+
+- A strategic melee engagement now starts when a non-ranged unit has entered
+  its effective attack range of an enemy, not when either side first deals
+  damage.
+- At that contact, both parent waves are evaluated together. Every parent wave
+  that is awaiting recovery adds the opposing wave to its Free Hunt target set,
+  cancels command-member regroup orders, and begins Free Hunt. Thus if both
+  waves are regrouping, both leave recovery in the same event; update order
+  cannot make the engagement one-sided.
+- The rule also covers contact between melee and a ranged unit. Ranged fire at
+  distance still does not qualify: the initiating unit must be melee and must
+  already be in its attack range.
+- The normal combat-entry path is the primary trigger. The actual-damage path
+  calls the same two-sided routine only as a fallback, so it cannot reintroduce
+  a first-attacker/first-defender rule.
+- New telemetry type:
+  `wave-regroup-melee-contact-reengaged`. It records one event for each wave
+  that left recovery, its contact counterpart, role in the observed pair,
+  target set, and regroup members whose orders were cancelled.
+
+Relevant implementation locations:
+
+- `GameManager.onWaveCombatStarted` and
+  `GameManager.tryReengageWavesFromRecoveryMeleeContact`.
+- `BattleWave.tryReengageFromRecoveryMeleeContact`.
+- `Unit.reactToAttacker` uses the same routine as a fallback.
+
+Static verification completed: no references remain to the replaced one-sided
+methods and `git diff --check` passes for these source files. No local
+TypeScript compiler is configured in this checkout, so a Cocos compile and
+playtest remain required before release.
+
+## Current takeover handoff — 2026-09-15: base-stat balance pass
+
+Read this section first for the current balance experiment. It supplements the
+combat rules above; it does not authorize a behavior rewrite.
+
+### User-approved balance objective
+
+The user wants each unit's **base** purchase value to be fair before support
+cards add their intentionally noisy, asymmetric effects. Do not dismiss a
+base Damage/CP gap merely because a unit has a counter or AoE role. Those
+systems remain part of its base battlefield value and must be included in the
+baseline audit. Keep the melee ladder ordered:
+
+`Spear -> Sword -> Axeman -> Cavalry`.
+
+The order is source-verified in `BattlefieldEvaluator.getMeleeLadderRank` and
+the corresponding wave CP costs are `39 < 49 < 74 < 97`. Do not change those
+costs in this pass: CP cost affects economy, affordability, and bot selection,
+whereas the approved experiment is a local stat retune.
+
+### Support cards are intentionally disabled for this experiment
+
+`assets/Battle.scene` sets the GameManager Inspector property
+`enableBattleCardEffects` to `false`.
+
+When false, GameManager does not begin the card runtime, returns neutral
+combat modifiers, and refuses modifier consumption. Telemetry records
+`config.cardEffectsEnabled: false`; `cardEvents` must be zero. Card ownership,
+deck selection, unlocks, and economy remain outside the gate by design. Do not
+expand the gate without a user request.
+
+Re-enable this Inspector property only after the user has accepted the
+support-card-off baseline result and explicitly asks for a cards-on validation
+or normal gameplay configuration.
+
+### Evidence: support-card-off baseline before the approved retune
+
+The user supplied 143 reports from 2026-09-15 10:37:26 through 11:20:11.
+Every report recorded `cardEffectsEnabled: false` and there were zero card
+events. Direct aggregate observations:
+
+| Unit | Spawned | Damage/CP | Kills/spawn | Important context |
+|---|---:|---:|---:|---|
+| Spear | 7,762 | 14.38 | 0.47 | 47% of damage was counter damage |
+| Sword | 6,073 | 12.81 | 0.71 | no counter/AoE contribution |
+| Axeman | 7,914 | 11.39 | 1.07 | no counter/AoE contribution |
+| Cavalry | 2,155 | 10.18 | 1.40 | 1,414 of 2,085 deaths were counter deaths |
+| Archer | 1,605 | 13.36 | 0.96 | 40% of damage was counter damage |
+| Monk | 190 | 14.60 | 3.80 | average 4.4 targets/attack; 80% AoE damage |
+
+This is a broad stochastic batch, not a deterministic proof of the exact new
+values. It is, however, the approved baseline for this local retune.
+
+### Approved scene retune — awaiting a new live batch
+
+Apply the exact values below for **both teams**. Keep all unlisted stats,
+including CP costs, unchanged.
+
+| Unit | HP | Damage before | Damage now | CP/wave |
+|---|---:|---:|---:|---:|
+| Spear | 95 | 14 | 13 | 39 |
+| Sword | 100 | 20 | 20 | 49 |
+| Axeman | 110 | 46 | 52 | 74 |
+| Cavalry | 240 | 45 | 58 | 97 |
+| Archer | 45 | 13 | 13 | 26 |
+| Monk | 35 | 54 | 48 | 49 |
+
+The inferred target band is approximately 13 Damage/CP while preserving raw
+melee damage order `13 < 20 < 52 < 58`. Pre-run proportional estimates are:
+Spear ~13.35, Sword ~12.81, Axeman ~12.87, Cavalry ~13.12, Archer ~13.36,
+Monk ~12.98. These estimates are not telemetry results and may differ because
+defense, counter multipliers, target access, and rounding are nonlinear.
+
+### Required next verification
+
+1. Capture a new cards-off batch; verify all reports have
+   `config.cardEffectsEnabled: false` and zero `cardEvents` before aggregating.
+2. Compare Damage/CP, kills/spawn, counter-damage share, counter deaths, and
+   Monk targets/attack against the 143-report baseline above.
+3. Confirm that the melee ladder remains ordered in CP and in raw damage.
+4. Do not infer cards-on balance from this batch. A later cards-on validation
+   is a separate experiment after baseline results are accepted.
+
+### Verification performed after this edit
+
+- `assets/Battle.scene` parses successfully as JSON.
+- Both team entries contain the same six unit values listed above.
+- `git diff --check` passed; only pre-existing CRLF notices were emitted.
+- No Cocos runtime or TypeScript compile was run after the new damage values.
+- A Git index-lock check must be repeated at the end of any later handoff;
+  do not delete a lock unless it is present and no Git process owns it.

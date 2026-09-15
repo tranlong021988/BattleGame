@@ -1046,25 +1046,26 @@ export class BattleWave {
         return this.lastRegroupMeleeCancelledUnitLifeIds.slice();
     }
 
-    tryReengageFromRecoveryMeleeAttack(
+    tryReengageFromRecoveryMeleeContact(
         unit: Unit | null,
-        attacker: Unit | null
+        opposingUnit: Unit | null
     ) {
-        if (!unit || !attacker || this.released) return false;
+        if (!unit || !opposingUnit || this.released) return false;
         if (!this.awaitingForwardRecoveryAfterTargetClear) return false;
         if (!this.isCommandUnit(unit)) return false;
-        if (attacker.isRangedCombatUnit()) return false;
 
-        const attackerWave = BattleWave.getWaveForUnit(attacker);
+        const opposingWave = BattleWave.getWaveForUnit(opposingUnit);
 
-        if (!attackerWave || attackerWave === this) return false;
-        if (attackerWave.team === this.team) return false;
-        if (attackerWave.released || attackerWave.getCommandAliveCount() <= 0) {
+        if (!opposingWave || opposingWave === this) return false;
+        if (opposingWave.team === this.team) return false;
+        if (opposingWave.released || opposingWave.getCommandAliveCount() <= 0) {
             return false;
         }
 
-        this.targetWaves.push(attackerWave);
-        this.targetWave = attackerWave;
+        if (!this.hasEngagedTargetWave(opposingWave)) {
+            this.targetWaves.push(opposingWave);
+        }
+        this.targetWave = this.targetWaves[0] ?? opposingWave;
         this.immediateTargetSearchPending = false;
         this.awaitingForwardRecoveryAfterTargetClear = false;
         this.forwardRecoveryLanePrepared = false;
@@ -1073,7 +1074,7 @@ export class BattleWave {
         this.targetClearOutcomeTelemetry = {
             reason: 'regroup-melee-reengagement',
             scanner: this.getScanner(),
-            target: attacker,
+            target: opposingUnit,
         };
         this.lastRegroupMeleeCancelledUnitLifeIds = [];
 
@@ -1368,7 +1369,7 @@ export class BattleWave {
         // Recovery is synchronized: idle command members return to the lane,
         // then wait there until no command member remains in local combat or
         // outside the regroup lane. A melee attack can still cancel this
-        // state through tryReengageFromRecoveryMeleeAttack().
+        // state through tryReengageFromRecoveryMeleeContact().
         if (resumableUnitCount <= 0) return false;
 
         if (!this.targetClearSameLaneSearchResolved) {

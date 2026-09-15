@@ -149,6 +149,9 @@ export interface BattleTelemetryWaveSnapshot {
     targetWaveCount?: number;
     isolatedRangedPursuitCount?: number;
     commandAliveCount?: number;
+    awaitingForwardRecovery?: boolean;
+    forwardRecoveryReadyUnitCount?: number;
+    forwardRecoveryRegroupingUnitCount?: number;
     staleUnitReferenceCount?: number;
     scannerUnitName: string;
     scannerSpawnId?: number;
@@ -454,6 +457,20 @@ export interface BattleTelemetryTargetWaveTransitionStats {
     maxTransitionsPerWave: number;
 }
 
+export interface BattleTelemetryCombatEscalationStats {
+    total: number;
+    waveCombatEscalated: number;
+    initialForwardCombatDelayed: number;
+    soloAggressiveCombat: number;
+    crossLaneRangedAttack: number;
+    strategicEscalationBlocked: number;
+    sameLaneWaveEngagement: number;
+    aggressiveFrontlineEngagement: number;
+    sampleLimit: number;
+    droppedSampleCount: number;
+    samples: BattleTelemetryDiagnosticEvent[];
+}
+
 export interface BattleTelemetryScannerTrace {
     frame: number;
     time: number;
@@ -629,6 +646,7 @@ export class BattleTelemetry {
     private maxSnapshots = 240;
     private maxDiagnosticEvents = 3000;
     private maxScannerTraces = 6000;
+    private readonly maxCombatEscalationSamples = 240;
     private droppedDiagnosticEventCount = 0;
     private overwrittenScannerTraceCount = 0;
     private scannerTraceWriteIndex = 0;
@@ -644,6 +662,9 @@ export class BattleTelemetry {
         aggressiveOffLaneAssignments: 0,
         maxTransitionsPerWave: 0,
     };
+    private combatEscalationStats: BattleTelemetryCombatEscalationStats =
+        this.createCombatEscalationStats();
+    private readonly combatEscalationSampleSignatures = new Set<string>();
     private nextSpawnId = 1;
 
     reset(enabled: boolean, config: BattleTelemetryStartConfig) {
@@ -675,6 +696,8 @@ export class BattleTelemetry {
             aggressiveOffLaneAssignments: 0,
             maxTransitionsPerWave: 0,
         };
+        this.combatEscalationStats = this.createCombatEscalationStats();
+        this.combatEscalationSampleSignatures.clear();
         this.cardEvents.length = 0;
         this.waveSpawnFrameById.clear();
         this.waveSpawnTimeById.clear();
@@ -1035,11 +1058,70 @@ export class BattleTelemetry {
         if (!this.isEnabled()) return;
         if (!event) return;
 
-        // This timeline must remain complete even when the general diagnostic
-        // event budget is exhausted; it reconstructs target-set and recovery
-        // behavior without relying on sparse snapshots.
+        // This timeline reconstructs target-set and recovery behavior without
+        // relying on sparse snapshots. It is exported separately, so do not
+        // duplicate every entry into the generic diagnostic event stream.
         this.targetWaveLifecycleEvents.push(event);
-        this.pushDiagnosticEvent(event);
+    }
+
+    recordCombatEscalationDecision(
+        event: BattleTelemetryDiagnosticEvent
+    ) {
+        if (!this.isEnabled()) return;
+        if (!event) return;
+
+        const stats = this.combatEscalationStats;
+        stats.total++;
+        if (event.waveCombatEscalated) stats.waveCombatEscalated++;
+        if (event.initialForwardCombatDelayed) {
+            stats.initialForwardCombatDelayed++;
+        }
+        if (event.soloAggressiveCombat) {
+            stats.soloAggressiveCombat++;
+        }
+        if (event.crossLaneRangedAttack) {
+            stats.crossLaneRangedAttack++;
+        }
+        if (event.strategicEscalationBlocked) {
+            stats.strategicEscalationBlocked++;
+        }
+        if (event.sameLaneWaveEngagement) {
+            stats.sameLaneWaveEngagement++;
+        }
+        if (event.aggressiveFrontlineEngagement) {
+            stats.aggressiveFrontlineEngagement++;
+        }
+
+        // A decision is emitted only after GameManager observes a changed
+        // signature. Retain one compact representative for each strategic
+        // situation; the aggregate above preserves its total frequency.
+        const sampleSignature = [
+            event.waveId ?? -1,
+            event.targetWaveId ?? -1,
+            event.engagementRole ?? '',
+            event.aggressiveForward ? 1 : 0,
+            event.waveForwardBefore ? 1 : 0,
+            event.sameLaneWaveEngagement ? 1 : 0,
+            event.soloAggressiveCombat ? 1 : 0,
+            event.aggressiveFrontlineEngagement ? 1 : 0,
+            event.canEscalateWaveCombat ? 1 : 0,
+            event.initialForwardCombatDelayed ? 1 : 0,
+            event.waveCombatEscalated ? 1 : 0,
+            event.crossLaneRangedAttack ? 1 : 0,
+            event.strategicEscalationBlocked ? 1 : 0,
+        ].join('|');
+
+        if (this.combatEscalationSampleSignatures.has(sampleSignature)) {
+            return;
+        }
+
+        this.combatEscalationSampleSignatures.add(sampleSignature);
+        if (stats.samples.length >= this.maxCombatEscalationSamples) {
+            stats.droppedSampleCount++;
+            return;
+        }
+
+        stats.samples.push({ ...event });
     }
 
     recordTargetWaveTransition(
@@ -1639,6 +1721,10 @@ export class BattleTelemetry {
                 targetWaveTransitions: {
                     ...this.targetWaveTransitionStats,
                 },
+                combatEscalation: {
+                    ...this.combatEscalationStats,
+                    samples: this.combatEscalationStats.samples.slice(),
+                },
                 targetWaveLifecycleEvents:
                     this.targetWaveLifecycleEvents.slice(),
                 snapshots: this.snapshots.slice(),
@@ -1671,8 +1757,9 @@ export class BattleTelemetry {
     ) {
         if (!report) return;
 
-        const json =
-            JSON.stringify(report, null, 2);
+        // Download compact JSON. Telemetry is machine-read and pretty-printing
+        // duplicates whitespace across every periodic snapshot and event.
+        const json = JSON.stringify(report);
 
         const globalObject =
             globalThis as any;
@@ -2137,6 +2224,22 @@ export class BattleTelemetry {
         }
 
         this.diagnosticEvents.push(event);
+    }
+
+    private createCombatEscalationStats(): BattleTelemetryCombatEscalationStats {
+        return {
+            total: 0,
+            waveCombatEscalated: 0,
+            initialForwardCombatDelayed: 0,
+            soloAggressiveCombat: 0,
+            crossLaneRangedAttack: 0,
+            strategicEscalationBlocked: 0,
+            sameLaneWaveEngagement: 0,
+            aggressiveFrontlineEngagement: 0,
+            sampleLimit: this.maxCombatEscalationSamples,
+            droppedSampleCount: 0,
+            samples: [],
+        };
     }
 
     private getScannerTracesChronological() {

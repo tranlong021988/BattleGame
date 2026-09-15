@@ -240,7 +240,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         tooltip: 'Output file prefix for downloaded battle telemetry reports.'
       }), _dec20 = property({
         min: 1,
-        tooltip: 'Frames between diagnostic battle snapshots in telemetry. These snapshots record team, hero, wave, and lane state for post-match diagnosis.'
+        tooltip: 'Frames between compact battle snapshots in telemetry. Each snapshot records team, wave, lane, and recovery state; the final snapshot also retains per-unit state.'
       }), _dec21 = property({
         min: 0,
         tooltip: 'Maximum diagnostic snapshots stored in one telemetry report. Set 0 to disable snapshots while keeping aggregate telemetry.'
@@ -1466,8 +1466,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           if (unit != null && unit.isIsolatedRangedPursuit() || (_enemy = enemy) != null && _enemy.isIsolatedRangedPursuit()) {
             return;
-          }
+          } // Strategic melee combat begins when contact range is reached, rather
+          // than waiting for either unit to land damage. If either parent wave
+          // is recovering, both sides are evaluated together so update order
+          // cannot make the engagement one-sided.
 
+
+          this.tryReengageWavesFromRecoveryMeleeContact(unit, enemy);
           var aggressiveFrontlineEngagement = this.isAggressiveFrontlineEngagement(wave, unit, enemy);
           var soloAggressiveCombat = this.shouldUseSoloAggressiveCombat(wave, unit, enemy, aggressiveFrontlineEngagement);
           var waveForwardBefore = wave.isForwardMode();
@@ -1733,57 +1738,74 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           });
         }
 
-        tryReengageWaveFromRegroupMeleeAttack(unit, attacker) {
-          if (!unit || !attacker) return false;
-          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
-            error: Error()
-          }), BattleWave) : BattleWave).getWaveForUnit(unit);
-          var attackerWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
-            error: Error()
-          }), BattleWave) : BattleWave).getWaveForUnit(attacker);
-          var reengaged = !!(wave != null && wave.tryReengageFromRecoveryMeleeAttack(unit, attacker));
+        tryReengageWavesFromRecoveryMeleeContact(meleeUnit, enemy) {
+          if (!meleeUnit || !enemy) return false;
+          if (meleeUnit.team === enemy.team) return false;
 
-          if (this.enableBattleTelemetry && wave) {
-            var _attackerWave$id2, _attackerWave$laneId2;
-
-            this.battleTelemetry.recordDiagnosticEvent({
-              type: 'wave-regroup-attack-response',
-              frame: this.frame,
-              time: this.battleElapsedTime,
-              team: unit.team,
-              waveId: wave.id,
-              laneId: wave.laneId,
-              regroupLaneId: unit.laneId,
-              unitName: unit.unitTypeName,
-              unitLifeId: unit.lifeId,
-              unitSpawnId: this.battleTelemetry.getSpawnId(unit),
-              targetWaveId: (_attackerWave$id2 = attackerWave == null ? void 0 : attackerWave.id) != null ? _attackerWave$id2 : -1,
-              targetTeam: attacker.team,
-              targetLaneId: (_attackerWave$laneId2 = attackerWave == null ? void 0 : attackerWave.laneId) != null ? _attackerWave$laneId2 : -1,
-              targetLifeId: attacker.lifeId,
-              targetSpawnId: this.battleTelemetry.getSpawnId(attacker),
-              aggressiveForward: wave.hasAggressiveForwardLaneLock(),
-              freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
-              unitForward: unit.onForward,
-              unitBackToLane: unit.isBackToLaneActive(),
-              forwardRecoveryReadyUnitCount: wave.getForwardRecoveryReadyUnitCount(),
-              forwardRecoveryRegroupingUnitCount: wave.getForwardRecoveryRegroupingUnitCount(),
-              regroupMeleeReengaged: reengaged,
-              regroupInterruptReason: reengaged ? 'melee-target-wave-added' : attacker.isRangedCombatUnit() ? 'ranged-attacker-kept-local' : !wave.isAwaitingForwardRecoveryAfterTargetClear() ? 'recovery-already-cancelled' : 'melee-reengagement-not-eligible',
-              targetWaveIds: wave.getTargetWaveIds(),
-              targetWaveCount: wave.getTargetWaveCount(),
-              regroupCancelledUnitLifeIds: wave.getLastRegroupMeleeCancelledUnitLifeIds()
-            });
+          if (meleeUnit.isIsolatedRangedPursuit() || enemy.isIsolatedRangedPursuit()) {
+            return false;
           }
 
-          return reengaged;
+          if (meleeUnit.isRangedCombatUnit()) return false;
+          if (!meleeUnit.isEnemyWithinAttackRange(enemy)) return false;
+          var meleeWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(meleeUnit);
+          var enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(enemy);
+
+          if (!meleeWave || !enemyWave || meleeWave === enemyWave) {
+            return false;
+          }
+
+          if (meleeWave.isDead() || enemyWave.isDead()) return false;
+          var meleeWaveReengaged = meleeWave.tryReengageFromRecoveryMeleeContact(meleeUnit, enemy);
+          var enemyWaveReengaged = enemyWave.tryReengageFromRecoveryMeleeContact(enemy, meleeUnit);
+
+          if (meleeWaveReengaged) {
+            this.recordRegroupMeleeContactReengagement(meleeWave, meleeUnit, enemy, 'attacker');
+          }
+
+          if (enemyWaveReengaged) {
+            this.recordRegroupMeleeContactReengagement(enemyWave, enemy, meleeUnit, 'defender');
+          }
+
+          return meleeWaveReengaged || enemyWaveReengaged;
         }
 
-        isUnitAwaitingForwardRecovery(unit) {
-          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+        recordRegroupMeleeContactReengagement(wave, unit, enemy, engagementRole) {
+          var _enemyWave$id, _enemyWave$laneId;
+
+          if (!this.enableBattleTelemetry) return;
+          var enemyWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
-          }), BattleWave) : BattleWave).getWaveForUnit(unit);
-          return !!(wave != null && wave.isAwaitingForwardRecoveryAfterTargetClear());
+          }), BattleWave) : BattleWave).getWaveForUnit(enemy);
+          this.battleTelemetry.recordTargetWaveLifecycleEvent({
+            type: 'wave-regroup-melee-contact-reengaged',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            regroupLaneId: unit.laneId,
+            unitName: unit.unitTypeName,
+            unitLifeId: unit.lifeId,
+            unitSpawnId: this.battleTelemetry.getSpawnId(unit),
+            targetWaveId: (_enemyWave$id = enemyWave == null ? void 0 : enemyWave.id) != null ? _enemyWave$id : -1,
+            targetTeam: enemy.team,
+            targetLaneId: (_enemyWave$laneId = enemyWave == null ? void 0 : enemyWave.laneId) != null ? _enemyWave$laneId : -1,
+            targetLifeId: enemy.lifeId,
+            targetSpawnId: this.battleTelemetry.getSpawnId(enemy),
+            aggressiveForward: wave.hasAggressiveForwardLaneLock(),
+            freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
+            engagementRole,
+            regroupMeleeReengaged: true,
+            regroupInterruptReason: 'melee-contact-target-wave-added',
+            targetWaveIds: wave.getTargetWaveIds(),
+            targetWaveCount: wave.getTargetWaveCount(),
+            regroupCancelledUnitLifeIds: wave.getLastRegroupMeleeCancelledUnitLifeIds()
+          });
         }
 
         trySetWaveTargetFromScanner(wave, scanner, target, source, allowRecoveryContinuation) {
@@ -1937,7 +1959,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.telemetryCombatEscalationSignatureByWave.set(wave.id, signature);
           this.telemetryFrameCombatEscalationCount++;
-          this.battleTelemetry.recordDiagnosticEvent({
+          this.battleTelemetry.recordCombatEscalationDecision({
             type: 'wave-combat-escalation-decision',
             frame: this.frame,
             time: this.battleElapsedTime,
@@ -3354,18 +3376,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return;
           }
 
-          this.battleTelemetry.recordSnapshot(this.createBattleTelemetrySnapshot());
+          this.battleTelemetry.recordSnapshot(this.createBattleTelemetrySnapshot(false));
         }
 
-        createBattleTelemetrySnapshot() {
+        createBattleTelemetrySnapshot(includeUnits) {
+          if (includeUnits === void 0) {
+            includeUnits = false;
+          }
+
           return {
             frame: this.frame,
             time: this.battleElapsedTime,
-            teams: [this.createBattleTelemetryTeamSnapshot(0), this.createBattleTelemetryTeamSnapshot(1)]
+            teams: [this.createBattleTelemetryTeamSnapshot(0, includeUnits), this.createBattleTelemetryTeamSnapshot(1, includeUnits)]
           };
         }
 
-        createBattleTelemetryTeamSnapshot(team) {
+        createBattleTelemetryTeamSnapshot(team, includeUnits) {
           var _this$getBattleCardTe;
 
           var waves = [];
@@ -3375,7 +3401,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             if (!wave) continue;
             if (wave.team !== team) continue;
             if (wave.isDeadRuntime(this.frame)) continue;
-            waves.push(this.createBattleTelemetryWaveSnapshot(wave));
+            waves.push(this.createBattleTelemetryWaveSnapshot(wave, includeUnits));
           }
 
           return {
@@ -3393,7 +3419,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           };
         }
 
-        createBattleTelemetryWaveSnapshot(wave) {
+        createBattleTelemetryWaveSnapshot(wave, includeUnits) {
           var _wave$family13, _scannerPosition$x, _scannerPosition$z;
 
           var busyCount = 0;
@@ -3406,8 +3432,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var units = [];
 
           for (var i = 0; i < wave.units.length; i++) {
-            var _target$lifeId3, _targetWave$id8, _targetWave$laneId7;
-
             var unit = wave.units[i]; // A pooled Unit may have been reused by another live wave while
             // remaining in this wave's historical units array.
 
@@ -3444,33 +3468,37 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               maxPhysicalLaneDistance = Math.max(maxPhysicalLaneDistance, waveLaneDistance);
             }
 
-            units.push({
-              spawnId: this.battleTelemetry.getSpawnId(unit),
-              lifeId: unit.lifeId,
-              unitName: unit.unitTypeName,
-              x: position.x,
-              z: position.z,
-              laneId: unit.laneId,
-              physicalLaneId,
-              waveLaneDistance,
-              busy: unit.onBusy,
-              forward: unit.onForward,
-              backToLane: unit.isBackToLaneActive(),
-              regroupDestinationLaneId: unit.getTelemetryRegroupDestinationLaneId(),
-              regroupLaneCoreDistanceX: unit.getTelemetryRegroupLaneCoreDistanceX(),
-              freeHuntContinuity: unit.isFreeHuntContinuityActive(),
-              isolatedRangedPursuit: unit.isIsolatedRangedPursuit(),
-              isolatedRangedPursuitReturningToWave: unit.isReturningToWaveAfterIsolatedRangedPursuit(),
-              movementIntent: unit.getTelemetryMovementIntent(),
-              isolatedRangedPursuitReturnCommandAttemptCount: unit.getIsolatedRangedPursuitReturnCommandAttemptCount(),
-              isolatedRangedPursuitReturnRepeatedCommandCount: unit.getIsolatedRangedPursuitReturnRepeatedCommandCount(),
-              isolatedRangedPursuitReturnLocalCombatCount: unit.getIsolatedRangedPursuitReturnLocalCombatCount(),
-              isolatedRangedPursuitLastReturnCommandCause: unit.getIsolatedRangedPursuitLastReturnCommandCause(),
-              targetLifeId: (_target$lifeId3 = target == null ? void 0 : target.lifeId) != null ? _target$lifeId3 : -1,
-              targetSpawnId: this.battleTelemetry.getSpawnId(target),
-              targetWaveId: (_targetWave$id8 = targetWave == null ? void 0 : targetWave.id) != null ? _targetWave$id8 : -1,
-              targetLaneId: (_targetWave$laneId7 = targetWave == null ? void 0 : targetWave.laneId) != null ? _targetWave$laneId7 : -1
-            });
+            if (includeUnits) {
+              var _target$lifeId3, _targetWave$id8, _targetWave$laneId7;
+
+              units.push({
+                spawnId: this.battleTelemetry.getSpawnId(unit),
+                lifeId: unit.lifeId,
+                unitName: unit.unitTypeName,
+                x: position.x,
+                z: position.z,
+                laneId: unit.laneId,
+                physicalLaneId,
+                waveLaneDistance,
+                busy: unit.onBusy,
+                forward: unit.onForward,
+                backToLane: unit.isBackToLaneActive(),
+                regroupDestinationLaneId: unit.getTelemetryRegroupDestinationLaneId(),
+                regroupLaneCoreDistanceX: unit.getTelemetryRegroupLaneCoreDistanceX(),
+                freeHuntContinuity: unit.isFreeHuntContinuityActive(),
+                isolatedRangedPursuit: unit.isIsolatedRangedPursuit(),
+                isolatedRangedPursuitReturningToWave: unit.isReturningToWaveAfterIsolatedRangedPursuit(),
+                movementIntent: unit.getTelemetryMovementIntent(),
+                isolatedRangedPursuitReturnCommandAttemptCount: unit.getIsolatedRangedPursuitReturnCommandAttemptCount(),
+                isolatedRangedPursuitReturnRepeatedCommandCount: unit.getIsolatedRangedPursuitReturnRepeatedCommandCount(),
+                isolatedRangedPursuitReturnLocalCombatCount: unit.getIsolatedRangedPursuitReturnLocalCombatCount(),
+                isolatedRangedPursuitLastReturnCommandCause: unit.getIsolatedRangedPursuitLastReturnCommandCause(),
+                targetLifeId: (_target$lifeId3 = target == null ? void 0 : target.lifeId) != null ? _target$lifeId3 : -1,
+                targetSpawnId: this.battleTelemetry.getSpawnId(target),
+                targetWaveId: (_targetWave$id8 = targetWave == null ? void 0 : targetWave.id) != null ? _targetWave$id8 : -1,
+                targetLaneId: (_targetWave$laneId7 = targetWave == null ? void 0 : targetWave.laneId) != null ? _targetWave$laneId7 : -1
+              });
+            }
           }
 
           var targetState = wave.getTelemetryTargetState();
@@ -3494,6 +3522,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             forwardCount,
             isolatedRangedPursuitCount,
             commandAliveCount: wave.getCommandAliveCount(),
+            awaitingForwardRecovery: wave.isAwaitingForwardRecoveryAfterTargetClear(),
+            forwardRecoveryReadyUnitCount: wave.getForwardRecoveryReadyUnitCount(),
+            forwardRecoveryRegroupingUnitCount: wave.getForwardRecoveryRegroupingUnitCount(),
             staleUnitReferenceCount,
             healthRatio: wave.getRuntimeHealthRatio(this.frame),
             forwardMode: wave.isForwardMode(),
@@ -3505,9 +3536,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             scannerX: (_scannerPosition$x = scannerPosition == null ? void 0 : scannerPosition.x) != null ? _scannerPosition$x : 0,
             scannerZ: (_scannerPosition$z = scannerPosition == null ? void 0 : scannerPosition.z) != null ? _scannerPosition$z : 0,
             scannerPhysicalLaneId: this.getCurrentLaneIdForUnit(scanner),
-            maxPhysicalLaneDistance,
+            maxPhysicalLaneDistance
+          }, includeUnits ? {
             units
-          }, targetState);
+          } : {}, targetState);
         }
 
         getBattleTelemetryHeroHealthRatio(team) {
@@ -3602,7 +3634,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (canFinishTelemetry) {
             this.closeAllWaveIdleEpisodes('battle-ended');
             this.closeAllTargetClearRecoveryWindows('battle-ended');
-            this.battleTelemetry.recordFinalSnapshot(this.createBattleTelemetrySnapshot());
+            this.battleTelemetry.recordFinalSnapshot(this.createBattleTelemetrySnapshot(true));
             this.recordBattleFramePerformanceSummary();
           }
 

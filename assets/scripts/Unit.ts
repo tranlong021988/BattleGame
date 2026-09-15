@@ -785,15 +785,14 @@ export class Unit extends Component {
         }
 
         const gm = GameManager.instance;
-        // A melee hit must be able to interrupt synchronized recovery even
-        // when this particular member is still busy in local combat. Outside
-        // of that recovery state, busy units retain their existing behavior.
+        // A confirmed melee contact promotes every recovering parent wave in
+        // the pair. This damage-path call is a fallback for contacts that were
+        // not observed through the normal combat-entry path first.
         const regroupMeleeReengaged =
             !this.isolatedRangedPursuit &&
-            !!gm?.isUnitAwaitingForwardRecovery(this) &&
-            !!gm?.tryReengageWaveFromRegroupMeleeAttack(
-                this,
-                attacker
+            !!gm?.tryReengageWavesFromRecoveryMeleeContact(
+                attacker,
+                this
             );
 
         if (this.onBusy) return regroupMeleeReengaged;

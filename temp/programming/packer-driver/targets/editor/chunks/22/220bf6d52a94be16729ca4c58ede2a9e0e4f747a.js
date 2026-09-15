@@ -130,6 +130,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.maxSnapshots = 240;
           this.maxDiagnosticEvents = 3000;
           this.maxScannerTraces = 6000;
+          this.maxCombatEscalationSamples = 240;
           this.droppedDiagnosticEventCount = 0;
           this.overwrittenScannerTraceCount = 0;
           this.scannerTraceWriteIndex = 0;
@@ -145,6 +146,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             aggressiveOffLaneAssignments: 0,
             maxTransitionsPerWave: 0
           };
+          this.combatEscalationStats = this.createCombatEscalationStats();
+          this.combatEscalationSampleSignatures = new Set();
           this.nextSpawnId = 1;
         }
 
@@ -177,6 +180,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             aggressiveOffLaneAssignments: 0,
             maxTransitionsPerWave: 0
           };
+          this.combatEscalationStats = this.createCombatEscalationStats();
+          this.combatEscalationSampleSignatures.clear();
           this.cardEvents.length = 0;
           this.waveSpawnFrameById.clear();
           this.waveSpawnTimeById.clear();
@@ -398,20 +403,72 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         recordTargetWaveLifecycleEvent(event) {
           if (!this.isEnabled()) return;
-          if (!event) return; // This timeline must remain complete even when the general diagnostic
-          // event budget is exhausted; it reconstructs target-set and recovery
-          // behavior without relying on sparse snapshots.
+          if (!event) return; // This timeline reconstructs target-set and recovery behavior without
+          // relying on sparse snapshots. It is exported separately, so do not
+          // duplicate every entry into the generic diagnostic event stream.
 
           this.targetWaveLifecycleEvents.push(event);
-          this.pushDiagnosticEvent(event);
         }
 
-        recordTargetWaveTransition(event) {
-          var _event$waveId, _this$targetWaveTrans;
+        recordCombatEscalationDecision(event) {
+          var _event$waveId, _event$targetWaveId, _event$engagementRole;
 
           if (!this.isEnabled()) return;
           if (!event) return;
-          const waveId = Math.max(0, Math.floor((_event$waveId = event.waveId) != null ? _event$waveId : 0));
+          const stats = this.combatEscalationStats;
+          stats.total++;
+          if (event.waveCombatEscalated) stats.waveCombatEscalated++;
+
+          if (event.initialForwardCombatDelayed) {
+            stats.initialForwardCombatDelayed++;
+          }
+
+          if (event.soloAggressiveCombat) {
+            stats.soloAggressiveCombat++;
+          }
+
+          if (event.crossLaneRangedAttack) {
+            stats.crossLaneRangedAttack++;
+          }
+
+          if (event.strategicEscalationBlocked) {
+            stats.strategicEscalationBlocked++;
+          }
+
+          if (event.sameLaneWaveEngagement) {
+            stats.sameLaneWaveEngagement++;
+          }
+
+          if (event.aggressiveFrontlineEngagement) {
+            stats.aggressiveFrontlineEngagement++;
+          } // A decision is emitted only after GameManager observes a changed
+          // signature. Retain one compact representative for each strategic
+          // situation; the aggregate above preserves its total frequency.
+
+
+          const sampleSignature = [(_event$waveId = event.waveId) != null ? _event$waveId : -1, (_event$targetWaveId = event.targetWaveId) != null ? _event$targetWaveId : -1, (_event$engagementRole = event.engagementRole) != null ? _event$engagementRole : '', event.aggressiveForward ? 1 : 0, event.waveForwardBefore ? 1 : 0, event.sameLaneWaveEngagement ? 1 : 0, event.soloAggressiveCombat ? 1 : 0, event.aggressiveFrontlineEngagement ? 1 : 0, event.canEscalateWaveCombat ? 1 : 0, event.initialForwardCombatDelayed ? 1 : 0, event.waveCombatEscalated ? 1 : 0, event.crossLaneRangedAttack ? 1 : 0, event.strategicEscalationBlocked ? 1 : 0].join('|');
+
+          if (this.combatEscalationSampleSignatures.has(sampleSignature)) {
+            return;
+          }
+
+          this.combatEscalationSampleSignatures.add(sampleSignature);
+
+          if (stats.samples.length >= this.maxCombatEscalationSamples) {
+            stats.droppedSampleCount++;
+            return;
+          }
+
+          stats.samples.push({ ...event
+          });
+        }
+
+        recordTargetWaveTransition(event) {
+          var _event$waveId2, _this$targetWaveTrans;
+
+          if (!this.isEnabled()) return;
+          if (!event) return;
+          const waveId = Math.max(0, Math.floor((_event$waveId2 = event.waveId) != null ? _event$waveId2 : 0));
           const previousFrame = this.targetWaveTransitionLastFrames.get(waveId);
           const transitionCount = ((_this$targetWaveTrans = this.targetWaveTransitionCounts.get(waveId)) != null ? _this$targetWaveTrans : 0) + 1;
           this.targetWaveTransitionCounts.set(waveId, transitionCount);
@@ -764,6 +821,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
               performance: this.framePerformance,
               targetWaveTransitions: { ...this.targetWaveTransitionStats
               },
+              combatEscalation: { ...this.combatEscalationStats,
+                samples: this.combatEscalationStats.samples.slice()
+              },
               targetWaveLifecycleEvents: this.targetWaveLifecycleEvents.slice(),
               snapshots: this.snapshots.slice(),
               finalSnapshot: this.finalSnapshot,
@@ -782,8 +842,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         exportReport(report, filePrefix, download, logToConsole) {
-          if (!report) return;
-          const json = JSON.stringify(report, null, 2);
+          if (!report) return; // Download compact JSON. Telemetry is machine-read and pretty-printing
+          // duplicates whitespace across every periodic snapshot and event.
+
+          const json = JSON.stringify(report);
           const globalObject = globalThis;
           globalObject.__battleTelemetryReport = report;
 
@@ -1010,6 +1072,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.diagnosticEvents.push(event);
+        }
+
+        createCombatEscalationStats() {
+          return {
+            total: 0,
+            waveCombatEscalated: 0,
+            initialForwardCombatDelayed: 0,
+            soloAggressiveCombat: 0,
+            crossLaneRangedAttack: 0,
+            strategicEscalationBlocked: 0,
+            sameLaneWaveEngagement: 0,
+            aggressiveFrontlineEngagement: 0,
+            sampleLimit: this.maxCombatEscalationSamples,
+            droppedSampleCount: 0,
+            samples: []
+          };
         }
 
         getScannerTracesChronological() {

@@ -202,7 +202,7 @@ export class GameManager extends Component {
     @property({
         min: 1,
         tooltip:
-            'Frames between diagnostic battle snapshots in telemetry. These snapshots record team, hero, wave, and lane state for post-match diagnosis.',
+            'Frames between compact battle snapshots in telemetry. Each snapshot records team, wave, lane, and recovery state; the final snapshot also retains per-unit state.',
     })
     battleTelemetrySnapshotIntervalFrames = 30;
 
@@ -1754,6 +1754,15 @@ export class GameManager extends Component {
             return;
         }
 
+        // Strategic melee combat begins when contact range is reached, rather
+        // than waiting for either unit to land damage. If either parent wave
+        // is recovering, both sides are evaluated together so update order
+        // cannot make the engagement one-sided.
+        this.tryReengageWavesFromRecoveryMeleeContact(
+            unit,
+            enemy
+        );
+
         const aggressiveFrontlineEngagement =
             this.isAggressiveFrontlineEngagement(
                 wave,
@@ -2236,66 +2245,96 @@ export class GameManager extends Component {
         });
     }
 
-    public tryReengageWaveFromRegroupMeleeAttack(
-        unit: Unit | null,
-        attacker: Unit | null
+    public tryReengageWavesFromRecoveryMeleeContact(
+        meleeUnit: Unit | null,
+        enemy: Unit | null
     ) {
-        if (!unit || !attacker) return false;
+        if (!meleeUnit || !enemy) return false;
+        if (meleeUnit.team === enemy.team) return false;
+        if (
+            meleeUnit.isIsolatedRangedPursuit() ||
+            enemy.isIsolatedRangedPursuit()
+        ) {
+            return false;
+        }
+        if (meleeUnit.isRangedCombatUnit()) return false;
+        if (!meleeUnit.isEnemyWithinAttackRange(enemy)) return false;
 
-        const wave = BattleWave.getWaveForUnit(unit);
-        const attackerWave = BattleWave.getWaveForUnit(attacker);
-        const reengaged = !!wave?.tryReengageFromRecoveryMeleeAttack(
-            unit,
-            attacker
-        );
+        const meleeWave = BattleWave.getWaveForUnit(meleeUnit);
+        const enemyWave = BattleWave.getWaveForUnit(enemy);
 
-        if (this.enableBattleTelemetry && wave) {
-            this.battleTelemetry.recordDiagnosticEvent({
-                type: 'wave-regroup-attack-response',
-                frame: this.frame,
-                time: this.battleElapsedTime,
-                team: unit.team,
-                waveId: wave.id,
-                laneId: wave.laneId,
-                regroupLaneId: unit.laneId,
-                unitName: unit.unitTypeName,
-                unitLifeId: unit.lifeId,
-                unitSpawnId: this.battleTelemetry.getSpawnId(unit),
-                targetWaveId: attackerWave?.id ?? -1,
-                targetTeam: attacker.team,
-                targetLaneId: attackerWave?.laneId ?? -1,
-                targetLifeId: attacker.lifeId,
-                targetSpawnId: this.battleTelemetry.getSpawnId(attacker),
-                aggressiveForward: wave.hasAggressiveForwardLaneLock(),
-                freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
-                unitForward: unit.onForward,
-                unitBackToLane: unit.isBackToLaneActive(),
-                forwardRecoveryReadyUnitCount:
-                    wave.getForwardRecoveryReadyUnitCount(),
-                forwardRecoveryRegroupingUnitCount:
-                    wave.getForwardRecoveryRegroupingUnitCount(),
-                regroupMeleeReengaged: reengaged,
-                regroupInterruptReason: reengaged
-                    ? 'melee-target-wave-added'
-                    : attacker.isRangedCombatUnit()
-                        ? 'ranged-attacker-kept-local'
-                        : !wave.isAwaitingForwardRecoveryAfterTargetClear()
-                            ? 'recovery-already-cancelled'
-                        : 'melee-reengagement-not-eligible',
-                targetWaveIds: wave.getTargetWaveIds(),
-                targetWaveCount: wave.getTargetWaveCount(),
-                regroupCancelledUnitLifeIds:
-                    wave.getLastRegroupMeleeCancelledUnitLifeIds(),
-            });
+        if (!meleeWave || !enemyWave || meleeWave === enemyWave) {
+            return false;
+        }
+        if (meleeWave.isDead() || enemyWave.isDead()) return false;
+
+        const meleeWaveReengaged =
+            meleeWave.tryReengageFromRecoveryMeleeContact(
+                meleeUnit,
+                enemy
+            );
+        const enemyWaveReengaged =
+            enemyWave.tryReengageFromRecoveryMeleeContact(
+                enemy,
+                meleeUnit
+            );
+
+        if (meleeWaveReengaged) {
+            this.recordRegroupMeleeContactReengagement(
+                meleeWave,
+                meleeUnit,
+                enemy,
+                'attacker'
+            );
+        }
+        if (enemyWaveReengaged) {
+            this.recordRegroupMeleeContactReengagement(
+                enemyWave,
+                enemy,
+                meleeUnit,
+                'defender'
+            );
         }
 
-        return reengaged;
+        return meleeWaveReengaged || enemyWaveReengaged;
     }
 
-    public isUnitAwaitingForwardRecovery(unit: Unit | null) {
-        const wave = BattleWave.getWaveForUnit(unit);
+    private recordRegroupMeleeContactReengagement(
+        wave: BattleWave,
+        unit: Unit,
+        enemy: Unit,
+        engagementRole: 'attacker' | 'defender'
+    ) {
+        if (!this.enableBattleTelemetry) return;
 
-        return !!wave?.isAwaitingForwardRecoveryAfterTargetClear();
+        const enemyWave = BattleWave.getWaveForUnit(enemy);
+
+        this.battleTelemetry.recordTargetWaveLifecycleEvent({
+            type: 'wave-regroup-melee-contact-reengaged',
+            frame: this.frame,
+            time: this.battleElapsedTime,
+            team: unit.team,
+            waveId: wave.id,
+            laneId: wave.laneId,
+            regroupLaneId: unit.laneId,
+            unitName: unit.unitTypeName,
+            unitLifeId: unit.lifeId,
+            unitSpawnId: this.battleTelemetry.getSpawnId(unit),
+            targetWaveId: enemyWave?.id ?? -1,
+            targetTeam: enemy.team,
+            targetLaneId: enemyWave?.laneId ?? -1,
+            targetLifeId: enemy.lifeId,
+            targetSpawnId: this.battleTelemetry.getSpawnId(enemy),
+            aggressiveForward: wave.hasAggressiveForwardLaneLock(),
+            freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin(),
+            engagementRole,
+            regroupMeleeReengaged: true,
+            regroupInterruptReason: 'melee-contact-target-wave-added',
+            targetWaveIds: wave.getTargetWaveIds(),
+            targetWaveCount: wave.getTargetWaveCount(),
+            regroupCancelledUnitLifeIds:
+                wave.getLastRegroupMeleeCancelledUnitLifeIds(),
+        });
     }
 
     private trySetWaveTargetFromScanner(
@@ -2524,7 +2563,7 @@ export class GameManager extends Component {
         );
         this.telemetryFrameCombatEscalationCount++;
 
-        this.battleTelemetry.recordDiagnosticEvent({
+        this.battleTelemetry.recordCombatEscalationDecision({
             type: 'wave-combat-escalation-decision',
             frame: this.frame,
             time: this.battleElapsedTime,
@@ -4483,22 +4522,25 @@ export class GameManager extends Component {
         }
 
         this.battleTelemetry.recordSnapshot(
-            this.createBattleTelemetrySnapshot()
+            this.createBattleTelemetrySnapshot(false)
         );
     }
 
-    private createBattleTelemetrySnapshot() {
+    private createBattleTelemetrySnapshot(includeUnits: boolean = false) {
         return {
             frame: this.frame,
             time: this.battleElapsedTime,
             teams: [
-                this.createBattleTelemetryTeamSnapshot(0),
-                this.createBattleTelemetryTeamSnapshot(1),
+                this.createBattleTelemetryTeamSnapshot(0, includeUnits),
+                this.createBattleTelemetryTeamSnapshot(1, includeUnits),
             ],
         };
     }
 
-    private createBattleTelemetryTeamSnapshot(team: number) {
+    private createBattleTelemetryTeamSnapshot(
+        team: number,
+        includeUnits: boolean
+    ) {
         const waves: any[] = [];
 
         for (let i = 0; i < this.waves.length; i++) {
@@ -4509,7 +4551,7 @@ export class GameManager extends Component {
             if (wave.isDeadRuntime(this.frame)) continue;
 
             waves.push(
-                this.createBattleTelemetryWaveSnapshot(wave)
+                this.createBattleTelemetryWaveSnapshot(wave, includeUnits)
             );
         }
 
@@ -4537,7 +4579,8 @@ export class GameManager extends Component {
     }
 
     private createBattleTelemetryWaveSnapshot(
-        wave: BattleWave
+        wave: BattleWave,
+        includeUnits: boolean
     ) {
         let busyCount = 0;
         let targetCount = 0;
@@ -4594,43 +4637,45 @@ export class GameManager extends Component {
                 );
             }
 
-            units.push({
-                spawnId: this.battleTelemetry.getSpawnId(unit),
-                lifeId: unit.lifeId,
-                unitName: unit.unitTypeName,
-                x: position.x,
-                z: position.z,
-                laneId: unit.laneId,
-                physicalLaneId,
-                waveLaneDistance,
-                busy: unit.onBusy,
-                forward: unit.onForward,
-                backToLane: unit.isBackToLaneActive(),
-                regroupDestinationLaneId:
-                    unit.getTelemetryRegroupDestinationLaneId(),
-                regroupLaneCoreDistanceX:
-                    unit.getTelemetryRegroupLaneCoreDistanceX(),
-                freeHuntContinuity:
-                    unit.isFreeHuntContinuityActive(),
-                isolatedRangedPursuit:
-                    unit.isIsolatedRangedPursuit(),
-                isolatedRangedPursuitReturningToWave:
-                    unit.isReturningToWaveAfterIsolatedRangedPursuit(),
-                movementIntent: unit.getTelemetryMovementIntent(),
-                isolatedRangedPursuitReturnCommandAttemptCount:
-                    unit.getIsolatedRangedPursuitReturnCommandAttemptCount(),
-                isolatedRangedPursuitReturnRepeatedCommandCount:
-                    unit.getIsolatedRangedPursuitReturnRepeatedCommandCount(),
-                isolatedRangedPursuitReturnLocalCombatCount:
-                    unit.getIsolatedRangedPursuitReturnLocalCombatCount(),
-                isolatedRangedPursuitLastReturnCommandCause:
-                    unit.getIsolatedRangedPursuitLastReturnCommandCause(),
-                targetLifeId: target?.lifeId ?? -1,
-                targetSpawnId:
-                    this.battleTelemetry.getSpawnId(target),
-                targetWaveId: targetWave?.id ?? -1,
-                targetLaneId: targetWave?.laneId ?? -1,
-            });
+            if (includeUnits) {
+                units.push({
+                    spawnId: this.battleTelemetry.getSpawnId(unit),
+                    lifeId: unit.lifeId,
+                    unitName: unit.unitTypeName,
+                    x: position.x,
+                    z: position.z,
+                    laneId: unit.laneId,
+                    physicalLaneId,
+                    waveLaneDistance,
+                    busy: unit.onBusy,
+                    forward: unit.onForward,
+                    backToLane: unit.isBackToLaneActive(),
+                    regroupDestinationLaneId:
+                        unit.getTelemetryRegroupDestinationLaneId(),
+                    regroupLaneCoreDistanceX:
+                        unit.getTelemetryRegroupLaneCoreDistanceX(),
+                    freeHuntContinuity:
+                        unit.isFreeHuntContinuityActive(),
+                    isolatedRangedPursuit:
+                        unit.isIsolatedRangedPursuit(),
+                    isolatedRangedPursuitReturningToWave:
+                        unit.isReturningToWaveAfterIsolatedRangedPursuit(),
+                    movementIntent: unit.getTelemetryMovementIntent(),
+                    isolatedRangedPursuitReturnCommandAttemptCount:
+                        unit.getIsolatedRangedPursuitReturnCommandAttemptCount(),
+                    isolatedRangedPursuitReturnRepeatedCommandCount:
+                        unit.getIsolatedRangedPursuitReturnRepeatedCommandCount(),
+                    isolatedRangedPursuitReturnLocalCombatCount:
+                        unit.getIsolatedRangedPursuitReturnLocalCombatCount(),
+                    isolatedRangedPursuitLastReturnCommandCause:
+                        unit.getIsolatedRangedPursuitLastReturnCommandCause(),
+                    targetLifeId: target?.lifeId ?? -1,
+                    targetSpawnId:
+                        this.battleTelemetry.getSpawnId(target),
+                    targetWaveId: targetWave?.id ?? -1,
+                    targetLaneId: targetWave?.laneId ?? -1,
+                });
+            }
         }
 
         const targetState = wave.getTelemetryTargetState();
@@ -4658,6 +4703,12 @@ export class GameManager extends Component {
             forwardCount,
             isolatedRangedPursuitCount,
             commandAliveCount: wave.getCommandAliveCount(),
+            awaitingForwardRecovery:
+                wave.isAwaitingForwardRecoveryAfterTargetClear(),
+            forwardRecoveryReadyUnitCount:
+                wave.getForwardRecoveryReadyUnitCount(),
+            forwardRecoveryRegroupingUnitCount:
+                wave.getForwardRecoveryRegroupingUnitCount(),
             staleUnitReferenceCount,
             healthRatio:
                 wave.getRuntimeHealthRatio(this.frame),
@@ -4675,7 +4726,7 @@ export class GameManager extends Component {
             scannerPhysicalLaneId:
                 this.getCurrentLaneIdForUnit(scanner),
             maxPhysicalLaneDistance,
-            units,
+            ...(includeUnits ? { units } : {}),
             ...targetState,
         };
     }
@@ -4821,7 +4872,7 @@ export class GameManager extends Component {
             this.closeAllWaveIdleEpisodes('battle-ended');
             this.closeAllTargetClearRecoveryWindows('battle-ended');
             this.battleTelemetry.recordFinalSnapshot(
-                this.createBattleTelemetrySnapshot()
+                this.createBattleTelemetrySnapshot(true)
             );
             this.recordBattleFramePerformanceSummary();
         }

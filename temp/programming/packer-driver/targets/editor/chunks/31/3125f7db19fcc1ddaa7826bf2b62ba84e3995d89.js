@@ -749,11 +749,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           const gm = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance; // A melee hit must be able to interrupt synchronized recovery even
-          // when this particular member is still busy in local combat. Outside
-          // of that recovery state, busy units retain their existing behavior.
+          }), GameManager) : GameManager).instance; // A confirmed melee contact promotes every recovering parent wave in
+          // the pair. This damage-path call is a fallback for contacts that were
+          // not observed through the normal combat-entry path first.
 
-          const regroupMeleeReengaged = !this.isolatedRangedPursuit && !!(gm != null && gm.isUnitAwaitingForwardRecovery(this)) && !!(gm != null && gm.tryReengageWaveFromRegroupMeleeAttack(this, attacker));
+          const regroupMeleeReengaged = !this.isolatedRangedPursuit && !!(gm != null && gm.tryReengageWavesFromRecoveryMeleeContact(attacker, this));
           if (this.onBusy) return regroupMeleeReengaged;
           const currentTarget = this.getValidEnemyTarget();
 
