@@ -2304,7 +2304,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             aggressiveForward: wave.hasAggressiveForwardLaneLock(),
             waveForwardBefore: wave.isForwardMode(),
             freeHuntForwardOrigin: wave.getFreeHuntForwardOrigin()
-          });
+          }); // Persistent Hero Free Hunt does not enter the recovery transaction.
+          // Keep its target-clear outcome, but do not emit a misleading
+          // recovery-outcome event for the same transition.
+
+          if (outcome.reason === 'persistent-free-hunt-target-set-empty') {
+            this.telemetryTargetClearRecoveryWindows.delete(wave.id);
+            return;
+          }
+
           if (!recoveryWindow) return;
           var targetLaneId = (_targetWave$laneId6 = targetWave == null ? void 0 : targetWave.laneId) != null ? _targetWave$laneId6 : -1;
           var offLaneReplacement = targetLaneId >= 0 && recoveryWindow.clearedTargetLaneId >= 0 && targetLaneId !== recoveryWindow.clearedTargetLaneId;
@@ -2606,7 +2614,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
-          return !wave || wave.getTargetWaveCount() <= 0;
+          return !wave || !wave.isPersistentFreeHunt() && wave.getTargetWaveCount() <= 0;
+        }
+
+        isPersistentWaveFreeHunt(unit) {
+          var wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+          return !!(wave != null && wave.isPersistentFreeHunt());
         }
 
         getWaveHuntScannerForUnit(unit) {
@@ -5460,6 +5475,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleWave) : BattleWave)(this.nextWaveId++, team, unitTypeName, family, tier, 1, laneId);
           wave.addUnit(hero);
+          wave.enablePersistentFreeHunt();
 
           if (team === 0) {
             this.teamAHeroWave = wave;

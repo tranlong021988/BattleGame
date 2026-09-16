@@ -1108,3 +1108,134 @@ defense, counter multipliers, target access, and rounding are nonlinear.
 - No Cocos runtime or TypeScript compile was run after the new damage values.
 - A Git index-lock check must be repeated at the end of any later handoff;
   do not delete a lock unless it is present and no Git process owns it.
+
+## Authoritative current handoff — 2026-09-16 (Hero global Free Hunt and cards on)
+
+Read this section before continuing combat-AI, Hero, telemetry, card-support,
+or current balance work. It overrides older handoff sections where they say
+that support cards remain disabled for the baseline experiment, or where a
+Hero follows the normal target-clear regroup/Forward recovery.
+
+### Explicit user-approved Hero contract
+
+The Hero is a one-unit `BattleWave`, registered through
+`GameManager.registerHeroWave`. The intended order is:
+
+1. After its normal forward unlock, the Hero begins in Forward.
+2. On the next valid **Hero scanner interval**, it enters Free Hunt. This is
+   not a frame-by-frame whole-map decision.
+3. If the enemy Hero is not alive/spawned, the Hero selects the nearest live
+   enemy **wave** anywhere on the battlefield and hunts it. It repeats this
+   after a target wave is gone.
+4. If the enemy Hero is alive, that Hero is the strategic priority. The enemy
+   Hero wave is moved to the front of the Hero's target set, so route planning
+   returns to it after an interruption.
+5. A real local combat on the route is still valid and is not cancelled. A
+   busy Hero fights the unit it is physically engaged with; when that combat
+   ends, it resumes the strategic target.
+6. Hero Free Hunt is persistent. When the target set becomes empty it must
+   never enter normal regroup or Forward recovery. It preserves its current
+   hunt movement until the next interval selects a new global target.
+
+This does **not** apply to normal or aggressive troop waves. Their target-set
+clear behavior remains the established regroup/Forward system.
+
+### Current implementation
+
+Changed source files:
+
+- `assets/scripts/GameManager.ts`
+  - `registerHeroWave` marks only Hero waves as persistent Free Hunt.
+  - `processPersistentHeroFreeHunts` runs before ordinary Forward scanner
+    handling. It calls one helper per team, but the expensive whole-map wave
+    selection is guarded by that Hero wave's existing
+    `targetSearchIntervalFrames` and staggered by wave id.
+  - `findGlobalHeroFreeHuntTarget` iterates waves, not all individual units;
+    it chooses the nearest enemy wave progress scanner only when no enemy Hero
+    exists and the Hero has no live strategic target.
+  - With a live enemy Hero, the Hero is added/promoted as the strategic target
+    under telemetry source `hero-global-enemy-hero`. Ordinary global wave
+    selection is recorded under `hero-global-wave-hunt`.
+  - Persistent target clear emits the normal target-clear outcome but suppresses
+    the old misleading `wave-target-clear-recovery-outcome` telemetry event.
+- `assets/scripts/BattleWave.ts`
+  - Added the Hero-only persistent-Free-Hunt marker and lifecycle reset in
+    `releaseReferences`, important for safe reuse/lifetime cleanup.
+  - In persistent mode an empty target set bypasses the normal recovery state,
+    keeps the unit in Free Hunt, and emits
+    `persistent-free-hunt-target-set-empty`.
+  - Hero strategic targeting uses the first target wave. Local combat is still
+    handled by the unit's active combat target, so close contact naturally
+    overrides movement while it is actually happening.
+- `assets/scripts/Unit.ts`
+  - A Hero whose local target just ended restores Free Hunt continuity even
+    when the strategic set was cleared. Without this, the Hero could stop
+    while waiting for its next interval search.
+- `assets/Battle.scene`
+  - GameManager Inspector value `enableBattleCardEffects` is now `true`.
+    Card runtime/modifiers are active again for normal gameplay.
+
+### Performance constraint
+
+The outer Hero coordinator is reached by `GameManager.update`, but it only
+performs constant-time guards for at most two Hero waves. The whole-map search
+itself occurs only on each Hero's existing scanner interval and scans waves,
+not every unit. Do not replace this with per-frame unit-wide scanning.
+
+### Telemetry verification for the next live Hero batch
+
+Use events, not visual inference alone:
+
+1. `config.cardEffectsEnabled` must be `true`. `cardEvents` should be present
+   when a card actually activates; selected-card lists alone do not prove an
+   effect occurred.
+2. With no enemy Hero, look for target assignments sourced from
+   `hero-global-wave-hunt`.
+3. After the enemy Hero spawns, look for `hero-global-enemy-hero`.
+4. When a Hero target set is exhausted, expect
+   `wave-target-clear-outcome` with target source
+   `persistent-free-hunt-target-set-empty`. Do **not** expect a recovery
+   outcome for that same transition.
+5. Verify a local combat separately from these strategic events: the Hero can
+   be busy against a nearby enemy and later resume the global objective. This
+   is intended, not evidence that Hero priority was lost.
+
+No live batch has yet verified this final Hero behavior. Do not describe it as
+runtime-proven until a report contains the relevant events.
+
+### Current balance/config state that must be preserved
+
+The uncommitted scene also contains the last user-approved base-stat retune
+for both teams:
+
+| Unit | Damage now | CP/wave |
+|---|---:|---:|
+| Spear | 13 | 39 |
+| Sword | 30 | 49 |
+| Axeman | 56 | 74 |
+| Cavalry | 58 | 97 |
+| Archer | 13 | 26 |
+| Monk | 48 | 49 |
+
+Support cards are now deliberately **on**, so future balance reports mix base
+combat with card effects unless the Inspector flag is explicitly turned off
+again for a controlled base-only measurement. Preserve melee CP order and
+raw damage order: `Spear < Sword < Axeman < Cavalry`.
+
+### Verification and worktree status at this handoff
+
+- `assets/Battle.scene` parsed as JSON successfully.
+- TypeScript syntax transpilation passed for the changed `BattleWave`,
+  `GameManager`, and `Unit` scripts using the Cocos-bundled TypeScript.
+- `git diff --check` passed. CRLF notices are pre-existing workspace behavior.
+- A full TypeScript project check did not start because the generated
+  `temp/tsconfig.cocos.json` resolves its own declaration paths as
+  `temp/temp/...`; this is a project-generated configuration issue, not a
+  diagnostic from the Hero changes. Use Cocos Editor diagnostics or repair
+  that generated configuration before claiming a full project compile.
+- At handoff, no `*.lock` file existed under `.git`; no lock was deleted.
+- The worktree is deliberately dirty. In addition to the four authored files
+  above, `library/`, `profiles/`, and `temp/` contain Cocos-generated edits,
+  logs, cache changes, and deletions. Do not reset, clean, or delete them to
+  obtain a clean status. Verify any future Git lock before removal and verify
+  no active Git process owns it.

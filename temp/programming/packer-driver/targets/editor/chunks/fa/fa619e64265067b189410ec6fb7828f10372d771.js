@@ -56,6 +56,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.targetSearchIntervalFrames = 1;
           this.forwardModeActive = true;
           this.freeHuntActive = false;
+          // Hero waves opt into this at creation. Once they have entered Free Hunt,
+          // losing their target set must not start the normal regroup/Forward cycle.
+          this.persistentFreeHunt = false;
           this.aggressiveForwardMode = false;
           this.freeHuntForwardOrigin = 'normal';
           // Aggressive Forward owns its spawn lane even while Free Hunt pulls
@@ -706,6 +709,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return !this.released && this.freeHuntActive;
         }
 
+        enablePersistentFreeHunt() {
+          if (this.released) return;
+          this.persistentFreeHunt = true;
+        }
+
+        isPersistentFreeHunt() {
+          return !this.released && this.persistentFreeHunt && this.freeHuntActive;
+        }
+
         isAggressiveForwardMode() {
           return !this.released && this.aggressiveForwardMode;
         }
@@ -1275,6 +1287,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.targetSearchIntervalFrames = 1;
           this.forwardModeActive = false;
           this.freeHuntActive = false;
+          this.persistentFreeHunt = false;
           this.aggressiveForwardMode = false;
           this.aggressiveForwardOriginLaneId = -1;
           this.targetClearSameLaneSearchResolved = false;
@@ -1392,6 +1405,35 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             if (this.freeHuntActive) {
               this.clearIdleHuntTargets();
               this.primeTargetWaveHuntTargets();
+            }
+
+            return;
+          } // A Hero keeps its Free Hunt order after its current target set has
+          // been eliminated. It deliberately skips the standard wave recovery
+          // transaction and retains its last hunt direction until new contact.
+
+
+          if (this.isPersistentFreeHunt()) {
+            this.immediateTargetSearchPending = false;
+            this.awaitingForwardRecoveryAfterTargetClear = false;
+            this.forwardRecoveryLanePrepared = false;
+            this.clearForwardRecoveryReadyUnits();
+            this.targetClearSameLaneSearchResolved = false;
+            this.forwardRecoveryBlockTelemetryPending = false;
+            this.forwardRecoveryDeferredTelemetryPending = false;
+            this.regroupLaneAfterTargetClear = -1;
+            this.targetClearOutcomeTelemetry = {
+              reason: 'persistent-free-hunt-target-set-empty',
+              scanner: this.getScanner(),
+              target: null
+            };
+            this.clearIdleHuntTargets();
+
+            for (let i = 0; i < this.units.length; i++) {
+              const unit = this.units[i];
+              if (!this.isCommandUnit(unit)) continue;
+              if (unit.onBusy) continue;
+              unit.enterWaveFreeHuntMode();
             }
 
             return;

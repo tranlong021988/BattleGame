@@ -32,6 +32,9 @@ export class BattleWave {
     private targetSearchIntervalFrames = 1;
     private forwardModeActive = true;
     private freeHuntActive = false;
+    // Hero waves opt into this at creation. Once they have entered Free Hunt,
+    // losing their target set must not start the normal regroup/Forward cycle.
+    private persistentFreeHunt = false;
     private aggressiveForwardMode = false;
     private freeHuntForwardOrigin: 'normal' | 'aggressive' =
         'normal';
@@ -620,12 +623,15 @@ export class BattleWave {
 
         let best: Unit | null = null;
         let bestDistSq = Infinity;
+        const targetWaveCount = this.isPersistentFreeHunt()
+            ? Math.min(1, this.targetWaves.length)
+            : this.targetWaves.length;
 
         // Search range is an admission rule for adding a strategic wave.
         // Once admitted, Free Hunt must keep navigating toward that wave
         // until it is eliminated; applying the range again strands idle
         // members whenever the target temporarily moves farther away.
-        for (let i = 0; i < this.targetWaves.length; i++) {
+        for (let i = 0; i < targetWaveCount; i++) {
             const candidate = this.targetWaves[i].getClosestAliveUnitTo(
                 requester.agent.pos.x,
                 requester.agent.pos.z
@@ -648,6 +654,20 @@ export class BattleWave {
 
     getTargetWaveLaneIds() {
         return this.targetWaves.map((wave) => wave.laneId);
+    }
+
+    prioritizeTargetWave(targetWave: BattleWave | null) {
+        if (!targetWave || this.released) return false;
+
+        const index = this.targetWaves.indexOf(targetWave);
+
+        if (index < 0) return false;
+        if (index === 0) return true;
+
+        this.targetWaves.splice(index, 1);
+        this.targetWaves.unshift(targetWave);
+        this.targetWave = targetWave;
+        return true;
     }
 
     getTelemetryTargetState() {
@@ -871,6 +891,23 @@ export class BattleWave {
     isFreeHuntMode() {
         return !this.released &&
             this.freeHuntActive;
+    }
+
+    enablePersistentFreeHunt() {
+        if (this.released) return;
+
+        this.persistentFreeHunt = true;
+    }
+
+    isPersistentFreeHunt() {
+        return !this.released &&
+            this.persistentFreeHunt &&
+            this.freeHuntActive;
+    }
+
+    hasPersistentFreeHuntOrder() {
+        return !this.released &&
+            this.persistentFreeHunt;
     }
 
     isAggressiveForwardMode() {
@@ -1526,6 +1563,7 @@ export class BattleWave {
         this.targetSearchIntervalFrames = 1;
         this.forwardModeActive = false;
         this.freeHuntActive = false;
+        this.persistentFreeHunt = false;
         this.aggressiveForwardMode = false;
         this.aggressiveForwardOriginLaneId = -1;
         this.targetClearSameLaneSearchResolved = false;
@@ -1662,6 +1700,36 @@ export class BattleWave {
             if (this.freeHuntActive) {
                 this.clearIdleHuntTargets();
                 this.primeTargetWaveHuntTargets();
+            }
+            return;
+        }
+
+        // A Hero keeps its Free Hunt order after its current target set has
+        // been eliminated. It deliberately skips the standard wave recovery
+        // transaction and retains its last hunt direction until new contact.
+        if (this.isPersistentFreeHunt()) {
+            this.immediateTargetSearchPending = false;
+            this.awaitingForwardRecoveryAfterTargetClear = false;
+            this.forwardRecoveryLanePrepared = false;
+            this.clearForwardRecoveryReadyUnits();
+            this.targetClearSameLaneSearchResolved = false;
+            this.forwardRecoveryBlockTelemetryPending = false;
+            this.forwardRecoveryDeferredTelemetryPending = false;
+            this.regroupLaneAfterTargetClear = -1;
+            this.targetClearOutcomeTelemetry = {
+                reason: 'persistent-free-hunt-target-set-empty',
+                scanner: this.getScanner(),
+                target: null,
+            };
+            this.clearIdleHuntTargets();
+
+            for (let i = 0; i < this.units.length; i++) {
+                const unit = this.units[i];
+
+                if (!this.isCommandUnit(unit)) continue;
+                if (unit.onBusy) continue;
+
+                unit.enterWaveFreeHuntMode();
             }
             return;
         }

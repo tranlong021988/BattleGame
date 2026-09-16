@@ -1900,7 +1900,7 @@
     "battleCardDatabase": {
       "__id__": 45
     },
-    "enableBattleCardEffects": false,
+    "enableBattleCardEffects": true,
     "cinematicController": {
       "__id__": 144
     },
@@ -3763,7 +3763,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 110,
-    "damage": 52,
+    "damage": 56,
     "defense": 2,
     "combatPointCost": 74
   },
@@ -3829,7 +3829,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 100,
-    "damage": 20,
+    "damage": 30,
     "defense": 5,
     "combatPointCost": 49
   },
@@ -3961,7 +3961,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 110,
-    "damage": 52,
+    "damage": 56,
     "defense": 2,
     "combatPointCost": 74
   },
@@ -4027,7 +4027,7 @@
     "attackIntervalMin": 0.36,
     "attackIntervalMax": 0.44,
     "health": 100,
-    "damage": 20,
+    "damage": 30,
     "defense": 5,
     "combatPointCost": 49
   },

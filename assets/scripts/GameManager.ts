@@ -979,6 +979,7 @@ export class GameManager extends Component {
 
         this.processDynamicWaveLanes();
         this.processWaveTargetClearTelemetry();
+        this.processPersistentHeroFreeHunts();
         this.processWaveForwardSearches();
         this.processWaveForwardRecoveries();
         this.processWaveBanners();
@@ -2969,6 +2970,17 @@ export class GameManager extends Component {
                 wave.getFreeHuntForwardOrigin(),
         });
 
+        // Persistent Hero Free Hunt does not enter the recovery transaction.
+        // Keep its target-clear outcome, but do not emit a misleading
+        // recovery-outcome event for the same transition.
+        if (
+            outcome.reason ===
+            'persistent-free-hunt-target-set-empty'
+        ) {
+            this.telemetryTargetClearRecoveryWindows.delete(wave.id);
+            return;
+        }
+
         if (!recoveryWindow) return;
 
         const targetLaneId = targetWave?.laneId ?? -1;
@@ -3387,7 +3399,16 @@ export class GameManager extends Component {
     ) {
         const wave = BattleWave.getWaveForUnit(unit);
 
-        return !wave || wave.getTargetWaveCount() <= 0;
+        return !wave || (
+            !wave.isPersistentFreeHunt() &&
+            wave.getTargetWaveCount() <= 0
+        );
+    }
+
+    public isPersistentWaveFreeHunt(unit: Unit | null) {
+        const wave = BattleWave.getWaveForUnit(unit);
+
+        return !!wave?.isPersistentFreeHunt();
     }
 
     public getWaveHuntScannerForUnit(unit: Unit | null) {
@@ -3429,6 +3450,114 @@ export class GameManager extends Component {
                 this.waves[i]
             );
         }
+    }
+
+    private processPersistentHeroFreeHunts() {
+        this.processPersistentHeroFreeHunt(
+            this.teamAHeroWave
+        );
+        this.processPersistentHeroFreeHunt(
+            this.teamBHeroWave
+        );
+    }
+
+    private processPersistentHeroFreeHunt(
+        wave: BattleWave | null
+    ) {
+        if (!wave || !wave.hasPersistentFreeHuntOrder()) return;
+        if (wave.isDeadRuntime(this.frame)) return;
+        if (!this.shouldRunFrameInterval(
+            wave.getTargetSearchIntervalFrames(),
+            wave.id
+        )) {
+            return;
+        }
+
+        const scanner = wave.getScanner(true);
+
+        if (!scanner?.agent) return;
+
+        const enemyHero = wave.team === 0
+            ? this.teamBHero
+            : this.teamAHero;
+        const liveEnemyHero = this.isAliveUnit(enemyHero)
+            ? enemyHero
+            : null;
+
+        // An opposing Hero is the strategic destination. A wave already in
+        // contact remains in the target set, so close combat still interrupts
+        // this route naturally until that combat is resolved.
+        if (liveEnemyHero) {
+            const enemyHeroWave =
+                BattleWave.getWaveForUnit(liveEnemyHero);
+
+            if (
+                enemyHeroWave &&
+                wave.hasEngagedTargetWave(enemyHeroWave)
+            ) {
+                wave.prioritizeTargetWave(enemyHeroWave);
+                return;
+            }
+
+            this.onWaveForwardTargetFound(
+                scanner,
+                liveEnemyHero,
+                'hero-global-enemy-hero'
+            );
+            return;
+        }
+
+        // Without an opposing Hero, choose the nearest live enemy wave from
+        // the whole battlefield. This is intentionally wave-level work and
+        // runs on the Hero scanner interval, not once per rendered frame.
+        if (wave.getTargetWaveCount() > 0) return;
+
+        const target = this.findGlobalHeroFreeHuntTarget(
+            wave,
+            scanner
+        );
+
+        if (!target) return;
+
+        this.onWaveForwardTargetFound(
+            scanner,
+            target,
+            'hero-global-wave-hunt'
+        );
+    }
+
+    private findGlobalHeroFreeHuntTarget(
+        heroWave: BattleWave,
+        scanner: Unit
+    ) {
+        if (!scanner.agent) return null;
+
+        let best: Unit | null = null;
+        let bestDistSq = Infinity;
+
+        for (let i = 0; i < this.waves.length; i++) {
+            const enemyWave = this.waves[i];
+
+            if (!enemyWave || enemyWave === heroWave) continue;
+            if (enemyWave.team === heroWave.team) continue;
+            if (enemyWave.isDeadRuntime(this.frame)) continue;
+
+            const candidate = enemyWave.getProgressScanner();
+
+            if (!candidate?.agent) continue;
+            if (!this.isAliveUnit(candidate)) continue;
+
+            const dx = candidate.agent.pos.x - scanner.agent.pos.x;
+            const dz = candidate.agent.pos.z - scanner.agent.pos.z;
+            const distSq = dx * dx + dz * dz;
+
+            if (distSq >= bestDistSq) continue;
+
+            bestDistSq = distSq;
+            best = candidate;
+        }
+
+        return best;
     }
 
     private searchForwardWaveTarget(
@@ -7870,6 +7999,7 @@ export class GameManager extends Component {
         );
 
         wave.addUnit(hero);
+        wave.enablePersistentFreeHunt();
 
         if (team === 0) {
             this.teamAHeroWave = wave;

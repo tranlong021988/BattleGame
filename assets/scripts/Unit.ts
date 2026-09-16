@@ -1010,7 +1010,8 @@ export class Unit extends Component {
         if (this.onForward) return false;
         if (this.backToLaneActive) return false;
 
-        return !!GameManager.instance?.getWaveTargetForUnit(this);
+        return !!GameManager.instance?.getWaveTargetForUnit(this) ||
+            !!GameManager.instance?.isPersistentWaveFreeHunt(this);
     }
 
     public haltForBattleEnd() {
