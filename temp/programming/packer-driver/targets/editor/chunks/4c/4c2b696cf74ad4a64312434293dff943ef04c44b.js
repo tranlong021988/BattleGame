@@ -867,6 +867,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
 
           this.processDynamicWaveLanes();
           this.processWaveTargetClearTelemetry();
+          this.processPersistentHeroFreeHunts();
           this.processWaveForwardSearches();
           this.processWaveForwardRecoveries();
           this.processWaveBanners();
@@ -1707,9 +1708,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return false;
           }
 
-          if (meleeWave.isDead() || enemyWave.isDead()) return false;
-          const meleeWaveReengaged = meleeWave.tryReengageFromRecoveryMeleeContact(meleeUnit, enemy);
-          const enemyWaveReengaged = enemyWave.tryReengageFromRecoveryMeleeContact(enemy, meleeUnit);
+          if (meleeWave.isDead() || enemyWave.isDead()) return false; // Aggressive waves retain their same-lane priority while recovering.
+          // A neighbouring-lane contact remains a local detachment combat and
+          // must not cancel recovery for the parent wave.
+
+          const meleeWaveCanReengage = !meleeWave.hasAggressiveForwardLaneLock() || this.isSameLaneWaveEngagement(meleeWave, enemy) && this.isAggressiveFrontlineEngagement(meleeWave, meleeUnit, enemy);
+          const enemyWaveCanReengage = !enemyWave.hasAggressiveForwardLaneLock() || this.isSameLaneWaveEngagement(enemyWave, meleeUnit) && this.isAggressiveFrontlineEngagement(enemyWave, enemy, meleeUnit);
+          const meleeWaveReengaged = meleeWaveCanReengage && meleeWave.tryReengageFromRecoveryMeleeContact(meleeUnit, enemy);
+          const enemyWaveReengaged = enemyWaveCanReengage && enemyWave.tryReengageFromRecoveryMeleeContact(enemy, meleeUnit);
 
           if (meleeWaveReengaged) {
             this.recordRegroupMeleeContactReengagement(meleeWave, meleeUnit, enemy, 'attacker');
@@ -2549,6 +2555,73 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           for (let i = 0; i < this.waves.length; i++) {
             this.searchForwardWaveTarget(this.waves[i]);
           }
+        }
+
+        processPersistentHeroFreeHunts() {
+          this.processPersistentHeroFreeHunt(this.teamAHeroWave);
+          this.processPersistentHeroFreeHunt(this.teamBHeroWave);
+        }
+
+        processPersistentHeroFreeHunt(wave) {
+          if (!wave || !wave.hasPersistentFreeHuntOrder()) return;
+          if (wave.isDeadRuntime(this.frame)) return;
+
+          if (!this.shouldRunFrameInterval(wave.getTargetSearchIntervalFrames(), wave.id)) {
+            return;
+          }
+
+          const scanner = wave.getScanner(true);
+          if (!(scanner != null && scanner.agent)) return;
+          const enemyHero = wave.team === 0 ? this.teamBHero : this.teamAHero;
+          const liveEnemyHero = this.isAliveUnit(enemyHero) ? enemyHero : null; // An opposing Hero is the strategic destination. A wave already in
+          // contact remains in the target set, so close combat still interrupts
+          // this route naturally until that combat is resolved.
+
+          if (liveEnemyHero) {
+            const enemyHeroWave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+              error: Error()
+            }), BattleWave) : BattleWave).getWaveForUnit(liveEnemyHero);
+
+            if (enemyHeroWave && wave.hasEngagedTargetWave(enemyHeroWave)) {
+              wave.prioritizeTargetWave(enemyHeroWave);
+              return;
+            }
+
+            this.onWaveForwardTargetFound(scanner, liveEnemyHero, 'hero-global-enemy-hero');
+            return;
+          } // Without an opposing Hero, choose the nearest live enemy wave from
+          // the whole battlefield. This is intentionally wave-level work and
+          // runs on the Hero scanner interval, not once per rendered frame.
+
+
+          if (wave.getTargetWaveCount() > 0) return;
+          const target = this.findGlobalHeroFreeHuntTarget(wave, scanner);
+          if (!target) return;
+          this.onWaveForwardTargetFound(scanner, target, 'hero-global-wave-hunt');
+        }
+
+        findGlobalHeroFreeHuntTarget(heroWave, scanner) {
+          if (!scanner.agent) return null;
+          let best = null;
+          let bestDistSq = Infinity;
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const enemyWave = this.waves[i];
+            if (!enemyWave || enemyWave === heroWave) continue;
+            if (enemyWave.team === heroWave.team) continue;
+            if (enemyWave.isDeadRuntime(this.frame)) continue;
+            const candidate = enemyWave.getProgressScanner();
+            if (!(candidate != null && candidate.agent)) continue;
+            if (!this.isAliveUnit(candidate)) continue;
+            const dx = candidate.agent.pos.x - scanner.agent.pos.x;
+            const dz = candidate.agent.pos.z - scanner.agent.pos.z;
+            const distSq = dx * dx + dz * dz;
+            if (distSq >= bestDistSq) continue;
+            bestDistSq = distSq;
+            best = candidate;
+          }
+
+          return best;
         }
 
         searchForwardWaveTarget(wave, forceScannerPassCheck = false) {

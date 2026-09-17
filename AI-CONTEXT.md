@@ -1239,3 +1239,115 @@ raw damage order: `Spear < Sword < Axeman < Cavalry`.
   logs, cache changes, and deletions. Do not reset, clean, or delete them to
   obtain a clean status. Verify any future Git lock before removal and verify
   no active Git process owns it.
+
+## Authoritative latest handoff — 2026-09-17 (Aggressive recovery gate and unresolved recovery stall)
+
+Read this section before changing recovery, Free Hunt, ranged combat, or
+telemetry. It supplements the 2026-09-16 Hero section above.
+
+### Implemented: Aggressive recovery only re-engages same-lane frontline melee contact
+
+The user confirmed this contract:
+
+- Aggressive is the exception: it prioritizes same-lane response.
+- While an Aggressive wave is regrouping, melee contact from an adjacent lane
+  must **not** cancel the parent wave's recovery or add a strategic target.
+  The contacted unit remains in local combat only.
+- Normal waves retain their existing regroup-melee-contact re-engagement rule.
+- The pre-existing Aggressive protection for rear contact must remain intact.
+
+Implemented narrowly in `assets/scripts/GameManager.ts`, inside
+`tryReengageWavesFromRecoveryMeleeContact`:
+
+- Before `tryReengageFromRecoveryMeleeContact` is called, each parent wave is
+  checked independently.
+- Normal waves are unchanged.
+- An Aggressive parent may re-engage only when the opposing parent is in the
+  same strategic lane **and** the contacted unit is at the Aggressive
+  frontline. Adjacent-lane and rear contact now remain local.
+- This is event-path logic only; it adds no per-frame scan or interval.
+
+Verification performed:
+
+- `git diff --check` passed (only the project's usual CRLF warnings appeared).
+- Cocos-bundled TypeScript transpile syntax check passed for
+  `GameManager.ts`.
+- In the 121-report batch below, telemetry recorded 26 Aggressive regroup
+  melee re-engagements and **zero** with a different target lane. It recorded
+  250 Normal re-engagements, including 90 across adjacent lanes, as intended.
+
+### Diagnosed but NOT yet fixed: target-clear recovery can stall behind local ranged combat
+
+Source reports analyzed:
+
+- 121 files from `battle-telemetry-2026-09-17T10-10-36-409Z.json` through
+  `battle-telemetry-2026-09-17T10-50-06-683Z.json` in Downloads.
+
+Measured idle/recovery episodes:
+
+| Measure | Result |
+|---|---:|
+| Total episodes | 1,091 |
+| Median | 34 frames (~1.13 s) |
+| P90 | 155 frames (~5.17 s) |
+| P95 | 212 frames (~7.07 s) |
+| Longest | 554 frames (~18.47 s) |
+| Episodes >= 150 frames | 117 |
+| Long episodes with busy unit seen in snapshots | 110 / 117 |
+| Long episodes with local target seen in snapshots | 112 / 117 |
+
+Concrete reproducible example:
+
+- `battle-telemetry-2026-09-17T10-30-54-388Z.json`, team 0, wave 9,
+  Archer, lane 2: target set cleared at frame 261; the idle episode ended at
+  frame 815, after 554 frames. All 19 snapshots during it showed local busy
+  targets. The wave received a new strategic target at frame 815.
+
+Root cause confirmed by telemetry plus code:
+
+1. `BattleWave.tryResumeForward` deliberately refuses to complete recovery
+   while any command unit is busy or has a valid local target. This enforces
+   synchronized recovery.
+2. In `GameManager.onWaveCombatStarted`, a cross-lane ranged attack is
+   currently prevented from escalating the firing ranged wave into a new
+   strategic target set (`strategicEscalationBlocked`).
+3. Therefore, after a target set empties, ranged members can stay in repeated
+   local cross-lane combat while their parent has no strategic target. They
+   block synchronized recovery, but no new Free Hunt is established to own
+   that combat. This is the source of the long apparent idle/stall; it is not
+   simply a missed scanner interval.
+
+This conflicts with the user-confirmed ranged rule:
+
+- A ranged unit firing at an enemy may pull **its own** wave into Free Hunt.
+- The wave being fired upon must continue its own normal behavior and must
+  not be pulled into Free Hunt merely because it is under ranged fire.
+
+Recommended next implementation (not yet authorized/executed in this
+handoff):
+
+- Change only the attacker-side cross-lane ranged escalation guard in
+  `onWaveCombatStarted`, so the firing ranged wave may establish Free Hunt.
+- Retain the defender-side guard, so a ranged hit never pulls the victim wave
+  into strategic combat.
+- Recheck Hero persistent Free Hunt and existing target-set ordering after the
+  change. Do not weaken the synchronized recovery rule as a workaround; the
+  local combat needs the correct strategic owner instead.
+
+### Batch context only — not a base-unit balance verdict
+
+The same 121 reports contained progression and support-card effects:
+
+- Mean battle duration: 30.16 seconds; median: 30.57 seconds.
+- Results: 58 `enemy-hero-killed`, 40 `player-hero-killed`, 23
+  `boss-hero-killed`.
+- 72 breakthrough cash-outs; team 0 had 51, team 1 had 21.
+- Mean damage: team 0 10,587; team 1 9,702.
+
+These values are useful simulation context only. Do not use this cards-on,
+progression-changing batch to declare base Damage/CP balance.
+
+### Current lock/worktree check
+
+At this handoff, no `*.lock` file exists directly under `.git`; no Git lock
+was removed. Preserve all existing dirty generated files and unrelated edits.

@@ -518,12 +518,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (this.targetWaves.length <= 0) return null;
           if (!requester.agent) return null;
           var best = null;
-          var bestDistSq = Infinity; // Search range is an admission rule for adding a strategic wave.
+          var bestDistSq = Infinity;
+          var targetWaveCount = this.isPersistentFreeHunt() ? Math.min(1, this.targetWaves.length) : this.targetWaves.length; // Search range is an admission rule for adding a strategic wave.
           // Once admitted, Free Hunt must keep navigating toward that wave
           // until it is eliminated; applying the range again strands idle
           // members whenever the target temporarily moves farther away.
 
-          for (var i = 0; i < this.targetWaves.length; i++) {
+          for (var i = 0; i < targetWaveCount; i++) {
             var candidate = this.targetWaves[i].getClosestAliveUnitTo(requester.agent.pos.x, requester.agent.pos.z);
             if (!(candidate != null && candidate.agent)) continue;
             var dx = candidate.agent.pos.x - requester.agent.pos.x;
@@ -541,6 +542,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         getTargetWaveLaneIds() {
           return this.targetWaves.map(wave => wave.laneId);
+        }
+
+        prioritizeTargetWave(targetWave) {
+          if (!targetWave || this.released) return false;
+          var index = this.targetWaves.indexOf(targetWave);
+          if (index < 0) return false;
+          if (index === 0) return true;
+          this.targetWaves.splice(index, 1);
+          this.targetWaves.unshift(targetWave);
+          this.targetWave = targetWave;
+          return true;
         }
 
         getTelemetryTargetState() {
@@ -736,6 +748,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
         isPersistentFreeHunt() {
           return !this.released && this.persistentFreeHunt && this.freeHuntActive;
+        }
+
+        hasPersistentFreeHuntOrder() {
+          return !this.released && this.persistentFreeHunt;
         }
 
         isAggressiveForwardMode() {

@@ -2269,12 +2269,33 @@ export class GameManager extends Component {
         }
         if (meleeWave.isDead() || enemyWave.isDead()) return false;
 
+        // Aggressive waves retain their same-lane priority while recovering.
+        // A neighbouring-lane contact remains a local detachment combat and
+        // must not cancel recovery for the parent wave.
+        const meleeWaveCanReengage =
+            !meleeWave.hasAggressiveForwardLaneLock() ||
+            (this.isSameLaneWaveEngagement(meleeWave, enemy) &&
+                this.isAggressiveFrontlineEngagement(
+                    meleeWave,
+                    meleeUnit,
+                    enemy
+                ));
+        const enemyWaveCanReengage =
+            !enemyWave.hasAggressiveForwardLaneLock() ||
+            (this.isSameLaneWaveEngagement(enemyWave, meleeUnit) &&
+                this.isAggressiveFrontlineEngagement(
+                    enemyWave,
+                    enemy,
+                    meleeUnit
+                ));
         const meleeWaveReengaged =
+            meleeWaveCanReengage &&
             meleeWave.tryReengageFromRecoveryMeleeContact(
                 meleeUnit,
                 enemy
             );
         const enemyWaveReengaged =
+            enemyWaveCanReengage &&
             enemyWave.tryReengageFromRecoveryMeleeContact(
                 enemy,
                 meleeUnit
