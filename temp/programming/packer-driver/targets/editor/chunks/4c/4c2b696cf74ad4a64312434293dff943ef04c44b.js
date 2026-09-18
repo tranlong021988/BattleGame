@@ -443,7 +443,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             // A normal wave owns the lane of its last defeated target; an
             // aggressive wave restores its origin lane. Never replace that
             // strategic choice with the scanner's temporary combat position.
+            const previousLaneId = wave.laneId;
             wave.applyDefeatedTargetLaneForRegroup();
+            this.handleWaveStrategicLaneChanged(wave, previousLaneId);
           };
 
           this.forwardScannerSearchFrame = new WeakMap();
@@ -1196,7 +1198,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           wave.invalidateRuntimeState();
-          this.markTargetLifecyclePendingForWave(wave, 'target-wave-cashed-out-at-enemy-hero-line');
+          this.markTargetLifecyclePendingForWave(wave, 'target-wave-cashed-out-at-enemy-hero-line', laneId);
           this.requestSpatialGridRebuild();
           this.requestBattleStatsUIRefresh();
         }
@@ -2161,7 +2163,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
         }
 
         recordWaveTargetCleared(wave, target) {
-          var _wave$family8, _target$family;
+          var _wave$family8, _target$family, _target$removalReason;
 
           if (!this.enableBattleTelemetry) return;
 
@@ -2190,7 +2192,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             targetFamilyName: (_target$family = (_crd && UnitFamily === void 0 ? (_reportPossibleCrUseOfUnitFamily({
               error: Error()
             }), UnitFamily) : UnitFamily)[target.family]) != null ? _target$family : String(target.family),
-            targetSource: target.physicallyDead ? 'target-wave-dead' : 'target-wave-no-command-members',
+            targetSource: (_target$removalReason = target.removalReason) != null ? _target$removalReason : target.physicallyDead ? 'target-wave-dead' : 'target-wave-no-command-members',
             targetWavePhysicallyDead: target.physicallyDead,
             aggressiveForward: wave.hasAggressiveForwardLaneLock(),
             waveForwardBefore: wave.isForwardMode(),
@@ -2542,6 +2544,27 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return null;
           return wave.findSharedTargetForUnit(unit);
+        } // A unit that has just finished local combat must immediately rejoin an
+        // existing Free Hunt target set. This is deliberately event-driven: it
+        // only performs the shared-target lookup at the combat-end transition,
+        // never from a per-frame recovery path.
+
+
+        tryPrimeSharedWaveHuntTargetAfterCombatEnd(unit) {
+          if (!unit || unit.onBusy || unit.onForward || unit.isSteady || unit.isBackToLaneActive()) {
+            return false;
+          }
+
+          const wave = (_crd && BattleWave === void 0 ? (_reportPossibleCrUseOfBattleWave({
+            error: Error()
+          }), BattleWave) : BattleWave).getWaveForUnit(unit);
+
+          if (!wave || wave.isDead() || !wave.isCommandUnit(unit) || !wave.isFreeHuntMode()) {
+            return false;
+          }
+
+          const target = wave.findSharedTargetForUnit(unit);
+          return !!target && unit.primeWaveHuntTarget(target);
         }
 
         processDynamicWaveLanes() {
@@ -3109,7 +3132,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           const laneId = this.getNearestLaneIdForX(scannerX);
 
           if (laneId >= 0 && laneId !== wave.laneId) {
+            const previousLaneId = wave.laneId;
             wave.setLaneId(laneId);
+            this.handleWaveStrategicLaneChanged(wave, previousLaneId);
           }
         }
 
@@ -3170,6 +3195,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               continue;
             }
 
+            const previousLaneId = wave.laneId;
             const pending = wave.processPendingTargetLifecycle();
 
             if (pending && this.enableBattleTelemetry) {
@@ -3197,18 +3223,43 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
               });
             }
 
-            let clearedTarget = wave.consumeClearedTargetTelemetry();
+            this.handleWaveStrategicLaneChanged(wave, previousLaneId);
+            this.flushWaveTargetClearTelemetry(wave);
+          }
+        }
 
-            while (clearedTarget) {
-              this.recordWaveTargetCleared(wave, clearedTarget);
-              clearedTarget = wave.consumeClearedTargetTelemetry();
+        handleWaveStrategicLaneChanged(movedWave, previousLaneId) {
+          if (!movedWave || movedWave.isDeadRuntime(this.frame) || previousLaneId === movedWave.laneId) {
+            return;
+          }
+
+          for (let i = 0; i < this.waves.length; i++) {
+            const pursuingWave = this.waves[i];
+
+            if (!pursuingWave || pursuingWave === movedWave || pursuingWave.isDeadRuntime(this.frame)) {
+              continue;
             }
 
-            const targetClearOutcome = wave.consumeTargetClearOutcomeTelemetry();
-
-            if (targetClearOutcome) {
-              this.recordWaveTargetClearOutcome(wave, targetClearOutcome);
+            if (!pursuingWave.removeAggressiveOffLaneTargetWave(movedWave)) {
+              continue;
             }
+
+            this.flushWaveTargetClearTelemetry(pursuingWave);
+          }
+        }
+
+        flushWaveTargetClearTelemetry(wave) {
+          let clearedTarget = wave.consumeClearedTargetTelemetry();
+
+          while (clearedTarget) {
+            this.recordWaveTargetCleared(wave, clearedTarget);
+            clearedTarget = wave.consumeClearedTargetTelemetry();
+          }
+
+          const targetClearOutcome = wave.consumeTargetClearOutcomeTelemetry();
+
+          if (targetClearOutcome) {
+            this.recordWaveTargetClearOutcome(wave, targetClearOutcome);
           }
         }
 
@@ -3223,7 +3274,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           if (heroWave) {
+            const previousLaneId = heroWave.laneId;
             heroWave.setLaneId(laneId);
+            this.handleWaveStrategicLaneChanged(heroWave, previousLaneId);
           }
 
           this.heroForwardUnlocked[team] = true;
@@ -4169,12 +4222,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
 
           if (wave) {
+            const targetPhysicalLaneId = this.getPhysicalLaneIdForWave(wave);
             wave.invalidateRuntimeState();
             wave.handleUnitWillDespawn(unit);
             this.updateWaveBannerHealthBar(wave);
 
             if (wave.getCommandAliveCount() <= 0) {
-              this.markTargetLifecyclePendingForWave(wave, 'target-command-members-exhausted-by-despawn');
+              this.markTargetLifecyclePendingForWave(wave, 'target-command-members-exhausted-by-despawn', targetPhysicalLaneId);
             }
           }
 
@@ -4185,13 +4239,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
         }
 
-        markTargetLifecyclePendingForWave(targetWave, reason) {
+        getPhysicalLaneIdForWave(wave) {
+          if (!wave) return -1;
+          return this.getCurrentLaneIdForUnit(wave.getScanner());
+        }
+
+        markTargetLifecyclePendingForWave(targetWave, reason, targetPhysicalLaneId = -1) {
           for (let i = 0; i < this.waves.length; i++) {
             var _wave$family14;
 
             const wave = this.waves[i];
             if (!wave || wave === targetWave) continue;
-            const marked = wave.markTargetLifecyclePending(this.frame, targetWave, reason);
+            const marked = wave.markTargetLifecyclePending(this.frame, targetWave, reason, targetPhysicalLaneId);
             if (!marked || !this.enableBattleTelemetry) continue;
             this.battleTelemetry.recordTargetWaveLifecycleEvent({
               type: 'wave-target-lifecycle-pending',
@@ -4220,10 +4279,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             error: Error()
           }), BattleWave) : BattleWave).getWaveForUnit(unit);
           if (!wave) return;
+          const targetPhysicalLaneId = this.getPhysicalLaneIdForWave(wave);
           wave.invalidateRuntimeState();
 
           if (wave.getCommandAliveCount() <= 0) {
-            this.markTargetLifecyclePendingForWave(wave, 'target-command-members-exhausted-by-isolation');
+            this.markTargetLifecyclePendingForWave(wave, 'target-command-members-exhausted-by-isolation', targetPhysicalLaneId);
           }
         }
 

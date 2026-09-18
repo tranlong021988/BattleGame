@@ -1,6 +1,6 @@
 # BattleGame — AI Context / Handoff
 
-Updated: 2026-09-08
+Updated: 2026-09-18
 
 ## Read this before modifying gameplay
 
@@ -1351,3 +1351,64 @@ progression-changing batch to declare base Damage/CP balance.
 
 At this handoff, no `*.lock` file exists directly under `.git`; no Git lock
 was removed. Preserve all existing dirty generated files and unrelated edits.
+
+## Authoritative latest handoff — 2026-09-18 (physical-lane recovery fix)
+
+This section supersedes older notes that say Normal recovery adopts the
+target wave's stored strategic `laneId`.
+
+### Implemented: Normal recovery now adopts the enemy wave's physical lane
+
+The user observed a Normal wave starting Left, fighting an enemy wave on Mid,
+then regrouping on Right. The old path used the enemy wave's strategic lane
+metadata; that metadata can differ from the lane where the enemy was actually
+fighting. When multiple targets disappeared in one lifecycle pass, the old
+path could also use the final internal array entry rather than the target that
+actually disappeared last.
+
+The current source captures the target enemy wave's physical lane from its
+scanner position immediately before the target loses its final command member.
+Normal recovery now uses that physical snapshot. If several target waves
+disappear before the lifecycle pass, the latest lifecycle event owns the
+recovery lane. The snapshot is threaded through ordinary despawn,
+breakthrough cash-out, and command-membership-loss paths.
+
+If a physical lane cannot be sampled, the existing strategic-lane value is
+kept as a safety fallback. This fallback is source-defined but has not yet
+been confirmed by a new runtime report.
+
+Aggressive Forward is unchanged: it remains locked to its original spawn lane
+and does not adopt an enemy lane. Existing aggressive same-lane admission and
+off-origin target removal rules remain active.
+
+Relevant source: `assets/scripts/BattleWave.ts` lifecycle snapshot/recovery
+selection and `assets/scripts/GameManager.ts` physical-lane capture before
+despawn/cash-out/membership processing.
+
+### Implemented: immediate target handoff after local combat
+
+When a unit finishes local combat while its parent wave is already in Free
+Hunt and another live target wave remains, it immediately primes the nearest
+valid unit from the existing target set. It no longer follows the old hunt
+heading until the interval-based search runs.
+
+This is event-driven and only runs at combat-end transitions. It is blocked
+for Forward, regroup/back-to-lane, steady units, isolated units, non-command
+members, released waves, and pooled/reset units. It adds no per-frame target
+scan. Relevant source: `assets/scripts/Unit.ts` and
+`assets/scripts/GameManager.ts` (`tryPrimeSharedWaveHuntTargetAfterCombatEnd`).
+
+### Verification and continuation rules
+
+- Source review covered Normal recovery, Aggressive lane lock, target-set
+  lifecycle batching, breakthrough cash-out, ordinary despawn, command
+  membership loss, object pooling, and combat-end target handoff.
+- `git diff --check` passed. No `.git/index.lock` is currently present.
+- Runtime/Cocos compilation was not available from the terminal for the latest
+  source edit. Do not describe the physical-lane behavior as runtime-proven
+  until a new battle telemetry report confirms it.
+- Preserve unrelated dirty Cocos files under `library/`, `profiles/`, and
+  `temp/`.
+- Future telemetry audit should compare the wave's regroup lane with the
+  target scanner's physical lane at the target lifecycle event. Do not infer
+  this from the target wave's stored strategic lane alone.

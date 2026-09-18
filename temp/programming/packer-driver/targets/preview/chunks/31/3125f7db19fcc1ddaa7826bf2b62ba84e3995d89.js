@@ -859,7 +859,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         clearEnemy() {
-          var _instance6;
+          var _instance6, _instance7;
 
           var wasIsolatedRangedPursuit = this.isolatedRangedPursuit;
           var wasBusy = this.onBusy;
@@ -915,15 +915,24 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if (forwardAggressive !== null && forwardAggressive !== undefined) {
             this.enterWaveForwardMode(forwardAggressive, true);
             return;
+          } // Do not let a survivor briefly continue along its old hunt heading
+          // while the wave already has another live target. Select that target
+          // once at combat end instead of waiting for the interval-based search
+          // in update(). The manager rejects recovery, forward, detached, and
+          // pooled-unit states before issuing this order.
+
+
+          if ((wasBusy || previousTarget) && (_instance7 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+            error: Error()
+          }), GameManager) : GameManager).instance) != null && _instance7.tryPrimeSharedWaveHuntTargetAfterCombatEnd(this)) {
+            return;
           } // Keep the last free-hunt intent while the scanner waits for the
           // next wave order. Movement modes that must stop or redirect
           // (steady, forward, and back-to-lane) clear it explicitly.
           // A wave can retain a live strategic target while this unit's local
-          // target dies or moves beyond its search radius. Combat mode clears
-          // the old continuity, so restore it here: otherwise the unit reaches
-          // the no-target branch below and remains stopped until an enemy comes
-          // back within range. On the next update it follows the wave scanner,
-          // or preserves its last travel direction while the scanner searches.
+          // target dies or moves beyond its search radius. If no replacement is
+          // available at this event, preserve continuity while the interval
+          // search refreshes the wave's target set.
 
 
           if (this.shouldResumeWaveHuntContinuity()) {
@@ -941,17 +950,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         shouldResumeWaveHuntContinuity() {
-          var _instance7, _instance8;
+          var _instance8, _instance9;
 
           if (!this.agent) return false;
           if (this.isSteady) return false;
           if (this.onForward) return false;
           if (this.backToLaneActive) return false;
-          return !!((_instance7 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          return !!((_instance8 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance7.getWaveTargetForUnit(this)) || !!((_instance8 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          }), GameManager) : GameManager).instance) != null && _instance8.getWaveTargetForUnit(this)) || !!((_instance9 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance8.isPersistentWaveFreeHunt(this));
+          }), GameManager) : GameManager).instance) != null && _instance9.isPersistentWaveFreeHunt(this));
         }
 
         haltForBattleEnd() {
@@ -1118,13 +1127,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         update(deltaTime) {
-          var _instance9, _instance11;
+          var _instance10, _instance12;
 
           if (!this.sim || !this.agent) return;
 
-          if ((_instance9 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance10 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance9.isBattleCombatLocked()) {
+          }), GameManager) : GameManager).instance) != null && _instance10.isBattleCombatLocked()) {
             this.haltForBattleEnd();
             this.sync(deltaTime, false);
             return;
@@ -1142,11 +1151,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
 
           if (this.props && this.props.isDead()) {
             if (this.isHero) {
-              var _instance10;
+              var _instance11;
 
-              (_instance10 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+              (_instance11 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                 error: Error()
-              }), GameManager) : GameManager).instance) == null || _instance10.resolveHeroDefeat(this);
+              }), GameManager) : GameManager).instance) == null || _instance11.resolveHeroDefeat(this);
             }
 
             this.setEnemyTarget(null);
@@ -1165,9 +1174,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             return;
           }
 
-          if ((_instance11 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          if ((_instance12 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) != null && _instance11.resolveUnitReachedEnemyHeroLine(this)) {
+          }), GameManager) : GameManager).instance) != null && _instance12.resolveUnitReachedEnemyHeroLine(this)) {
             // The scanner's whole wave has been returned to the pool. Do not
             // issue movement or simulator commands to this recycled member.
             return;
@@ -1402,7 +1411,18 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
             this.setAgentOnForward(0);
             this.setAgentStopped();
             gm.recordWaveRegroupTransition('unit-regroup-completed', this);
-            gm.tryResumeWaveForwardFromRegroupCompletion(this);
+            gm.tryResumeWaveForwardFromRegroupCompletion(this); // An Aggressive parent may already have resumed Forward while
+            // this unit was left in a local flank combat. Once this delayed
+            // member reaches the parent lane, it must join that current
+            // Forward order instead of remaining idle.
+
+            var forwardAggressive = gm.getForwardModeAfterLocalCombat(this);
+
+            if (forwardAggressive === true && !this.onForward) {
+              gm.recordWaveRegroupTransition('aggressive-local-detachment-rejoined-forward', this);
+              this.enterWaveForwardMode(forwardAggressive, true);
+            }
+
             return true;
           }
 
@@ -1476,11 +1496,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
               this.setAgentLocked(true);
 
               if (!wasBusy) {
-                var _instance12;
+                var _instance13;
 
-                (_instance12 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+                (_instance13 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
                   error: Error()
-                }), GameManager) : GameManager).instance) == null || _instance12.onWaveCombatStarted(this, target, false);
+                }), GameManager) : GameManager).instance) == null || _instance13.onWaveCombatStarted(this, target, false);
               }
 
               this.setAgentStopped();
@@ -1896,16 +1916,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
         }
 
         recordRangedKiteTelemetry(target, targetDistance) {
-          var _instance13;
+          var _instance14;
 
           if (this.rangedKiteTelemetryTargetLifeId === target.lifeId) {
             return;
           }
 
           this.rangedKiteTelemetryTargetLifeId = target.lifeId;
-          (_instance13 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
+          (_instance14 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
-          }), GameManager) : GameManager).instance) == null || _instance13.recordBattleTelemetryRangedKite(this, target, 'started', targetDistance, this.rangedCombatMoveX, this.rangedCombatMoveZ);
+          }), GameManager) : GameManager).instance) == null || _instance14.recordBattleTelemetryRangedKite(this, target, 'started', targetDistance, this.rangedCombatMoveX, this.rangedCombatMoveZ);
         }
 
         setRangedCombatMoveToward(targetDx, targetDz) {

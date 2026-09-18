@@ -77,6 +77,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.targetLifecyclePending = false;
           this.targetLifecyclePendingFrame = -1;
           this.targetLifecyclePendingTargetWaveId = -1;
+          // Captured by GameManager before the target loses its final command
+          // member. This is the enemy wave's physical lane at defeat, distinct
+          // from its strategic lane assignment.
+          this.targetLifecyclePendingTargetPhysicalLaneId = -1;
           this.targetLifecyclePendingEventCount = 0;
           this.targetLifecyclePendingReason = '';
           this.regroupLaneAfterTargetClear = -1;
@@ -808,7 +812,44 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return !!targetWave && this.targetWaves.indexOf(targetWave) >= 0;
         }
 
-        markTargetLifecyclePending(frame, targetWave, reason) {
+        removeAggressiveOffLaneTargetWave(targetWave) {
+          var _this$targetWaves$;
+
+          if (!targetWave || this.released) return false;
+          if (!this.hasAggressiveForwardLaneLock()) return false;
+
+          if (targetWave.laneId === this.aggressiveForwardOriginLaneId) {
+            return false;
+          }
+
+          const index = this.targetWaves.indexOf(targetWave);
+          if (index < 0) return false;
+          this.targetWaves.splice(index, 1);
+          this.targetWave = (_this$targetWaves$ = this.targetWaves[0]) != null ? _this$targetWaves$ : null;
+          this.clearedTargetTelemetry.push({
+            id: targetWave.id,
+            team: targetWave.team,
+            laneId: targetWave.laneId,
+            family: targetWave.family,
+            remainingTargetWaveCount: this.targetWaves.length,
+            physicallyDead: targetWave.isDead(),
+            removalReason: 'aggressive-target-left-origin-lane'
+          });
+
+          if (this.targetWaves.length > 0) {
+            if (this.freeHuntActive) {
+              this.clearIdleHuntTargets();
+              this.primeTargetWaveHuntTargets();
+            }
+
+            return true;
+          }
+
+          this.beginTargetSetEmptyRecovery(targetWave.laneId);
+          return true;
+        }
+
+        markTargetLifecyclePending(frame, targetWave, reason, targetPhysicalLaneId = -1) {
           if (this.released) return false;
           if (!this.referencesTargetWave(targetWave)) return false;
 
@@ -816,12 +857,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.targetLifecyclePending = true;
             this.targetLifecyclePendingFrame = frame;
             this.targetLifecyclePendingTargetWaveId = targetWave ? targetWave.id : -1;
+            this.targetLifecyclePendingTargetPhysicalLaneId = targetPhysicalLaneId;
             this.targetLifecyclePendingEventCount = 1;
             this.targetLifecyclePendingReason = reason;
             return true;
           }
 
-          this.targetLifecyclePendingEventCount++;
+          this.targetLifecyclePendingEventCount++; // More than one target can disappear before this wave's scheduled
+          // lifecycle pass. The latest disappearance is the battle that owns
+          // the recovery lane, rather than the arbitrary final array entry.
+
+          this.targetLifecyclePendingTargetWaveId = targetWave ? targetWave.id : -1;
+          this.targetLifecyclePendingTargetPhysicalLaneId = targetPhysicalLaneId;
+          this.targetLifecyclePendingReason = reason;
           return false;
         }
 
@@ -829,15 +877,17 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (!this.targetLifecyclePending) return null;
           const pendingFrame = this.targetLifecyclePendingFrame;
           const pendingTargetWaveId = this.targetLifecyclePendingTargetWaveId;
+          const pendingTargetPhysicalLaneId = this.targetLifecyclePendingTargetPhysicalLaneId;
           const targetWaveCountBefore = this.targetWaves.length;
           const pendingEventCount = this.targetLifecyclePendingEventCount;
           const pendingReason = this.targetLifecyclePendingReason;
           this.targetLifecyclePending = false;
           this.targetLifecyclePendingFrame = -1;
           this.targetLifecyclePendingTargetWaveId = -1;
+          this.targetLifecyclePendingTargetPhysicalLaneId = -1;
           this.targetLifecyclePendingEventCount = 0;
           this.targetLifecyclePendingReason = '';
-          this.refreshTargetWaves();
+          this.refreshTargetWaves(pendingTargetWaveId, pendingTargetPhysicalLaneId);
           return {
             pendingFrame,
             pendingTargetWaveId,
@@ -881,11 +931,16 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         tryReengageFromRecoveryMeleeContact(unit, opposingUnit) {
-          var _this$targetWaves$;
+          return this.tryReengageFromRecoveryTarget(unit, opposingUnit, 'regroup-melee-reengagement');
+        }
+
+        tryReengageFromRecoveryTarget(unit, opposingUnit, reason) {
+          var _this$targetWaves$2;
 
           if (!unit || !opposingUnit || this.released) return false;
           if (!this.awaitingForwardRecoveryAfterTargetClear) return false;
           if (!this.isCommandUnit(unit)) return false;
+          if (opposingUnit.isIsolatedRangedPursuit()) return false;
           const opposingWave = BattleWave.getWaveForUnit(opposingUnit);
           if (!opposingWave || opposingWave === this) return false;
           if (opposingWave.team === this.team) return false;
@@ -894,18 +949,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return false;
           }
 
+          if (!this.canAcceptStrategicTargetWave(opposingWave)) {
+            return false;
+          }
+
           if (!this.hasEngagedTargetWave(opposingWave)) {
             this.targetWaves.push(opposingWave);
           }
 
-          this.targetWave = (_this$targetWaves$ = this.targetWaves[0]) != null ? _this$targetWaves$ : opposingWave;
+          this.targetWave = (_this$targetWaves$2 = this.targetWaves[0]) != null ? _this$targetWaves$2 : opposingWave;
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
           this.clearForwardRecoveryReadyUnits();
           this.targetClearSameLaneSearchResolved = false;
           this.targetClearOutcomeTelemetry = {
-            reason: 'regroup-melee-reengagement',
+            reason,
             scanner: this.getScanner(),
             target: opposingUnit
           };
@@ -923,6 +982,32 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.clearIdleHuntTargets();
           this.primeTargetWaveHuntTargets();
           return true;
+        }
+
+        tryReengageNormalRecoveryFromExistingLocalTarget() {
+          if (this.hasAggressiveForwardLaneLock()) return false;
+
+          for (let i = 0; i < this.units.length; i++) {
+            const unit = this.units[i];
+            if (!this.isCommandUnit(unit)) continue;
+            if (!unit.onBusy && !unit.hasValidEnemyTarget()) continue;
+            const target = unit.getValidEnemyTarget();
+            if (!target) continue;
+            const targetWave = BattleWave.getWaveForUnit(target); // Normal strategic responses retain the same-lane/adjacent-lane
+            // boundary even when promoted from an existing local combat.
+
+            if (!targetWave || this.laneId < 0 || targetWave.laneId < 0) {
+              continue;
+            }
+
+            if (Math.abs(this.laneId - targetWave.laneId) > 1) continue;
+
+            if (this.tryReengageFromRecoveryTarget(unit, target, 'regroup-existing-local-target-reengagement')) {
+              return true;
+            }
+          }
+
+          return false;
         }
 
         consumeForwardRecoveryBlockTelemetry() {
@@ -1018,7 +1103,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         trySetTargetWaveFromScanner(scanner, target, allowRecoveryContinuation = false) {
-          var _this$targetWaves$2;
+          var _this$targetWaves$3;
 
           if (!scanner || !target || this.released) return false;
           if (!this.isCurrentScanner(scanner)) return false;
@@ -1028,6 +1113,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           if (nextTargetWave.team === this.team) return false;
 
           if (nextTargetWave.released || nextTargetWave.getCommandAliveCount() <= 0) {
+            return false;
+          }
+
+          if (!this.canAcceptStrategicTargetWave(nextTargetWave)) {
             return false;
           }
 
@@ -1043,7 +1132,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.targetWaves.push(nextTargetWave);
-          this.targetWave = (_this$targetWaves$2 = this.targetWaves[0]) != null ? _this$targetWaves$2 : null;
+          this.targetWave = (_this$targetWaves$3 = this.targetWaves[0]) != null ? _this$targetWaves$3 : null;
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
@@ -1058,7 +1147,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         trySetTargetWaveFromEngagement(unit, target) {
-          var _this$targetWaves$3;
+          var _this$targetWaves$4;
 
           if (!unit || !target || this.released) return false;
           if (!this.isCommandUnit(unit)) return false;
@@ -1076,6 +1165,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return false;
           }
 
+          if (!this.canAcceptStrategicTargetWave(nextTargetWave)) {
+            return false;
+          }
+
           if (this.awaitingForwardRecoveryAfterTargetClear) {
             return false;
           }
@@ -1087,7 +1180,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
 
           this.targetWaves.push(nextTargetWave);
-          this.targetWave = (_this$targetWaves$3 = this.targetWaves[0]) != null ? _this$targetWaves$3 : null;
+          this.targetWave = (_this$targetWaves$4 = this.targetWaves[0]) != null ? _this$targetWaves$4 : null;
           this.immediateTargetSearchPending = false;
           this.awaitingForwardRecoveryAfterTargetClear = false;
           this.forwardRecoveryLanePrepared = false;
@@ -1099,6 +1192,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           return true;
+        }
+
+        canAcceptStrategicTargetWave(targetWave) {
+          if (!this.hasAggressiveForwardLaneLock()) return true;
+          return targetWave.laneId === this.aggressiveForwardOriginLaneId;
         }
 
         getProgressScanner() {
@@ -1158,13 +1256,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.initialForwardCombatGateActive = true;
             this.aggressiveForwardMode = this.freeHuntForwardOrigin === 'aggressive';
             return true;
-          } // Recovery is synchronized: idle command members return to the lane,
-          // then wait there until no command member remains in local combat or
-          // outside the regroup lane. A melee attack can still cancel this
-          // state through tryReengageFromRecoveryMeleeContact().
+          }
 
+          const forwardAggressive = this.freeHuntForwardOrigin === 'aggressive'; // Normal recovery is synchronized. Aggressive recovery deliberately
+          // releases its ready members without waiting for flank/local combat
+          // detachments; those members complete their own return later.
 
-          if (resumableUnitCount <= 0) return false;
+          if (resumableUnitCount <= 0 && !forwardAggressive) return false;
 
           if (!this.targetClearSameLaneSearchResolved) {
             return false;
@@ -1175,7 +1273,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             this.forwardRecoveryLanePrepared = true;
           }
 
-          const forwardAggressive = this.freeHuntForwardOrigin === 'aggressive';
           let regroupingUnitCount = 0;
 
           for (let i = 0; i < this.units.length; i++) {
@@ -1202,7 +1299,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }
           }
 
-          if (retainedBusyUnitCount > 0 || regroupingUnitCount > 0) {
+          if (regroupingUnitCount > 0 || !forwardAggressive && retainedBusyUnitCount > 0) {
             return false;
           } // Recovery can continue directly into Free Hunt when the scanner has
           // already passed an eligible enemy scanner. This runs before any
@@ -1301,6 +1398,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.runtimeHealthRatio = 0;
           this.totalMaxHealth = 0;
           this.targetSearchIntervalFrames = 1;
+          this.targetLifecyclePending = false;
+          this.targetLifecyclePendingFrame = -1;
+          this.targetLifecyclePendingTargetWaveId = -1;
+          this.targetLifecyclePendingTargetPhysicalLaneId = -1;
+          this.targetLifecyclePendingEventCount = 0;
+          this.targetLifecyclePendingReason = '';
           this.forwardModeActive = false;
           this.freeHuntActive = false;
           this.persistentFreeHunt = false;
@@ -1370,7 +1473,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           return best;
         }
 
-        refreshTargetWaves() {
+        refreshTargetWaves(latestRemovedTargetWaveId = -1, latestRemovedTargetPhysicalLaneId = -1) {
           var _survivors$2;
 
           if (this.targetWaves.length <= 0) {
@@ -1380,6 +1483,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           const survivors = [];
           let lastRemovedLane = -1;
+          let latestRemovedTargetLane = -1;
           const firstNewTelemetryIndex = this.clearedTargetTelemetry.length;
 
           for (let i = 0; i < this.targetWaves.length; i++) {
@@ -1392,6 +1496,11 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
             if (targetWave) {
               lastRemovedLane = targetWave.laneId;
+
+              if (targetWave.id === latestRemovedTargetWaveId && latestRemovedTargetPhysicalLaneId >= 0) {
+                latestRemovedTargetLane = latestRemovedTargetPhysicalLaneId;
+              }
+
               this.clearedTargetTelemetry.push({
                 id: targetWave.id,
                 team: targetWave.team,
@@ -1424,11 +1533,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             }
 
             return;
-          } // A Hero keeps its Free Hunt order after its current target set has
+          }
+
+          this.beginTargetSetEmptyRecovery(latestRemovedTargetLane >= 0 ? latestRemovedTargetLane : lastRemovedLane);
+        }
+
+        beginTargetSetEmptyRecovery(lastRemovedLane) {
+          // A Hero keeps its Free Hunt order after its current target set has
           // been eliminated. It deliberately skips the standard wave recovery
           // transaction and retains its last hunt direction until new contact.
-
-
           if (this.isPersistentFreeHunt()) {
             this.immediateTargetSearchPending = false;
             this.awaitingForwardRecoveryAfterTargetClear = false;
@@ -1480,7 +1593,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           }
 
           this.clearAllFreeHuntContinuity();
-          this.clearIdleHuntTargets();
+          this.clearIdleHuntTargets(); // A Normal wave with an already-active local target must immediately
+          // continue Free Hunt toward that target's wave. This is evaluated at
+          // target-set loss, rather than by a per-frame recovery scan.
+
+          if (this.tryReengageNormalRecoveryFromExistingLocalTarget()) {
+            return;
+          }
         }
 
         isUnitAlive(unit) {
@@ -1527,6 +1646,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             const unit = this.units[i];
             if (!this.isCommandUnit(unit)) continue;
             if (unit.onBusy || unit.hasValidEnemyTarget()) continue;
+            if (unit.isBackToLaneActive()) continue;
 
             if (this.forwardRecoveryReadyUnitLifeIds.has(unit.lifeId)) {
               count++;

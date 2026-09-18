@@ -980,16 +980,28 @@ export class Unit extends Component {
             return;
         }
 
+        // Do not let a survivor briefly continue along its old hunt heading
+        // while the wave already has another live target. Select that target
+        // once at combat end instead of waiting for the interval-based search
+        // in update(). The manager rejects recovery, forward, detached, and
+        // pooled-unit states before issuing this order.
+        if (
+            (wasBusy || previousTarget) &&
+            GameManager.instance?.tryPrimeSharedWaveHuntTargetAfterCombatEnd(
+                this
+            )
+        ) {
+            return;
+        }
+
         // Keep the last free-hunt intent while the scanner waits for the
         // next wave order. Movement modes that must stop or redirect
         // (steady, forward, and back-to-lane) clear it explicitly.
 
         // A wave can retain a live strategic target while this unit's local
-        // target dies or moves beyond its search radius. Combat mode clears
-        // the old continuity, so restore it here: otherwise the unit reaches
-        // the no-target branch below and remains stopped until an enemy comes
-        // back within range. On the next update it follows the wave scanner,
-        // or preserves its last travel direction while the scanner searches.
+        // target dies or moves beyond its search radius. If no replacement is
+        // available at this event, preserve continuity while the interval
+        // search refreshes the wave's target set.
         if (this.shouldResumeWaveHuntContinuity()) {
             this.beginFreeHuntContinuity();
         }
@@ -1546,6 +1558,21 @@ export class Unit extends Component {
                 this
             );
             gm.tryResumeWaveForwardFromRegroupCompletion(this);
+
+            // An Aggressive parent may already have resumed Forward while
+            // this unit was left in a local flank combat. Once this delayed
+            // member reaches the parent lane, it must join that current
+            // Forward order instead of remaining idle.
+            const forwardAggressive =
+                gm.getForwardModeAfterLocalCombat(this);
+
+            if (forwardAggressive === true && !this.onForward) {
+                gm.recordWaveRegroupTransition(
+                    'aggressive-local-detachment-rejoined-forward',
+                    this
+                );
+                this.enterWaveForwardMode(forwardAggressive, true);
+            }
             return true;
         }
 
