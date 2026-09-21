@@ -1161,8 +1161,8 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], fu
           if ((_instance12 = (_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
             error: Error()
           }), GameManager) : GameManager).instance) != null && _instance12.resolveUnitReachedEnemyHeroLine(this)) {
-            // The scanner's whole wave has been returned to the pool. Do not
-            // issue movement or simulator commands to this recycled member.
+            // The breakthrough either ended the battle or returned the wave
+            // to the pool. Do not issue another movement command this frame.
             return;
           }
 

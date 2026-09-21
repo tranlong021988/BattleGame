@@ -1249,8 +1249,8 @@ export class Unit extends Component {
                 this
             )
         ) {
-            // The scanner's whole wave has been returned to the pool. Do not
-            // issue movement or simulator commands to this recycled member.
+            // The breakthrough either ended the battle or returned the wave
+            // to the pool. Do not issue another movement command this frame.
             return;
         }
 

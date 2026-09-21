@@ -145,7 +145,7 @@ export class GameManager extends Component {
 
     @property({
         tooltip:
-            'Check battle winner rules. Normal gameplay ends when a Hero dies or an opposing unit reaches the initial Hero line.',
+            'Check battle winner rules. A Hero death ends the battle; reaching the enemy Hero line wins only when that team has no living units on the scene.',
     })
     enableBattleWinnerCheck = true;
 
@@ -1405,6 +1405,23 @@ export class GameManager extends Component {
         if (!wave || wave.isDead()) return false;
         if (wave.getScanner() !== unit) return false;
         if (this.breakthroughCashoutWaveIds.has(wave.id)) return true;
+
+        const defendingTeam = unit.team === 0 ? 1 : 0;
+        const defendingHero =
+            defendingTeam === 0 ? this.teamAHero : this.teamBHero;
+        if (
+            this.enableBattleWinnerCheck &&
+            this.getAliveNonHeroUnitCount(defendingTeam) === 0 &&
+            !this.isAliveUnit(defendingHero)
+        ) {
+            this.recordUnitReachedEnemyHeroLineContext(unit);
+            this.resolveBattleWinner(
+                unit.team,
+                defendingTeam,
+                'enemy-hero-line-reached-with-no-defenders'
+            );
+            return true;
+        }
 
         this.breakthroughCashoutWaveIds.add(wave.id);
         this.cashOutWaveAtEnemyHeroLine(wave, unit);

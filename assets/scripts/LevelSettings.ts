@@ -373,6 +373,12 @@ export class LevelSettings extends Component
     allowAdsRescue = true;
 
     @property({
+        displayName: 'Allow Card Cooldown Ads',
+        tooltip: 'Allow player or player-simulating bot to finish card cooldowns with ads. Card purchases, upgrades, normal cooldowns, and battle effects stay enabled when disabled.'
+    })
+    allowCardCooldownAds = true;
+
+    @property({
         displayName: 'Allow Bot Gold X2 Ads',
         tooltip: 'Allow purchasing simulation to use rewarded ads to double side-mission gold. This does not restrict human-player ad rewards.'
     })
@@ -948,6 +954,7 @@ export class LevelSettings extends Component
             controller: this.purchasingSimulation
                 ? 'bot-simulation'
                 : 'player',
+            allowCardCooldownAds: this.allowCardCooldownAds,
             allowBotGoldX2Ads: this.allowBotGoldX2Ads,
             settings: {
                 progressionEndLevel:
@@ -1384,6 +1391,7 @@ export class LevelSettings extends Component
     public tryFinishCardCooldownWithAd(cardId: string) {
         if (
             !this.allowAdsRescue ||
+            !this.allowCardCooldownAds ||
             !this.progressionState ||
             !cardId
         ) {
@@ -1562,7 +1570,8 @@ export class LevelSettings extends Component
             // rather than starting cardless. `finishBotSelectedCardCooldowns`
             // applies the ad only to this single selected card.
             if (this.currentPlayerBattleCardIds.length <= 0 &&
-                this.allowAdsRescue && ownedDefinitions.length > 0) {
+                this.allowAdsRescue && this.allowCardCooldownAds &&
+                ownedDefinitions.length > 0) {
                 const emergencyCardIds = this.selectBestPlayerCardIds(
                     ownedDefinitions,
                     state,
@@ -1883,7 +1892,8 @@ export class LevelSettings extends Component
             const saved = this.getSavedCard(state, cardId);
 
             if (!definition || !saved || !saved.owned) continue;
-            if (saved.cooldownRemaining > 0 && !this.allowAdsRescue) {
+            if (saved.cooldownRemaining > 0 &&
+                (!this.allowAdsRescue || !this.allowCardCooldownAds)) {
                 return [];
             }
 
@@ -1953,7 +1963,8 @@ export class LevelSettings extends Component
             noAdDefinitions, state, deckSize
         );
 
-        if (!this.allowAdsRescue || deckSize <= 0) {
+        if (!this.allowAdsRescue || !this.allowCardCooldownAds ||
+            deckSize <= 0) {
             return { cardIds: noAdCardIds, candidates };
         }
 
@@ -5172,7 +5183,7 @@ export class LevelSettings extends Component
     private finishBotSelectedCardCooldowns(
         state: SavedProgressionState
     ) {
-        if (!this.allowAdsRescue) return;
+        if (!this.allowAdsRescue || !this.allowCardCooldownAds) return;
 
         for (let i = 0; i < this.currentPlayerBattleCardIds.length; i++) {
             const cardId = this.currentPlayerBattleCardIds[i];

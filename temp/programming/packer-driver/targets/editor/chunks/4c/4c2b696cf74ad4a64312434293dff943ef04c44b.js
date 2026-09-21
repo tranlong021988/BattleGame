@@ -217,7 +217,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
       }), _dec10 = property({
         tooltip: 'Allow URL query params ?stats=1 or ?profiler=1 to show the Cocos profiler overlay in browser builds.'
       }), _dec11 = property({
-        tooltip: 'Check battle winner rules. Normal gameplay ends when a Hero dies or an opposing unit reaches the initial Hero line.'
+        tooltip: 'Check battle winner rules. A Hero death ends the battle; reaching the enemy Hero line wins only when that team has no living units on the scene.'
       }), _dec12 = property({
         tooltip: 'Optional fallback winner rule: a team loses only when it has no living troops, including Hero, and can no longer afford any valid spawn entry.'
       }), _dec13 = property({
@@ -1125,6 +1125,15 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           if (!wave || wave.isDead()) return false;
           if (wave.getScanner() !== unit) return false;
           if (this.breakthroughCashoutWaveIds.has(wave.id)) return true;
+          const defendingTeam = unit.team === 0 ? 1 : 0;
+          const defendingHero = defendingTeam === 0 ? this.teamAHero : this.teamBHero;
+
+          if (this.enableBattleWinnerCheck && this.getAliveNonHeroUnitCount(defendingTeam) === 0 && !this.isAliveUnit(defendingHero)) {
+            this.recordUnitReachedEnemyHeroLineContext(unit);
+            this.resolveBattleWinner(unit.team, defendingTeam, 'enemy-hero-line-reached-with-no-defenders');
+            return true;
+          }
+
           this.breakthroughCashoutWaveIds.add(wave.id);
           this.cashOutWaveAtEnemyHeroLine(wave, unit);
           return true;
