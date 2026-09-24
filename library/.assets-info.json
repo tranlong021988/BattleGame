@@ -33,14 +33,14 @@
       "time": 1776667555102.3574
     },
     "scripts\\GameManager.ts": {
-      "time": 1789982330520.068,
+      "time": 1790155700134.3623,
       "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
     },
     "materials.meta": {
       "time": 1776667555101.3608
     },
     "materials": {
-      "time": 1783911758999.4805,
+      "time": 1790156003364.6555,
       "uuid": "45369d38-91a0-48b0-897e-f10becbec2b5"
     },
     "materials\\Red.mtl.meta": {
@@ -747,14 +747,14 @@
       "time": 1782442356785.755
     },
     "scripts\\PlayerArmyController.ts": {
-      "time": 1786689894893.1309,
+      "time": 1790156640556.43,
       "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
     },
     "scripts\\LevelSettings.ts.meta": {
       "time": 1782809522665.1208
     },
     "scripts\\LevelSettings.ts": {
-      "time": 1789982389865.0215,
+      "time": 1790068959837.9382,
       "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
     },
     "materials\\Banner.mtl.meta": {
@@ -985,7 +985,7 @@
       "time": 1786620981404.7856
     },
     "Battle.scene": {
-      "time": 1789982489194.8728,
+      "time": 1790156672437.9514,
       "uuid": "1effe86e-a401-4769-9dbc-62218c68834d"
     },
     "scripts\\MainGameFlow.ts.meta": {
@@ -994,6 +994,20 @@
     "scripts\\MainGameFlow.ts": {
       "time": 1786678749289.4539,
       "uuid": "b81f7784-1e0c-4d6d-9e23-3e4e00b4db67"
+    },
+    "materials\\RedLine.mtl.meta": {
+      "time": 1790155974917.155
+    },
+    "materials\\RedLine.mtl": {
+      "time": 1790155993675.3992,
+      "uuid": "05660a32-02eb-4393-833c-341ebf9d5c1f"
+    },
+    "materials\\BlueLine.mtl.meta": {
+      "time": 1790155996889.5776
+    },
+    "materials\\BlueLine.mtl": {
+      "time": 1790156011259.9011,
+      "uuid": "e427cb1b-ed59-4775-aadb-03e537a79362"
     }
   },
   "missing": {}

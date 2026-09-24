@@ -1,7 +1,7 @@
-System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _context) {
+System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2"], function (_export, _context) {
   "use strict";
 
-  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Button, Color, Component, Enum, Node, Sprite, UITransform, GameManager, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _class6, _crd, ccclass, property, PlayerLane, PlayerUnitIconBinding, PlayerArmyController;
+  var _reporterNs, _cclegacy, __checkObsolete__, __checkObsoleteInNamespace__, _decorator, Button, Color, Component, Enum, input, Input, Node, Sprite, UITransform, GameManager, BattleArmyBrain, _dec, _dec2, _dec3, _class, _class2, _descriptor, _descriptor2, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _dec13, _dec14, _dec15, _dec16, _dec17, _class4, _class5, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7, _descriptor8, _descriptor9, _descriptor10, _descriptor11, _descriptor12, _descriptor13, _descriptor14, _descriptor15, _descriptor16, _class6, _crd, ccclass, property, PlayerLane, PlayerUnitIconBinding, PlayerArmyController;
 
   function _initializerDefineProperty(target, property, descriptor, context) { if (!descriptor) return; Object.defineProperty(target, property, { enumerable: descriptor.enumerable, configurable: descriptor.configurable, writable: descriptor.writable, value: descriptor.initializer ? descriptor.initializer.call(context) : void 0 }); }
 
@@ -11,6 +11,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
   function _reportPossibleCrUseOfGameManager(extras) {
     _reporterNs.report("GameManager", "./GameManager", _context.meta, extras);
+  }
+
+  function _reportPossibleCrUseOfBattleArmyBrain(extras) {
+    _reporterNs.report("BattleArmyBrain", "./BattleArmyBrain", _context.meta, extras);
   }
 
   return {
@@ -25,18 +29,22 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
       Color = _cc.Color;
       Component = _cc.Component;
       Enum = _cc.Enum;
+      input = _cc.input;
+      Input = _cc.Input;
       Node = _cc.Node;
       Sprite = _cc.Sprite;
       UITransform = _cc.UITransform;
     }, function (_unresolved_2) {
       GameManager = _unresolved_2.GameManager;
+    }, function (_unresolved_3) {
+      BattleArmyBrain = _unresolved_3.BattleArmyBrain;
     }],
     execute: function () {
       _crd = true;
 
       _cclegacy._RF.push({}, "89dbfa88XVPOLKVdWWhpYrY", "PlayerArmyController", undefined);
 
-      __checkObsolete__(['_decorator', 'Button', 'Color', 'Component', 'Enum', 'Event', 'EventTouch', 'Node', 'Sprite', 'UITransform']);
+      __checkObsolete__(['_decorator', 'Button', 'Color', 'Component', 'Enum', 'Event', 'EventTouch', 'input', 'Input', 'Node', 'Sprite', 'UITransform']);
 
       ({
         ccclass,
@@ -79,19 +87,21 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
       _export("PlayerArmyController", PlayerArmyController = (_dec4 = ccclass('PlayerArmyController'), _dec5 = property(_crd && GameManager === void 0 ? (_reportPossibleCrUseOfGameManager({
         error: Error()
-      }), GameManager) : GameManager), _dec6 = property({
+      }), GameManager) : GameManager), _dec6 = property(_crd && BattleArmyBrain === void 0 ? (_reportPossibleCrUseOfBattleArmyBrain({
+        error: Error()
+      }), BattleArmyBrain) : BattleArmyBrain), _dec7 = property({
         min: 0,
         max: 1,
         step: 1
-      }), _dec7 = property({
+      }), _dec8 = property({
         type: PlayerLane
-      }), _dec8 = property(Node), _dec9 = property(Node), _dec10 = property(Node), _dec11 = property({
+      }), _dec9 = property(Node), _dec10 = property(Node), _dec11 = property(Node), _dec12 = property({
         type: [PlayerUnitIconBinding]
-      }), _dec12 = property(Node), _dec13 = property({
+      }), _dec13 = property(Node), _dec14 = property(Node), _dec15 = property({
         min: 0
-      }), _dec14 = property({
+      }), _dec16 = property({
         min: 0
-      }), _dec15 = property({
+      }), _dec17 = property({
         min: 1
       }), _dec4(_class4 = (_class5 = (_class6 = class PlayerArmyController extends Component {
         constructor() {
@@ -99,27 +109,31 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
           _initializerDefineProperty(this, "gameManager", _descriptor3, this);
 
-          _initializerDefineProperty(this, "team", _descriptor4, this);
+          _initializerDefineProperty(this, "botArmyBrain", _descriptor4, this);
 
-          _initializerDefineProperty(this, "defaultLane", _descriptor5, this);
+          _initializerDefineProperty(this, "team", _descriptor5, this);
 
-          _initializerDefineProperty(this, "leftPicker", _descriptor6, this);
+          _initializerDefineProperty(this, "defaultLane", _descriptor6, this);
 
-          _initializerDefineProperty(this, "midPicker", _descriptor7, this);
+          _initializerDefineProperty(this, "leftPicker", _descriptor7, this);
 
-          _initializerDefineProperty(this, "rightPicker", _descriptor8, this);
+          _initializerDefineProperty(this, "midPicker", _descriptor8, this);
 
-          _initializerDefineProperty(this, "unitIcons", _descriptor9, this);
+          _initializerDefineProperty(this, "rightPicker", _descriptor9, this);
 
-          _initializerDefineProperty(this, "powerBarContainer", _descriptor10, this);
+          _initializerDefineProperty(this, "unitIcons", _descriptor10, this);
 
-          _initializerDefineProperty(this, "coolDownDuration", _descriptor11, this);
+          _initializerDefineProperty(this, "unitsPicker", _descriptor11, this);
 
-          _initializerDefineProperty(this, "doubleTapWindow", _descriptor12, this);
+          _initializerDefineProperty(this, "powerBarContainer", _descriptor12, this);
 
-          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor13, this);
+          _initializerDefineProperty(this, "coolDownDuration", _descriptor13, this);
 
-          _initializerDefineProperty(this, "maxAliveWaves", _descriptor14, this);
+          _initializerDefineProperty(this, "doubleTapWindow", _descriptor14, this);
+
+          _initializerDefineProperty(this, "enableMaxAliveWaveLimit", _descriptor15, this);
+
+          _initializerDefineProperty(this, "maxAliveWaves", _descriptor16, this);
 
           this.selectedLaneId = PlayerLane.Mid;
           this.coolDownTimer = 0;
@@ -138,6 +152,9 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.lastAvailabilityCombatPoint = NaN;
           this.lastAvailabilityCoolingDown = false;
           this.unitIconTintDirty = true;
+          this.wasWaitingForPlayerStart = false;
+          this.consumeStartTouch = false;
+          this.botArmyBrainWasEnabled = false;
         }
 
         onLoad() {
@@ -151,15 +168,48 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         onEnable() {
+          var _this$botArmyBrain$en, _this$botArmyBrain;
+
+          var manager = this.getGameManager();
+          manager == null || manager.setManualBattleStartEnabled(true);
+          this.botArmyBrainWasEnabled = (_this$botArmyBrain$en = (_this$botArmyBrain = this.botArmyBrain) == null ? void 0 : _this$botArmyBrain.enabled) != null ? _this$botArmyBrain$en : false;
+
+          if (this.botArmyBrain) {
+            this.botArmyBrain.enabled = false;
+          }
+
           this.registerInput();
+          input.on(Input.EventType.TOUCH_END, this.onBattleStartTap, this);
         }
 
         onDisable() {
+          var _this$getGameManager;
+
+          input.off(Input.EventType.TOUCH_END, this.onBattleStartTap, this);
           this.unregisterInput();
           this.clearPendingLaneTap();
+          (_this$getGameManager = this.getGameManager()) == null || _this$getGameManager.setManualBattleStartEnabled(false);
+
+          if (this.botArmyBrain && this.botArmyBrain.isValid) {
+            this.botArmyBrain.enabled = this.botArmyBrainWasEnabled;
+          }
         }
 
         update(deltaTime) {
+          var _this$getGameManager$, _this$getGameManager2;
+
+          var waiting = (_this$getGameManager$ = (_this$getGameManager2 = this.getGameManager()) == null ? void 0 : _this$getGameManager2.isWaitingForPlayerStart()) != null ? _this$getGameManager$ : false;
+
+          if (waiting && !this.wasWaitingForPlayerStart) {
+            this.prepareForPlayerBattle();
+          }
+
+          this.wasWaitingForPlayerStart = waiting;
+
+          if (this.consumeStartTouch) {
+            this.consumeStartTouch = false;
+          }
+
           var wasCoolingDown = this.isCoolingDown();
 
           if (this.coolDownTimer > 0) {
@@ -194,6 +244,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         spawnUnit(_event, unitName) {
+          if (!this.canHandleBattleInput()) return;
           this.setSelectedUnit(unitName != null ? unitName : '');
         }
 
@@ -268,6 +319,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         onLanePickerTap(event) {
+          if (!this.canHandleBattleInput()) return;
           var node = event.currentTarget;
 
           if (node === this.leftPicker) {
@@ -286,6 +338,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         onUnitIconTap(event) {
+          if (!this.canHandleBattleInput()) return;
           var node = event.currentTarget;
           if (!node) return;
           var unitName = this.getUnitNameForIcon(node);
@@ -300,10 +353,19 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
+          if (!this.canAffordUnitName(unitName)) {
+            // Do not enter lane-selection mode for a unit that cannot be
+            // spawned with the current CP.
+            this.setSelectedUnit('');
+            return;
+          }
+
           this.setSelectedUnit(unitName);
         }
 
         handleLaneTap(laneId) {
+          if (!this.canHandleBattleInput()) return;
+
           if (this.isCoolingDown()) {
             this.clearPendingLaneTap();
             console.warn("[PlayerArmyController] Spawn is cooling down: " + this.coolDownTimer.toFixed(2) + "s remaining.");
@@ -393,7 +455,7 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
             return;
           }
 
-          if (!manager.isBattleRuntimeRunning()) {
+          if (!manager.isBattleRuntimeRunning() || manager.hasBattleWinner()) {
             return;
           }
 
@@ -412,7 +474,6 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           var wave = manager.spawnWaveByName(this.team, safeUnitName, laneId, aggressiveForward);
           if (!wave) return;
           this.setSelectedUnit('');
-          this.setLanePickersVisible(false);
           this.startCoolDown();
         }
 
@@ -425,6 +486,14 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         }
 
         getMaxAliveWaves() {
+          var _this$getGameManager3;
+
+          var progressionLimit = (_this$getGameManager3 = this.getGameManager()) == null || (_this$getGameManager3 = _this$getGameManager3.battleProgressionProvider) == null || _this$getGameManager3.getPlayerMaxAliveWaves == null ? void 0 : _this$getGameManager3.getPlayerMaxAliveWaves();
+
+          if (progressionLimit !== null && progressionLimit !== undefined && Number.isFinite(progressionLimit)) {
+            return Math.max(1, Math.floor(progressionLimit));
+          }
+
           return Math.max(1, Math.floor(this.maxAliveWaves));
         }
 
@@ -507,12 +576,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
 
             if (blocked) {
               this.clearPendingLaneTap();
-              this.setLanePickersVisible(false);
-            } else if (this.selectedUnitName && this.canAffordUnitName(this.selectedUnitName)) {
-              this.setLanePickersVisible(true);
             }
           }
 
+          this.setLanePickersVisible(!!this.selectedUnitName && this.canAffordUnitName(this.selectedUnitName) && !this.isCoolingDown() && !blocked);
           this.updateUnitIconTint(this.isSpawnInputBlocked());
         }
 
@@ -627,8 +694,13 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           var canAfford = !!safeUnitName && this.canAffordUnitName(safeUnitName);
           var maxBlocked = this.isMaxAliveWaveBlocked();
           this.maxAliveWaveBlocked = maxBlocked;
-          this.selectedUnitName = safeUnitName;
-          this.setLanePickersVisible(canAfford && !this.isCoolingDown() && !maxBlocked);
+          var canPrepareSpawn = canAfford && !this.isCoolingDown() && !maxBlocked; // Keep the unit picker visible until the selected unit can actually
+          // be spawned. Hiding it only makes sense while the player is choosing
+          // a lane for a unit that is ready to spawn.
+
+          this.selectedUnitName = canPrepareSpawn ? safeUnitName : '';
+          this.setUnitsPickerVisible(!this.selectedUnitName);
+          this.setLanePickersVisible(canPrepareSpawn);
           this.updateUnitIconTint(this.isSpawnInputBlocked(), true);
 
           for (var i = 0; i < this.unitIcons.length; i++) {
@@ -670,6 +742,12 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           this.setLanePickerNodesVisible(visible);
         }
 
+        setUnitsPickerVisible(visible) {
+          if (this.unitsPicker) {
+            this.unitsPicker.active = visible;
+          }
+        }
+
         getLanePickerContainer() {
           var parent = this.leftPicker ? this.leftPicker.parent : null;
 
@@ -705,6 +783,45 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
           sprite.color = active ? PlayerArmyController.activeTint : inactiveTint;
         }
 
+        onBattleStartTap() {
+          var manager = this.getGameManager();
+          if (!(manager != null && manager.isWaitingForPlayerStart())) return;
+
+          if (!this.wasWaitingForPlayerStart) {
+            this.prepareForPlayerBattle();
+            this.wasWaitingForPlayerStart = true;
+          }
+
+          if (manager.startBattleRuntime()) {
+            this.consumeStartTouch = true;
+          }
+        }
+
+        canHandleBattleInput() {
+          var manager = this.getGameManager();
+          return !this.consumeStartTouch && !!(manager != null && manager.isBattleRuntimeRunning()) && !manager.hasBattleWinner();
+        }
+
+        prepareForPlayerBattle() {
+          this.clearPendingLaneTap();
+          this.coolDownTimer = 0;
+          this.selectedUnitName = '';
+          this.lastAvailabilityAliveWaveCount = -1;
+          this.lastAvailabilityCombatPoint = NaN;
+          this.lastAvailabilityCoolingDown = false;
+          this.unitIconTintDirty = true;
+          var manager = this.getGameManager();
+
+          for (var i = 0; i < this.unitIcons.length; i++) {
+            var item = this.unitIcons[i];
+            if (!(item != null && item.node)) continue;
+            item.node.active = !!manager && manager.isUnitNameUnlocked(this.team, item.unitName.trim());
+          }
+
+          this.setSelectedUnit('');
+          this.updatePowerBar();
+        }
+
       }, _class6.activeTint = new Color(255, 255, 255, 255), _class6.inactiveTint = new Color(0, 0, 0, 255), _class6.unitCooldownTint = new Color(128, 128, 128, 255), _class6), (_descriptor3 = _applyDecoratedDescriptor(_class5.prototype, "gameManager", [_dec5], {
         configurable: true,
         enumerable: true,
@@ -712,77 +829,91 @@ System.register(["__unresolved_0", "cc", "__unresolved_1"], function (_export, _
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor4 = _applyDecoratedDescriptor(_class5.prototype, "team", [_dec6], {
+      }), _descriptor4 = _applyDecoratedDescriptor(_class5.prototype, "botArmyBrain", [_dec6], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "team", [_dec7], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0;
         }
-      }), _descriptor5 = _applyDecoratedDescriptor(_class5.prototype, "defaultLane", [_dec7], {
+      }), _descriptor6 = _applyDecoratedDescriptor(_class5.prototype, "defaultLane", [_dec8], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return PlayerLane.Mid;
         }
-      }), _descriptor6 = _applyDecoratedDescriptor(_class5.prototype, "leftPicker", [_dec8], {
+      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "leftPicker", [_dec9], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor7 = _applyDecoratedDescriptor(_class5.prototype, "midPicker", [_dec9], {
+      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "midPicker", [_dec10], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor8 = _applyDecoratedDescriptor(_class5.prototype, "rightPicker", [_dec10], {
+      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "rightPicker", [_dec11], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor9 = _applyDecoratedDescriptor(_class5.prototype, "unitIcons", [_dec11], {
+      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "unitIcons", [_dec12], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return [];
         }
-      }), _descriptor10 = _applyDecoratedDescriptor(_class5.prototype, "powerBarContainer", [_dec12], {
+      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "unitsPicker", [_dec13], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return null;
         }
-      }), _descriptor11 = _applyDecoratedDescriptor(_class5.prototype, "coolDownDuration", [_dec13], {
+      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "powerBarContainer", [_dec14], {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        initializer: function initializer() {
+          return null;
+        }
+      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "coolDownDuration", [_dec15], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 3;
         }
-      }), _descriptor12 = _applyDecoratedDescriptor(_class5.prototype, "doubleTapWindow", [_dec14], {
+      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "doubleTapWindow", [_dec16], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return 0.25;
         }
-      }), _descriptor13 = _applyDecoratedDescriptor(_class5.prototype, "enableMaxAliveWaveLimit", [property], {
+      }), _descriptor15 = _applyDecoratedDescriptor(_class5.prototype, "enableMaxAliveWaveLimit", [property], {
         configurable: true,
         enumerable: true,
         writable: true,
         initializer: function initializer() {
           return true;
         }
-      }), _descriptor14 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWaves", [_dec15], {
+      }), _descriptor16 = _applyDecoratedDescriptor(_class5.prototype, "maxAliveWaves", [_dec17], {
         configurable: true,
         enumerable: true,
         writable: true,

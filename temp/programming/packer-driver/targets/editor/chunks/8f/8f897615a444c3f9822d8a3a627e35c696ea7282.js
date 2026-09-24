@@ -867,6 +867,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
             return true;
           }
 
+          if (manager.isWaitingForPlayerStart()) {
+            return true;
+          }
+
           const started = manager.startBattleRuntime();
 
           if (!started) {
@@ -874,6 +878,10 @@ System.register(["__unresolved_0", "cc", "__unresolved_1", "__unresolved_2", "__
           }
 
           return started;
+        }
+
+        getPlayerMaxAliveWaves() {
+          return this.enableProgression && this.progressionState ? this.progressionState.playerMaxAlive : null;
         }
 
         initializeProgression() {

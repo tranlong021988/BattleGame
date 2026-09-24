@@ -1,7 +1,7 @@
 {
   "modules": {
     "cce:/internal/x/cc": {
-      "mTimestamp": 6977.2316,
+      "mTimestamp": 7768.2472,
       "chunkId": "93ba276ea7b26ffcdc433fab14afc1ed6f05647b",
       "imports": [
         {
@@ -451,7 +451,7 @@
       ]
     },
     "cce:/internal/x/prerequisite-imports": {
-      "mTimestamp": 9041753.8952,
+      "mTimestamp": 2738576.2186,
       "chunkId": "6d8fd2b0177941b032ddc0733af48a561fb60657",
       "imports": [
         {
@@ -4582,7 +4582,7 @@
       ]
     },
     "cce:/internal/code-quality/cr.mjs": {
-      "mTimestamp": 1789973382448,
+      "mTimestamp": 1790153931217,
       "chunkId": "6a5019a719a9014c047e67aa1cf34453ab8392ce",
       "imports": [],
       "type": "esm",
@@ -4712,7 +4712,7 @@
       ]
     },
     "cce:/internal/ml/cjs-loader.mjs": {
-      "mTimestamp": 1789973382448,
+      "mTimestamp": 1790153931217,
       "chunkId": "a0d063530de23ddade53e1a935bf64c81277c061",
       "imports": [],
       "type": "esm",
@@ -5905,7 +5905,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/LevelSettings.ts": {
       "mTimestamp": {
-        "mtime": 1789982389865.0215,
+        "mtime": 1790068959837.9382,
         "uuid": "8d7314d2-3c4c-418e-a25d-e9a502dce47a"
       },
       "chunkId": "8f897615a444c3f9822d8a3a627e35c696ea7282",
@@ -6281,7 +6281,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/PlayerArmyController.ts": {
       "mTimestamp": {
-        "mtime": 1786689894893.1309,
+        "mtime": 1790156640556.43,
         "uuid": "89dbf6bc-f175-4f38-b295-7565a1a58ad8"
       },
       "chunkId": "ca43d7214a083b257bb741b899a2ab97fadae29e",
@@ -6300,11 +6300,11 @@
           "value": "cc",
           "loc": {
             "start": {
-              "line": 12,
+              "line": 14,
               "column": 7
             },
             "end": {
-              "line": 12,
+              "line": 14,
               "column": 11
             }
           }
@@ -6314,12 +6314,26 @@
           "resolved": "__unresolved_1",
           "loc": {
             "start": {
-              "line": 13,
+              "line": 15,
               "column": 28
             },
             "end": {
-              "line": 13,
+              "line": 15,
               "column": 43
+            }
+          }
+        },
+        {
+          "value": "./BattleArmyBrain",
+          "resolved": "__unresolved_2",
+          "loc": {
+            "start": {
+              "line": 16,
+              "column": 32
+            },
+            "end": {
+              "line": 16,
+              "column": 51
             }
           }
         }
@@ -6358,6 +6372,13 @@
           "resolved": {
             "type": "module",
             "url": "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts"
+          },
+          "messages": []
+        },
+        {
+          "resolved": {
+            "type": "module",
+            "url": "file:///D:/Works/Github/BattleGame/assets/scripts/BattleArmyBrain.ts"
           },
           "messages": []
         }
@@ -8460,7 +8481,7 @@
     },
     "file:///D:/Works/Github/BattleGame/assets/scripts/GameManager.ts": {
       "mTimestamp": {
-        "mtime": 1789982330520.068,
+        "mtime": 1790155700134.3623,
         "uuid": "1e335392-7464-462e-b0f4-f1a62cb2f2ab"
       },
       "chunkId": "4c2b696cf74ad4a64312434293dff943ef04c44b",

@@ -86,6 +86,7 @@ export interface BattleProgressionProvider {
     shouldResetBattleAfterResult(): boolean;
     resetBattle(): boolean;
     isBossBattle?(): boolean;
+    getPlayerMaxAliveWaves?(): number | null;
 }
 
 @ccclass('GameManager')
@@ -241,6 +242,12 @@ export class GameManager extends Component {
 
     @property
     battleMaxZ = 18;
+
+    @property(Node)
+    redHeroLine: Node | null = null;
+
+    @property(Node)
+    blueHeroLine: Node | null = null;
 
     @property
     updateInterval = 2;
@@ -512,12 +519,24 @@ export class GameManager extends Component {
     }[] = [];
     private battleCardRuntime: BattleCardRuntime | null = null;
     private battleRuntimeActive = false;
+    private manualBattleStartEnabled = false;
     private rvoStepAccumulatedDelta = 0;
     private battleRuntimeRoot: Node | null = null;
     private readonly heroSpawnPositions: Map<Node, Vec3> = new Map();
 
     start() {
-        this.startBattleRuntime();
+        if (!this.manualBattleStartEnabled) {
+            this.startBattleRuntime();
+        }
+    }
+
+    public setManualBattleStartEnabled(enabled: boolean) {
+        this.manualBattleStartEnabled = enabled;
+    }
+
+    public isWaitingForPlayerStart() {
+        return this.manualBattleStartEnabled &&
+            !this.battleRuntimeActive;
     }
 
     public startBattleRuntime() {
@@ -7900,7 +7919,24 @@ export class GameManager extends Component {
 
         if (Number.isFinite(lineZ)) {
             this.heroLineZ[team] = lineZ;
+            this.updateHeroLineIndicator(team, lineZ);
         }
+    }
+
+    private updateHeroLineIndicator(
+        team: number,
+        lineZ: number
+    ) {
+        const indicator = team === 0
+            ? this.blueHeroLine
+            : this.redHeroLine;
+
+        if (!indicator) return;
+
+        const position = indicator.worldPosition.clone();
+        position.x = (this.battleMinX + this.battleMaxX) * 0.5;
+        position.z = lineZ;
+        indicator.setWorldPosition(position);
     }
 
     private prepareSceneHero(

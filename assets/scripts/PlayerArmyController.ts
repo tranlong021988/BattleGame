@@ -6,11 +6,14 @@ import {
     Enum,
     Event,
     EventTouch,
+    input,
+    Input,
     Node,
     Sprite,
     UITransform,
 } from 'cc';
 import { GameManager } from './GameManager';
+import { BattleArmyBrain } from './BattleArmyBrain';
 
 const { ccclass, property } = _decorator;
 
@@ -48,6 +51,9 @@ export class PlayerArmyController extends Component {
     @property(GameManager)
     gameManager: GameManager | null = null;
 
+    @property(BattleArmyBrain)
+    botArmyBrain: BattleArmyBrain | null = null;
+
     @property({ min: 0, max: 1, step: 1 })
     team = 0;
 
@@ -65,6 +71,9 @@ export class PlayerArmyController extends Component {
 
     @property({ type: [PlayerUnitIconBinding] })
     unitIcons: PlayerUnitIconBinding[] = [];
+
+    @property(Node)
+    unitsPicker: Node | null = null;
 
     @property(Node)
     powerBarContainer: Node | null = null;
@@ -98,6 +107,9 @@ export class PlayerArmyController extends Component {
     private lastAvailabilityCombatPoint = NaN;
     private lastAvailabilityCoolingDown = false;
     private unitIconTintDirty = true;
+    private wasWaitingForPlayerStart = false;
+    private consumeStartTouch = false;
+    private botArmyBrainWasEnabled = false;
 
     onLoad() {
         this.cachePowerBar();
@@ -110,15 +122,47 @@ export class PlayerArmyController extends Component {
     }
 
     onEnable() {
+        const manager = this.getGameManager();
+        manager?.setManualBattleStartEnabled(true);
+        this.botArmyBrainWasEnabled =
+            this.botArmyBrain?.enabled ?? false;
+        if (this.botArmyBrain) {
+            this.botArmyBrain.enabled = false;
+        }
         this.registerInput();
+        input.on(
+            Input.EventType.TOUCH_END,
+            this.onBattleStartTap,
+            this
+        );
     }
 
     onDisable() {
+        input.off(
+            Input.EventType.TOUCH_END,
+            this.onBattleStartTap,
+            this
+        );
         this.unregisterInput();
         this.clearPendingLaneTap();
+        this.getGameManager()?.setManualBattleStartEnabled(false);
+        if (this.botArmyBrain && this.botArmyBrain.isValid) {
+            this.botArmyBrain.enabled =
+                this.botArmyBrainWasEnabled;
+        }
     }
 
     update(deltaTime: number) {
+        const waiting =
+            this.getGameManager()?.isWaitingForPlayerStart() ?? false;
+        if (waiting && !this.wasWaitingForPlayerStart) {
+            this.prepareForPlayerBattle();
+        }
+        this.wasWaitingForPlayerStart = waiting;
+        if (this.consumeStartTouch) {
+            this.consumeStartTouch = false;
+        }
+
         const wasCoolingDown =
             this.isCoolingDown();
 
@@ -169,6 +213,7 @@ export class PlayerArmyController extends Component {
         _event: Event,
         unitName: string
     ) {
+        if (!this.canHandleBattleInput()) return;
         this.setSelectedUnit(unitName ?? '');
     }
 
@@ -281,6 +326,7 @@ export class PlayerArmyController extends Component {
     }
 
     private onLanePickerTap(event: EventTouch) {
+        if (!this.canHandleBattleInput()) return;
         const node = event.currentTarget as Node | null;
 
         if (node === this.leftPicker) {
@@ -299,6 +345,7 @@ export class PlayerArmyController extends Component {
     }
 
     private onUnitIconTap(event: EventTouch) {
+        if (!this.canHandleBattleInput()) return;
         const node = event.currentTarget as Node | null;
 
         if (!node) return;
@@ -320,10 +367,18 @@ export class PlayerArmyController extends Component {
             return;
         }
 
+        if (!this.canAffordUnitName(unitName)) {
+            // Do not enter lane-selection mode for a unit that cannot be
+            // spawned with the current CP.
+            this.setSelectedUnit('');
+            return;
+        }
+
         this.setSelectedUnit(unitName);
     }
 
     private handleLaneTap(laneId: number) {
+        if (!this.canHandleBattleInput()) return;
         if (this.isCoolingDown()) {
             this.clearPendingLaneTap();
             console.warn(
@@ -459,7 +514,10 @@ export class PlayerArmyController extends Component {
             return;
         }
 
-        if (!manager.isBattleRuntimeRunning()) {
+        if (
+            !manager.isBattleRuntimeRunning() ||
+            manager.hasBattleWinner()
+        ) {
             return;
         }
 
@@ -491,7 +549,6 @@ export class PlayerArmyController extends Component {
         if (!wave) return;
 
         this.setSelectedUnit('');
-        this.setLanePickersVisible(false);
         this.startCoolDown();
     }
 
@@ -507,6 +564,17 @@ export class PlayerArmyController extends Component {
     }
 
     private getMaxAliveWaves() {
+        const progressionLimit =
+            this.getGameManager()
+                ?.battleProgressionProvider
+                ?.getPlayerMaxAliveWaves?.();
+        if (
+            progressionLimit !== null &&
+            progressionLimit !== undefined &&
+            Number.isFinite(progressionLimit)
+        ) {
+            return Math.max(1, Math.floor(progressionLimit));
+        }
         return Math.max(
             1,
             Math.floor(this.maxAliveWaves)
@@ -641,18 +709,16 @@ export class PlayerArmyController extends Component {
 
             if (blocked) {
                 this.clearPendingLaneTap();
-                this.setLanePickersVisible(false);
-            } else if (
-                this.selectedUnitName &&
-                this.canAffordUnitName(this.selectedUnitName)
-            ) {
-                this.setLanePickersVisible(true);
             }
         }
 
-        this.updateUnitIconTint(
-            this.isSpawnInputBlocked()
+        this.setLanePickersVisible(
+            !!this.selectedUnitName &&
+            this.canAffordUnitName(this.selectedUnitName) &&
+            !this.isCoolingDown() &&
+            !blocked
         );
+        this.updateUnitIconTint(this.isSpawnInputBlocked());
     }
 
     private shouldRefreshSpawnAvailability() {
@@ -842,12 +908,20 @@ export class PlayerArmyController extends Component {
             this.isMaxAliveWaveBlocked();
 
         this.maxAliveWaveBlocked = maxBlocked;
-
-        this.selectedUnitName = safeUnitName;
-        this.setLanePickersVisible(
+        const canPrepareSpawn =
             canAfford &&
             !this.isCoolingDown() &&
-            !maxBlocked
+            !maxBlocked;
+
+        // Keep the unit picker visible until the selected unit can actually
+        // be spawned. Hiding it only makes sense while the player is choosing
+        // a lane for a unit that is ready to spawn.
+        this.selectedUnitName = canPrepareSpawn
+            ? safeUnitName
+            : '';
+        this.setUnitsPickerVisible(!this.selectedUnitName);
+        this.setLanePickersVisible(
+            canPrepareSpawn
         );
         this.updateUnitIconTint(
             this.isSpawnInputBlocked(),
@@ -905,6 +979,12 @@ export class PlayerArmyController extends Component {
         this.setLanePickerNodesVisible(visible);
     }
 
+    private setUnitsPickerVisible(visible: boolean) {
+        if (this.unitsPicker) {
+            this.unitsPicker.active = visible;
+        }
+    }
+
     private getLanePickerContainer() {
         const parent =
             this.leftPicker ? this.leftPicker.parent : null;
@@ -952,5 +1032,48 @@ export class PlayerArmyController extends Component {
         sprite.color = active
             ? PlayerArmyController.activeTint
             : inactiveTint;
+    }
+
+    private onBattleStartTap() {
+        const manager = this.getGameManager();
+        if (!manager?.isWaitingForPlayerStart()) return;
+        if (!this.wasWaitingForPlayerStart) {
+            this.prepareForPlayerBattle();
+            this.wasWaitingForPlayerStart = true;
+        }
+        if (manager.startBattleRuntime()) {
+            this.consumeStartTouch = true;
+        }
+    }
+
+    private canHandleBattleInput() {
+        const manager = this.getGameManager();
+        return !this.consumeStartTouch &&
+            !!manager?.isBattleRuntimeRunning() &&
+            !manager.hasBattleWinner();
+    }
+
+    private prepareForPlayerBattle() {
+        this.clearPendingLaneTap();
+        this.coolDownTimer = 0;
+        this.selectedUnitName = '';
+        this.lastAvailabilityAliveWaveCount = -1;
+        this.lastAvailabilityCombatPoint = NaN;
+        this.lastAvailabilityCoolingDown = false;
+        this.unitIconTintDirty = true;
+
+        const manager = this.getGameManager();
+        for (let i = 0; i < this.unitIcons.length; i++) {
+            const item = this.unitIcons[i];
+            if (!item?.node) continue;
+            item.node.active = !!manager &&
+                manager.isUnitNameUnlocked(
+                    this.team,
+                    item.unitName.trim()
+                );
+        }
+
+        this.setSelectedUnit('');
+        this.updatePowerBar();
     }
 }

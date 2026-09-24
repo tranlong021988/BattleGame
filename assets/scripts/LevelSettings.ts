@@ -1179,6 +1179,10 @@ export class LevelSettings extends Component
             return true;
         }
 
+        if (manager.isWaitingForPlayerStart()) {
+            return true;
+        }
+
         const started = manager.startBattleRuntime();
 
         if (!started) {
@@ -1188,6 +1192,12 @@ export class LevelSettings extends Component
         }
 
         return started;
+    }
+
+    public getPlayerMaxAliveWaves(): number | null {
+        return this.enableProgression && this.progressionState
+            ? this.progressionState.playerMaxAlive
+            : null;
     }
 
     private initializeProgression() {
